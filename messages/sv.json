@@ -1581,6 +1581,8 @@
     "termsOfService": "Användarvillkor",
     "privacyPolicy": "Integritetspolicy",
     "and": "och",
+    "languageSwedish": "Svenska",
+    "languageEnglish": "Engelska",
     "invalidEmail": "Ange en giltig e-postadress",
     "passwordMinLength": "Lösenordet måste vara minst 6 tecken",
     "invalidCredentials": "Felaktig e-post eller lösenord",
@@ -1821,7 +1823,53 @@
       "description": "Skapa ditt konto för att ta över din verksamhet.",
       "claimingBusiness": "Aktiverar verksamhet",
       "claimButton": "Skapa konto och aktivera",
-      "success": "Din verksamhet har aktiverats!"
+      "success": "Din verksamhet har aktiverats!",
+      "errors": {
+        "invalidOrExpired": "Inbjudningslänken är ogiltig eller har gått ut",
+        "invalidClaimLink": "Ogiltig inbjudningslänk",
+        "failedValidation": "Kunde inte validera inbjudningslänken",
+        "failedCompletion": "Kunde inte slutföra registreringen",
+        "nameMinLength": "Namnet måste vara minst 2 tecken",
+        "passwordsDoNotMatch": "Lösenorden matchar inte",
+        "unknownBusiness": "Verksamhet"
+      },
+      "businessType": {
+        "gym": "Gym",
+        "team": "Lag"
+      }
+    },
+    "partnerRegistration": {
+      "badge": "Partnerregistrering",
+      "title": "Gå med via {businessName}",
+      "description": "Skapa ditt konto via {businessName} för att komma igång med professionella träningsverktyg.",
+      "successTitle": "Registreringen lyckades!",
+      "successDescription": "Ditt konto har skapats. Omdirigerar till inloggning...",
+      "submit": "Skapa konto",
+      "hasAccount": "Har du redan ett konto?",
+      "fields": {
+        "name": "Fullständigt namn",
+        "email": "E-post",
+        "password": "Lösenord",
+        "confirmPassword": "Bekräfta lösenord",
+        "language": "Språk"
+      },
+      "placeholders": {
+        "name": "Namn",
+        "email": "namn@example.com",
+        "password": "Minst 8 tecken",
+        "confirmPassword": "Upprepa ditt lösenord"
+      },
+      "validation": {
+        "fieldRequired": "Alla fält markerade med * är obligatoriska",
+        "passwordMinLength": "Lösenordet måste vara minst 8 tecken",
+        "passwordsDoNotMatch": "Lösenorden matchar inte",
+        "mustAcceptTerms": "Du måste acceptera villkoren"
+      },
+      "errors": {
+        "registrationFailed": "Registreringen misslyckades"
+      },
+      "termsTextPrefix": "Jag godkänner",
+      "termsConnector": "och"
     },
     "joinGym": {
       "title": "Anslut till ett befintligt gym eller klubb (valfritt)",

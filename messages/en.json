@@ -1581,6 +1581,8 @@
     "termsOfService": "Terms of Service",
     "privacyPolicy": "Privacy Policy",
     "and": "and",
+    "languageSwedish": "Swedish",
+    "languageEnglish": "English",
     "invalidEmail": "Enter a valid email address",
     "passwordMinLength": "Password must be at least 6 characters",
     "genderLabel": "Gender (optional)",
@@ -1821,7 +1823,53 @@
       "description": "Create your account to take over your business.",
       "claimingBusiness": "Claiming business",
       "claimButton": "Create account and activate",
-      "success": "Your business has been activated!"
+      "success": "Your business has been activated!",
+      "errors": {
+        "invalidOrExpired": "The claim link is invalid or has expired",
+        "invalidClaimLink": "Invalid claim link",
+        "failedValidation": "Failed to validate claim link",
+        "failedCompletion": "Failed to complete registration",
+        "nameMinLength": "Name must be at least 2 characters",
+        "passwordsDoNotMatch": "Passwords do not match",
+        "unknownBusiness": "Business"
+      },
+      "businessType": {
+        "gym": "Gym",
+        "team": "Team"
+      }
+    },
+    "partnerRegistration": {
+      "badge": "Partner Registration",
+      "title": "Join via {businessName}",
+      "description": "Create your account through {businessName} to get started with professional training tools.",
+      "successTitle": "Registration Successful!",
+      "successDescription": "Your account has been created. Redirecting to login...",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "fields": {
+        "name": "Full Name",
+        "email": "Email",
+        "password": "Password",
+        "confirmPassword": "Confirm Password",
+        "language": "Language"
+      },
+      "placeholders": {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "password": "At least 8 characters",
+        "confirmPassword": "Repeat your password"
+      },
+      "validation": {
+        "fieldRequired": "All fields marked with * are required",
+        "passwordMinLength": "Password must be at least 8 characters",
+        "passwordsDoNotMatch": "Passwords do not match",
+        "mustAcceptTerms": "You must accept the terms and conditions"
+      },
+      "errors": {
+        "registrationFailed": "Registration failed"
+      },
+      "termsTextPrefix": "I accept the",
+      "termsConnector": "and"
     },
     "joinGym": {
       "title": "Join an existing gym or club (optional)",

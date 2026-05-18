@@ -12,18 +12,6 @@ import { Loader2, Building2, CheckCircle2 } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
-const claimSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-})
-
-type ClaimFormData = z.infer<typeof claimSchema>
-
 interface InvitationInfo {
   businessName: string
   businessType: string
@@ -40,6 +28,18 @@ export default function ClaimBusinessPage() {
   const [validating, setValidating] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const claimSchema = z.object({
+    name: z.string().min(2, t('claimBusiness.errors.nameMinLength')),
+    email: z.string().email(t('invalidEmail')),
+    password: z.string().min(6, t('passwordMinLength')),
+    confirmPassword: z.string(),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('claimBusiness.errors.passwordsDoNotMatch'),
+    path: ['confirmPassword'],
+  })
+
+  type ClaimFormData = z.infer<typeof claimSchema>
+
   const code = params.code as string
 
   useEffect(() => {
@@ -47,27 +47,33 @@ export default function ClaimBusinessPage() {
       try {
         const response = await fetch(`/api/invitations/${code}`)
         if (!response.ok) {
-          setError('Invalid or expired claim link')
+          setError(t('claimBusiness.errors.invalidOrExpired'))
           return
         }
         const data = await response.json()
         if (data.invitation?.type !== 'BUSINESS_CLAIM') {
-          setError('Invalid claim link')
+          setError(t('claimBusiness.errors.invalidClaimLink'))
           return
         }
+        const businessType =
+          data.invitation.business?.type === 'GYM'
+            ? t('claimBusiness.businessType.gym')
+            : data.invitation.business?.type === 'CLUB'
+              ? t('claimBusiness.businessType.team')
+              : t('claimBusiness.businessType.team')
         setInvitation({
-          businessName: data.invitation.business?.name || 'Business',
-          businessType: data.invitation.business?.type || 'GYM',
+          businessName: data.invitation.business?.name || t('claimBusiness.errors.unknownBusiness'),
+          businessType,
           recipientEmail: data.invitation.recipientEmail || '',
         })
       } catch {
-        setError('Failed to validate claim link')
+        setError(t('claimBusiness.errors.failedValidation'))
       } finally {
         setValidating(false)
       }
     }
-    validateCode()
-  }, [code])
+    void validateCode()
+  }, [code, t])
 
   const {
     register,
@@ -97,7 +103,7 @@ export default function ClaimBusinessPage() {
       if (!response.ok) {
         toast({
           title: t('registrationFailed'),
-          description: result.error || 'Failed to complete registration',
+          description: result.error || t('claimBusiness.errors.failedCompletion'),
           variant: 'destructive',
         })
         return

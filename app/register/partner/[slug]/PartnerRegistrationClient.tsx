@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from '@/i18n/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,7 @@ interface PartnerRegistrationClientProps {
 }
 
 export function PartnerRegistrationClient({ business }: PartnerRegistrationClientProps) {
+  const t = useTranslations('auth')
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,22 +58,22 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
 
     // Validation
     if (!formData.name || !formData.email || !formData.password) {
-      setError('Please fill in all required fields')
+      setError(t('partnerRegistration.validation.fieldRequired'))
       return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('partnerRegistration.validation.passwordsDoNotMatch'))
       return
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters')
+      setError(t('partnerRegistration.validation.passwordMinLength'))
       return
     }
 
     if (!formData.acceptTerms) {
-      setError('You must accept the terms and conditions')
+      setError(t('partnerRegistration.validation.mustAcceptTerms'))
       return
     }
 
@@ -94,7 +96,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Registration failed')
+        throw new Error(result.error || t('partnerRegistration.errors.registrationFailed'))
       }
 
       setSuccess(true)
@@ -104,7 +106,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
         router.push('/login?registered=partner')
       }, 2000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed')
+      setError(err instanceof Error ? err.message : t('registrationFailed'))
     } finally {
       setLoading(false)
     }
@@ -117,9 +119,11 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
-              <h2 className="text-2xl font-bold">Registration Successful!</h2>
+              <h2 className="text-2xl font-bold">
+                {t('partnerRegistration.successTitle')}
+              </h2>
               <p className="text-muted-foreground">
-                Your account has been created. Redirecting to login...
+                {t('partnerRegistration.successDescription')}
               </p>
             </div>
           </CardContent>
@@ -140,12 +144,14 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
             >
               <Building2 className="h-6 w-6 text-white" />
             </div>
-            <Badge variant="secondary">Partner Registration</Badge>
+            <Badge variant="secondary">{t('partnerRegistration.badge')}</Badge>
           </div>
 
-          <CardTitle className="text-2xl">Join via {business.name}</CardTitle>
+          <CardTitle className="text-2xl">
+            {t('partnerRegistration.title', { businessName: business.name })}
+          </CardTitle>
           <CardDescription>
-            {business.description || `Create your account through ${business.name} to get started with professional training tools.`}
+            {business.description || t('partnerRegistration.description', { businessName: business.name })}
           </CardDescription>
         </CardHeader>
 
@@ -159,14 +165,14 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
 
             {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
+              <Label htmlFor="name">{t('partnerRegistration.fields.name')}*</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
-                  placeholder="John Doe"
+                  placeholder={t('partnerRegistration.placeholders.name')}
                   className="pl-10"
                   required
                 />
@@ -175,7 +181,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">{t('partnerRegistration.fields.email')}*</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -183,7 +189,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
-                  placeholder="john@example.com"
+                  placeholder={t('partnerRegistration.placeholders.email')}
                   className="pl-10"
                   required
                 />
@@ -192,7 +198,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
+              <Label htmlFor="password">{t('partnerRegistration.fields.password')}*</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -200,7 +206,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
-                  placeholder="At least 8 characters"
+                  placeholder={t('partnerRegistration.placeholders.password')}
                   className="pl-10"
                   required
                   minLength={8}
@@ -210,7 +216,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
 
             {/* Confirm Password */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password *</Label>
+              <Label htmlFor="confirmPassword">{t('partnerRegistration.fields.confirmPassword')}*</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -218,7 +224,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  placeholder="Repeat your password"
+                  placeholder={t('partnerRegistration.placeholders.confirmPassword')}
                   className="pl-10"
                   required
                 />
@@ -227,7 +233,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
 
             {/* Language */}
             <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
+              <Label htmlFor="language">{t('partnerRegistration.fields.language')}</Label>
               <div className="relative">
                 <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
                 <Select
@@ -238,8 +244,8 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sv">Svenska</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="sv">{t('languageSwedish')}</SelectItem>
+                    <SelectItem value="en">{t('languageEnglish')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -253,13 +259,13 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
                 onCheckedChange={(checked) => handleChange('acceptTerms', checked === true)}
               />
               <Label htmlFor="terms" className="text-sm leading-tight cursor-pointer">
-                I accept the{' '}
+                {t('partnerRegistration.termsTextPrefix')}{' '}
                 <a href="/terms" className="text-primary hover:underline" target="_blank">
-                  Terms of Service
+                  {t('termsOfService')}
                 </a>{' '}
-                and{' '}
+                {t('partnerRegistration.termsConnector')}{' '}
                 <a href="/privacy" className="text-primary hover:underline" target="_blank">
-                  Privacy Policy
+                  {t('privacyPolicy')}
                 </a>
               </Label>
             </div>
@@ -267,14 +273,14 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
             {/* Submit */}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-              Create Account
+              {t('partnerRegistration.submit')}
             </Button>
 
             {/* Login Link */}
             <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
+              {t('partnerRegistration.hasAccount')}{' '}
               <Link href="/login" className="text-primary hover:underline">
-                Sign in
+                {t('signInLink')}
               </Link>
             </p>
           </form>
