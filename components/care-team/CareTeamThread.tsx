@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -35,7 +36,6 @@ import {
   Clock,
   Activity,
   User,
-  Stethoscope,
   Dumbbell,
   AlertTriangle,
 } from 'lucide-react'
@@ -116,10 +116,10 @@ interface CareTeamThreadProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'OPEN', label: 'Öppen', icon: Clock },
-  { value: 'IN_PROGRESS', label: 'Pågående', icon: Activity },
-  { value: 'RESOLVED', label: 'Löst', icon: CheckCircle2 },
-  { value: 'CLOSED', label: 'Stängd', icon: AlertCircle },
+  { value: 'OPEN', labelKey: 'status.open', icon: Clock },
+  { value: 'IN_PROGRESS', labelKey: 'status.inProgress', icon: Activity },
+  { value: 'RESOLVED', labelKey: 'status.resolved', icon: CheckCircle2 },
+  { value: 'CLOSED', labelKey: 'status.closed', icon: AlertCircle },
 ]
 
 const ROLE_COLORS: Record<string, string> = {
@@ -129,11 +129,20 @@ const ROLE_COLORS: Record<string, string> = {
   ADMIN: 'bg-red-500/20 text-red-400',
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  PHYSIO: 'Fysio',
-  COACH: 'Coach',
-  ATHLETE: 'Atlet',
-  ADMIN: 'Admin',
+const ROLE_LABEL_KEYS: Record<string, string> = {
+  PHYSIO: 'roles.physio',
+  COACH: 'roles.coach',
+  ATHLETE: 'roles.athlete',
+  ADMIN: 'roles.admin',
+}
+
+const messageCountLabels = {
+  singular: 'messageCount.one',
+  plural: 'messageCount.many',
+} as const
+
+const getDefaultRoleLabel = (role: string) => {
+  return `${role.charAt(0)}${role.slice(1).toLowerCase()}`
 }
 
 export function CareTeamThread({
@@ -144,6 +153,8 @@ export function CareTeamThread({
 }: CareTeamThreadProps) {
   const isGlass = variant === 'glass'
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const t = useTranslations('components.careTeam.thread')
+  const locale = useLocale()
   const [thread, setThread] = useState<Thread | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -167,14 +178,14 @@ export function CareTeamThread({
         setThread(data)
       } catch (err) {
         console.error('Error fetching thread:', err)
-        setError('Kunde inte hämta konversationen')
+        setError(t('errors.fetchFailed'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchThread()
-  }, [threadId])
+    void fetchThread()
+  }, [threadId, t])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -244,7 +255,7 @@ export function CareTeamThread({
   }
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('sv-SE', {
+    return new Date(dateString).toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -267,11 +278,11 @@ export function CareTeamThread({
       <GlassCard className={cn(!isGlass && 'bg-card')}>
         <GlassCardContent className="flex flex-col items-center justify-center py-20 text-red-400">
           <AlertCircle className="h-12 w-12 mb-3" />
-          <p className="font-medium">{error || 'Konversation hittades inte'}</p>
+          <p className="font-medium">{error || t('errors.notFound')}</p>
           {onBack && (
             <Button variant="ghost" onClick={onBack} className="mt-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Tillbaka
+              {t('actions.back')}
             </Button>
           )}
         </GlassCardContent>
@@ -305,7 +316,11 @@ export function CareTeamThread({
                   <User className="h-3.5 w-3.5" />
                   <span>{thread.client.name}</span>
                   <span className="text-slate-600">·</span>
-                  <span>{thread.messageCount} meddelanden</span>
+                  <span>
+                    {thread.messageCount === 1
+                      ? t(messageCountLabels.singular)
+                      : t(messageCountLabels.plural, { count: thread.messageCount })}
+                  </span>
                 </div>
               </div>
             </div>
@@ -324,7 +339,7 @@ export function CareTeamThread({
                   <SelectItem key={option.value} value={option.value}>
                     <div className="flex items-center gap-2">
                       <option.icon className="h-4 w-4" />
-                      {option.label}
+                      {t(option.labelKey)}
                     </div>
                   </SelectItem>
                 ))}
@@ -335,7 +350,7 @@ export function CareTeamThread({
           {/* Participants */}
           <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
-              Deltagare:
+              {t('labels.participants')}
             </span>
             {thread.participants.map((p) => (
               <Badge
@@ -343,7 +358,7 @@ export function CareTeamThread({
                 variant="outline"
                 className={cn('text-[10px]', ROLE_COLORS[p.user.role] || 'border-white/10')}
               >
-                {p.user.name} ({ROLE_LABELS[p.user.role] || p.user.role})
+                {p.user.name} ({ROLE_LABEL_KEYS[p.user.role] ? t(ROLE_LABEL_KEYS[p.user.role]) : getDefaultRoleLabel(p.user.role)})
               </Badge>
             ))}
           </div>
@@ -362,7 +377,7 @@ export function CareTeamThread({
                 <div className="flex items-center gap-2 mb-2">
                   <Dumbbell className="h-4 w-4 text-teal-500" />
                   <span className="text-[10px] font-bold uppercase tracking-widest text-teal-500">
-                    Rehabprogram
+                    {t('sections.rehabProgram')}
                   </span>
                 </div>
                 <p className="font-bold text-white">{thread.rehabProgram.name}</p>
@@ -383,7 +398,7 @@ export function CareTeamThread({
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="h-4 w-4 text-orange-500" />
                   <span className="text-[10px] font-bold uppercase tracking-widest text-orange-500">
-                    Träningsrestriktion
+                    {t('sections.restriction')}
                   </span>
                 </div>
                 <p className="font-bold text-white">{thread.restriction.type}</p>
@@ -401,7 +416,7 @@ export function CareTeamThread({
                   </Badge>
                   {thread.restriction.isActive && (
                     <Badge variant="outline" className="text-[10px] border-green-500/30 text-green-400">
-                      Aktiv
+                      {t('labels.active')}
                     </Badge>
                   )}
                 </div>
@@ -465,17 +480,19 @@ export function CareTeamThread({
               <Textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Skriv ett meddelande..."
+                placeholder={t('compose.placeholder')}
                 className="bg-white/5 border-white/10 min-h-[80px] rounded-xl text-white resize-none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
-                    handleSendMessage()
+                    void handleSendMessage()
                   }
                 }}
               />
               <Button
-                onClick={handleSendMessage}
+                onClick={() => {
+                  void handleSendMessage()
+                }}
                 disabled={!newMessage.trim() || isSending}
                 className="bg-blue-500 hover:bg-blue-600 text-white h-auto"
               >

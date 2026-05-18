@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -94,13 +95,6 @@ const STATUS_ICONS = {
   CLOSED: <Archive className="h-4 w-4 text-slate-500" />,
 }
 
-const STATUS_LABELS = {
-  OPEN: 'Öppen',
-  IN_PROGRESS: 'Pågående',
-  RESOLVED: 'Löst',
-  CLOSED: 'Stängd',
-}
-
 const PRIORITY_COLORS = {
   URGENT: 'bg-red-500/20 text-red-400 border-red-500/30',
   HIGH: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
@@ -108,11 +102,11 @@ const PRIORITY_COLORS = {
   LOW: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
 }
 
-const PRIORITY_LABELS = {
-  URGENT: 'Brådskande',
-  HIGH: 'Hög',
-  NORMAL: 'Normal',
-  LOW: 'Låg',
+const priorityLabelKeys: Record<string, string> = {
+  URGENT: 'priority.urgent',
+  HIGH: 'priority.high',
+  NORMAL: 'priority.normal',
+  LOW: 'priority.low',
 }
 
 export function CareTeamInbox({
@@ -123,6 +117,8 @@ export function CareTeamInbox({
   onCreateThread,
   basePath = '',
 }: CareTeamInboxProps) {
+  const t = useTranslations('components.careTeam.inbox')
+  const locale = useLocale()
   const router = useRouter()
   const isGlass = variant === 'glass'
   const [threads, setThreads] = useState<Thread[]>([])
@@ -151,14 +147,14 @@ export function CareTeamInbox({
         setThreads(data.threads || [])
       } catch (err) {
         console.error('Error fetching threads:', err)
-        setError('Kunde inte hämta konversationer')
+        setError(t('error.loadingThreads'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchThreads()
-  }, [clientId, statusFilter, priorityFilter])
+    void fetchThreads()
+  }, [clientId, statusFilter, priorityFilter, t])
 
   const handleThreadClick = (threadId: string) => {
     if (onThreadSelect) {
@@ -176,11 +172,17 @@ export function CareTeamInbox({
     const diffHours = Math.floor(diffMins / 60)
     const diffDays = Math.floor(diffHours / 24)
 
-    if (diffMins < 1) return 'Nu'
-    if (diffMins < 60) return `${diffMins}m sedan`
-    if (diffHours < 24) return `${diffHours}h sedan`
-    if (diffDays < 7) return `${diffDays}d sedan`
-    return date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+    const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+
+    if (diffMins < 1) return formatter.format(0, 'minute')
+    if (diffMins < 60) return formatter.format(-diffMins, 'minute')
+    if (diffHours < 24) return formatter.format(-diffHours, 'hour')
+    if (diffDays < 7) return formatter.format(-diffDays, 'day')
+
+    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+      day: 'numeric',
+      month: 'short',
+    })
   }
 
   return (
@@ -189,11 +191,11 @@ export function CareTeamInbox({
         <div>
           <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-blue-500" />
-            Vårdteam
+            {t('title')}
             <InfoTooltip conceptKey="careTeamPriority" />
           </GlassCardTitle>
           <GlassCardDescription className="text-slate-400">
-            Kommunikation mellan fysio, coach och atlet
+            {t('description')}
           </GlassCardDescription>
         </div>
         {showCreateButton && (
@@ -203,7 +205,7 @@ export function CareTeamInbox({
             className="bg-blue-500 hover:bg-blue-600 text-white font-bold"
           >
             <Plus className="h-4 w-4 mr-1" />
-            Ny tråd
+            {t('newThread')}
           </Button>
         )}
       </GlassCardHeader>
@@ -213,27 +215,27 @@ export function CareTeamInbox({
         <div className="flex gap-3">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[140px] bg-white/5 border-white/10">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t('filters.status')} />
             </SelectTrigger>
             <SelectContent className="bg-slate-900 border-white/10">
-              <SelectItem value="all">Alla status</SelectItem>
-              <SelectItem value="OPEN">Öppna</SelectItem>
-              <SelectItem value="IN_PROGRESS">Pågående</SelectItem>
-              <SelectItem value="RESOLVED">Lösta</SelectItem>
-              <SelectItem value="CLOSED">Stängda</SelectItem>
+              <SelectItem value="all">{t('filters.allStatus')}</SelectItem>
+              <SelectItem value="OPEN">{t('status.open')}</SelectItem>
+              <SelectItem value="IN_PROGRESS">{t('status.inProgress')}</SelectItem>
+              <SelectItem value="RESOLVED">{t('status.resolved')}</SelectItem>
+              <SelectItem value="CLOSED">{t('status.closed')}</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-[140px] bg-white/5 border-white/10">
-              <SelectValue placeholder="Prioritet" />
+              <SelectValue placeholder={t('filters.priority')} />
             </SelectTrigger>
             <SelectContent className="bg-slate-900 border-white/10">
-              <SelectItem value="all">Alla prioritet</SelectItem>
-              <SelectItem value="URGENT">Brådskande</SelectItem>
-              <SelectItem value="HIGH">Hög</SelectItem>
-              <SelectItem value="NORMAL">Normal</SelectItem>
-              <SelectItem value="LOW">Låg</SelectItem>
+              <SelectItem value="all">{t('filters.allPriority')}</SelectItem>
+              <SelectItem value="URGENT">{t('priority.urgent')}</SelectItem>
+              <SelectItem value="HIGH">{t('priority.high')}</SelectItem>
+              <SelectItem value="NORMAL">{t('priority.normal')}</SelectItem>
+              <SelectItem value="LOW">{t('priority.low')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -251,8 +253,8 @@ export function CareTeamInbox({
         ) : threads.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-slate-500">
             <MessageCircle className="h-12 w-12 mb-3 opacity-50" />
-            <p className="font-medium">Inga konversationer</p>
-            <p className="text-sm">Skapa en ny tråd för att starta kommunikationen.</p>
+            <p className="font-medium">{t('emptyTitle')}</p>
+            <p className="text-sm">{t('emptyDescription')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -293,7 +295,11 @@ export function CareTeamInbox({
                       <User className="h-3 w-3" />
                       <span>{thread.client.name}</span>
                       <span className="text-slate-600">·</span>
-                      <span>{thread._count.messages} meddelanden</span>
+                      <span>
+                        {thread._count.messages === 1
+                          ? t('messageSingular')
+                          : t('messagePlural', { count: thread._count.messages })}
+                      </span>
                     </div>
 
                     {thread.lastMessage && (
@@ -318,16 +324,14 @@ export function CareTeamInbox({
                         PRIORITY_COLORS[thread.priority]
                       )}
                     >
-                      {PRIORITY_LABELS[thread.priority]}
+                      {t(priorityLabelKeys[thread.priority])}
                     </Badge>
                   </div>
                 </div>
 
                 {/* Participants */}
                 <div className="flex items-center gap-1 mt-3 pt-3 border-t border-white/5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mr-2">
-                    Deltagare:
-                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mr-2">{t('participants')}</span>
                   {thread.participants.slice(0, 4).map((p) => (
                     <Badge
                       key={p.user.id}

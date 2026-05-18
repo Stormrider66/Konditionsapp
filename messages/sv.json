@@ -15999,6 +15999,108 @@
         },
         "info": "Du kan alltid generera eller ändra ditt program senare från din dashboard."
       }
+    },
+    "careTeam": {
+      "inbox": {
+        "title": "Meddelanden",
+        "description": "Hantera pågående vårdärenden, frågor och rehabuppföljning",
+        "newThread": "Ny tråd",
+        "error": {
+          "loadingThreads": "Kunde inte läsa konversationerna"
+        },
+        "filters": {
+          "status": "Status",
+          "priority": "Prioritet",
+          "allStatus": "Alla",
+          "allPriority": "Alla"
+        },
+        "status": {
+          "open": "Öppen",
+          "inProgress": "Pågående",
+          "resolved": "Löst",
+          "closed": "Stängd"
+        },
+        "priority": {
+          "urgent": "Urgent",
+          "high": "Hög",
+          "normal": "Normal",
+          "low": "Låg"
+        },
+        "participants": "Deltagare",
+        "messageSingular": "1 meddelande",
+        "messagePlural": "{count} meddelanden",
+        "emptyTitle": "Inga trådar hittades",
+        "emptyDescription": "Skapa en ny tråd för att starta ett samtal."
+      },
+      "thread": {
+        "status": {
+          "open": "Öppen",
+          "inProgress": "Pågående",
+          "resolved": "Löst",
+          "closed": "Stängd"
+        },
+        "roles": {
+          "physio": "Fysio",
+          "coach": "Coach",
+          "athlete": "Atlet",
+          "admin": "Admin"
+        },
+        "errors": {
+          "fetchFailed": "Kunde inte hämta konversationen",
+          "notFound": "Konversationen hittades inte"
+        },
+        "actions": {
+          "back": "Tillbaka"
+        },
+        "labels": {
+          "participants": "Deltagare:",
+          "active": "Aktiv",
+          "messageCount": {
+            "one": "1 meddelande",
+            "many": "{count} meddelanden"
+          }
+        },
+        "sections": {
+          "rehabProgram": "Rehabprogram",
+          "restriction": "Träningsrestriktion"
+        },
+        "compose": {
+          "placeholder": "Skriv ett meddelande..."
+        }
+      },
+      "injuryContext": {
+        "title": "Skada",
+        "fields": {
+          "type": "Typ",
+          "bodyPart": "Kroppsdel"
+        },
+        "phases": {
+          "acute": "Akut",
+          "subAcute": "Subakut",
+          "remodeling": "Remodellering",
+          "functional": "Funktionell",
+          "returnToSport": "Återgång till idrott"
+        },
+        "bodyPart": {
+          "ankle": "Fotled",
+          "knee": "Knä",
+          "hip": "Höft",
+          "lowerBack": "Ländrygg",
+          "upperBack": "Övre rygg",
+          "shoulder": "Axel",
+          "elbow": "Armbåge",
+          "wrist": "Handled",
+          "neck": "Nacke",
+          "groin": "Ljumske",
+          "hamstring": "Baksida lår",
+          "quadriceps": "Framsida lår",
+          "calf": "Vad",
+          "achilles": "Akillessena",
+          "foot": "Fot",
+          "shin": "Skenben"
+        },
+        "pain": "Smärta: {level}/10"
+      }
     }
   },
   "api": {

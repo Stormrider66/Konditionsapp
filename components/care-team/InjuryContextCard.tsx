@@ -8,6 +8,7 @@
  */
 
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 import { Badge } from '@/components/ui/badge'
 import {
   GlassCard,
@@ -26,12 +27,12 @@ interface InjuryContextCardProps {
   variant?: 'default' | 'glass'
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  ACUTE: 'Akut',
-  SUBACUTE: 'Subakut',
-  REMODELING: 'Remodellering',
-  FUNCTIONAL: 'Funktionell',
-  RETURN_TO_SPORT: 'Återgång till idrott',
+const PHASE_LABEL_KEYS: Record<string, string> = {
+  ACUTE: 'phases.acute',
+  SUBACUTE: 'phases.subAcute',
+  REMODELING: 'phases.remodeling',
+  FUNCTIONAL: 'phases.functional',
+  RETURN_TO_SPORT: 'phases.returnToSport',
 }
 
 const PHASE_COLORS: Record<string, string> = {
@@ -42,27 +43,28 @@ const PHASE_COLORS: Record<string, string> = {
   RETURN_TO_SPORT: 'bg-green-500/20 text-green-400 border-green-500/30',
 }
 
-const BODY_PART_LABELS: Record<string, string> = {
-  ANKLE: 'Fotled',
-  KNEE: 'Knä',
-  HIP: 'Höft',
-  LOWER_BACK: 'Ländrygg',
-  UPPER_BACK: 'Övre rygg',
-  SHOULDER: 'Axel',
-  ELBOW: 'Armbåge',
-  WRIST: 'Handled',
-  NECK: 'Nacke',
-  GROIN: 'Ljumske',
-  HAMSTRING: 'Baksida lår',
-  QUADRICEPS: 'Framsida lår',
-  CALF: 'Vad',
-  ACHILLES: 'Akillessena',
-  FOOT: 'Fot',
-  SHIN: 'Skenben',
+const BODY_PART_LABEL_KEYS: Record<string, string> = {
+  ANKLE: 'bodyPart.ankle',
+  KNEE: 'bodyPart.knee',
+  HIP: 'bodyPart.hip',
+  LOWER_BACK: 'bodyPart.lowerBack',
+  UPPER_BACK: 'bodyPart.upperBack',
+  SHOULDER: 'bodyPart.shoulder',
+  ELBOW: 'bodyPart.elbow',
+  WRIST: 'bodyPart.wrist',
+  NECK: 'bodyPart.neck',
+  GROIN: 'bodyPart.groin',
+  HAMSTRING: 'bodyPart.hamstring',
+  QUADRICEPS: 'bodyPart.quadriceps',
+  CALF: 'bodyPart.calf',
+  ACHILLES: 'bodyPart.achilles',
+  FOOT: 'bodyPart.foot',
+  SHIN: 'bodyPart.shin',
 }
 
 export function InjuryContextCard({ injury, variant = 'glass' }: InjuryContextCardProps) {
   const isGlass = variant === 'glass'
+  const t = useTranslations('components.careTeam.injuryContext')
 
   const getPainLevelColor = (level: number) => {
     if (level <= 3) return 'text-green-400'
@@ -84,7 +86,7 @@ export function InjuryContextCard({ injury, variant = 'glass' }: InjuryContextCa
         <div className="flex items-center gap-2 mb-3">
           <Stethoscope className="h-4 w-4 text-red-500" />
           <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">
-            Skada
+            {t('title')}
           </span>
         </div>
 
@@ -92,7 +94,7 @@ export function InjuryContextCard({ injury, variant = 'glass' }: InjuryContextCa
           {/* Injury type */}
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">
-              Typ
+              {t('fields.type')}
             </p>
             <p className="font-bold text-white">{injury.injuryType}</p>
           </div>
@@ -100,10 +102,12 @@ export function InjuryContextCard({ injury, variant = 'glass' }: InjuryContextCa
           {/* Body part */}
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">
-              Kroppsdel
+              {t('fields.bodyPart')}
             </p>
             <p className="text-sm text-slate-300">
-              {BODY_PART_LABELS[injury.bodyPart] || injury.bodyPart}
+              {(BODY_PART_LABEL_KEYS[injury.bodyPart] &&
+                t(BODY_PART_LABEL_KEYS[injury.bodyPart])) ||
+                injury.bodyPart}
             </p>
           </div>
 
@@ -116,7 +120,7 @@ export function InjuryContextCard({ injury, variant = 'glass' }: InjuryContextCa
                 PHASE_COLORS[injury.phase] || 'border-white/10 text-slate-400'
               )}
             >
-              {PHASE_LABELS[injury.phase] || injury.phase}
+              {(PHASE_LABEL_KEYS[injury.phase] && t(PHASE_LABEL_KEYS[injury.phase])) || injury.phase}
             </Badge>
 
             <div className="flex items-center gap-1.5">
@@ -128,7 +132,7 @@ export function InjuryContextCard({ injury, variant = 'glass' }: InjuryContextCa
                   getPainLevelColor(injury.painLevel)
                 )}
               >
-                Smärta: {injury.painLevel}/10
+                {t('pain', { level: injury.painLevel })}
               </span>
             </div>
           </div>

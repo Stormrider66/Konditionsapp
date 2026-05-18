@@ -15999,6 +15999,108 @@
         },
         "info": "You can always generate or modify your program later from your dashboard."
       }
+    },
+    "careTeam": {
+      "inbox": {
+        "title": "Messages",
+        "description": "Manage active care cases, questions, and rehab follow-ups",
+        "newThread": "New thread",
+        "error": {
+          "loadingThreads": "Could not load conversations"
+        },
+        "filters": {
+          "status": "Status",
+          "priority": "Priority",
+          "allStatus": "All",
+          "allPriority": "All"
+        },
+        "status": {
+          "open": "Open",
+          "inProgress": "In progress",
+          "resolved": "Resolved",
+          "closed": "Closed"
+        },
+        "priority": {
+          "urgent": "Urgent",
+          "high": "High",
+          "normal": "Normal",
+          "low": "Low"
+        },
+        "participants": "Participants",
+        "messageSingular": "1 message",
+        "messagePlural": "{count} messages",
+        "emptyTitle": "No threads yet",
+        "emptyDescription": "Create a new thread to start a conversation."
+      },
+      "thread": {
+        "status": {
+          "open": "Open",
+          "inProgress": "In progress",
+          "resolved": "Resolved",
+          "closed": "Closed"
+        },
+        "roles": {
+          "physio": "Physio",
+          "coach": "Coach",
+          "athlete": "Athlete",
+          "admin": "Admin"
+        },
+        "errors": {
+          "fetchFailed": "Could not load the conversation",
+          "notFound": "Conversation not found"
+        },
+        "actions": {
+          "back": "Back"
+        },
+        "labels": {
+          "participants": "Participants:",
+          "active": "Active",
+          "messageCount": {
+            "one": "1 message",
+            "many": "{count} messages"
+          }
+        },
+        "sections": {
+          "rehabProgram": "Rehab program",
+          "restriction": "Training restriction"
+        },
+        "compose": {
+          "placeholder": "Write a message..."
+        }
+      },
+      "injuryContext": {
+        "title": "Injury",
+        "fields": {
+          "type": "Type",
+          "bodyPart": "Body part"
+        },
+        "phases": {
+          "acute": "Acute",
+          "subAcute": "Subacute",
+          "remodeling": "Remodeling",
+          "functional": "Functional",
+          "returnToSport": "Return to sport"
+        },
+        "bodyPart": {
+          "ankle": "Ankle",
+          "knee": "Knee",
+          "hip": "Hip",
+          "lowerBack": "Lower back",
+          "upperBack": "Upper back",
+          "shoulder": "Shoulder",
+          "elbow": "Elbow",
+          "wrist": "Wrist",
+          "neck": "Neck",
+          "groin": "Groin",
+          "hamstring": "Hamstring",
+          "quadriceps": "Quadriceps",
+          "calf": "Calf",
+          "achilles": "Achilles tendon",
+          "foot": "Foot",
+          "shin": "Shin"
+        },
+        "pain": "Pain: {level}/10"
+      }
     }
   },
   "api": {
