@@ -12024,6 +12024,15 @@
     "userNav": {
       "fallbackName": "Användare"
     },
+    "featureLock": {
+      "title": "Funktion låst",
+      "defaultReason": "Denna funktion kräver en {tier}-prenumeration",
+      "upgradeTo": "Uppgradera till ",
+      "tiers": {
+        "standard": "Standard",
+        "pro": "Pro"
+      }
+    },
     "orgSwitcher": {
       "labels": {
         "title": "Mina organisationer"

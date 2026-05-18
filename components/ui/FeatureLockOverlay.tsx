@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface FeatureLockOverlayProps {
   /** Whether the feature is locked */
@@ -18,8 +19,6 @@ interface FeatureLockOverlayProps {
   children: React.ReactNode
   /** Additional class names */
   className?: string
-  /** Locale for text */
-  locale?: 'sv' | 'en'
 }
 
 export function FeatureLockOverlay({
@@ -29,21 +28,14 @@ export function FeatureLockOverlay({
   requiredTier = 'PRO',
   children,
   className,
-  locale = 'sv',
 }: FeatureLockOverlayProps) {
+  const t = useTranslations('components.featureLock')
   if (!isLocked) {
     return <>{children}</>
   }
 
-  const tierLabels = {
-    STANDARD: locale === 'sv' ? 'Standard' : 'Standard',
-    PRO: locale === 'sv' ? 'Pro' : 'Pro',
-  }
-
-  const defaultReasons = {
-    sv: `Denna funktion kräver ${tierLabels[requiredTier]}-prenumeration`,
-    en: `This feature requires a ${tierLabels[requiredTier]} subscription`,
-  }
+  const tierLabel =
+    requiredTier === 'STANDARD' ? t('tiers.standard') : t('tiers.pro')
 
   return (
     <div className={cn('relative', className)}>
@@ -60,17 +52,17 @@ export function FeatureLockOverlay({
           </div>
 
           <h3 className="font-semibold text-lg mb-2">
-            {locale === 'sv' ? 'Funktion låst' : 'Feature Locked'}
+            {t('title')}
           </h3>
 
           <p className="text-sm text-muted-foreground mb-4">
-            {reason || defaultReasons[locale]}
+            {reason || t('defaultReason', { tier: tierLabel })}
           </p>
 
           <Button asChild>
             <Link href={upgradeUrl}>
-              {locale === 'sv' ? 'Uppgradera till ' : 'Upgrade to '}
-              {tierLabels[requiredTier]}
+              {t('upgradeTo')}
+              {tierLabel}
             </Link>
           </Button>
         </div>
@@ -88,7 +80,6 @@ interface FeatureLockCardProps {
   requiredTier?: 'STANDARD' | 'PRO'
   icon?: React.ReactNode
   className?: string
-  locale?: 'sv' | 'en'
 }
 
 export function FeatureLockCard({
@@ -99,16 +90,14 @@ export function FeatureLockCard({
   requiredTier = 'PRO',
   icon,
   className,
-  locale = 'sv',
 }: FeatureLockCardProps) {
+  const t = useTranslations('components.featureLock')
   if (!isLocked) {
     return null
   }
 
-  const tierLabels = {
-    STANDARD: locale === 'sv' ? 'Standard' : 'Standard',
-    PRO: locale === 'sv' ? 'Pro' : 'Pro',
-  }
+  const tierLabel =
+    requiredTier === 'STANDARD' ? t('tiers.standard') : t('tiers.pro')
 
   return (
     <div
@@ -130,8 +119,8 @@ export function FeatureLockCard({
 
       <Button asChild>
         <Link href={upgradeUrl}>
-          {locale === 'sv' ? 'Uppgradera till ' : 'Upgrade to '}
-          {tierLabels[requiredTier]}
+          {t('upgradeTo')}
+          {tierLabel}
         </Link>
       </Button>
     </div>

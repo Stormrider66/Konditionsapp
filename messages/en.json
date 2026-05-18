@@ -12024,6 +12024,15 @@
     "userNav": {
       "fallbackName": "User"
     },
+    "featureLock": {
+      "title": "Feature Locked",
+      "defaultReason": "This feature requires a {tier} subscription",
+      "upgradeTo": "Upgrade to ",
+      "tiers": {
+        "standard": "Standard",
+        "pro": "Pro"
+      }
+    },
     "orgSwitcher": {
       "labels": {
         "title": "My organizations"
