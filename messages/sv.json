@@ -5387,6 +5387,104 @@
           "months": "månader"
         }
       },
+      "swimming": {
+        "labels": {
+          "experience": "Vad är din simerfarenhetsnivå?",
+          "strokes": "Vilka simtag tränar du?",
+          "primaryStroke": "Vilket är ditt främsta simtag?",
+          "primaryDiscipline": "Vad är ditt främsta simmål?",
+          "cssPace": "CSS-tempo (min:sek per 100m)",
+          "lastCssTest": "Senaste CSS-testdatum",
+          "swimZones": "Dina simzoner (per 100m)",
+          "preferredPoolLength": "Föredragen pool-längd",
+          "heartRateMonitor": "Jag har en vattentät pulsmätare",
+          "trainingEnvironments": "Träningsmiljöer",
+          "openWaterExperience": "Erfarenhet av öppet vatten",
+          "equipment": "Tillgänglig utrustning",
+          "weeklySwimSessions": "Veckovisa simpass",
+          "weeklyDistance": "Veckodistans (km)",
+          "trainingSetup": "Träningsupplägg"
+        },
+        "titles": {
+          "css": "Critical Swim Speed (CSS)",
+          "trainingSetup": "Träningsupplägg"
+        },
+        "descriptions": {
+          "css": "CSS är ditt tröskeltempo – den snabbaste fart du kan hålla under en sammanhängande simning. Ange tid per 100m."
+        },
+        "helpers": {
+          "cssFormat": "Format: m:ss (t.ex. 1:45 = 1 min 45 sek)"
+        },
+        "strokeTypes": {
+          "freestyle": "Frisim / frisimcrawl",
+          "backstroke": "Ryggsim",
+          "breaststroke": "Bröstsim",
+          "butterfly": "Fjärilsim",
+          "im": "Fristil"
+        },
+        "disciplines": {
+          "poolDistance": "Pooldistans (400m+)",
+          "poolSprint": "Poolsprint (50–200m)",
+          "openWater": "Öppet vatten",
+          "triathlon": "Triathlonsimning",
+          "masters": "Mastersimning",
+          "recreational": "Rekreation / kondition"
+        },
+        "poolLengths": {
+          "shortCourse": "25 m (kort bana)",
+          "longCourse": "50 m (lång bana)"
+        },
+        "environments": {
+          "indoorPool": "Inomhuspool",
+          "outdoorPool": "Utomhuspool",
+          "lake": "Sjö / öppet vatten",
+          "ocean": "Hav",
+          "endlessPool": "Endless Pool / Simspa"
+        },
+        "equipment": {
+          "pullBuoy": "Pull buoy",
+          "paddles": "Handpaddlar",
+          "fins": "Simfinnar",
+          "snorkel": "Center snorkel",
+          "kickboard": "Kickboard",
+          "wetsuit": "Våtdräkt"
+        },
+        "zones": {
+          "recovery": "Återhämtning",
+          "aerobic": "Aerob",
+          "endurance": "Uthållighet",
+          "threshold": "Tröskel (CSS)",
+          "vo2max": "VO2max",
+          "sprint": "Sprint"
+        },
+        "placeholders": {
+          "cssPace": "1:45"
+        },
+        "experience": {
+          "beginner": {
+            "label": "Nybörjare",
+            "description": "<1 år"
+          },
+          "intermediate": {
+            "label": "Mellanliggande",
+            "description": "1-3 år"
+          },
+          "advanced": {
+            "label": "Avancerad",
+            "description": "3+ år"
+          },
+          "elite": {
+            "label": "Elit",
+            "description": "Tävlingsinriktad"
+          }
+        },
+        "openWaterExperience": {
+          "none": "Ingen",
+          "beginner": "Nybörjare",
+          "intermediate": "Mellanliggande",
+          "advanced": "Avancerad"
+        }
+      },
       "nutrition": {
         "titles": {
           "goal": "Vad är ditt mål?",

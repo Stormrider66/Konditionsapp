@@ -5499,6 +5499,104 @@
           "months": "months"
         }
       },
+      "swimming": {
+        "labels": {
+          "experience": "What is your swimming experience level?",
+          "strokes": "Which strokes do you train?",
+          "primaryStroke": "What is your primary stroke?",
+          "primaryDiscipline": "What is your primary swimming goal?",
+          "cssPace": "CSS pace (min:sec per 100m)",
+          "lastCssTest": "Last CSS test date",
+          "swimZones": "Your swim zones (per 100m)",
+          "preferredPoolLength": "Preferred pool length",
+          "heartRateMonitor": "I have a waterproof heart rate monitor",
+          "trainingEnvironments": "Training environments",
+          "openWaterExperience": "Open water experience",
+          "equipment": "Available equipment",
+          "weeklySwimSessions": "Weekly swim sessions",
+          "weeklyDistance": "Weekly distance (km)",
+          "trainingSetup": "Training setup"
+        },
+        "titles": {
+          "css": "Critical Swim Speed (CSS)",
+          "trainingSetup": "Training setup"
+        },
+        "descriptions": {
+          "css": "CSS is your threshold pace - the fastest pace you can maintain for a continuous swim. Enter time per 100m."
+        },
+        "helpers": {
+          "cssFormat": "Format: m:ss (e.g., 1:45 = 1 min 45 sec)"
+        },
+        "strokeTypes": {
+          "freestyle": "Freestyle / Front Crawl",
+          "backstroke": "Backstroke",
+          "breaststroke": "Breaststroke",
+          "butterfly": "Butterfly",
+          "im": "Individual Medley"
+        },
+        "disciplines": {
+          "poolDistance": "Pool Distance (400m+)",
+          "poolSprint": "Pool Sprint (50-200m)",
+          "openWater": "Open Water",
+          "triathlon": "Triathlon Swim",
+          "masters": "Masters Swimming",
+          "recreational": "Recreational / Fitness"
+        },
+        "poolLengths": {
+          "shortCourse": "25m (Short Course)",
+          "longCourse": "50m (Long Course)"
+        },
+        "environments": {
+          "indoorPool": "Indoor Pool",
+          "outdoorPool": "Outdoor Pool",
+          "lake": "Lake / Open Water",
+          "ocean": "Ocean",
+          "endlessPool": "Endless Pool / Swim Spa"
+        },
+        "equipment": {
+          "pullBuoy": "Pull Buoy",
+          "paddles": "Hand Paddles",
+          "fins": "Swim Fins",
+          "snorkel": "Center Snorkel",
+          "kickboard": "Kickboard",
+          "wetsuit": "Wetsuit"
+        },
+        "zones": {
+          "recovery": "Recovery",
+          "aerobic": "Aerobic",
+          "endurance": "Endurance",
+          "threshold": "Threshold (CSS)",
+          "vo2max": "VO2max",
+          "sprint": "Sprint"
+        },
+        "placeholders": {
+          "cssPace": "1:45"
+        },
+        "experience": {
+          "beginner": {
+            "label": "Beginner",
+            "description": "<1 year"
+          },
+          "intermediate": {
+            "label": "Intermediate",
+            "description": "1-3 years"
+          },
+          "advanced": {
+            "label": "Advanced",
+            "description": "3+ years"
+          },
+          "elite": {
+            "label": "Elite",
+            "description": "Competitive"
+          }
+        },
+        "openWaterExperience": {
+          "none": "None",
+          "beginner": "Beginner",
+          "intermediate": "Intermediate",
+          "advanced": "Advanced"
+        }
+      },
       "hockey": {
         "sections": {
           "positionAndTeam": {

@@ -8,58 +8,73 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useTranslations } from 'next-intl'
 
 // CSS-based swim zones (pace per 100m)
 function calculateSwimZones(css: number) {
   return [
-    { zone: 1, name: 'Recovery', nameSv: 'Återhämtning', pct: 125, color: 'bg-gray-200' },
-    { zone: 2, name: 'Aerobic', nameSv: 'Aerob', pct: 115, color: 'bg-blue-200' },
-    { zone: 3, name: 'Endurance', nameSv: 'Uthållighet', pct: 107, color: 'bg-green-200' },
-    { zone: 4, name: 'Threshold (CSS)', nameSv: 'Tröskel (CSS)', pct: 100, color: 'bg-yellow-200' },
-    { zone: 5, name: 'VO2max', nameSv: 'VO2max', pct: 92, color: 'bg-orange-200' },
-    { zone: 6, name: 'Sprint', nameSv: 'Sprint', pct: 85, color: 'bg-red-200' },
+    { zone: 1, name: 'zones.recovery', pct: 125, color: 'bg-gray-200' },
+    { zone: 2, name: 'zones.aerobic', pct: 115, color: 'bg-blue-200' },
+    { zone: 3, name: 'zones.endurance', pct: 107, color: 'bg-green-200' },
+    { zone: 4, name: 'zones.threshold', pct: 100, color: 'bg-yellow-200' },
+    { zone: 5, name: 'zones.vo2max', pct: 92, color: 'bg-orange-200' },
+    { zone: 6, name: 'zones.sprint', pct: 85, color: 'bg-red-200' },
   ].map(z => ({ ...z, pace: Math.round(css * (z.pct / 100)) }))
 }
 
 // Swimming-specific options
 const STROKE_TYPES = [
-  { id: 'freestyle', label: 'Freestyle / Front Crawl', labelSv: 'Frisim / Crawl', icon: '🏊' },
-  { id: 'backstroke', label: 'Backstroke', labelSv: 'Ryggsim', icon: '🏊‍♂️' },
-  { id: 'breaststroke', label: 'Breaststroke', labelSv: 'Bröstsim', icon: '🏊‍♀️' },
-  { id: 'butterfly', label: 'Butterfly', labelSv: 'Fjärilsim', icon: '🦋' },
-  { id: 'im', label: 'Individual Medley', labelSv: 'Medley', icon: '🔄' },
+  { id: 'freestyle', label: 'strokeTypes.freestyle', icon: '🏊' },
+  { id: 'backstroke', label: 'strokeTypes.backstroke', icon: '🏊‍♂️' },
+  { id: 'breaststroke', label: 'strokeTypes.breaststroke', icon: '🏊‍♀️' },
+  { id: 'butterfly', label: 'strokeTypes.butterfly', icon: '🦋' },
+  { id: 'im', label: 'strokeTypes.im', icon: '🔄' },
 ]
 
 const SWIMMING_DISCIPLINES = [
-  { id: 'pool_distance', label: 'Pool Distance (400m+)', labelSv: 'Pool Distans (400m+)' },
-  { id: 'pool_sprint', label: 'Pool Sprint (50-200m)', labelSv: 'Pool Sprint (50-200m)' },
-  { id: 'open_water', label: 'Open Water', labelSv: 'Öppet vatten' },
-  { id: 'triathlon', label: 'Triathlon Swim', labelSv: 'Triathlonsim' },
-  { id: 'masters', label: 'Masters Swimming', labelSv: 'Mastersim' },
-  { id: 'recreational', label: 'Recreational / Fitness', labelSv: 'Motion / Kondition' },
+  { id: 'pool_distance', label: 'disciplines.poolDistance' },
+  { id: 'pool_sprint', label: 'disciplines.poolSprint' },
+  { id: 'open_water', label: 'disciplines.openWater' },
+  { id: 'triathlon', label: 'disciplines.triathlon' },
+  { id: 'masters', label: 'disciplines.masters' },
+  { id: 'recreational', label: 'disciplines.recreational' },
 ]
 
 const POOL_LENGTHS = [
-  { id: '25', label: '25m (Short Course)', labelSv: '25m (Kortbana)' },
-  { id: '50', label: '50m (Long Course)', labelSv: '50m (Långbana)' },
+  { id: '25', label: 'poolLengths.shortCourse' },
+  { id: '50', label: 'poolLengths.longCourse' },
 ]
 
 const TRAINING_ENVIRONMENTS = [
-  { id: 'pool_indoor', label: 'Indoor Pool', labelSv: 'Inomhusbassäng' },
-  { id: 'pool_outdoor', label: 'Outdoor Pool', labelSv: 'Utomhusbassäng' },
-  { id: 'lake', label: 'Lake / Open Water', labelSv: 'Sjö / Öppet vatten' },
-  { id: 'ocean', label: 'Ocean', labelSv: 'Hav' },
-  { id: 'endless_pool', label: 'Endless Pool / Swim Spa', labelSv: 'Endless Pool / Swimspa' },
+  { id: 'pool_indoor', label: 'environments.indoorPool' },
+  { id: 'pool_outdoor', label: 'environments.outdoorPool' },
+  { id: 'lake', label: 'environments.lake' },
+  { id: 'ocean', label: 'environments.ocean' },
+  { id: 'endless_pool', label: 'environments.endlessPool' },
 ]
 
 const EQUIPMENT = [
-  { id: 'pull_buoy', label: 'Pull Buoy', labelSv: 'Pull buoy' },
-  { id: 'paddles', label: 'Hand Paddles', labelSv: 'Handpaddlar' },
-  { id: 'fins', label: 'Swim Fins', labelSv: 'Simfenor' },
-  { id: 'snorkel', label: 'Center Snorkel', labelSv: 'Simsnorkel' },
-  { id: 'kickboard', label: 'Kickboard', labelSv: 'Simplatta' },
-  { id: 'wetsuit', label: 'Wetsuit', labelSv: 'Våtdräkt' },
+  { id: 'pull_buoy', label: 'equipment.pullBuoy' },
+  { id: 'paddles', label: 'equipment.paddles' },
+  { id: 'fins', label: 'equipment.fins' },
+  { id: 'snorkel', label: 'equipment.snorkel' },
+  { id: 'kickboard', label: 'equipment.kickboard' },
+  { id: 'wetsuit', label: 'equipment.wetsuit' },
 ]
+
+const SWIMMING_EXPERIENCE_OPTIONS = [
+  { id: 'beginner', label: 'experience.beginner.label', description: 'experience.beginner.description' },
+  { id: 'intermediate', label: 'experience.intermediate.label', description: 'experience.intermediate.description' },
+  { id: 'advanced', label: 'experience.advanced.label', description: 'experience.advanced.description' },
+  { id: 'elite', label: 'experience.elite.label', description: 'experience.elite.description' },
+] as const
+
+const OPEN_WATER_EXPERIENCE_OPTIONS = [
+  { id: 'none', label: 'openWaterExperience.none' },
+  { id: 'beginner', label: 'openWaterExperience.beginner' },
+  { id: 'intermediate', label: 'openWaterExperience.intermediate' },
+  { id: 'advanced', label: 'openWaterExperience.advanced' },
+] as const
 
 export interface SwimmingSettings {
   strokeTypes: string[]
@@ -106,9 +121,8 @@ function parseCssTime(timeStr: string): number | null {
 export function SwimmingOnboarding({
   value,
   onChange,
-  locale = 'sv',
 }: SwimmingOnboardingProps) {
-  const t = (en: string, sv: string) => (locale === 'sv' ? sv : en)
+  const t = useTranslations('components.onboarding.swimming')
   const [cssInput, setCssInput] = useState(formatCssTime(value.currentCss))
 
   const updateSettings = (updates: Partial<SwimmingSettings>) => {
@@ -147,19 +161,14 @@ export function SwimmingOnboarding({
       {/* Experience Level */}
       <div className="space-y-4">
         <Label className="text-base font-semibold">
-          {t('What is your swimming experience level?', 'Vad är din simerfarenhet?')}
+          {t('labels.experience')}
         </Label>
         <RadioGroup
           value={value.swimmingExperience}
           onValueChange={(val) => updateSettings({ swimmingExperience: val as SwimmingSettings['swimmingExperience'] })}
           className="grid grid-cols-2 sm:grid-cols-4 gap-3"
         >
-          {[
-            { id: 'beginner', label: 'Beginner', labelSv: 'Nybörjare', desc: '<1 year', descSv: '<1 år' },
-            { id: 'intermediate', label: 'Intermediate', labelSv: 'Medel', desc: '1-3 years', descSv: '1-3 år' },
-            { id: 'advanced', label: 'Advanced', labelSv: 'Avancerad', desc: '3+ years', descSv: '3+ år' },
-            { id: 'elite', label: 'Elite', labelSv: 'Elit', desc: 'Competitive', descSv: 'Tävling' },
-          ].map((exp) => (
+          {SWIMMING_EXPERIENCE_OPTIONS.map((exp) => (
             <Label
               key={exp.id}
               htmlFor={`exp-${exp.id}`}
@@ -171,8 +180,8 @@ export function SwimmingOnboarding({
               )}
             >
               <RadioGroupItem value={exp.id} id={`exp-${exp.id}`} className="sr-only" />
-              <span className="font-medium">{locale === 'sv' ? exp.labelSv : exp.label}</span>
-              <span className="text-xs text-muted-foreground">{locale === 'sv' ? exp.descSv : exp.desc}</span>
+              <span className="font-medium">{t(exp.label)}</span>
+              <span className="text-xs text-muted-foreground">{t(exp.description)}</span>
             </Label>
           ))}
         </RadioGroup>
@@ -181,7 +190,7 @@ export function SwimmingOnboarding({
       {/* Stroke Types */}
       <div className="space-y-4">
         <Label className="text-base font-semibold">
-          {t('Which strokes do you train?', 'Vilka simsätt tränar du?')}
+          {t('labels.strokes')}
         </Label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {STROKE_TYPES.map((stroke) => (
@@ -201,7 +210,7 @@ export function SwimmingOnboarding({
                 onCheckedChange={() => toggleStroke(stroke.id)}
               />
               <span className="text-lg">{stroke.icon}</span>
-              <span className="text-sm">{locale === 'sv' ? stroke.labelSv : stroke.label}</span>
+              <span className="text-sm">{t(stroke.label)}</span>
             </Label>
           ))}
         </div>
@@ -211,7 +220,7 @@ export function SwimmingOnboarding({
       {value.strokeTypes.length > 0 && (
         <div className="space-y-4">
           <Label className="text-base font-semibold">
-            {t('What is your primary stroke?', 'Vilket är ditt huvudsakliga simsätt?')}
+            {t('labels.primaryStroke')}
           </Label>
           <RadioGroup
             value={value.primaryStroke}
@@ -230,7 +239,7 @@ export function SwimmingOnboarding({
                 )}
               >
                 <RadioGroupItem value={stroke.id} id={`primary-${stroke.id}`} />
-                <span className="text-sm">{locale === 'sv' ? stroke.labelSv : stroke.label}</span>
+                <span className="text-sm">{t(stroke.label)}</span>
               </Label>
             ))}
           </RadioGroup>
@@ -240,7 +249,7 @@ export function SwimmingOnboarding({
       {/* Primary Discipline */}
       <div className="space-y-4">
         <Label className="text-base font-semibold">
-          {t('What is your primary swimming goal?', 'Vad är ditt primära simmål?')}
+          {t('labels.primaryDiscipline')}
         </Label>
         <RadioGroup
           value={value.primaryDiscipline}
@@ -259,7 +268,7 @@ export function SwimmingOnboarding({
               )}
             >
               <RadioGroupItem value={disc.id} id={`disc-${disc.id}`} />
-              <span className="text-sm">{locale === 'sv' ? disc.labelSv : disc.label}</span>
+              <span className="text-sm">{t(disc.label)}</span>
             </Label>
           ))}
         </RadioGroup>
@@ -269,31 +278,28 @@ export function SwimmingOnboarding({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {t('Critical Swim Speed (CSS)', 'Kritisk Simhastighet (CSS)')}
+            {t('titles.css')}
           </CardTitle>
           <CardDescription>
-            {t(
-              'CSS is your threshold pace - the fastest pace you can maintain for a continuous swim. Enter time per 100m.',
-              'CSS är din tröskeltemper - den snabbaste fart du kan hålla vid kontinuerlig simning. Ange tid per 100m.'
-            )}
+            {t('descriptions.css')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t('CSS pace (min:sec per 100m)', 'CSS tempo (min:sek per 100m)')}</Label>
+              <Label>{t('labels.cssPace')}</Label>
               <Input
                 type="text"
-                placeholder="1:45"
+                placeholder={t('placeholders.cssPace')}
                 value={cssInput}
                 onChange={(e) => handleCssChange(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                {t('Format: m:ss (e.g., 1:45 = 1 min 45 sec)', 'Format: m:ss (t.ex. 1:45 = 1 min 45 sek)')}
+                {t('helpers.cssFormat')}
               </p>
             </div>
             <div className="space-y-2">
-              <Label>{t('Last CSS test date', 'Senaste CSS-test')}</Label>
+              <Label>{t('labels.lastCssTest')}</Label>
               <Input
                 type="date"
                 value={value.cssTestDate || ''}
@@ -305,7 +311,7 @@ export function SwimmingOnboarding({
           {value.currentCss && value.currentCss > 0 && (
             <div className="space-y-3 pt-4 border-t">
               <Label className="text-sm font-semibold">
-                {t('Your Swim Zones (per 100m)', 'Dina simzoner (per 100m)')}
+                {t('labels.swimZones')}
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {calculateSwimZones(value.currentCss).map((zone) => (
@@ -318,7 +324,7 @@ export function SwimmingOnboarding({
                         {zone.zone}
                       </Badge>
                       <span className="text-sm font-medium">
-                        {locale === 'sv' ? zone.nameSv : zone.name}
+                        {t(zone.name)}
                       </span>
                     </div>
                     <span className="text-sm font-mono">
@@ -331,8 +337,8 @@ export function SwimmingOnboarding({
           )}
 
           {/* Pool Length */}
-          <div className="space-y-2">
-            <Label>{t('Preferred pool length', 'Föredragen bassänglängd')}</Label>
+        <div className="space-y-2">
+            <Label>{t('labels.preferredPoolLength')}</Label>
             <RadioGroup
               value={value.preferredPoolLength}
               onValueChange={(val) => updateSettings({ preferredPoolLength: val })}
@@ -350,7 +356,7 @@ export function SwimmingOnboarding({
                   )}
                 >
                   <RadioGroupItem value={pool.id} id={`pool-${pool.id}`} />
-                  <span>{locale === 'sv' ? pool.labelSv : pool.label}</span>
+                  <span>{t(pool.label)}</span>
                 </Label>
               ))}
             </RadioGroup>
@@ -362,7 +368,7 @@ export function SwimmingOnboarding({
               checked={value.hasHeartRateMonitor}
               onCheckedChange={(checked) => updateSettings({ hasHeartRateMonitor: !!checked })}
             />
-            <span>{t('I have a waterproof heart rate monitor', 'Jag har en vattentät pulsmätare')}</span>
+            <span>{t('labels.heartRateMonitor')}</span>
           </Label>
         </CardContent>
       </Card>
@@ -371,13 +377,13 @@ export function SwimmingOnboarding({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {t('Training Setup', 'Träningsinställningar')}
+            {t('titles.trainingSetup')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Training Environments */}
           <div className="space-y-2">
-            <Label>{t('Training environments', 'Träningsmiljöer')}</Label>
+            <Label>{t('labels.trainingEnvironments')}</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {TRAINING_ENVIRONMENTS.map((env) => (
                 <Label
@@ -395,7 +401,7 @@ export function SwimmingOnboarding({
                     checked={value.trainingEnvironments.includes(env.id)}
                     onCheckedChange={() => toggleEnvironment(env.id)}
                   />
-                  <span>{locale === 'sv' ? env.labelSv : env.label}</span>
+                  <span>{t(env.label)}</span>
                 </Label>
               ))}
             </div>
@@ -404,18 +410,13 @@ export function SwimmingOnboarding({
           {/* Open Water Experience */}
           {value.trainingEnvironments.some((e) => ['lake', 'ocean'].includes(e)) && (
             <div className="space-y-2">
-              <Label>{t('Open water experience', 'Öppet vatten-erfarenhet')}</Label>
+              <Label>{t('labels.openWaterExperience')}</Label>
               <RadioGroup
                 value={value.openWaterExperience}
                 onValueChange={(val) => updateSettings({ openWaterExperience: val as SwimmingSettings['openWaterExperience'] })}
                 className="grid grid-cols-2 sm:grid-cols-4 gap-2"
               >
-                {[
-                  { id: 'none', label: 'None', labelSv: 'Ingen' },
-                  { id: 'beginner', label: 'Beginner', labelSv: 'Nybörjare' },
-                  { id: 'intermediate', label: 'Intermediate', labelSv: 'Medel' },
-                  { id: 'advanced', label: 'Advanced', labelSv: 'Avancerad' },
-                ].map((exp) => (
+                {OPEN_WATER_EXPERIENCE_OPTIONS.map((exp) => (
                   <Label
                     key={exp.id}
                     htmlFor={`ow-${exp.id}`}
@@ -427,7 +428,7 @@ export function SwimmingOnboarding({
                     )}
                   >
                     <RadioGroupItem value={exp.id} id={`ow-${exp.id}`} />
-                    <span>{locale === 'sv' ? exp.labelSv : exp.label}</span>
+                    <span>{t(exp.label)}</span>
                   </Label>
                 ))}
               </RadioGroup>
@@ -436,7 +437,7 @@ export function SwimmingOnboarding({
 
           {/* Equipment */}
           <div className="space-y-2">
-            <Label>{t('Available equipment', 'Tillgänglig utrustning')}</Label>
+            <Label>{t('labels.equipment')}</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {EQUIPMENT.map((equip) => (
                 <Label
@@ -454,7 +455,7 @@ export function SwimmingOnboarding({
                     checked={value.equipment.includes(equip.id)}
                     onCheckedChange={() => toggleEquipment(equip.id)}
                   />
-                  <span>{locale === 'sv' ? equip.labelSv : equip.label}</span>
+                  <span>{t(equip.label)}</span>
                 </Label>
               ))}
             </div>
@@ -463,7 +464,7 @@ export function SwimmingOnboarding({
           {/* Weekly Volume */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t('Weekly swim sessions', 'Simpass per vecka')}</Label>
+              <Label>{t('labels.weeklySwimSessions')}</Label>
               <Input
                 type="number"
                 min={1}
@@ -474,7 +475,7 @@ export function SwimmingOnboarding({
               />
             </div>
             <div className="space-y-2">
-              <Label>{t('Weekly distance (km)', 'Veckodistans (km)')}</Label>
+              <Label>{t('labels.weeklyDistance')}</Label>
               <Input
                 type="number"
                 min={0}
