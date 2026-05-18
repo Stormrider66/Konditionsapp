@@ -6,7 +6,7 @@
  * Extends MonthView with drag-and-drop functionality for rescheduling workouts
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -33,7 +33,7 @@ import {
   isToday,
 } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Check, GripVertical, Loader2 } from 'lucide-react'
+import { Check, Copy, GripVertical, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UnifiedCalendarItem, DayData, EVENT_TYPE_CONFIG, WORKOUT_TYPE_COLORS } from './types'
 
@@ -45,9 +45,13 @@ interface MonthViewDraggableProps {
   onItemClick: (item: UnifiedCalendarItem) => void
   selectedDate: Date | null
   onReschedule: (workoutId: string, newDate: Date, originalDate: Date) => void
+  onCopyWorkout?: (workoutId: string, newDate: Date, originalDate: Date) => void
   isRescheduling?: boolean
+  isCopying?: boolean
   isGlass?: boolean
 }
+
+type CalendarDragAction = 'move' | 'copy'
 
 export function MonthViewDraggable({
   month,
@@ -56,11 +60,42 @@ export function MonthViewDraggable({
   onItemClick,
   selectedDate,
   onReschedule,
+  onCopyWorkout,
   isRescheduling = false,
+  isCopying = false,
   isGlass = false,
 }: MonthViewDraggableProps) {
   const [activeItem, setActiveItem] = useState<UnifiedCalendarItem | null>(null)
+  const [activeDragAction, setActiveDragAction] = useState<CalendarDragAction>('move')
   const [overDateKey, setOverDateKey] = useState<string | null>(null)
+  const shiftPressedRef = useRef(false)
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Shift') return
+      shiftPressedRef.current = true
+      setActiveDragAction((current) => (activeItem ? 'copy' : current))
+    }
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key !== 'Shift') return
+      shiftPressedRef.current = false
+      setActiveDragAction((current) => (activeItem ? 'move' : current))
+    }
+    const handleBlur = () => {
+      shiftPressedRef.current = false
+      setActiveDragAction('move')
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleBlur)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleBlur)
+    }
+  }, [activeItem])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -144,6 +179,9 @@ export function MonthViewDraggable({
     const item = event.active.data.current?.item as UnifiedCalendarItem
     if (item) {
       setActiveItem(item)
+      setActiveDragAction(
+        hasShiftKey(event.activatorEvent) || shiftPressedRef.current ? 'copy' : 'move'
+      )
     }
   }, [])
 
@@ -157,6 +195,7 @@ export function MonthViewDraggable({
       const { active, over } = event
 
       setActiveItem(null)
+      setActiveDragAction('move')
       setOverDateKey(null)
 
       if (!over) return
@@ -175,10 +214,19 @@ export function MonthViewDraggable({
       // Check if it's the same day
       if (isSameDay(originalDate, newDate)) return
 
-      // Trigger reschedule callback
+      const dragAction =
+        activeDragAction === 'copy' || hasShiftKey(event.activatorEvent) || shiftPressedRef.current
+          ? 'copy'
+          : 'move'
+
+      if (dragAction === 'copy') {
+        onCopyWorkout?.(item.id, newDate, originalDate)
+        return
+      }
+
       onReschedule(item.id, newDate, originalDate)
     },
-    [onReschedule]
+    [activeDragAction, onCopyWorkout, onReschedule]
   )
 
   // Weekday headers
@@ -194,11 +242,11 @@ export function MonthViewDraggable({
     >
       <div className="w-full relative">
         {/* Loading overlay */}
-        {isRescheduling && (
+        {(isRescheduling || isCopying) && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50 rounded-lg">
             <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-lg shadow-lg">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Flyttar pass...</span>
+              <span className="text-sm">{isCopying ? 'Kopierar pass...' : 'Flyttar pass...'}</span>
             </div>
           </div>
         )}
@@ -263,19 +311,33 @@ export function MonthViewDraggable({
             <GripVertical className="h-3 w-3" />
             <span>Dra pass för att flytta</span>
           </div>
+          <div className="flex items-center gap-1" title="Håll Shift och dra för att skapa en kopia">
+            <Copy className="h-3 w-3" />
+            <span>Shift-dra för kopia</span>
+          </div>
         </div>
       </div>
 
       {/* Drag Overlay */}
       <DragOverlay>
         {activeItem && (
-          <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs shadow-lg opacity-90">
+          <div
+            className={cn(
+              'flex items-center gap-1 bg-blue-600 text-white px-2 py-1 rounded text-xs shadow-lg opacity-90',
+              activeDragAction === 'copy' && 'bg-emerald-600'
+            )}
+          >
+            {activeDragAction === 'copy' && <Copy className="h-3 w-3" />}
             {activeItem.title}
           </div>
         )}
       </DragOverlay>
     </DndContext>
   )
+}
+
+function hasShiftKey(event: Event | null | undefined): boolean {
+  return Boolean(event && 'shiftKey' in event && (event as KeyboardEvent).shiftKey)
 }
 
 interface DroppableDayCellProps {

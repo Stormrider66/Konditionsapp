@@ -78,6 +78,16 @@ interface UnifiedCalendarProps {
   businessSlug?: string
 }
 
+function getCalendarDayNumber(date: Date): number {
+  return date.getDay() === 0 ? 7 : date.getDay()
+}
+
+function sortCalendarItems(calendarItems: UnifiedCalendarItem[]): UnifiedCalendarItem[] {
+  return [...calendarItems].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  )
+}
+
 export function UnifiedCalendar({ clientId, clientName, isCoachView = false, variant = 'default', businessSlug }: UnifiedCalendarProps) {
   const { toast } = useToast()
   const isGlass = variant === 'glass'
@@ -117,6 +127,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   const [rescheduleState, setRescheduleState] = useState<RescheduleState | null>(null)
   const [isCheckingConflicts, setIsCheckingConflicts] = useState(false)
   const [isRescheduling, setIsRescheduling] = useState(false)
+  const [isCopyingWorkout, setIsCopyingWorkout] = useState(false)
   const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
@@ -410,6 +421,85 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     [items, toast]
   )
 
+  // Handle shift-drag workout copy
+  const handleCopyWorkout = useCallback(
+    async (workoutId: string, targetDate: Date) => {
+      const workout = items.find((item) => item.id === workoutId && item.type === 'WORKOUT')
+      if (!workout) return
+
+      setIsCopyingWorkout(true)
+
+      try {
+        const response = await fetch('/api/calendar/workouts/copy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            workoutId,
+            targetDate: targetDate.toISOString(),
+            skipConflictCheck: false,
+          }),
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          toast({
+            title: 'Fel',
+            description: result.error || 'Kunde inte kopiera passet',
+            variant: 'destructive',
+          })
+          return
+        }
+
+        const copiedItem: UnifiedCalendarItem = {
+          ...workout,
+          id: result.workout.id,
+          title: result.workout.name || workout.title,
+          date: result.workout.date || targetDate.toISOString(),
+          status: result.workout.status || 'PLANNED',
+          metadata: {
+            ...workout.metadata,
+            dayNumber: getCalendarDayNumber(targetDate),
+            order: result.workout.order,
+            isCompleted: false,
+            completedAt: null,
+          },
+        }
+
+        mutate((currentData: typeof data) => {
+          if (!currentData || !Array.isArray(currentData.items)) return currentData
+
+          return {
+            ...currentData,
+            items: sortCalendarItems([...currentData.items, copiedItem]),
+            counts: currentData.counts
+              ? {
+                  ...currentData.counts,
+                  total: (currentData.counts.total || 0) + 1,
+                  workouts: (currentData.counts.workouts || 0) + 1,
+                }
+              : currentData.counts,
+          }
+        }, { revalidate: false })
+
+        toast({
+          title: 'Pass kopierat',
+          description: result.message,
+        })
+      } catch (err) {
+        console.error('Error copying workout:', err)
+        toast({
+          title: 'Fel',
+          description: 'Kunde inte kopiera passet',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsCopyingWorkout(false)
+      }
+    },
+    [data, items, mutate, toast]
+  )
+
   // Execute reschedule
   const executeReschedule = useCallback(
     async (reason?: string, skipConflictCheck = false) => {
@@ -446,8 +536,28 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           description: result.message,
         })
 
-        // Refresh calendar data
-        mutate()
+        mutate((currentData: typeof data) => {
+          if (!currentData || !Array.isArray(currentData.items)) return currentData
+
+          return {
+            ...currentData,
+            items: sortCalendarItems(
+              currentData.items.map((item: UnifiedCalendarItem) =>
+                item.id === rescheduleState.workoutId && item.type === 'WORKOUT'
+                  ? {
+                      ...item,
+                      date: rescheduleState.targetDate.toISOString(),
+                      status: result.workout?.status || item.status,
+                      metadata: {
+                        ...item.metadata,
+                        dayNumber: getCalendarDayNumber(rescheduleState.targetDate),
+                      },
+                    }
+                  : item
+              )
+            ),
+          }
+        }, { revalidate: false })
 
         // Close dialogs
         setShowConflictDialog(false)
@@ -464,7 +574,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         setIsRescheduling(false)
       }
     },
-    [rescheduleState, mutate, toast]
+    [data, rescheduleState, mutate, toast]
   )
 
   // Handle conflict resolution
@@ -625,7 +735,9 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                   onItemClick={handleItemClick}
                   selectedDate={selectedDate}
                   onReschedule={handleReschedule}
+                  onCopyWorkout={handleCopyWorkout}
                   isRescheduling={isCheckingConflicts || isRescheduling}
+                  isCopying={isCopyingWorkout}
                   isGlass={true}
                 />
               </div>
@@ -977,7 +1089,9 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 onItemClick={handleItemClick}
                 selectedDate={selectedDate}
                 onReschedule={handleReschedule}
+                onCopyWorkout={handleCopyWorkout}
                 isRescheduling={isCheckingConflicts || isRescheduling}
+                isCopying={isCopyingWorkout}
               />
             </div>
           ) : (
