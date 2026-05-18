@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { Users, User, Dumbbell, Sparkles, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 type ModeOption = 'AUTO' | 'TEAM' | 'PT' | 'GYM'
 
@@ -16,43 +17,44 @@ interface DashboardModeSelectorProps {
 
 const MODE_OPTIONS: {
   key: ModeOption
-  label: string
-  description: string
+  labelKey: 'auto' | 'team' | 'pt' | 'gym'
+  descriptionKey: 'auto' | 'team' | 'pt' | 'gym'
   icon: typeof Users
   color: string
   disabled?: boolean
 }[] = [
   {
     key: 'AUTO',
-    label: 'Automatisk',
-    description: 'Anpassas baserat på din verksamhet och atleter',
+    labelKey: 'auto',
+    descriptionKey: 'auto',
     icon: Sparkles,
     color: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20',
   },
   {
     key: 'TEAM',
-    label: 'Team Coach',
-    description: 'Optimerad för lag med trupp, beredskap och sessionsplanering',
+    labelKey: 'team',
+    descriptionKey: 'team',
     icon: Users,
     color: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20',
   },
   {
     key: 'PT',
-    label: 'Personlig tränare',
-    description: 'Fokus på individuella klienter, feedback och program',
+    labelKey: 'pt',
+    descriptionKey: 'pt',
     icon: User,
     color: 'border-green-500 bg-green-50 dark:bg-green-900/20',
   },
   {
     key: 'GYM',
-    label: 'Gym Coach',
-    description: 'Styrketräning, PRs, platåer och kroppsmätningar',
+    labelKey: 'gym',
+    descriptionKey: 'gym',
     icon: Dumbbell,
     color: 'border-purple-500 bg-purple-50 dark:bg-purple-900/20',
   },
 ]
 
 export function DashboardModeSelector({ initialMode }: DashboardModeSelectorProps) {
+  const t = useTranslations('components.settings.coach')
   const [selectedMode, setSelectedMode] = useState<ModeOption>(
     initialMode === 'TEAM' || initialMode === 'PT' || initialMode === 'GYM'
       ? initialMode
@@ -127,18 +129,22 @@ export function DashboardModeSelector({ initialMode }: DashboardModeSelectorProp
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm text-slate-900 dark:text-white">
-                        {option.label}
+                        {t(`dashboardMode.options.${option.labelKey}.label`)}
                       </p>
                       {option.key === 'AUTO' && (
                         <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                          Rekommenderad
+                          {t('dashboardMode.badges.recommended')}
                         </span>
                       )}
                       {option.disabled && (
-                        <span className="text-[10px] text-muted-foreground">Kommer snart</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {t('dashboardMode.badges.comingSoon')}
+                        </span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{option.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t(`dashboardMode.options.${option.descriptionKey}.description`)}
+                    </p>
                   </div>
                   {isSelected && !saving && (
                     <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />

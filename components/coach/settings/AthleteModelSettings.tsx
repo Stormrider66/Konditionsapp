@@ -16,6 +16,7 @@ import { Loader2, Save, Users } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { INTENT_TIER_LABELS, MODEL_TIERS } from '@/types/ai-models'
 import type { ModelIntent } from '@/types/ai-models'
+import { useTranslations } from '@/i18n/client'
 
 const ALL_TIERS: ModelIntent[] = ['fast', 'balanced', 'powerful']
 
@@ -25,6 +26,7 @@ function getTierModelNames(intent: ModelIntent): string {
 }
 
 export function AthleteModelSettings() {
+  const t = useTranslations('components.settings.coach')
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -49,7 +51,7 @@ export function AthleteModelSettings() {
   }, [])
 
   useEffect(() => {
-    fetchSettings()
+    void fetchSettings()
   }, [fetchSettings])
 
   function handleToggleTier(tier: ModelIntent, checked: boolean) {
@@ -81,20 +83,20 @@ export function AthleteModelSettings() {
       const data = await response.json()
       if (data.success) {
         toast({
-          title: 'Inställningar sparade',
-          description: 'Atleternas AI-kvalitetsnivåer har uppdaterats.',
+          title: t('athleteModels.toasts.saved.title'),
+          description: t('athleteModels.toasts.saved.description'),
         })
       } else {
         toast({
-          title: 'Kunde inte spara',
-          description: data.error || 'Försök igen.',
+          title: t('athleteModels.toasts.saveFailed.title'),
+          description: data.error || t('athleteModels.toasts.saveFailed.fallbackDescription'),
           variant: 'destructive',
         })
       }
     } catch {
       toast({
-        title: 'Kunde inte spara',
-        description: 'Ett oväntat fel uppstod.',
+        title: t('athleteModels.toasts.saveFailed.title'),
+        description: t('athleteModels.toasts.saveFailed.unexpectedDescription'),
         variant: 'destructive',
       })
     } finally {
@@ -121,12 +123,12 @@ export function AthleteModelSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5" />
-            Atleternas AI-kvalitet
+            {t('athleteModels.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Inga AI-modeller är tillgängliga. Se till att du har giltiga API-nycklar konfigurerade.
+            {t('athleteModels.noKeys')}
           </p>
         </CardContent>
       </Card>
@@ -138,10 +140,10 @@ export function AthleteModelSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Users className="h-5 w-5" />
-          Atleternas AI-kvalitet
+          {t('athleteModels.title')}
         </CardTitle>
         <CardDescription>
-          Välj vilka kvalitetsnivåer dina atleter kan använda. Lämna alla omarkerade för att tillåta alla nivåer.
+          {t('athleteModels.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -164,7 +166,7 @@ export function AthleteModelSettings() {
                     <span className="font-medium text-sm">{tierInfo.label}</span>
                     {tier === 'balanced' && (
                       <Badge variant="outline" className="text-xs">
-                        Rekommenderad
+                        {t('athleteModels.tiers.recommendedBadge')}
                       </Badge>
                     )}
                   </div>
@@ -172,7 +174,7 @@ export function AthleteModelSettings() {
                     {tierInfo.description}
                   </p>
                   <p className="text-[10px] text-muted-foreground/70 mt-1">
-                    Modeller: {getTierModelNames(tier)}
+                    {t('athleteModels.tiers.availableModels')} {getTierModelNames(tier)}
                   </p>
                 </div>
               </label>
@@ -182,22 +184,22 @@ export function AthleteModelSettings() {
 
         {allowedTiers.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            Inga nivåer markerade = alla kvalitetsnivåer tillåtna.
+            {t('athleteModels.noSelectionMessage')}
           </p>
         )}
 
         {/* Default tier dropdown */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Standardnivå för atleter</label>
+          <label className="text-sm font-medium">{t('athleteModels.defaultLabel')}</label>
           <Select
             value={defaultTier ?? 'auto'}
             onValueChange={(v) => setDefaultTier(v === 'auto' ? null : v as ModelIntent)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Automatisk (Balanserad)" />
+              <SelectValue placeholder={t('athleteModels.autoPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="auto">Automatisk (Balanserad)</SelectItem>
+              <SelectItem value="auto">{t('athleteModels.autoLabel')}</SelectItem>
               {defaultCandidates.map((tier) => (
                 <SelectItem key={tier} value={tier}>
                   {INTENT_TIER_LABELS[tier].label}
@@ -214,7 +216,7 @@ export function AthleteModelSettings() {
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}
-          Spara inställningar
+          {t('athleteModels.save')}
         </Button>
       </CardContent>
     </Card>

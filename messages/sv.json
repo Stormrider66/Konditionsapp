@@ -16097,6 +16097,96 @@
           "title": "AI-kostnader",
           "description": "Se kostnad per funktion och atlet"
         },
+        "dashboardMode": {
+          "badges": {
+            "recommended": "Rekommenderad",
+            "comingSoon": "Kommer snart"
+          },
+          "options": {
+            "auto": {
+              "label": "Automatisk",
+              "description": "Anpassas efter din verksamhet och atleter"
+            },
+            "team": {
+              "label": "Team Coach",
+              "description": "Optimerad för lag med trupp, beredskap och sessionsplanering"
+            },
+            "pt": {
+              "label": "Personlig tränare",
+              "description": "Fokus på individuella klienter, feedback och program"
+            },
+            "gym": {
+              "label": "Gym Coach",
+              "description": "Styrketräning, PRs, platåer och kroppsmätningar"
+            }
+          }
+        },
+        "calendarSharing": {
+          "permissionMessage": "Bara ägare och admins kan ändra kalenderdelning.",
+          "visibility": {
+            "title": "Synlighet i samlad kalender",
+            "help": "Styr hur din organisations kalender syns för medlemmar som arbetar med flera organisationer.",
+            "accessibilityLabel": "Kalendersynlighet",
+            "options": {
+              "fullDetails": {
+                "label": "Fullständiga detaljer",
+                "description": "Medlemmar ser hela händelsen"
+              },
+              "busyOnly": {
+                "label": "Bara tillgänglighet",
+                "description": "Medlemmar ser bara \"Upptagen\""
+              },
+              "hidden": {
+                "label": "Dold",
+                "description": "Kalendern syns inte i samlad vy"
+              }
+            }
+          },
+          "sharing": {
+            "title": "Vad delas?"
+          },
+          "eventGroups": {
+            "team": {
+              "label": "Dela laghändelser",
+              "title": "Laghändelser",
+              "description": "Matcher, träningar, tester, lediga dagar"
+            },
+            "athlete": {
+              "label": "Dela atlethändelser",
+              "title": "Atlethändelser",
+              "description": "Individuella kalenderhändelser (tävlingar, läger etc.)"
+            }
+          },
+          "status": {
+            "saving": "Sparar...",
+            "saveFailed": "Kunde inte spara. Försök igen."
+          }
+        },
+        "athleteModels": {
+          "title": "Atleternas AI-kvalitet",
+          "description": "Välj vilka kvalitetsnivåer dina atleter kan använda. Lämna alla omarkerade för att tillåta alla nivåer.",
+          "noKeys": "Inga AI-modeller är tillgängliga. Se till att du har giltiga API-nycklar konfigurerade.",
+          "noSelectionMessage": "Inga nivåer markerade = alla kvalitetsnivåer tillåtna.",
+          "defaultLabel": "Standardnivå för atleter",
+          "save": "Spara inställningar",
+          "autoPlaceholder": "Automatisk (Balanserad)",
+          "autoLabel": "Automatisk (Balanserad)",
+          "tiers": {
+            "recommendedBadge": "Rekommenderad",
+            "availableModels": "Modeller:"
+          },
+          "toasts": {
+            "saved": {
+              "title": "Inställningar sparade",
+              "description": "Atleternas AI-kvalitetsnivåer har uppdaterats."
+            },
+            "saveFailed": {
+              "title": "Kunde inte spara",
+              "fallbackDescription": "Försök igen.",
+              "unexpectedDescription": "Ett oväntat fel uppstod."
+            }
+          }
+        },
         "integrations": {
           "calendar": {
             "title": "Kalendersynk"
@@ -16104,6 +16194,55 @@
           "platforms": {
             "title": "Gymplattformar",
             "description": "Zoezi, Wondr, Boka Direkt, MindBody"
+          },
+          "gymPlatforms": {
+            "status": {
+              "active": "Aktiv",
+              "inactive": "Inaktiv",
+              "error": "Fel"
+            },
+            "stats": {
+              "syncedClasses": "Synkade klasser",
+              "syncedBookings": "Synkade bokningar",
+              "lastSync": "Senaste synk",
+              "never": "Aldrig"
+            },
+            "errors": {
+              "networkError": "Nätverksfel"
+            },
+            "connectionSuccess": "Anslutningen lyckades!",
+            "actions": {
+              "syncNow": "Synka nu",
+              "remove": "Ta bort",
+              "connect": "Anslut gymplattform",
+              "connectNew": "Anslut ny plattform",
+              "testAndConnect": "Testa & Anslut",
+              "cancel": "Avbryt"
+            },
+            "providers": {
+              "zoezi": {
+                "description": "Affärssystem för friskvårdsbranschen. Synka klasser och bokningar."
+              },
+              "wondr": {
+                "description": "Används av SATS, Nordic Wellness m.fl. Kräver partneravtal."
+              },
+              "bokaDirekt": {
+                "description": "Bokningsplattform för PT-sessioner. API i premiumplan."
+              },
+              "mindBody": {
+                "description": "Internationell gymsystem. Gratis under 5 000 API-anrop/cykel."
+              }
+            },
+            "form": {
+              "nameLabel": "Namn (valfritt)",
+              "namePlaceholder": "T.ex. Mitt Gym",
+              "apiKeyLabel": "API-nyckel",
+              "apiKeyPlaceholder": "Din API-nyckel",
+              "apiSecretLabel": "API-hemlighet",
+              "apiSecretPlaceholder": "API-hemlighet",
+              "siteIdLabel": "Site/Facility ID",
+              "siteIdPlaceholder": "T.ex. 12345"
+            }
           }
         }
       }

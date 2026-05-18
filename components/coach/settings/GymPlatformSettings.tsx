@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
 import {
   CheckCircle2,
   AlertCircle,
@@ -17,6 +16,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface GymConnection {
   id: string
@@ -34,34 +34,52 @@ interface GymConnection {
   _count: { syncedClasses: number; syncedBookings: number }
 }
 
-const providerConfig: Record<string, { label: string; icon: string; description: string; fields: string[] }> = {
+type GymProvider = 'ZOEZI' | 'WONDR' | 'BOKADIREKT' | 'MINDBODY'
+type GymProviderKey = 'zoezi' | 'wondr' | 'bokaDirekt' | 'mindBody'
+
+const providerConfig: Record<
+  GymProvider,
+  { label: string; icon: string; descriptionKey: GymProviderKey; fields: string[]; provider: string }
+> = {
   ZOEZI: {
     label: 'Zoezi',
     icon: '🟢',
-    description: 'Affärssystem för friskvårdsbranschen. Synka klasser och bokningar.',
+    descriptionKey: 'zoezi',
     fields: ['apiKey'],
+    provider: 'ZOEZI',
   },
   WONDR: {
     label: 'Wondr (BRP)',
     icon: '🔵',
-    description: 'Används av SATS, Nordic Wellness m.fl. Kräver partneravtal.',
+    descriptionKey: 'wondr',
     fields: ['apiKey', 'apiSecret', 'siteId'],
+    provider: 'WONDR',
   },
   BOKADIREKT: {
     label: 'Boka Direkt',
     icon: '🟠',
-    description: 'Bokningsplattform för PT-sessioner. API i premiumplan.',
+    descriptionKey: 'bokaDirekt',
     fields: ['apiKey'],
+    provider: 'BOKADIREKT',
   },
   MINDBODY: {
     label: 'MindBody',
     icon: '🟣',
-    description: 'Internationell gymsystem. Gratis under 5 000 API-anrop/cykel.',
+    descriptionKey: 'mindBody',
     fields: ['apiKey', 'siteId'],
+    provider: 'MINDBODY',
   },
 }
 
+const providerConfigById = Object.fromEntries(
+  Object.entries(providerConfig).map(([provider, config]) => [
+    provider,
+    config,
+  ]),
+) as Record<string, (typeof providerConfig)[GymProvider]>
+
 export function GymPlatformSettings() {
+  const t = useTranslations('components.settings.coach')
   const [connections, setConnections] = useState<GymConnection[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState<string | null>(null)
@@ -87,7 +105,7 @@ export function GymPlatformSettings() {
     }
   }, [])
 
-  useEffect(() => { fetchConnections() }, [fetchConnections])
+  useEffect(() => { void fetchConnections() }, [fetchConnections])
 
   const addConnection = async () => {
     if (!addProvider || !addApiKey) return
@@ -99,7 +117,7 @@ export function GymPlatformSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: addProvider,
-          displayName: addName || providerConfig[addProvider]?.label || addProvider,
+          displayName: addName || providerConfigById[addProvider]?.label || addProvider,
           apiKey: addApiKey,
           apiSecret: addApiSecret || undefined,
           siteId: addSiteId || undefined,
@@ -108,7 +126,7 @@ export function GymPlatformSettings() {
       const data = await res.json()
       setAddResult(data.testResult)
       if (res.ok) {
-        fetchConnections()
+        void fetchConnections()
         if (data.testResult?.success) {
           setShowAdd(false)
           setAddProvider('')
@@ -119,7 +137,7 @@ export function GymPlatformSettings() {
         }
       }
     } catch {
-      setAddResult({ success: false, error: 'Nätverksfel' })
+      setAddResult({ success: false, error: t('integrations.gymPlatforms.errors.networkError') })
     } finally {
       setAdding(false)
     }
@@ -133,7 +151,7 @@ export function GymPlatformSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ connectionId }),
       })
-      fetchConnections()
+      void fetchConnections()
     } catch {
       // ignore
     } finally {
@@ -148,7 +166,7 @@ export function GymPlatformSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       })
-      fetchConnections()
+      void fetchConnections()
     } catch {
       // ignore
     }
@@ -164,7 +182,7 @@ export function GymPlatformSettings() {
       ) : (
         <>
           {connections.map(conn => {
-            const config = providerConfig[conn.provider]
+            const config = providerConfigById[conn.provider]
             return (
               <Card key={conn.id}>
                 <CardHeader>
@@ -178,10 +196,12 @@ export function GymPlatformSettings() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={conn.isActive ? 'default' : 'secondary'}>
-                        {conn.isActive ? 'Aktiv' : 'Inaktiv'}
+                        {conn.isActive ? t('integrations.gymPlatforms.status.active') : t('integrations.gymPlatforms.status.inactive')}
                       </Badge>
                       {conn.lastSyncError && (
-                        <Badge variant="destructive" className="text-xs">Fel</Badge>
+                        <Badge variant="destructive" className="text-xs">
+                          {t('integrations.gymPlatforms.status.error')}
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -191,21 +211,21 @@ export function GymPlatformSettings() {
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <p className="text-2xl font-bold">{conn._count.syncedClasses}</p>
-                      <p className="text-xs text-muted-foreground">Synkade klasser</p>
+                      <p className="text-xs text-muted-foreground">{t('integrations.gymPlatforms.stats.syncedClasses')}</p>
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{conn._count.syncedBookings}</p>
-                      <p className="text-xs text-muted-foreground">Synkade bokningar</p>
+                      <p className="text-xs text-muted-foreground">{t('integrations.gymPlatforms.stats.syncedBookings')}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                         <Clock className="h-3 w-3" />
                         {conn.lastSyncAt
                           ? new Date(conn.lastSyncAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-                          : 'Aldrig'
+                          : t('integrations.gymPlatforms.stats.never')
                         }
                       </p>
-                      <p className="text-xs text-muted-foreground">Senaste synk</p>
+                      <p className="text-xs text-muted-foreground">{t('integrations.gymPlatforms.stats.lastSync')}</p>
                     </div>
                   </div>
 
@@ -222,22 +242,22 @@ export function GymPlatformSettings() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => triggerSync(conn.id)}
+                      onClick={() => { void triggerSync(conn.id) }}
                       disabled={syncing === conn.id}
                     >
                       {syncing === conn.id
                         ? <Loader2 className="h-3 w-3 animate-spin mr-1" />
                         : <RefreshCw className="h-3 w-3 mr-1" />
                       }
-                      Synka nu
+                      {t('integrations.gymPlatforms.actions.syncNow')}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       className="text-red-500 hover:text-red-700"
-                      onClick={() => deleteConnection(conn.id)}
+                      onClick={() => { void deleteConnection(conn.id) }}
                     >
-                      <Trash2 className="h-3 w-3 mr-1" /> Ta bort
+                      <Trash2 className="h-3 w-3 mr-1" /> {t('integrations.gymPlatforms.actions.remove')}
                     </Button>
                   </div>
                 </CardContent>
@@ -250,13 +270,13 @@ export function GymPlatformSettings() {
       {/* Add new connection */}
       {!showAdd ? (
         <Button onClick={() => setShowAdd(true)} className="w-full" variant="outline">
-          <Plus className="h-4 w-4 mr-2" /> Anslut gymplattform
+          <Plus className="h-4 w-4 mr-2" /> {t('integrations.gymPlatforms.actions.connect')}
         </Button>
       ) : (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Plug className="h-5 w-5" /> Anslut ny plattform
+              <Plug className="h-5 w-5" /> {t('integrations.gymPlatforms.actions.connectNew')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -281,7 +301,9 @@ export function GymPlatformSettings() {
                     <span className="text-xl">{config.icon}</span>
                     <span className="text-sm font-medium">{config.label}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{config.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t(`integrations.gymPlatforms.providers.${config.descriptionKey}.description`)}
+                  </p>
                 </button>
               ))}
             </div>
@@ -290,33 +312,33 @@ export function GymPlatformSettings() {
               <>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium">Namn (valfritt)</label>
-                    <Input value={addName} onChange={e => setAddName(e.target.value)} placeholder="t.ex. Mitt Gym" />
+                    <label className="text-sm font-medium">{t('integrations.gymPlatforms.form.nameLabel')}</label>
+                    <Input value={addName} onChange={e => setAddName(e.target.value)} placeholder={t('integrations.gymPlatforms.form.namePlaceholder')} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">API-nyckel</label>
+                    <label className="text-sm font-medium">{t('integrations.gymPlatforms.form.apiKeyLabel')}</label>
                     <Input
                       type="password"
                       value={addApiKey}
                       onChange={e => setAddApiKey(e.target.value)}
-                      placeholder="Din API-nyckel"
+                      placeholder={t('integrations.gymPlatforms.form.apiKeyPlaceholder')}
                     />
                   </div>
-                  {providerConfig[addProvider]?.fields.includes('apiSecret') && (
+                  {providerConfigById[addProvider]?.fields.includes('apiSecret') && (
                     <div>
-                      <label className="text-sm font-medium">API-hemlighet</label>
+                      <label className="text-sm font-medium">{t('integrations.gymPlatforms.form.apiSecretLabel')}</label>
                       <Input
                         type="password"
                         value={addApiSecret}
                         onChange={e => setAddApiSecret(e.target.value)}
-                        placeholder="API secret"
+                        placeholder={t('integrations.gymPlatforms.form.apiSecretPlaceholder')}
                       />
                     </div>
                   )}
-                  {providerConfig[addProvider]?.fields.includes('siteId') && (
+                  {providerConfigById[addProvider]?.fields.includes('siteId') && (
                     <div>
-                      <label className="text-sm font-medium">Site/Facility ID</label>
-                      <Input value={addSiteId} onChange={e => setAddSiteId(e.target.value)} placeholder="t.ex. 12345" />
+                      <label className="text-sm font-medium">{t('integrations.gymPlatforms.form.siteIdLabel')}</label>
+                      <Input value={addSiteId} onChange={e => setAddSiteId(e.target.value)} placeholder={t('integrations.gymPlatforms.form.siteIdPlaceholder')} />
                     </div>
                   )}
                 </div>
@@ -332,17 +354,24 @@ export function GymPlatformSettings() {
                       ? <CheckCircle2 className="h-4 w-4 mt-0.5" />
                       : <AlertCircle className="h-4 w-4 mt-0.5" />
                     }
-                    {addResult.success ? 'Anslutningen lyckades!' : addResult.error}
+                    {addResult.success ? t('integrations.gymPlatforms.connectionSuccess') : addResult.error}
                   </div>
                 )}
 
                 <div className="flex gap-2">
-                  <Button onClick={addConnection} disabled={adding || !addApiKey}>
+                  <Button onClick={() => { void addConnection() }} disabled={adding || !addApiKey}>
                     {adding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plug className="h-4 w-4 mr-2" />}
-                    Testa & Anslut
+                    {t('integrations.gymPlatforms.actions.testAndConnect')}
                   </Button>
-                  <Button variant="ghost" onClick={() => { setShowAdd(false); setAddProvider(''); setAddResult(null) }}>
-                    Avbryt
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setShowAdd(false)
+                      setAddProvider('')
+                      setAddResult(null)
+                    }}
+                  >
+                    {t('integrations.gymPlatforms.actions.cancel')}
                   </Button>
                 </div>
               </>

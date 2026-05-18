@@ -16097,6 +16097,96 @@
           "title": "AI costs",
           "description": "See cost per feature and athlete"
         },
+        "dashboardMode": {
+          "badges": {
+            "recommended": "Recommended",
+            "comingSoon": "Coming soon"
+          },
+          "options": {
+            "auto": {
+              "label": "Auto",
+              "description": "Adapts to your business and athletes"
+            },
+            "team": {
+              "label": "Team Coach",
+              "description": "Optimized for squads, readiness tracking, and session planning"
+            },
+            "pt": {
+              "label": "Personal Coach",
+              "description": "Focused on individual clients, feedback, and programs"
+            },
+            "gym": {
+              "label": "Gym Coach",
+              "description": "Strength training, PRs, plateaus, and body measurements"
+            }
+          }
+        },
+        "calendarSharing": {
+          "permissionMessage": "Only owners and admins can change calendar sharing.",
+          "visibility": {
+            "title": "Visibility in unified calendar",
+            "help": "Control how your organization calendar appears to members who work across multiple organizations.",
+            "accessibilityLabel": "Calendar visibility",
+            "options": {
+              "fullDetails": {
+                "label": "Full details",
+                "description": "Members can see the entire event"
+              },
+              "busyOnly": {
+                "label": "Only availability",
+                "description": "Members only see \"Busy\""
+              },
+              "hidden": {
+                "label": "Hidden",
+                "description": "Calendar is not visible in the unified view"
+              }
+            }
+          },
+          "sharing": {
+            "title": "What is shared?"
+          },
+          "eventGroups": {
+            "team": {
+              "label": "Share team events",
+              "title": "Team events",
+              "description": "Matches, trainings, tests, and days off"
+            },
+            "athlete": {
+              "label": "Share athlete events",
+              "title": "Athlete events",
+              "description": "Individual calendar events (meets, camps, etc.)"
+            }
+          },
+          "status": {
+            "saving": "Saving...",
+            "saveFailed": "Could not save. Try again."
+          }
+        },
+        "athleteModels": {
+          "title": "Athlete AI quality",
+          "description": "Choose which quality levels your athletes can use. Leave all unchecked to allow all levels.",
+          "noKeys": "No AI models are available. Make sure you have valid API keys configured.",
+          "noSelectionMessage": "No levels selected = all quality levels allowed.",
+          "defaultLabel": "Default level for athletes",
+          "save": "Save settings",
+          "autoPlaceholder": "Auto (Balanced)",
+          "autoLabel": "Auto (Balanced)",
+          "tiers": {
+            "recommendedBadge": "Recommended",
+            "availableModels": "Models:"
+          },
+          "toasts": {
+            "saved": {
+              "title": "Settings saved",
+              "description": "Athlete AI quality levels have been updated."
+            },
+            "saveFailed": {
+              "title": "Could not save",
+              "fallbackDescription": "Try again.",
+              "unexpectedDescription": "An unexpected error occurred."
+            }
+          }
+        },
         "integrations": {
           "calendar": {
             "title": "Calendar sync"
@@ -16104,6 +16194,55 @@
           "platforms": {
             "title": "Gym platforms",
             "description": "Zoezi, Wondr, Book Direct, MindBody"
+          },
+          "gymPlatforms": {
+            "status": {
+              "active": "Active",
+              "inactive": "Inactive",
+              "error": "Error"
+            },
+            "stats": {
+              "syncedClasses": "Synced classes",
+              "syncedBookings": "Synced bookings",
+              "lastSync": "Last sync",
+              "never": "Never"
+            },
+            "errors": {
+              "networkError": "Network error"
+            },
+            "connectionSuccess": "Connection successful!",
+            "actions": {
+              "syncNow": "Sync now",
+              "remove": "Remove",
+              "connect": "Connect gym platform",
+              "connectNew": "Connect new platform",
+              "testAndConnect": "Test & Connect",
+              "cancel": "Cancel"
+            },
+            "providers": {
+              "zoezi": {
+                "description": "Business system for wellness studios. Sync classes and bookings."
+              },
+              "wondr": {
+                "description": "Used by SATS, Nordic Wellness etc. Requires partner agreement."
+              },
+              "bokaDirekt": {
+                "description": "Booking platform for PT sessions. API in premium plan."
+              },
+              "mindBody": {
+                "description": "International gym system. Free up to 5,000 API calls per cycle."
+              }
+            },
+            "form": {
+              "nameLabel": "Name (optional)",
+              "namePlaceholder": "E.g. My Gym",
+              "apiKeyLabel": "API key",
+              "apiKeyPlaceholder": "Your API key",
+              "apiSecretLabel": "API secret",
+              "apiSecretPlaceholder": "API secret",
+              "siteIdLabel": "Site/Facility ID",
+              "siteIdPlaceholder": "E.g. 12345"
+            }
           }
         }
       }

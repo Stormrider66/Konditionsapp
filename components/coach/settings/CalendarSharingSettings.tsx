@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Eye, EyeOff, Users, UserIcon, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface CalendarSettingsState {
   calendarVisibility: 'FULL_DETAILS' | 'BUSY_ONLY' | 'HIDDEN'
@@ -10,7 +11,10 @@ interface CalendarSettingsState {
   shareAthleteEvents: boolean
 }
 
+type CalendarVisibilityOption = 'fullDetails' | 'busyOnly' | 'hidden'
+
 export function CalendarSharingSettings({ businessId }: { businessId: string }) {
+  const t = useTranslations('components.settings.coach')
   const [settings, setSettings] = useState<CalendarSettingsState>({
     calendarVisibility: 'FULL_DETAILS',
     shareTeamEvents: true,
@@ -41,7 +45,7 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
         setLoaded(true)
       }
     }
-    if (businessId) fetchSettings()
+    if (businessId) void fetchSettings()
   }, [businessId])
 
   const persistSettings = useCallback(async (newSettings: CalendarSettingsState) => {
@@ -93,25 +97,29 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
       <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4">
         <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
           <Shield className="w-5 h-5" />
-          <p className="text-sm">Bara ägare och admins kan ändra kalenderdelning.</p>
+          <p className="text-sm">{t('calendarSharing.permissionMessage')}</p>
         </div>
       </div>
     )
   }
 
-  const visibilityOptions = [
-    { value: 'FULL_DETAILS' as const, label: 'Fullständiga detaljer', desc: 'Medlemmar ser hela händelsen', icon: Eye },
-    { value: 'BUSY_ONLY' as const, label: 'Bara tillgänglighet', desc: 'Medlemmar ser bara "Upptagen"', icon: EyeOff },
-    { value: 'HIDDEN' as const, label: 'Dold', desc: 'Kalendern syns inte i samlad vy', icon: EyeOff },
+  const visibilityOptions: {
+    value: CalendarSettingsState['calendarVisibility']
+    key: CalendarVisibilityOption
+    icon: typeof Eye
+  }[] = [
+    { value: 'FULL_DETAILS', key: 'fullDetails', icon: Eye },
+    { value: 'BUSY_ONLY', key: 'busyOnly', icon: EyeOff },
+    { value: 'HIDDEN', key: 'hidden', icon: EyeOff },
   ]
 
   return (
     <div className="space-y-4">
       {/* Visibility level */}
       <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 space-y-3">
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Synlighet i samlad kalender</h4>
-        <p className="text-xs text-slate-500">Styr hur din organisations kalender syns för medlemmar som arbetar med flera organisationer.</p>
-        <div className="space-y-2" role="radiogroup" aria-label="Kalendersynlighet">
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('calendarSharing.visibility.title')}</h4>
+        <p className="text-xs text-slate-500">{t('calendarSharing.visibility.help')}</p>
+        <div className="space-y-2" role="radiogroup" aria-label={t('calendarSharing.visibility.accessibilityLabel')}>
           {visibilityOptions.map((opt) => (
             <button
               key={opt.value}
@@ -134,9 +142,11 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
                   'text-sm font-medium',
                   settings.calendarVisibility === opt.value ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'
                 )}>
-                  {opt.label}
+                  {t(`calendarSharing.visibility.options.${opt.key}.label`)}
                 </div>
-                <div className="text-xs text-slate-500">{opt.desc}</div>
+                <div className="text-xs text-slate-500">
+                  {t(`calendarSharing.visibility.options.${opt.key}.description`)}
+                </div>
               </div>
             </button>
           ))}
@@ -146,13 +156,17 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
       {/* What to share */}
       {settings.calendarVisibility !== 'HIDDEN' && (
         <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 space-y-3">
-          <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Vad delas?</h4>
+          <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('calendarSharing.sharing.title')}</h4>
           <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
             <div className="flex items-center gap-3">
               <Users className="w-5 h-5 text-slate-400" />
               <div>
-                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Laghändelser</div>
-                <div className="text-xs text-slate-500">Matcher, träningar, tester, lediga dagar</div>
+                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {t('calendarSharing.eventGroups.team.title')}
+                </div>
+                <div className="text-xs text-slate-500">
+                  {t('calendarSharing.eventGroups.team.description')}
+                </div>
               </div>
             </div>
             <input
@@ -160,15 +174,19 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
               checked={settings.shareTeamEvents}
               onChange={(e) => updateSetting({ shareTeamEvents: e.target.checked })}
               className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
-              aria-label="Dela laghändelser"
+              aria-label={t('calendarSharing.eventGroups.team.label')}
             />
           </label>
           <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
             <div className="flex items-center gap-3">
               <UserIcon className="w-5 h-5 text-slate-400" />
               <div>
-                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">Atlethändelser</div>
-                <div className="text-xs text-slate-500">Individuella kalenderhändelser (tävlingar, camps etc.)</div>
+                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {t('calendarSharing.eventGroups.athlete.title')}
+                </div>
+                <div className="text-xs text-slate-500">
+                  {t('calendarSharing.eventGroups.athlete.description')}
+                </div>
               </div>
             </div>
             <input
@@ -176,15 +194,15 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
               checked={settings.shareAthleteEvents}
               onChange={(e) => updateSetting({ shareAthleteEvents: e.target.checked })}
               className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
-              aria-label="Dela atlethändelser"
+              aria-label={t('calendarSharing.eventGroups.athlete.label')}
             />
           </label>
         </div>
       )}
 
       {/* Status feedback */}
-      {saving && <p className="text-xs text-slate-500 text-center">Sparar...</p>}
-      {saveError && <p className="text-xs text-red-400 text-center">Kunde inte spara. Försök igen.</p>}
+      {saving && <p className="text-xs text-slate-500 text-center">{t('calendarSharing.status.saving')}</p>}
+      {saveError && <p className="text-xs text-red-400 text-center">{t('calendarSharing.status.saveFailed')}</p>}
     </div>
   )
 }
