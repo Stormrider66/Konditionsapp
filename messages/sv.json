@@ -4784,6 +4784,19 @@
         "zonesSummary": "{zoneCount} träningszoner."
       }
     },
+    "athleteDashboard": {
+      "basketballNoSettings": "Slutför onboarding för att se din basketdashboard med position, säsongsfas och mer.",
+      "footballNoSettings": "Du har valt fotboll som din sport. Slutför onboarding för att se din fotbollsdashboard med position, säsongsfas, tester och mer.",
+      "floorballNoSettings": "Slutför onboarding för att se din innebandydashboard med position, säsongsfas och mer.",
+      "generalFitnessNoSettings": "Slutför onboarding för att se din fitnessdashboard med mål, benchmarks och mer.",
+      "handballNoSettings": "Slutför onboarding för att se din handbolldashboard med position, säsongsfas och mer.",
+      "hockeyNoSettings": "Slutför onboarding för att se din ishockeydashboard med position, säsongsfas och mer.",
+      "hyroxNoSettings": "Slutför onboarding för att se din HYROX-dashboard med stationstider, erfarenhetsnivå och mer.",
+      "padelNoSettings": "Slutför onboarding för att se din padeldashboard med position, säsongsfas och mer.",
+      "tennisNoSettings": "Slutför onboarding för att se din tennisdashboard med spelstil, säsongsfas och mer.",
+      "functionalFitnessNoSettings": "Slutför onboarding för att se din dashboard med benchmarks, erfarenhetsnivå och mer.",
+      "volleyballNoSettings": "Slutför onboarding för att se din volleybolldashboard med position, säsongsfas och mer."
+    },
     "careTeam": {
       "inbox": {
         "title": "Meddelanden",

@@ -4784,6 +4784,19 @@
         "zonesSummary": "{zoneCount} training zones."
       }
     },
+    "athleteDashboard": {
+      "basketballNoSettings": "Complete onboarding to see your basketball dashboard with position, season phase and more.",
+      "footballNoSettings": "You have selected football as your sport. Complete onboarding to see your football dashboard with position, season phase, testing and more.",
+      "floorballNoSettings": "Complete onboarding to see your floorball dashboard with position, season phase and more.",
+      "generalFitnessNoSettings": "Complete onboarding to see your fitness dashboard with goals, benchmarks and more.",
+      "handballNoSettings": "Complete onboarding to see your handball dashboard with position, season phase and more.",
+      "hockeyNoSettings": "Complete onboarding to see your ice hockey dashboard with position, season phase and more.",
+      "hyroxNoSettings": "Complete onboarding to see your HYROX dashboard with station times, experience level and more.",
+      "padelNoSettings": "Complete onboarding to see your padel dashboard with position, season phase and more.",
+      "tennisNoSettings": "Complete onboarding to see your tennis dashboard with playing style, season phase and more.",
+      "functionalFitnessNoSettings": "Complete onboarding to see your dashboard with benchmarks, experience level and more.",
+      "volleyballNoSettings": "Complete onboarding to see your volleyball dashboard with position, season phase and more."
+    },
     "metricsCharts": {
       "actions": {
         "refresh": "Refresh metrics"

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   Target,
   Timer,
@@ -189,6 +190,7 @@ function getStationProgress(time: number | null, targetTime: number): number {
 export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const t = useTranslations('components.athleteDashboard')
 
   // Computed client-side to avoid SSR/client timezone mismatch
   const [daysUntilRace, setDaysUntilRace] = useState<number | null>(null)
@@ -204,7 +206,7 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
         <CardHeader>
           <CardTitle>HYROX</CardTitle>
           <CardDescription>
-            Slutför onboarding för att se din HYROX-dashboard med stationstider, erfarenhetsnivå och mer.
+            {t('hyroxNoSettings')}
           </CardDescription>
         </CardHeader>
       </Card>

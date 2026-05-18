@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   Shield,
   Timer,
@@ -151,6 +152,7 @@ const PHASE_FOCUS: Record<string, { focus: string[]; icon: typeof Flame }> = {
 export function FootballDashboard({ settings, recentGPSData = [] }: FootballDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const t = useTranslations('components.athleteDashboard')
 
   if (!settings) {
     return (
@@ -161,7 +163,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
             Fotboll
           </CardTitle>
           <CardDescription>
-            Du har valt fotboll som din sport. Slutför onboarding för att se din fotbollsdashboard med position, säsongsfas, tester och mer.
+            {t('footballNoSettings')}
           </CardDescription>
         </CardHeader>
       </Card>

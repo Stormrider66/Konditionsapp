@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   Target,
   Heart,
@@ -111,6 +112,7 @@ function calculateWeightProgress(current: number | null, target: number | null):
 export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const t = useTranslations('components.athleteDashboard')
 
   if (!settings) {
     return (
@@ -118,7 +120,7 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
         <CardHeader>
           <CardTitle>Allmän fitness</CardTitle>
           <CardDescription>
-            Slutför onboarding för att se din fitnessdashboard med mål, benchmarks och mer.
+            {t('generalFitnessNoSettings')}
           </CardDescription>
         </CardHeader>
       </Card>

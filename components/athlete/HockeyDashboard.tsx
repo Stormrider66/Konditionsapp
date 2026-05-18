@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   Shield,
   Timer,
@@ -124,6 +125,7 @@ function getPhaseProgress(phase: string): number {
 export function HockeyDashboard({ settings }: HockeyDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const t = useTranslations('components.athleteDashboard')
 
   if (!settings) {
     return (
@@ -131,7 +133,7 @@ export function HockeyDashboard({ settings }: HockeyDashboardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">Ishockey</CardTitle>
           <CardDescription>
-            Slutför onboarding för att se din ishockeydashboard med position, säsongsfas och mer.
+            {t('hockeyNoSettings')}
           </CardDescription>
         </CardHeader>
       </Card>

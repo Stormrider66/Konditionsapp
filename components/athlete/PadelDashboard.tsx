@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   Trophy,
   Target,
@@ -65,13 +66,15 @@ const STRENGTH_LABELS: Record<string, string> = {
 }
 
 export function PadelDashboard({ settings }: PadelDashboardProps) {
+  const t = useTranslations('components.athleteDashboard')
+
   if (!settings) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Padel</CardTitle>
           <CardDescription>
-            Slutför onboarding för att se din padeldashboard med position, säsongsfas och mer.
+            {t('padelNoSettings')}
           </CardDescription>
         </CardHeader>
       </Card>

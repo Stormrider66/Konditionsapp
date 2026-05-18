@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   Target,
   Timer,
@@ -162,6 +163,7 @@ function getSkillLevel(skill: string): { level: number; color: string } {
 export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const t = useTranslations('components.athleteDashboard')
 
   if (!settings) {
     return (
@@ -169,7 +171,7 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
         <CardHeader>
           <CardTitle>Functional Fitness</CardTitle>
           <CardDescription>
-            Slutför onboarding för att se din dashboard med benchmarks, erfarenhetsnivå och mer.
+            {t('functionalFitnessNoSettings')}
           </CardDescription>
         </CardHeader>
       </Card>

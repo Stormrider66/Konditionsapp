@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   Trophy,
   Target,
@@ -72,13 +73,15 @@ const STRENGTH_LABELS: Record<string, string> = {
 }
 
 export function TennisDashboard({ settings }: TennisDashboardProps) {
+  const t = useTranslations('components.athleteDashboard')
+
   if (!settings) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Tennis</CardTitle>
           <CardDescription>
-            Slutför onboarding för att se din tennisdashboard med spelstil, säsongsfas och mer.
+            {t('tennisNoSettings')}
           </CardDescription>
         </CardHeader>
       </Card>
