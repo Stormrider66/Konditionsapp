@@ -4543,6 +4543,49 @@
         "copyLinkFailed": "Kunde inte kopiera länken"
       }
     },
+    "athleteLogsPage": {
+      "actions": {
+        "backToClient": "Tillbaka till klient"
+      },
+      "title": "Träningsloggar",
+      "stats": {
+        "totalWorkouts": "Totalt pass",
+        "completed": "Slutförda",
+        "feedbackGiven": "Feedback given",
+        "avgRPE": "Genomsnittlig RPE"
+      },
+      "filters": {
+        "title": "Filtrera",
+        "all": "Alla",
+        "completed": "Slutförda",
+        "incomplete": "Ej slutförda"
+      },
+      "workoutTypes": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "strength": "Styrka",
+        "core": "Core",
+        "plyometric": "Plyometri",
+        "recovery": "Återhämtning",
+        "skiing": "Skidåkning",
+        "other": "Annat"
+      },
+      "table": {
+        "title": "Alla träningsloggar",
+        "description": "Visa och ge feedback på atlets träningspass",
+        "emptyState": "Inga träningsloggar hittades",
+        "columns": {
+          "date": "Datum",
+          "workout": "Pass",
+          "type": "Typ",
+          "planned": "Planerat",
+          "actual": "Faktiskt",
+          "status": "Status",
+          "feedback": "Feedback",
+          "action": "Åtgärd"
+        }
+      }
+    },
     "cyclingDashboard": {
       "emptyState": {
         "description": "Slutför din cykelprofil för att se dina mätvärden."

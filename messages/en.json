@@ -4543,6 +4543,49 @@
         "copyLinkFailed": "Could not copy the link"
       }
     },
+    "athleteLogsPage": {
+      "actions": {
+        "backToClient": "Back to athlete"
+      },
+      "title": "Training logs",
+      "stats": {
+        "totalWorkouts": "Total workouts",
+        "completed": "Completed",
+        "feedbackGiven": "Feedback given",
+        "avgRPE": "Average RPE"
+      },
+      "filters": {
+        "title": "Filters",
+        "all": "All",
+        "completed": "Completed",
+        "incomplete": "Incomplete"
+      },
+      "workoutTypes": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "strength": "Strength",
+        "core": "Core",
+        "plyometric": "Plyometric",
+        "recovery": "Recovery",
+        "skiing": "Skiing",
+        "other": "Other"
+      },
+      "table": {
+        "title": "All training logs",
+        "description": "View and provide feedback on athlete workouts",
+        "emptyState": "No training logs found",
+        "columns": {
+          "date": "Date",
+          "workout": "Workout",
+          "type": "Type",
+          "planned": "Planned",
+          "actual": "Actual",
+          "status": "Status",
+          "feedback": "Feedback",
+          "action": "Action"
+        }
+      }
+    },
     "cyclingDashboard": {
       "emptyState": {
         "description": "Complete your cycling profile to view your metrics."

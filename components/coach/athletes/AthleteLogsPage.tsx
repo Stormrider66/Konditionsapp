@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { WorkoutFeedbackModal } from '@/components/coach/WorkoutFeedbackModal'
+import { getTranslations } from '@/i18n/server'
 
 interface AthleteLogsPageProps {
   params: Promise<{
@@ -40,6 +41,7 @@ export default async function AthleteLogsPage({
   params,
   searchParams
 }: AthleteLogsPageProps) {
+  const t = await getTranslations('components.athleteLogsPage')
   const user = await requireCoach()
   const { businessSlug, id } = await params
   const basePath = businessSlug ? `/${businessSlug}` : ''
@@ -133,12 +135,12 @@ export default async function AthleteLogsPage({
       <Link href={basePath ? `${basePath}/coach/clients/${id}` : '/'}>
         <Button variant="ghost" className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till klient
+          {t('actions.backToClient')}
         </Button>
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Träningsloggar</h1>
+        <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
         <p className="text-muted-foreground">{client.name}</p>
         {client.athleteAccount?.user && (
           <p className="text-sm text-muted-foreground">
@@ -152,7 +154,7 @@ export default async function AthleteLogsPage({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Totalt pass
+              {t('stats.totalWorkouts')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -163,7 +165,7 @@ export default async function AthleteLogsPage({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Slutförda
+              {t('stats.completed')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -176,7 +178,7 @@ export default async function AthleteLogsPage({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Feedback given
+              {t('stats.feedbackGiven')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -189,7 +191,7 @@ export default async function AthleteLogsPage({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Genomsnittlig RPE
+              {t('stats.avgRPE')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -210,39 +212,39 @@ export default async function AthleteLogsPage({
       {/* Filters */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-lg">Filtrera</CardTitle>
+          <CardTitle className="text-lg">{t('filters.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
             <Link href={`${basePath}/coach/athletes/${id}/logs`}>
               <Badge variant={!searchParamsResolved.status ? 'default' : 'outline'}>
-                Alla
+                {t('filters.all')}
               </Badge>
             </Link>
             <Link href={`${basePath}/coach/athletes/${id}/logs?status=completed`}>
               <Badge variant={searchParamsResolved.status === 'completed' ? 'default' : 'outline'}>
-                Slutförda
+                {t('filters.completed')}
               </Badge>
             </Link>
             <Link href={`${basePath}/coach/athletes/${id}/logs?status=incomplete`}>
               <Badge variant={searchParamsResolved.status === 'incomplete' ? 'default' : 'outline'}>
-                Ej slutförda
+                {t('filters.incomplete')}
               </Badge>
             </Link>
             <div className="border-l border-border mx-2"></div>
             <Link href={`${basePath}/coach/athletes/${id}/logs?type=RUNNING`}>
               <Badge variant={searchParamsResolved.type === 'RUNNING' ? 'default' : 'outline'}>
-                Löpning
+                {formatWorkoutType(t, 'RUNNING')}
               </Badge>
             </Link>
             <Link href={`${basePath}/coach/athletes/${id}/logs?type=STRENGTH`}>
               <Badge variant={searchParamsResolved.type === 'STRENGTH' ? 'default' : 'outline'}>
-                Styrka
+                {formatWorkoutType(t, 'STRENGTH')}
               </Badge>
             </Link>
             <Link href={`${basePath}/coach/athletes/${id}/logs?type=CYCLING`}>
               <Badge variant={searchParamsResolved.type === 'CYCLING' ? 'default' : 'outline'}>
-                Cykling
+                {formatWorkoutType(t, 'CYCLING')}
               </Badge>
             </Link>
           </div>
@@ -252,31 +254,31 @@ export default async function AthleteLogsPage({
       {/* Logs Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Alla träningsloggar</CardTitle>
+          <CardTitle>{t('table.title')}</CardTitle>
           <CardDescription>
-            Visa och ge feedback på atlets träningspass
+            {t('table.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {filteredLogs.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Inga träningsloggar hittades</p>
+              <p>{t('table.emptyState')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Datum</TableHead>
-                    <TableHead>Pass</TableHead>
-                    <TableHead>Typ</TableHead>
-                    <TableHead>Planerat</TableHead>
-                    <TableHead>Faktiskt</TableHead>
+                <TableRow>
+                    <TableHead>{t('table.columns.date')}</TableHead>
+                    <TableHead>{t('table.columns.workout')}</TableHead>
+                    <TableHead>{t('table.columns.type')}</TableHead>
+                    <TableHead>{t('table.columns.planned')}</TableHead>
+                    <TableHead>{t('table.columns.actual')}</TableHead>
                     <TableHead className="text-center">RPE</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Feedback</TableHead>
-                    <TableHead className="text-right">Åtgärd</TableHead>
+                    <TableHead className="text-center">{t('table.columns.status')}</TableHead>
+                    <TableHead className="text-center">{t('table.columns.feedback')}</TableHead>
+                    <TableHead className="text-right">{t('table.columns.action')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -383,18 +385,18 @@ export default async function AthleteLogsPage({
 }
 
 // Helper functions
-function formatWorkoutType(type: string): string {
+function formatWorkoutType(t: (key: string) => string, type: string): string {
   const types: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    CORE: 'Core',
-    PLYOMETRIC: 'Plyometri',
-    RECOVERY: 'Återhämtning',
-    SKIING: 'Skidåkning',
-    OTHER: 'Annat',
+    RUNNING: 'running',
+    CYCLING: 'cycling',
+    STRENGTH: 'strength',
+    CORE: 'core',
+    PLYOMETRIC: 'plyometric',
+    RECOVERY: 'recovery',
+    SKIING: 'skiing',
+    OTHER: 'other',
   }
-  return types[type] || type
+  return t(`workoutTypes.${types[type] || 'other'}`)
 }
 
 function getRPEBadgeClass(rpe: number): string {
