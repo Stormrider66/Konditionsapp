@@ -50,7 +50,8 @@
     "monthly": "Monthly",
     "yearly": "Yearly",
     "appName": "Trainomics",
-    "appTagline": "Training Intelligence Platform"
+    "appTagline": "Training Intelligence Platform",
+    "poweredBy": "Powered by {appName}"
   },
   "metadata": {
     "athlete": {
@@ -8871,6 +8872,11 @@
     },
     "businessCoachHeader": {
       "fallbackName": "Coach",
+      "brand": {
+        "logoAlt": "Logo",
+        "initial": "C",
+        "portalName": "Coach Portal"
+      },
       "groups": {
         "tools": "Tools",
         "more": "More"

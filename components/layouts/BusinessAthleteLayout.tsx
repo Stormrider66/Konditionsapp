@@ -18,6 +18,7 @@ import type { BusinessBranding } from '@/lib/branding/types'
 import { PLATFORM_NAME } from '@/lib/branding/types'
 import { DynamicFontLoader } from '@/components/branding/DynamicFontLoader'
 import { BetaFeedbackWidget } from '@/components/feedback/BetaFeedbackWidget'
+import { useTranslations } from '@/i18n/client'
 
 interface SportProfile {
   id: string
@@ -177,6 +178,7 @@ function ThemedContent({
 }) {
   const themeContext = useWorkoutThemeOptional()
   const isDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
+  const tCommon = useTranslations('common')
 
   // Build CSS custom properties from branding
   const customStyle: Record<string, string> = {}
@@ -245,7 +247,7 @@ function ThemedContent({
       {/* Powered by footer for white-label businesses */}
       {branding?.hasWhiteLabel && !branding.hidePlatformBranding && (
         <div className="text-center py-3 text-xs text-gray-400">
-          Powered by {PLATFORM_NAME}
+          {tCommon('poweredBy', { appName: PLATFORM_NAME })}
         </div>
       )}
     </div>

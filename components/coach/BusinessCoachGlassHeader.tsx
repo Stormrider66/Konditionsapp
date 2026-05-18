@@ -86,6 +86,9 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const logoUrl = branding?.logoUrl ?? null
     const primaryColor = branding?.primaryColor ?? null
     const secondaryColor = branding?.secondaryColor ?? null
+    const logoAlt = tBusinessCoachHeader('brand.logoAlt')
+    const portalName = tBusinessCoachHeader('brand.portalName')
+    const brandInitial = tBusinessCoachHeader('brand.initial')
 
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
@@ -349,7 +352,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/5 ring-1 ring-white/10 flex items-center justify-center transition-all group-hover:ring-white/30">
                                 <Image
                                     src={logoUrl}
-                                    alt={resolvedName || 'Logo'}
+                                    alt={resolvedName || logoAlt}
                                     width={32}
                                     height={32}
                                     className="h-8 w-8 object-contain"
@@ -366,15 +369,15 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                     boxShadow: `0 0 15px ${primaryColor}80`,
                                 }}
                             >
-                                {resolvedName ? resolvedName.charAt(0).toUpperCase() : 'C'}
+                                {resolvedName ? resolvedName.charAt(0).toUpperCase() : brandInitial}
                             </div>
                         ) : (
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.8)] transition-all">
-                                {resolvedName ? resolvedName.charAt(0).toUpperCase() : 'C'}
+                                {resolvedName ? resolvedName.charAt(0).toUpperCase() : brandInitial}
                             </div>
                         )}
                         <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
-                            {resolvedName || 'Coach Portal'}
+                            {resolvedName || portalName}
                         </span>
                     </Link>
                 </div>

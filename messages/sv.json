@@ -50,7 +50,8 @@
     "monthly": "Månadsvis",
     "yearly": "Årsvis",
     "appName": "Trainomics",
-    "appTagline": "Plattform för träningsintelligens"
+    "appTagline": "Plattform för träningsintelligens",
+    "poweredBy": "Drivs av {appName}"
   },
   "metadata": {
     "athlete": {
@@ -8871,6 +8872,11 @@
     },
     "businessCoachHeader": {
       "fallbackName": "Coach",
+      "brand": {
+        "logoAlt": "Logotyp",
+        "initial": "C",
+        "portalName": "Coachportal"
+      },
       "groups": {
         "tools": "Verktyg",
         "more": "Mer"
