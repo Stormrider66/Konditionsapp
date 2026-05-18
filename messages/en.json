@@ -9849,6 +9849,89 @@
         "logOut": "Log out"
       }
     },
+    "physioRehabExerciseBrowser": {
+      "header": {
+        "title": "Rehab Exercises",
+        "subtitle": "{count} exercises",
+        "subtitleWithSearch": "{count} exercises matching \"{searchTerm}\""
+      },
+      "searchAndFilter": "Search and Filter",
+      "search": {
+        "placeholder": "Search by name or description..."
+      },
+      "labels": {
+        "phase": "Rehab phase",
+        "bodyPart": "Body part"
+      },
+      "allPhases": "All phases",
+      "allBodyParts": "All body parts",
+      "actions": {
+        "add": "Add",
+        "addToProgram": "Add to program",
+        "onlyRehab": "Rehab only",
+        "allExercises": "All exercises"
+      },
+      "phases": {
+        "ACUTE": "Acute (0-7 days)",
+        "SUBACUTE": "Subacute (1-3 weeks)",
+        "REMODELING": "Remodeling (3-12 weeks)",
+        "FUNCTIONAL": "Functional (12+ weeks)",
+        "RETURN_TO_SPORT": "Return to sport"
+      },
+      "bodyParts": {
+        "hip": "Hip/Glutes",
+        "knee": "Knee",
+        "ankle": "Ankle",
+        "foot": "Foot",
+        "lowerBack": "Lower back",
+        "core": "Core",
+        "shoulder": "Shoulder",
+        "upperLegs": "Thighs",
+        "lowerLegs": "Lower legs"
+      },
+      "levels": {
+        "easier": "Easier",
+        "harder": "Harder"
+      },
+      "details": {
+        "noEquipment": "No equipment"
+      },
+      "loading": "Loading exercises...",
+      "empty": {
+        "title": "No exercises found",
+        "description": "Try adjusting your filters."
+      },
+      "restrictions": {
+        "title": "Exercise restricted",
+        "description": "This exercise is currently restricted due to active restrictions.",
+        "cardText": "Active training restrictions: Some exercises are currently limited.",
+        "restrictedAreas": "Restricted areas:"
+      },
+      "sections": {
+        "suitablePhases": "Suitable phases",
+        "contraindications": "Contraindications:",
+        "description": "Description",
+        "instructions": "Instructions",
+        "video": "Video",
+        "progressionPath": "Progression path",
+        "equipment": "Equipment"
+      },
+      "progression": {
+        "easier": "Easier",
+        "current": "Current",
+        "harder": "Harder"
+      },
+      "videoLink": "Watch demonstration",
+      "errors": {
+        "genericTitle": "Error",
+        "failedToLoadExercises": "Failed to load exercises"
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "pageInfo": "Page {currentPage} of {totalPages}"
+      }
+    },
     "businessCoachHeader": {
       "fallbackName": "Coach",
       "brand": {

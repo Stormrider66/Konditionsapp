@@ -10,7 +10,7 @@
  * - Phase-appropriate exercise recommendations
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Exercise, RehabPhase } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,6 +51,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useTranslations } from '@/i18n/client'
 
 interface RehabExerciseBrowserProps {
   onSelectExercise?: (exercise: Exercise) => void
@@ -79,15 +80,6 @@ interface RestrictionInfo {
   restrictedExerciseIds: string[]
 }
 
-// Phase labels in Swedish
-const PHASE_LABELS: Record<RehabPhase, string> = {
-  ACUTE: 'Akut (0-7 dagar)',
-  SUBACUTE: 'Subakut (1-3 veckor)',
-  REMODELING: 'Remodellering (3-12 veckor)',
-  FUNCTIONAL: 'Funktionell (12+ veckor)',
-  RETURN_TO_SPORT: 'Återgång till idrott',
-}
-
 const PHASE_COLORS: Record<RehabPhase, string> = {
   ACUTE: 'bg-red-500/20 text-red-400 border-red-500/30',
   SUBACUTE: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
@@ -95,18 +87,6 @@ const PHASE_COLORS: Record<RehabPhase, string> = {
   FUNCTIONAL: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   RETURN_TO_SPORT: 'bg-green-500/20 text-green-400 border-green-500/30',
 }
-
-const BODY_PARTS = [
-  { value: 'hip', label: 'Höft/Glutes' },
-  { value: 'knee', label: 'Knä' },
-  { value: 'ankle', label: 'Fotled' },
-  { value: 'foot', label: 'Fot' },
-  { value: 'lower_back', label: 'Ländrygg' },
-  { value: 'core', label: 'Core' },
-  { value: 'shoulder', label: 'Axel' },
-  { value: 'upper_legs', label: 'Lår' },
-  { value: 'lower_legs', label: 'Underben' },
-]
 
 export function RehabExerciseBrowser({
   onSelectExercise,
@@ -116,6 +96,34 @@ export function RehabExerciseBrowser({
   targetBodyPart,
 }: RehabExerciseBrowserProps) {
   const { toast } = useToast()
+  const t = useTranslations('components.physioRehabExerciseBrowser')
+
+  const phaseLabels: Record<RehabPhase, string> = useMemo(
+    () => ({
+      ACUTE: t('phases.ACUTE'),
+      SUBACUTE: t('phases.SUBACUTE'),
+      REMODELING: t('phases.REMODELING'),
+      FUNCTIONAL: t('phases.FUNCTIONAL'),
+      RETURN_TO_SPORT: t('phases.RETURN_TO_SPORT'),
+    }),
+    [t]
+  )
+
+  const bodyParts = useMemo(
+    () => [
+      { value: 'ALL', label: t('allBodyParts') },
+      { value: 'hip', label: t('bodyParts.hip') },
+      { value: 'knee', label: t('bodyParts.knee') },
+      { value: 'ankle', label: t('bodyParts.ankle') },
+      { value: 'foot', label: t('bodyParts.foot') },
+      { value: 'lower_back', label: t('bodyParts.lowerBack') },
+      { value: 'core', label: t('bodyParts.core') },
+      { value: 'shoulder', label: t('bodyParts.shoulder') },
+      { value: 'upper_legs', label: t('bodyParts.upperLegs') },
+      { value: 'lower_legs', label: t('bodyParts.lowerLegs') },
+    ],
+    [t]
+  )
 
   // View state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -184,14 +192,14 @@ export function RehabExerciseBrowser({
       setTotalPages(data.pagination?.totalPages || 1)
     } catch (error: any) {
       toast({
-        title: 'Fel',
-        description: error.message || 'Kunde inte ladda övningar',
+        title: t('errors.genericTitle'),
+        description: error.message || t('errors.failedToLoadExercises'),
         variant: 'destructive',
       })
     } finally {
       setIsLoading(false)
     }
-  }, [searchTerm, selectedPhase, selectedBodyPart, showRehabOnly, pageSize, currentPage, toast])
+  }, [searchTerm, selectedPhase, selectedBodyPart, showRehabOnly, pageSize, currentPage, toast, t])
 
   useEffect(() => {
     fetchExercises()
@@ -221,8 +229,8 @@ export function RehabExerciseBrowser({
   const handleSelectExercise = (exercise: RehabExerciseExtended) => {
     if (isExerciseRestricted(exercise)) {
       toast({
-        title: 'Övning begränsad',
-        description: 'Denna övning är för närvarande begränsad på grund av aktiva restriktioner.',
+        title: t('restrictions.title'),
+        description: t('restrictions.description'),
         variant: 'destructive',
       })
       return
@@ -300,7 +308,7 @@ export function RehabExerciseBrowser({
           <div className="flex flex-wrap gap-1 mb-2">
             {exercise.rehabPhases?.slice(0, 2).map(phase => (
               <Badge key={phase} className={`text-xs ${PHASE_COLORS[phase]}`}>
-                {phase.replace('_', ' ')}
+                {phaseLabels[phase]}
               </Badge>
             ))}
             {exercise.rehabPhases?.length > 2 && (
@@ -315,13 +323,13 @@ export function RehabExerciseBrowser({
             {exercise.regressionExerciseId && (
               <span className="flex items-center gap-1">
                 <TrendingDown className="h-3 w-3 text-blue-400" />
-                Lättare
+                {t('levels.easier')}
               </span>
             )}
             {exercise.progressionExerciseId && (
               <span className="flex items-center gap-1">
                 <TrendingUp className="h-3 w-3 text-green-400" />
-                Svårare
+                {t('levels.harder')}
               </span>
             )}
           </div>
@@ -361,14 +369,14 @@ export function RehabExerciseBrowser({
               <div className="flex items-center gap-1 flex-wrap">
                 {exercise.rehabPhases?.slice(0, 2).map(phase => (
                   <Badge key={phase} className={`text-xs ${PHASE_COLORS[phase]}`}>
-                    {phase.replace('_', ' ')}
+                    {phaseLabels[phase]}
                   </Badge>
                 ))}
               </div>
 
-              <div className="flex items-center text-sm text-slate-400">
-                {exercise.equipment || 'Ingen utrustning'}
-              </div>
+            <div className="flex items-center text-sm text-slate-400">
+              {exercise.equipment || t('details.noEquipment')}
+            </div>
 
               <div className="flex items-center gap-2">
                 {exercise.regressionExerciseId && (
@@ -383,7 +391,7 @@ export function RehabExerciseBrowser({
             {mode === 'select' && !isRestricted && (
               <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
                 <Plus className="h-4 w-4 mr-2" />
-                Lägg till
+                {t('actions.add')}
               </Button>
             )}
           </div>
@@ -423,11 +431,11 @@ export function RehabExerciseBrowser({
 
               {/* Phase Badges */}
               <div>
-                <h4 className="font-semibold mb-2 text-white">Lämpliga faser</h4>
+                <h4 className="font-semibold mb-2 text-white">{t('sections.suitablePhases')}</h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedExercise.rehabPhases?.map(phase => (
                     <Badge key={phase} className={PHASE_COLORS[phase]}>
-                      {PHASE_LABELS[phase]}
+                      {phaseLabels[phase]}
                     </Badge>
                   ))}
                 </div>
@@ -438,7 +446,7 @@ export function RehabExerciseBrowser({
                 <Alert className="bg-red-900/20 border-red-500/30">
                   <AlertTriangle className="h-4 w-4 text-red-400" />
                   <AlertDescription className="text-red-300">
-                    <strong>Kontraindikationer:</strong>
+                    <strong>{t('sections.contraindications')}</strong>
                     <ul className="list-disc ml-4 mt-1">
                       {selectedExercise.contraindications.map((c, i) => (
                         <li key={i}>{c}</li>
@@ -451,7 +459,7 @@ export function RehabExerciseBrowser({
               {/* Description */}
               {selectedExercise.description && (
                 <div>
-                  <h4 className="font-semibold mb-2 text-white">Beskrivning</h4>
+                  <h4 className="font-semibold mb-2 text-white">{t('sections.description')}</h4>
                   <p className="text-slate-300">{selectedExercise.description}</p>
                 </div>
               )}
@@ -459,7 +467,7 @@ export function RehabExerciseBrowser({
               {/* Instructions */}
               {selectedExercise.instructions && (
                 <div>
-                  <h4 className="font-semibold mb-2 text-white">Instruktioner</h4>
+                  <h4 className="font-semibold mb-2 text-white">{t('sections.instructions')}</h4>
                   <p className="text-slate-300 whitespace-pre-line">
                     {selectedExercise.instructions}
                   </p>
@@ -469,7 +477,7 @@ export function RehabExerciseBrowser({
               {/* Video */}
               {selectedExercise.videoUrl && (
                 <div>
-                  <h4 className="font-semibold mb-2 text-white">Video</h4>
+                  <h4 className="font-semibold mb-2 text-white">{t('sections.video')}</h4>
                   <a
                     href={selectedExercise.videoUrl}
                     target="_blank"
@@ -477,21 +485,21 @@ export function RehabExerciseBrowser({
                     className="flex items-center gap-2 text-blue-400 hover:underline"
                   >
                     <Play className="h-4 w-4" />
-                    Se demonstration
+                    {t('videoLink')}
                   </a>
                 </div>
               )}
 
               {/* Progression Path */}
               <div>
-                <h4 className="font-semibold mb-2 text-white">Progressionsväg</h4>
+                <h4 className="font-semibold mb-2 text-white">{t('sections.progressionPath')}</h4>
                 <div className="space-y-2">
                   {selectedExercise.regressionExercise && (
                     <Card className="bg-slate-800/50 border-white/10">
                       <CardContent className="p-3 flex items-center gap-2">
                         <TrendingDown className="h-4 w-4 text-blue-400" />
                         <span className="text-sm text-slate-300">
-                          Lättare: {selectedExercise.regressionExercise.nameSv || selectedExercise.regressionExercise.name}
+                          {t('progression.easier')}: {selectedExercise.regressionExercise.nameSv || selectedExercise.regressionExercise.name}
                         </span>
                       </CardContent>
                     </Card>
@@ -499,7 +507,7 @@ export function RehabExerciseBrowser({
                   <Card className="bg-blue-500/10 border-blue-500/30">
                     <CardContent className="p-3 flex items-center gap-2">
                       <span className="text-sm font-semibold text-white">
-                        Nuvarande: {selectedExercise.nameSv || selectedExercise.name}
+                        {t('progression.current')}: {selectedExercise.nameSv || selectedExercise.name}
                       </span>
                     </CardContent>
                   </Card>
@@ -508,7 +516,7 @@ export function RehabExerciseBrowser({
                       <CardContent className="p-3 flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-green-400" />
                         <span className="text-sm text-slate-300">
-                          Svårare: {selectedExercise.progressionExercise.nameSv || selectedExercise.progressionExercise.name}
+                          {t('progression.harder')}: {selectedExercise.progressionExercise.nameSv || selectedExercise.progressionExercise.name}
                         </span>
                       </CardContent>
                     </Card>
@@ -519,7 +527,7 @@ export function RehabExerciseBrowser({
               {/* Equipment */}
               {selectedExercise.equipment && (
                 <div>
-                  <h4 className="font-semibold mb-2 text-white">Utrustning</h4>
+                  <h4 className="font-semibold mb-2 text-white">{t('sections.equipment')}</h4>
                   <p className="text-slate-300">{selectedExercise.equipment}</p>
                 </div>
               )}
@@ -536,7 +544,7 @@ export function RehabExerciseBrowser({
                 className="bg-blue-500 hover:bg-blue-600"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Lägg till i program
+                {t('actions.addToProgram')}
               </Button>
             </div>
           )}
@@ -550,9 +558,11 @@ export function RehabExerciseBrowser({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Rehabövningar</h2>
+          <h2 className="text-2xl font-bold text-white">{t('header.title')}</h2>
           <p className="text-sm text-slate-400">
-            {exercises.length} övningar {searchTerm && `matchar "${searchTerm}"`}
+            {searchTerm
+              ? t('header.subtitleWithSearch', { count: exercises.length, searchTerm })
+              : t('header.subtitle', { count: exercises.length })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -580,8 +590,11 @@ export function RehabExerciseBrowser({
         <Alert className="bg-yellow-900/20 border-yellow-500/30">
           <AlertTriangle className="h-4 w-4 text-yellow-400" />
           <AlertDescription className="text-yellow-300">
-            Aktiva träningsrestriktioner: Vissa övningar är tillfälligt begränsade.
-            Begränsade områden: {restrictions.restrictedBodyParts.join(', ')}
+            {t('restrictions.cardText')}
+            <br />
+            {t('restrictions.restrictedAreas')}
+            {' '}
+            {restrictions.restrictedBodyParts.join(', ')}
           </AlertDescription>
         </Alert>
       )}
@@ -591,7 +604,7 @@ export function RehabExerciseBrowser({
         <CardHeader>
           <CardTitle className="text-sm font-medium flex items-center gap-2 text-white">
             <Filter className="h-4 w-4" />
-            Sök & Filtrera
+            {t('searchAndFilter')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -600,7 +613,7 @@ export function RehabExerciseBrowser({
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Sök efter namn eller beskrivning..."
+                placeholder={t('search.placeholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
@@ -610,7 +623,7 @@ export function RehabExerciseBrowser({
             {/* Filter Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label className="text-xs text-slate-400">Rehabfas</Label>
+                <Label className="text-xs text-slate-400">{t('labels.phase')}</Label>
                 <Select
                   value={selectedPhase}
                   onValueChange={(value) => setSelectedPhase(value as RehabPhase | 'ALL')}
@@ -619,8 +632,8 @@ export function RehabExerciseBrowser({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-900 border-white/10">
-                    <SelectItem value="ALL" className="text-slate-200">Alla faser</SelectItem>
-                    {Object.entries(PHASE_LABELS).map(([value, label]) => (
+                    <SelectItem value="ALL" className="text-slate-200">{t('allPhases')}</SelectItem>
+                    {Object.entries(phaseLabels).map(([value, label]) => (
                       <SelectItem key={value} value={value} className="text-slate-200">
                         {label}
                       </SelectItem>
@@ -630,14 +643,13 @@ export function RehabExerciseBrowser({
               </div>
 
               <div>
-                <Label className="text-xs text-slate-400">Kroppsdel</Label>
+                <Label className="text-xs text-slate-400">{t('labels.bodyPart')}</Label>
                 <Select value={selectedBodyPart} onValueChange={setSelectedBodyPart}>
                   <SelectTrigger className="bg-slate-800/50 border-white/10 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-900 border-white/10">
-                    <SelectItem value="ALL" className="text-slate-200">Alla kroppsdelar</SelectItem>
-                    {BODY_PARTS.map(({ value, label }) => (
+                    {bodyParts.map(({ value, label }) => (
                       <SelectItem key={value} value={value} className="text-slate-200">
                         {label}
                       </SelectItem>
@@ -652,7 +664,7 @@ export function RehabExerciseBrowser({
                   onClick={() => setShowRehabOnly(!showRehabOnly)}
                   className={showRehabOnly ? 'bg-blue-500 hover:bg-blue-600' : 'border-white/20 text-white'}
                 >
-                  {showRehabOnly ? 'Endast rehab' : 'Visa alla'}
+                  {showRehabOnly ? t('actions.onlyRehab') : t('actions.allExercises')}
                 </Button>
               </div>
             </div>
@@ -662,12 +674,12 @@ export function RehabExerciseBrowser({
 
       {/* Exercise Grid/List */}
       {isLoading ? (
-        <div className="text-center py-12 text-slate-400">Laddar övningar...</div>
+        <div className="text-center py-12 text-slate-400">{t('loading')}</div>
       ) : exercises.length === 0 ? (
         <div className="text-center py-12 text-slate-400">
           <Activity className="w-12 h-12 mx-auto mb-4 text-slate-600" />
-          <p>Inga övningar hittades.</p>
-          <p className="text-sm mt-2">Prova att justera dina filter.</p>
+          <p>{t('empty.title')}</p>
+          <p className="text-sm mt-2">{t('empty.description')}</p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -690,10 +702,10 @@ export function RehabExerciseBrowser({
             className="border-white/20 text-white"
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
-            Föregående
+            {t('pagination.previous')}
           </Button>
           <span className="text-sm text-slate-400">
-            Sida {currentPage} av {totalPages}
+            {t('pagination.pageInfo', { currentPage, totalPages })}
           </span>
           <Button
             variant="outline"
@@ -702,7 +714,7 @@ export function RehabExerciseBrowser({
             disabled={currentPage === totalPages}
             className="border-white/20 text-white"
           >
-            Nästa
+            {t('pagination.next')}
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
