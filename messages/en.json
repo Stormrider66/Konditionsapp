@@ -1104,6 +1104,145 @@
         "elevationGain": "Elevation gain"
       }
     },
+    "subscription": {
+      "header": {
+        "title": "Subscription"
+      },
+      "trialExpired": {
+        "title": "Your trial has ended",
+        "description": "Upgrade now to keep using AI chat, video analysis, and other premium features."
+      },
+      "currentPlan": {
+        "title": "Your current plan",
+        "trialBadge": "Trial",
+        "description": {
+          "free": "You are on the free version",
+          "trial": "You are on a {plan} trial - {days} days left",
+          "active": "You have a {plan} subscription"
+        }
+      },
+      "planFeatures": {
+        "title": "Plan features",
+        "videoAnalysis": "Video analysis",
+        "integrations": "Strava/Garmin"
+      },
+      "aiCredits": {
+        "title": "How AI credits work",
+        "description": "Your plan determines how much heavy AI usage is included each month.",
+        "usageHint": "Food scanning, video analysis, voice coaching, program import, and report images use AI credits.",
+        "tierAllowance": "{plan} includes {amount} SEK in AI credits/month.",
+        "packCredits": "{amount} SEK credits",
+        "billingDisabledNotice": "Payment is not enabled yet. Monthly credits and usage limits work, but upgrades and extra purchases open later."
+      },
+      "billing": {
+        "monthly": "Monthly",
+        "yearly": "Yearly (save 17%)",
+        "monthlyUnit": "mo",
+        "yearlyUnit": "yr"
+      },
+      "plans": {
+        "free": {
+          "name": "Free",
+          "popular": "Most popular",
+          "description": "Basic features",
+          "features": [
+            "View test reports",
+            "Basic profile",
+            "Training history"
+          ]
+        },
+        "standard": {
+          "name": "Standard",
+          "description": "For active athletes",
+          "features": [
+            "Everything in Free",
+            "Daily check-in",
+            "Workout logging",
+            "AI credits for daily use",
+            "Strava/Garmin sync"
+          ]
+        },
+        "pro": {
+          "name": "Pro",
+          "description": "Maximum training optimization",
+          "features": [
+            "Everything in Standard",
+            "Larger AI credit allowance",
+            "Video analysis",
+            "AI support agent",
+            "Full integration",
+            "Program adjustments with AI"
+          ]
+        },
+        "elite": {
+          "name": "Elite",
+          "description": "Personal coach/PT with custom pricing",
+          "features": [
+            "Everything in Pro",
+            "Personal coach/PT",
+            "Custom AI credits",
+            "Personalized follow-up"
+          ]
+        }
+      },
+      "actions": {
+        "manage": "Manage",
+        "currentTrial": "Trial active",
+        "currentPlan": "Current plan",
+        "freePlan": "Free plan",
+        "activateNow": "Activate now",
+        "upgrade": "Upgrade",
+        "soon": "Coming soon",
+        "topUpSoon": "Coming soon",
+        "topUpAmount": "{amount} SEK",
+        "contactCoach": "Contact coach/PT",
+        "selectElite": "Choose Elite"
+      },
+      "toasts": {
+        "topUpSuccess": {
+          "title": "AI credits topped up",
+          "description": "Payment received. Your balance will update as soon as the Stripe confirmation is processed."
+        },
+        "topUpCancelled": {
+          "title": "Top up cancelled",
+          "description": "No charge was made and no AI credits were added."
+        },
+        "billingNotEnabled": {
+          "title": "Payment is not yet enabled",
+          "description": "Subscriptions will open once the checkout flow is ready.",
+          "portalDescription": "The customer portal opens when Stripe is enabled."
+        },
+        "topUpNotAvailable": {
+          "title": "Top up coming soon",
+          "description": "AI credits are shown here already, but purchases open once Stripe is ready."
+        }
+      },
+      "errors": {
+        "checkoutFailed": "Could not start checkout",
+        "managePortalFailed": "Could not open billing portal"
+      },
+      "elite": {
+        "descriptionWithBusiness": "Coach/PT via {businessName}",
+        "customCredits": "Elite has a custom AI credit pool set together with your coach or PT.",
+        "customPriceLabel": "Custom"
+      },
+      "planCard": {
+        "aiAllowanceMonthly": "{amount} SEK AI credits included per month",
+        "eliteAiAllowance": "{amount} SEK AI credits included per month",
+        "eliteAiAllowanceCustom": "Custom AI credits are set with coach/PT"
+      },
+      "packs": {
+        "ai_50": {
+          "description": "For a few extra food scans, reports, or analyses."
+        },
+        "ai_120": {
+          "description": "A good buffer for weeks with more video, voice coaching, and scanning."
+        },
+        "ai_275": {
+          "description": "For heavy AI usage without changing subscription immediately."
+        }
+      }
+    },
     "matches": {
       "title": "Match schedule",
       "description": "Manage your matches and log results",

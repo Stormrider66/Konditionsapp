@@ -1104,6 +1104,145 @@
         "elevationGain": "Höjdmeter"
       }
     },
+    "subscription": {
+      "header": {
+        "title": "Prenumeration"
+      },
+      "trialExpired": {
+        "title": "Din provperiod har gått ut",
+        "description": "Uppgradera nu för att fortsätta använda AI-chatt, videoanalys och andra premiumfunktioner."
+      },
+      "currentPlan": {
+        "title": "Din nuvarande plan",
+        "trialBadge": "Provperiod",
+        "description": {
+          "free": "Du använder gratisversionen",
+          "trial": "Du testar {plan} - {days} dagar kvar",
+          "active": "Du har {plan} prenumeration"
+        }
+      },
+      "planFeatures": {
+        "title": "Planfunktioner",
+        "videoAnalysis": "Videoanalys",
+        "integrations": "Strava/Garmin"
+      },
+      "aiCredits": {
+        "title": "Så fungerar AI-krediter",
+        "description": "Din plan avgör hur mycket tung AI-användning som ingår varje månad.",
+        "usageHint": "Mat-skanner, videoanalys, röstcoach, programimport och rapportbilder använder AI-krediter.",
+        "tierAllowance": "{plan} inkluderar {amount} SEK/mån i AI-krediter.",
+        "packCredits": "{amount} SEK krediter",
+        "billingDisabledNotice": "Betalning är inte aktiverad ännu. Månadskrediter och användningsgränser fungerar, men uppgradering och extra köp öppnas senare."
+      },
+      "billing": {
+        "monthly": "Månadsvis",
+        "yearly": "Årsvis (spara 17%)",
+        "monthlyUnit": "mån",
+        "yearlyUnit": "år"
+      },
+      "plans": {
+        "free": {
+          "name": "Gratis",
+          "popular": "Populärast",
+          "description": "Grundläggande funktioner",
+          "features": [
+            "Visa testrapporter",
+            "Grundläggande profil",
+            "Träningshistorik"
+          ]
+        },
+        "standard": {
+          "name": "Standard",
+          "description": "För aktiva atleter",
+          "features": [
+            "Allt i Gratis",
+            "Daglig incheckning",
+            "Träningsloggning",
+            "AI-krediter för daglig användning",
+            "Strava/Garmin-synk"
+          ]
+        },
+        "pro": {
+          "name": "Pro",
+          "description": "Maximal träningsoptimering",
+          "features": [
+            "Allt i Standard",
+            "Större AI-kreditpott",
+            "Videoanalys",
+            "AI-agent för träningsstöd",
+            "Full integration",
+            "Programjusteringar med AI"
+          ]
+        },
+        "elite": {
+          "name": "Elite",
+          "description": "Personlig coach/PT med custom pricing",
+          "features": [
+            "Allt i Pro",
+            "Personlig coach/PT",
+            "Custom AI-krediter",
+            "Individuell uppföljning"
+          ]
+        }
+      },
+      "actions": {
+        "manage": "Hantera",
+        "currentTrial": "Provperiod aktiv",
+        "currentPlan": "Nuvarande plan",
+        "freePlan": "Gratisversion",
+        "activateNow": "Aktivera nu",
+        "upgrade": "Uppgradera",
+        "soon": "Kommer snart",
+        "topUpSoon": "Snart",
+        "topUpAmount": "{amount} kr",
+        "contactCoach": "Kontakta coach/PT",
+        "selectElite": "Välj Elite"
+      },
+      "toasts": {
+        "topUpSuccess": {
+          "title": "AI-krediter påfyllda",
+          "description": "Betalningen är mottagen. Saldot uppdateras så snart Stripe-bekräftelsen är behandlad."
+        },
+        "topUpCancelled": {
+          "title": "Påfyllning avbruten",
+          "description": "Ingen betalning drogs och inga AI-krediter lades till."
+        },
+        "billingNotEnabled": {
+          "title": "Betalning är inte aktiverad ännu",
+          "description": "Prenumerationer öppnas så snart betalningsflödet är klart.",
+          "portalDescription": "Kundportalen öppnas när Stripe är aktiverat."
+        },
+        "topUpNotAvailable": {
+          "title": "Påfyllning kommer snart",
+          "description": "AI-krediter visas redan här, men köp aktiveras först när Stripe är klart."
+        }
+      },
+      "errors": {
+        "checkoutFailed": "Kunde inte starta betalning",
+        "managePortalFailed": "Kunde inte öppna kundportalen"
+      },
+      "elite": {
+        "descriptionWithBusiness": "Coach/PT via {businessName}",
+        "customCredits": "Elite har en anpassad AI-kreditpott som sätts tillsammans med din coach eller PT.",
+        "customPriceLabel": "Custom"
+      },
+      "planCard": {
+        "aiAllowanceMonthly": "{amount} SEK AI-krediter/mån ingår",
+        "eliteAiAllowance": "{amount} SEK AI-krediter/mån ingår",
+        "eliteAiAllowanceCustom": "Custom AI-krediter sätts med coach/PT"
+      },
+      "packs": {
+        "ai_50": {
+          "description": "För några extra mat-skanningar, rapporter eller analyser."
+        },
+        "ai_120": {
+          "description": "Bra buffert för veckor med mer video, röstcoach och scanning."
+        },
+        "ai_275": {
+          "description": "För tung AI-användning utan att byta abonnemang direkt."
+        }
+      }
+    },
     "matches": {
       "title": "Matchschema",
       "description": "Hantera dina matcher och logga resultat",

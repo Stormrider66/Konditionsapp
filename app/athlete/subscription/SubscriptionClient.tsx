@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { TrialBadge } from '@/components/ui/TrialBadge'
+import { useTranslations } from '@/i18n/client'
 import {
   ChevronLeft,
   CreditCard,
@@ -30,7 +31,6 @@ import {
 import { AICreditStatusCard } from '@/components/athlete/ai/AICreditStatusCard'
 import {
   ATHLETE_AI_ALLOWANCE_SEK,
-  ATHLETE_PLAN_COPY,
   ATHLETE_PLAN_PRICING,
   type AthletePlanTier,
 } from '@/lib/subscription/athlete-plans'
@@ -82,38 +82,70 @@ interface SubscriptionStatus {
   }
 }
 
-const SELF_SERVE_TIERS = [
+type PlanLocaleKey = 'free' | 'standard' | 'pro' | 'elite'
+
+type SelfServeTier = {
+  id: Exclude<AthletePlanTier, 'ELITE'>
+  price: number
+  yearlyPrice: number
+  aiAllowanceSek: number
+  nameKey: string
+  descriptionKey: string
+  featureKeys: string[]
+  icon: typeof Star
+  color: 'gray' | 'blue' | 'purple'
+  popular?: boolean
+}
+
+const SELF_SERVE_TIERS: SelfServeTier[] = [
   {
     id: 'FREE',
-    name: ATHLETE_PLAN_COPY.FREE.nameSv,
     price: ATHLETE_PLAN_PRICING.FREE.monthlySek,
     yearlyPrice: ATHLETE_PLAN_PRICING.FREE.yearlySek,
-    description: ATHLETE_PLAN_COPY.FREE.descriptionSv,
-    features: ATHLETE_PLAN_COPY.FREE.featuresSv,
     aiAllowanceSek: ATHLETE_AI_ALLOWANCE_SEK.FREE,
+    nameKey: 'plans.free.name',
+    descriptionKey: 'plans.free.description',
+    featureKeys: [
+      'plans.free.features.0',
+      'plans.free.features.1',
+      'plans.free.features.2',
+    ],
     icon: Star,
     color: 'gray',
   },
   {
     id: 'STANDARD',
-    name: ATHLETE_PLAN_COPY.STANDARD.nameSv,
     price: ATHLETE_PLAN_PRICING.STANDARD.monthlySek,
     yearlyPrice: ATHLETE_PLAN_PRICING.STANDARD.yearlySek,
-    description: ATHLETE_PLAN_COPY.STANDARD.descriptionSv,
-    features: ATHLETE_PLAN_COPY.STANDARD.featuresSv,
     aiAllowanceSek: ATHLETE_AI_ALLOWANCE_SEK.STANDARD,
+    nameKey: 'plans.standard.name',
+    descriptionKey: 'plans.standard.description',
+    featureKeys: [
+      'plans.standard.features.0',
+      'plans.standard.features.1',
+      'plans.standard.features.2',
+      'plans.standard.features.3',
+      'plans.standard.features.4',
+    ],
     icon: Zap,
     color: 'blue',
     popular: true,
   },
   {
     id: 'PRO',
-    name: ATHLETE_PLAN_COPY.PRO.nameSv,
     price: ATHLETE_PLAN_PRICING.PRO.monthlySek,
     yearlyPrice: ATHLETE_PLAN_PRICING.PRO.yearlySek,
-    description: ATHLETE_PLAN_COPY.PRO.descriptionSv,
-    features: ATHLETE_PLAN_COPY.PRO.featuresSv,
     aiAllowanceSek: ATHLETE_AI_ALLOWANCE_SEK.PRO,
+    nameKey: 'plans.pro.name',
+    descriptionKey: 'plans.pro.description',
+    featureKeys: [
+      'plans.pro.features.0',
+      'plans.pro.features.1',
+      'plans.pro.features.2',
+      'plans.pro.features.3',
+      'plans.pro.features.4',
+      'plans.pro.features.5',
+    ],
     icon: Crown,
     color: 'purple',
   },
@@ -130,8 +162,17 @@ export function SubscriptionClient({
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
   const [status, setStatus] = useState<SubscriptionStatus | null>(null)
+  const t = useTranslations('athletePages.subscription')
+  const tCommon = useTranslations('common')
 
   const currentTier = subscription?.tier || 'FREE'
+  const currentTierLabel = (() => {
+    const key = currentTier.toLowerCase() as PlanLocaleKey
+    if (key === 'free' || key === 'standard' || key === 'pro' || key === 'elite') {
+      return t(`plans.${key}.name`)
+    }
+    return t('plans.free.name')
+  })()
 
   // Fetch detailed subscription status
   useEffect(() => {
@@ -153,24 +194,24 @@ export function SubscriptionClient({
     const result = new URLSearchParams(window.location.search).get('aiTopUp')
     if (result === 'success') {
       toast({
-        title: 'AI-krediter påfyllda',
-        description: 'Betalningen är mottagen. Saldot uppdateras så snart Stripe-bekräftelsen är behandlad.',
+        title: t('toasts.topUpSuccess.title'),
+        description: t('toasts.topUpSuccess.description'),
       })
     }
     if (result === 'cancelled') {
       toast({
-        title: 'Påfyllning avbruten',
-        description: 'Ingen betalning drogs och inga AI-krediter lades till.',
+        title: t('toasts.topUpCancelled.title'),
+        description: t('toasts.topUpCancelled.description'),
       })
     }
-  }, [toast])
+  }, [toast, t])
 
   const handleUpgrade = async (tierId: string) => {
     if (tierId === 'FREE') return
     if (!billingEnabled) {
       toast({
-        title: 'Betalning är inte aktiverad ännu',
-        description: 'Prenumerationer öppnas så snart betalningsflödet är klart.',
+        title: t('toasts.billingNotEnabled.title'),
+        description: t('toasts.billingNotEnabled.description'),
       })
       return
     }
@@ -196,15 +237,15 @@ export function SubscriptionClient({
         window.location.assign(checkoutUrl)
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte starta betalning',
+          title: tCommon('error'),
+          description: data.error || t('errors.checkoutFailed'),
           variant: 'destructive',
         })
       }
     } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte starta betalning',
+        title: tCommon('error'),
+        description: t('errors.checkoutFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -215,8 +256,8 @@ export function SubscriptionClient({
   const handleManageSubscription = async () => {
     if (!billingEnabled) {
       toast({
-        title: 'Betalning är inte aktiverad ännu',
-        description: 'Kundportalen öppnas när Stripe är aktiverat.',
+        title: t('toasts.billingNotEnabled.title'),
+        description: t('toasts.billingNotEnabled.portalDescription'),
       })
       return
     }
@@ -235,15 +276,15 @@ export function SubscriptionClient({
         window.location.assign(data.url)
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte öppna kundportalen',
+          title: tCommon('error'),
+          description: data.error || t('errors.managePortalFailed'),
           variant: 'destructive',
         })
       }
     } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte öppna kundportalen',
+        title: tCommon('error'),
+        description: t('errors.managePortalFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -254,8 +295,8 @@ export function SubscriptionClient({
   const handleAiTopUp = async (packId: string) => {
     if (!billingEnabled) {
       toast({
-        title: 'Påfyllning kommer snart',
-        description: 'AI-krediter visas redan här, men köp aktiveras först när Stripe är klart.',
+        title: t('toasts.topUpNotAvailable.title'),
+        description: t('toasts.topUpNotAvailable.description'),
       })
       return
     }
@@ -278,15 +319,15 @@ export function SubscriptionClient({
         window.location.assign(checkoutUrl)
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte starta betalning',
+          title: tCommon('error'),
+          description: data.error || t('errors.checkoutFailed'),
           variant: 'destructive',
         })
       }
     } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte starta betalning',
+        title: tCommon('error'),
+        description: t('errors.checkoutFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -301,8 +342,22 @@ export function SubscriptionClient({
     return tier.price
   }
 
+  const getBillingLabel = (cycle: 'MONTHLY' | 'YEARLY') =>
+    cycle === 'MONTHLY' ? t('billing.monthlyUnit') : t('billing.yearlyUnit')
+
+  const currentAiAllowance =
+    ATHLETE_AI_ALLOWANCE_SEK[currentTier as AthletePlanTier] ?? ATHLETE_AI_ALLOWANCE_SEK.FREE
+  const eliteFeatureRows = [
+    ...(eliteOffer?.description
+      ? [{ text: eliteOffer.description, useTranslation: false }]
+      : []),
+    { text: 'plans.elite.features.0', useTranslation: true },
+    { text: 'plans.elite.features.1', useTranslation: true },
+    { text: 'plans.elite.features.2', useTranslation: true },
+    { text: 'plans.elite.features.3', useTranslation: true },
+  ]
+
   const isTrialExpired = status?.status === 'EXPIRED' && subscription?.status === 'TRIAL'
-  const currentPlanCopy = ATHLETE_PLAN_COPY[currentTier as AthletePlanTier] ?? ATHLETE_PLAN_COPY.FREE
   const elitePrice = billingCycle === 'YEARLY' ? eliteOffer?.yearlySek : eliteOffer?.monthlySek
   const eliteCheckoutEnabled = Boolean(eliteOffer?.businessId && elitePrice)
 
@@ -319,7 +374,7 @@ export function SubscriptionClient({
             </Link>
             <div className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              <h1 className="text-lg font-semibold">Prenumeration</h1>
+              <h1 className="text-lg font-semibold">{t('header.title')}</h1>
             </div>
           </div>
           {status?.trialActive && status.trialDaysRemaining && (
@@ -339,10 +394,8 @@ export function SubscriptionClient({
                   <AlertTriangle className="h-6 w-6 text-amber-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-amber-900">Din provperiod har gått ut</h3>
-                  <p className="text-sm text-amber-700 mt-1">
-                    Uppgradera nu för att fortsätta använda AI-chatt, videoanalys och andra premiumfunktioner.
-                  </p>
+                  <h3 className="font-semibold text-amber-900">{t('trialExpired.title')}</h3>
+                  <p className="text-sm text-amber-700 mt-1">{t('trialExpired.description')}</p>
                 </div>
               </div>
             </CardContent>
@@ -355,19 +408,24 @@ export function SubscriptionClient({
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  Din nuvarande plan
+                  {t('currentPlan.title')}
                   {status?.trialActive && (
                     <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-                      Provperiod
+                      {t('currentPlan.trialBadge')}
                     </span>
                   )}
                 </CardTitle>
                 <CardDescription>
                   {currentTier === 'FREE'
-                    ? 'Du använder gratisversionen'
+                    ? t('currentPlan.description.free')
                     : status?.trialActive
-                    ? `Du testar ${currentTier} - ${status.trialDaysRemaining} dagar kvar`
-                    : `Du har ${currentTier} prenumeration`}
+                    ? t('currentPlan.description.trial', {
+                        plan: currentTierLabel,
+                        days: status?.trialDaysRemaining ?? 0,
+                      })
+                    : t('currentPlan.description.active', {
+                        plan: currentTierLabel,
+                      })}
                 </CardDescription>
               </div>
               {subscription?.stripeSubscriptionId && (
@@ -377,7 +435,7 @@ export function SubscriptionClient({
                   ) : (
                     <CreditCard className="h-4 w-4 mr-2" />
                   )}
-                  Hantera
+                  {t('actions.manage')}
                 </Button>
               )}
             </div>
@@ -387,16 +445,16 @@ export function SubscriptionClient({
           {status && (currentTier !== 'FREE' || status.trialActive) && (
             <CardContent className="border-t pt-6">
               <div className="space-y-3">
-                <div className="text-sm font-medium">Planfunktioner</div>
+                <div className="text-sm font-medium">{t('planFeatures.title')}</div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <FeatureStatus
                     icon={<Video className="h-4 w-4" />}
-                    label="Videoanalys"
+                    label={t('planFeatures.videoAnalysis')}
                     enabled={status.features.videoAnalysis.enabled}
                   />
                   <FeatureStatus
                     icon={<Watch className="h-4 w-4" />}
-                    label="Strava/Garmin"
+                    label={t('planFeatures.integrations')}
                     enabled={status.features.strava.enabled || status.features.garmin.enabled}
                   />
                 </div>
@@ -412,28 +470,25 @@ export function SubscriptionClient({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Coins className="h-5 w-5 text-emerald-600" />
-                Så fungerar AI-krediter
+                {t('aiCredits.title')}
               </CardTitle>
               <CardDescription>
-                Din plan avgör hur mycket tung AI-användning som ingår varje månad.
+                {t('aiCredits.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-muted-foreground">
               <p>
-                Mat-skanner, videoanalys, röstcoach, programimport och rapportbilder använder AI-krediter.
+                {t('aiCredits.usageHint')}
               </p>
               <p>
                 {currentTier === 'ELITE' ? (
-                  <>
-                    Elite har en anpassad AI-kreditpott som sätts tillsammans med din coach eller PT.
-                  </>
+                  <>{t('elite.customCredits')}</>
                 ) : (
                   <>
-                    {currentPlanCopy.nameSv} inkluderar{' '}
-                    <span className="font-semibold text-foreground">
-                      {ATHLETE_AI_ALLOWANCE_SEK[currentTier as AthletePlanTier] ?? ATHLETE_AI_ALLOWANCE_SEK.FREE} SEK/mån
-                    </span>{' '}
-                    i AI-krediter.
+                    {t('aiCredits.tierAllowance', {
+                      plan: currentTierLabel,
+                      amount: currentAiAllowance,
+                    })}
                   </>
                 )}
               </p>
@@ -444,8 +499,10 @@ export function SubscriptionClient({
                     className="flex items-center justify-between gap-3 rounded-lg border bg-white p-3"
                   >
                     <div>
-                      <p className="font-medium text-foreground">{pack.creditsSek} SEK krediter</p>
-                      <p className="text-xs">{pack.description}</p>
+                      <p className="font-medium text-foreground">
+                        {t('aiCredits.packCredits', { amount: pack.creditsSek })}
+                      </p>
+                      <p className="text-xs">{t(`packs.${pack.id}.description`)}</p>
                     </div>
                     <Button
                       size="sm"
@@ -457,9 +514,9 @@ export function SubscriptionClient({
                       {isLoading === pack.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : !billingEnabled ? (
-                        'Snart'
+                        t('actions.topUpSoon')
                       ) : (
-                        `${pack.amountSek} kr`
+                        t('actions.topUpAmount', { amount: pack.amountSek })
                       )}
                     </Button>
                   </div>
@@ -467,7 +524,7 @@ export function SubscriptionClient({
               </div>
               {!billingEnabled && (
                 <p className="rounded-lg bg-slate-100 p-3 text-xs text-slate-600">
-                  Betalning är inte aktiverad ännu. Månadskrediter och användningsgränser fungerar, men uppgradering och extra köp öppnas senare.
+                  {t('aiCredits.billingDisabledNotice')}
                 </p>
               )}
             </CardContent>
@@ -485,7 +542,7 @@ export function SubscriptionClient({
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Månadsvis
+              {t('billing.monthly')}
             </button>
             <button
               onClick={() => setBillingCycle('YEARLY')}
@@ -495,7 +552,7 @@ export function SubscriptionClient({
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Årsvis (spara 17%)
+              {t('billing.yearly')}
             </button>
           </div>
         </div>
@@ -515,7 +572,7 @@ export function SubscriptionClient({
                 {tier.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
-                      Populärast
+                      {t('plans.free.popular')}
                     </span>
                   </div>
                 )}
@@ -540,8 +597,8 @@ export function SubscriptionClient({
                       }`}
                     />
                   </div>
-                  <CardTitle>{tier.name}</CardTitle>
-                  <CardDescription>{tier.description}</CardDescription>
+                  <CardTitle>{t(tier.nameKey)}</CardTitle>
+                  <CardDescription>{t(tier.descriptionKey)}</CardDescription>
                 </CardHeader>
 
                 <CardContent className="text-center">
@@ -549,30 +606,30 @@ export function SubscriptionClient({
                     <span className="text-3xl font-bold">{price}</span>
                     <span className="text-muted-foreground">
                       {' '}
-                      SEK/{billingCycle === 'MONTHLY' ? 'mån' : 'år'}
+                      SEK/{getBillingLabel(billingCycle)}
                     </span>
                   </div>
 
                   <ul className="text-sm text-left space-y-2 mb-6">
                     <li className="flex items-start gap-2 rounded-lg bg-emerald-50 p-2 text-emerald-800">
                       <Coins className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                      <span>{tier.aiAllowanceSek} SEK AI-krediter/mån ingår</span>
+                      <span>{t('planCard.aiAllowanceMonthly', { amount: tier.aiAllowanceSek })}</span>
                     </li>
-                    {tier.features.map((feature, i) => (
+                    {tier.featureKeys.map((feature, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span>{feature}</span>
+                        <span>{t(feature)}</span>
                       </li>
                     ))}
                   </ul>
 
                   {isActive ? (
                     <Button variant="outline" className="w-full" disabled>
-                      {status?.trialActive ? 'Provperiod aktiv' : 'Nuvarande plan'}
+                      {status?.trialActive ? t('actions.currentTrial') : t('actions.currentPlan')}
                     </Button>
                   ) : tier.id === 'FREE' ? (
                     <Button variant="outline" className="w-full" disabled>
-                      Gratisversion
+                      {t('actions.freePlan')}
                     </Button>
                   ) : (
                     <Button
@@ -588,8 +645,10 @@ export function SubscriptionClient({
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : null}
                       {status?.trialActive && currentTier === tier.id
-                        ? 'Aktivera nu'
-                        : billingEnabled ? 'Uppgradera' : 'Kommer snart'}
+                        ? t('actions.activateNow')
+                        : billingEnabled
+                          ? t('actions.upgrade')
+                          : t('actions.soon')}
                     </Button>
                   )}
                 </CardContent>
@@ -602,11 +661,11 @@ export function SubscriptionClient({
               <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 bg-amber-100">
                 <Crown className="h-6 w-6 text-amber-700" />
               </div>
-              <CardTitle>{ATHLETE_PLAN_COPY.ELITE.nameSv}</CardTitle>
+              <CardTitle>{t('plans.elite.name')}</CardTitle>
               <CardDescription>
                 {eliteOffer?.businessName
-                  ? `Coach/PT via ${eliteOffer.businessName}`
-                  : ATHLETE_PLAN_COPY.ELITE.descriptionSv}
+                  ? t('elite.descriptionWithBusiness', { businessName: eliteOffer.businessName })
+                  : t('plans.elite.description')}
               </CardDescription>
             </CardHeader>
 
@@ -617,11 +676,11 @@ export function SubscriptionClient({
                     <span className="text-3xl font-bold">{elitePrice}</span>
                     <span className="text-muted-foreground">
                       {' '}
-                      SEK/{billingCycle === 'MONTHLY' ? 'mån' : 'år'}
+                      SEK/{getBillingLabel(billingCycle)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-3xl font-bold">Custom</span>
+                  <span className="text-3xl font-bold">{t('elite.customPriceLabel')}</span>
                 )}
               </div>
 
@@ -630,24 +689,23 @@ export function SubscriptionClient({
                   <Coins className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <span>
                     {eliteOffer?.aiAllowanceSek
-                      ? `${eliteOffer.aiAllowanceSek} SEK AI-krediter/mån ingår`
-                      : 'Custom AI-krediter sätts med coach/PT'}
+                      ? t('planCard.eliteAiAllowance', { amount: eliteOffer.aiAllowanceSek })
+                      : t('planCard.eliteAiAllowanceCustom')}
                   </span>
                 </li>
-                {(eliteOffer?.description
-                  ? [eliteOffer.description, ...ATHLETE_PLAN_COPY.ELITE.featuresSv]
-                  : ATHLETE_PLAN_COPY.ELITE.featuresSv
-                ).map((feature, i) => (
+                {eliteFeatureRows.map((feature, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>{feature}</span>
+                    <span>
+                      {feature.useTranslation ? t(feature.text) : feature.text}
+                    </span>
                   </li>
                 ))}
               </ul>
 
               {currentTier === 'ELITE' ? (
                 <Button variant="outline" className="w-full" disabled>
-                  Nuvarande plan
+                  {t('actions.currentPlan')}
                 </Button>
               ) : eliteCheckoutEnabled ? (
                 <Button
@@ -658,11 +716,11 @@ export function SubscriptionClient({
                   {isLoading === 'ELITE' ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : null}
-                  {billingEnabled ? 'Välj Elite' : 'Kommer snart'}
+                  {billingEnabled ? t('actions.selectElite') : t('actions.soon')}
                 </Button>
               ) : (
                 <Button variant="outline" className="w-full" disabled>
-                  Kontakta coach/PT
+                  {t('actions.contactCoach')}
                 </Button>
               )}
             </CardContent>
