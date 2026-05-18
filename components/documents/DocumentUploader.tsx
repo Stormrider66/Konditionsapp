@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslations } from '@/i18n/client'
 import {
   Upload,
   FileText,
@@ -159,6 +160,7 @@ export function DocumentUploader({
   autoProcess = true
 }: DocumentUploaderProps) {
   const { toast } = useToast()
+  const t = useTranslations('components.documentsClient')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileTypeInfo, setFileTypeInfo] = useState<FileTypeInfo | null>(null)
   const [name, setName] = useState('')
@@ -175,8 +177,8 @@ export function DocumentUploader({
     const typeInfo = getFileTypeInfo(file)
     if (!typeInfo) {
       toast({
-        title: 'Filtyp stöds inte',
-        description: 'Ladda upp PDF, Excel, Markdown eller textfiler.',
+        title: t('uploader.toasts.unsupportedType.title'),
+        description: t('uploader.toasts.unsupportedType.description'),
         variant: 'destructive',
       })
       return
@@ -196,7 +198,7 @@ export function DocumentUploader({
     } else {
       setTextContent(null)
     }
-  }, [toast])
+  }, [t, toast])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -216,8 +218,8 @@ export function DocumentUploader({
   const handleUpload = async () => {
     if (!selectedFile || !fileTypeInfo || !name.trim()) {
       toast({
-        title: 'Fyll i alla fält',
-        description: 'Välj en fil och ange ett namn.',
+        title: t('uploader.toasts.missingFields.title'),
+        description: t('uploader.toasts.missingFields.description'),
         variant: 'destructive',
       })
       return
@@ -258,22 +260,26 @@ export function DocumentUploader({
           if (embedResponse.ok) {
             setUploadStatus('done')
             toast({
-              title: 'Dokument klart!',
-              description: `Uppladdat och bearbetat till ${embedData.chunksCreated} sökbara delar.`,
+              title: t('uploader.toasts.uploadProcessed.title'),
+              description: t('uploader.toasts.uploadProcessed.description', {
+                chunksCreated: embedData.chunksCreated,
+              }),
             })
           } else {
             // Upload succeeded but processing failed - still complete but warn
             toast({
-              title: 'Dokument uppladdat',
-              description: `Uppladdning klar, men bearbetning misslyckades: ${embedData.error}. Försök igen från Dokument-sidan.`,
+              title: t('uploader.toasts.uploadedWithWarnings.title'),
+              description: t('uploader.toasts.uploadedWithWarnings.description', {
+                error: embedData.error,
+              }),
               variant: 'destructive',
             })
           }
-        } catch (embedError) {
+        } catch (_embedError) {
           // Upload succeeded but processing failed
           toast({
-            title: 'Dokument uppladdat',
-            description: 'Uppladdning klar, men bearbetning misslyckades. Försök igen från Dokument-sidan.',
+            title: t('uploader.toasts.uploadedWithWarnings.title'),
+            description: t('uploader.toasts.uploadFailedProcessing.description'),
             variant: 'destructive',
           })
         } finally {
@@ -281,10 +287,10 @@ export function DocumentUploader({
         }
       } else {
         toast({
-          title: 'Dokument uppladdat',
+          title: t('uploader.toasts.uploaded.title'),
           description: hasOpenAIKey
-            ? 'Dokumentet har sparats. Klicka "Generera" för att aktivera AI-sökning.'
-            : 'Dokumentet har sparats. Konfigurera OpenAI API-nyckel för att aktivera sökning.',
+            ? t('uploader.toasts.uploaded.descriptionWithOpenAI')
+            : t('uploader.toasts.uploaded.descriptionWithoutOpenAI'),
         })
       }
 
@@ -293,8 +299,8 @@ export function DocumentUploader({
       console.error('[DocumentUploader] Upload failed:', error)
       setUploadStatus('idle')
       toast({
-        title: 'Uppladdning misslyckades',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t('uploader.toasts.uploadFailed.title'),
+        description: error instanceof Error ? error.message : t('uploader.toasts.uploadFailed.description'),
         variant: 'destructive',
       })
     } finally {
@@ -316,7 +322,7 @@ export function DocumentUploader({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Ladda upp dokument
+            {t('uploader.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -334,14 +340,14 @@ export function DocumentUploader({
               <input {...getInputProps()} />
               <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
               {isDragActive ? (
-                <p className="text-blue-600 font-medium">Släpp filen här...</p>
+                <p className="text-blue-600 font-medium">{t('uploader.dropzone.dropText')}</p>
               ) : (
                 <>
                   <p className="font-medium mb-1">
-                    Dra och släpp en fil här, eller klicka för att välja
+                    {t('uploader.dropzone.dragText')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    PDF, Excel, Markdown, Text (max 50MB)
+                    {t('uploader.dropzone.formats')}
                   </p>
                 </>
               )}
@@ -367,22 +373,22 @@ export function DocumentUploader({
           {selectedFile && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="name">Namn *</Label>
+                <Label htmlFor="name">{t('uploader.form.nameLabel')}</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Dokumentnamn"
+                  placeholder={t('uploader.form.namePlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Beskrivning</Label>
+                <Label htmlFor="description">{t('uploader.form.descriptionLabel')}</Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Valfri beskrivning av dokumentet..."
+                  placeholder={t('uploader.form.descriptionPlaceholder')}
                   rows={3}
                 />
               </div>
@@ -392,8 +398,8 @@ export function DocumentUploader({
                 <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg text-amber-800 text-sm">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium">Videoanalys</p>
-                    <p>Videofiler kräver transkribering innan de kan användas för sökning. Detta stöds ännu inte.</p>
+                    <p className="font-medium">{t('uploader.warnings.video.title')}</p>
+                    <p>{t('uploader.warnings.video.description')}</p>
                   </div>
                 </div>
               )}
@@ -403,8 +409,8 @@ export function DocumentUploader({
                 <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg text-blue-800 text-sm">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium">Fillagring</p>
-                    <p>PDF- och Excel-filer lagras i Supabase Storage. Efter uppladdning, klicka &quot;Generera&quot; för att göra innehållet sökbart för AI.</p>
+                    <p className="font-medium">{t('uploader.warnings.pdf.title')}</p>
+                    <p>{t('uploader.warnings.pdf.description')}</p>
                   </div>
                 </div>
               )}
@@ -412,7 +418,7 @@ export function DocumentUploader({
               {/* Text preview */}
               {textContent && (
                 <div className="space-y-2">
-                  <Label>Förhandsgranskning</Label>
+                  <Label>{t('uploader.previewLabel')}</Label>
                   <div className="max-h-40 overflow-auto p-3 bg-muted rounded-lg text-sm font-mono">
                     {textContent.slice(0, 1000)}
                     {textContent.length > 1000 && '...'}
@@ -425,23 +431,23 @@ export function DocumentUploader({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isUploading || isProcessing}>
-            Avbryt
+            {t('actions.cancel')}
           </Button>
           <Button onClick={handleUpload} disabled={!selectedFile || !name.trim() || isUploading || isProcessing}>
             {uploadStatus === 'uploading' ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Laddar upp...
+                {t('uploader.actions.uploading')}
               </>
             ) : uploadStatus === 'processing' ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Bearbetar för AI...
+                {t('uploader.actions.processingForAI')}
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                {hasOpenAIKey ? 'Ladda upp & bearbeta' : 'Ladda upp'}
+                {hasOpenAIKey ? t('uploader.actions.uploadAndProcess') : t('uploader.actions.upload')}
               </>
             )}
           </Button>

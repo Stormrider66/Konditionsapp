@@ -4508,6 +4508,68 @@
           "description": "Ett okänt fel inträffade."
         }
       },
+      "uploader": {
+        "title": "Ladda upp dokument",
+        "dropzone": {
+          "dropText": "Släpp filen här...",
+          "dragText": "Dra och släpp en fil här, eller klicka för att välja",
+          "formats": "PDF, Excel, Markdown, Text (max 50MB)"
+        },
+        "toasts": {
+          "unsupportedType": {
+            "title": "Filtyp stöds inte",
+            "description": "Ladda upp PDF, Excel, Markdown eller textfiler."
+          },
+          "missingFields": {
+            "title": "Fyll i alla fält",
+            "description": "Välj en fil och ange ett namn."
+          },
+          "uploadProcessed": {
+            "title": "Dokument klart",
+            "description": "Uppladdning klar och bearbetat till {chunksCreated} sökbara delar."
+          },
+          "uploadedWithWarnings": {
+            "title": "Dokument uppladdat",
+            "description": "Uppladdning klar, men bearbetning misslyckades: {error}. Försök igen från Dokument-sidan."
+          },
+          "uploadFailedProcessing": {
+            "title": "Dokument uppladdat",
+            "description": "Uppladdning klar, men bearbetning misslyckades. Försök igen från Dokument-sidan."
+          },
+          "uploaded": {
+            "title": "Dokument uppladdat",
+            "descriptionWithOpenAI": "Dokumentet har sparats. Klicka \"Generera\" för att aktivera AI-sökning.",
+            "descriptionWithoutOpenAI": "Dokumentet har sparats. Konfigurera OpenAI API-nyckel för att aktivera sökning."
+          },
+          "uploadFailed": {
+            "title": "Uppladdning misslyckades",
+            "description": "Ett okänt fel inträffade."
+          }
+        },
+        "form": {
+          "nameLabel": "Namn *",
+          "namePlaceholder": "Dokumentnamn",
+          "descriptionLabel": "Beskrivning",
+          "descriptionPlaceholder": "Valfri beskrivning av dokumentet..."
+        },
+        "warnings": {
+          "video": {
+            "title": "Videoanalys",
+            "description": "Videofiler kräver transkribering innan de kan användas för sökning. Detta stöds ännu inte."
+          },
+          "pdf": {
+            "title": "Fillagring",
+            "description": "PDF- och Excel-filer lagras i Supabase Storage. Efter uppladdning, klicka \"Generera\" för att göra innehållet sökbart för AI."
+          }
+        },
+        "previewLabel": "Förhandsgranskning",
+        "actions": {
+          "uploading": "Laddar upp...",
+          "processingForAI": "Bearbetar för AI...",
+          "uploadAndProcess": "Ladda upp & bearbeta",
+          "upload": "Ladda upp"
+        }
+      },
       "alerts": {
         "missingOpenAIKey": {
           "title": "OpenAI API-nyckel saknas",

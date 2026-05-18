@@ -4508,6 +4508,68 @@
           "description": "An unknown error occurred."
         }
       },
+      "uploader": {
+        "title": "Upload Document",
+        "dropzone": {
+          "dropText": "Drop the file here...",
+          "dragText": "Drag and drop a file here, or click to select one",
+          "formats": "PDF, Excel, Markdown, Text (max 50MB)"
+        },
+        "toasts": {
+          "unsupportedType": {
+            "title": "File type not supported",
+            "description": "Upload PDF, Excel, Markdown, or text files."
+          },
+          "missingFields": {
+            "title": "Please fill in all fields",
+            "description": "Choose a file and provide a name."
+          },
+          "uploadProcessed": {
+            "title": "Document ready",
+            "description": "Upload complete and processed into {chunksCreated} searchable chunks."
+          },
+          "uploadedWithWarnings": {
+            "title": "Document uploaded",
+            "description": "Upload complete, but processing failed: {error}. Retry from the Documents page."
+          },
+          "uploadFailedProcessing": {
+            "title": "Document uploaded",
+            "description": "Upload complete, but processing failed. Please retry from the Documents page."
+          },
+          "uploaded": {
+            "title": "Document uploaded",
+            "descriptionWithOpenAI": "Document saved. Click \"Generate\" to enable AI search.",
+            "descriptionWithoutOpenAI": "Document saved. Configure your OpenAI API key to enable search."
+          },
+          "uploadFailed": {
+            "title": "Upload failed",
+            "description": "An unknown error occurred."
+          }
+        },
+        "form": {
+          "nameLabel": "Name *",
+          "namePlaceholder": "Document name",
+          "descriptionLabel": "Description",
+          "descriptionPlaceholder": "Optional document description..."
+        },
+        "warnings": {
+          "video": {
+            "title": "Video analysis",
+            "description": "Video files require transcription before they can be used for search. This is not yet supported."
+          },
+          "pdf": {
+            "title": "File storage",
+            "description": "PDF and Excel files are stored in Supabase Storage. After uploading, click \"Generate\" to make the content searchable for AI."
+          }
+        },
+        "previewLabel": "Preview",
+        "actions": {
+          "uploading": "Uploading...",
+          "processingForAI": "Processing for AI...",
+          "uploadAndProcess": "Upload & process",
+          "upload": "Upload"
+        }
+      },
       "alerts": {
         "missingOpenAIKey": {
           "title": "OpenAI API key missing",
