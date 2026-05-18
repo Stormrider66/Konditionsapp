@@ -15201,6 +15201,283 @@
         "end": "End"
       }
     },
+    "daySidebar": {
+      "dayAction": {
+        "addFor": "Add for",
+        "cancel": "Cancel",
+        "openMenu": "Open day menu",
+        "quickWorkout": {
+          "label": "Quick workout",
+          "description": "Create a short structured workout"
+        },
+        "fullWorkout": {
+          "label": "Full workout",
+          "description": "Create a full planned workout"
+        },
+        "calendarEvent": {
+          "label": "Calendar event",
+          "description": "Add illness, travel, camps, and event notes"
+        },
+        "fieldTest": {
+          "label": "Field test",
+          "description": "Add a fitness field test"
+        },
+        "note": {
+          "label": "Note",
+          "description": "Add notes for the day"
+        }
+      },
+      "sections": {
+        "workouts": "Workouts",
+        "aiWorkouts": "AI Workouts",
+        "adhocWorkouts": "Ad-hoc Workouts",
+        "races": "Races",
+        "events": "Events",
+        "fieldTests": "Field Tests",
+        "dailyCheckIns": "Daily Check-ins"
+      },
+      "emptyState": {
+        "selectDayHint": "Select a day to view schedule",
+        "noEvents": "No events",
+        "noEventsToday": "No activities for this date"
+      },
+      "actions": {
+        "addEvent": "Add event"
+      },
+      "units": {
+        "minutes": "min",
+        "kilometers": "km",
+        "meters": "m"
+      },
+      "status": {
+        "completed": "Completed"
+      },
+      "calendarItem": {
+        "wod": {
+          "mode": {
+            "structured": "Structured",
+            "casual": "Casual",
+            "fun": "Fun"
+          },
+          "title": "AI Workout"
+        },
+        "race": {
+          "target": "Target",
+          "actual": "Result"
+        },
+        "event": {
+          "status": {
+            "completed": "Completed",
+            "pending": "Pending",
+            "scheduled": "Scheduled",
+            "skipped": "Skipped",
+            "modified": "Modified",
+            "assigned": "Assigned",
+            "inProgress": "In progress"
+          },
+          "endsAt": "Ends",
+          "registeredAt": "Registered at {time}",
+          "resultPlaceholder": "Result not available yet",
+          "loadingResult": "Loading result...",
+          "labels": {
+            "comment": "Coach comments"
+          },
+          "originalData": "Original data",
+          "actions": {
+            "editWorkout": "Edit workout",
+            "printWorkout": "Print",
+            "viewResult": "View result",
+            "praise": "Praise",
+            "time": "Time",
+            "edit": "Edit",
+            "remove": "Remove",
+            "cancel": "Cancel",
+            "removing": "Removing..."
+          },
+          "noResult": "No result found",
+          "deleteConfirmTitle": "Remove event",
+          "deleteConfirmMessage": "Remove {title}?",
+          "importedFrom": "Imported from {name}",
+          "externalSourceDefault": "external calendar"
+        },
+        "fieldTest": {
+          "valid": "Valid",
+          "pending": "Pending"
+        },
+        "checkIn": {
+          "title": "Daily check-in",
+          "readiness": "Readiness"
+        }
+      },
+      "eventImpact": {
+        "noTraining": "No training",
+        "reduced": "Reduced",
+        "modified": "Modified",
+        "normal": "Normal",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "toast": {
+        "eventDeleted": "Event removed",
+        "deleteFailed": "Could not remove event",
+        "resultLoadFailed": "Could not load result",
+        "praiseFailed": "Could not send praise",
+        "praiseSent": "Praise sent"
+      },
+      "errors": {
+        "network": "Network error"
+      },
+      "praiseMessage": "Great job on {title}!",
+      "workout": {
+        "title": "Workout",
+        "loading": "Loading workout...",
+        "completed": "Completed",
+        "completedAt": "Completed {date}",
+        "completedWorkout": "Completed workout",
+        "instructions": "Instructions",
+        "goal": "Goal: {value}",
+        "time": "Time",
+        "distance": "Distance",
+        "pace": "Pace",
+        "racePace": "Race pace",
+        "load": "Load",
+        "noPulse": "No pulse",
+        "rpe": "RPE {value}",
+        "athleteNotes": "Athlete notes",
+        "coachFeedback": "Coach feedback",
+        "intervals": "Intervals",
+        "blockLabel": "Block {index}",
+        "repLabel": "Rep {index}",
+        "repDuration": "Duration {value}",
+        "repDistance": "Distance {value}",
+        "repPace": "Pace {value}",
+        "repHeartRate": "HR {value}",
+        "repPower": "Power {value}W",
+        "viewFullReview": "View full review",
+        "viewDetails": "View details",
+        "planned": "(planned {value})"
+      },
+      "race": {
+        "title": "Race",
+        "loading": "Loading result...",
+        "completed": "Completed",
+        "result": "Result",
+        "targetTime": "Target time",
+        "pace": "Pace",
+        "averagePulse": "Average pulse",
+        "terrain": "Terrain",
+        "temperature": "Temperature",
+        "wind": "Wind",
+        "dataQuality": "Data quality",
+        "conditions": "Conditions",
+        "athleteNotes": "Athlete notes",
+        "coachAnalysis": "Coach analysis",
+        "classification": "{value}"
+      },
+      "adhoc": {
+        "title": "Ad-hoc",
+        "completed": "Completed",
+        "loading": "Loading workout details...",
+        "time": "Time",
+        "distance": "Distance",
+        "pace": "Pace",
+        "heartRate": "Heart rate",
+        "strengthExercises": "Strength exercises",
+        "cardioBlocks": "Cardio blocks",
+        "hybridMoments": "Hybrid moments",
+        "feeling": "Feeling",
+        "preview": "Preview",
+        "notes": "Notes",
+        "noDetails": "No details available"
+      },
+      "fieldTest": {
+        "title": "Field test",
+        "valid": "Valid",
+        "needsReview": "Needs review",
+        "loading": "Loading field test...",
+        "missingPace": "No pace",
+        "keyMetrics": "Key metrics",
+        "warnings": "Warnings",
+        "issues": "Issues",
+        "notes": "Notes",
+        "metrics": {
+          "thresholdPace": "Threshold pace {pace}",
+          "thresholdHr": "Threshold HR {value} bpm",
+          "drift": "Drift {value}%",
+          "criticalVelocity": "Critical velocity {value} m/s",
+          "vdot": "VDOT {value}"
+        }
+      },
+      "formatters": {
+        "workoutType": {
+          "running": "Running",
+          "strength": "Strength",
+          "plyometric": "Plyometric",
+          "core": "Core",
+          "recovery": "Recovery",
+          "cycling": "Cycling",
+          "skiing": "Skiing",
+          "swimming": "Swimming",
+          "triathlon": "Triathlon",
+          "hyrox": "HYROX",
+          "alternative": "Alternative",
+          "other": "Other"
+        },
+        "intensity": {
+          "recovery": "Recovery",
+          "easy": "Easy",
+          "moderate": "Moderate",
+          "threshold": "Threshold",
+          "interval": "Interval",
+          "max": "Max"
+        },
+        "feeling": {
+          "great": "Great",
+          "good": "Good",
+          "okay": "Okay",
+          "tired": "Tired",
+          "struggled": "Struggled"
+        },
+        "adHocInputType": {
+          "photo": "Photo",
+          "audio": "Audio",
+          "text": "Text",
+          "manual": "Manual",
+          "garmin": "Garmin",
+          "strava": "Strava",
+          "template": "Template"
+        },
+        "raceDistance": {
+          "fiveKilometer": "5K result",
+          "tenKilometer": "10K result",
+          "halfMarathon": "Half marathon result",
+          "marathon": "Marathon result",
+          "custom": "Race result"
+        },
+        "cardioSegment": {
+          "warmup": "Warm-up",
+          "work": "Work",
+          "interval": "Interval",
+          "recovery": "Recovery",
+          "cooldown": "Cool-down",
+          "rest": "Rest"
+        },
+        "confidence": {
+          "veryHigh": "Very high",
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low"
+        },
+        "fieldTestType": {
+          "thirtyMinuteTT": "30 min TT",
+          "twentyMinuteTT": "20 min TT",
+          "heartRateDrift": "HR drift",
+          "criticalVelocity": "Critical Velocity",
+          "raceBased": "Race-based"
+        }
+      }
+    },
     "aiProgramOfferStep": {
       "coach": {
         "title": "You have a coach!",

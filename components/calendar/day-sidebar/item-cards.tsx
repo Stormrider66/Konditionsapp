@@ -6,7 +6,8 @@
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -91,22 +92,40 @@ type ScheduledWorkoutResult = {
   original: unknown
 }
 
-function formatScheduledStatus(status?: string) {
-  const labels: Record<string, string> = {
-    PENDING: 'Planerat',
-    SCHEDULED: 'Påbörjat',
-    COMPLETED: 'Registrerat',
-    SKIPPED: 'Missat',
-    MODIFIED: 'Ändrat',
-    ASSIGNED: 'Tilldelat',
-    IN_PROGRESS: 'Påbörjat',
+function formatScheduledStatus(status: string | undefined, t?: ReturnType<typeof useTranslations>) {
+  const keys: Record<string, string> = {
+    PENDING: 'pending',
+    SCHEDULED: 'scheduled',
+    COMPLETED: 'completed',
+    SKIPPED: 'skipped',
+    MODIFIED: 'modified',
+    ASSIGNED: 'assigned',
+    IN_PROGRESS: 'inProgress',
   }
-  return status ? labels[status] || status : 'Planerat'
+  if (!status) {
+    return t ? t('calendarItem.event.status.pending') : 'PENDING'
+  }
+  const key = keys[status] || status.toLowerCase()
+  return t ? t(`calendarItem.event.status.${key}`) : status
 }
 
-function formatResultDate(value?: string | Date | null) {
+function formatResultDate(value: string | Date | null | undefined, locale: 'en' | 'sv') {
   if (!value) return null
-  return format(new Date(value), 'd MMM HH:mm', { locale: sv })
+  return format(new Date(value), 'd MMM HH:mm', { locale: locale === 'en' ? enUS : sv })
+}
+
+function mapEventImpact(impact: string | undefined) {
+  const impactMap: Record<string, string> = {
+    NO_TRAINING: 'noTraining',
+    REDUCED: 'reduced',
+    MODIFIED: 'modified',
+    NORMAL: 'normal',
+  }
+  return impactMap[impact || ''] || 'normal'
+}
+
+function toDateLocaleCode(locale: string | undefined): 'en' | 'sv' {
+  return locale?.startsWith('en') ? 'en' : 'sv'
 }
 
 function safePreview(value: unknown) {
@@ -129,10 +148,11 @@ export function WODItem({ wod, isSelected, onClick, isGlass = false }: WODItemPr
   const meta = wod.metadata
   const isCompleted = meta.isCompleted as boolean
   const mode = meta.mode as string
-  const modeLabels: Record<string, string> = {
-    STRUCTURED: 'Strukturerat',
-    CASUAL: 'Avslappnat',
-    FUN: 'Bara kul!',
+  const t = useTranslations('components.daySidebar')
+  const modeLabelMap: Record<string, string> = {
+    STRUCTURED: t('calendarItem.wod.mode.structured'),
+    CASUAL: t('calendarItem.wod.mode.casual'),
+    FUN: t('calendarItem.wod.mode.fun'),
   }
 
   return (
@@ -154,28 +174,28 @@ export function WODItem({ wod, isSelected, onClick, isGlass = false }: WODItemPr
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={cn(
-              'font-medium text-sm truncate',
-              isGlass ? 'text-white' : ''
-            )}>
-              {wod.title}
-            </span>
+              <span className={cn(
+                'font-medium text-sm truncate',
+                isGlass ? 'text-white' : ''
+              )}>
+                {wod.title}
+              </span>
             {isCompleted && (
               <Badge variant="default" className="bg-green-500 text-white text-[10px] px-1.5 py-0">
-                Klar
+                {t('status.completed')}
               </Badge>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
               <Sparkles className="h-3 w-3" />
-              AI-Pass
+              {t('calendarItem.wod.title')}
             </span>
-            <span>{modeLabels[mode] || mode}</span>
+            <span>{modeLabelMap[mode] || t('calendarItem.wod.mode.structured')}</span>
             {typeof meta.requestedDuration === 'number' && meta.requestedDuration > 0 && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {(typeof meta.actualDuration === 'number' ? meta.actualDuration : meta.requestedDuration)} min
+                {`${typeof meta.actualDuration === 'number' ? meta.actualDuration : meta.requestedDuration} ${t('units.minutes')}`}
               </span>
             )}
           </div>
@@ -203,6 +223,7 @@ export function WorkoutItem({ workout, isSelected, onClick, isGlass = false }: W
   const workoutType = (meta.workoutType as string) || 'OTHER'
   const intensity = (meta.intensity as string) || 'MODERATE'
   const isCompleted = meta.isCompleted as boolean
+  const t = useTranslations('components.daySidebar')
 
   return (
     <button
@@ -235,13 +256,13 @@ export function WorkoutItem({ workout, isSelected, onClick, isGlass = false }: W
             {typeof meta.duration === 'number' && meta.duration > 0 && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {meta.duration} min
+                {meta.duration} {t('units.minutes')}
               </span>
             )}
             {typeof meta.distance === 'number' && meta.distance > 0 && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
-                {meta.distance} km
+                {meta.distance} {t('units.kilometers')}
               </span>
             )}
           </div>
@@ -253,7 +274,7 @@ export function WorkoutItem({ workout, isSelected, onClick, isGlass = false }: W
             'text-white'
           )}
         >
-          {intensity.charAt(0) + intensity.slice(1).toLowerCase()}
+          {formatIntensityLabel(intensity, t)}
         </Badge>
       </div>
     </button>
@@ -271,6 +292,7 @@ export function RaceItem({ race, isSelected, onClick, isGlass = false }: RaceIte
   const meta = race.metadata
   const classification = meta.classification as string
   const isCompleted = meta.isCompleted as boolean
+  const t = useTranslations('components.daySidebar')
 
   const classificationColors: Record<string, string> = {
     A: 'bg-red-500 text-white',
@@ -301,8 +323,8 @@ export function RaceItem({ race, isSelected, onClick, isGlass = false }: RaceIte
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             {meta.distance ? String(meta.distance) : ''}
-            {typeof meta.targetTime === 'string' && meta.targetTime && ` • Mål: ${meta.targetTime}`}
-            {isCompleted && typeof meta.actualTime === 'string' && meta.actualTime && ` • Tid: ${meta.actualTime}`}
+            {typeof meta.targetTime === 'string' && meta.targetTime && ` • ${t('calendarItem.race.target')}: ${meta.targetTime}`}
+            {isCompleted && typeof meta.actualTime === 'string' && meta.actualTime && ` • ${t('calendarItem.race.actual')}: ${meta.actualTime}`}
           </div>
         </div>
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -339,6 +361,10 @@ export function CalendarEventItem({
   const [isLoadingResult, setIsLoadingResult] = useState(false)
   const [isSendingPraise, setIsSendingPraise] = useState(false)
   const [workoutResult, setWorkoutResult] = useState<ScheduledWorkoutResult | null>(null)
+  const t = useTranslations('components.daySidebar')
+  const locale = useLocale()
+  const dateLocale = locale?.startsWith('en') ? enUS : sv
+  const dateLocaleCode = toDateLocaleCode(locale)
   const meta = event.metadata
   const eventType = (meta.eventType as string) || 'EXTERNAL_EVENT'
   const trainingImpact = (meta.trainingImpact as string) || 'NORMAL'
@@ -359,7 +385,7 @@ export function CalendarEventItem({
   const impactConfig = IMPACT_CONFIG[trainingImpact as keyof typeof IMPACT_CONFIG]
   const sourceName = scheduledWorkoutSource?.sourceName?.trim()
   const shouldShowSourceName = !!sourceName && !event.title.includes(sourceName)
-  const completedLabel = formatResultDate(scheduledWorkoutSource?.completedAt)
+  const completedLabel = formatResultDate(scheduledWorkoutSource?.completedAt, dateLocaleCode)
   const originalPreview = safePreview(workoutResult?.original)
   const detailSections = Array.isArray(workoutResult?.details) ? workoutResult.details : []
   const canSendPraise = Boolean(
@@ -403,18 +429,18 @@ export function CalendarEventItem({
         method: 'DELETE',
       })
       if (response.ok) {
-        toast.success('Händelse borttagen')
+        toast.success(t('toast.eventDeleted'))
         onDeleted()
         return
       }
       const data = await response.json().catch(() => ({}))
-      toast.error('Kunde inte ta bort', {
+      toast.error(t('toast.deleteFailed'), {
         description: data.error || `HTTP ${response.status}`,
       })
     } catch (error) {
       console.error('Failed to delete event:', error)
-      toast.error('Kunde inte ta bort', {
-        description: 'Nätverksfel — försök igen.',
+      toast.error(t('toast.deleteFailed'), {
+        description: t('errors.network'),
       })
     } finally {
       setIsDeleting(false)
@@ -435,7 +461,7 @@ export function CalendarEventItem({
       const response = await fetch(`/api/calendar/workout-result?${params.toString()}`)
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        toast.error('Kunde inte hämta resultat', {
+        toast.error(t('toast.resultLoadFailed'), {
           description: data.error || `HTTP ${response.status}`,
         })
         return
@@ -444,8 +470,8 @@ export function CalendarEventItem({
       setWorkoutResult(data)
     } catch (error) {
       console.error('Failed to fetch workout result:', error)
-      toast.error('Kunde inte hämta resultat', {
-        description: 'Nätverksfel — försök igen.',
+      toast.error(t('toast.resultLoadFailed'), {
+        description: t('errors.network'),
       })
     } finally {
       setIsLoadingResult(false)
@@ -466,23 +492,23 @@ export function CalendarEventItem({
           clientId,
           kind,
           assignmentId,
-          message: `Bra jobbat med ${sourceName || event.title}!`,
+          message: t('praiseMessage', { title: sourceName || event.title }),
         }),
       })
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        toast.error('Kunde inte skicka hälsning', {
+        toast.error(t('toast.praiseFailed'), {
           description: data.error || `HTTP ${response.status}`,
         })
         return
       }
 
-      toast.success('Hälsning skickad till atleten')
+      toast.success(t('toast.praiseSent'))
     } catch (error) {
       console.error('Failed to send workout praise:', error)
-      toast.error('Kunde inte skicka hälsning', {
-        description: 'Nätverksfel — försök igen.',
+      toast.error(t('toast.praiseFailed'), {
+        description: t('errors.network'),
       })
     } finally {
       setIsSendingPraise(false)
@@ -513,7 +539,9 @@ export function CalendarEventItem({
                 variant="outline"
                 className={cn('text-xs shrink-0', impactConfig?.color)}
               >
-                {impactConfig?.labelSv}
+                {impactConfig
+                  ? t(`eventImpact.${mapEventImpact(trainingImpact)}`)
+                  : t('eventImpact.normal')}
               </Badge>
               {scheduledWorkoutSource?.assignmentId && (
                 <Badge
@@ -525,7 +553,9 @@ export function CalendarEventItem({
                       : 'text-slate-600 border-slate-300 bg-white/70'
                   )}
                 >
-                  {hasRegisteredWorkout ? 'Registrerat' : formatScheduledStatus(scheduledWorkoutSource.status)}
+                {hasRegisteredWorkout
+                  ? t('calendarItem.event.status.completed')
+                  : formatScheduledStatus(scheduledWorkoutSource.status, t)}
                 </Badge>
               )}
               {shouldShowSourceName && (
@@ -536,18 +566,18 @@ export function CalendarEventItem({
               {eventType === 'ALTITUDE_CAMP' && typeof meta.altitude === 'number' && meta.altitude > 0 && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Mountain className="h-3 w-3" />
-                  {meta.altitude}m
+                  {meta.altitude} {t('units.meters')}
                 </span>
               )}
             </div>
             {event.endDate && event.endDate !== event.date && (
               <div className="text-xs text-muted-foreground mt-1">
-                Till: {format(new Date(event.endDate as string), 'd MMM', { locale: sv })}
+                {t('calendarItem.event.endsAt')}: {format(new Date(event.endDate as string), 'd MMM', { locale: dateLocale })}
               </div>
             )}
             {hasRegisteredWorkout && completedLabel && (
               <div className="text-xs text-emerald-700 mt-1">
-                Registrerat {completedLabel}
+                {t('calendarItem.event.registeredAt', { time: completedLabel })}
               </div>
             )}
           </div>
@@ -559,7 +589,7 @@ export function CalendarEventItem({
           {scheduledWorkoutSource?.sourceId && canEditScheduledWorkoutSource && (
             <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={openScheduledWorkout}>
               <ExternalLink className="h-3 w-3 shrink-0 mr-1" />
-              Redigera pass
+              {t('calendarItem.event.actions.editWorkout')}
             </Button>
           )}
           {scheduledWorkoutSource?.sourceId && canPrintScheduledWorkoutSource && (
@@ -567,7 +597,7 @@ export function CalendarEventItem({
               kind={scheduledWorkoutSource.kind as PrintableWorkoutKind}
               workoutId={scheduledWorkoutSource.sourceId}
               date={event.date}
-              label="Skriv ut"
+              label={t('calendarItem.event.actions.printWorkout')}
               variant="ghost"
               size="sm"
               className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold"
@@ -576,7 +606,7 @@ export function CalendarEventItem({
           {scheduledWorkoutSource?.assignmentId && hasRegisteredWorkout && (
             <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={handleOpenResult}>
               <Eye className="h-3 w-3 shrink-0 mr-1" />
-              Visa resultat
+              {t('calendarItem.event.actions.viewResult')}
             </Button>
           )}
           {canSendPraise && (
@@ -592,35 +622,41 @@ export function CalendarEventItem({
               ) : (
                 <ThumbsUp className="h-3 w-3 shrink-0 mr-1" />
               )}
-              Bra jobbat
+              {t('calendarItem.event.actions.praise')}
             </Button>
           )}
           <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={onEdit}>
             <Edit className="h-3 w-3 shrink-0 mr-1" />
-            {eventType === 'SCHEDULED_WORKOUT' ? 'Tid' : 'Redigera'}
+            {eventType === 'SCHEDULED_WORKOUT'
+              ? t('calendarItem.event.actions.time')
+              : t('calendarItem.event.actions.edit')}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold text-red-400 hover:text-red-300">
                 <Trash2 className="h-3 w-3 shrink-0 mr-1" />
-                Ta bort
+                {t('calendarItem.event.actions.remove')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent className={isGlass ? "bg-slate-900 border-white/10" : ""}>
               <AlertDialogHeader>
-                <AlertDialogTitle className={isGlass ? "text-white font-black" : ""}>Ta bort händelse?</AlertDialogTitle>
+                <AlertDialogTitle className={isGlass ? "text-white font-black" : ""}>
+                  {t('calendarItem.event.deleteConfirmTitle')}
+                </AlertDialogTitle>
                 <AlertDialogDescription className={isGlass ? "text-slate-400" : ""}>
-                  Är du säker på att du vill ta bort &quot;{event.title}&quot;? Detta kan inte ångras.
+                  {t('calendarItem.event.deleteConfirmMessage', { title: event.title })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className={isGlass ? "bg-white/5 border-white/10 text-slate-300" : ""}>Avbryt</AlertDialogCancel>
+                <AlertDialogCancel className={isGlass ? "bg-white/5 border-white/10 text-slate-300" : ""}>
+                  {t('calendarItem.event.actions.cancel')}
+                </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
                   className="bg-red-600 hover:bg-red-700"
                   disabled={isDeleting}
                 >
-                  {isDeleting ? 'Tar bort...' : 'Ta bort'}
+                  {isDeleting ? t('calendarItem.event.actions.removing') : t('calendarItem.event.actions.remove')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -637,15 +673,18 @@ export function CalendarEventItem({
             <DialogDescription className={isGlass ? 'text-slate-400' : ''}>
               {workoutResult?.athleteName ? `${workoutResult.athleteName} · ` : ''}
               {workoutResult?.completedAt
-                ? `Registrerat ${formatResultDate(workoutResult.completedAt)}`
-                : 'Registrerat pass'}
+                    ? t('calendarItem.event.registeredAt', {
+                    time: formatResultDate(workoutResult.completedAt, dateLocaleCode),
+                  })
+                : t('calendarItem.event.resultPlaceholder')
+              }
             </DialogDescription>
           </DialogHeader>
 
           {isLoadingResult ? (
             <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground shrink-0">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Hämtar resultat
+              {t('calendarItem.event.loadingResult')}
             </div>
           ) : workoutResult ? (
             <div className="min-h-0 overflow-y-auto pr-2 space-y-5">
@@ -671,7 +710,7 @@ export function CalendarEventItem({
               {workoutResult.notes && (
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">
-                    Kommentar
+                    {t('calendarItem.event.labels.comment')}
                   </p>
                   <p className={cn('text-sm rounded-lg border p-3 whitespace-pre-wrap', isGlass ? 'bg-white/5 border-white/10 text-slate-200' : 'bg-white')}>
                     {workoutResult.notes}
@@ -721,7 +760,7 @@ export function CalendarEventItem({
               {originalPreview && (
                 <details className="group">
                   <summary className="cursor-pointer text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                    Originaldata
+                    {t('calendarItem.event.originalData')}
                   </summary>
                   <pre className={cn('mt-2 max-h-48 overflow-auto rounded-lg border p-3 text-xs whitespace-pre-wrap', isGlass ? 'bg-black/30 border-white/10 text-slate-300' : 'bg-slate-50')}>
                     {originalPreview}
@@ -730,7 +769,7 @@ export function CalendarEventItem({
               )}
             </div>
           ) : (
-            <p className="py-6 text-sm text-muted-foreground">Inget resultat hittades.</p>
+            <p className="py-6 text-sm text-muted-foreground">{t('calendarItem.event.noResult')}</p>
           )}
         </DialogContent>
       </Dialog>
@@ -738,7 +777,9 @@ export function CalendarEventItem({
       {isReadOnly && (
         <div className="text-[10px] font-medium text-slate-500 mt-2 flex items-center gap-1">
           <ExternalLink className="h-3 w-3" />
-          Importerad från {String(meta.externalCalendarName || 'extern kalender')}
+          {t('calendarItem.event.importedFrom', {
+            name: String(meta.externalCalendarName || t('calendarItem.event.externalSourceDefault')),
+          })}
         </div>
       )}
     </div>
@@ -756,6 +797,7 @@ export function FieldTestItem({ test, isSelected, onClick, isGlass = false }: Fi
   const meta = test.metadata
   const testType = (meta.testType as string) || ''
   const isValidated = meta.validatedByCoach as boolean
+  const t = useTranslations('components.daySidebar')
 
   return (
     <button
@@ -773,13 +815,13 @@ export function FieldTestItem({ test, isSelected, onClick, isGlass = false }: Fi
           <span className="font-medium text-sm">{test.title}</span>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="outline" className="text-xs">
-              {testType.replace(/_/g, ' ')}
+              {formatFieldTestType(testType, t)}
             </Badge>
             {isValidated ? (
-              <Badge className="text-xs bg-green-500">Validerad</Badge>
+              <Badge className="text-xs bg-green-500">{t('calendarItem.fieldTest.valid')}</Badge>
             ) : (
               <Badge variant="secondary" className="text-xs">
-                Väntar validering
+                {t('calendarItem.fieldTest.pending')}
               </Badge>
             )}
           </div>
@@ -800,6 +842,7 @@ export function CheckInItem({ checkIn, isSelected, onClick, isGlass = false }: C
   const meta = checkIn.metadata
   const readinessScore = meta.readinessScore as number | undefined
   const readinessDecision = meta.readinessDecision as string | undefined
+  const t = useTranslations('components.daySidebar')
 
   const decisionColors: Record<string, string> = {
     PROCEED: 'bg-green-500',
@@ -821,11 +864,11 @@ export function CheckInItem({ checkIn, isSelected, onClick, isGlass = false }: C
     >
       <div className="flex items-center justify-between gap-2">
         <div>
-          <span className="font-medium text-sm">Daglig avstämning</span>
+          <span className="font-medium text-sm">{t('calendarItem.checkIn.title')}</span>
           <div className="flex items-center gap-2 mt-1">
             {readinessScore !== undefined && (
               <span className="text-xs text-muted-foreground">
-                Beredskap: {readinessScore}%
+                {t('calendarItem.checkIn.readiness')}: {readinessScore}%
               </span>
             )}
           </div>
@@ -854,6 +897,7 @@ export function AdHocItem({ workout, isSelected, onClick, isGlass = false }: AdH
   const meta = workout.metadata
   const intensity = (meta.intensity as string) || 'MODERATE'
   const distance = formatDistanceValue(meta.distance)
+  const t = useTranslations('components.daySidebar')
 
   return (
     <button
@@ -880,7 +924,7 @@ export function AdHocItem({ workout, isSelected, onClick, isGlass = false }: AdH
             {typeof meta.duration === 'number' && meta.duration > 0 && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {meta.duration} min
+                {meta.duration} {t('units.minutes')}
               </span>
             )}
             {distance.label && (
@@ -898,7 +942,7 @@ export function AdHocItem({ workout, isSelected, onClick, isGlass = false }: AdH
             'text-white'
           )}
         >
-          {formatIntensityLabel(intensity)}
+          {formatIntensityLabel(intensity, t)}
         </Badge>
       </div>
     </button>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Activity,
@@ -9,10 +8,8 @@ import {
   Clock,
   Dumbbell,
   Heart,
-  ExternalLink,
   Loader2,
   MapPin,
-  Timer,
   TrendingUp,
   Zap,
 } from 'lucide-react'
@@ -20,14 +17,13 @@ import { UnifiedCalendarItem, WORKOUT_TYPE_COLORS, INTENSITY_COLORS } from '../.
 import { cn } from '@/lib/utils'
 import {
   formatDistanceValue,
-  formatDurationMinutes,
   formatAdHocInputType,
   formatAdHocTypeLabel,
-  formatConfidenceLabel,
   formatFeelingLabel,
   formatIntensityLabel,
   getAdHocPreviewItems,
 } from '../formatters'
+import { useTranslations } from '@/i18n/client'
 
 export interface SidebarAdHocDetail {
   id: string
@@ -41,6 +37,7 @@ export interface SidebarAdHocDetail {
 export function AdHocDetailPanel({ workout, isGlass = false }: { workout: UnifiedCalendarItem; isGlass?: boolean }) {
   const [detail, setDetail] = useState<SidebarAdHocDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const t = useTranslations('components.daySidebar')
 
   useEffect(() => {
     let cancelled = false
@@ -92,13 +89,13 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
       <div className="flex items-center justify-between mb-4">
         <h4 className="font-black text-[10px] uppercase tracking-widest flex items-center gap-2 text-teal-500">
           <CheckCircle2 className="h-4 w-4" />
-          Ad-hoc detaljer
+          {t('adhoc.title')}
         </h4>
         <Badge variant="secondary" className={cn(
           'text-[10px] uppercase font-bold tracking-tight',
           isGlass ? 'bg-emerald-500/20 text-emerald-400 border-none px-2' : 'bg-green-100 text-green-700'
         )}>
-          Genomfört
+          {t('adhoc.completed')}
         </Badge>
       </div>
 
@@ -106,7 +103,7 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
         {isLoading && (
           <div className={cn('flex items-center gap-2 text-xs', isGlass ? 'text-slate-400' : 'text-muted-foreground')}>
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Laddar ad-hoc-detaljer
+            {t('adhoc.loading')}
           </div>
         )}
 
@@ -114,19 +111,19 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
           <p className={cn('font-black text-lg tracking-tight', isGlass ? 'text-white' : '')}>{workout.title}</p>
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge className={cn('text-xs', INTENSITY_COLORS[intensity] || 'bg-yellow-500', 'text-white')}>
-              {formatIntensityLabel(intensity)}
+              {formatIntensityLabel(intensity, t)}
             </Badge>
             <Badge variant="outline" className={cn(
               'text-[10px] uppercase font-bold border-none px-2',
               isGlass ? 'bg-white/5 text-slate-400' : 'text-xs'
             )}>
-              {formatAdHocTypeLabel(detail?.parsedType)}
+              {formatAdHocTypeLabel(detail?.parsedType, t)}
             </Badge>
             <span className={cn(
               'text-[10px] uppercase tracking-widest font-bold',
               isGlass ? 'text-slate-500' : 'text-muted-foreground'
             )}>
-              {formatAdHocInputType(detail?.inputType)}
+              {formatAdHocInputType(detail?.inputType, t)}
             </span>
           </div>
         </div>
@@ -135,25 +132,25 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
           <div className="grid grid-cols-2 gap-2 text-xs">
             {duration ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Tid</p>
-                <p className="font-semibold">{duration} min</p>
+                <p className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {t('adhoc.time')}</p>
+                <p className="font-semibold">{duration} {t('units.minutes')}</p>
               </div>
             ) : null}
             {distance.label ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Distans</p>
+                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {t('adhoc.distance')}</p>
                 <p className="font-semibold">{distance.label}</p>
               </div>
             ) : null}
             {avgPace ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tempo</p>
+                <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {t('adhoc.pace')}</p>
                 <p className="font-semibold">{avgPace}</p>
               </div>
             ) : null}
             {avgHeartRate ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground flex items-center gap-1"><Heart className="h-3 w-3" /> Puls</p>
+                <p className="text-muted-foreground flex items-center gap-1"><Heart className="h-3 w-3" /> {t('adhoc.heartRate')}</p>
                 <p className="font-semibold">{avgHeartRate} bpm</p>
               </div>
             ) : null}
@@ -164,26 +161,26 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
           <div className="grid grid-cols-2 gap-2 text-xs">
             {strengthCount > 0 ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground flex items-center gap-1"><Dumbbell className="h-3 w-3" /> Styrkeövningar</p>
+                <p className="text-muted-foreground flex items-center gap-1"><Dumbbell className="h-3 w-3" /> {t('adhoc.strengthExercises')}</p>
                 <p className="font-semibold">{strengthCount}</p>
               </div>
             ) : null}
             {cardioCount > 0 ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> Konditionsblock</p>
+                <p className="text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> {t('adhoc.cardioBlocks')}</p>
                 <p className="font-semibold">{cardioCount}</p>
               </div>
             ) : null}
             {hybridCount > 0 ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground flex items-center gap-1"><Zap className="h-3 w-3" /> Hybridmoment</p>
+                <p className="text-muted-foreground flex items-center gap-1"><Zap className="h-3 w-3" /> {t('adhoc.hybridMoments')}</p>
                 <p className="font-semibold">{hybridCount}</p>
               </div>
             ) : null}
             {feeling ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground">Känsla</p>
-                <p className="font-semibold">{formatFeelingLabel(feeling)}</p>
+                <p className="text-muted-foreground">{t('adhoc.feeling')}</p>
+                <p className="font-semibold">{formatFeelingLabel(feeling, t)}</p>
               </div>
             ) : null}
           </div>
@@ -191,7 +188,7 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
 
         {previewItems.length > 0 && (
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Innehåll</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">{t('adhoc.preview')}</p>
             <div className="flex flex-wrap gap-2">
               {previewItems.map((item) => (
                 <span
@@ -210,13 +207,13 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
 
         {notes ? (
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Anteckningar</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">{t('adhoc.notes')}</p>
             <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>{notes}</p>
           </div>
         ) : (
           !isLoading && (
             <p className={cn('text-xs', isGlass ? 'text-slate-400' : 'text-muted-foreground')}>
-              Inga extra detaljer registrerade för detta ad-hoc-pass.
+              {t('adhoc.noDetails')}
             </p>
           )
         )}

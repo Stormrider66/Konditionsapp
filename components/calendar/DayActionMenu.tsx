@@ -12,7 +12,8 @@
 
 import { useState, useCallback } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 import {
   Zap,
   Dumbbell,
@@ -41,8 +42,8 @@ export type DayActionType = 'quick-workout' | 'full-workout' | 'calendar-event' 
 
 interface DayAction {
   id: DayActionType
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
   icon: React.ComponentType<{ className?: string }>
   color: string
   bgColor: string
@@ -51,40 +52,40 @@ interface DayAction {
 const DAY_ACTIONS: DayAction[] = [
   {
     id: 'quick-workout',
-    label: 'Snabbpass',
-    description: 'Skapa pass snabbt',
+    labelKey: 'dayAction.quickWorkout.label',
+    descriptionKey: 'dayAction.quickWorkout.description',
     icon: Zap,
     color: 'text-amber-600',
     bgColor: 'bg-amber-50 hover:bg-amber-100',
   },
   {
     id: 'full-workout',
-    label: 'Fullt pass',
-    description: 'Välj studio för detaljerat pass',
+    labelKey: 'dayAction.fullWorkout.label',
+    descriptionKey: 'dayAction.fullWorkout.description',
     icon: Dumbbell,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 hover:bg-blue-100',
   },
   {
     id: 'calendar-event',
-    label: 'Kalenderhändelse',
-    description: 'Resa, semester, sjukdom mm.',
+    labelKey: 'dayAction.calendarEvent.label',
+    descriptionKey: 'dayAction.calendarEvent.description',
     icon: CalendarPlus,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50 hover:bg-purple-100',
   },
   {
     id: 'field-test',
-    label: 'Fälttest',
-    description: 'Schemalägg ett test',
+    labelKey: 'dayAction.fieldTest.label',
+    descriptionKey: 'dayAction.fieldTest.description',
     icon: Activity,
     color: 'text-green-600',
     bgColor: 'bg-green-50 hover:bg-green-100',
   },
   {
     id: 'note',
-    label: 'Anteckning',
-    description: 'Lägg till en notering',
+    labelKey: 'dayAction.note.label',
+    descriptionKey: 'dayAction.note.description',
     icon: FileText,
     color: 'text-gray-600',
     bgColor: 'bg-gray-50 hover:bg-gray-100',
@@ -115,6 +116,9 @@ export function DayActionMenu({
   anchorEl,
 }: DayActionMenuProps) {
   const isMobile = useIsMobile()
+  const t = useTranslations('components.daySidebar')
+  const locale = useLocale()
+  const dateLocale = locale?.startsWith('en') ? enUS : sv
 
   const handleAction = useCallback(
     (actionId: DayActionType) => {
@@ -124,7 +128,7 @@ export function DayActionMenu({
     [onAction, date, onClose]
   )
 
-  const formattedDate = format(date, 'EEEE d MMMM', { locale: sv })
+  const formattedDate = format(date, 'EEEE d MMMM', { locale: dateLocale })
 
   const menuContent = (
     <div className="space-y-1">
@@ -141,8 +145,8 @@ export function DayActionMenu({
             <action.icon className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-gray-900">{action.label}</p>
-            <p className="text-sm text-gray-500 truncate">{action.description}</p>
+            <p className="font-medium text-gray-900">{t(action.labelKey)}</p>
+            <p className="text-sm text-gray-500 truncate">{t(action.descriptionKey)}</p>
           </div>
           <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
         </button>
@@ -153,12 +157,12 @@ export function DayActionMenu({
   // Mobile: Use bottom sheet
   if (isMobile) {
     return (
-      <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <SheetContent side="bottom" className="h-auto max-h-[80vh] rounded-t-2xl">
           <SheetHeader className="pb-4">
             <SheetTitle className="text-left">
               <span className="text-gray-500 text-sm font-normal block">
-                Lägg till för
+                {t('dayAction.addFor')}
               </span>
               <span className="capitalize">{formattedDate}</span>
             </SheetTitle>
@@ -170,7 +174,7 @@ export function DayActionMenu({
               className="w-full"
               onClick={onClose}
             >
-              Avbryt
+              {t('dayAction.cancel')}
             </Button>
           </div>
         </SheetContent>
@@ -182,7 +186,7 @@ export function DayActionMenu({
   return (
     <Popover open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <PopoverTrigger asChild>
-        <span className="sr-only">Öppna meny</span>
+        <span className="sr-only">{t('dayAction.openMenu')}</span>
       </PopoverTrigger>
       <PopoverContent
         className="w-80 p-3"
@@ -192,7 +196,7 @@ export function DayActionMenu({
       >
         <div className="flex items-center justify-between mb-3 pb-2 border-b">
           <div>
-            <p className="text-sm text-gray-500">Lägg till för</p>
+            <p className="text-sm text-gray-500">{t('dayAction.addFor')}</p>
             <p className="font-medium capitalize">{formattedDate}</p>
           </div>
           <Button

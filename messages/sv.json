@@ -15201,6 +15201,284 @@
         "end": "Slut"
       }
     },
+    "daySidebar": {
+      "dayAction": {
+        "addFor": "Lägg till för",
+        "cancel": "Avbryt",
+        "openMenu": "Öppna dagsmeny",
+        "quickWorkout": {
+          "label": "Snabbdpass",
+          "description": "Skapa ett kort strukturerat pass"
+        },
+        "fullWorkout": {
+          "label": "Huvudpass",
+          "description": "Skapa ett fullt planerat pass"
+        },
+        "calendarEvent": {
+          "label": "Kalenderhändelse",
+          "description": "Lägg till sjukdom, resa, läger och andra händelser"
+        },
+        "fieldTest": {
+          "label": "Fälttest",
+          "description": "Lägg till ett fälttest"
+        },
+        "note": {
+          "label": "Notering",
+          "description": "Lägg till en anteckning för dagen"
+        }
+      },
+      "sections": {
+        "workouts": "Pass",
+        "aiWorkouts": "AI-pass",
+        "adhocWorkouts": "Snabbpass",
+        "races": "Tävlingar",
+        "events": "Händelser",
+        "fieldTests": "Fälttest",
+        "dailyCheckIns": "Dagliga incheckningar"
+      },
+      "emptyState": {
+        "selectDayHint": "Välj en dag för att visa schema",
+        "noEvents": "Inga händelser",
+        "noEventsToday": "Inga aktiviteter för detta datum"
+      },
+      "actions": {
+        "addEvent": "Lägg till händelse"
+      },
+      "units": {
+        "minutes": "min",
+        "kilometers": "km",
+        "meters": "m"
+      },
+      "status": {
+        "completed": "Genomförd"
+      },
+      "calendarItem": {
+        "wod": {
+          "mode": {
+            "structured": "Strukturerat",
+            "casual": "Avslappnat",
+            "fun": "Roligt"
+          },
+          "title": "AI-pass"
+        },
+        "race": {
+          "target": "Mål",
+          "actual": "Resultat"
+        },
+        "event": {
+          "status": {
+            "completed": "Genomfört",
+            "pending": "Väntande",
+            "scheduled": "Inplanerat",
+            "skipped": "Skippat",
+            "modified": "Ändrat",
+            "assigned": "Tilldelat",
+            "inProgress": "Pågår"
+          },
+          "endsAt": "Slutar",
+          "registeredAt": "Registrerat {time}",
+          "resultPlaceholder": "Resultat saknas ännu",
+          "loadingResult": "Laddar resultat...",
+          "labels": {
+            "comment": "Coachanteckning"
+          },
+          "originalData": "Originaldata",
+        "actions": {
+          "editWorkout": "Redigera pass",
+          "printWorkout": "Skriv ut",
+          "viewResult": "Visa resultat",
+          "praise": "Beröm",
+          "time": "Tid",
+          "edit": "Redigera",
+          "remove": "Ta bort",
+          "cancel": "Avbryt",
+          "removing": "Tar bort..."
+        },
+        "noResult": "Inget resultat hittades",
+        "deleteConfirmTitle": "Ta bort händelse",
+          "deleteConfirmMessage": "Ta bort {title}?",
+          "importedFrom": "Importerat från {name}",
+          "externalSourceDefault": "extern kalender"
+        },
+        "fieldTest": {
+          "valid": "Godkänt",
+          "pending": "Väntar"
+        },
+        "checkIn": {
+          "title": "Daglig incheckning",
+          "readiness": "Beredskap"
+        }
+      },
+      "eventImpact": {
+        "noTraining": "Ingen träning",
+        "reduced": "Reducerad",
+        "modified": "Ändrad",
+        "normal": "Normal",
+        "low": "Låg",
+        "medium": "Medel",
+        "high": "Hög"
+      },
+      "toast": {
+        "eventDeleted": "Händelse borttagen",
+        "deleteFailed": "Kunde inte ta bort händelsen",
+        "resultLoadFailed": "Kunde inte ladda resultat",
+        "praiseFailed": "Kunde inte skicka beröm",
+        "praiseSent": "Beröm skickat"
+      },
+      "errors": {
+        "network": "Nätverksfel"
+      },
+      "praiseMessage": "Bra jobbat med {title}!",
+      "workout": {
+        "title": "Pass",
+        "loading": "Laddar pass...",
+        "completed": "Genomfört",
+        "completedAt": "Genomfört {date}",
+        "completedWorkout": "Genomfört pass",
+        "instructions": "Instruktioner",
+        "goal": "Mål: {value}",
+        "time": "Tid",
+        "distance": "Distans",
+        "pace": "Tempo",
+        "racePace": "Tävlingstempo",
+        "load": "Belastning",
+        "noPulse": "Ingen puls",
+        "rpe": "Upplevd ansträngning {value}",
+        "athleteNotes": "Atletanteckningar",
+        "coachFeedback": "Coachens feedback",
+        "intervals": "Intervaller",
+        "blockLabel": "Block {index}",
+        "repLabel": "Varv {index}",
+        "repDuration": "Tid {value}",
+        "repDistance": "Distans {value}",
+        "repPace": "Tempo {value}",
+        "repHeartRate": "Puls {value}",
+        "repPower": "Effekt {value}W",
+        "viewFullReview": "Visa fullständig översyn",
+        "viewDetails": "Visa detaljer",
+        "planned": "(planerad {value})"
+      },
+      "race": {
+        "title": "Tävling",
+        "loading": "Laddar resultat...",
+        "completed": "Genomförd",
+        "result": "Resultat",
+        "targetTime": "Måltid",
+        "target": "Mål",
+        "pace": "Tempo",
+        "averagePulse": "Medelpuls",
+        "terrain": "Underlag",
+        "temperature": "Temperatur",
+        "wind": "Vind",
+        "dataQuality": "Datakvalitet",
+        "conditions": "Förhållanden",
+        "athleteNotes": "Atletens anteckningar",
+        "coachAnalysis": "Coachanalys",
+        "classification": "{value}"
+      },
+      "adhoc": {
+        "title": "Ad-hoc",
+        "completed": "Genomfört",
+        "loading": "Laddar passdetaljer...",
+        "time": "Tid",
+        "distance": "Distans",
+        "pace": "Tempo",
+        "heartRate": "Puls",
+        "strengthExercises": "Styrkeövningar",
+        "cardioBlocks": "Cardioblock",
+        "hybridMoments": "Hybridmoment",
+        "feeling": "Känsla",
+        "preview": "Förhandsgranskning",
+        "notes": "Anteckningar",
+        "noDetails": "Inga detaljer tillgängliga"
+      },
+      "fieldTest": {
+        "title": "Fälttest",
+        "valid": "Godkänt",
+        "needsReview": "Behöver granskning",
+        "loading": "Laddar fälttest...",
+        "missingPace": "Pace saknas",
+        "keyMetrics": "Nyckelvärden",
+        "warnings": "Varningar",
+        "issues": "Problem",
+        "notes": "Anteckningar",
+        "metrics": {
+          "thresholdPace": "Tröskeltempo {pace}",
+          "thresholdHr": "Tröskelpuls {value} bpm",
+          "drift": "Drift {value}%",
+          "criticalVelocity": "Critical Velocity {value} m/s",
+          "vdot": "VDOT {value}"
+        }
+      },
+      "formatters": {
+        "workoutType": {
+          "running": "Löpning",
+          "strength": "Styrka",
+          "plyometric": "Plyometrik",
+          "core": "Core",
+          "recovery": "Återhämtning",
+          "cycling": "Cykling",
+          "skiing": "Skidor",
+          "swimming": "Simning",
+          "triathlon": "Triathlon",
+          "hyrox": "Hyrox",
+          "alternative": "Alternativt",
+          "other": "Övrigt"
+        },
+        "intensity": {
+          "recovery": "Återhämtning",
+          "easy": "Lätt",
+          "moderate": "Måttlig",
+          "threshold": "Tröskel",
+          "interval": "Intervall",
+          "max": "Max"
+        },
+        "feeling": {
+          "great": "Fantastiskt",
+          "good": "Bra",
+          "okay": "Okej",
+          "tired": "Trött",
+          "struggled": "Kämpat"
+        },
+        "adHocInputType": {
+          "photo": "Foto",
+          "audio": "Ljud",
+          "text": "Text",
+          "manual": "Manuell",
+          "garmin": "Garmin",
+          "strava": "Strava",
+          "template": "Mall"
+        },
+        "raceDistance": {
+          "fiveKilometer": "5 km-resultat",
+          "tenKilometer": "10 km-resultat",
+          "halfMarathon": "Halvmaratonresultat",
+          "marathon": "Maratonresultat",
+          "custom": "Tävlingsresultat"
+        },
+        "cardioSegment": {
+          "warmup": "Uppvärmning",
+          "work": "Arbete",
+          "interval": "Intervall",
+          "recovery": "Återhämtning",
+          "cooldown": "Nedvarvning",
+          "rest": "Vila"
+        },
+        "confidence": {
+          "veryHigh": "Mycket hög",
+          "high": "Hög",
+          "medium": "Medel",
+          "low": "Låg"
+        },
+        "fieldTestType": {
+          "thirtyMinuteTT": "30 min TT",
+          "twentyMinuteTT": "20 min TT",
+          "heartRateDrift": "HR-drift",
+          "criticalVelocity": "Critical Velocity",
+          "raceBased": "Tävlingsbaserat"
+        }
+      }
+    },
     "aiProgramOfferStep": {
       "coach": {
         "title": "Du har en coach!",

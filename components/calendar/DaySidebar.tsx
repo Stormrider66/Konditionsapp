@@ -8,7 +8,8 @@
  */
 
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 import {
   Plus,
   Clock,
@@ -100,6 +101,9 @@ export function DaySidebar({
   onViewWorkoutDetails,
 }: DaySidebarProps) {
   const isGlass = variant === 'glass'
+  const t = useTranslations('components.daySidebar')
+  const locale = useLocale()
+  const dateLocale = locale?.startsWith('en') ? enUS : sv
 
   if (!date) {
     if (isGlass) {
@@ -109,7 +113,7 @@ export function DaySidebar({
             <div className="w-12 h-12 rounded-full bg-slate-500/10 flex items-center justify-center">
               <ChevronRight className="h-6 w-6 text-slate-500 opacity-50" />
             </div>
-            <p className="text-sm">Välj en dag i kalendern för att se detaljer</p>
+            <p className="text-sm">{t('emptyState.selectDayHint')}</p>
           </GlassCardContent>
         </GlassCard>
       )
@@ -117,7 +121,7 @@ export function DaySidebar({
     return (
       <Card className="w-full lg:w-80 shrink-0">
         <CardContent className="p-6 text-center text-muted-foreground">
-          <p>Klicka på en dag för att se detaljer</p>
+          <p>{t('emptyState.selectDayHint')}</p>
         </CardContent>
       </Card>
     )
@@ -137,7 +141,7 @@ export function DaySidebar({
         <GlassCardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <GlassCardTitle className="text-xl font-black capitalize text-white tracking-tight">
-              {format(date, 'EEEE d MMMM', { locale: sv })}
+              {format(date, 'EEEE d MMMM', { locale: dateLocale })}
             </GlassCardTitle>
             <Button variant="ghost" size="icon" onClick={onAddEvent} className="hover:bg-white/10 text-slate-400">
               <Plus className="h-5 w-5" />
@@ -152,7 +156,7 @@ export function DaySidebar({
                 <Clock className="h-5 w-5 opacity-20" />
               </div>
               <p className="text-xs font-bold uppercase tracking-widest opacity-50">
-                Inga händelser
+                {t('emptyState.noEvents')}
               </p>
             </div>
           ) : (
@@ -161,7 +165,7 @@ export function DaySidebar({
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <Activity className="h-4 w-4 text-blue-500" />
-                    Pass ({workouts.length})
+                    {t('sections.workouts')} ({workouts.length})
                   </h4>
                   <div className="space-y-2.5">
                     {workouts.map((workout) => (
@@ -181,7 +185,7 @@ export function DaySidebar({
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-emerald-500" />
-                    AI-Pass ({wods.length})
+                    {t('sections.aiWorkouts')} ({wods.length})
                   </h4>
                   <div className="space-y-2.5">
                     {wods.map((wod) => (
@@ -201,7 +205,7 @@ export function DaySidebar({
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-teal-500" />
-                    Ad-hoc ({adHocWorkouts.length})
+                    {t('sections.adhocWorkouts')} ({adHocWorkouts.length})
                   </h4>
                   <div className="space-y-2.5">
                     {adHocWorkouts.map((adHocWorkout) => (
@@ -221,7 +225,7 @@ export function DaySidebar({
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <Target className="h-4 w-4 text-red-500" />
-                    Tävlingar
+                    {t('sections.races')}
                   </h4>
                   <div className="space-y-2.5">
                     {races.map((race) => (
@@ -241,7 +245,7 @@ export function DaySidebar({
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <Clock className="h-4 w-4 text-purple-500" />
-                    Händelser
+                    {t('sections.events')}
                   </h4>
                   <div className="space-y-2.5">
                     {events.map((event) => (
@@ -265,7 +269,7 @@ export function DaySidebar({
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <Heart className="h-4 w-4 text-green-500" />
-                    Fälttest
+                    {t('sections.fieldTests')}
                   </h4>
                   <div className="space-y-2.5">
                     {fieldTests.map((test) => (
@@ -285,7 +289,7 @@ export function DaySidebar({
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4 text-orange-500" />
-                    Daglig avstämning
+                    {t('sections.dailyCheckIns')}
                   </h4>
                   <div className="space-y-2.5">
                     {checkIns.map((checkIn) => (
@@ -325,14 +329,13 @@ export function DaySidebar({
                   </div>
                 )}
 
-              {selectedItem?.type === 'WORKOUT' && (
-                <WorkoutDetailPanel
-                  workout={selectedItem}
-                  isCoachView={isCoachView}
-                  isGlass={true}
-                  onViewWorkoutDetails={onViewWorkoutDetails}
-                />
-              )}
+            {selectedItem?.type === 'WORKOUT' && (
+              <WorkoutDetailPanel
+                workout={selectedItem}
+                isGlass={true}
+                onViewWorkoutDetails={onViewWorkoutDetails}
+              />
+            )}
 
               {selectedItem?.type === 'AD_HOC' && (
                 <AdHocDetailPanel workout={selectedItem} isGlass={true} />
@@ -355,7 +358,7 @@ export function DaySidebar({
               onClick={onAddEvent}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Lägg till händelse
+              {t('actions.addEvent')}
             </Button>
           </div>
         </GlassCardContent>
@@ -368,7 +371,7 @@ export function DaySidebar({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg capitalize">
-            {format(date, 'EEEE d MMMM', { locale: sv })}
+            {format(date, 'EEEE d MMMM', { locale: dateLocale })}
           </CardTitle>
           <Button variant="ghost" size="icon" onClick={onAddEvent}>
             <Plus className="h-4 w-4" />
@@ -379,7 +382,7 @@ export function DaySidebar({
       <CardContent className="space-y-4">
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Inga händelser denna dag
+            {t('emptyState.noEventsToday')}
           </p>
         ) : (
           <>
@@ -387,7 +390,7 @@ export function DaySidebar({
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <Activity className="h-4 w-4 text-blue-500" />
-                  Pass ({workouts.length})
+                  {t('sections.workouts')} ({workouts.length})
                 </h4>
                 <div className="space-y-2">
                   {workouts.map((workout) => (
@@ -406,7 +409,7 @@ export function DaySidebar({
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-emerald-500" />
-                  AI-Pass ({wods.length})
+                  {t('sections.aiWorkouts')} ({wods.length})
                 </h4>
                 <div className="space-y-2">
                   {wods.map((wod) => (
@@ -425,7 +428,7 @@ export function DaySidebar({
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-teal-500" />
-                  Ad-hoc ({adHocWorkouts.length})
+                  {t('sections.adhocWorkouts')} ({adHocWorkouts.length})
                 </h4>
                 <div className="space-y-2">
                   {adHocWorkouts.map((adHocWorkout) => (
@@ -444,7 +447,7 @@ export function DaySidebar({
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <Target className="h-4 w-4 text-red-500" />
-                  Tävlingar
+                  {t('sections.races')}
                 </h4>
                 <div className="space-y-2">
                   {races.map((race) => (
@@ -463,7 +466,7 @@ export function DaySidebar({
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-purple-500" />
-                  Händelser
+                  {t('sections.events')}
                 </h4>
                 <div className="space-y-2">
                   {events.map((event) => (
@@ -486,7 +489,7 @@ export function DaySidebar({
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <Heart className="h-4 w-4 text-green-500" />
-                  Fälttest
+                  {t('sections.fieldTests')}
                 </h4>
                 <div className="space-y-2">
                   {fieldTests.map((test) => (
@@ -505,7 +508,7 @@ export function DaySidebar({
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                   <Thermometer className="h-4 w-4 text-gray-500" />
-                  Daglig avstämning
+                  {t('sections.dailyCheckIns')}
                 </h4>
                 <div className="space-y-2">
                   {checkIns.map((checkIn) => (
@@ -546,7 +549,6 @@ export function DaySidebar({
             {selectedItem?.type === 'WORKOUT' && (
               <WorkoutDetailPanel
                 workout={selectedItem}
-                isCoachView={isCoachView}
                 onViewWorkoutDetails={onViewWorkoutDetails}
               />
             )}
@@ -569,7 +571,7 @@ export function DaySidebar({
 
         <Button variant="outline" className="w-full" onClick={onAddEvent}>
           <Plus className="h-4 w-4 mr-2" />
-          Lägg till händelse
+          {t('actions.addEvent')}
         </Button>
       </CardContent>
     </Card>

@@ -1,4 +1,29 @@
-// Formatters extracted from DaySidebar.tsx (Phase 7k)
+'use client'
+
+export type CalendarSidebarTranslation = (
+  key: string,
+  values?: Record<string, string | number>
+) => string
+
+function resolveLabel(
+  maps: Record<string, string>,
+  fallbackValues: Record<string, string>,
+  value: string | null | undefined,
+  fallback: string,
+  t?: CalendarSidebarTranslation,
+  keyPrefix?: string,
+): string {
+  const key = value && maps[value]
+  if (key && t && keyPrefix) {
+    return t(`${keyPrefix}.${key}`)
+  }
+
+  if (key && fallbackValues[key]) {
+    return fallbackValues[key]
+  }
+
+  return key ? value : fallback
+}
 
 export function formatDistanceValue(distance: unknown): { label: string | null } {
   if (typeof distance === 'number' && Number.isFinite(distance) && distance > 0) {
@@ -19,76 +44,133 @@ export function formatDurationMinutes(minutes: number): string {
   return `${minutes} min`
 }
 
-export function formatWorkoutTypeLabel(type?: string | null): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    STRENGTH: 'Styrka',
-    PLYOMETRIC: 'Plyometri',
-    CORE: 'Core',
-    RECOVERY: 'Återhämtning',
-    CYCLING: 'Cykling',
-    SKIING: 'Skidor',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'Hyrox',
-    ALTERNATIVE: 'Alternativt',
-    OTHER: 'Övrigt',
+const WORKOUT_TYPE_LABELS: Record<string, string> = {
+  RUNNING: 'running',
+  STRENGTH: 'strength',
+  PLYOMETRIC: 'plyometric',
+  CORE: 'core',
+  RECOVERY: 'recovery',
+  CYCLING: 'cycling',
+  SKIING: 'skiing',
+  SWIMMING: 'swimming',
+  TRIATHLON: 'triathlon',
+  HYROX: 'hyrox',
+  ALTERNATIVE: 'alternative',
+  OTHER: 'other',
+}
+const WORKOUT_TYPE_FALLBACK: Record<string, string> = {
+  running: 'Running',
+  strength: 'Strength',
+  plyometric: 'Plyometrics',
+  core: 'Core',
+  recovery: 'Recovery',
+  cycling: 'Cycling',
+  skiing: 'Skiing',
+  swimming: 'Swimming',
+  triathlon: 'Triathlon',
+  hyrox: 'HYROX',
+  alternative: 'Alternative',
+  other: 'Other',
+}
+
+export function formatWorkoutTypeLabel(type?: string | null, t?: CalendarSidebarTranslation): string {
+  return resolveLabel(WORKOUT_TYPE_LABELS, WORKOUT_TYPE_FALLBACK, type, 'Workout', t, 'formatters.workoutType')
+}
+
+const INTENSITY_LABELS: Record<string, string> = {
+  RECOVERY: 'recovery',
+  EASY: 'easy',
+  MODERATE: 'moderate',
+  THRESHOLD: 'threshold',
+  INTERVAL: 'interval',
+  MAX: 'max',
+}
+const INTENSITY_FALLBACK: Record<string, string> = {
+  recovery: 'Recovery',
+  easy: 'Easy',
+  moderate: 'Moderate',
+  threshold: 'Threshold',
+  interval: 'Interval',
+  max: 'Max',
+}
+
+export function formatIntensityLabel(intensity?: string | null, t?: CalendarSidebarTranslation): string {
+  return resolveLabel(INTENSITY_LABELS, INTENSITY_FALLBACK, intensity, 'Pass', t, 'formatters.intensity')
+}
+
+const FEELING_LABELS: Record<string, string> = {
+  Great: 'great',
+  Good: 'good',
+  Okay: 'okay',
+  Tired: 'tired',
+  Struggled: 'struggled',
+}
+const FEELING_FALLBACK: Record<string, string> = {
+  great: 'Great',
+  good: 'Good',
+  okay: 'Okay',
+  tired: 'Tired',
+  struggled: 'Struggled',
+}
+
+export function formatFeelingLabel(feeling?: string | null, t?: CalendarSidebarTranslation): string {
+  const mapped = FEELING_LABELS[feeling || '']
+  if (mapped && t) {
+    return t(`formatters.feeling.${mapped}`)
   }
-  return labels[type || ''] || type || 'Pass'
-}
-
-export function formatIntensityLabel(intensity?: string | null): string {
-  const labels: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Max',
+  if (mapped && FEELING_FALLBACK[mapped]) {
+    return FEELING_FALLBACK[mapped]
   }
-  return labels[intensity || ''] || intensity || 'Pass'
+  return feeling || '-'
 }
 
-export function formatFeelingLabel(feeling?: string | null): string {
-  const labels: Record<string, string> = {
-    Great: 'Fantastiskt',
-    Good: 'Bra',
-    Okay: 'Okej',
-    Tired: 'Trött',
-    Struggled: 'Kämpigt',
-  }
-  return labels[feeling || ''] || feeling || '-'
+const AD_HOC_INPUT_TYPE_LABELS: Record<string, string> = {
+  PHOTO: 'photo',
+  AUDIO: 'audio',
+  TEXT: 'text',
+  MANUAL_FORM: 'manual',
+  GARMIN: 'garmin',
+  STRAVA: 'strava',
+  TEMPLATE: 'template',
+}
+const AD_HOC_INPUT_TYPE_FALLBACK: Record<string, string> = {
+  photo: 'Photo',
+  audio: 'Audio',
+  text: 'Text',
+  manual: 'Manual',
+  garmin: 'Garmin',
+  strava: 'Strava',
+  template: 'Template',
 }
 
-export function formatAdHocInputType(inputType?: string | null): string {
-  const labels: Record<string, string> = {
-    PHOTO: 'Foto',
-    AUDIO: 'Ljud',
-    TEXT: 'Text',
-    MANUAL_FORM: 'Manuell',
-    GARMIN: 'Garmin',
-    STRAVA: 'Strava',
-    TEMPLATE: 'Mall',
-  }
-  return labels[inputType || ''] || 'Ad-hoc'
+export function formatAdHocInputType(inputType?: string | null, t?: CalendarSidebarTranslation): string {
+  return resolveLabel(AD_HOC_INPUT_TYPE_LABELS, AD_HOC_INPUT_TYPE_FALLBACK, inputType, 'Ad-hoc', t, 'formatters.adHocInputType')
 }
 
-export function formatAdHocTypeLabel(parsedType?: string | null): string {
-  return formatWorkoutTypeLabel(parsedType || 'OTHER')
+export function formatAdHocTypeLabel(parsedType?: string | null, t?: CalendarSidebarTranslation): string {
+  return formatWorkoutTypeLabel(parsedType || 'OTHER', t)
 }
 
-export function formatRaceDistanceLabel(distance?: string | null): string {
-  const labels: Record<string, string> = {
-    '5K': '5 km-resultat',
-    '10K': '10 km-resultat',
-    HALF_MARATHON: 'Halvmaraton-resultat',
-    MARATHON: 'Maraton-resultat',
-    CUSTOM: 'Tävlingsresultat',
-  }
-  return labels[distance || ''] || 'Tävlingsresultat'
+const RACE_DISTANCE_LABELS: Record<string, string> = {
+  '5K': 'fiveKilometer',
+  '10K': 'tenKilometer',
+  HALF_MARATHON: 'halfMarathon',
+  MARATHON: 'marathon',
+  CUSTOM: 'custom',
+}
+const RACE_DISTANCE_FALLBACK: Record<string, string> = {
+  fiveKilometer: '5 km result',
+  tenKilometer: '10 km result',
+  halfMarathon: 'Half marathon result',
+  marathon: 'Marathon result',
+  custom: 'Race result',
 }
 
-export function getAdHocPreviewItems(parsed: Record<string, unknown>): string[] {
+export function formatRaceDistanceLabel(distance?: string | null, t?: CalendarSidebarTranslation): string {
+  return resolveLabel(RACE_DISTANCE_LABELS, RACE_DISTANCE_FALLBACK, distance, 'Race result', t, 'formatters.raceDistance')
+}
+
+export function getAdHocPreviewItems(parsed: Record<string, unknown>, t?: CalendarSidebarTranslation): string[] {
   const items: string[] = []
 
   const strengthExercises = Array.isArray(parsed.strengthExercises) ? parsed.strengthExercises : []
@@ -116,7 +198,8 @@ export function getAdHocPreviewItems(parsed: Record<string, unknown>): string[] 
         ? (segment as { duration?: number }).duration
         : null
       if (segmentType) {
-        items.push(`${formatCardioSegmentLabel(segmentType)}${duration ? ` ${duration} min` : ''}`)
+        const label = formatCardioSegmentLabel(segmentType, t)
+        items.push(`${label}${duration ? ` ${duration} min` : ''}`)
       }
     }
   }
@@ -136,38 +219,61 @@ export function getAdHocPreviewItems(parsed: Record<string, unknown>): string[] 
   return items.slice(0, 3)
 }
 
-export function formatCardioSegmentLabel(type: string): string {
-  const labels: Record<string, string> = {
-    WARMUP: 'Uppvärmning',
-    WORK: 'Arbete',
-    INTERVAL: 'Intervall',
-    RECOVERY: 'Återhämtning',
-    COOLDOWN: 'Nedjogg',
-    REST: 'Vila',
-  }
-  return labels[type] || type
+const CARDIO_SEGMENT_LABELS: Record<string, string> = {
+  WARMUP: 'warmup',
+  WORK: 'work',
+  INTERVAL: 'interval',
+  RECOVERY: 'recovery',
+  COOLDOWN: 'cooldown',
+  REST: 'rest',
+}
+const CARDIO_SEGMENT_FALLBACK: Record<string, string> = {
+  warmup: 'Warm-up',
+  work: 'Work',
+  interval: 'Interval',
+  recovery: 'Recovery',
+  cooldown: 'Cool-down',
+  rest: 'Vila',
 }
 
-export function formatConfidenceLabel(confidence?: string | null): string | null {
-  if (!confidence) return null
-  const labels: Record<string, string> = {
-    VERY_HIGH: 'Mycket hög säkerhet',
-    HIGH: 'Hög säkerhet',
-    MEDIUM: 'Medelhög säkerhet',
-    LOW: 'Låg säkerhet',
-  }
-  return labels[confidence] || confidence
+export function formatCardioSegmentLabel(type: string, t?: CalendarSidebarTranslation): string {
+  return resolveLabel(CARDIO_SEGMENT_LABELS, CARDIO_SEGMENT_FALLBACK, type, type, t, 'formatters.cardioSegment')
 }
 
-export function formatFieldTestType(type?: string): string {
-  const labels: Record<string, string> = {
-    THIRTY_MIN_TT: '30 min TT',
-    TWENTY_MIN_TT: '20 min TT',
-    HR_DRIFT: 'HR-drift',
-    CRITICAL_VELOCITY: 'Critical Velocity',
-    RACE_BASED: 'Tävlingsbaserat',
-  }
-  return labels[type || ''] || type || 'Fälttest'
+const CONFIDENCE_LABELS: Record<string, string> = {
+  VERY_HIGH: 'veryHigh',
+  HIGH: 'high',
+  MEDIUM: 'medium',
+  LOW: 'low',
+}
+const CONFIDENCE_FALLBACK: Record<string, string> = {
+  veryHigh: 'Very high confidence',
+  high: 'High confidence',
+  medium: 'Medium confidence',
+  low: 'Low confidence',
+}
+
+export function formatConfidenceLabel(confidence?: string | null, t?: CalendarSidebarTranslation): string | null {
+  return confidence ? resolveLabel(CONFIDENCE_LABELS, CONFIDENCE_FALLBACK, confidence, confidence, t, 'formatters.confidence') : null
+}
+
+const FIELD_TEST_TYPES: Record<string, string> = {
+  THIRTY_MIN_TT: 'thirtyMinuteTT',
+  TWENTY_MIN_TT: 'twentyMinuteTT',
+  HR_DRIFT: 'heartRateDrift',
+  CRITICAL_VELOCITY: 'criticalVelocity',
+  RACE_BASED: 'raceBased',
+}
+const FIELD_TEST_TYPES_FALLBACK: Record<string, string> = {
+  thirtyMinuteTT: '30 min TT',
+  twentyMinuteTT: '20 min TT',
+  heartRateDrift: 'HR drift',
+  criticalVelocity: 'Critical Velocity',
+  raceBased: 'Race-based',
+}
+
+export function formatFieldTestType(type?: string, t?: CalendarSidebarTranslation): string {
+  return resolveLabel(FIELD_TEST_TYPES, FIELD_TEST_TYPES_FALLBACK, type || 'RACE_BASED', 'Field test', t, 'formatters.fieldTestType')
 }
 
 export function formatPaceSeconds(seconds: number): string {
@@ -183,24 +289,24 @@ export function normalizeMessages(value: unknown): string[] {
   return []
 }
 
-export function getFieldTestMetrics(results: Record<string, unknown> | null): string[] {
+export function getFieldTestMetrics(results: Record<string, unknown> | null, t?: CalendarSidebarTranslation): string[] {
   if (!results) return []
   const metrics: string[] = []
 
   if (typeof results.thresholdPace === 'number') {
-    metrics.push(`Tröskeltempo ${formatPaceSeconds(results.thresholdPace)}`)
+    metrics.push(t?.('fieldTest.metrics.thresholdPace', { pace: formatPaceSeconds(results.thresholdPace) }) || `Threshold pace ${formatPaceSeconds(results.thresholdPace)}`)
   }
   if (typeof results.thresholdHR === 'number') {
-    metrics.push(`Tröskelpuls ${Math.round(results.thresholdHR)} bpm`)
+    metrics.push(t?.('fieldTest.metrics.thresholdHr', { value: Math.round(results.thresholdHR) }) || `Threshold HR ${Math.round(results.thresholdHR)} bpm`)
   }
   if (typeof results.driftPercent === 'number') {
-    metrics.push(`Drift ${results.driftPercent.toFixed(1)}%`)
+    metrics.push(t?.('fieldTest.metrics.drift', { value: results.driftPercent.toFixed(1) }) || `Drift ${results.driftPercent.toFixed(1)}%`)
   }
   if (typeof results.criticalVelocity === 'number') {
-    metrics.push(`CV ${results.criticalVelocity.toFixed(2)} m/s`)
+    metrics.push(t?.('fieldTest.metrics.criticalVelocity', { value: results.criticalVelocity.toFixed(2) }) || `CV ${results.criticalVelocity.toFixed(2)} m/s`)
   }
   if (typeof results.vdot === 'number') {
-    metrics.push(`VDOT ${results.vdot.toFixed(1)}`)
+    metrics.push(t?.('fieldTest.metrics.vdot', { value: results.vdot.toFixed(1) }) || `VDOT ${results.vdot.toFixed(1)}`)
   }
 
   return metrics.slice(0, 4)

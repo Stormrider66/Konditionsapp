@@ -8,12 +8,7 @@ import {
   Clock,
   Heart,
   MapPin,
-  Target,
-  ExternalLink,
-  Dumbbell,
   Timer,
-  Zap,
-  Trophy,
   TrendingUp,
   MessageSquare,
   CheckCircle2,
@@ -26,19 +21,15 @@ import {
 } from '../../types'
 import { cn } from '@/lib/utils'
 import {
-  formatDistanceValue,
   formatDurationMinutes,
   formatWorkoutTypeLabel,
   formatIntensityLabel,
-  formatPaceSeconds,
-  formatCardioSegmentLabel,
   formatRaceDistanceLabel,
-  normalizeMessages,
 } from '../formatters'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 export interface WorkoutDetailPanelProps {
   workout: UnifiedCalendarItem
-  isCoachView?: boolean
   isGlass?: boolean
   onViewWorkoutDetails?: (workoutId: string) => void
 }
@@ -124,13 +115,15 @@ export interface SidebarFieldTestDetail {
   results?: Record<string, unknown> | null
 }
 
-export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorkoutDetails }: WorkoutDetailPanelProps) {
+export function WorkoutDetailPanel({ workout, isGlass = false, onViewWorkoutDetails }: WorkoutDetailPanelProps) {
   const meta = workout.metadata
   const workoutId = (meta.workoutId as string) || workout.id
   const [detail, setDetail] = useState<SidebarWorkoutDetail | null>(null)
   const [latestLog, setLatestLog] = useState<SidebarWorkoutLog | null>(null)
   const [raceResult, setRaceResult] = useState<SidebarRaceResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const t = useTranslations('components.daySidebar')
+  const locale = useLocale()
 
   useEffect(() => {
     let cancelled = false
@@ -196,7 +189,7 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
   const intervalResults = Array.isArray(latestLog?.intervalResults) ? latestLog.intervalResults : []
   const hasIntervalDetails = intervalResults.some((segment) => Array.isArray(segment.reps) && segment.reps.length > 0)
   const completedDate = latestLog?.completedAt
-    ? new Date(latestLog.completedAt).toLocaleDateString('sv-SE', {
+    ? new Date(latestLog.completedAt).toLocaleDateString(locale?.startsWith('en') ? 'en-US' : 'sv-SE', {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
@@ -214,14 +207,14 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
       <div className="flex items-center justify-between mb-4">
         <h4 className="font-black text-[10px] uppercase tracking-widest flex items-center gap-2 text-blue-400">
           <Activity className="h-4 w-4 text-blue-500" />
-          Passdetaljer
+          {t('workout.title')}
         </h4>
         {isCompleted && (
           <Badge variant="secondary" className={cn(
             "text-[10px] uppercase font-bold tracking-tight",
             isGlass ? "bg-emerald-500/20 text-emerald-400 border-none px-2" : "bg-green-100 text-green-700"
           )}>
-            Genomfört
+            {t('workout.completed')}
           </Badge>
         )}
       </div>
@@ -233,7 +226,7 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
             isGlass ? 'text-slate-400' : 'text-muted-foreground'
           )}>
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Laddar passdetaljer
+            {t('workout.loading')}
           </div>
         )}
 
@@ -251,20 +244,20 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
                 'text-white'
               )}
             >
-              {formatIntensityLabel(intensity)}
+              {formatIntensityLabel(intensity, t)}
             </Badge>
             <Badge variant="outline" className={cn(
               "text-[10px] uppercase font-bold border-none px-2",
               isGlass ? "bg-white/5 text-slate-400" : "text-xs"
             )}>
-              {formatWorkoutTypeLabel(workoutType)}
+              {formatWorkoutTypeLabel(workoutType, t)}
             </Badge>
             {isCompleted && completedDate && (
               <span className={cn(
                 'text-[10px] uppercase tracking-widest font-bold',
                 isGlass ? 'text-slate-500' : 'text-muted-foreground'
               )}>
-                Slutfört {completedDate}
+                {t('workout.completedAt', { date: completedDate })}
               </span>
             )}
           </div>
@@ -276,13 +269,13 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
             {duration && duration > 0 && (
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                {duration} min
+                {duration} {t('units.minutes')}
               </span>
             )}
             {distance && distance > 0 && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {distance} km
+                {distance} {t('units.kilometers')}
               </span>
             )}
           </div>
@@ -291,7 +284,9 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
         {/* Instructions */}
         {instructions && (
           <div className="text-xs leading-relaxed">
-            <p className="font-bold text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Instruktioner</p>
+            <p className="font-bold text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">
+              {t('workout.instructions')}
+            </p>
             <p className={cn(
               "whitespace-pre-wrap font-medium",
               isGlass ? "text-slate-300" : ""
@@ -307,7 +302,7 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
             <div className="flex items-center justify-between gap-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 flex items-center gap-1.5">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Genomfört pass
+                {t('workout.completedWorkout')}
               </p>
               {completedDate && (
                 <span className="text-[10px] text-muted-foreground">{completedDate}</span>
@@ -317,49 +312,63 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
             <div className="grid grid-cols-2 gap-2 text-xs">
               {raceResult?.timeFormatted && (
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                  <p className="text-muted-foreground flex items-center gap-1"><Timer className="h-3 w-3" /> {formatRaceDistanceLabel(raceResult.distance)}</p>
+                  <p className="text-muted-foreground flex items-center gap-1">
+                    <Timer className="h-3 w-3" /> {formatRaceDistanceLabel(raceResult.distance, t)}
+                  </p>
                   <p className="font-semibold">{raceResult.timeFormatted}</p>
                   {raceResult.goalTime ? (
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Mål {raceResult.goalTime}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {t('workout.goal', { value: raceResult.goalTime })}
+                    </p>
                   ) : null}
                 </div>
               )}
               {(latestLog.duration != null || duration) && (
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                  <p className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Tid</p>
+                  <p className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {t('workout.time')}</p>
                   <p className="font-semibold">
-                    {latestLog.duration != null ? `${latestLog.duration} min` : '-'}
-                    {duration ? <span className="text-muted-foreground font-normal"> / plan {duration} min</span> : null}
+                    {latestLog.duration != null ? `${latestLog.duration} ${t('units.minutes')}` : '-'}
+                    {duration ? (
+                      <span className="text-muted-foreground font-normal">
+                        {' '}
+                        {t('workout.planned', { value: `${duration} ${t('units.minutes')}` })}
+                      </span>
+                    ) : null}
                   </p>
                 </div>
               )}
               {(latestLog.distance != null || distance) && (
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                  <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Distans</p>
+                  <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> {t('workout.distance')}</p>
                   <p className="font-semibold">
-                    {latestLog.distance != null ? `${latestLog.distance} km` : '-'}
-                    {distance ? <span className="text-muted-foreground font-normal"> / plan {distance} km</span> : null}
+                    {latestLog.distance != null ? `${latestLog.distance} ${t('units.kilometers')}` : '-'}
+                    {distance ? (
+                      <span className="text-muted-foreground font-normal">
+                        {' '}
+                        {t('workout.planned', { value: `${distance} ${t('units.kilometers')}` })}
+                      </span>
+                    ) : null}
                   </p>
                 </div>
               )}
               {latestLog.avgPace && (
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                  <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tempo</p>
+                  <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {t('workout.pace')}</p>
                   <p className="font-semibold">{latestLog.avgPace}</p>
                 </div>
               )}
               {!latestLog.avgPace && raceResult?.avgPace && (
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                  <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tävlingstempo</p>
+                  <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {t('workout.racePace')}</p>
                   <p className="font-semibold">{raceResult.avgPace}</p>
                 </div>
               )}
               {(latestLog.avgHR != null || latestLog.perceivedEffort != null) && (
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                  <p className="text-muted-foreground flex items-center gap-1"><Heart className="h-3 w-3" /> Belastning</p>
+                  <p className="text-muted-foreground flex items-center gap-1"><Heart className="h-3 w-3" /> {t('workout.load')}</p>
                   <p className="font-semibold">
-                    {latestLog.avgHR != null ? `${latestLog.avgHR} bpm` : 'Ingen puls'}
-                    {latestLog.perceivedEffort != null ? ` • RPE ${latestLog.perceivedEffort}/10` : ''}
+                    {latestLog.avgHR != null ? `${latestLog.avgHR} bpm` : t('workout.noPulse')}
+                    {latestLog.perceivedEffort != null ? t('workout.rpe', { value: `${latestLog.perceivedEffort}/10` }) : ''}
                   </p>
                 </div>
               )}
@@ -367,7 +376,9 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
 
             {latestLog.notes && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Atletens anteckningar</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                  {t('workout.athleteNotes')}
+                </p>
                 <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>
                   {latestLog.notes}
                 </p>
@@ -381,7 +392,7 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
               )}>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1 flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" />
-                  Tränarfeedback
+                  {t('workout.coachFeedback')}
                 </p>
                 <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>
                   {latestLog.coachFeedback}
@@ -391,7 +402,9 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
 
             {hasIntervalDetails && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Intervall- och splittider</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+                  {t('workout.intervals')}
+                </p>
                 <div className="space-y-2">
                   {intervalResults.map((segment, segmentIndex) => {
                     const reps = Array.isArray(segment.reps) ? segment.reps : []
@@ -406,17 +419,23 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
                         )}
                       >
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                          {segment.segmentLabel || `Block ${segmentIndex + 1}`}
+                          {segment.segmentLabel || t('workout.blockLabel', { index: segmentIndex + 1 })}
                         </p>
                         <div className="space-y-1.5">
                           {reps.map((rep, repIndex) => (
                             <div key={`${segmentIndex}-${repIndex}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                              <span className="font-semibold">Rep {rep.repNumber || repIndex + 1}</span>
-                              {rep.duration ? <span>Tid {formatDurationMinutes(rep.duration)}</span> : null}
-                              {rep.distance ? <span>Distans {rep.distance} km</span> : null}
-                              {rep.pace ? <span>Tempo {rep.pace}</span> : null}
-                              {rep.avgHR ? <span>Puls {rep.avgHR} bpm</span> : null}
-                              {rep.avgPower ? <span>Effekt {rep.avgPower} W</span> : null}
+                              <span className="font-semibold">
+                                {t('workout.repLabel', { index: rep.repNumber || repIndex + 1 })}
+                              </span>
+                              {rep.duration ? (
+                                <span>{t('workout.repDuration', { value: formatDurationMinutes(rep.duration) })}</span>
+                              ) : null}
+                              {rep.distance ? (
+                                <span>{t('workout.repDistance', { value: `${rep.distance} ${t('units.kilometers')}` })}</span>
+                              ) : null}
+                              {rep.pace ? <span>{t('workout.repPace', { value: rep.pace })}</span> : null}
+                              {rep.avgHR ? <span>{t('workout.repHeartRate', { value: rep.avgHR })}</span> : null}
+                              {rep.avgPower ? <span>{t('workout.repPower', { value: rep.avgPower })}</span> : null}
                               {rep.notes ? <span className="text-muted-foreground">{rep.notes}</span> : null}
                             </div>
                           ))}
@@ -443,7 +462,7 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
               onClick={() => onViewWorkoutDetails(workoutId)}
             >
               <Activity className="h-3.5 w-3.5 mr-1.5" />
-              {latestLog?.completed ? 'Visa fullständig genomgång' : 'Visa detaljer'}
+              {latestLog?.completed ? t('workout.viewFullReview') : t('workout.viewDetails')}
             </Button>
           </div>
         )}
@@ -451,4 +470,3 @@ export function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onVi
     </div>
   )
 }
-
