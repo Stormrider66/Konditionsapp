@@ -1348,6 +1348,69 @@
       "formTitle": "Measurement data",
       "formDescription": "Fill in values from your bioimpedance scale. You do not need to fill in every field."
     },
+    "rehabProgram": {
+      "notFound": {
+        "title": "Program not found",
+        "back": "Back"
+      },
+      "back": "Back",
+      "backToProgram": "Back to program",
+      "logProgress": "Log workout",
+      "physio": "Physio: {name}",
+      "currentPhase": "Current phase",
+      "phases": {
+        "acute": "Acute phase",
+        "subacute": "Subacute phase",
+        "remodeling": "Remodelling phase",
+        "functional": "Functional phase",
+        "return_to_sport": "Return to sport phase"
+      },
+      "phaseDescriptions": {
+        "acute": "Focus on reducing inflammation and pain. Limited loading.",
+        "subacute": "Gradually increasing mobility and lighter strength training.",
+        "remodeling": "Increased strength training and functional exercises.",
+        "functional": "Sport-specific training and load testing.",
+        "return_to_sport": "Full training with performance-focused progression."
+      },
+      "thresholds": {
+        "during": "Max pain during",
+        "after": "Max pain after"
+      },
+      "precautions": "Precautions",
+      "tabs": {
+        "exercises": "Exercises ({count})",
+        "milestones": "Milestones ({count})",
+        "history": "History"
+      },
+      "exercise": {
+        "sets": "sets",
+        "reps": "reps",
+        "seconds": "s"
+      },
+      "milestones": {
+        "criteria": "Criteria: {criteria}",
+        "achieved": "Achieved: {date}",
+        "empty": "No milestones defined"
+      },
+      "progressLog": {
+        "empty": "No workout history yet",
+        "logFirst": "Log your first workout",
+        "feeling": {
+          "good": "Good",
+          "neutral": "Okay",
+          "bad": "Bad"
+        },
+        "labels": {
+          "painDuring": "Pain during",
+          "painAfter": "Pain after"
+        }
+      },
+      "goals": {
+        "title": "Goals",
+        "shortTerm": "Short-term goals",
+        "longTerm": "Long-term goals"
+      }
+    },
     "wodExecution": {
       "loading": "Loading workout...",
       "error": {

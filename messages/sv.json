@@ -1348,6 +1348,69 @@
       "formTitle": "Mätningsdata",
       "formDescription": "Fyll i värden från din bioimpedansvåg. Du behöver inte fylla i alla fält."
     },
+    "rehabProgram": {
+      "notFound": {
+        "title": "Program hittades inte",
+        "back": "Tillbaka"
+      },
+      "back": "Tillbaka",
+      "backToProgram": "Tillbaka till program",
+      "logProgress": "Logga pass",
+      "physio": "Fysioterapeut: {name}",
+      "currentPhase": "Aktuell fas",
+      "phases": {
+        "acute": "Akut fas",
+        "subacute": "Subakut fas",
+        "remodeling": "Remodelleringsfas",
+        "functional": "Funktionell fas",
+        "return_to_sport": "Återgång till idrott"
+      },
+      "phaseDescriptions": {
+        "acute": "Fokus på att minska inflammation och smärta. Begränsad belastning.",
+        "subacute": "Gradvis ökad rörlighet och lättare styrketräning.",
+        "remodeling": "Ökad styrketräning och funktionella övningar.",
+        "functional": "Sportspecifik träning och belastningstestning.",
+        "return_to_sport": "Full träning med fokus på prestandaåtergång."
+      },
+      "thresholds": {
+        "during": "Max smärta under",
+        "after": "Max smärta efter"
+      },
+      "precautions": "Försiktighetsåtgärder",
+      "tabs": {
+        "exercises": "Övningar ({count})",
+        "milestones": "Milstolpar ({count})",
+        "history": "Historik"
+      },
+      "exercise": {
+        "sets": "set",
+        "reps": "reps",
+        "seconds": "s"
+      },
+      "milestones": {
+        "criteria": "Kriterium: {criteria}",
+        "achieved": "Uppnådd: {date}",
+        "empty": "Inga milstolpar definierade"
+      },
+      "progressLog": {
+        "empty": "Ingen träningshistorik än",
+        "logFirst": "Logga ditt första pass",
+        "feeling": {
+          "good": "Bra",
+          "neutral": "Okej",
+          "bad": "Dåligt"
+        },
+        "labels": {
+          "painDuring": "Smärta under",
+          "painAfter": "Smärta efter"
+        }
+      },
+      "goals": {
+        "title": "Mål",
+        "shortTerm": "Kortsiktiga mål",
+        "longTerm": "Långsiktiga mål"
+      }
+    },
     "wodExecution": {
       "loading": "Laddar pass...",
       "error": {

@@ -18,7 +18,6 @@ import {
   GlassCardHeader,
   GlassCardTitle,
   GlassCardContent,
-  GlassCardDescription,
 } from '@/components/ui/GlassCard'
 import {
   ArrowLeft,
@@ -27,9 +26,6 @@ import {
   Target,
   Play,
   CheckCircle2,
-  Clock,
-  Calendar,
-  MessageCircle,
   Loader2,
   AlertCircle,
   TrendingUp,
@@ -37,6 +33,7 @@ import {
 } from 'lucide-react'
 import { RehabExercisePlayer } from '@/components/athlete/RehabExercisePlayer'
 import { RehabProgressLogger } from '@/components/athlete/RehabProgressLogger'
+import { useTranslations } from '@/i18n/client'
 
 interface RehabExercise {
   id: string
@@ -112,28 +109,15 @@ interface AthleteRehabProgramProps {
   programId: string
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  ACUTE: 'Akut fas',
-  SUBACUTE: 'Subakut fas',
-  REMODELING: 'Remodelleringsfas',
-  FUNCTIONAL: 'Funktionell fas',
-  RETURN_TO_SPORT: 'Återgång till idrott',
-}
-
-const PHASE_DESCRIPTIONS: Record<string, string> = {
-  ACUTE: 'Fokus på att minska inflammation och smärta. Begränsad belastning.',
-  SUBACUTE: 'Gradvis ökad rörlighet och lättare styrketräning.',
-  REMODELING: 'Ökad styrketräning och funktionella övningar.',
-  FUNCTIONAL: 'Sportspecifik träning och belastningstestning.',
-  RETURN_TO_SPORT: 'Full träning med fokus på prestandaåtergång.',
-}
-
 export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
   const router = useRouter()
+  const t = useTranslations('athletePages.rehabProgram')
   const [program, setProgram] = useState<RehabProgram | null>(null)
   const [progressLogs, setProgressLogs] = useState<ProgressLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number | null>(null)
+  const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<
+    number | null
+  >(null)
   const [showProgressLogger, setShowProgressLogger] = useState(false)
 
   useEffect(() => {
@@ -167,7 +151,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
 
   const handleExerciseComplete = async (
     _exerciseId: string,
-    _data: { painDuring: number; painAfter: number; notes?: string }
+    _data: { painDuring: number; painAfter: number; notes?: string },
   ) => {
     // Individual exercise completion could be tracked here
   }
@@ -197,10 +181,14 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
       <GlassCard>
         <GlassCardContent className="flex flex-col items-center justify-center py-20 text-slate-400">
           <AlertCircle className="h-12 w-12 mb-4" />
-          <p className="font-medium">Program hittades inte</p>
-          <Button variant="ghost" onClick={() => router.push('/athlete/rehab')} className="mt-4">
+          <p className="font-medium">{t('notFound.title')}</p>
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/athlete/rehab')}
+            className="mt-4"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Tillbaka
+            {t('notFound.back')}
           </Button>
         </GlassCardContent>
       </GlassCard>
@@ -214,7 +202,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => setSelectedExerciseIndex(null)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Tillbaka till program
+          {t('backToProgram')}
         </Button>
 
         <RehabExercisePlayer
@@ -225,11 +213,15 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
           acceptablePainAfter={program.acceptablePainAfter}
           onComplete={handleExerciseComplete}
           onPrevious={() =>
-            setSelectedExerciseIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : prev))
+            setSelectedExerciseIndex((prev) =>
+              prev !== null && prev > 0 ? prev - 1 : prev,
+            )
           }
           onNext={() =>
             setSelectedExerciseIndex((prev) =>
-              prev !== null && prev < program.exercises.length - 1 ? prev + 1 : prev
+              prev !== null && prev < program.exercises.length - 1
+                ? prev + 1
+                : prev,
             )
           }
         />
@@ -243,7 +235,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
       <div className="space-y-4">
         <Button variant="ghost" onClick={() => setShowProgressLogger(false)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Tillbaka
+          {t('back')}
         </Button>
 
         <RehabProgressLogger
@@ -270,7 +262,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={() => router.push('/athlete/rehab')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Tillbaka
+          {t('back')}
         </Button>
 
         <Button
@@ -278,7 +270,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
           className="bg-teal-500 hover:bg-teal-600 text-white font-bold"
         >
           <TrendingUp className="h-4 w-4 mr-2" />
-          Logga pass
+          {t('logProgress')}
         </Button>
       </div>
 
@@ -288,9 +280,13 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
           <div className="flex items-center gap-3">
             <Stethoscope className="h-6 w-6 text-teal-500" />
             <div>
-              <GlassCardTitle className="text-2xl">{program.name}</GlassCardTitle>
+              <GlassCardTitle className="text-2xl">
+                {program.name}
+              </GlassCardTitle>
               {program.physio && (
-                <p className="text-sm text-slate-500">Fysioterapeut: {program.physio.name}</p>
+                <p className="text-sm text-slate-500">
+                  {t('physio', { name: program.physio.name })}
+                </p>
               )}
             </div>
           </div>
@@ -300,14 +296,19 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
           <div className="p-4 rounded-2xl bg-teal-500/5 border border-teal-500/10">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-teal-500">
-                Aktuell fas
+                {t('currentPhase')}
               </span>
-              <Badge variant="outline" className="text-teal-400 border-teal-500/30">
-                {PHASE_LABELS[program.currentPhase]}
+              <Badge
+                variant="outline"
+                className="text-teal-400 border-teal-500/30"
+              >
+                {t(`phases.${program.currentPhase.toLowerCase()}` as const)}
               </Badge>
             </div>
             <p className="text-sm text-slate-400">
-              {PHASE_DESCRIPTIONS[program.currentPhase]}
+              {t(
+                `phaseDescriptions.${program.currentPhase.toLowerCase()}` as const,
+              )}
             </p>
           </div>
 
@@ -320,15 +321,19 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="p-3 rounded-xl bg-white/5 border border-white/5">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">
-                Max smärta under
+                {t('thresholds.during')}
               </p>
-              <p className="text-2xl font-black text-white">{program.acceptablePainDuring}/10</p>
+              <p className="text-2xl font-black text-white">
+                {program.acceptablePainDuring}/10
+              </p>
             </div>
             <div className="p-3 rounded-xl bg-white/5 border border-white/5">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">
-                Max smärta efter
+                {t('thresholds.after')}
               </p>
-              <p className="text-2xl font-black text-white">{program.acceptablePainAfter}/10</p>
+              <p className="text-2xl font-black text-white">
+                {program.acceptablePainAfter}/10
+              </p>
             </div>
           </div>
 
@@ -336,11 +341,14 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
           {program.precautions.length > 0 && (
             <div className="p-4 rounded-2xl bg-yellow-500/5 border border-yellow-500/10">
               <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-500 mb-2">
-                Försiktighetsåtgärder
+                {t('precautions')}
               </p>
               <ul className="space-y-1">
                 {program.precautions.map((p, idx) => (
-                  <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
+                  <li
+                    key={idx}
+                    className="text-sm text-slate-300 flex items-start gap-2"
+                  >
                     <AlertCircle className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                     {p}
                   </li>
@@ -354,17 +362,26 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
       {/* Tabs */}
       <Tabs defaultValue="exercises" className="space-y-4">
         <TabsList className="bg-white/5 border border-white/10 p-1 rounded-xl">
-          <TabsTrigger value="exercises" className="data-[state=active]:bg-teal-500 rounded-lg">
+          <TabsTrigger
+            value="exercises"
+            className="data-[state=active]:bg-teal-500 rounded-lg"
+          >
             <Dumbbell className="h-4 w-4 mr-2" />
-            Övningar ({program.exercises.length})
+            {t('tabs.exercises', { count: program.exercises.length })}
           </TabsTrigger>
-          <TabsTrigger value="milestones" className="data-[state=active]:bg-teal-500 rounded-lg">
+          <TabsTrigger
+            value="milestones"
+            className="data-[state=active]:bg-teal-500 rounded-lg"
+          >
             <Target className="h-4 w-4 mr-2" />
-            Milstolpar ({program.milestones.length})
+            {t('tabs.milestones', { count: program.milestones.length })}
           </TabsTrigger>
-          <TabsTrigger value="progress" className="data-[state=active]:bg-teal-500 rounded-lg">
+          <TabsTrigger
+            value="progress"
+            className="data-[state=active]:bg-teal-500 rounded-lg"
+          >
             <Activity className="h-4 w-4 mr-2" />
-            Historik
+            {t('tabs.history')}
           </TabsTrigger>
         </TabsList>
 
@@ -386,9 +403,19 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
                       {exercise.exercise.nameSv || exercise.exercise.name}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                      <span>{exercise.sets} set</span>
-                      {exercise.reps && <span>× {exercise.reps} reps</span>}
-                      {exercise.holdSeconds && <span>× {exercise.holdSeconds}s</span>}
+                      <span>
+                        {exercise.sets} {t('exercise.sets')}
+                      </span>
+                      {exercise.reps && (
+                        <span>
+                          × {exercise.reps} {t('exercise.reps')}
+                        </span>
+                      )}
+                      {exercise.holdSeconds && (
+                        <span>
+                          × {exercise.holdSeconds} {t('exercise.seconds')}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -399,7 +426,9 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
                 )}
               </div>
               {exercise.notes && (
-                <p className="text-xs text-slate-400 mt-2 pl-11">{exercise.notes}</p>
+                <p className="text-xs text-slate-400 mt-2 pl-11">
+                  {exercise.notes}
+                </p>
               )}
             </div>
           ))}
@@ -414,7 +443,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
                 'p-4 rounded-2xl border',
                 milestone.achieved
                   ? 'bg-green-500/5 border-green-500/20'
-                  : 'bg-white/5 border-white/5'
+                  : 'bg-white/5 border-white/5',
               )}
             >
               <div className="flex items-start gap-3">
@@ -423,7 +452,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
                     'w-8 h-8 rounded-full flex items-center justify-center',
                     milestone.achieved
                       ? 'bg-green-500/20 text-green-400'
-                      : 'bg-white/10 text-slate-400'
+                      : 'bg-white/10 text-slate-400',
                   )}
                 >
                   {milestone.achieved ? (
@@ -433,18 +462,31 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className={cn('font-bold', milestone.achieved ? 'text-green-400' : 'text-white')}>
+                  <p
+                    className={cn(
+                      'font-bold',
+                      milestone.achieved ? 'text-green-400' : 'text-white',
+                    )}
+                  >
                     {milestone.name}
                   </p>
                   {milestone.description && (
-                    <p className="text-sm text-slate-400 mt-1">{milestone.description}</p>
+                    <p className="text-sm text-slate-400 mt-1">
+                      {milestone.description}
+                    </p>
                   )}
                   {milestone.criteria && (
-                    <p className="text-xs text-slate-500 mt-2">Kriterium: {milestone.criteria}</p>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {t('milestones.criteria', {
+                        criteria: milestone.criteria,
+                      })}
+                    </p>
                   )}
                   {milestone.achievedAt && (
                     <p className="text-xs text-green-500 mt-2">
-                      Uppnådd: {formatDate(milestone.achievedAt)}
+                      {t('milestones.achieved', {
+                        date: formatDate(milestone.achievedAt),
+                      })}
                     </p>
                   )}
                 </div>
@@ -455,7 +497,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
           {program.milestones.length === 0 && (
             <div className="text-center py-8 text-slate-500">
               <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Inga milstolpar definierade</p>
+              <p>{t('milestones.empty')}</p>
             </div>
           )}
         </TabsContent>
@@ -463,22 +505,33 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
         {/* Progress history tab */}
         <TabsContent value="progress" className="space-y-3">
           {progressLogs.map((log) => (
-            <div key={log.id} className="p-4 rounded-2xl bg-white/5 border border-white/5">
+            <div
+              key={log.id}
+              className="p-4 rounded-2xl bg-white/5 border border-white/5"
+            >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-slate-500">{formatDate(log.loggedAt)}</span>
+                <span className="text-sm text-slate-500">
+                  {formatDate(log.loggedAt)}
+                </span>
                 {log.overallFeeling && (
                   <Badge
                     variant="outline"
                     className={cn(
                       'text-[10px]',
-                      log.overallFeeling === 'GOOD' && 'border-green-500/30 text-green-400',
-                      log.overallFeeling === 'NEUTRAL' && 'border-yellow-500/30 text-yellow-400',
-                      log.overallFeeling === 'BAD' && 'border-red-500/30 text-red-400'
+                      log.overallFeeling === 'GOOD' &&
+                        'border-green-500/30 text-green-400',
+                      log.overallFeeling === 'NEUTRAL' &&
+                        'border-yellow-500/30 text-yellow-400',
+                      log.overallFeeling === 'BAD' &&
+                        'border-red-500/30 text-red-400',
                     )}
                   >
-                    {log.overallFeeling === 'GOOD' && 'Bra'}
-                    {log.overallFeeling === 'NEUTRAL' && 'Okej'}
-                    {log.overallFeeling === 'BAD' && 'Dåligt'}
+                    {log.overallFeeling === 'GOOD' &&
+                      t('progressLog.feeling.good')}
+                    {log.overallFeeling === 'NEUTRAL' &&
+                      t('progressLog.feeling.neutral')}
+                    {log.overallFeeling === 'BAD' &&
+                      t('progressLog.feeling.bad')}
                   </Badge>
                 )}
               </div>
@@ -487,35 +540,41 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
                 {log.painDuring !== undefined && (
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
-                      Smärta under
+                      {t('progressLog.labels.painDuring')}
                     </p>
-                    <p className="text-lg font-black text-white">{log.painDuring}/10</p>
+                    <p className="text-lg font-black text-white">
+                      {log.painDuring}/10
+                    </p>
                   </div>
                 )}
                 {log.painAfter !== undefined && (
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
-                      Smärta efter
+                      {t('progressLog.labels.painAfter')}
                     </p>
-                    <p className="text-lg font-black text-white">{log.painAfter}/10</p>
+                    <p className="text-lg font-black text-white">
+                      {log.painAfter}/10
+                    </p>
                   </div>
                 )}
               </div>
 
-              {log.notes && <p className="text-sm text-slate-400 mt-3">{log.notes}</p>}
+              {log.notes && (
+                <p className="text-sm text-slate-400 mt-3">{log.notes}</p>
+              )}
             </div>
           ))}
 
           {progressLogs.length === 0 && (
             <div className="text-center py-8 text-slate-500">
               <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Ingen träningshistorik än</p>
+              <p>{t('progressLog.empty')}</p>
               <Button
                 variant="outline"
                 onClick={() => setShowProgressLogger(true)}
                 className="mt-4 border-teal-500/30 text-teal-400"
               >
-                Logga ditt första pass
+                {t('progressLog.logFirst')}
               </Button>
             </div>
           )}
@@ -523,20 +582,26 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
       </Tabs>
 
       {/* Goals */}
-      {(program.shortTermGoals.length > 0 || program.longTermGoals.length > 0) && (
+      {(program.shortTermGoals.length > 0 ||
+        program.longTermGoals.length > 0) && (
         <GlassCard>
           <GlassCardHeader>
-            <GlassCardTitle className="text-lg">Mål</GlassCardTitle>
+            <GlassCardTitle className="text-lg">
+              {t('goals.title')}
+            </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="space-y-4">
             {program.shortTermGoals.length > 0 && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2">
-                  Kortsiktiga mål
+                  {t('goals.shortTerm')}
                 </p>
                 <ul className="space-y-1">
                   {program.shortTermGoals.map((goal, idx) => (
-                    <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
+                    <li
+                      key={idx}
+                      className="text-sm text-slate-300 flex items-start gap-2"
+                    >
                       <Target className="h-4 w-4 text-teal-500 flex-shrink-0 mt-0.5" />
                       {goal}
                     </li>
@@ -547,11 +612,14 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
             {program.longTermGoals.length > 0 && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-2">
-                  Långsiktiga mål
+                  {t('goals.longTerm')}
                 </p>
                 <ul className="space-y-1">
                   {program.longTermGoals.map((goal, idx) => (
-                    <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
+                    <li
+                      key={idx}
+                      className="text-sm text-slate-300 flex items-start gap-2"
+                    >
                       <Target className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
                       {goal}
                     </li>
