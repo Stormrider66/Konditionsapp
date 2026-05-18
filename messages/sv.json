@@ -138,6 +138,99 @@
       "title": "Kostsammanfattning",
       "subtitle": "Din wrapped — månads & årsöversikt"
     },
+    "coaches": {
+      "sports": {
+        "RUNNING": "Löpning",
+        "CYCLING": "Cykling",
+        "TRIATHLON": "Triathlon",
+        "SWIMMING": "Simning",
+        "SKIING": "Skidåkning",
+        "HYROX": "HYROX",
+        "GENERAL_FITNESS": "Allmän fitness",
+        "FUNCTIONAL_FITNESS": "Funktionell fitness"
+      },
+      "directory": {
+        "navigation": {
+          "features": "Funktioner",
+          "pricing": "Priser",
+          "findCoach": "Hitta en coach",
+          "login": "Logga in",
+          "getStarted": "Kom igång"
+        },
+        "hero": {
+          "title": "Hitta din perfekta coach",
+          "subtitle": "Bläddra bland certifierade coacher som specialiserar sig på din sport och anslut direkt för personlig träning."
+        },
+        "labels": {
+          "searchPlaceholder": "Sök coacher, sporter eller platser...",
+          "sportPlaceholder": "Sport",
+          "allSports": "Alla sporter",
+          "sortPlaceholder": "Sortera efter",
+          "sortRating": "Högst betyg",
+          "sortClients": "Flest klienter",
+          "sortNewest": "Nyast",
+          "emptyState": "Inga coacher hittades som matchar dina kriterier.",
+          "clients": "klienter"
+        },
+        "cta": {
+          "title": "Är du en coach?",
+          "description": "Gå med i vår marknadsplats och anslut till atleter som letar efter professionell coaching.",
+          "createProfile": "Skapa din coachprofil"
+        }
+      }
+    },
+    "coachProfile": {
+      "notFound": {
+        "title": "Coach hittades inte",
+        "description": "Denna coachprofil finns inte eller är inte publik.",
+        "browseCoaches": "Bläddra bland coacher"
+      },
+      "navigation": {
+        "login": "Logga in",
+        "backToCoaches": "Tillbaka till coacher"
+      },
+      "actions": {
+        "getStarted": "Kom igång",
+        "requestToConnect": "Begär kontakt",
+        "cancel": "Avbryt"
+      },
+      "badges": {
+        "verified": "Verifierad",
+        "notAcceptingClients": "Tar inte emot nya klienter"
+      },
+      "stats": {
+        "reviews": "recensioner",
+        "activeClients": "aktiva klienter",
+        "yearsExperience": "års erfarenhet"
+      },
+      "request": {
+        "connectWith": "Anslut till",
+        "description": "Skicka ett meddelande för att presentera dig. Coachen granskar din förfrågan och svarar inom 14 dagar.",
+        "placeholder": "Berätta för coachen om dig själv, dina mål, och varför du vill arbeta med dem...",
+        "sending": "Skickar...",
+        "send": "Skicka förfrågan"
+      },
+      "sections": {
+        "about": "Om",
+        "reviews": "Recensioner",
+        "specialties": "Specialiteter",
+        "trainingMethods": "Träningsmetoder",
+        "credentials": "Certifieringar"
+      },
+      "errors": {
+        "profileLoadFailed": "Det gick inte att ladda coachprofilen"
+      },
+      "notifications": {
+        "requestSent": {
+          "title": "Förfrågan skickad!",
+          "description": "Coachen kommer att meddelas om din förfrågan."
+        },
+        "requestError": {
+          "title": "Fel",
+          "description": "Kunde inte skicka förfrågan. Försök igen."
+        }
+      }
+    },
     "foodHistory": {
       "backToNutrition": "Tillbaka till koststatistik",
       "title": "Mathistorik",

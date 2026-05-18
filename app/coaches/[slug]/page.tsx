@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,18 +33,20 @@ import {
 } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale, useTranslations } from '@/i18n/client'
 
-// Sport type labels
-const SPORT_LABELS: Record<string, { en: string; sv: string }> = {
-  RUNNING: { en: 'Running', sv: 'Löpning' },
-  CYCLING: { en: 'Cycling', sv: 'Cykling' },
-  TRIATHLON: { en: 'Triathlon', sv: 'Triathlon' },
-  SWIMMING: { en: 'Swimming', sv: 'Simning' },
-  SKIING: { en: 'Skiing', sv: 'Skidåkning' },
-  HYROX: { en: 'HYROX', sv: 'HYROX' },
-  GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän fitness' },
-  FUNCTIONAL_FITNESS: { en: 'Functional Fitness', sv: 'Funktionell fitness' },
-}
+const SPORT_TYPES = [
+  'RUNNING',
+  'CYCLING',
+  'TRIATHLON',
+  'SWIMMING',
+  'SKIING',
+  'HYROX',
+  'GENERAL_FITNESS',
+  'FUNCTIONAL_FITNESS',
+] as const
+
+type SportType = (typeof SPORT_TYPES)[number]
 
 interface Review {
   id: string
@@ -95,30 +97,28 @@ export default function CoachProfilePage({ params }: Props) {
   const [coach, setCoach] = useState<CoachProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [locale, setLocale] = useState<'en' | 'sv'>('sv')
+  const locale = useLocale()
+  const t = useTranslations('pages.coachProfile')
+  const sportsT = useTranslations('pages.coaches.sports')
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
   const [requestMessage, setRequestMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
-    // Detect locale from browser or cookie
-    const savedLocale = document.cookie.match(/locale=([^;]+)/)?.[1] as 'en' | 'sv' | undefined
-    if (savedLocale) {
-      setLocale(savedLocale)
-    }
-
-    // Check if user is logged in (simple check via /api/users/me)
-    fetch('/api/users/me')
-      .then(res => res.json())
-      .then(data => {
+    const checkLogin = async () => {
+      try {
+        const res = await fetch('/api/users/me')
+        const data = await res.json()
         if (data.success) {
           setIsLoggedIn(true)
         }
-      })
-      .catch(() => {
+      } catch {
         // Not logged in
-      })
+      }
+    }
+
+    void checkLogin()
   }, [])
 
   useEffect(() => {
@@ -132,18 +132,18 @@ export default function CoachProfilePage({ params }: Props) {
         if (data.success) {
           setCoach(data.data)
         } else {
-          setError(data.error || 'Failed to load coach profile')
+          setError(data.error || t('errors.profileLoadFailed'))
         }
-      } catch (error) {
-        console.error('Failed to fetch coach:', error)
-        setError('Failed to load coach profile')
-      } finally {
-        setIsLoading(false)
-      }
+    } catch (_error) {
+      console.error('Failed to fetch coach:', _error)
+      setError(t('errors.profileLoadFailed'))
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    fetchCoach()
-  }, [resolvedParams.slug])
+    void fetchCoach()
+  }, [resolvedParams.slug, t])
 
   const handleRequestCoach = async () => {
     if (!isLoggedIn) {
@@ -166,26 +166,22 @@ export default function CoachProfilePage({ params }: Props) {
 
       if (data.success) {
         toast({
-          title: locale === 'sv' ? 'Förfrågan skickad!' : 'Request sent!',
-          description: locale === 'sv'
-            ? 'Coachen kommer att meddelas om din förfrågan.'
-            : 'The coach will be notified of your request.',
+          title: t('notifications.requestSent.title'),
+          description: t('notifications.requestSent.description'),
         })
         setIsRequestDialogOpen(false)
         setRequestMessage('')
       } else {
         toast({
-          title: locale === 'sv' ? 'Fel' : 'Error',
-          description: data.error,
+          title: t('notifications.requestError.title'),
+          description: data.error || t('notifications.requestError.description'),
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: locale === 'sv' ? 'Fel' : 'Error',
-        description: locale === 'sv'
-          ? 'Kunde inte skicka förfrågan. Försök igen.'
-          : 'Could not send request. Please try again.',
+        title: t('notifications.requestError.title'),
+        description: t('notifications.requestError.description'),
         variant: 'destructive',
       })
     } finally {
@@ -193,7 +189,14 @@ export default function CoachProfilePage({ params }: Props) {
     }
   }
 
-  const t = (en: string, sv: string) => locale === 'sv' ? sv : en
+  const sportLabels: Record<SportType, string> = SPORT_TYPES.reduce(
+    (acc, sportType) => {
+      acc[sportType] = sportsT(sportType)
+      return acc
+    },
+    {} as Record<SportType, string>
+  )
+  const getSportLabel = (sport: string) => sportLabels[sport as SportType] || sport
 
   if (isLoading) {
     return (
@@ -221,13 +224,13 @@ export default function CoachProfilePage({ params }: Props) {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">
-            {t('Coach not found', 'Coach hittades inte')}
+            {t('notFound.title')}
           </h1>
           <p className="text-muted-foreground mb-6">
-            {t('This coach profile does not exist or is not public.', 'Denna coachprofil finns inte eller är inte publik.')}
+            {t('notFound.description')}
           </p>
           <Link href="/coaches">
-            <Button>{t('Browse Coaches', 'Bläddra bland coacher')}</Button>
+            <Button>{t('notFound.browseCoaches')}</Button>
           </Link>
         </div>
       </div>
@@ -247,11 +250,11 @@ export default function CoachProfilePage({ params }: Props) {
             {!isLoggedIn && (
               <>
                 <Link href="/login">
-                  <Button variant="ghost" size="sm">{t('Log in', 'Logga in')}</Button>
+                  <Button variant="ghost" size="sm">{t('navigation.login')}</Button>
                 </Link>
                 <Link href="/signup">
                   <Button size="sm" className="bg-primary hover:bg-primary/90">
-                    {t('Get Started', 'Kom igång')}
+                    {t('actions.getStarted')}
                   </Button>
                 </Link>
               </>
@@ -265,7 +268,7 @@ export default function CoachProfilePage({ params }: Props) {
         <div className="container mx-auto px-4 py-4">
           <Link href="/coaches" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('Back to coaches', 'Tillbaka till coacher')}
+            {t('navigation.backToCoaches')}
           </Link>
         </div>
 
@@ -293,7 +296,7 @@ export default function CoachProfilePage({ params }: Props) {
                   {coach.isVerified && (
                     <Badge variant="secondary" className="flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      {t('Verified', 'Verifierad')}
+                      {t('badges.verified')}
                     </Badge>
                   )}
                 </div>
@@ -307,17 +310,17 @@ export default function CoachProfilePage({ params }: Props) {
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                       <span className="font-medium text-foreground">{coach.stats.averageRating.toFixed(1)}</span>
-                      <span>({coach.stats.reviewCount} {t('reviews', 'recensioner')})</span>
+                      <span>({coach.stats.reviewCount} {t('stats.reviews')})</span>
                     </div>
                   )}
                   <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    <span>{coach.stats.activeClients} {t('active clients', 'aktiva klienter')}</span>
+                    <span>{coach.stats.activeClients} {t('stats.activeClients')}</span>
                   </div>
                   {coach.experienceYears && (
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      <span>{coach.experienceYears} {t('years experience', 'års erfarenhet')}</span>
+                      <span>{coach.experienceYears} {t('stats.yearsExperience')}</span>
                     </div>
                   )}
                   {coach.location && (
@@ -340,27 +343,21 @@ export default function CoachProfilePage({ params }: Props) {
                     <DialogTrigger asChild>
                       <Button size="lg" className="mt-2">
                         <MessageSquare className="w-4 h-4 mr-2" />
-                        {t('Request to Connect', 'Begär kontakt')}
+                        {t('actions.requestToConnect')}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>
-                          {t('Connect with', 'Anslut till')} {coach.name}
+                          {t('request.connectWith')} {coach.name}
                         </DialogTitle>
                         <DialogDescription>
-                          {t(
-                            'Send a message to introduce yourself. The coach will review your request and respond within 14 days.',
-                            'Skicka ett meddelande för att presentera dig. Coachen granskar din förfrågan och svarar inom 14 dagar.'
-                          )}
+                          {t('request.description')}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="py-4">
                         <Textarea
-                          placeholder={t(
-                            'Tell the coach about yourself, your goals, and why you want to work with them...',
-                            'Berätta för coachen om dig själv, dina mål och varför du vill träna med dem...'
-                          )}
+                          placeholder={t('request.placeholder')}
                           value={requestMessage}
                           onChange={(e) => setRequestMessage(e.target.value)}
                           rows={4}
@@ -368,15 +365,15 @@ export default function CoachProfilePage({ params }: Props) {
                       </div>
                       <DialogFooter>
                         <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>
-                          {t('Cancel', 'Avbryt')}
+                          {t('actions.cancel')}
                         </Button>
                         <Button onClick={handleRequestCoach} disabled={isSubmitting}>
                           {isSubmitting ? (
-                            t('Sending...', 'Skickar...')
+                            t('request.sending')
                           ) : (
                             <>
                               <Send className="w-4 h-4 mr-2" />
-                              {t('Send Request', 'Skicka förfrågan')}
+                              {t('request.send')}
                             </>
                           )}
                         </Button>
@@ -385,7 +382,7 @@ export default function CoachProfilePage({ params }: Props) {
                   </Dialog>
                 ) : (
                   <Badge variant="secondary" className="mt-2">
-                    {t('Not accepting new clients', 'Tar inte emot nya klienter')}
+                    {t('badges.notAcceptingClients')}
                   </Badge>
                 )}
               </div>
@@ -402,7 +399,7 @@ export default function CoachProfilePage({ params }: Props) {
               {coach.bio && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>{t('About', 'Om')}</CardTitle>
+                    <CardTitle>{t('sections.about')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="whitespace-pre-wrap text-muted-foreground">{coach.bio}</p>
@@ -414,7 +411,7 @@ export default function CoachProfilePage({ params }: Props) {
               {coach.reviews.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>{t('Reviews', 'Recensioner')}</CardTitle>
+                    <CardTitle>{t('sections.reviews')}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {coach.reviews.map((review) => (
@@ -434,7 +431,7 @@ export default function CoachProfilePage({ params }: Props) {
                           </div>
                           {review.isVerified && (
                             <Badge variant="outline" className="text-xs">
-                              {t('Verified', 'Verifierad')}
+                              {t('badges.verified')}
                             </Badge>
                           )}
                         </div>
@@ -460,13 +457,13 @@ export default function CoachProfilePage({ params }: Props) {
               {coach.specialties.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">{t('Specialties', 'Specialiteter')}</CardTitle>
+                    <CardTitle className="text-base">{t('sections.specialties')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
                       {coach.specialties.map((sport) => (
                         <Badge key={sport} variant="secondary">
-                          {locale === 'sv' ? SPORT_LABELS[sport]?.sv : SPORT_LABELS[sport]?.en || sport}
+                          {getSportLabel(sport)}
                         </Badge>
                       ))}
                     </div>
@@ -478,7 +475,7 @@ export default function CoachProfilePage({ params }: Props) {
               {coach.methodologies.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">{t('Training Methods', 'Träningsmetoder')}</CardTitle>
+                    <CardTitle className="text-base">{t('sections.trainingMethods')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
@@ -498,7 +495,7 @@ export default function CoachProfilePage({ params }: Props) {
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                       <Award className="w-4 h-4" />
-                      {t('Credentials', 'Certifieringar')}
+                      {t('sections.credentials')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

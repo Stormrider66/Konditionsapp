@@ -1,72 +1,52 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { cookies } from 'next/headers'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { getTranslations } from '@/i18n/server'
 import {
   CoachDirectoryClient,
   type CoachDirectoryClientLabels,
 } from '@/components/coaches/CoachDirectoryClient'
 
-// Sport type labels
-const SPORT_LABELS: Record<string, { en: string; sv: string }> = {
-  RUNNING: { en: 'Running', sv: 'Löpning' },
-  CYCLING: { en: 'Cycling', sv: 'Cykling' },
-  TRIATHLON: { en: 'Triathlon', sv: 'Triathlon' },
-  SWIMMING: { en: 'Swimming', sv: 'Simning' },
-  SKIING: { en: 'Skiing', sv: 'Skidåkning' },
-  HYROX: { en: 'HYROX', sv: 'HYROX' },
-  GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän fitness' },
-  FUNCTIONAL_FITNESS: { en: 'Functional Fitness', sv: 'Funktionell fitness' },
-}
+const SPORT_TYPES = [
+  'RUNNING',
+  'CYCLING',
+  'TRIATHLON',
+  'SWIMMING',
+  'SKIING',
+  'HYROX',
+  'GENERAL_FITNESS',
+  'FUNCTIONAL_FITNESS',
+] as const
 
-type PublicLocale = 'en' | 'sv'
-
-/**
- * Returns a translator that matches the legacy inline helper
- * `t(en, sv)` the page used to have — except we resolve the locale
- * from a cookie on the server instead of `document.cookie` at runtime.
- */
-function makeTranslator(locale: PublicLocale) {
-  return (en: string, sv: string) => (locale === 'sv' ? sv : en)
-}
-
-function resolveLocaleSync(cookieValue: string | undefined): PublicLocale {
-  return cookieValue === 'en' ? 'en' : 'sv'
-}
+type SportType = (typeof SPORT_TYPES)[number]
 
 export default async function CoachDirectoryPage() {
-  const cookieStore = await cookies()
-  const locale = resolveLocaleSync(cookieStore.get('locale')?.value)
-  const t = makeTranslator(locale)
+  const t = await getTranslations('pages.coaches.directory')
+  const sportsT = await getTranslations('pages.coaches.sports')
 
-  // Pre-localise the sport labels that the client island needs so the
-  // client component doesn't need to know about SPORT_LABELS at all.
-  const localisedSportLabels: Record<string, string> = Object.fromEntries(
-    Object.entries(SPORT_LABELS).map(([key, labels]) => [
-      key,
-      locale === 'sv' ? labels.sv : labels.en,
-    ])
+  const localisedSportLabels: Record<SportType, string> = SPORT_TYPES.reduce(
+    (acc, sportType) => {
+      acc[sportType] = sportsT(sportType)
+      return acc
+    },
+    {} as Record<SportType, string>
   )
 
-  const clientLabels: CoachDirectoryClientLabels = {
-    searchPlaceholder: t(
-      'Search coaches, sports, or locations...',
-      'Sök coacher, sporter eller platser...'
-    ),
-    sportPlaceholder: t('Sport', 'Sport'),
-    allSports: t('All Sports', 'Alla sporter'),
-    sortPlaceholder: t('Sort by', 'Sortera efter'),
-    sortRating: t('Highest Rated', 'Högst betyg'),
-    sortClients: t('Most Clients', 'Flest klienter'),
-    sortNewest: t('Newest', 'Nyast'),
-    emptyState: t(
-      'No coaches found matching your criteria.',
-      'Inga coacher hittades som matchar dina kriterier.'
-    ),
-    clients: t('clients', 'klienter'),
+  const tDirectoryLabels = {
+    searchPlaceholder: t('labels.searchPlaceholder'),
+    sportPlaceholder: t('labels.sportPlaceholder'),
+    allSports: t('labels.allSports'),
+    sortPlaceholder: t('labels.sortPlaceholder'),
+    sortRating: t('labels.sortRating'),
+    sortClients: t('labels.sortClients'),
+    sortNewest: t('labels.sortNewest'),
+    emptyState: t('labels.emptyState'),
+    clients: t('labels.clients'),
     sportLabels: localisedSportLabels,
   }
+
+  const clientLabels: CoachDirectoryClientLabels = tDirectoryLabels
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -87,28 +67,28 @@ export default async function CoachDirectoryPage() {
               href="/#features"
               className="text-muted-foreground hover:text-primary transition-colors"
             >
-              {t('Features', 'Funktioner')}
+              {t('navigation.features')}
             </Link>
             <Link
               href="/pricing"
               className="text-muted-foreground hover:text-primary transition-colors"
             >
-              {t('Pricing', 'Priser')}
+              {t('navigation.pricing')}
             </Link>
             <Link href="/coaches" className="text-primary font-semibold">
-              {t('Find a Coach', 'Hitta en coach')}
+              {t('navigation.findCoach')}
             </Link>
           </nav>
           <div className="flex items-center space-x-4">
             <LanguageSwitcher showLabel={false} variant="ghost" />
             <Link href="/login">
               <Button variant="ghost" size="sm">
-                {t('Log in', 'Logga in')}
+                {t('navigation.login')}
               </Button>
             </Link>
             <Link href="/signup">
               <Button size="sm" className="bg-primary hover:bg-primary/90">
-                {t('Get Started', 'Kom igång')}
+                {t('navigation.getStarted')}
               </Button>
             </Link>
           </div>
@@ -120,13 +100,10 @@ export default async function CoachDirectoryPage() {
         <section className="py-12 lg:py-16 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-background">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-              {t('Find Your Perfect Coach', 'Hitta din perfekta coach')}
+              {t('hero.title')}
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-              {t(
-                'Browse certified coaches specializing in your sport and connect directly for personalized training.',
-                'Bläddra bland certifierade coacher som specialiserar sig på din sport och anslut direkt för personlig träning.'
-              )}
+              {t('hero.subtitle')}
             </p>
           </div>
         </section>
@@ -138,17 +115,14 @@ export default async function CoachDirectoryPage() {
         <section className="py-16 bg-slate-50 dark:bg-slate-950">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-2xl font-bold mb-4">
-              {t('Are you a coach?', 'Är du en coach?')}
+              {t('cta.title')}
             </h2>
             <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-              {t(
-                'Join our marketplace and connect with athletes looking for professional coaching.',
-                'Gå med i vår marknadsplats och anslut till atleter som letar efter professionell coaching.'
-              )}
+              {t('cta.description')}
             </p>
             <Link href="/signup/coach">
               <Button size="lg">
-                {t('Create Your Coach Profile', 'Skapa din coachprofil')}
+                {t('cta.createProfile')}
               </Button>
             </Link>
           </div>

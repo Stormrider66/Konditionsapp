@@ -138,6 +138,99 @@
       "title": "Nutrition Summary",
       "subtitle": "Your wrapped — monthly & yearly overview"
     },
+    "coaches": {
+      "sports": {
+        "RUNNING": "Running",
+        "CYCLING": "Cycling",
+        "TRIATHLON": "Triathlon",
+        "SWIMMING": "Swimming",
+        "SKIING": "Skiing",
+        "HYROX": "HYROX",
+        "GENERAL_FITNESS": "General fitness",
+        "FUNCTIONAL_FITNESS": "Functional fitness"
+      },
+      "directory": {
+        "navigation": {
+          "features": "Features",
+          "pricing": "Pricing",
+          "findCoach": "Find a Coach",
+          "login": "Log in",
+          "getStarted": "Get Started"
+        },
+        "hero": {
+          "title": "Find Your Perfect Coach",
+          "subtitle": "Browse certified coaches specializing in your sport and connect directly for personalized training."
+        },
+        "labels": {
+          "searchPlaceholder": "Search coaches, sports, or locations...",
+          "sportPlaceholder": "Sport",
+          "allSports": "All Sports",
+          "sortPlaceholder": "Sort by",
+          "sortRating": "Highest Rated",
+          "sortClients": "Most Clients",
+          "sortNewest": "Newest",
+          "emptyState": "No coaches found matching your criteria.",
+          "clients": "clients"
+        },
+        "cta": {
+          "title": "Are you a coach?",
+          "description": "Join our marketplace and connect with athletes looking for professional coaching.",
+          "createProfile": "Create Your Coach Profile"
+        }
+      }
+    },
+    "coachProfile": {
+      "notFound": {
+        "title": "Coach not found",
+        "description": "This coach profile does not exist or is not public.",
+        "browseCoaches": "Browse Coaches"
+      },
+      "navigation": {
+        "login": "Log in",
+        "backToCoaches": "Back to coaches"
+      },
+      "actions": {
+        "getStarted": "Get Started",
+        "requestToConnect": "Request to Connect",
+        "cancel": "Cancel"
+      },
+      "badges": {
+        "verified": "Verified",
+        "notAcceptingClients": "Not accepting new clients"
+      },
+      "stats": {
+        "reviews": "reviews",
+        "activeClients": "active clients",
+        "yearsExperience": "years experience"
+      },
+      "request": {
+        "connectWith": "Connect with",
+        "description": "Send a message to introduce yourself. The coach will review your request and respond within 14 days.",
+        "placeholder": "Tell the coach about yourself, your goals, and why you want to work with them...",
+        "sending": "Sending...",
+        "send": "Send Request"
+      },
+      "sections": {
+        "about": "About",
+        "reviews": "Reviews",
+        "specialties": "Specialties",
+        "trainingMethods": "Training Methods",
+        "credentials": "Credentials"
+      },
+      "errors": {
+        "profileLoadFailed": "Failed to load coach profile"
+      },
+      "notifications": {
+        "requestSent": {
+          "title": "Request sent!",
+          "description": "The coach will be notified of your request."
+        },
+        "requestError": {
+          "title": "Error",
+          "description": "Could not send request. Please try again."
+        }
+      }
+    },
     "foodHistory": {
       "backToNutrition": "Back to nutrition stats",
       "title": "Food History",
