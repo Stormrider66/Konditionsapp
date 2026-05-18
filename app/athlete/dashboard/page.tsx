@@ -55,6 +55,7 @@ import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChar
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
+import { getTranslations } from '@/i18n/server'
 import {
   DashboardItem,
   DashboardAssignment,
@@ -74,6 +75,7 @@ import {
 
 export default async function AthleteDashboardPage() {
   const { user, clientId, isCoachInAthleteMode } = await requireAthleteOrCoachInAthleteMode()
+  const t = await getTranslations('pages.athlete.dashboard')
 
   // Ensure widgets that build URLs can route correctly in business-scoped setups
   const businessSlug = await getUserPrimaryBusinessSlug(user.id)
@@ -115,7 +117,8 @@ export default async function AthleteDashboardPage() {
         <div className="flex flex-col gap-4 mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
-              Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500">{client.name.split(' ')[0]}</span>
+              {t('welcomeBack')}{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500">{client.name.split(' ')[0]}</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
               <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
@@ -124,7 +127,7 @@ export default async function AthleteDashboardPage() {
           </div>
           <QuickActionsGrid
             sessionHref={`${basePath}/athlete/nutrition`}
-            sessionLabel="Koststatistik"
+            sessionLabel={t('quickActions.nutritionStats')}
           />
           <AICreditStatusCard basePath={basePath} compact />
         </div>
@@ -630,15 +633,18 @@ export default async function AthleteDashboardPage() {
 
       {/* Welcome Section */}
       <div className="flex flex-col gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
-            Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">{client.name.split(' ')[0]}</span>
-          </h1>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
+              {t('welcomeBack')}{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">
+                {client.name.split(' ')[0]}
+              </span>
+            </h1>
           <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
             <CalendarDays className="w-4 h-4 text-orange-600 dark:text-orange-500" />
             <span className="capitalize">{format(now, 'EEEE, d MMMM')}</span>
             <span className="text-slate-400 dark:text-slate-600">•</span>
-            <span className="text-orange-600 dark:text-orange-400 font-medium">{currentProgram ? currentProgram.name : 'No Active Program'}</span>
+            <span className="text-orange-600 dark:text-orange-400 font-medium">{currentProgram ? currentProgram.name : t('noActiveProgram')}</span>
           </p>
         </div>
         <QuickActionsGrid
@@ -651,7 +657,7 @@ export default async function AthleteDashboardPage() {
                   ? getWODRoute(firstActionableItem, basePath)
                   : '/athlete/browse-workouts'
           }
-          sessionLabel={firstActionableItem ? 'Starta pass' : 'Hitta pass'}
+          sessionLabel={firstActionableItem ? t('quickActions.startSession') : t('quickActions.findSession')}
         />
         <AICreditStatusCard basePath={basePath} compact />
       </div>

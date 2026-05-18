@@ -1195,6 +1195,7 @@
     },
     "dashboard": {
       "welcomeBack": "Welcome back",
+      "noActiveProgram": "No Active Program",
       "quickActions": {
         "nutritionStats": "Nutrition stats",
         "startSession": "Start session",

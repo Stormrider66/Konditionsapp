@@ -1195,6 +1195,7 @@
     },
     "dashboard": {
       "welcomeBack": "Välkommen tillbaka",
+      "noActiveProgram": "Inget aktivt program",
       "quickActions": {
         "nutritionStats": "Koststatistik",
         "startSession": "Starta pass",
