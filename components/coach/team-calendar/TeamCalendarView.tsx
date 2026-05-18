@@ -32,6 +32,10 @@ import {
   Filter,
   Send,
   TriangleAlert,
+  Activity,
+  CalendarDays,
+  Dumbbell,
+  Trophy,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -86,6 +90,7 @@ interface TeamCalendarPermissions {
 }
 
 type PlanningFilter = 'all' | 'needsReview' | 'iceMissingPlan' | 'needsContent' | 'ready' | 'assigned' | 'ice' | 'physical'
+type LoadLevel = 'low' | 'moderate' | 'high'
 
 function getTypeConfig(type: string) {
   if (isTeamEventType(type)) {
@@ -259,6 +264,43 @@ function eventNeedsReview(event: TeamEvent): boolean {
   return getPlanningIssues(event).length > 0
 }
 
+function sumEventMinutes(eventsToSum: TeamEvent[]): number {
+  return eventsToSum.reduce((sum, event) => sum + (eventDurationMinutes(event) ?? 0), 0)
+}
+
+function eventLoadPoints(event: TeamEvent): number {
+  const duration = eventDurationMinutes(event) ?? 60
+  const durationFactor = Math.max(0.5, duration / 60)
+
+  if (event.type === 'GAME') return 5
+  if (event.type === 'TEST') return 3
+  if (event.type === 'PRACTICE' || event.type === 'ICE_PRACTICE') return 2.5 * durationFactor
+  if (event.type === 'STRENGTH' || event.type === 'PLYOMETRICS' || event.type === 'HYBRID' || event.type === 'AGILITY') {
+    return 3 * durationFactor
+  }
+  if (event.type === 'CARDIO' || event.type === 'INTERVAL_SESSION') return 2.5 * durationFactor
+  if (event.type === 'PREHAB') return 1 * durationFactor
+  return 0.5 * durationFactor
+}
+
+function loadLevelFor(points: number): LoadLevel {
+  if (points >= 6) return 'high'
+  if (points >= 3) return 'moderate'
+  return 'low'
+}
+
+function loadLevelLabel(level: LoadLevel): string {
+  if (level === 'high') return 'Hög'
+  if (level === 'moderate') return 'Medel'
+  return 'Låg'
+}
+
+function loadLevelClassName(level: LoadLevel): string {
+  if (level === 'high') return 'border-red-200 bg-red-50 text-red-900'
+  if (level === 'moderate') return 'border-amber-200 bg-amber-50 text-amber-900'
+  return 'border-emerald-200 bg-emerald-50 text-emerald-900'
+}
+
 function getPlanningBadges(event: TeamEvent): Array<{
   key: string
   label: string
@@ -409,6 +451,8 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
   const rangeStart = effectiveViewMode === 'planning' ? monthDates[0] : weekDates[0]
   const rangeEnd = new Date(effectiveViewMode === 'planning' ? monthDates[monthDates.length - 1] : weekDates[6])
   rangeEnd.setHours(23, 59, 59, 999)
+  const weekEnd = new Date(weekDates[6])
+  weekEnd.setHours(23, 59, 59, 999)
 
   // Stabilize the ISO strings outside the dep array — react-hooks v6
   // requires deps to be simple expressions (no method calls).
@@ -451,6 +495,74 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
     ice: 0,
     physical: 0,
   })
+  const weekEvents = events.filter((event) => {
+    const eventDate = new Date(event.startDate)
+    return eventDate >= weekDates[0] && eventDate <= weekEnd
+  })
+  const weeklyIceEvents = weekEvents.filter(isIcePracticeEvent)
+  const weeklyPhysicalEvents = weekEvents.filter(isPhysicalEvent)
+  const weeklyGameEvents = weekEvents.filter((event) => event.type === 'GAME')
+  const weeklyNeedsContent = weekEvents.filter(eventNeedsContent)
+  const weeklyMissingIcePlans = weekEvents.filter((event) => isIcePracticeEvent(event) && !hasPracticePlan(event))
+  const weeklyReadyToAssign = weekEvents.filter((event) => (
+    isPhysicalEvent(event) &&
+    event.contentStatus === 'CONTENT_READY' &&
+    Boolean(event.linkedWorkoutId) &&
+    !event.assignedBroadcastId
+  ))
+  const weeklyAssignedEvents = weekEvents.filter((event) => Boolean(event.assignedBroadcastId))
+  const weeklyLoadPoints = weekEvents.reduce((sum, event) => sum + eventLoadPoints(event), 0)
+  const weeklyLoadLevel = loadLevelFor(weeklyLoadPoints)
+  const dayLoadSummaries = weekDates.map((date) => {
+    const dayEvents = weekEvents.filter((event) => isSameDay(new Date(event.startDate), date))
+    const points = dayEvents.reduce((sum, event) => sum + eventLoadPoints(event), 0)
+    return {
+      date,
+      events: dayEvents,
+      points,
+      level: loadLevelFor(points),
+    }
+  })
+  const orchestrationWarnings = [
+    weeklyNeedsContent.length > 0
+      ? `${weeklyNeedsContent.length} fyspass saknar workout-innehåll.`
+      : null,
+    weeklyMissingIcePlans.length > 0
+      ? `${weeklyMissingIcePlans.length} ispass saknar blockplan.`
+      : null,
+    ...weeklyGameEvents.flatMap((game) => {
+      const gameDate = new Date(game.startDate)
+      const previousDay = new Date(gameDate)
+      previousDay.setDate(previousDay.getDate() - 1)
+      const previousDayPhysical = weeklyPhysicalEvents.filter((event) => isSameDay(new Date(event.startDate), previousDay))
+      const previousDayLoad = previousDayPhysical.reduce((sum, event) => sum + eventLoadPoints(event), 0)
+      if (previousDayLoad < 3) return []
+      return [`Tung fys dagen före match: ${game.title} (${gameDate.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })}).`]
+    }),
+    ...dayLoadSummaries
+      .filter((day) => day.level === 'high' && day.events.length >= 2)
+      .map((day) => `${day.date.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'short' })} har hög totalbelastning.`),
+  ].filter(Boolean) as string[]
+  const nextOrchestrationActions = [
+    ...weeklyNeedsContent.slice(0, 3).map((event) => ({
+      key: `content-${event.id}`,
+      label: 'Bygg innehåll',
+      event,
+      tone: 'amber' as const,
+    })),
+    ...weeklyReadyToAssign.slice(0, 3).map((event) => ({
+      key: `assign-${event.id}`,
+      label: 'Tilldela laget',
+      event,
+      tone: 'emerald' as const,
+    })),
+    ...weeklyMissingIcePlans.slice(0, 3).map((event) => ({
+      key: `ice-${event.id}`,
+      label: 'Komplettera isplan',
+      event,
+      tone: 'blue' as const,
+    })),
+  ].slice(0, 6)
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -647,6 +759,136 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {isStaffPlanningView && effectiveViewMode === 'week' && (
+        <div className="rounded-lg border bg-background p-4">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Activity className="h-4 w-4" />
+                Veckans hockeyöversikt
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Samlar is, fys, matcher och planeringsstatus för veckan.
+              </p>
+            </div>
+            <Badge variant="outline" className={`mt-1 w-fit ${loadLevelClassName(weeklyLoadLevel)}`}>
+              Belastning: {loadLevelLabel(weeklyLoadLevel)}
+            </Badge>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-md border p-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Is
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{weeklyIceEvents.length}</div>
+              <div className="text-xs text-muted-foreground">{sumEventMinutes(weeklyIceEvents)} min planerat</div>
+            </div>
+            <div className="rounded-md border p-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Dumbbell className="h-3.5 w-3.5" />
+                Fys
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{weeklyPhysicalEvents.length}</div>
+              <div className="text-xs text-muted-foreground">{sumEventMinutes(weeklyPhysicalEvents)} min planerat</div>
+            </div>
+            <div className="rounded-md border p-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Trophy className="h-3.5 w-3.5" />
+                Match
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{weeklyGameEvents.length}</div>
+              <div className="text-xs text-muted-foreground">
+                {weeklyGameEvents.length > 0 ? 'Kontrollera toppning och återhämtning' : 'Ingen match i veckan'}
+              </div>
+            </div>
+            <div className="rounded-md border p-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Status
+              </div>
+              <div className="mt-1 text-2xl font-semibold">{weeklyAssignedEvents.length}</div>
+              <div className="text-xs text-muted-foreground">
+                {weeklyReadyToAssign.length} klara att tilldela · {weeklyNeedsContent.length} saknar innehåll
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_1fr]">
+            <div className="rounded-md border p-3">
+              <div className="mb-2 text-xs font-medium text-muted-foreground">Daglig belastning</div>
+              <div className="grid grid-cols-7 gap-1.5">
+                {dayLoadSummaries.map((day) => (
+                  <button
+                    key={day.date.toISOString()}
+                    type="button"
+                    className={`rounded-md border px-1.5 py-2 text-center ${loadLevelClassName(day.level)} hover:ring-1 hover:ring-primary/30`}
+                    onClick={() => {
+                      if (day.events[0]) setSelectedEvent(day.events[0])
+                    }}
+                  >
+                    <div className="text-[10px] font-medium uppercase">
+                      {day.date.toLocaleDateString('sv-SE', { weekday: 'short' })}
+                    </div>
+                    <div className="text-base font-semibold">{day.events.length}</div>
+                    <div className="text-[10px] opacity-75">{loadLevelLabel(day.level)}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-md border p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <TriangleAlert className="h-3.5 w-3.5" />
+                Veckosignaler
+              </div>
+              {orchestrationWarnings.length === 0 ? (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-900">
+                  Inga tydliga planeringsrisker för veckan.
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {orchestrationWarnings.slice(0, 4).map((warning) => (
+                    <div key={warning} className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-950">
+                      {warning}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {nextOrchestrationActions.length > 0 && (
+            <div className="mt-4 rounded-md border p-3">
+              <div className="mb-2 text-xs font-medium text-muted-foreground">Nästa åtgärder</div>
+              <div className="flex flex-wrap gap-2">
+                {nextOrchestrationActions.map((action) => {
+                  const toneClassName = action.tone === 'emerald'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
+                    : action.tone === 'blue'
+                      ? 'border-blue-200 bg-blue-50 text-blue-950'
+                      : 'border-amber-200 bg-amber-50 text-amber-950'
+                  return (
+                    <button
+                      key={action.key}
+                      type="button"
+                      className={`rounded-md border px-2.5 py-2 text-left text-xs shadow-sm ${toneClassName} hover:bg-background`}
+                      onClick={() => setSelectedEvent(action.event)}
+                    >
+                      <div className="font-medium">{action.label}</div>
+                      <div className="mt-0.5 opacity-75">
+                        {new Date(action.event.startDate).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })} · {action.event.title}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
