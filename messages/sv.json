@@ -8787,8 +8787,39 @@
           "label": "Optimera återhämtning",
           "prompt": "Ge förslag på hur {athleteName} kan optimera sin återhämtning"
         }
+        },
+        "selectAthletePlaceholder": "Välj atlet"
       },
-      "selectAthletePlaceholder": "Välj atlet"
+    "dmaxCurveChart": {
+      "title": "Laktatkurva med tröskelvärden",
+      "intensityLabel": {
+        "speed": "Hastighet (km/h)",
+        "power": "Effekt (watt)",
+        "pace": "Tempo (min/km)"
+      },
+      "yAxisLabel": "Laktat (mmol/L)",
+      "legend": {
+        "baseline": "Baslinje",
+        "polynomial": "Polynomisk kurva",
+        "measured": "Uppmätta värden",
+        "dmax": "D-max tröskel"
+      },
+      "markers": {
+        "lt1": "LT1 (Aerob)",
+        "lt2": "LT2 (Anaerob)"
+      },
+      "explanation": {
+        "blueCurveTitle": "Blå kurva",
+        "blueCurveText": "Polynomisk anpassning (grad 3) av dina laktatdata",
+        "baselineTitle": "Streckad grå linje",
+        "baselineText": "Baslinje från första till sista mätpunkten",
+        "lt1Title": "Grön cirkel (LT1)",
+        "lt1Text": "Aerob tröskel vid {intensity} {intensityUnit} ({lactate} mmol/L)",
+        "lt2Title": "Orange stjärna (LT2)",
+        "lt2Text": "Anaerob tröskel vid {intensity} {intensityUnit} ({lactate} mmol/L)",
+        "measuredTitle": "Röda punkter",
+        "measuredText": "Dina uppmätta laktatvärden från testet"
+      }
     },
     "businessAthleteHeader": {
       "fallbackAthlete": "Atlet",

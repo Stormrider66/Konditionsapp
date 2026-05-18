@@ -8787,8 +8787,39 @@
           "label": "Optimize recovery",
           "prompt": "Suggest how {athleteName} can optimize recovery"
         }
+        },
+        "selectAthletePlaceholder": "Select athlete"
       },
-      "selectAthletePlaceholder": "Select athlete"
+    "dmaxCurveChart": {
+      "title": "Lactate curve with thresholds",
+      "intensityLabel": {
+        "speed": "Speed (km/h)",
+        "power": "Power (watt)",
+        "pace": "Pace (min/km)"
+      },
+      "yAxisLabel": "Lactate (mmol/L)",
+      "legend": {
+        "baseline": "Baseline",
+        "polynomial": "Polynomial curve",
+        "measured": "Measured values",
+        "dmax": "D-max threshold"
+      },
+      "markers": {
+        "lt1": "LT1 (Aerobic)",
+        "lt2": "LT2 (Anaerobic)"
+      },
+      "explanation": {
+        "blueCurveTitle": "Blue curve",
+        "blueCurveText": "Polynomial fit (degree 3) of your lactate data",
+        "baselineTitle": "Dashed gray line",
+        "baselineText": "Baseline from first to last measurement",
+        "lt1Title": "Green circle (LT1)",
+        "lt1Text": "Aerobic threshold at {intensity} {intensityUnit} ({lactate} mmol/L)",
+        "lt2Title": "Orange star (LT2)",
+        "lt2Text": "Anaerobic threshold at {intensity} {intensityUnit} ({lactate} mmol/L)",
+        "measuredTitle": "Red dots",
+        "measuredText": "Your measured lactate values from the test"
+      }
     },
     "businessAthleteHeader": {
       "fallbackAthlete": "Athlete",

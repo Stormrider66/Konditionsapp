@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useTranslations } from '@/i18n/client'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 

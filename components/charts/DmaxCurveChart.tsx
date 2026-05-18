@@ -3,6 +3,7 @@
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ReferenceLine } from 'recharts'
 import { TestStage } from '@/types'
 import { fitPolynomial3 } from '@/lib/training-engine/utils/polynomial-fit'
+import { useTranslations } from '@/i18n/client'
 
 interface ThresholdValue {
   intensity: number
@@ -40,6 +41,8 @@ interface DmaxCurveChartProps {
  * - LT2 (anaerobic threshold) marker
  */
 export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThreshold, anaerobicThreshold }: DmaxCurveChartProps) {
+  const tDmaxCurveChart = useTranslations('components.dmaxCurveChart')
+
   // Extract intensity values based on test type
   const dataPoints = stages.map(stage => {
     let intensity = 0
@@ -140,9 +143,11 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
   } : null
 
   // Determine axis label
-  const intensityLabel = intensityUnit === 'km/h' ? 'Hastighet (km/h)' :
-                        intensityUnit === 'watt' ? 'Effekt (watt)' :
-                        'Tempo (min/km)'
+  const intensityLabel = intensityUnit === 'km/h'
+    ? tDmaxCurveChart('intensityLabel.speed')
+    : intensityUnit === 'watt'
+      ? tDmaxCurveChart('intensityLabel.power')
+      : tDmaxCurveChart('intensityLabel.pace')
 
   // Calculate Y-domain manually to ensure rendering
   const maxLactate = Math.max(
@@ -155,7 +160,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold">Laktatkurva med tröskelvärden</h4>
+        <h4 className="font-semibold">{tDmaxCurveChart('title')}</h4>
         <span className="text-sm text-gray-600">
           R² = {(r2 * 100).toFixed(1)}%
         </span>
@@ -176,12 +181,12 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             tick={{ dy: 5 }}
           />
           <YAxis
-            label={{ value: 'Laktat (mmol/L)', angle: -90, position: 'insideLeft' }}
+            label={{ value: tDmaxCurveChart('yAxisLabel'), angle: -90, position: 'insideLeft' }}
             domain={yDomain}
           />
           <Tooltip
             formatter={(value: number, name: string) => {
-              if (name === 'D-max tröskel') return [`${value.toFixed(2)} mmol/L`, name]
+              if (name === tDmaxCurveChart('legend.dmax')) return [`${value.toFixed(2)} mmol/L`, name]
               return [value.toFixed(2), name]
             }}
             labelFormatter={(label) => `${intensityLabel.split('(')[0]}: ${label}`}
@@ -198,7 +203,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             stroke="#94a3b8"
             strokeWidth={1}
             strokeDasharray="5 5"
-            name="Baslinje"
+            name={tDmaxCurveChart('legend.baseline')}
             dot={false}
             isAnimationActive={false}
           />
@@ -209,7 +214,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             dataKey="polynomial"
             stroke="#3b82f6"
             strokeWidth={2}
-            name="Polynomisk kurva"
+            name={tDmaxCurveChart('legend.polynomial')}
             dot={false}
             isAnimationActive={false}
           />
@@ -220,7 +225,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             dataKey="measuredLactate"
             stroke="transparent"
             strokeWidth={0}
-            name="Uppmätta värden"
+            name={tDmaxCurveChart('legend.measured')}
             dot={{ fill: '#ef4444', r: 6, stroke: '#ef4444', strokeWidth: 2 }}
             activeDot={{ r: 8 }}
             isAnimationActive={false}
@@ -233,7 +238,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
               <Scatter
                 data={[lt1Point]}
                 dataKey="lt1Lactate"
-                name="LT1 (Aerob)"
+                name={tDmaxCurveChart('markers.lt1')}
                 fill="#22c55e"
                 shape="circle"
                 line={false}
@@ -259,7 +264,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
               <Scatter
                 data={[lt2Point]}
                 dataKey="lt2Lactate"
-                name="LT2 (Anaerob)"
+                name={tDmaxCurveChart('markers.lt2')}
                 fill="#f59e0b"
                 shape="star"
                 line={false}
@@ -286,7 +291,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
               <Scatter
                 data={[dmaxPoint]}
                 dataKey="dmaxLactate"
-                name="D-max tröskel"
+                name={tDmaxCurveChart('legend.dmax')}
                 fill="#f59e0b"
                 shape="star"
                 line={false}
@@ -312,23 +317,33 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
       {/* Explanation */}
       <div className="text-xs text-gray-600 space-y-1">
         <p>
-          <strong>Blå kurva:</strong> Polynomisk anpassning (grad 3) av dina laktatdata
+          <strong>{tDmaxCurveChart('explanation.blueCurveTitle')}:</strong> {tDmaxCurveChart('explanation.blueCurveText')}
         </p>
         <p>
-          <strong>Streckad grå linje:</strong> Baslinje från första till sista mätpunkten
+          <strong>{tDmaxCurveChart('explanation.baselineTitle')}:</strong> {tDmaxCurveChart('explanation.baselineText')}
         </p>
         {lt1Point && (
           <p>
-            <strong className="text-green-600">Grön cirkel (LT1):</strong> Aerob tröskel vid {lt1Point.intensity} {intensityUnit} ({aerobicThreshold?.lactate?.toFixed(2)} mmol/L)
+            <strong className="text-green-600">{tDmaxCurveChart('explanation.lt1Title')}:</strong>{' '}
+            {tDmaxCurveChart('explanation.lt1Text', {
+              intensity: lt1Point.intensity,
+              intensityUnit,
+              lactate: aerobicThreshold?.lactate?.toFixed(2),
+            })}
           </p>
         )}
         {lt2Point && (
           <p>
-            <strong className="text-orange-500">Orange stjärna (LT2):</strong> Anaerob tröskel vid {lt2Point.intensity} {intensityUnit} ({anaerobicThreshold?.lactate?.toFixed(2)} mmol/L)
+            <strong className="text-orange-500">{tDmaxCurveChart('explanation.lt2Title')}:</strong>{' '}
+            {tDmaxCurveChart('explanation.lt2Text', {
+              intensity: lt2Point.intensity,
+              intensityUnit,
+              lactate: anaerobicThreshold?.lactate?.toFixed(2),
+            })}
           </p>
         )}
         <p>
-          <strong>Röda punkter:</strong> Dina uppmätta laktatvärden från testet
+          <strong>{tDmaxCurveChart('explanation.measuredTitle')}:</strong> {tDmaxCurveChart('explanation.measuredText')}
         </p>
       </div>
     </div>
