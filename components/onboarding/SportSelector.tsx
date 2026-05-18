@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { SportType } from '@prisma/client'
+import { useTranslations } from '@/i18n/client'
 
 interface SportOption {
   value: SportType
@@ -207,6 +208,8 @@ export function SportSelector({
   className,
 }: SportSelectorProps) {
   const [selected, setSelected] = useState<SportType | undefined>(value)
+  const t = useTranslations('components.sportSelector')
+  const localeKey = locale === 'sv' ? 'sv' : 'en'
 
   const handleSelect = (sport: SportType) => {
     setSelected(sport)
@@ -230,23 +233,23 @@ export function SportSelector({
               <span className="text-3xl">{sport.icon}</span>
               {selected === sport.value && (
                 <Badge variant="default" className="text-xs">
-                  {locale === 'sv' ? 'Vald' : 'Selected'}
+                  {t(`selected.${localeKey}`)}
                 </Badge>
               )}
             </div>
             <CardTitle className="text-lg">
-              {locale === 'sv' ? sport.labelSv : sport.label}
+              {t(`sports.${sport.value}.label.${localeKey}`)}
             </CardTitle>
             <CardDescription className="text-sm">
-              {locale === 'sv' ? sport.descriptionSv : sport.description}
+              {t(`sports.${sport.value}.description.${localeKey}`)}
             </CardDescription>
           </CardHeader>
           {showFeatures && (
             <CardContent className="pt-0">
               <div className="flex flex-wrap gap-1">
-                {sport.features.map((feature) => (
-                  <Badge key={feature} variant="secondary" className="text-xs">
-                    {feature}
+                {(['feature1', 'feature2', 'feature3'] as const).map((featureKey) => (
+                  <Badge key={featureKey} variant="secondary" className="text-xs">
+                    {t(`sports.${sport.value}.features.${featureKey}.${localeKey}`)}
                   </Badge>
                 ))}
               </div>
@@ -276,6 +279,8 @@ export function MultiSportSelector({
   className,
 }: MultiSportSelectorProps) {
   const [selected, setSelected] = useState<SportType[]>(value)
+  const t = useTranslations('components.sportSelector')
+  const localeKey = locale === 'sv' ? 'sv' : 'en'
 
   const handleToggle = (sport: SportType) => {
     let newSelection: SportType[]
@@ -298,9 +303,10 @@ export function MultiSportSelector({
   return (
     <div className={cn('space-y-4', className)}>
       <p className="text-sm text-muted-foreground">
-        {locale === 'sv'
-          ? `Välj upp till ${maxSelections} sekundära sporter (${selected.length}/${maxSelections})`
-          : `Select up to ${maxSelections} secondary sports (${selected.length}/${maxSelections})`}
+        {t(`secondarySelectionLimit.${localeKey}`, {
+          max: maxSelections,
+          count: selected.length,
+        })}
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {availableSports.map((sport) => (
@@ -316,7 +322,7 @@ export function MultiSportSelector({
           >
             <span className="text-lg">{sport.icon}</span>
             <span className="text-sm">
-              {locale === 'sv' ? sport.labelSv : sport.label}
+              {t(`sports.${sport.value}.label.${localeKey}`)}
             </span>
           </Button>
         ))}

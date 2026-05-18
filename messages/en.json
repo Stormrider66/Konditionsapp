@@ -3761,6 +3761,426 @@
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
     },
+    "sportSelector": {
+      "selected": {
+        "en": "Selected",
+        "sv": "Vald"
+      },
+      "secondarySelectionLimit": {
+        "en": "Select up to {max} secondary sports ({count}/{max})",
+        "sv": "Välj upp till {max} sekundära sporter ({count}/{max})"
+      },
+      "sports": {
+        "RUNNING": {
+          "label": {
+            "en": "Running",
+            "sv": "Löpning"
+          },
+          "description": {
+            "en": "Road, trail, and track running with pace-based training",
+            "sv": "Väg-, terräng- och banlöpning med tempobaserad träning"
+          },
+          "features": {
+            "feature1": {
+              "en": "Pace zones",
+              "sv": "Tempzoner"
+            },
+            "feature2": {
+              "en": "Race predictions",
+              "sv": "Tidsprognoser"
+            },
+            "feature3": {
+              "en": "Running economy",
+              "sv": "Löpekonomi"
+            }
+          }
+        },
+        "CYCLING": {
+          "label": {
+            "en": "Cycling",
+            "sv": "Cykling"
+          },
+          "description": {
+            "en": "Road, indoor, and MTB cycling with power-based training",
+            "sv": "Landsvägs-, inomhus- och MTB-cykling med wattbaserad träning"
+          },
+          "features": {
+            "feature1": {
+              "en": "FTP zones",
+              "sv": "FTP-zoner"
+            },
+            "feature2": {
+              "en": "Power metrics",
+              "sv": "Effektmätning"
+            },
+            "feature3": {
+              "en": "Indoor/Outdoor",
+              "sv": "Inomhus/utomhus"
+            }
+          }
+        },
+        "SKIING": {
+          "label": {
+            "en": "Cross-Country Skiing",
+            "sv": "Längdskidåkning"
+          },
+          "description": {
+            "en": "Classic and skate technique training for nordic skiing",
+            "sv": "Klassisk och skateteknik för längdskidåkning"
+          },
+          "features": {
+            "feature1": {
+              "en": "Classic/Skate",
+              "sv": "Klassisk/skate"
+            },
+            "feature2": {
+              "en": "Vasaloppet prep",
+              "sv": "Förberedelse för Vasaloppet"
+            },
+            "feature3": {
+              "en": "Technique focus",
+              "sv": "Teknikfokus"
+            }
+          }
+        },
+        "TRIATHLON": {
+          "label": {
+            "en": "Triathlon",
+            "sv": "Triathlon"
+          },
+          "description": {
+            "en": "Swim, bike, run training for multi-sport events",
+            "sv": "Simning, cykling, löpning för multisportevenemang"
+          },
+          "features": {
+            "feature1": {
+              "en": "3 sports",
+              "sv": "3 grenar"
+            },
+            "feature2": {
+              "en": "Brick workouts",
+              "sv": "Brick-pass"
+            },
+            "feature3": {
+              "en": "Race transitions",
+              "sv": "Tävlingsövergångar"
+            }
+          }
+        },
+        "HYROX": {
+          "label": {
+            "en": "HYROX",
+            "sv": "HYROX"
+          },
+          "description": {
+            "en": "Functional fitness racing with 8 stations",
+            "sv": "Funktionell fitness-racing med 8 stationer"
+          },
+          "features": {
+            "feature1": {
+              "en": "8 stations",
+              "sv": "8 stationer"
+            },
+            "feature2": {
+              "en": "Compromised running",
+              "sv": "Tungt löpbandsmoment"
+            },
+            "feature3": {
+              "en": "Race simulation",
+              "sv": "Tävlingssimulation"
+            }
+          }
+        },
+        "GENERAL_FITNESS": {
+          "label": {
+            "en": "General Fitness",
+            "sv": "Allmän Fitness"
+          },
+          "description": {
+            "en": "CrossFit-style workouts: EMOMs, AMRAPs, mixed training",
+            "sv": "CrossFit-liknande pass: EMOM, AMRAPs, blandad träning"
+          },
+          "features": {
+            "feature1": {
+              "en": "EMOMs",
+              "sv": "EMOMs"
+            },
+            "feature2": {
+              "en": "AMRAPs",
+              "sv": "AMRAPs"
+            },
+            "feature3": {
+              "en": "For Time",
+              "sv": "For Time"
+            }
+          }
+        },
+        "FUNCTIONAL_FITNESS": {
+          "label": {
+            "en": "Functional Fitness",
+            "sv": "Funktionell Fitness"
+          },
+          "description": {
+            "en": "CrossFit-style training with benchmarks, gymnastics, and olympic lifting",
+            "sv": "CrossFit-liknande träning med benchmarks, gymnastik och olympiska lyft"
+          },
+          "features": {
+            "feature1": {
+              "en": "Benchmarks",
+              "sv": "Benchmarks"
+            },
+            "feature2": {
+              "en": "Gymnastics",
+              "sv": "Gymnastik"
+            },
+            "feature3": {
+              "en": "Olympic Lifting",
+              "sv": "Olympiska lyft"
+            }
+          }
+        },
+        "SWIMMING": {
+          "label": {
+            "en": "Swimming",
+            "sv": "Simning"
+          },
+          "description": {
+            "en": "Pool and open water swimming with CSS-based training",
+            "sv": "Pool och öppet vatten med CSS-baserad träning"
+          },
+          "features": {
+            "feature1": {
+              "en": "CSS zones",
+              "sv": "CSS-zoner"
+            },
+            "feature2": {
+              "en": "Stroke drills",
+              "sv": "Slagtagning"
+            },
+            "feature3": {
+              "en": "Open water",
+              "sv": "Öppet vatten"
+            }
+          }
+        },
+        "TEAM_ICE_HOCKEY": {
+          "label": {
+            "en": "Ice Hockey",
+            "sv": "Ishockey"
+          },
+          "description": {
+            "en": "Position-specific training for ice hockey players",
+            "sv": "Positionsspecifik träning för ishockeyspelare"
+          },
+          "features": {
+            "feature1": {
+              "en": "Position training",
+              "sv": "Positionsspecifik träning"
+            },
+            "feature2": {
+              "en": "Season periodization",
+              "sv": "Säsongsperiodisering"
+            },
+            "feature3": {
+              "en": "Match schedule",
+              "sv": "Matchschema"
+            }
+          }
+        },
+        "TEAM_FOOTBALL": {
+          "label": {
+            "en": "Football",
+            "sv": "Fotboll"
+          },
+          "description": {
+            "en": "Football training with GPS integration",
+            "sv": "Fotbollsträning med GPS-integration"
+          },
+          "features": {
+            "feature1": {
+              "en": "GPS data",
+              "sv": "GPS-data"
+            },
+            "feature2": {
+              "en": "Match load",
+              "sv": "Matchbelastning"
+            },
+            "feature3": {
+              "en": "Position training",
+              "sv": "Positionsspecifik träning"
+            }
+          }
+        },
+        "TEAM_HANDBALL": {
+          "label": {
+            "en": "Handball",
+            "sv": "Handboll"
+          },
+          "description": {
+            "en": "Handball training with match periodization",
+            "sv": "Handbollsträning med matchperiodisering"
+          },
+          "features": {
+            "feature1": {
+              "en": "Match schedule",
+              "sv": "Matchschema"
+            },
+            "feature2": {
+              "en": "Jump training",
+              "sv": "Hoppträning"
+            },
+            "feature3": {
+              "en": "Throwing power",
+              "sv": "Kastkraft"
+            }
+          }
+        },
+        "TEAM_FLOORBALL": {
+          "label": {
+            "en": "Floorball",
+            "sv": "Innebandy"
+          },
+          "description": {
+            "en": "Floorball training with interval focus",
+            "sv": "Innebandyträning med intervallfokus"
+          },
+          "features": {
+            "feature1": {
+              "en": "Sprint intervals",
+              "sv": "Sprintintervaller"
+            },
+            "feature2": {
+              "en": "Stick skills",
+              "sv": "Klubbfärdigheter"
+            },
+            "feature3": {
+              "en": "Match prep",
+              "sv": "Matchförberedelse"
+            }
+          }
+        },
+        "TEAM_BASKETBALL": {
+          "label": {
+            "en": "Basketball",
+            "sv": "Basket"
+          },
+          "description": {
+            "en": "Basketball training with position-specific focus",
+            "sv": "Basketträning med positionsspecifikt fokus"
+          },
+          "features": {
+            "feature1": {
+              "en": "Jump training",
+              "sv": "Hoppträning"
+            },
+            "feature2": {
+              "en": "Agility",
+              "sv": "Rörlighet"
+            },
+            "feature3": {
+              "en": "Court coverage",
+              "sv": "Planarbete"
+            }
+          }
+        },
+        "TEAM_VOLLEYBALL": {
+          "label": {
+            "en": "Volleyball",
+            "sv": "Volleyboll"
+          },
+          "description": {
+            "en": "Volleyball training with position specialization",
+            "sv": "Volleybollträning med positionsspecialisering"
+          },
+          "features": {
+            "feature1": {
+              "en": "Vertical jump",
+              "sv": "Vertikalsprång"
+            },
+            "feature2": {
+              "en": "Reaction time",
+              "sv": "Reaktionstid"
+            },
+            "feature3": {
+              "en": "Spike power",
+              "sv": "Spike-kraft"
+            }
+          }
+        },
+        "TENNIS": {
+          "label": {
+            "en": "Tennis",
+            "sv": "Tennis"
+          },
+          "description": {
+            "en": "Tennis training with play style optimization",
+            "sv": "Tennisträning med spelstilsoptimering"
+          },
+          "features": {
+            "feature1": {
+              "en": "Play styles",
+              "sv": "Spelstilar"
+            },
+            "feature2": {
+              "en": "Surface training",
+              "sv": "Underlagsträning"
+            },
+            "feature3": {
+              "en": "Tournament prep",
+              "sv": "Turneringsförberedelse"
+            }
+          }
+        },
+        "PADEL": {
+          "label": {
+            "en": "Padel",
+            "sv": "Padel"
+          },
+          "description": {
+            "en": "Padel training with position and partner synergy",
+            "sv": "Padelträning med positions- och partnersynergi"
+          },
+          "features": {
+            "feature1": {
+              "en": "Court positions",
+              "sv": "Planpositioner"
+            },
+            "feature2": {
+              "en": "Partner play",
+              "sv": "Parspel"
+            },
+            "feature3": {
+              "en": "Smash power",
+              "sv": "Smash-kraft"
+            }
+          }
+        },
+        "NUTRITION": {
+          "label": {
+            "en": "Nutrition",
+            "sv": "Kost & Nutrition"
+          },
+          "description": {
+            "en": "Focus on nutrition tracking, meal planning, and body composition goals",
+            "sv": "Fokusera på kostuppföljning, måltidsplanering och kroppssammansättningsmål"
+          },
+          "features": {
+            "feature1": {
+              "en": "Macro tracking",
+              "sv": "Makrospårning"
+            },
+            "feature2": {
+              "en": "AI meal analysis",
+              "sv": "AI-matanalys"
+            },
+            "feature3": {
+              "en": "Goal tracking",
+              "sv": "Måluppföljning"
+            }
+          }
+        }
+      }
+    },
     "optimizeWorkoutButton": {
       "actions": {
         "optimize": "Optimize",
