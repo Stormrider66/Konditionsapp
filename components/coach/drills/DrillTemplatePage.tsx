@@ -21,6 +21,7 @@ import type { DrillStructure } from './IceHockeyRink'
 import type { DrillTemplate } from '@/lib/drills/templates'
 import type { DrillSportType } from '@/remotion/drills/surfaces'
 import { toast } from 'sonner'
+import { useTranslations } from '@/i18n/client'
 
 interface Team {
   id: string
@@ -39,6 +40,7 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
   const [saving, setSaving] = useState(false)
   const [showAnimation, setShowAnimation] = useState(false)
   const [structure, setStructure] = useState<DrillStructure | null>(null)
+  const t = useTranslations('components.drillTemplate')
 
   const handleSelectTemplate = useCallback((template: DrillTemplate) => {
     setSelectedTemplate(template)
@@ -66,7 +68,7 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: title || 'Övning',
+          title: title || t('editor.defaultTitle'),
           description,
           teamId: teamId && teamId !== 'none' ? teamId : null,
           sportType: selectedTemplate?.sportType || 'ICE_HOCKEY',
@@ -78,10 +80,10 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
 
       if (!res.ok) throw new Error('Failed')
 
-      toast.success(publish ? 'Övning publicerad!' : 'Övning sparad!')
+      toast.success(publish ? t('editor.toasts.publishSuccess') : t('editor.toasts.saveSuccess'))
       handleBack()
     } catch {
-      toast.error('Kunde inte spara övningen')
+      toast.error(t('editor.toasts.saveError'))
     } finally {
       setSaving(false)
     }
@@ -94,10 +96,10 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <LayoutTemplate className="h-5 w-5 text-orange-500" />
-            Övningsmallar
+            {t('editor.title')}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Välj en färdig mall och anpassa den efter ditt lag.
+            {t('editor.description')}
           </p>
         </CardHeader>
         <CardContent>
@@ -114,7 +116,7 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={handleBack}>
           <ArrowLeft className="h-4 w-4 mr-1" />
-          Tillbaka till mallar
+          {t('editor.backToTemplates')}
         </Button>
       </div>
 
@@ -122,7 +124,9 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Anpassa: {selectedTemplate.name}</CardTitle>
+            <CardTitle className="text-lg">
+              {t('editor.editTitle', { name: selectedTemplate.name })}
+            </CardTitle>
             {structure.movements.length > 0 && (
               <Button
                 variant="outline"
@@ -130,18 +134,18 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
                 onClick={() => setShowAnimation(!showAnimation)}
               >
                 <Play className="h-3.5 w-3.5 mr-1.5" />
-                {showAnimation ? 'Redigera' : 'Förhandsgranska'}
+                {showAnimation ? t('editor.showEdit') : t('editor.showPreview')}
               </Button>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            Dra spelare, lägg till rörelser eller ändra uppställningen.
+            {t('editor.hint')}
           </p>
         </CardHeader>
         <CardContent>
           {showAnimation ? (
             <DrillAnimationPlayer
-              title={title || 'Övning'}
+              title={title || t('editor.defaultTitle')}
               description={description || undefined}
               structure={structure}
               locale="sv"
@@ -164,36 +168,36 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
       <Card>
         <CardContent className="p-4 space-y-4">
           <div className="space-y-2">
-            <Label>Titel</Label>
+            <Label>{t('editor.labels.title')}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Övningens namn"
+              placeholder={t('editor.placeholders.title')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Beskrivning</Label>
+            <Label>{t('editor.labels.description')}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Beskriv övningen..."
+              placeholder={t('editor.placeholders.description')}
               rows={3}
             />
           </div>
 
           {teams.length > 0 && (
             <div className="space-y-2">
-              <Label>Tilldela till lag</Label>
+              <Label>{t('editor.labels.assignToTeam')}</Label>
               <Select value={teamId} onValueChange={setTeamId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj lag..." />
+                  <SelectValue placeholder={t('editor.selectTeamPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Inget lag</SelectItem>
-                  {teams.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
+                  <SelectItem value="none">{t('editor.noTeam')}</SelectItem>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -209,7 +213,7 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
               className="flex-1"
             >
               <Save className="h-4 w-4 mr-1.5" />
-              Spara utkast
+              {t('editor.saveDraft')}
             </Button>
             <Button
               onClick={() => handleSave(true)}
@@ -217,7 +221,7 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
               className="flex-1"
             >
               <Send className="h-4 w-4 mr-1.5" />
-              Publicera
+              {t('editor.publish')}
             </Button>
           </div>
         </CardContent>

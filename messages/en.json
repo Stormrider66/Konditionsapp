@@ -6833,6 +6833,42 @@
         "puck": "Puck"
       }
     },
+    "drillTemplate": {
+      "library": {
+        "showAll": "All",
+        "empty": "No predefined templates yet for this sport.",
+        "emptyHint": "Use AI generation or draw manually in the editor.",
+        "useTemplate": "Use template"
+      },
+      "editor": {
+        "title": "Drill templates",
+        "description": "Choose a ready-made template and tailor it to your team.",
+        "backToTemplates": "Back to templates",
+        "defaultTitle": "Drill",
+        "editTitle": "Customize: {name}",
+        "showEdit": "Edit",
+        "showPreview": "Preview",
+        "hint": "Move players, add movements, and update the setup.",
+        "labels": {
+          "title": "Title",
+          "description": "Description",
+          "assignToTeam": "Assign to team"
+        },
+        "placeholders": {
+          "title": "Drill name",
+          "description": "Describe the drill..."
+        },
+        "selectTeamPlaceholder": "Select team...",
+        "noTeam": "No team",
+        "saveDraft": "Save draft",
+        "publish": "Publish",
+        "toasts": {
+          "saveSuccess": "Drill saved!",
+          "publishSuccess": "Drill published!",
+          "saveError": "Could not save the drill"
+        }
+      }
+    },
     "mealInputMethodSelector": {
       "title": "Log food",
       "description": "Choose how you want to record your meal",

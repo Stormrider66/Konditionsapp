@@ -22,21 +22,23 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Copy, Users, ChevronDown, ChevronUp } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 interface DrillTemplateLibraryProps {
   onSelect: (template: DrillTemplate) => void
 }
 
-const DIFFICULTY_LABELS: Record<string, { label: string; color: string }> = {
-  beginner: { label: 'Nybörjare', color: 'bg-green-100 text-green-800' },
-  intermediate: { label: 'Medel', color: 'bg-yellow-100 text-yellow-800' },
-  advanced: { label: 'Avancerad', color: 'bg-red-100 text-red-800' },
+const DIFFICULTY_COLORS: Record<string, { color: string; key: string }> = {
+  beginner: { key: 'difficulty.beginner', color: 'bg-green-100 text-green-800' },
+  intermediate: { key: 'difficulty.intermediate', color: 'bg-yellow-100 text-yellow-800' },
+  advanced: { key: 'difficulty.advanced', color: 'bg-red-100 text-red-800' },
 }
 
 export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
   const [selectedSport, setSelectedSport] = useState('ICE_HOCKEY')
   const [selectedCategory, setSelectedCategory] = useState<DrillCategory | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const t = useTranslations('components.drillTemplate')
 
   const sportCategories = SPORT_CATEGORIES[selectedSport] || DRILL_CATEGORIES
   const templates = useMemo(() => getTemplatesBySport(selectedSport, selectedCategory || undefined), [selectedSport, selectedCategory])
@@ -63,7 +65,7 @@ export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
           className="h-7 text-xs"
           onClick={() => setSelectedCategory(null)}
         >
-          Alla
+          {t('library.showAll')}
         </Button>
         {sportCategories.map((cat) => (
           <Button
@@ -82,12 +84,12 @@ export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
       <div className="space-y-2">
         {templates.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
-            <p>Inga fördefinierade mallar för denna sport ännu.</p>
-            <p className="text-sm mt-1">Använd AI-generering eller rita manuellt i editorn.</p>
+            <p>{t('library.empty')}</p>
+            <p className="text-sm mt-1">{t('library.emptyHint')}</p>
           </div>
         )}
         {templates.map((template) => {
-          const diff = DIFFICULTY_LABELS[template.difficulty]
+          const diff = DIFFICULTY_COLORS[template.difficulty]
           const isExpanded = expandedId === template.id
 
           return (
@@ -117,7 +119,7 @@ export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
                       {template.playerCount}
                     </Badge>
                     <Badge className={`text-[10px] ${diff.color} border-0`}>
-                      {diff.label}
+                      {t(diff.key)}
                     </Badge>
                   </div>
                 </div>
@@ -139,7 +141,7 @@ export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
                         }}
                       >
                         <Copy className="h-3.5 w-3.5 mr-1.5" />
-                        Använd mall
+                        {t('library.useTemplate')}
                       </Button>
                     </div>
                   </div>

@@ -6833,6 +6833,42 @@
         "puck": "Puck"
       }
     },
+    "drillTemplate": {
+      "library": {
+        "showAll": "Alla",
+        "empty": "Inga fördefinierade mallar för denna sport ännu.",
+        "emptyHint": "Använd AI-generering eller rita manuellt i editorn.",
+        "useTemplate": "Använd mall"
+      },
+      "editor": {
+        "title": "Övningsmallar",
+        "description": "Välj en färdig mall och anpassa den efter ditt lag.",
+        "backToTemplates": "Tillbaka till mallar",
+        "defaultTitle": "Övning",
+        "editTitle": "Anpassa: {name}",
+        "showEdit": "Redigera",
+        "showPreview": "Förhandsgranska",
+        "hint": "Dra spelare, lägg till rörelser eller ändra uppställningen.",
+        "labels": {
+          "title": "Titel",
+          "description": "Beskrivning",
+          "assignToTeam": "Tilldela till lag"
+        },
+        "placeholders": {
+          "title": "Övningens namn",
+          "description": "Beskriv övningen..."
+        },
+        "selectTeamPlaceholder": "Välj lag...",
+        "noTeam": "Inget lag",
+        "saveDraft": "Spara utkast",
+        "publish": "Publicera",
+        "toasts": {
+          "publishSuccess": "Övning publicerad!",
+          "saveSuccess": "Övning sparad!",
+          "saveError": "Kunde inte spara övningen"
+        }
+      }
+    },
     "mealInputMethodSelector": {
       "title": "Logga mat",
       "description": "Välj hur du vill registrera din måltid",
