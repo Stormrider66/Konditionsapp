@@ -10382,6 +10382,65 @@
         "chest": "Bröst",
         "other": "Övrigt"
       }
+    },
+    "biometricsStep": {
+      "intro": {
+        "title": "Varför vi frågar om detta",
+        "description": "Pulsdata hjälper oss beräkna mer exakta träningszoner. Atleter med bättre kardiovaskulär kondition har bredare aeroba zoner, medan nybörjare har smalare zoner. Detta påverkar hur vi föreskriver träningsintensitet."
+      },
+      "labels": {
+        "optional": "Valfritt"
+      },
+      "sections": {
+        "resting": {
+          "title": "Vilopuls",
+          "description": "Mät på morgonen innan du går upp ur sängen, under flera dagar för bäst noggrannhet."
+        },
+        "maxRate": {
+          "title": "Maxpuls",
+          "description": "Om du känner till din maxpuls från ett test eller hårt pass, ange den här. Annars uppskattar vi den.",
+          "estimatedMessage": "Baserat på din ålder uppskattas maxpuls till ~{bpm} BPM"
+        },
+        "watchVo2": {
+          "title": "VO2max från klocka",
+          "description": "Om din träningsklocka visar en VO2max-uppskattning, ange den här. Detta hjälper oss kalibrera dina träningszoner."
+        },
+        "fieldTest": {
+          "title": "Vill du ha mer exakta zoner?",
+          "description": "Ett fälttest (som ett 30-minuters tempopass eller ett laktattest) ger mycket mer exakta träningszoner. Du kan göra detta senare i appen efter att du har slutfört onboarding."
+        }
+      },
+      "fields": {
+        "resting": {
+          "placeholder": "t.ex. 55",
+          "rangeBadge": "Typiskt intervall: 40-80 BPM",
+          "levelAthletic": "Atletisk nivå",
+          "levelGoodFitness": "Bra kondition"
+        },
+        "maxRate": {
+          "placeholder": "t.ex. 185"
+        },
+        "watchBrand": {
+          "label": "Klockans märke"
+        },
+        "watchVo2Value": {
+          "label": "VO2max-värde från klockan",
+          "placeholder": "t.ex. 45",
+          "helpText": "Detta hittas vanligtvis i din klockapp under \"Fitness\" eller \"Träningsstatus\"."
+        },
+        "vo2Reference": {
+          "title": "VO2max-referens",
+          "untrained": "Otränad",
+          "recreational": "Motionär",
+          "beginner": "Nybörjare",
+          "trained": "Tränad",
+          "wellTrained": "Vältränad",
+          "elite": "Elit"
+        }
+      },
+      "watchBrands": {
+        "other": "Annan"
+      }
     }
   },
   "api": {

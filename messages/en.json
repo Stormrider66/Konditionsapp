@@ -10382,6 +10382,65 @@
         "chest": "Chest",
         "other": "Other"
       }
+    },
+    "biometricsStep": {
+      "intro": {
+        "title": "Why we ask for this",
+        "description": "Heart rate data helps us calculate more accurate training zones. Athletes with better cardiovascular fitness have wider aerobic zones, while beginners have narrower zones. This affects how we prescribe training intensity."
+      },
+      "labels": {
+        "optional": "Optional"
+      },
+      "sections": {
+        "resting": {
+          "title": "Resting Heart Rate",
+          "description": "Measure in the morning before getting out of bed, over several days for best accuracy."
+        },
+        "maxRate": {
+          "title": "Maximum Heart Rate",
+          "description": "If you know your max HR from a test or hard workout, enter it here. Otherwise, we'll estimate it.",
+          "estimatedMessage": "Based on your age, estimated max HR is ~{bpm} BPM"
+        },
+        "watchVo2": {
+          "title": "Watch VO2max Estimate",
+          "description": "If your fitness watch shows a VO2max estimate, enter it here. This helps us calibrate your training zones."
+        },
+        "fieldTest": {
+          "title": "Want more accurate zones?",
+          "description": "A field test (like a 30-minute time trial or a lactate test) provides much more accurate training zones. You can do this later in the app after completing onboarding."
+        }
+      },
+      "fields": {
+        "resting": {
+          "placeholder": "e.g., 55",
+          "rangeBadge": "Typical range: 40-80 BPM",
+          "levelAthletic": "Athletic level",
+          "levelGoodFitness": "Good fitness"
+        },
+        "maxRate": {
+          "placeholder": "e.g., 185"
+        },
+        "watchBrand": {
+          "label": "Watch brand"
+        },
+        "watchVo2Value": {
+          "label": "VO2max value from watch",
+          "placeholder": "e.g., 45",
+          "helpText": "This is usually found in your watch app under \"Fitness\" or \"Training Status\"."
+        },
+        "vo2Reference": {
+          "title": "VO2max Reference",
+          "untrained": "Untrained",
+          "recreational": "Recreational",
+          "beginner": "Beginner",
+          "trained": "Trained",
+          "wellTrained": "Well-trained",
+          "elite": "Elite"
+        }
+      },
+      "watchBrands": {
+        "other": "Other"
+      }
     }
   },
   "api": {

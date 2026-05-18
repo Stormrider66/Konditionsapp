@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { InfoIcon, HeartPulse, Watch, Zap } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 export interface BiometricsData {
   restingHR: number | null
@@ -29,7 +30,7 @@ const WATCH_BRANDS = [
   { id: 'whoop', label: 'WHOOP', icon: '⌚' },
   { id: 'fitbit', label: 'Fitbit', icon: '⌚' },
   { id: 'samsung', label: 'Samsung Galaxy Watch', icon: '⌚' },
-  { id: 'other', label: 'Other', labelSv: 'Annan', icon: '⌚' },
+  { id: 'other', label: 'Other', icon: '⌚' },
 ]
 
 interface BiometricsStepProps {
@@ -42,10 +43,9 @@ interface BiometricsStepProps {
 export function BiometricsStep({
   value,
   onChange,
-  locale = 'sv',
   age,
 }: BiometricsStepProps) {
-  const t = (en: string, sv: string) => (locale === 'sv' ? sv : en)
+  const t = useTranslations('components.biometricsStep')
 
   const updateData = (updates: Partial<BiometricsData>) => {
     onChange({ ...value, ...updates })
@@ -61,14 +61,11 @@ export function BiometricsStep({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <InfoIcon className="h-4 w-4 text-blue-600" />
-            {t('Why we ask for this', 'Varför vi frågar om detta')}
+            {t('intro.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          {t(
-            'Heart rate data helps us calculate more accurate training zones. Athletes with better cardiovascular fitness have wider aerobic zones, while beginners have narrower zones. This affects how we prescribe training intensity.',
-            'Pulsdata hjälper oss beräkna mer exakta träningszoner. Atleter med bättre kardiovaskulär kondition har bredare aeroba zoner, medan nybörjare har smalare zoner. Detta påverkar hur vi föreskriver träningsintensitet.'
-          )}
+          {t('intro.description')}
         </CardContent>
       </Card>
 
@@ -77,13 +74,10 @@ export function BiometricsStep({
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <HeartPulse className="h-4 w-4 text-red-500" />
-            {t('Resting Heart Rate', 'Vilopuls')}
+            {t('sections.resting.title')}
           </CardTitle>
           <CardDescription>
-            {t(
-              'Measure in the morning before getting out of bed, over several days for best accuracy.',
-              'Mät på morgonen innan du går upp ur sängen, under flera dagar för bäst noggrannhet.'
-            )}
+            {t('sections.resting.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -92,7 +86,7 @@ export function BiometricsStep({
               type="number"
               min={30}
               max={120}
-              placeholder={t('e.g., 55', 't.ex. 55')}
+              placeholder={t('fields.resting.placeholder')}
               value={value.restingHR ?? ''}
               onChange={(e) => updateData({
                 restingHR: e.target.value ? parseInt(e.target.value) : null
@@ -103,16 +97,16 @@ export function BiometricsStep({
           </div>
           <div className="flex gap-2 flex-wrap">
             <Badge variant="outline" className="text-xs">
-              {t('Typical range: 40-80 BPM', 'Typiskt intervall: 40-80 BPM')}
+              {t('fields.resting.rangeBadge')}
             </Badge>
             {value.restingHR && value.restingHR < 50 && (
               <Badge variant="secondary" className="text-xs bg-green-100">
-                {t('Athletic level', 'Atletisk nivå')}
+                {t('fields.resting.levelAthletic')}
               </Badge>
             )}
             {value.restingHR && value.restingHR >= 50 && value.restingHR <= 60 && (
               <Badge variant="secondary" className="text-xs bg-blue-100">
-                {t('Good fitness', 'Bra kondition')}
+                {t('fields.resting.levelGoodFitness')}
               </Badge>
             )}
           </div>
@@ -124,16 +118,13 @@ export function BiometricsStep({
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="h-4 w-4 text-orange-500" />
-            {t('Maximum Heart Rate', 'Maxpuls')}
+            {t('sections.maxRate.title')}
             <Badge variant="outline" className="text-xs ml-1">
-              {t('Optional', 'Valfritt')}
+              {t('labels.optional')}
             </Badge>
           </CardTitle>
           <CardDescription>
-            {t(
-              'If you know your max HR from a test or hard workout, enter it here. Otherwise, we\'ll estimate it.',
-              'Om du känner till din maxpuls från ett test eller hårt pass, ange den här. Annars uppskattar vi den.'
-            )}
+            {t('sections.maxRate.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -142,7 +133,7 @@ export function BiometricsStep({
               type="number"
               min={140}
               max={230}
-              placeholder={estimatedMaxHR ? `~${estimatedMaxHR}` : t('e.g., 185', 't.ex. 185')}
+              placeholder={estimatedMaxHR ? `~${estimatedMaxHR}` : t('fields.maxRate.placeholder')}
               value={value.maxHR ?? ''}
               onChange={(e) => updateData({
                 maxHR: e.target.value ? parseInt(e.target.value) : null
@@ -153,10 +144,7 @@ export function BiometricsStep({
           </div>
           {estimatedMaxHR && !value.maxHR && (
             <p className="text-xs text-muted-foreground">
-              {t(
-                `Based on your age, estimated max HR is ~${estimatedMaxHR} BPM`,
-                `Baserat på din ålder uppskattas maxpuls till ~${estimatedMaxHR} BPM`
-              )}
+              {t('sections.maxRate.estimatedMessage', { bpm: estimatedMaxHR })}
             </p>
           )}
         </CardContent>
@@ -167,23 +155,20 @@ export function BiometricsStep({
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Watch className="h-4 w-4 text-purple-500" />
-            {t('Watch VO2max Estimate', 'VO2max från klocka')}
+            {t('sections.watchVo2.title')}
             <Badge variant="outline" className="text-xs ml-1">
-              {t('Optional', 'Valfritt')}
+              {t('labels.optional')}
             </Badge>
           </CardTitle>
           <CardDescription>
-            {t(
-              'If your fitness watch shows a VO2max estimate, enter it here. This helps us calibrate your training zones.',
-              'Om din träningsklocka visar en VO2max-uppskattning, ange den här. Detta hjälper oss kalibrera dina träningszoner.'
-            )}
+            {t('sections.watchVo2.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Watch brand selector */}
           <div className="space-y-2">
             <Label className="text-sm">
-              {t('Watch brand', 'Klockans märke')}
+              {t('fields.watchBrand.label')}
             </Label>
             <div className="flex flex-wrap gap-2">
               {WATCH_BRANDS.map((brand) => (
@@ -197,7 +182,7 @@ export function BiometricsStep({
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  {brand.id === 'other' && locale === 'sv' ? brand.labelSv : brand.label}
+                  {brand.id === 'other' ? t('watchBrands.other') : brand.label}
                 </button>
               ))}
             </div>
@@ -207,7 +192,7 @@ export function BiometricsStep({
           {value.watchBrand && (
             <div className="space-y-2">
               <Label className="text-sm">
-                {t('VO2max value from watch', 'VO2max-värde från klockan')}
+                {t('fields.watchVo2Value.label')}
               </Label>
               <div className="flex items-center gap-3">
                 <Input
@@ -215,7 +200,7 @@ export function BiometricsStep({
                   min={20}
                   max={90}
                   step={0.1}
-                  placeholder={t('e.g., 45', 't.ex. 45')}
+                  placeholder={t('fields.watchVo2Value.placeholder')}
                   value={value.watchVO2maxEstimate ?? ''}
                   onChange={(e) => updateData({
                     watchVO2maxEstimate: e.target.value ? parseFloat(e.target.value) : null
@@ -225,10 +210,7 @@ export function BiometricsStep({
                 <span className="text-sm text-muted-foreground">ml/kg/min</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {t(
-                  'This is usually found in your watch app under "Fitness" or "Training Status".',
-                  'Detta hittas vanligtvis i din klockapp under "Fitness" eller "Träningsstatus".'
-                )}
+                {t('fields.watchVo2Value.helpText')}
               </p>
             </div>
           )}
@@ -236,15 +218,15 @@ export function BiometricsStep({
           {/* VO2max reference */}
           <div className="border rounded-lg p-3 bg-muted/30">
             <p className="text-xs font-medium mb-2">
-              {t('VO2max Reference', 'VO2max-referens')}
+              {t('fields.vo2Reference.title')}
             </p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>{t('Untrained', 'Otränad')}: &lt;35</span>
-              <span>{t('Recreational', 'Motionär')}: 40-50</span>
-              <span>{t('Beginner', 'Nybörjare')}: 35-40</span>
-              <span>{t('Well-trained', 'Vältränad')}: 55-65</span>
-              <span>{t('Trained', 'Tränad')}: 50-55</span>
-              <span>{t('Elite', 'Elit')}: &gt;65</span>
+              <span>{t('fields.vo2Reference.untrained')}: &lt;35</span>
+              <span>{t('fields.vo2Reference.recreational')}: 40-50</span>
+              <span>{t('fields.vo2Reference.beginner')}: 35-40</span>
+              <span>{t('fields.vo2Reference.trained')}: 50-55</span>
+              <span>{t('fields.vo2Reference.wellTrained')}: 55-65</span>
+              <span>{t('fields.vo2Reference.elite')}: &gt;65</span>
             </div>
           </div>
         </CardContent>
@@ -255,14 +237,11 @@ export function BiometricsStep({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="h-4 w-4 text-amber-600" />
-            {t('Want more accurate zones?', 'Vill du ha mer exakta zoner?')}
+            {t('sections.fieldTest.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          {t(
-            'A field test (like a 30-minute time trial or a lactate test) provides much more accurate training zones. You can do this later in the app after completing onboarding.',
-            'Ett fälttest (som ett 30-minuters tempopass eller ett laktattest) ger mycket mer exakta träningszoner. Du kan göra detta senare i appen efter att du har slutfört onboarding.'
-          )}
+          {t('sections.fieldTest.description')}
         </CardContent>
       </Card>
     </div>
