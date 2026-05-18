@@ -23,7 +23,8 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Document {
   id: string
@@ -55,6 +56,9 @@ interface DocumentPreviewProps {
 }
 
 export function DocumentPreview({ document, onClose }: DocumentPreviewProps) {
+  const t = useTranslations('components.documentsClient.documentPreview')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
   const [chunks, setChunks] = useState<Chunk[]>([])
   const [isLoadingChunks, setIsLoadingChunks] = useState(false)
   const [content, setContent] = useState<string | null>(null)
@@ -132,29 +136,29 @@ export function DocumentPreview({ document, onClose }: DocumentPreviewProps) {
             {getFileIcon(document.fileType)}
             <span className="truncate">{document.name}</span>
           </DialogTitle>
-        </DialogHeader>
+      </DialogHeader>
 
         <Tabs defaultValue="info" className="mt-2">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="info">Information</TabsTrigger>
-            <TabsTrigger value="content">Innehåll</TabsTrigger>
+            <TabsTrigger value="info">{t('tabs.info')}</TabsTrigger>
+            <TabsTrigger value="content">{t('tabs.content')}</TabsTrigger>
             <TabsTrigger value="chunks">
-              Chunks ({document.chunkCount})
+              {t('tabs.chunks', { count: document.chunkCount })}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="info" className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Filtyp</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('fields.fileType')}</p>
                 <p>{document.fileType}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Storlek</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('fields.size')}</p>
                 <p>{formatFileSize(document.fileSize)}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('fields.status')}</p>
                 <Badge
                   variant={
                     document.processingStatus === 'COMPLETED'
@@ -164,26 +168,34 @@ export function DocumentPreview({ document, onClose }: DocumentPreviewProps) {
                         : 'secondary'
                   }
                 >
-                  {document.processingStatus}
+                  {document.processingStatus === 'COMPLETED'
+                    ? t('status.completed')
+                    : document.processingStatus === 'PROCESSING'
+                    ? t('status.processing')
+                    : document.processingStatus === 'FAILED'
+                      ? t('status.failed')
+                      : t('status.pending')}
                 </Badge>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Chunks</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('fields.chunks')}</p>
                 <p>{document.chunkCount}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Uppladdat</p>
-                <p>{format(new Date(document.createdAt), 'PPP', { locale: sv })}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('fields.uploadedAt')}</p>
+                <p>{format(new Date(document.createdAt), 'PPP', { locale: dateLocale })}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Uppdaterat</p>
-                <p>{format(new Date(document.updatedAt), 'PPP', { locale: sv })}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('fields.updatedAt')}</p>
+                <p>{format(new Date(document.updatedAt), 'PPP', { locale: dateLocale })}</p>
               </div>
             </div>
 
             {document.description && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Beskrivning</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  {t('fields.description')}
+                </p>
                 <p className="text-sm">{document.description}</p>
               </div>
             )}
@@ -192,7 +204,7 @@ export function DocumentPreview({ document, onClose }: DocumentPreviewProps) {
               <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg text-destructive text-sm">
                 <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-medium">Bearbetningsfel</p>
+                  <p className="font-medium">{t('processingErrorTitle')}</p>
                   <p>{document.processingError}</p>
                 </div>
               </div>
@@ -202,7 +214,7 @@ export function DocumentPreview({ document, onClose }: DocumentPreviewProps) {
               <Button variant="outline" size="sm" asChild>
                 <a href={document.fileUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Öppna original
+                  {t('actions.openOriginal')}
                 </a>
               </Button>
             )}
@@ -213,18 +225,18 @@ export function DocumentPreview({ document, onClose }: DocumentPreviewProps) {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    {content.length} tecken
+                    {t('content.characterCount', { count: content.length })}
                   </p>
                   <Button variant="ghost" size="sm" onClick={copyContent}>
                     {copied ? (
                       <>
                         <Check className="h-4 w-4 mr-1 text-green-500" />
-                        Kopierat
+                        {t('actions.copied')}
                       </>
                     ) : (
                       <>
                         <Copy className="h-4 w-4 mr-1" />
-                        Kopiera
+                        {t('actions.copy')}
                       </>
                     )}
                   </Button>
@@ -238,11 +250,11 @@ export function DocumentPreview({ document, onClose }: DocumentPreviewProps) {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Innehållet kan inte visas här.</p>
+                <p>{t('empty.contentUnavailable')}</p>
                 <p className="text-sm">
                   {document.fileType === 'PDF' || document.fileType === 'EXCEL'
-                    ? 'PDF och Excel-filer måste öppnas externt.'
-                    : 'Dokumentet har inget textinnehåll.'}
+                    ? t('empty.externalViewer')
+                    : t('empty.noTextContent')}
                 </p>
               </div>
             )}
@@ -256,9 +268,9 @@ export function DocumentPreview({ document, onClose }: DocumentPreviewProps) {
             ) : chunks.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Inga chunks tillgängliga.</p>
+                <p>{t('empty.noChunks')}</p>
                 <p className="text-sm">
-                  Dokumentet har inte bearbetats ännu, eller bearbetningen misslyckades.
+                  {t('empty.notProcessedOrFailed')}
                 </p>
               </div>
             ) : (

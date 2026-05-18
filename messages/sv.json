@@ -4810,12 +4810,51 @@
           "uploading": "Laddar upp...",
           "processingForAI": "Bearbetar för AI...",
           "uploadAndProcess": "Ladda upp & bearbeta",
-          "upload": "Ladda upp"
-        }
+        "upload": "Ladda upp"
+      }
+    },
+    "documentPreview": {
+      "tabs": {
+        "info": "Information",
+        "content": "Innehåll",
+        "chunks": "Chunks ({count})"
       },
-      "alerts": {
-        "missingOpenAIKey": {
-          "title": "OpenAI API-nyckel saknas",
+      "fields": {
+        "fileType": "Filtyp",
+        "size": "Storlek",
+        "status": "Status",
+        "chunks": "Chunks",
+        "uploadedAt": "Uppladdat",
+        "updatedAt": "Uppdaterat",
+        "description": "Beskrivning"
+      },
+      "status": {
+        "completed": "Klar",
+        "processing": "Bearbetas",
+        "failed": "Misslyckades",
+        "pending": "Väntar"
+      },
+      "actions": {
+        "openOriginal": "Öppna original",
+        "copy": "Kopiera",
+        "copied": "Kopierat",
+        "copyHint": "Kopiera till urklipp"
+      },
+      "content": {
+        "characterCount": "{count, number} tecken"
+      },
+      "empty": {
+        "contentUnavailable": "Innehållet kan inte visas här.",
+        "externalViewer": "PDF och Excel-filer måste öppnas externt.",
+        "noTextContent": "Dokumentet har inget textinnehåll.",
+        "noChunks": "Inga chunks tillgängliga.",
+        "notProcessedOrFailed": "Dokumentet har inte bearbetats ännu, eller bearbetningen misslyckades."
+      },
+      "processingErrorTitle": "Bearbetningsfel"
+    },
+    "alerts": {
+      "missingOpenAIKey": {
+        "title": "OpenAI API-nyckel saknas",
           "description": "Du behöver konfigurera en OpenAI API-nyckel för att kunna generera embeddings och använda dokumentsökning."
         }
       },

@@ -4810,12 +4810,51 @@
           "uploading": "Uploading...",
           "processingForAI": "Processing for AI...",
           "uploadAndProcess": "Upload & process",
-          "upload": "Upload"
-        }
+        "upload": "Upload"
+      }
+    },
+    "documentPreview": {
+      "tabs": {
+        "info": "Info",
+        "content": "Content",
+        "chunks": "Chunks ({count})"
       },
-      "alerts": {
-        "missingOpenAIKey": {
-          "title": "OpenAI API key missing",
+      "fields": {
+        "fileType": "File type",
+        "size": "Size",
+        "status": "Status",
+        "chunks": "Chunks",
+        "uploadedAt": "Uploaded",
+        "updatedAt": "Updated",
+        "description": "Description"
+      },
+      "status": {
+        "completed": "Completed",
+        "processing": "Processing",
+        "failed": "Failed",
+        "pending": "Pending"
+      },
+      "actions": {
+        "openOriginal": "Open original",
+        "copy": "Copy",
+        "copied": "Copied",
+        "copyHint": "Copy to clipboard"
+      },
+      "content": {
+        "characterCount": "{count, number} characters"
+      },
+      "empty": {
+        "contentUnavailable": "Content cannot be shown here.",
+        "externalViewer": "PDF and Excel files must be opened in an external viewer.",
+        "noTextContent": "Document has no text content.",
+        "noChunks": "No chunks available.",
+        "notProcessedOrFailed": "Document has not been processed yet, or processing failed."
+      },
+      "processingErrorTitle": "Processing error"
+    },
+    "alerts": {
+      "missingOpenAIKey": {
+        "title": "OpenAI API key missing",
           "description": "You need to configure an OpenAI API key to generate embeddings and use document search."
         }
       },
