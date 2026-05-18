@@ -5363,6 +5363,81 @@
           }
         }
       },
+      "cycling": {
+        "labels": {
+          "bikeTypes": "What type of bikes do you ride?",
+          "primaryDiscipline": "What is your primary cycling discipline?",
+          "powerMeterType": "Power meter type",
+          "currentFtp": "Current FTP (watts)",
+          "lastFtpTest": "Last FTP test date",
+          "bodyWeight": "Body weight (kg)",
+          "powerZones": "Your power zones (Coggan)",
+          "heartRateMonitor": "I have a heart rate monitor",
+          "trainingSetup": "Training setup",
+          "trainingPlatforms": "Training platforms used",
+          "weeklyHours": "Average weekly training hours",
+          "indoorOutdoorTraining": "Indoor vs outdoor training",
+          "indoor100": "100% Indoor",
+          "outdoor100": "100% Outdoor"
+        },
+        "titles": {
+          "powerData": "Power Data",
+          "trainingSetup": "Training setup"
+        },
+        "descriptions": {
+          "powerData": "Your FTP (Functional Threshold Power) helps us calculate training zones"
+        },
+        "bikeTypes": {
+          "road": "Road Bike",
+          "tt": "Time Trial / Triathlon",
+          "mtb": "Mountain Bike",
+          "gravel": "Gravel / CX",
+          "indoor": "Indoor / Smart Trainer"
+        },
+        "disciplines": {
+          "endurance": "Endurance / Gran Fondo",
+          "racing": "Road Racing",
+          "timeTrials": "Time Trials",
+          "climbing": "Climbing",
+          "crit": "Criterium",
+          "triathlon": "Triathlon",
+          "mtbXC": "MTB XC",
+          "mtbEnduro": "MTB Enduro",
+          "gravel": "Gravel Racing",
+          "recreational": "Recreational"
+        },
+        "powerMeters": {
+          "none": "No power meter",
+          "pedal": "Pedal-based",
+          "crank": "Crank-based",
+          "hub": "Hub-based",
+          "smartTrainer": "Smart Trainer"
+        },
+        "platforms": {
+          "zwift": "Zwift",
+          "trainerRoad": "TrainerRoad",
+          "wahooSystem": "Wahoo SYSTM",
+          "rouvy": "Rouvy",
+          "none": "None / Outdoor only"
+        },
+        "powerZones": {
+          "activeRecovery": "Active Recovery",
+          "endurance": "Endurance",
+          "tempo": "Tempo",
+          "threshold": "Threshold",
+          "vo2max": "VO2max",
+          "anaerobic": "Anaerobic",
+          "neuromuscular": "Neuromuscular"
+        },
+        "placeholders": {
+          "ftp": "e.g. 250",
+          "bodyWeight": "e.g. 70"
+        },
+        "units": {
+          "indoor": "indoor",
+          "wKg": "W/kg"
+        }
+      },
       "hockey": {
         "sections": {
           "positionAndTeam": {

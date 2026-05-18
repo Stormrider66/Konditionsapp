@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -8,56 +7,57 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useTranslations } from 'next-intl'
 
 // Power zone calculation based on FTP (Coggan zones)
 function calculatePowerZones(ftp: number) {
   return [
-    { zone: 1, name: 'Active Recovery', nameSv: 'Aktiv återhämtning', min: 0, max: Math.round(ftp * 0.55), color: 'bg-gray-200' },
-    { zone: 2, name: 'Endurance', nameSv: 'Uthållighet', min: Math.round(ftp * 0.56), max: Math.round(ftp * 0.75), color: 'bg-blue-200' },
-    { zone: 3, name: 'Tempo', nameSv: 'Tempo', min: Math.round(ftp * 0.76), max: Math.round(ftp * 0.90), color: 'bg-green-200' },
-    { zone: 4, name: 'Threshold', nameSv: 'Tröskel', min: Math.round(ftp * 0.91), max: Math.round(ftp * 1.05), color: 'bg-yellow-200' },
-    { zone: 5, name: 'VO2max', nameSv: 'VO2max', min: Math.round(ftp * 1.06), max: Math.round(ftp * 1.20), color: 'bg-orange-200' },
-    { zone: 6, name: 'Anaerobic', nameSv: 'Anaerob', min: Math.round(ftp * 1.21), max: Math.round(ftp * 1.50), color: 'bg-red-200' },
-    { zone: 7, name: 'Neuromuscular', nameSv: 'Neuromuskulär', min: Math.round(ftp * 1.51), max: null, color: 'bg-purple-200' },
+    { zone: 1, name: 'powerZones.activeRecovery', min: 0, max: Math.round(ftp * 0.55), color: 'bg-gray-200' },
+    { zone: 2, name: 'powerZones.endurance', min: Math.round(ftp * 0.56), max: Math.round(ftp * 0.75), color: 'bg-blue-200' },
+    { zone: 3, name: 'powerZones.tempo', min: Math.round(ftp * 0.76), max: Math.round(ftp * 0.90), color: 'bg-green-200' },
+    { zone: 4, name: 'powerZones.threshold', min: Math.round(ftp * 0.91), max: Math.round(ftp * 1.05), color: 'bg-yellow-200' },
+    { zone: 5, name: 'powerZones.vo2max', min: Math.round(ftp * 1.06), max: Math.round(ftp * 1.20), color: 'bg-orange-200' },
+    { zone: 6, name: 'powerZones.anaerobic', min: Math.round(ftp * 1.21), max: Math.round(ftp * 1.50), color: 'bg-red-200' },
+    { zone: 7, name: 'powerZones.neuromuscular', min: Math.round(ftp * 1.51), max: null, color: 'bg-purple-200' },
   ]
 }
 
 // Cycling-specific options
 const BIKE_TYPES = [
-  { id: 'road', label: 'Road Bike', labelSv: 'Landsvägscykel', icon: '🚴' },
-  { id: 'tt', label: 'Time Trial / Triathlon', labelSv: 'Temposykel / Triathlon', icon: '🚴‍♂️' },
-  { id: 'mtb', label: 'Mountain Bike', labelSv: 'Mountainbike', icon: '🚵' },
-  { id: 'gravel', label: 'Gravel / CX', labelSv: 'Gravel / CX', icon: '🚲' },
-  { id: 'indoor', label: 'Indoor / Smart Trainer', labelSv: 'Inomhus / Smart Trainer', icon: '🏠' },
+  { id: 'road', label: 'bikeTypes.road', icon: '🚴' },
+  { id: 'tt', label: 'bikeTypes.tt', icon: '🚴‍♂️' },
+  { id: 'mtb', label: 'bikeTypes.mtb', icon: '🚵' },
+  { id: 'gravel', label: 'bikeTypes.gravel', icon: '🚲' },
+  { id: 'indoor', label: 'bikeTypes.indoor', icon: '🏠' },
 ]
 
 const CYCLING_DISCIPLINES = [
-  { id: 'endurance', label: 'Endurance / Gran Fondo', labelSv: 'Uthållighet / Gran Fondo' },
-  { id: 'racing', label: 'Road Racing', labelSv: 'Tävlingscykling' },
-  { id: 'tt', label: 'Time Trials', labelSv: 'Tempo' },
-  { id: 'climbing', label: 'Climbing', labelSv: 'Klättring' },
-  { id: 'crit', label: 'Criterium', labelSv: 'Criterium' },
-  { id: 'triathlon', label: 'Triathlon', labelSv: 'Triathlon' },
-  { id: 'mtb_xc', label: 'MTB XC', labelSv: 'MTB XC' },
-  { id: 'mtb_enduro', label: 'MTB Enduro', labelSv: 'MTB Enduro' },
-  { id: 'gravel', label: 'Gravel Racing', labelSv: 'Graveltävling' },
-  { id: 'recreational', label: 'Recreational', labelSv: 'Motionscykling' },
+  { id: 'endurance', label: 'disciplines.endurance' },
+  { id: 'racing', label: 'disciplines.racing' },
+  { id: 'tt', label: 'disciplines.timeTrials' },
+  { id: 'climbing', label: 'disciplines.climbing' },
+  { id: 'crit', label: 'disciplines.crit' },
+  { id: 'triathlon', label: 'disciplines.triathlon' },
+  { id: 'mtb_xc', label: 'disciplines.mtbXC' },
+  { id: 'mtb_enduro', label: 'disciplines.mtbEnduro' },
+  { id: 'gravel', label: 'disciplines.gravel' },
+  { id: 'recreational', label: 'disciplines.recreational' },
 ]
 
 const POWER_METER_TYPES = [
-  { id: 'none', label: 'No power meter', labelSv: 'Ingen wattmätare' },
-  { id: 'pedal', label: 'Pedal-based', labelSv: 'Pedalbaserad' },
-  { id: 'crank', label: 'Crank-based', labelSv: 'Vevbaserad' },
-  { id: 'hub', label: 'Hub-based', labelSv: 'Navbaserad' },
-  { id: 'smart_trainer', label: 'Smart Trainer', labelSv: 'Smart Trainer' },
+  { id: 'none', label: 'powerMeters.none' },
+  { id: 'pedal', label: 'powerMeters.pedal' },
+  { id: 'crank', label: 'powerMeters.crank' },
+  { id: 'hub', label: 'powerMeters.hub' },
+  { id: 'smart_trainer', label: 'powerMeters.smartTrainer' },
 ]
 
 const TRAINING_PLATFORMS = [
-  { id: 'zwift', label: 'Zwift', labelSv: 'Zwift' },
-  { id: 'trainerroad', label: 'TrainerRoad', labelSv: 'TrainerRoad' },
-  { id: 'wahoo_systm', label: 'Wahoo SYSTM', labelSv: 'Wahoo SYSTM' },
-  { id: 'rouvy', label: 'Rouvy', labelSv: 'Rouvy' },
-  { id: 'none', label: 'None / Outdoor only', labelSv: 'Ingen / Endast utomhus' },
+  { id: 'zwift', label: 'platforms.zwift' },
+  { id: 'trainerroad', label: 'platforms.trainerRoad' },
+  { id: 'wahoo_systm', label: 'platforms.wahooSystem' },
+  { id: 'rouvy', label: 'platforms.rouvy' },
+  { id: 'none', label: 'platforms.none' },
 ]
 
 export interface CyclingSettings {
@@ -82,9 +82,8 @@ interface CyclingOnboardingProps {
 export function CyclingOnboarding({
   value,
   onChange,
-  locale = 'sv',
 }: CyclingOnboardingProps) {
-  const t = (en: string, sv: string) => (locale === 'sv' ? sv : en)
+  const t = useTranslations('components.onboarding.cycling')
 
   const updateSettings = (updates: Partial<CyclingSettings>) => {
     onChange({ ...value, ...updates })
@@ -109,7 +108,7 @@ export function CyclingOnboarding({
       {/* Bike Types */}
       <div className="space-y-4">
         <Label className="text-base font-semibold">
-          {t('What types of bikes do you ride?', 'Vilka typer av cyklar har du?')}
+          {t('labels.bikeTypes')}
         </Label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {BIKE_TYPES.map((bike) => (
@@ -129,7 +128,7 @@ export function CyclingOnboarding({
                 onCheckedChange={() => toggleBikeType(bike.id)}
               />
               <span className="text-lg">{bike.icon}</span>
-              <span className="text-sm">{locale === 'sv' ? bike.labelSv : bike.label}</span>
+              <span className="text-sm">{t(bike.label)}</span>
             </Label>
           ))}
         </div>
@@ -138,7 +137,7 @@ export function CyclingOnboarding({
       {/* Primary Discipline */}
       <div className="space-y-4">
         <Label className="text-base font-semibold">
-          {t('What is your primary cycling discipline?', 'Vad är din primära cyklingsdisciplin?')}
+          {t('labels.primaryDiscipline')}
         </Label>
         <RadioGroup
           value={value.primaryDiscipline}
@@ -157,7 +156,7 @@ export function CyclingOnboarding({
               )}
             >
               <RadioGroupItem value={disc.id} id={`disc-${disc.id}`} />
-              <span className="text-sm">{locale === 'sv' ? disc.labelSv : disc.label}</span>
+              <span className="text-sm">{t(disc.label)}</span>
             </Label>
           ))}
         </RadioGroup>
@@ -167,19 +166,16 @@ export function CyclingOnboarding({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {t('Power Data', 'Effektdata')}
+            {t('titles.powerData')}
           </CardTitle>
           <CardDescription>
-            {t(
-              'Your FTP (Functional Threshold Power) helps us calculate training zones',
-              'Din FTP (Functional Threshold Power) hjälper oss beräkna träningszoner'
-            )}
+            {t('descriptions.powerData')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Power Meter Type */}
           <div className="space-y-2">
-            <Label>{t('Power meter type', 'Typ av wattmätare')}</Label>
+            <Label>{t('labels.powerMeterType')}</Label>
             <RadioGroup
               value={value.powerMeterType}
               onValueChange={(val) => updateSettings({ powerMeterType: val })}
@@ -197,7 +193,7 @@ export function CyclingOnboarding({
                   )}
                 >
                   <RadioGroupItem value={pm.id} id={`pm-${pm.id}`} />
-                  <span>{locale === 'sv' ? pm.labelSv : pm.label}</span>
+                  <span>{t(pm.label)}</span>
                 </Label>
               ))}
             </RadioGroup>
@@ -207,10 +203,10 @@ export function CyclingOnboarding({
           {value.powerMeterType !== 'none' && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t('Current FTP (watts)', 'Nuvarande FTP (watt)')}</Label>
+                <Label>{t('labels.currentFtp')}</Label>
                 <Input
                   type="number"
-                  placeholder="e.g. 250"
+                  placeholder={t('placeholders.ftp')}
                   value={value.currentFtp || ''}
                   onChange={(e) =>
                     updateSettings({ currentFtp: e.target.value ? parseInt(e.target.value) : null })
@@ -218,7 +214,7 @@ export function CyclingOnboarding({
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t('Last FTP test date', 'Senaste FTP-test')}</Label>
+                <Label>{t('labels.lastFtpTest')}</Label>
                 <Input
                   type="date"
                   value={value.ftpTestDate || ''}
@@ -230,10 +226,10 @@ export function CyclingOnboarding({
 
           {/* Weight for W/kg */}
           <div className="space-y-2">
-            <Label>{t('Body weight (kg)', 'Kroppsvikt (kg)')}</Label>
+            <Label>{t('labels.bodyWeight')}</Label>
             <Input
               type="number"
-              placeholder="e.g. 70"
+              placeholder={t('placeholders.bodyWeight')}
               className="max-w-[150px]"
               value={value.weight || ''}
               onChange={(e) =>
@@ -242,7 +238,7 @@ export function CyclingOnboarding({
             />
             {value.currentFtp && value.weight && (
               <p className="text-sm text-muted-foreground">
-                W/kg: <span className="font-semibold">{(value.currentFtp / value.weight).toFixed(2)}</span>
+                {t('units.wKg')}: <span className="font-semibold">{(value.currentFtp / value.weight).toFixed(2)}</span>
               </p>
             )}
           </div>
@@ -251,7 +247,7 @@ export function CyclingOnboarding({
           {value.currentFtp && value.currentFtp > 0 && (
             <div className="space-y-3 pt-4 border-t">
               <Label className="text-sm font-semibold">
-                {t('Your Power Zones (Coggan)', 'Dina effektzoner (Coggan)')}
+                {t('labels.powerZones')}
               </Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {calculatePowerZones(value.currentFtp).map((zone) => (
@@ -264,7 +260,7 @@ export function CyclingOnboarding({
                         {zone.zone}
                       </Badge>
                       <span className="text-sm font-medium">
-                        {locale === 'sv' ? zone.nameSv : zone.name}
+                        {t(zone.name)}
                       </span>
                     </div>
                     <span className="text-sm font-mono">
@@ -282,8 +278,8 @@ export function CyclingOnboarding({
               checked={value.hasHeartRateMonitor}
               onCheckedChange={(checked) => updateSettings({ hasHeartRateMonitor: !!checked })}
             />
-            <span>{t('I have a heart rate monitor', 'Jag har en pulsmätare')}</span>
-          </Label>
+              <span>{t('labels.heartRateMonitor')}</span>
+            </Label>
         </CardContent>
       </Card>
 
@@ -291,13 +287,13 @@ export function CyclingOnboarding({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {t('Training Setup', 'Träningsinställningar')}
+            {t('titles.trainingSetup')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Training Platforms */}
           <div className="space-y-2">
-            <Label>{t('Training platforms used', 'Träningsplattformar')}</Label>
+            <Label>{t('labels.trainingPlatforms')}</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {TRAINING_PLATFORMS.map((platform) => (
                 <Label
@@ -315,7 +311,7 @@ export function CyclingOnboarding({
                     checked={value.trainingPlatforms.includes(platform.id)}
                     onCheckedChange={() => togglePlatform(platform.id)}
                   />
-                  <span>{locale === 'sv' ? platform.labelSv : platform.label}</span>
+                  <span>{t(platform.label)}</span>
                 </Label>
               ))}
             </div>
@@ -323,7 +319,7 @@ export function CyclingOnboarding({
 
           {/* Weekly Hours */}
           <div className="space-y-2">
-            <Label>{t('Average weekly training hours', 'Genomsnittliga träningstimmar per vecka')}</Label>
+            <Label>{t('labels.weeklyHours')}</Label>
             <Input
               type="number"
               min={1}
@@ -337,7 +333,7 @@ export function CyclingOnboarding({
           {/* Indoor/Outdoor Split */}
           <div className="space-y-2">
             <Label>
-              {t('Indoor vs outdoor training', 'Inomhus vs utomhusträning')}: {value.indoorOutdoorSplit}% {t('indoor', 'inomhus')}
+              {t('labels.indoorOutdoorTraining')}: {value.indoorOutdoorSplit}% {t('units.indoor')}
             </Label>
             <input
               type="range"
@@ -349,8 +345,8 @@ export function CyclingOnboarding({
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{t('100% Outdoor', '100% Utomhus')}</span>
-              <span>{t('100% Indoor', '100% Inomhus')}</span>
+              <span>{t('labels.outdoor100')}</span>
+              <span>{t('labels.indoor100')}</span>
             </div>
           </div>
         </CardContent>

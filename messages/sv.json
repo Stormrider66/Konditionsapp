@@ -5251,6 +5251,81 @@
           }
         }
       },
+      "cycling": {
+        "labels": {
+          "bikeTypes": "Vilka typer av cyklar har du?",
+          "primaryDiscipline": "Vad är din primära cyklingsdisciplin?",
+          "powerMeterType": "Typ av wattmätare",
+          "currentFtp": "Nuvarande FTP (watt)",
+          "lastFtpTest": "Senaste FTP-test",
+          "bodyWeight": "Kroppsvikt (kg)",
+          "powerZones": "Dina effektzoner (Coggan)",
+          "heartRateMonitor": "Jag har en pulsmätare",
+          "trainingSetup": "Träningsinställningar",
+          "trainingPlatforms": "Träningsplattformar",
+          "weeklyHours": "Genomsnittliga veckotimmar",
+          "indoorOutdoorTraining": "Inomhus vs utomhusträning",
+          "indoor100": "100% Inomhus",
+          "outdoor100": "100% Utomhus"
+        },
+        "titles": {
+          "powerData": "Effektdata",
+          "trainingSetup": "Träningsinställningar"
+        },
+        "descriptions": {
+          "powerData": "Din FTP (Functional Threshold Power) hjälper oss beräkna träningszoner"
+        },
+        "bikeTypes": {
+          "road": "Landsvägscykel",
+          "tt": "Temposykel / Triathlon",
+          "mtb": "Mountainbike",
+          "gravel": "Gravel / CX",
+          "indoor": "Inomhus / Smart Trainer"
+        },
+        "disciplines": {
+          "endurance": "Uthållighet / Gran Fondo",
+          "racing": "Tävlingscykling",
+          "timeTrials": "Tempo",
+          "climbing": "Klättring",
+          "crit": "Kriterium",
+          "triathlon": "Triathlon",
+          "mtbXC": "MTB XC",
+          "mtbEnduro": "MTB Enduro",
+          "gravel": "Graveltävling",
+          "recreational": "Motionscykling"
+        },
+        "powerMeters": {
+          "none": "Ingen wattmätare",
+          "pedal": "Pedalbaserad",
+          "crank": "Vevbaserad",
+          "hub": "Navbaserad",
+          "smartTrainer": "Smart Trainer"
+        },
+        "platforms": {
+          "zwift": "Zwift",
+          "trainerRoad": "TrainerRoad",
+          "wahooSystem": "Wahoo SYSTM",
+          "rouvy": "Rouvy",
+          "none": "Ingen / Endast utomhus"
+        },
+        "powerZones": {
+          "activeRecovery": "Aktiv återhämtning",
+          "endurance": "Uthållighet",
+          "tempo": "Tempo",
+          "threshold": "Tröskel",
+          "vo2max": "VO2max",
+          "anaerobic": "Anaerob",
+          "neuromuscular": "Neuromuskulär"
+        },
+        "placeholders": {
+          "ftp": "t.ex. 250",
+          "bodyWeight": "t.ex. 70"
+        },
+        "units": {
+          "indoor": "inomhus",
+          "wKg": "W/kg"
+        }
+      },
       "nutrition": {
         "titles": {
           "goal": "Vad är ditt mål?",
