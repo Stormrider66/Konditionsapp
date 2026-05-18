@@ -278,7 +278,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Nuvarande vikt (kg)</Label>
+              <Label>{t('labels.currentWeight')}</Label>
               <Input
                 type="number"
                 min={30}
