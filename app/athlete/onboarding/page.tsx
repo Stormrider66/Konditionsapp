@@ -2,10 +2,12 @@
 import { redirect } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { getLocale, type Locale } from '@/i18n/server'
 import { OnboardingWizard } from '@/components/onboarding'
 
 export default async function AthleteOnboardingPage() {
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  const locale = (await getLocale()) as Locale
 
   // Get client with sport profile
   const client = await prisma.client.findUnique({
@@ -32,7 +34,7 @@ export default async function AthleteOnboardingPage() {
       <OnboardingWizard
         clientId={clientId}
         clientName={client.name}
-        locale="sv"
+        locale={locale}
         initialSport={initialSport}
         initialStep={initialStep}
       />

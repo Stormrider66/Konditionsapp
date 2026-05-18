@@ -2359,6 +2359,73 @@
         "title": "Get started with {businessName}",
         "description": "Create teams, invite staff, and add players"
       },
+      "clubOnboardingWizard": {
+        "steps": {
+          "teams": "Teams",
+          "staff": "Staff",
+          "players": "Players",
+          "summary": "Summary"
+        },
+        "titles": {
+          "createTeams": "Create teams for {businessName}",
+          "inviteStaff": "Invite staff",
+          "addPlayers": "Add players",
+          "summary": "Summary"
+        },
+        "actions": {
+          "add": "Add",
+          "addPlayer": "Add player",
+          "nextToStaff": "Next: Staff",
+          "nextToPlayers": "Next: Players",
+          "nextToSummary": "Next: Summary",
+          "createBusiness": "Create {businessName}",
+          "creating": "Creating..."
+        },
+        "placeholders": {
+          "teamName": "Team name, e.g. U18, U20, NHL",
+          "playerName": "Player name",
+          "playerEmailOptional": "Email (optional)",
+          "selectTeam": "Select team..."
+        },
+        "labels": {
+          "assignToTeam": "Assign to team:"
+        },
+        "summary": {
+          "labels": {
+            "teams": "Teams",
+            "staff": "Staff",
+            "players": "Players"
+          },
+          "teamPlayerCount": "{count} players",
+          "teamStaff": "Staff: {names}",
+          "overallStaff": "Overall staff"
+        },
+        "toasts": {
+          "success": "{businessName} is ready! {teamCount} teams, {staffCount} staff, {playerCount} players created.",
+          "error": "Something went wrong. Please try again."
+        },
+        "messages": {
+          "playerManagement": "You can also add players later from athlete management."
+        },
+        "sports": {
+          "teamIceHockey": "Ice hockey",
+          "teamFootball": "Football",
+          "teamHandball": "Handball",
+          "teamFloorball": "Floorball",
+          "teamBasketball": "Basketball",
+          "teamVolleyball": "Volleyball",
+          "running": "Running",
+          "cycling": "Cycling",
+          "swimming": "Swimming"
+        },
+        "roles": {
+          "coach": "Head coach",
+          "physicalTrainer": "Strength coach",
+          "assistantCoach": "Assistant coach",
+          "physio": "Physiotherapist",
+          "admin": "Sports director"
+        }
+      },
       "testOverview": {
         "title": "Test overview",
         "description": "Results, comparisons, and progress over time"

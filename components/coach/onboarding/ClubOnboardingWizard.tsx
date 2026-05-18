@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from '@/i18n/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,26 +17,6 @@ import {
 } from '@/components/ui/select'
 import { Building2, Users, UserPlus, Shield, Check, ChevronRight, Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-
-const SPORT_TYPES = [
-  { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey' },
-  { value: 'TEAM_FOOTBALL', label: 'Fotboll' },
-  { value: 'TEAM_HANDBALL', label: 'Handboll' },
-  { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
-  { value: 'TEAM_BASKETBALL', label: 'Basket' },
-  { value: 'TEAM_VOLLEYBALL', label: 'Volleyboll' },
-  { value: 'RUNNING', label: 'Löpning' },
-  { value: 'CYCLING', label: 'Cykling' },
-  { value: 'SWIMMING', label: 'Simning' },
-]
-
-const STAFF_ROLES = [
-  { value: 'COACH', label: 'Huvudtränare' },
-  { value: 'PHYSICAL_TRAINER', label: 'Fystränare' },
-  { value: 'ASSISTANT_COACH', label: 'Assisterande tränare' },
-  { value: 'PHYSIO', label: 'Fysioterapeut' },
-  { value: 'ADMIN', label: 'Sportchef' },
-]
 
 interface TeamDraft {
   id: string
@@ -65,6 +46,8 @@ interface ClubOnboardingWizardProps {
 
 export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboardingWizardProps) {
   const router = useRouter()
+  const t = useTranslations('coach.pages.clubOnboardingWizard')
+  const tCommon = useTranslations('common')
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
 
@@ -85,6 +68,24 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
   const [newPlayerName, setNewPlayerName] = useState('')
   const [newPlayerEmail, setNewPlayerEmail] = useState('')
   const [newPlayerTeam, setNewPlayerTeam] = useState('')
+  const SPORT_TYPES = [
+    { value: 'TEAM_ICE_HOCKEY', label: t('sports.teamIceHockey') },
+    { value: 'TEAM_FOOTBALL', label: t('sports.teamFootball') },
+    { value: 'TEAM_HANDBALL', label: t('sports.teamHandball') },
+    { value: 'TEAM_FLOORBALL', label: t('sports.teamFloorball') },
+    { value: 'TEAM_BASKETBALL', label: t('sports.teamBasketball') },
+    { value: 'TEAM_VOLLEYBALL', label: t('sports.teamVolleyball') },
+    { value: 'RUNNING', label: t('sports.running') },
+    { value: 'CYCLING', label: t('sports.cycling') },
+    { value: 'SWIMMING', label: t('sports.swimming') },
+  ]
+  const STAFF_ROLES = [
+    { value: 'COACH', label: t('roles.coach') },
+    { value: 'PHYSICAL_TRAINER', label: t('roles.physicalTrainer') },
+    { value: 'ASSISTANT_COACH', label: t('roles.assistantCoach') },
+    { value: 'PHYSIO', label: t('roles.physio') },
+    { value: 'ADMIN', label: t('roles.admin') },
+  ]
 
   const addTeam = () => {
     if (!newTeamName.trim()) return
@@ -168,10 +169,17 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
         })
       }
 
-      toast.success(`${businessName} är redo! ${teams.length} lag, ${staff.length} personal, ${players.length} spelare skapade.`)
+      toast.success(
+        t('toasts.success', {
+          businessName,
+          teamCount: teams.length,
+          staffCount: staff.length,
+          playerCount: players.length,
+        })
+      )
       router.push(`/${businessSlug}/coach/dashboard`)
     } catch (err) {
-      toast.error('Något gick fel. Försök igen.')
+      toast.error(t('toasts.error'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -179,10 +187,10 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
   }
 
   const steps = [
-    { label: 'Lag', icon: Users, count: teams.length },
-    { label: 'Personal', icon: Shield, count: staff.length },
-    { label: 'Spelare', icon: UserPlus, count: players.length },
-    { label: 'Klar', icon: Check, count: 0 },
+    { label: t('steps.teams'), icon: Users, count: teams.length },
+    { label: t('steps.staff'), icon: Shield, count: staff.length },
+    { label: t('steps.players'), icon: UserPlus, count: players.length },
+    { label: t('steps.summary'), icon: Check, count: 0 },
   ]
 
   return (
@@ -221,7 +229,7 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Skapa lag för {businessName}
+              {t('titles.createTeams', { businessName })}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -229,7 +237,7 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
               <Input
                 value={newTeamName}
                 onChange={(e) => setNewTeamName(e.target.value)}
-                placeholder="Lagnamn, t.ex. J18, J20, SHL"
+                placeholder={t('placeholders.teamName')}
                 onKeyDown={(e) => e.key === 'Enter' && addTeam()}
               />
               <Select value={newTeamSport} onValueChange={setNewTeamSport}>
@@ -268,7 +276,8 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
 
             <div className="flex justify-end pt-2">
               <Button onClick={() => setStep(1)} disabled={teams.length === 0}>
-                Nästa: Personal <ChevronRight className="h-4 w-4 ml-1" />
+                {t('actions.nextToStaff')}
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </CardContent>
@@ -281,13 +290,13 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Bjud in personal
+              {t('titles.inviteStaff')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <Input value={newStaffName} onChange={(e) => setNewStaffName(e.target.value)} placeholder="Namn" />
-              <Input value={newStaffEmail} onChange={(e) => setNewStaffEmail(e.target.value)} placeholder="E-post" type="email" />
+              <Input value={newStaffName} onChange={(e) => setNewStaffName(e.target.value)} placeholder={tCommon('name')} />
+              <Input value={newStaffEmail} onChange={(e) => setNewStaffEmail(e.target.value)} placeholder={tCommon('email')} type="email" />
             </div>
             <div className="flex gap-2">
               <Select value={newStaffRole} onValueChange={setNewStaffRole}>
@@ -302,14 +311,14 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
               </Select>
               <Button onClick={addStaff} disabled={!newStaffName.trim() || !newStaffEmail.trim()} size="sm" className="shrink-0">
                 <Plus className="h-4 w-4 mr-1" />
-                Lägg till
+                {t('actions.add')}
               </Button>
             </div>
 
             {/* Team assignment for team-scoped roles */}
             {['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO'].includes(newStaffRole) && teams.length > 0 && (
               <div className="space-y-1">
-                <Label className="text-xs">Tilldela till lag:</Label>
+                <Label className="text-xs">{t('labels.assignToTeam')}</Label>
                 <div className="flex flex-wrap gap-1">
                   {teams.map((t) => (
                     <button key={t.id} type="button"
@@ -348,9 +357,10 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
             )}
 
             <div className="flex justify-between pt-2">
-              <Button variant="outline" onClick={() => setStep(0)}>Tillbaka</Button>
+              <Button variant="outline" onClick={() => setStep(0)}>{tCommon('back')}</Button>
               <Button onClick={() => setStep(2)}>
-                Nästa: Spelare <ChevronRight className="h-4 w-4 ml-1" />
+                {t('actions.nextToPlayers')}
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </CardContent>
@@ -363,16 +373,16 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
-              Lägg till spelare
+              {t('titles.addPlayers')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Input value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="Spelarnamn" />
-              <Input value={newPlayerEmail} onChange={(e) => setNewPlayerEmail(e.target.value)} placeholder="E-post (valfritt)" type="email" />
+              <Input value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder={t('placeholders.playerName')} />
+              <Input value={newPlayerEmail} onChange={(e) => setNewPlayerEmail(e.target.value)} placeholder={t('placeholders.playerEmailOptional')} type="email" />
               <Select value={newPlayerTeam} onValueChange={setNewPlayerTeam}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj lag..." />
+                  <SelectValue placeholder={t('placeholders.selectTeam')} />
                 </SelectTrigger>
                 <SelectContent>
                   {teams.map((t) => (
@@ -383,7 +393,7 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
             </div>
             <Button onClick={addPlayer} disabled={!newPlayerName.trim() || !newPlayerTeam} size="sm">
               <Plus className="h-4 w-4 mr-1" />
-              Lägg till spelare
+              {t('actions.addPlayer')}
             </Button>
 
             {players.length > 0 && (
@@ -393,7 +403,9 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
                   if (teamPlayers.length === 0) return null
                   return (
                     <div key={team.id}>
-                      <p className="text-xs font-semibold text-muted-foreground mt-2 mb-1">{team.name} ({teamPlayers.length})</p>
+                      <p className="text-xs font-semibold text-muted-foreground mt-2 mb-1">
+                        {team.name} ({t('summary.teamPlayerCount', { count: teamPlayers.length })})
+                      </p>
                       {teamPlayers.map((p) => (
                         <div key={p.id} className="flex items-center justify-between p-1.5 rounded-md bg-muted/50 text-sm">
                           <span>{p.name}</span>
@@ -410,13 +422,14 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
             )}
 
             <p className="text-xs text-muted-foreground">
-              Du kan även lägga till spelare senare från atlethanteringen.
+              {t('messages.playerManagement')}
             </p>
 
             <div className="flex justify-between pt-2">
-              <Button variant="outline" onClick={() => setStep(1)}>Tillbaka</Button>
+              <Button variant="outline" onClick={() => setStep(1)}>{tCommon('back')}</Button>
               <Button onClick={() => setStep(3)}>
-                Nästa: Sammanfattning <ChevronRight className="h-4 w-4 ml-1" />
+                {t('actions.nextToSummary')}
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </CardContent>
@@ -429,22 +442,22 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Check className="h-5 w-5 text-green-600" />
-              Sammanfattning
+              {t('titles.summary')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
                 <p className="text-2xl font-bold text-blue-600">{teams.length}</p>
-                <p className="text-xs text-muted-foreground">Lag</p>
+                <p className="text-xs text-muted-foreground">{t('summary.labels.teams')}</p>
               </div>
               <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30">
                 <p className="text-2xl font-bold text-purple-600">{staff.length}</p>
-                <p className="text-xs text-muted-foreground">Personal</p>
+                <p className="text-xs text-muted-foreground">{t('summary.labels.staff')}</p>
               </div>
               <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
                 <p className="text-2xl font-bold text-green-600">{players.length}</p>
-                <p className="text-xs text-muted-foreground">Spelare</p>
+                <p className="text-xs text-muted-foreground">{t('summary.labels.players')}</p>
               </div>
             </div>
 
@@ -460,8 +473,8 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
                     </Badge>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {teamStaff.length > 0 && <p>Personal: {teamStaff.map((s) => s.name).join(', ')}</p>}
-                    <p>{teamPlayers.length} spelare</p>
+                    {teamStaff.length > 0 && <p>{t('summary.teamStaff', { names: teamStaff.map((s) => s.name).join(', ') })}</p>}
+                    <p>{t('summary.teamPlayerCount', { count: teamPlayers.length })}</p>
                   </div>
                 </div>
               )
@@ -469,7 +482,7 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
 
             {staff.filter((s) => s.teamIds.length === 0).length > 0 && (
               <div className="p-3 rounded-lg border">
-                <p className="font-semibold mb-1">Övergripande personal</p>
+                <p className="font-semibold mb-1">{t('summary.overallStaff')}</p>
                 <div className="text-xs text-muted-foreground">
                   {staff.filter((s) => s.teamIds.length === 0).map((s) => (
                     <p key={s.id}>{s.name} - {STAFF_ROLES.find((r) => r.value === s.role)?.label}</p>
@@ -479,9 +492,9 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
             )}
 
             <div className="flex justify-between pt-2">
-              <Button variant="outline" onClick={() => setStep(2)}>Tillbaka</Button>
+              <Button variant="outline" onClick={() => setStep(2)}>{tCommon('back')}</Button>
               <Button onClick={handleFinish} disabled={loading} className="bg-green-600 hover:bg-green-700">
-                {loading ? 'Skapar...' : `Skapa ${businessName}`}
+                {loading ? t('actions.creating') : t('actions.createBusiness', { businessName })}
                 <Check className="h-4 w-4 ml-1" />
               </Button>
             </div>

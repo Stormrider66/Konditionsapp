@@ -2359,6 +2359,73 @@
         "title": "Kom igång med {businessName}",
         "description": "Skapa lag, bjud in personal och lägg till spelare"
       },
+      "clubOnboardingWizard": {
+        "steps": {
+          "teams": "Lag",
+          "staff": "Personal",
+          "players": "Spelare",
+          "summary": "Sammanfattning"
+        },
+        "titles": {
+          "createTeams": "Skapa lag för {businessName}",
+          "inviteStaff": "Bjud in personal",
+          "addPlayers": "Lägg till spelare",
+          "summary": "Sammanfattning"
+        },
+        "actions": {
+          "add": "Lägg till",
+          "addPlayer": "Lägg till spelare",
+          "nextToStaff": "Nästa: Personal",
+          "nextToPlayers": "Nästa: Spelare",
+          "nextToSummary": "Nästa: Sammanfattning",
+          "createBusiness": "Skapa {businessName}",
+          "creating": "Skapar..."
+        },
+        "placeholders": {
+          "teamName": "Lagnamn, t.ex. J18, J20, SHL",
+          "playerName": "Spelarnamn",
+          "playerEmailOptional": "E-post (valfritt)",
+          "selectTeam": "Välj lag..."
+        },
+        "labels": {
+          "assignToTeam": "Tilldela till lag:"
+        },
+        "summary": {
+          "labels": {
+            "teams": "Lag",
+            "staff": "Personal",
+            "players": "Spelare"
+          },
+          "teamPlayerCount": "{count} spelare",
+          "teamStaff": "Personal: {names}",
+          "overallStaff": "Övergripande personal"
+        },
+        "toasts": {
+          "success": "{businessName} är redo! {teamCount} lag, {staffCount} personal, {playerCount} spelare skapade.",
+          "error": "Något gick fel. Försök igen."
+        },
+        "messages": {
+          "playerManagement": "Du kan även lägga till spelare senare från atlethanteringen."
+        },
+        "sports": {
+          "teamIceHockey": "Ishockey",
+          "teamFootball": "Fotboll",
+          "teamHandball": "Handboll",
+          "teamFloorball": "Innebandy",
+          "teamBasketball": "Basket",
+          "teamVolleyball": "Volleyboll",
+          "running": "Löpning",
+          "cycling": "Cykling",
+          "swimming": "Simning"
+        },
+        "roles": {
+          "coach": "Huvudtränare",
+          "physicalTrainer": "Fystränare",
+          "assistantCoach": "Assisterande tränare",
+          "physio": "Fysioterapeut",
+          "admin": "Sportchef"
+        }
+      },
       "testOverview": {
         "title": "Testöversikt",
         "description": "Resultat, jämförelser och utveckling över tid"

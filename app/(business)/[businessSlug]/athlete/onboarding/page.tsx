@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
+import { getLocale, type Locale } from '@/i18n/server'
 import { OnboardingWizard } from '@/components/onboarding'
 
 interface BusinessOnboardingPageProps {
@@ -12,6 +13,7 @@ interface BusinessOnboardingPageProps {
 export default async function BusinessAthleteOnboardingPage({ params }: BusinessOnboardingPageProps) {
   const { businessSlug } = await params
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
+  const locale = (await getLocale()) as Locale
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -46,7 +48,7 @@ export default async function BusinessAthleteOnboardingPage({ params }: Business
       <OnboardingWizard
         clientId={clientId}
         clientName={client.name}
-        locale="sv"
+        locale={locale}
         basePath={basePath}
         initialSport={initialSport}
         initialStep={initialStep}
