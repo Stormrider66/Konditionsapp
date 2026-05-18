@@ -4470,6 +4470,87 @@
       "retake": "Retake",
       "useValue": "Use value"
     },
+    "documentsClient": {
+      "title": "Document Library",
+      "subtitle": "Upload documents for AI-assisted training planning",
+      "status": {
+        "completed": "Done",
+        "processing": "Processing",
+        "failed": "Failed",
+        "pending": "Pending"
+      },
+      "toasts": {
+        "missingOpenAIKey": {
+          "title": "OpenAI API key missing",
+          "description": "Configure your OpenAI API key in Settings to generate embeddings."
+        },
+        "generated": {
+          "title": "Embeddings generated",
+          "description": "The document has been processed into {chunksCreated} chunks."
+        },
+        "generateFailed": {
+          "title": "Could not generate embeddings",
+          "description": "An unknown error occurred."
+        },
+        "noDocumentsToProcess": "No documents to process",
+        "allDocumentsProcessed": "All documents are already processed.",
+        "batchComplete": {
+          "title": "Processing complete",
+          "success": "{successCount} documents processed successfully.",
+          "withFailures": "{successCount} documents processed, {failCount} failed."
+        },
+        "deleteSuccess": {
+          "title": "Document deleted",
+          "description": "The document and all related chunks have been removed."
+        },
+        "deleteFailed": {
+          "title": "Could not delete document",
+          "description": "An unknown error occurred."
+        }
+      },
+      "alerts": {
+        "missingOpenAIKey": {
+          "title": "OpenAI API key missing",
+          "description": "You need to configure an OpenAI API key to generate embeddings and use document search."
+        }
+      },
+      "actions": {
+        "processAll": "Process all ({count})",
+        "upload": "Upload",
+        "settings": "Settings",
+        "uploadDocument": "Upload document",
+        "view": "View",
+        "generate": "Generate",
+        "retry": "Try again",
+        "delete": "Delete"
+      },
+      "search": {
+        "placeholder": "Search documents..."
+      },
+      "emptyState": {
+        "noResults": "No documents found",
+        "noResultsDescription": "Try another search",
+        "noDocuments": "No documents uploaded",
+        "noDocumentsDescription": "Upload PDFs, Excel files, or text documents to get started"
+      },
+      "meta": {
+        "uploadedAt": "Uploaded"
+      },
+      "stats": {
+        "documents": "Documents",
+        "processed": "Processed",
+        "totalChunks": "Total chunks",
+        "totalSize": "Total size"
+      },
+      "delete": {
+        "confirmTitle": "Delete document?",
+        "confirmDescription": "Are you sure you want to delete \"{name}\"? This will also remove all related chunks and embeddings. This action cannot be undone.",
+        "confirmDescriptionFallback": "No document selected for deletion.",
+        "cancel": "Cancel",
+        "deleting": "Deleting...",
+        "delete": "Delete"
+      }
+    },
     "sportSelector": {
       "selected": {
         "en": "Selected",

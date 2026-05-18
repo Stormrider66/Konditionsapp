@@ -41,7 +41,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Document {
   id: string
@@ -70,6 +71,9 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
   const businessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = businessSlug ? `/${businessSlug}` : ''
   const { toast } = useToast()
+  const t = useTranslations('components.documentsClient')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
 
   const [documents, setDocuments] = useState(initialDocuments)
   const [searchQuery, setSearchQuery] = useState('')
@@ -105,34 +109,34 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
 
   const getStatusBadge = (status: string, error: string | null) => {
     switch (status) {
-      case 'COMPLETED':
-        return (
-          <Badge variant="default" className="bg-green-500">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Klar
-          </Badge>
-        )
-      case 'PROCESSING':
-        return (
-          <Badge variant="secondary">
-            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-            Bearbetar
-          </Badge>
-        )
-      case 'FAILED':
-        return (
-          <Badge variant="destructive" title={error || undefined}>
-            <XCircle className="h-3 w-3 mr-1" />
-            Misslyckades
-          </Badge>
-        )
-      default:
-        return (
-          <Badge variant="outline">
-            <Clock className="h-3 w-3 mr-1" />
-            Väntar
-          </Badge>
-        )
+    case 'COMPLETED':
+      return (
+        <Badge variant="default" className="bg-green-500">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          {t('status.completed')}
+        </Badge>
+      )
+    case 'PROCESSING':
+      return (
+        <Badge variant="secondary">
+          <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+          {t('status.processing')}
+        </Badge>
+      )
+    case 'FAILED':
+      return (
+        <Badge variant="destructive" title={error || undefined}>
+          <XCircle className="h-3 w-3 mr-1" />
+          {t('status.failed')}
+        </Badge>
+      )
+    default:
+      return (
+        <Badge variant="outline">
+          <Clock className="h-3 w-3 mr-1" />
+          {t('status.pending')}
+        </Badge>
+      )
     }
   }
 
@@ -188,8 +192,8 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
   const handleProcessDocument = async (docId: string) => {
     if (!hasOpenAIKey) {
       toast({
-        title: 'OpenAI API-nyckel saknas',
-        description: 'Konfigurera din OpenAI API-nyckel i Inställningar för att generera embeddings.',
+        title: t('toasts.missingOpenAIKey.title'),
+        description: t('toasts.missingOpenAIKey.description'),
         variant: 'destructive',
       })
       return
@@ -211,8 +215,8 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
       }
 
       toast({
-        title: 'Embeddings genererade',
-        description: `Dokumentet har bearbetats till ${data.chunksCreated} chunks.`,
+        title: t('toasts.generated.title'),
+        description: t('toasts.generated.description', { chunksCreated: data.chunksCreated }),
       })
 
       // Fetch fresh documents
@@ -220,8 +224,11 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
       router.refresh()
     } catch (error) {
       toast({
-        title: 'Kunde inte generera embeddings',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t('toasts.generateFailed.title'),
+        description:
+          error instanceof Error
+            ? error.message
+            : t('toasts.generateFailed.description'),
         variant: 'destructive',
       })
     } finally {
@@ -235,8 +242,8 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
   const handleProcessAllDocuments = async () => {
     if (!hasOpenAIKey) {
       toast({
-        title: 'OpenAI API-nyckel saknas',
-        description: 'Konfigurera din OpenAI API-nyckel i Inställningar för att generera embeddings.',
+        title: t('toasts.missingOpenAIKey.title'),
+        description: t('toasts.missingOpenAIKey.description'),
         variant: 'destructive',
       })
       return
@@ -245,8 +252,8 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
     const docsToProcess = documents.filter(d => d.processingStatus === 'PENDING' || d.processingStatus === 'FAILED')
     if (docsToProcess.length === 0) {
       toast({
-        title: 'Inga dokument att bearbeta',
-        description: 'Alla dokument är redan bearbetade.',
+        title: t('toasts.noDocumentsToProcess'),
+        description: t('toasts.allDocumentsProcessed'),
       })
       return
     }
@@ -282,8 +289,11 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
     setBatchProgress({ current: 0, total: 0 })
 
     toast({
-      title: 'Bearbetning klar',
-      description: `${successCount} dokument bearbetade${failCount > 0 ? `, ${failCount} misslyckades` : ''}.`,
+      title: t('toasts.batchComplete.title'),
+      description:
+        failCount > 0
+          ? t('toasts.batchComplete.withFailures', { successCount, failCount })
+          : t('toasts.batchComplete.success', { successCount }),
       variant: failCount > 0 ? 'destructive' : 'default',
     })
 
@@ -302,7 +312,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
         method: 'DELETE',
       })
 
-      if (!response.ok) {
+    if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error || 'Failed to delete document')
       }
@@ -310,13 +320,16 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
       setDocuments((prev) => prev.filter((d) => d.id !== deleteDocument.id))
 
       toast({
-        title: 'Dokument borttaget',
-        description: 'Dokumentet och alla tillhörande chunks har tagits bort.',
+        title: t('toasts.deleteSuccess.title'),
+        description: t('toasts.deleteSuccess.description'),
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte ta bort dokument',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t('toasts.deleteFailed.title'),
+        description:
+          error instanceof Error
+            ? error.message
+            : t('toasts.deleteFailed.description'),
         variant: 'destructive',
       })
     } finally {
@@ -332,10 +345,10 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FileText className="h-6 w-6 text-blue-600" />
-            Dokumentbibliotek <InfoTooltip conceptKey="ragDocuments" />
+            {t('title')} <InfoTooltip conceptKey="ragDocuments" />
           </h1>
           <p className="text-muted-foreground mt-1">
-            Ladda upp dokument för AI-assisterad träningsplanering
+            {t('subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -359,14 +372,14 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
               ) : (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Bearbeta alla ({pendingDocuments.length})
+                  {t('actions.processAll', { count: pendingDocuments.length })}
                 </>
               )}
             </Button>
           )}
           <Button onClick={() => setShowUploader(true)}>
             <Upload className="h-4 w-4 mr-2" />
-            Ladda upp
+            {t('actions.upload')}
           </Button>
         </div>
       </div>
@@ -378,15 +391,15 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
               <div className="flex-1">
-                <p className="font-medium text-amber-800">OpenAI API-nyckel saknas</p>
+                <p className="font-medium text-amber-800">{t('alerts.missingOpenAIKey.title')}</p>
                 <p className="text-sm text-amber-700">
-                  Du behöver konfigurera en OpenAI API-nyckel för att kunna generera embeddings och använda dokumentsökning.
+                  {t('alerts.missingOpenAIKey.description')}
                 </p>
               </div>
               <Button variant="outline" size="sm" asChild>
                 <Link href={`${basePath}/coach/settings/ai`}>
                   <Settings className="h-4 w-4 mr-1" />
-                  Inställningar
+                  {t('actions.settings')}
                 </Link>
               </Button>
             </div>
@@ -398,7 +411,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Sök dokument..."
+          placeholder={t('search.placeholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -411,17 +424,17 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
           <CardContent className="py-12 text-center">
             <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium mb-2">
-              {searchQuery ? 'Inga dokument hittades' : 'Inga dokument uppladdade'}
+              {searchQuery ? t('emptyState.noResults') : t('emptyState.noDocuments')}
             </h3>
             <p className="text-muted-foreground mb-4">
               {searchQuery
-                ? 'Försök med en annan sökning'
-                : 'Ladda upp PDF:er, Excel-filer eller textdokument för att komma igång'}
+                ? t('emptyState.noResultsDescription')
+                : t('emptyState.noDocumentsDescription')}
             </p>
             {!searchQuery && (
               <Button onClick={() => setShowUploader(true)}>
                 <Upload className="h-4 w-4 mr-2" />
-                Ladda upp dokument
+                {t('actions.uploadDocument')}
               </Button>
             )}
           </CardContent>
@@ -455,7 +468,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Uppladdat {format(new Date(doc.createdAt), 'PPP', { locale: sv })}
+                  {t('meta.uploadedAt')} {format(new Date(doc.createdAt), 'PPP', { locale: dateLocale })}
                 </p>
 
                 {/* Actions */}
@@ -466,7 +479,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
                     onClick={() => setPreviewDocument(doc)}
                   >
                     <Eye className="h-3 w-3 mr-1" />
-                    Visa
+                    {t('actions.view')}
                   </Button>
 
                   {doc.processingStatus === 'PENDING' && (
@@ -481,7 +494,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
                       ) : (
                         <RefreshCw className="h-3 w-3 mr-1" />
                       )}
-                      Generera
+                      {t('actions.generate')}
                     </Button>
                   )}
 
@@ -497,7 +510,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
                       ) : (
                         <RefreshCw className="h-3 w-3 mr-1" />
                       )}
-                      Försök igen
+                      {t('actions.retry')}
                     </Button>
                   )}
 
@@ -523,7 +536,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
         <Card>
           <CardContent className="py-4 text-center">
             <p className="text-2xl font-bold">{documents.length}</p>
-            <p className="text-sm text-muted-foreground">Dokument</p>
+            <p className="text-sm text-muted-foreground">{t('stats.documents')}</p>
           </CardContent>
         </Card>
         <Card>
@@ -531,7 +544,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
             <p className="text-2xl font-bold">
               {documents.filter((d) => d.processingStatus === 'COMPLETED').length}
             </p>
-            <p className="text-sm text-muted-foreground">Bearbetade</p>
+            <p className="text-sm text-muted-foreground">{t('stats.processed')}</p>
           </CardContent>
         </Card>
         <Card>
@@ -539,7 +552,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
             <p className="text-2xl font-bold">
               {documents.reduce((acc, d) => acc + d.chunkCount, 0)}
             </p>
-            <p className="text-sm text-muted-foreground">Totalt chunks</p>
+            <p className="text-sm text-muted-foreground">{t('stats.totalChunks')}</p>
           </CardContent>
         </Card>
         <Card>
@@ -549,7 +562,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
                 documents.reduce((acc, d) => acc + (d.fileSize || 0), 0)
               )}
             </p>
-            <p className="text-sm text-muted-foreground">Total storlek</p>
+            <p className="text-sm text-muted-foreground">{t('stats.totalSize')}</p>
           </CardContent>
         </Card>
       </div>
@@ -576,15 +589,15 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
       <AlertDialog open={!!deleteDocument} onOpenChange={() => setDeleteDocument(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort dokument?</AlertDialogTitle>
+            <AlertDialogTitle>{t('delete.confirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ta bort &quot;{deleteDocument?.name}&quot;?
-              Detta kommer också ta bort alla tillhörande chunks och embeddings.
-              Denna åtgärd kan inte ångras.
+              {deleteDocument
+                ? t('delete.confirmDescription', { name: deleteDocument.name })
+                : t('delete.confirmDescriptionFallback')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t('delete.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteDocument}
               disabled={isDeleting}
@@ -593,10 +606,10 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
               {isDeleting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Tar bort...
+                  {t('delete.deleting')}
                 </>
               ) : (
-                'Ta bort'
+                t('delete.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

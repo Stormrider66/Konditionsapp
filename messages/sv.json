@@ -4470,6 +4470,87 @@
       "retake": "Ta om",
       "useValue": "Använd värde"
     },
+    "documentsClient": {
+      "title": "Dokumentbibliotek",
+      "subtitle": "Ladda upp dokument för AI-assisterad träningsplanering",
+      "status": {
+        "completed": "Klar",
+        "processing": "Bearbetar",
+        "failed": "Misslyckades",
+        "pending": "Väntar"
+      },
+      "toasts": {
+        "missingOpenAIKey": {
+          "title": "OpenAI API-nyckel saknas",
+          "description": "Konfigurera din OpenAI API-nyckel i Inställningar för att generera embeddings."
+        },
+        "generated": {
+          "title": "Embeddings genererade",
+          "description": "Dokumentet har bearbetats till {chunksCreated} chunks."
+        },
+        "generateFailed": {
+          "title": "Kunde inte generera embeddings",
+          "description": "Ett okänt fel inträffade."
+        },
+        "noDocumentsToProcess": "Inga dokument att bearbeta",
+        "allDocumentsProcessed": "Alla dokument är redan bearbetade.",
+        "batchComplete": {
+          "title": "Bearbetning klar",
+          "success": "{successCount} dokument bearbetades.",
+          "withFailures": "{successCount} dokument bearbetades, {failCount} misslyckades."
+        },
+        "deleteSuccess": {
+          "title": "Dokument borttaget",
+          "description": "Dokumentet och alla tillhörande chunks har tagits bort."
+        },
+        "deleteFailed": {
+          "title": "Kunde inte ta bort dokument",
+          "description": "Ett okänt fel inträffade."
+        }
+      },
+      "alerts": {
+        "missingOpenAIKey": {
+          "title": "OpenAI API-nyckel saknas",
+          "description": "Du behöver konfigurera en OpenAI API-nyckel för att kunna generera embeddings och använda dokumentsökning."
+        }
+      },
+      "actions": {
+        "processAll": "Bearbeta alla ({count})",
+        "upload": "Ladda upp",
+        "settings": "Inställningar",
+        "uploadDocument": "Ladda upp dokument",
+        "view": "Visa",
+        "generate": "Generera",
+        "retry": "Försök igen",
+        "delete": "Ta bort"
+      },
+      "search": {
+        "placeholder": "Sök dokument..."
+      },
+      "emptyState": {
+        "noResults": "Inga dokument hittades",
+        "noResultsDescription": "Försök med en annan sökning",
+        "noDocuments": "Inga dokument uppladdade",
+        "noDocumentsDescription": "Ladda upp PDF:er, Excel-filer eller textdokument för att komma igång"
+      },
+      "meta": {
+        "uploadedAt": "Uppladdat"
+      },
+      "stats": {
+        "documents": "Dokument",
+        "processed": "Bearbetade",
+        "totalChunks": "Totalt chunks",
+        "totalSize": "Total storlek"
+      },
+      "delete": {
+        "confirmTitle": "Ta bort dokument?",
+        "confirmDescription": "Är du säker på att du vill ta bort \"{name}\"? Detta kommer också ta bort alla tillhörande chunks och embeddings. Denna åtgärd kan inte ångras.",
+        "confirmDescriptionFallback": "Inget dokument valt för borttagning.",
+        "cancel": "Avbryt",
+        "deleting": "Tar bort...",
+        "delete": "Ta bort"
+      }
+    },
     "sportSelector": {
       "selected": {
         "en": "Selected",
