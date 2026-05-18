@@ -2022,6 +2022,7 @@
       "businessNamePlaceholder": "E.g. Nordic Fitness",
       "cityPlaceholder": "Stockholm",
       "phonePlaceholder": "070-123 45 67",
+      "websitePlaceholder": "https://www.example.com",
       "createAccount": "Create gym account",
       "creatingAccount": "Creating gym account...",
       "successTitle": "Gym account created!",
@@ -2101,6 +2102,8 @@
       "defaultTeamName": "a team",
       "athletePrompt": "Are you an athlete?",
       "athleteSignupLink": "Register as an athlete",
+      "heightPlaceholder": "175",
+      "weightPlaceholder": "70",
       "validation": {
         "passwordsDoNotMatch": "Passwords do not match",
         "athleteProfileRequired": "All athlete profile fields are required"
@@ -2162,7 +2165,8 @@
       },
       "validation": {
         "birthDateRequired": "Birth date is required"
-      }
+      },
+      "inviteCodePlaceholder": "ABC123"
     },
     "claimBusiness": {
       "title": "Activate your account",

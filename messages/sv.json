@@ -2022,6 +2022,7 @@
       "businessNamePlaceholder": "T.ex. Nordic Fitness",
       "cityPlaceholder": "Stockholm",
       "phonePlaceholder": "070-123 45 67",
+      "websitePlaceholder": "https://www.example.com",
       "createAccount": "Skapa gymkonto",
       "creatingAccount": "Skapar gymkonto...",
       "successTitle": "Gymkonto skapat!",
@@ -2101,6 +2102,8 @@
       "defaultTeamName": "ett team",
       "athletePrompt": "Är du atlet?",
       "athleteSignupLink": "Registrera dig som atlet",
+      "heightPlaceholder": "175",
+      "weightPlaceholder": "70",
       "validation": {
         "passwordsDoNotMatch": "Lösenorden matchar inte",
         "athleteProfileRequired": "Alla fält för atletprofilen krävs"
@@ -2162,7 +2165,8 @@
       },
       "validation": {
         "birthDateRequired": "Födelsedatum krävs"
-      }
+      },
+      "inviteCodePlaceholder": "ABC123"
     },
     "claimBusiness": {
       "title": "Aktivera ditt konto",

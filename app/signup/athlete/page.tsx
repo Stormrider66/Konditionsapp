@@ -574,7 +574,7 @@ function AthleteSignupForm() {
             id="inviteCode"
             type="text"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="ABC123"
+            placeholder={t('athleteSignup.inviteCodePlaceholder')}
             {...register('inviteCode')}
             disabled={isLoading}
           />

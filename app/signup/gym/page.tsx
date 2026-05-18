@@ -227,14 +227,14 @@ export default function GymSignupPage() {
                 <Globe className="h-4 w-4 text-muted-foreground" />
                 {t('gymSignup.websiteLabel')}
               </label>
-              <input
-                id="website"
-                type="url"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="https://www.example.com"
-                {...register('website')}
-                disabled={isLoading}
-              />
+                <input
+                  id="website"
+                  type="url"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder={t('gymSignup.websitePlaceholder')}
+                  {...register('website')}
+                  disabled={isLoading}
+                />
             </div>
 
             <div className="space-y-2">
