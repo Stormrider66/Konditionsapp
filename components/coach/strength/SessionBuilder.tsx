@@ -39,6 +39,7 @@ import {
 } from '@/lib/strength/exercise-library-filters'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { StrengthSessionData } from '@/types'
+import { useTranslations } from '@/i18n/client'
 
 // Types
 type Exercise = {
@@ -77,8 +78,9 @@ interface SessionBuilderProps {
 export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilderProps) {
   const searchParams = useSearchParams()
   const workoutId = searchParams.get('workoutId')
+  const tSessionBuilder = useTranslations('components.sessionBuilder')
 
-  const [sessionName, setSessionName] = useState('Nytt Styrkepass')
+  const [sessionName, setSessionName] = useState(tSessionBuilder('defaults.sessionName'))
   const [description, setDescription] = useState('')
   const [phase, setPhase] = useState('Base')
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -115,7 +117,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
       )
     } else {
       // Reset form for new session
-      setSessionName('Nytt Styrkepass')
+      setSessionName(tSessionBuilder('defaults.sessionName'))
       setDescription('')
       setPhase('Base')
       setExercises([])
@@ -216,7 +218,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
 
       try {
         const res = await fetch(`/api/workouts/${workoutId}`)
-        if (!res.ok) throw new Error('Failed to load workout')
+        if (!res.ok) throw new Error(tSessionBuilder('errors.loadFailed'))
         
         const data = await res.json()
         setSessionName(data.name)
@@ -247,7 +249,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
 
       } catch (error) {
         console.error('Error loading workout:', error)
-        setSessionName('Error loading workout')
+        setSessionName(tSessionBuilder('errors.loadErrorState'))
       }
     }
 
@@ -315,8 +317,8 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
 
   async function handleSave() {
     if (exercises.length === 0) {
-      toast.error('Lägg till övningar', {
-        description: 'Du måste lägga till minst en övning för att spara passet.',
+      toast.error(tSessionBuilder('toasts.noExercises'), {
+        description: tSessionBuilder('toasts.noExercisesDescription'),
       })
       return
     }
@@ -354,20 +356,22 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
 
       if (response.ok) {
         const result = await response.json()
-        toast.success(isEditing ? 'Pass uppdaterat!' : 'Pass sparat!', {
-          description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
+        toast.success(isEditing ? tSessionBuilder('toasts.savedUpdated') : tSessionBuilder('toasts.saved'), {
+          description: tSessionBuilder(isEditing ? 'toasts.savedUpdatedDescription' : 'toasts.savedDescription', {
+            sessionName,
+          }),
         })
         onSaved?.(result.id || result.session?.id || initialData?.id, sessionName)
       } else {
         const data = await response.json()
-        toast.error('Kunde inte spara', {
-          description: data.error || 'Ett fel uppstod.',
+        toast.error(tSessionBuilder('toasts.saveFailed'), {
+          description: data.error || tSessionBuilder('errors.saveError'),
         })
       }
     } catch (error) {
       console.error('Failed to save session:', error)
-      toast.error('Kunde inte spara', {
-        description: 'Ett oväntat fel uppstod.',
+      toast.error(tSessionBuilder('toasts.saveFailed'), {
+        description: tSessionBuilder('errors.unexpectedSaveError'),
       })
     } finally {
       setSaving(false)
@@ -383,46 +387,48 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1 space-y-4">
                 <div className="space-y-2">
-                  <Label>Passnamn</Label>
+                  <Label>{tSessionBuilder('labels.sessionName')}</Label>
                   <Input
                     value={sessionName}
                     onChange={(e) => setSessionName(e.target.value)}
                     className="text-lg font-semibold"
-                    placeholder="Ge passet ett namn..."
+                    placeholder={tSessionBuilder('placeholders.sessionName')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Beskrivning (valfritt)</Label>
+                  <Label>{tSessionBuilder('labels.description')}</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Beskriv passets syfte eller anteckningar..."
+                    placeholder={tSessionBuilder('placeholders.description')}
                     rows={2}
                   />
                 </div>
               </div>
               <div className="space-y-2 w-[150px]">
-                <Label className="flex items-center gap-1.5">Fas <InfoTooltip conceptKey="strengthPhases" /></Label>
+                <Label className="flex items-center gap-1.5">
+                  {tSessionBuilder('labels.phase')} <InfoTooltip conceptKey="strengthPhases" />
+                </Label>
                 <Select value={phase} onValueChange={setPhase}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Base">Anatom. Anpassning</SelectItem>
-                    <SelectItem value="Strength">Maxstyrka</SelectItem>
-                    <SelectItem value="Power">Power</SelectItem>
-                    <SelectItem value="Maintenance">Underhåll</SelectItem>
-                    <SelectItem value="Taper">Taper</SelectItem>
+                    <SelectItem value="Base">{tSessionBuilder('phases.base')}</SelectItem>
+                    <SelectItem value="Strength">{tSessionBuilder('phases.strength')}</SelectItem>
+                    <SelectItem value="Power">{tSessionBuilder('phases.power')}</SelectItem>
+                    <SelectItem value="Maintenance">{tSessionBuilder('phases.maintenance')}</SelectItem>
+                    <SelectItem value="Taper">{tSessionBuilder('phases.taper')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             {onCancel && (
               <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Redigerar: {initialData?.name}</span>
+                <span>{tSessionBuilder('labels.editing', { athleteName: initialData?.name })}</span>
                 <Button variant="ghost" size="sm" onClick={onCancel} className="ml-auto">
                   <X className="h-4 w-4 mr-1" />
-                  Avbryt
+                  {tSessionBuilder('actions.cancel')}
                 </Button>
               </div>
             )}
@@ -603,10 +609,12 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Sparar...
+                    {tSessionBuilder('actions.saving')}
                   </>
                 ) : (
-                  initialData ? 'Uppdatera pass' : 'Spara pass'
+                  initialData
+                    ? tSessionBuilder('actions.updateSession')
+                    : tSessionBuilder('actions.saveSession')
                 )}
               </Button>
               <SessionExportButton

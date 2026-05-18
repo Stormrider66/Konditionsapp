@@ -8815,6 +8815,51 @@
         }
       }
     },
+    "sessionBuilder": {
+      "defaults": {
+        "sessionName": "New Strength Session"
+      },
+      "errors": {
+        "loadFailed": "Failed to load workout",
+        "loadErrorState": "Error loading workout",
+        "noExercises": "Add Exercises",
+        "noExercisesDescription": "You need to add at least one exercise to save the session.",
+        "saveError": "An unexpected error occurred.",
+        "unexpectedSaveError": "An unexpected error occurred while saving."
+      },
+      "toasts": {
+        "noExercises": "Add exercises",
+        "saved": "Session saved",
+        "savedDescription": "{sessionName} has been saved.",
+        "savedUpdated": "Session updated",
+        "savedUpdatedDescription": "{sessionName} has been updated.",
+        "saveFailed": "Unable to save",
+        "loadErrorState": "Failed to load workout"
+      },
+      "labels": {
+        "sessionName": "Session name",
+        "description": "Description (optional)",
+        "phase": "Phase",
+        "editing": "Editing: {athleteName}"
+      },
+      "phases": {
+        "base": "Anatomical adaptation",
+        "strength": "Max strength",
+        "power": "Power",
+        "maintenance": "Maintenance",
+        "taper": "Taper"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "updateSession": "Update session",
+        "saveSession": "Save session"
+      },
+      "placeholders": {
+        "sessionName": "Give the session a name...",
+        "description": "Describe the purpose of the session or notes..."
+      }
+    },
     "dmaxCurveChart": {
       "title": "Lactate curve with thresholds",
       "intensityLabel": {

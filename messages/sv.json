@@ -8815,6 +8815,51 @@
         }
       }
     },
+    "sessionBuilder": {
+      "defaults": {
+        "sessionName": "Nytt styrkepass"
+      },
+      "errors": {
+        "loadFailed": "Kunde inte hämta passet",
+        "loadErrorState": "Fel vid inläsning av pass",
+        "noExercises": "Lägg till övningar",
+        "noExercisesDescription": "Du måste lägga till minst en övning för att spara passet.",
+        "saveError": "Ett fel uppstod.",
+        "unexpectedSaveError": "Ett oväntat fel uppstod vid sparning."
+      },
+      "toasts": {
+        "noExercises": "Lägg till övningar",
+        "saved": "Pass sparat",
+        "savedDescription": "\"{sessionName}\" har sparats.",
+        "savedUpdated": "Pass uppdaterat",
+        "savedUpdatedDescription": "\"{sessionName}\" har uppdaterats.",
+        "saveFailed": "Kunde inte spara",
+        "loadErrorState": "Fel vid inläsning av pass"
+      },
+      "labels": {
+        "sessionName": "Passnamn",
+        "description": "Beskrivning (valfritt)",
+        "phase": "Fas",
+        "editing": "Redigerar: {athleteName}"
+      },
+      "phases": {
+        "base": "Anatomisk anpassning",
+        "strength": "Maxstyrka",
+        "power": "Power",
+        "maintenance": "Underhåll",
+        "taper": "Taper"
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "saving": "Sparar...",
+        "updateSession": "Uppdatera pass",
+        "saveSession": "Spara pass"
+      },
+      "placeholders": {
+        "sessionName": "Ge passet ett namn...",
+        "description": "Beskriv passets syfte eller anteckningar..."
+      }
+    },
     "dmaxCurveChart": {
       "title": "Laktatkurva med tröskelvärden",
       "intensityLabel": {
