@@ -23,6 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useTranslations } from '@/i18n/client'
 
 interface Athlete {
     id: string
@@ -41,41 +42,44 @@ interface TreatmentSessionFormProps {
     basePath?: string
 }
 
-const treatmentTypes = [
-    { value: 'INITIAL_ASSESSMENT', label: 'Initial Assessment' },
-    { value: 'FOLLOW_UP', label: 'Follow-up' },
-    { value: 'MANUAL_THERAPY', label: 'Manual Therapy' },
-    { value: 'DRY_NEEDLING', label: 'Dry Needling' },
-    { value: 'EXERCISE_THERAPY', label: 'Exercise Therapy' },
-    { value: 'ELECTROTHERAPY', label: 'Electrotherapy' },
-    { value: 'ULTRASOUND', label: 'Ultrasound' },
-    { value: 'TAPING', label: 'Taping' },
-    { value: 'MASSAGE', label: 'Massage' },
-    { value: 'STRETCHING', label: 'Stretching' },
-    { value: 'MOBILIZATION', label: 'Mobilization' },
-    { value: 'DISCHARGE', label: 'Discharge' },
-    { value: 'OTHER', label: 'Other' },
-]
-
-const modalities = [
-    'Ice',
-    'Heat',
-    'TENS',
-    'Ultrasound',
-    'Laser',
-    'Shockwave',
-    'Cupping',
-    'Kinesio Tape',
-    'Rigid Tape',
-    'Foam Rolling',
-    'Instrument Assisted Soft Tissue',
-]
+type SelectOption = { value: string; label: string }
 
 export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId, basePath = '' }: TreatmentSessionFormProps) {
     const router = useRouter()
+    const t = useTranslations('components.treatmentSessionForm')
     const [loading, setLoading] = useState(false)
     const [athletes, setAthletes] = useState<Athlete[]>([])
     const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null)
+
+    const treatmentTypes: SelectOption[] = [
+        { value: 'INITIAL_ASSESSMENT', label: t('treatmentTypes.initialAssessment') },
+        { value: 'FOLLOW_UP', label: t('treatmentTypes.followUp') },
+        { value: 'MANUAL_THERAPY', label: t('treatmentTypes.manualTherapy') },
+        { value: 'DRY_NEEDLING', label: t('treatmentTypes.dryNeedling') },
+        { value: 'EXERCISE_THERAPY', label: t('treatmentTypes.exerciseTherapy') },
+        { value: 'ELECTROTHERAPY', label: t('treatmentTypes.electrotherapy') },
+        { value: 'ULTRASOUND', label: t('treatmentTypes.ultrasound') },
+        { value: 'TAPING', label: t('treatmentTypes.taping') },
+        { value: 'MASSAGE', label: t('treatmentTypes.massage') },
+        { value: 'STRETCHING', label: t('treatmentTypes.stretching') },
+        { value: 'MOBILIZATION', label: t('treatmentTypes.mobilization') },
+        { value: 'DISCHARGE', label: t('treatmentTypes.discharge') },
+        { value: 'OTHER', label: t('treatmentTypes.other') },
+    ]
+
+    const modalities: SelectOption[] = [
+        { value: 'Ice', label: t('modalities.ice') },
+        { value: 'Heat', label: t('modalities.heat') },
+        { value: 'TENS', label: t('modalities.tens') },
+        { value: 'Ultrasound', label: t('modalities.ultrasound') },
+        { value: 'Laser', label: t('modalities.laser') },
+        { value: 'Shockwave', label: t('modalities.shockwave') },
+        { value: 'Cupping', label: t('modalities.cupping') },
+        { value: 'Kinesio Tape', label: t('modalities.kinesioTape') },
+        { value: 'Rigid Tape', label: t('modalities.rigidTape') },
+        { value: 'Foam Rolling', label: t('modalities.foamRolling') },
+        { value: 'Instrument Assisted Soft Tissue', label: t('modalities.instrumentAssistedSoftTissue') },
+    ]
 
     // Form state
     const [formData, setFormData] = useState({
@@ -162,11 +166,11 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
                 router.push(basePath ? `${basePath}/treatments/${data.id}` : '/login')
             } else {
                 const error = await res.json()
-                alert(error.error || 'Failed to create treatment session')
+                alert(error.error || t('alerts.failedToCreate'))
             }
         } catch (error) {
             console.error('Error creating treatment:', error)
-            alert('Failed to create treatment session')
+            alert(t('alerts.failedToCreate'))
         } finally {
             setLoading(false)
         }
@@ -188,18 +192,18 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
                 <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                         <User className="w-5 h-5 text-emerald-500" />
-                        Athlete
+                        {t('sections.athlete')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <Label className="text-slate-300">Select Athlete</Label>
+                        <Label className="text-slate-300">{t('fields.selectAthlete')}</Label>
                         <Select
                             value={formData.clientId}
                             onValueChange={(value) => setFormData(prev => ({ ...prev, clientId: value, injuryId: '' }))}
                         >
                             <SelectTrigger className="bg-slate-800 border-white/10 text-white">
-                                <SelectValue placeholder="Select an athlete" />
+                                <SelectValue placeholder={t('placeholders.selectAthlete')} />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-900 border-white/10">
                                 {athletes.map((athlete) => (
@@ -213,16 +217,16 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
 
                     {selectedAthlete?.injuryAssessments && selectedAthlete.injuryAssessments.length > 0 && (
                         <div>
-                            <Label className="text-slate-300">Related Injury (Optional)</Label>
+                            <Label className="text-slate-300">{t('fields.relatedInjury')}</Label>
                             <Select
                                 value={formData.injuryId}
                                 onValueChange={(value) => setFormData(prev => ({ ...prev, injuryId: value }))}
                             >
                                 <SelectTrigger className="bg-slate-800 border-white/10 text-white">
-                                    <SelectValue placeholder="Select related injury" />
+                                    <SelectValue placeholder={t('placeholders.selectInjury')} />
                                 </SelectTrigger>
                                 <SelectContent className="bg-slate-900 border-white/10">
-                                    <SelectItem value="" className="text-slate-200">None</SelectItem>
+                                    <SelectItem value="" className="text-slate-200">{t('selection.none')}</SelectItem>
                                     {selectedAthlete.injuryAssessments.map((injury) => (
                                         <SelectItem key={injury.id} value={injury.id} className="text-slate-200">
                                             {injury.injuryType} - {injury.bodyPart}
@@ -240,13 +244,13 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
                 <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                         <Stethoscope className="w-5 h-5 text-emerald-500" />
-                        Session Details
+                        {t('sections.session')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <Label className="text-slate-300">Treatment Type</Label>
+                            <Label className="text-slate-300">{t('fields.treatmentType')}</Label>
                             <Select
                                 value={formData.treatmentType}
                                 onValueChange={(value) => setFormData(prev => ({ ...prev, treatmentType: value }))}
@@ -265,7 +269,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
                         </div>
 
                         <div>
-                            <Label className="text-slate-300">Session Date</Label>
+                            <Label className="text-slate-300">{t('fields.sessionDate')}</Label>
                             <Input
                                 type="date"
                                 value={formData.sessionDate}
@@ -279,7 +283,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <Label className="text-slate-300 mb-2 block">
-                                Pain Before: <span className="text-white">{formData.painBefore}/10</span>
+                                {t('fields.painBefore')}: <span className="text-white">{formData.painBefore}/10</span>
                             </Label>
                             <Slider
                                 value={[formData.painBefore]}
@@ -292,7 +296,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
                         </div>
                         <div>
                             <Label className="text-slate-300 mb-2 block">
-                                Pain After: <span className="text-white">{formData.painAfter}/10</span>
+                                {t('fields.painAfter')}: <span className="text-white">{formData.painAfter}/10</span>
                             </Label>
                             <Slider
                                 value={[formData.painAfter]}
@@ -310,48 +314,48 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             {/* SOAP Notes */}
             <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader>
-                    <CardTitle className="text-white">SOAP Notes <InfoTooltip conceptKey="soapNotes" /></CardTitle>
+                    <CardTitle className="text-white">{t('sections.soapNotes')} <InfoTooltip conceptKey="soapNotes" /></CardTitle>
                     <CardDescription className="text-slate-400">
-                        Document your clinical findings using the SOAP format
+                        {t('descriptions.soapNotes')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <Label className="text-slate-300">Subjective</Label>
+                        <Label className="text-slate-300">{t('fields.subjective')}</Label>
                         <Textarea
                             value={formData.subjective}
                             onChange={(e) => setFormData(prev => ({ ...prev, subjective: e.target.value }))}
-                            placeholder="Patient's description of symptoms, history, concerns..."
+                            placeholder={t('placeholders.subjective')}
                             className="bg-slate-800 border-white/10 text-white placeholder:text-slate-500 min-h-[100px]"
                         />
                     </div>
 
                     <div>
-                        <Label className="text-slate-300">Objective</Label>
+                        <Label className="text-slate-300">{t('fields.objective')}</Label>
                         <Textarea
                             value={formData.objective}
                             onChange={(e) => setFormData(prev => ({ ...prev, objective: e.target.value }))}
-                            placeholder="Physical examination findings, measurements, tests..."
+                            placeholder={t('placeholders.objective')}
                             className="bg-slate-800 border-white/10 text-white placeholder:text-slate-500 min-h-[100px]"
                         />
                     </div>
 
                     <div>
-                        <Label className="text-slate-300">Assessment</Label>
+                        <Label className="text-slate-300">{t('fields.assessment')}</Label>
                         <Textarea
                             value={formData.assessment}
                             onChange={(e) => setFormData(prev => ({ ...prev, assessment: e.target.value }))}
-                            placeholder="Clinical reasoning, diagnosis, prognosis..."
+                            placeholder={t('placeholders.assessment')}
                             className="bg-slate-800 border-white/10 text-white placeholder:text-slate-500 min-h-[100px]"
                         />
                     </div>
 
                     <div>
-                        <Label className="text-slate-300">Plan</Label>
+                        <Label className="text-slate-300">{t('fields.plan')}</Label>
                         <Textarea
                             value={formData.plan}
                             onChange={(e) => setFormData(prev => ({ ...prev, plan: e.target.value }))}
-                            placeholder="Treatment plan, goals, next steps..."
+                            placeholder={t('placeholders.plan')}
                             className="bg-slate-800 border-white/10 text-white placeholder:text-slate-500 min-h-[100px]"
                         />
                     </div>
@@ -361,24 +365,24 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             {/* Modalities Used */}
             <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader>
-                    <CardTitle className="text-white">Modalities Used</CardTitle>
+                    <CardTitle className="text-white">{t('sections.modalities')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {modalities.map((modality) => (
                             <label
-                                key={modality}
+                                key={modality.value}
                                 className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
-                                    formData.modalitiesUsed.includes(modality)
+                                    formData.modalitiesUsed.includes(modality.value)
                                         ? 'bg-emerald-500/20 border border-emerald-500/30'
                                         : 'bg-slate-800/50 border border-white/5 hover:border-white/10'
                                 }`}
                             >
                                 <Checkbox
-                                    checked={formData.modalitiesUsed.includes(modality)}
-                                    onCheckedChange={() => toggleModality(modality)}
+                                    checked={formData.modalitiesUsed.includes(modality.value)}
+                                    onCheckedChange={() => toggleModality(modality.value)}
                                 />
-                                <span className="text-sm text-slate-200">{modality}</span>
+                                <span className="text-sm text-slate-200">{modality.label}</span>
                             </label>
                         ))}
                     </div>
@@ -388,25 +392,27 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             {/* Exercise Prescription */}
             <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader>
-                    <CardTitle className="text-white">Exercise Prescription</CardTitle>
+                    <CardTitle className="text-white">{t('sections.exercisePrescription')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div>
-                        <Label className="text-slate-300">Exercises Prescribed (one per line)</Label>
+                        <Label className="text-slate-300">
+                            {t('fields.exercisesPrescribed')}
+                        </Label>
                         <Textarea
                             value={formData.exercisesPrescribed}
                             onChange={(e) => setFormData(prev => ({ ...prev, exercisesPrescribed: e.target.value }))}
-                            placeholder="e.g., Clamshells 3x15&#10;Single leg bridge 3x12&#10;Hip flexor stretch 3x30s"
+                            placeholder={t('placeholders.exercisesPrescribed')}
                             className="bg-slate-800 border-white/10 text-white placeholder:text-slate-500 min-h-[100px]"
                         />
                     </div>
 
                     <div>
-                        <Label className="text-slate-300">Home Exercise Program Notes</Label>
+                        <Label className="text-slate-300">{t('fields.homeExerciseNotes')}</Label>
                         <Textarea
                             value={formData.homeExerciseProgram}
                             onChange={(e) => setFormData(prev => ({ ...prev, homeExerciseProgram: e.target.value }))}
-                            placeholder="Instructions for home exercises, frequency, precautions..."
+                            placeholder={t('placeholders.homeExerciseNotes')}
                             className="bg-slate-800 border-white/10 text-white placeholder:text-slate-500 min-h-[80px]"
                         />
                     </div>
@@ -416,13 +422,13 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             {/* Additional Notes */}
             <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader>
-                    <CardTitle className="text-white">Additional Notes</CardTitle>
+                    <CardTitle className="text-white">{t('sections.additionalNotes')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Textarea
                         value={formData.notes}
                         onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                        placeholder="Any other notes, observations, or follow-up instructions..."
+                        placeholder={t('placeholders.additionalNotes')}
                         className="bg-slate-800 border-white/10 text-white placeholder:text-slate-500 min-h-[100px]"
                     />
                 </CardContent>
@@ -436,7 +442,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
                     onClick={() => router.back()}
                     className="border-white/10 text-slate-300 hover:text-white"
                 >
-                    Cancel
+                    {t('actions.cancel')}
                 </Button>
                 <Button
                     type="submit"
@@ -444,7 +450,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
                     className="bg-emerald-500 hover:bg-emerald-600"
                 >
                     <Save className="w-4 h-4 mr-2" />
-                    {loading ? 'Saving...' : 'Save Treatment Session'}
+                    {loading ? t('states.saving') : t('actions.saveTreatment')}
                 </Button>
             </div>
         </form>

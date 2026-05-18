@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useTranslations } from '@/i18n/client'
 
 interface AthleteDetail {
     id: string
@@ -60,6 +61,7 @@ interface PhysioAthleteDetailProps {
 
 export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetailProps) {
     const router = useRouter()
+    const t = useTranslations('components.physioAthleteDetail')
     const [athlete, setAthlete] = useState<AthleteDetail | null>(null)
     const [loading, setLoading] = useState(true)
 
@@ -98,6 +100,51 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
         RETURN_TO_SPORT: 'bg-green-500/20 text-green-400',
     }
 
+    const formatPhase = (phase: string) => {
+        return t(`phases.${phase}` as any)
+    }
+
+    const formatRestrictionType = (value: string) => {
+        return value.replace(/_/g, ' ')
+    }
+
+    const formatSeverity = (severity: string) => {
+        return t(`severity.${severity}` as any)
+    }
+
+    const formatTreatmentType = (value: string) => {
+        switch (value) {
+            case 'INITIAL_ASSESSMENT':
+                return t('treatmentTypes.initialAssessment')
+            case 'FOLLOW_UP':
+                return t('treatmentTypes.followUp')
+            case 'MANUAL_THERAPY':
+                return t('treatmentTypes.manualTherapy')
+            case 'DRY_NEEDLING':
+                return t('treatmentTypes.dryNeedling')
+            case 'EXERCISE_THERAPY':
+                return t('treatmentTypes.exerciseTherapy')
+            case 'ELECTROTHERAPY':
+                return t('treatmentTypes.electrotherapy')
+            case 'ULTRASOUND':
+                return t('treatmentTypes.ultrasound')
+            case 'TAPING':
+                return t('treatmentTypes.taping')
+            case 'MASSAGE':
+                return t('treatmentTypes.massage')
+            case 'STRETCHING':
+                return t('treatmentTypes.stretching')
+            case 'MOBILIZATION':
+                return t('treatmentTypes.mobilization')
+            case 'DISCHARGE':
+                return t('treatmentTypes.discharge')
+            case 'OTHER':
+                return t('treatmentTypes.other')
+            default:
+                return value.replace(/_/g, ' ')
+        }
+    }
+
     if (loading) {
         return (
             <div className="container mx-auto px-4 py-8">
@@ -113,7 +160,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
     if (!athlete) {
         return (
             <div className="container mx-auto px-4 py-8 text-center">
-                <p className="text-slate-400">Athlete not found</p>
+                <p className="text-slate-400">{t('errors.notFound')}</p>
             </div>
         )
     }
@@ -139,7 +186,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                 onClick={() => router.back()}
             >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Athletes
+                {t('actions.backToAthletes')}
             </Button>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -161,37 +208,37 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                             <div className="space-y-3 text-sm">
                                 {athlete.birthDate && (
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Age</span>
-                                        <span className="text-white">{calculateAge(athlete.birthDate)} years</span>
+                                        <span className="text-slate-400">{t('profile.age.label')}</span>
+                                        <span className="text-white">{calculateAge(athlete.birthDate)} {t('profile.age.unit')}</span>
                                     </div>
                                 )}
                                 {athlete.gender && (
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Gender</span>
+                                        <span className="text-slate-400">{t('profile.gender')}</span>
                                         <span className="text-white capitalize">{athlete.gender.toLowerCase()}</span>
                                     </div>
                                 )}
                                 {athlete.height && (
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Height</span>
-                                        <span className="text-white">{athlete.height} cm</span>
+                                        <span className="text-slate-400">{t('profile.height.label')}</span>
+                                        <span className="text-white">{athlete.height} {t('profile.height.unit')}</span>
                                     </div>
                                 )}
                                 {athlete.weight && (
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Weight</span>
-                                        <span className="text-white">{athlete.weight} kg</span>
+                                        <span className="text-slate-400">{t('profile.weight.label')}</span>
+                                        <span className="text-white">{athlete.weight} {t('profile.weight.unit')}</span>
                                     </div>
                                 )}
                                 {athlete.team && (
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Team</span>
+                                        <span className="text-slate-400">{t('profile.team')}</span>
                                         <span className="text-white">{athlete.team.name}</span>
                                     </div>
                                 )}
                                 {athlete.sport && (
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400">Sport</span>
+                                        <span className="text-slate-400">{t('profile.sport')}</span>
                                         <span className="text-white">
                                             {athlete.sport.sport}
                                             {athlete.sport.discipline && ` - ${athlete.sport.discipline}`}
@@ -205,24 +252,24 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                     {/* Stats Card */}
                     <Card className="bg-slate-900/50 border-white/10">
                         <CardHeader>
-                            <CardTitle className="text-white text-lg">Summary</CardTitle>
+                            <CardTitle className="text-white text-lg">{t('stats.title')}</CardTitle>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 gap-4">
                             <div className="text-center p-3 rounded-lg bg-red-500/10">
                                 <p className="text-2xl font-bold text-red-400">{athlete.summary.activeInjuries}</p>
-                                <p className="text-xs text-slate-400">Active Injuries</p>
+                                <p className="text-xs text-slate-400">{t('stats.activeInjuries')}</p>
                             </div>
                             <div className="text-center p-3 rounded-lg bg-orange-500/10">
                                 <p className="text-2xl font-bold text-orange-400">{athlete.summary.activeRestrictions}</p>
-                                <p className="text-xs text-slate-400">Restrictions</p>
+                                <p className="text-xs text-slate-400">{t('stats.activeRestrictions')}</p>
                             </div>
                             <div className="text-center p-3 rounded-lg bg-blue-500/10">
                                 <p className="text-2xl font-bold text-blue-400">{athlete.summary.activeRehabPrograms}</p>
-                                <p className="text-xs text-slate-400">Rehab Programs</p>
+                                <p className="text-xs text-slate-400">{t('stats.activeRehabPrograms')}</p>
                             </div>
                             <div className="text-center p-3 rounded-lg bg-emerald-500/10">
                                 <p className="text-2xl font-bold text-emerald-400">{athlete.summary.recentTreatments}</p>
-                                <p className="text-xs text-slate-400">Treatments</p>
+                                <p className="text-xs text-slate-400">{t('stats.recentTreatments')}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -230,37 +277,37 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                     {/* Quick Actions */}
                     <Card className="bg-slate-900/50 border-white/10">
                         <CardHeader>
-                            <CardTitle className="text-white text-lg">Quick Actions</CardTitle>
+                            <CardTitle className="text-white text-lg">{t('quickActions.title')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
                             <Button asChild className="w-full justify-start bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400">
                                 <Link href={`${basePath}/treatments/new?clientId=${athlete.id}`}>
                                     <Stethoscope className="w-4 h-4 mr-2" />
-                                    New Treatment Session
+                                    {t('quickActions.newTreatmentSession')}
                                 </Link>
                             </Button>
                             <Button asChild variant="outline" className="w-full justify-start border-white/10 text-slate-300 hover:text-white">
                                 <Link href={`${basePath}/rehab-programs/new?clientId=${athlete.id}`}>
                                     <Activity className="w-4 h-4 mr-2" />
-                                    Create Rehab Program
+                                    {t('quickActions.createRehabProgram')}
                                 </Link>
                             </Button>
                             <Button asChild variant="outline" className="w-full justify-start border-white/10 text-slate-300 hover:text-white">
                                 <Link href={`${basePath}/restrictions/new?clientId=${athlete.id}`}>
                                     <Ban className="w-4 h-4 mr-2" />
-                                    Add Restriction
+                                    {t('quickActions.addRestriction')}
                                 </Link>
                             </Button>
                             <Button asChild variant="outline" className="w-full justify-start border-white/10 text-slate-300 hover:text-white">
                                 <Link href={`${basePath}/screenings/new?clientId=${athlete.id}`}>
                                     <TrendingUp className="w-4 h-4 mr-2" />
-                                    Movement Screen
+                                    {t('quickActions.movementScreen')}
                                 </Link>
                             </Button>
                             <Button asChild variant="outline" className="w-full justify-start border-white/10 text-slate-300 hover:text-white">
                                 <Link href={`${basePath}/messages?clientId=${athlete.id}`}>
                                     <MessageSquare className="w-4 h-4 mr-2" />
-                                    Care Team Chat
+                                    {t('quickActions.careTeamChat')}
                                 </Link>
                             </Button>
                         </CardContent>
@@ -272,19 +319,19 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                     <Tabs defaultValue="injuries" className="w-full">
                         <TabsList className="bg-slate-900/50 border border-white/10 w-full justify-start mb-4">
                             <TabsTrigger value="injuries" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                Injuries
+                                {t('tabs.injuries')}
                             </TabsTrigger>
                             <TabsTrigger value="restrictions" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                Restrictions
+                                {t('tabs.restrictions')}
                             </TabsTrigger>
                             <TabsTrigger value="rehab" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                Rehab
+                                {t('tabs.rehab')}
                             </TabsTrigger>
                             <TabsTrigger value="treatments" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                Treatments
+                                {t('tabs.treatments')}
                             </TabsTrigger>
                             <TabsTrigger value="metrics" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                Check-ins
+                                {t('tabs.checkIns')}
                             </TabsTrigger>
                         </TabsList>
 
@@ -294,12 +341,12 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                 <CardHeader>
                                     <CardTitle className="text-white flex items-center gap-2">
                                         <AlertTriangle className="w-5 h-5 text-red-500" />
-                                        Active Injuries
+                                        {t('sections.activeInjuries')}
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {athlete.injuryAssessments.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">No active injuries</p>
+                                        <p className="text-slate-400 text-center py-8">{t('empty.noActiveInjuries')}</p>
                                     ) : (
                                         <div className="space-y-3">
                                             {athlete.injuryAssessments.map((injury: any) => (
@@ -313,11 +360,11 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                             <p className="text-sm text-slate-400">{injury.bodyPart}</p>
                                                         </div>
                                                         <Badge className={phaseColors[injury.phase] || ''}>
-                                                            {injury.phase}
+                                                            {formatPhase(injury.phase)}
                                                         </Badge>
                                                     </div>
                                                     <div className="flex items-center gap-2 mt-3">
-                                                        <span className="text-xs text-slate-500">Pain:</span>
+                                                        <span className="text-xs text-slate-500">{t('labels.pain')}:</span>
                                                         <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
                                                             <div
                                                                 className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"
@@ -327,7 +374,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                         <span className="text-sm text-slate-400">{injury.painLevel}/10</span>
                                                     </div>
                                                     <p className="text-xs text-slate-500 mt-2">
-                                                        Assessed: {new Date(injury.date).toLocaleDateString()}
+                                                        {t('labels.assessed')}: {new Date(injury.date).toLocaleDateString()}
                                                     </p>
                                                 </div>
                                             ))}
@@ -343,18 +390,18 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="text-white flex items-center gap-2">
                                         <Ban className="w-5 h-5 text-orange-500" />
-                                        Active Restrictions
+                                        {t('sections.activeRestrictions')}
                                     </CardTitle>
                                     <Button asChild size="sm" className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400">
                                         <Link href={`${basePath}/restrictions/new?clientId=${athlete.id}`}>
                                             <Plus className="w-4 h-4 mr-1" />
-                                            Add
+                                            {t('actions.add')}
                                         </Link>
                                     </Button>
                                 </CardHeader>
                                 <CardContent>
                                     {athlete.trainingRestrictions.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">No active restrictions</p>
+                                        <p className="text-slate-400 text-center py-8">{t('empty.noActiveRestrictions')}</p>
                                     ) : (
                                         <div className="space-y-3">
                                             {athlete.trainingRestrictions.map((restriction: any) => (
@@ -365,7 +412,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                     <div className="flex items-start justify-between mb-2">
                                                         <div>
                                                             <p className="font-medium text-white">
-                                                                {restriction.type.replace(/_/g, ' ')}
+                                                                {formatRestrictionType(restriction.type)}
                                                             </p>
                                                             {restriction.bodyParts?.length > 0 && (
                                                                 <p className="text-sm text-slate-400">
@@ -374,16 +421,16 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                             )}
                                                         </div>
                                                         <Badge className={severityColors[restriction.severity] || ''}>
-                                                            {restriction.severity}
+                                                            {formatSeverity(restriction.severity)}
                                                         </Badge>
                                                     </div>
                                                     {restriction.reason && (
                                                         <p className="text-sm text-slate-400 mt-2">{restriction.reason}</p>
                                                     )}
                                                     <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
-                                                        <span>Created by: {restriction.createdBy?.name || 'Unknown'}</span>
+                                                        <span>{t('labels.createdBy')}: {restriction.createdBy?.name || t('labels.unknown')}</span>
                                                         {restriction.endDate && (
-                                                            <span>Until: {new Date(restriction.endDate).toLocaleDateString()}</span>
+                                                            <span>{t('labels.until')}: {new Date(restriction.endDate).toLocaleDateString()}</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -400,18 +447,18 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="text-white flex items-center gap-2">
                                         <Activity className="w-5 h-5 text-blue-500" />
-                                        Rehab Programs
+                                        {t('sections.rehabPrograms')}
                                     </CardTitle>
                                     <Button asChild size="sm" className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400">
                                         <Link href={`${basePath}/rehab-programs/new?clientId=${athlete.id}`}>
                                             <Plus className="w-4 h-4 mr-1" />
-                                            Create
+                                            {t('actions.create')}
                                         </Link>
                                     </Button>
                                 </CardHeader>
                                 <CardContent>
                                     {athlete.rehabPrograms.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">No active rehab programs</p>
+                                        <p className="text-slate-400 text-center py-8">{t('empty.noActiveRehabPrograms')}</p>
                                     ) : (
                                         <div className="space-y-3">
                                             {athlete.rehabPrograms.map((program: any) => (
@@ -431,15 +478,15 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <Badge className={phaseColors[program.currentPhase] || ''}>
-                                                                {program.currentPhase.replace(/_/g, ' ')}
+                                                                {formatPhase(program.currentPhase)}
                                                             </Badge>
                                                             <ChevronRight className="w-4 h-4 text-slate-600" />
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                                                        <span>{program.exercises?.length || 0} exercises</span>
-                                                        <span>{program.milestones?.length || 0} milestones</span>
-                                                        <span>{program._count?.progressLogs || 0} logs</span>
+                                                        <span>{program.exercises?.length || 0} {t('labels.exercises')}</span>
+                                                        <span>{program.milestones?.length || 0} {t('labels.milestones')}</span>
+                                                        <span>{program._count?.progressLogs || 0} {t('labels.logs')}</span>
                                                     </div>
                                                 </Link>
                                             ))}
@@ -455,18 +502,18 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="text-white flex items-center gap-2">
                                         <Stethoscope className="w-5 h-5 text-emerald-500" />
-                                        Recent Treatments
+                                        {t('sections.recentTreatments')}
                                     </CardTitle>
                                     <Button asChild size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400">
                                         <Link href={`${basePath}/treatments/new?clientId=${athlete.id}`}>
                                             <Plus className="w-4 h-4 mr-1" />
-                                            New
+                                            {t('actions.new')}
                                         </Link>
                                     </Button>
                                 </CardHeader>
                                 <CardContent>
                                     {athlete.treatmentSessions.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">No treatment sessions recorded</p>
+                                        <p className="text-slate-400 text-center py-8">{t('empty.noTreatmentSessions')}</p>
                                     ) : (
                                         <div className="space-y-3">
                                             {athlete.treatmentSessions.map((session: any) => (
@@ -478,7 +525,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                     <div className="flex items-start justify-between mb-2">
                                                         <div>
                                                             <p className="font-medium text-white">
-                                                                {session.treatmentType.replace(/_/g, ' ')}
+                                                                {formatTreatmentType(session.treatmentType)}
                                                             </p>
                                                             <p className="text-sm text-slate-400">
                                                                 {new Date(session.sessionDate).toLocaleDateString()}
@@ -490,12 +537,12 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                         <div className="flex items-center gap-4 text-sm">
                                                             {session.painBefore !== null && (
                                                                 <span className="text-slate-400">
-                                                                    Pain before: <span className="text-white">{session.painBefore}/10</span>
+                                                                    {t('labels.painBefore')}: <span className="text-white">{session.painBefore}/10</span>
                                                                 </span>
                                                             )}
                                                             {session.painAfter !== null && (
                                                                 <span className="text-slate-400">
-                                                                    After: <span className="text-white">{session.painAfter}/10</span>
+                                                                    {t('labels.after')}: <span className="text-white">{session.painAfter}/10</span>
                                                                 </span>
                                                             )}
                                                         </div>
@@ -506,7 +553,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                     )}
                                     <Button asChild variant="ghost" className="w-full mt-4 text-slate-400 hover:text-white">
                                         <Link href={`${basePath}/athletes/${athlete.id}/history`}>
-                                            View Full History
+                                            {t('actions.viewFullHistory')}
                                             <ChevronRight className="w-4 h-4 ml-1" />
                                         </Link>
                                     </Button>
@@ -520,15 +567,15 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                 <CardHeader>
                                     <CardTitle className="text-white flex items-center gap-2">
                                         <Calendar className="w-5 h-5 text-purple-500" />
-                                        Recent Check-ins
+                                        {t('sections.recentCheckIns')}
                                     </CardTitle>
                                     <CardDescription className="text-slate-400">
-                                        Daily wellness metrics from the last 2 weeks
+                                        {t('descriptions.recentCheckIns')}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     {athlete.dailyMetrics.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">No recent check-ins</p>
+                                        <p className="text-slate-400 text-center py-8">{t('empty.noRecentCheckIns')}</p>
                                     ) : (
                                         <div className="space-y-2">
                                             {athlete.dailyMetrics.map((metric: any, idx: number) => (
@@ -542,17 +589,17 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                     <div className="flex items-center gap-4 text-sm">
                                                         {metric.injuryPain !== null && (
                                                             <span className="text-slate-400">
-                                                                Pain: <span className="text-white">{metric.injuryPain}/10</span>
+                                                                {t('labels.pain')}: <span className="text-white">{metric.injuryPain}/10</span>
                                                             </span>
                                                         )}
                                                         {metric.soreness !== null && (
                                                             <span className="text-slate-400">
-                                                                Soreness: <span className="text-white">{metric.soreness}/10</span>
+                                                                {t('labels.soreness')}: <span className="text-white">{metric.soreness}/10</span>
                                                             </span>
                                                         )}
                                                         {metric.readinessLevel !== null && (
                                                             <span className="text-slate-400">
-                                                                Readiness: <span className="text-white">{metric.readinessLevel}/10</span>
+                                                                {t('labels.readiness')}: <span className="text-white">{metric.readinessLevel}/10</span>
                                                             </span>
                                                         )}
                                                     </div>

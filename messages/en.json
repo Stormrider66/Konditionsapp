@@ -9932,6 +9932,195 @@
         "pageInfo": "Page {currentPage} of {totalPages}"
       }
     },
+    "physioAthleteDetail": {
+      "errors": {
+        "notFound": "Athlete not found"
+      },
+      "actions": {
+        "backToAthletes": "Back to Athletes",
+        "add": "Add",
+        "create": "Create",
+        "new": "New",
+        "viewFullHistory": "View Full History"
+      },
+      "profile": {
+        "age": {
+          "label": "Age",
+          "unit": "years"
+        },
+        "gender": "Gender",
+        "height": {
+          "label": "Height",
+          "unit": "cm"
+        },
+        "weight": {
+          "label": "Weight",
+          "unit": "kg"
+        },
+        "team": "Team",
+        "sport": "Sport"
+      },
+      "stats": {
+        "title": "Summary",
+        "activeInjuries": "Active Injuries",
+        "activeRestrictions": "Restrictions",
+        "activeRehabPrograms": "Rehab Programs",
+        "recentTreatments": "Treatments"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "newTreatmentSession": "New Treatment Session",
+        "createRehabProgram": "Create Rehab Program",
+        "addRestriction": "Add Restriction",
+        "movementScreen": "Movement Screen",
+        "careTeamChat": "Care Team Chat"
+      },
+      "tabs": {
+        "injuries": "Injuries",
+        "restrictions": "Restrictions",
+        "rehab": "Rehab",
+        "treatments": "Treatments",
+        "checkIns": "Check-ins"
+      },
+      "sections": {
+        "activeInjuries": "Active Injuries",
+        "activeRestrictions": "Active Restrictions",
+        "rehabPrograms": "Rehab Programs",
+        "recentTreatments": "Recent Treatments",
+        "recentCheckIns": "Recent Check-ins"
+      },
+      "empty": {
+        "noActiveInjuries": "No active injuries",
+        "noActiveRestrictions": "No active restrictions",
+        "noActiveRehabPrograms": "No active rehab programs",
+        "noTreatmentSessions": "No treatment sessions recorded",
+        "noRecentCheckIns": "No recent check-ins"
+      },
+      "labels": {
+        "pain": "Pain",
+        "assessed": "Assessed",
+        "createdBy": "Created by",
+        "unknown": "Unknown",
+        "until": "Until",
+        "exercises": "exercises",
+        "milestones": "milestones",
+        "logs": "logs",
+        "painBefore": "Pain before",
+        "after": "After",
+        "soreness": "Soreness",
+        "readiness": "Readiness"
+      },
+      "descriptions": {
+        "recentCheckIns": "Daily wellness metrics from the last 2 weeks"
+      },
+      "phases": {
+        "ACUTE": "Acute",
+        "SUBACUTE": "Subacute",
+        "REMODELING": "Remodeling",
+        "FUNCTIONAL": "Functional",
+        "RETURN_TO_SPORT": "Return to sport"
+      },
+      "severity": {
+        "MILD": "Mild",
+        "MODERATE": "Moderate",
+        "SEVERE": "Severe",
+        "COMPLETE": "Complete"
+      },
+      "treatmentTypes": {
+        "initialAssessment": "Initial Assessment",
+        "followUp": "Follow-up",
+        "manualTherapy": "Manual Therapy",
+        "dryNeedling": "Dry Needling",
+        "exerciseTherapy": "Exercise Therapy",
+        "electrotherapy": "Electrotherapy",
+        "ultrasound": "Ultrasound",
+        "taping": "Taping",
+        "massage": "Massage",
+        "stretching": "Stretching",
+        "mobilization": "Mobilization",
+        "discharge": "Discharge",
+        "other": "Other"
+      }
+    },
+    "treatmentSessionForm": {
+      "sections": {
+        "athlete": "Athlete",
+        "session": "Session Details",
+        "soapNotes": "SOAP Notes",
+        "modalities": "Modalities Used",
+        "exercisePrescription": "Exercise Prescription",
+        "additionalNotes": "Additional Notes"
+      },
+      "descriptions": {
+        "soapNotes": "Document your clinical findings using the SOAP format"
+      },
+      "fields": {
+        "selectAthlete": "Select Athlete",
+        "relatedInjury": "Related Injury (Optional)",
+        "treatmentType": "Treatment Type",
+        "sessionDate": "Session Date",
+        "painBefore": "Pain Before",
+        "painAfter": "Pain After",
+        "subjective": "Subjective",
+        "objective": "Objective",
+        "assessment": "Assessment",
+        "plan": "Plan",
+        "exercisesPrescribed": "Exercises Prescribed (one per line)",
+        "homeExerciseNotes": "Home Exercise Program Notes"
+      },
+      "placeholders": {
+        "selectAthlete": "Select an athlete",
+        "selectInjury": "Select related injury",
+        "subjective": "Patient's description of symptoms, history, concerns...",
+        "objective": "Physical examination findings, measurements, tests...",
+        "assessment": "Clinical reasoning, diagnosis, prognosis...",
+        "plan": "Treatment plan, goals, next steps...",
+        "exercisesPrescribed": "e.g., Clamshells 3x15\nSingle leg bridge 3x12\nHip flexor stretch 3x30s",
+        "homeExerciseNotes": "Instructions for home exercises, frequency, precautions...",
+        "additionalNotes": "Any other notes, observations, or follow-up instructions..."
+      },
+      "selection": {
+        "none": "None"
+      },
+      "treatmentTypes": {
+        "initialAssessment": "Initial Assessment",
+        "followUp": "Follow-up",
+        "manualTherapy": "Manual Therapy",
+        "dryNeedling": "Dry Needling",
+        "exerciseTherapy": "Exercise Therapy",
+        "electrotherapy": "Electrotherapy",
+        "ultrasound": "Ultrasound",
+        "taping": "Taping",
+        "massage": "Massage",
+        "stretching": "Stretching",
+        "mobilization": "Mobilization",
+        "discharge": "Discharge",
+        "other": "Other"
+      },
+      "modalities": {
+        "ice": "Ice",
+        "heat": "Heat",
+        "tens": "TENS",
+        "ultrasound": "Ultrasound",
+        "laser": "Laser",
+        "shockwave": "Shockwave",
+        "cupping": "Cupping",
+        "kinesioTape": "Kinesio Tape",
+        "rigidTape": "Rigid Tape",
+        "foamRolling": "Foam Rolling",
+        "instrumentAssistedSoftTissue": "Instrument Assisted Soft Tissue"
+      },
+      "alerts": {
+        "failedToCreate": "Failed to create treatment session"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "saveTreatment": "Save Treatment Session"
+      },
+      "states": {
+        "saving": "Saving..."
+      }
+    },
     "businessCoachHeader": {
       "fallbackName": "Coach",
       "brand": {

@@ -10299,6 +10299,195 @@
         "pageInfo": "Sida {currentPage} av {totalPages}"
       }
     },
+    "physioAthleteDetail": {
+      "errors": {
+        "notFound": "Atlet hittades inte"
+      },
+      "actions": {
+        "backToAthletes": "Tillbaka till atleter",
+        "add": "Lägg till",
+        "create": "Skapa",
+        "new": "Ny",
+        "viewFullHistory": "Visa fullständig historik"
+      },
+      "profile": {
+        "age": {
+          "label": "Ålder",
+          "unit": "år"
+        },
+        "gender": "Kön",
+        "height": {
+          "label": "Längd",
+          "unit": "cm"
+        },
+        "weight": {
+          "label": "Vikt",
+          "unit": "kg"
+        },
+        "team": "Lag",
+        "sport": "Idrott"
+      },
+      "stats": {
+        "title": "Översikt",
+        "activeInjuries": "Aktiva skador",
+        "activeRestrictions": "Restriktioner",
+        "activeRehabPrograms": "Rehabprogram",
+        "recentTreatments": "Behandlingar"
+      },
+      "quickActions": {
+        "title": "Snabbåtgärder",
+        "newTreatmentSession": "Ny behandling",
+        "createRehabProgram": "Skapa rehabprogram",
+        "addRestriction": "Lägg till restriktion",
+        "movementScreen": "Rörelseanalys",
+        "careTeamChat": "Vårdteam-chatt"
+      },
+      "tabs": {
+        "injuries": "Skador",
+        "restrictions": "Restriktioner",
+        "rehab": "Rehab",
+        "treatments": "Behandlingar",
+        "checkIns": "Check-ins"
+      },
+      "sections": {
+        "activeInjuries": "Aktiva skador",
+        "activeRestrictions": "Aktiva restriktioner",
+        "rehabPrograms": "Rehabprogram",
+        "recentTreatments": "Nya behandlingar",
+        "recentCheckIns": "Senaste check-ins"
+      },
+      "empty": {
+        "noActiveInjuries": "Inga aktiva skador",
+        "noActiveRestrictions": "Inga aktiva restriktioner",
+        "noActiveRehabPrograms": "Inga aktiva rehabprogram",
+        "noTreatmentSessions": "Inga registrerade behandlingar",
+        "noRecentCheckIns": "Inga senaste check-ins"
+      },
+      "labels": {
+        "pain": "Smärta",
+        "assessed": "Bedömd",
+        "createdBy": "Skapad av",
+        "unknown": "Okänd",
+        "until": "Tills",
+        "exercises": "övningar",
+        "milestones": "milstolpar",
+        "logs": "loggar",
+        "painBefore": "Smärta före",
+        "after": "Efter",
+        "soreness": "Spändhet",
+        "readiness": "Startklarhet"
+      },
+      "descriptions": {
+        "recentCheckIns": "Dagliga välmående-mått från de senaste 2 veckorna"
+      },
+      "phases": {
+        "ACUTE": "Akut",
+        "SUBACUTE": "Subakut",
+        "REMODELING": "Remodellering",
+        "FUNCTIONAL": "Funktionell",
+        "RETURN_TO_SPORT": "Återgång till idrott"
+      },
+      "severity": {
+        "MILD": "Mild",
+        "MODERATE": "Måttlig",
+        "SEVERE": "Svår",
+        "COMPLETE": "Komplett"
+      },
+      "treatmentTypes": {
+        "initialAssessment": "Initialbedömning",
+        "followUp": "Uppföljning",
+        "manualTherapy": "Manuell terapi",
+        "dryNeedling": "Torrnålning",
+        "exerciseTherapy": "Övningsterapi",
+        "electrotherapy": "Elektroterapi",
+        "ultrasound": "Ultraljud",
+        "taping": "Bandagering",
+        "massage": "Massage",
+        "stretching": "Stretching",
+        "mobilization": "Mobilisering",
+        "discharge": "Avslut",
+        "other": "Annat"
+      }
+    },
+    "treatmentSessionForm": {
+      "sections": {
+        "athlete": "Atlet",
+        "session": "Sessiondetaljer",
+        "soapNotes": "SOAP-noter",
+        "modalities": "Använda modaliteter",
+        "exercisePrescription": "Övningsförskrivning",
+        "additionalNotes": "Ytterligare anteckningar"
+      },
+      "descriptions": {
+        "soapNotes": "Dokumentera kliniska fynd med SOAP-formatet"
+      },
+      "fields": {
+        "selectAthlete": "Välj atlet",
+        "relatedInjury": "Relaterad skada (valfritt)",
+        "treatmentType": "Behandlingstyp",
+        "sessionDate": "Sessiondatum",
+        "painBefore": "Smärta före",
+        "painAfter": "Smärta efter",
+        "subjective": "Subjektivt",
+        "objective": "Objektivt",
+        "assessment": "Bedömning",
+        "plan": "Plan",
+        "exercisesPrescribed": "Föreskrivna övningar (en per rad)",
+        "homeExerciseNotes": "Anteckningar om hemeträning"
+      },
+      "placeholders": {
+        "selectAthlete": "Välj en atlet",
+        "selectInjury": "Välj relaterad skada",
+        "subjective": "Beskriv symptom, historik och funderingar...",
+        "objective": "Hitta avvikelser vid undersökning, mätvärden, tester...",
+        "assessment": "Klinisk bedömning, diagnos, prognos...",
+        "plan": "Behandlingsplan, mål, nästa steg...",
+        "exercisesPrescribed": "e.g. Clamshells 3x15\nEnbensbrygga 3x12\nHöftböjarstretch 3x30s",
+        "homeExerciseNotes": "Instruktioner för hemarbeten, frekvens, försiktighetsåtgärder...",
+        "additionalNotes": "Övriga anteckningar, observationer eller uppföljningsinstruktioner..."
+      },
+      "selection": {
+        "none": "Ingen"
+      },
+      "treatmentTypes": {
+        "initialAssessment": "Initialbedömning",
+        "followUp": "Uppföljning",
+        "manualTherapy": "Manuell terapi",
+        "dryNeedling": "Torrnålning",
+        "exerciseTherapy": "Övningsterapi",
+        "electrotherapy": "Elektroterapi",
+        "ultrasound": "Ultraljud",
+        "taping": "Bandagering",
+        "massage": "Massage",
+        "stretching": "Stretching",
+        "mobilization": "Mobilisering",
+        "discharge": "Avslut",
+        "other": "Övrigt"
+      },
+      "modalities": {
+        "ice": "Is",
+        "heat": "Värme",
+        "tens": "TENS",
+        "ultrasound": "Ultraljud",
+        "laser": "Laser",
+        "shockwave": "Chockvåg",
+        "cupping": "Koppning",
+        "kinesioTape": "Kinesio Tape",
+        "rigidTape": "Rigid Tape",
+        "foamRolling": "Skumvalsning",
+        "instrumentAssistedSoftTissue": "Instrumentassisterad mjukdelsbehandling"
+      },
+      "alerts": {
+        "failedToCreate": "Det gick inte att skapa behandlingssession"
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "saveTreatment": "Spara behandling"
+      },
+      "states": {
+        "saving": "Sparar..."
+      }
+    },
     "businessCoachHeader": {
       "fallbackName": "Coach",
       "brand": {
