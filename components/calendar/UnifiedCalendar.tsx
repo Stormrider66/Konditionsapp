@@ -209,12 +209,10 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     setSelectedDate(date)
     setSelectedItem(null)
 
-    // Check if this day has any items
-    const dayItems = items.filter(item => isSameDay(new Date(item.date), date))
-    const isEmpty = dayItems.length === 0
-
-    // For coach view on empty days, show the action menu
-    if (isCoachView && isEmpty) {
+    // In coach view, clicking the day canvas should always offer creation
+    // actions so coaches can add a second workout to an occupied day.
+    // Item chips stop propagation separately and still open/select the item.
+    if (isCoachView) {
       dayActionMenu.openMenu(date, event?.currentTarget as HTMLElement)
       return
     }
@@ -223,7 +221,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     if (isMobile) {
       setIsMobileDaySheetOpen(true)
     }
-  }, [isMobile, isCoachView, items, dayActionMenu])
+  }, [isMobile, isCoachView, dayActionMenu])
 
   const handleItemClick = useCallback((item: UnifiedCalendarItem) => {
     setSelectedItem(item)
