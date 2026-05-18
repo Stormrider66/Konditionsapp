@@ -6869,6 +6869,203 @@
         }
       }
     },
+    "onboardingWizard": {
+      "header": {
+        "welcome": "Welcome, {clientName}!",
+        "step": "Step {step} of {total}"
+      },
+      "steps": {
+        "sport": {
+          "title": "Select Sport",
+          "description": "Select your primary sport to customize your training experience."
+        },
+        "experience": {
+          "title": "Experience Level",
+          "description": "Tell us about your experience level."
+        },
+        "biometrics": {
+          "title": "Biometrics",
+          "description": "Help us calculate your training zones by providing heart rate data."
+        },
+        "cycling": {
+          "title": "Cycling Setup",
+          "description": "Configure your cycling-specific settings and equipment."
+        },
+        "skiing": {
+          "title": "Skiing Setup",
+          "description": "Configure your skiing-specific settings and training methods."
+        },
+        "swimming": {
+          "title": "Swimming Setup",
+          "description": "Configure your swimming-specific settings and training environment."
+        },
+        "triathlon": {
+          "title": "Triathlon Setup",
+          "description": "Configure your triathlon-specific settings for swim, bike, and run."
+        },
+        "hyrox": {
+          "title": "HYROX Setup",
+          "description": "Configure your HYROX-specific settings, benchmarks, and training preferences."
+        },
+        "fitness": {
+          "title": "Fitness Setup",
+          "description": "Configure your fitness goals, preferences, and training style."
+        },
+        "functionalFitness": {
+          "title": "Functional Fitness Setup",
+          "description": "Configure your benchmarks, gymnastics skills, and training preferences."
+        },
+        "hockey": {
+          "title": "Ice Hockey Setup",
+          "description": "Configure your position, team info, and training preferences."
+        },
+        "football": {
+          "title": "Football Setup",
+          "description": "Configure your position, team info, and physical benchmarks."
+        },
+        "handball": {
+          "title": "Handball Setup",
+          "description": "Configure your position, team info, and training preferences."
+        },
+        "floorball": {
+          "title": "Floorball Setup",
+          "description": "Configure your position, team info, and training preferences."
+        },
+        "basketball": {
+          "title": "Basketball Setup",
+          "description": "Configure your position, team info, and physical benchmarks."
+        },
+        "volleyball": {
+          "title": "Volleyball Setup",
+          "description": "Configure your position, team info, and physical benchmarks."
+        },
+        "tennis": {
+          "title": "Tennis Setup",
+          "description": "Configure your play style, benchmarks, and training preferences."
+        },
+        "padel": {
+          "title": "Padel Setup",
+          "description": "Configure your position, partner info, and physical benchmarks."
+        },
+        "nutrition": {
+          "title": "Nutrition Setup",
+          "description": "Set your nutrition goals, dietary preferences, and macro targets."
+        },
+        "aiProgram": {
+          "title": "AI Training Program",
+          "description": "Would you like AI to create a personalized training program for you?"
+        },
+        "availability": {
+          "title": "Weekly Availability",
+          "description": "When can you train during the week?"
+        },
+        "equipment": {
+          "title": "Equipment",
+          "description": "What equipment do you have access to?"
+        },
+        "goals": {
+          "title": "Goals",
+          "description": "What are your training goals?"
+        },
+        "summary": {
+          "title": "Your Training Profile",
+          "description": "Review your fitness estimate and training zone setup."
+        }
+      },
+      "labels": {
+        "secondarySports": "Secondary sports (optional)",
+        "preferredSessionLength": "Preferred session length (minutes)",
+        "mainGoal": "What is your main goal?",
+        "targetDate": "Target date (optional)",
+        "recentRaceTime": "Recent Race Time (optional)",
+        "recentRaceDescription": "A recent race result helps us calculate your fitness level and personalize your training zones.",
+        "distance": "Distance",
+        "time": "Time",
+        "hours": "h",
+        "minutes": "min",
+        "seconds": "sec"
+      },
+      "availability": {
+        "days": {
+          "monday": "Mon",
+          "tuesday": "Tue",
+          "wednesday": "Wed",
+          "thursday": "Thu",
+          "friday": "Fri",
+          "saturday": "Sat",
+          "sunday": "Sun"
+        }
+      },
+      "experience": {
+        "levels": {
+          "beginner": {
+            "label": "Beginner",
+            "description": "<1 year"
+          },
+          "intermediate": {
+            "label": "Intermediate",
+            "description": "1-3 years"
+          },
+          "advanced": {
+            "label": "Advanced",
+            "description": "3-5 years"
+          },
+          "elite": {
+            "label": "Elite",
+            "description": "5+ years"
+          }
+        }
+      },
+      "equipment": {
+        "treadmill": "Treadmill",
+        "stationaryBike": "Stationary Bike",
+        "rowingMachine": "Rowing Machine",
+        "skiErg": "SkiErg",
+        "poolAccess": "Pool Access",
+        "gymAccess": "Gym Access",
+        "powerMeter": "Power Meter",
+        "hrMonitor": "HR Monitor",
+        "lactateMeter": "Lactate Meter"
+      },
+      "race": {
+        "halfMarathon": "Half Marathon"
+      },
+      "goals": {
+        "placeholders": {
+          "default": "e.g., Run a marathon under 3:30, improve my overall fitness...",
+          "cycling": "e.g., Increase FTP to 300W, complete a Gran Fondo, win a local race...",
+          "skiing": "e.g., Complete Vasaloppet, improve threshold pace, win age group...",
+          "swimming": "e.g., Improve CSS to 1:30/100m, complete an open water race, qualify for Masters nationals...",
+          "triathlon": "e.g., Complete my first Olympic triathlon, qualify for 70.3 Worlds, sub-10 hour Ironman...",
+          "hydrox": "e.g., Complete my first HYROX under 90 min, qualify for World Championship, podium in Pro...",
+          "generalFitness": "e.g., Lose 5 kg, build daily exercise habits, improve energy levels, get stronger..."
+        }
+      },
+      "buttons": {
+        "back": "Back",
+        "next": "Next",
+        "saving": "Saving...",
+        "completeSetup": "Complete Setup"
+      },
+      "toasts": {
+        "profileCreated": {
+          "title": "Profile created!",
+          "description": "Your sport profile has been saved."
+        },
+        "saveError": {
+          "title": "Error",
+          "description": "Could not save profile. Please try again."
+        },
+        "aiProgramCreated": {
+          "title": "Program created!",
+          "description": "Your AI training program has been created."
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not create program. You can try again later from your dashboard."
+        }
+      }
+    },
     "mealInputMethodSelector": {
       "title": "Log food",
       "description": "Choose how you want to record your meal",

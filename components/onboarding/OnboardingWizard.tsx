@@ -33,34 +33,35 @@ import { FitnessSummary } from './FitnessSummary'
 import { AIProgramOfferStep } from './AIProgramOfferStep'
 import { SportType } from '@prisma/client'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslations } from '@/i18n/client'
 
 const EXPERIENCE_LEVELS = [
-  { value: 'BEGINNER', label: 'Beginner', labelSv: 'Nybörjare', description: '<1 year' },
-  { value: 'INTERMEDIATE', label: 'Intermediate', labelSv: 'Mellanliggande', description: '1-3 years' },
-  { value: 'ADVANCED', label: 'Advanced', labelSv: 'Avancerad', description: '3-5 years' },
-  { value: 'ELITE', label: 'Elite', labelSv: 'Elit', description: '5+ years' },
+  { value: 'BEGINNER', labelKey: 'experience.levels.beginner.label', descriptionKey: 'experience.levels.beginner.description' },
+  { value: 'INTERMEDIATE', labelKey: 'experience.levels.intermediate.label', descriptionKey: 'experience.levels.intermediate.description' },
+  { value: 'ADVANCED', labelKey: 'experience.levels.advanced.label', descriptionKey: 'experience.levels.advanced.description' },
+  { value: 'ELITE', labelKey: 'experience.levels.elite.label', descriptionKey: 'experience.levels.elite.description' },
 ]
 
 const EQUIPMENT_OPTIONS = [
-  { id: 'treadmill', label: 'Treadmill', labelSv: 'Löpband' },
-  { id: 'bike', label: 'Stationary Bike', labelSv: 'Motionscykel' },
-  { id: 'rower', label: 'Rowing Machine', labelSv: 'Roddmaskin' },
-  { id: 'skiErg', label: 'SkiErg', labelSv: 'SkiErg' },
-  { id: 'pool', label: 'Pool Access', labelSv: 'Tillgång till pool' },
-  { id: 'gym', label: 'Gym Access', labelSv: 'Tillgång till gym' },
-  { id: 'powerMeter', label: 'Power Meter', labelSv: 'Wattmätare' },
-  { id: 'hrMonitor', label: 'HR Monitor', labelSv: 'Pulsmätare' },
-  { id: 'lactateMeter', label: 'Lactate Meter', labelSv: 'Laktatmätare' },
+  { id: 'treadmill', labelKey: 'equipment.treadmill' },
+  { id: 'bike', labelKey: 'equipment.stationaryBike' },
+  { id: 'rower', labelKey: 'equipment.rowingMachine' },
+  { id: 'skiErg', labelKey: 'equipment.skiErg' },
+  { id: 'pool', labelKey: 'equipment.poolAccess' },
+  { id: 'gym', labelKey: 'equipment.gymAccess' },
+  { id: 'powerMeter', labelKey: 'equipment.powerMeter' },
+  { id: 'hrMonitor', labelKey: 'equipment.hrMonitor' },
+  { id: 'lactateMeter', labelKey: 'equipment.lactateMeter' },
 ]
 
 const DAYS_OF_WEEK = [
-  { id: 'monday', label: 'Mon', labelSv: 'Mån' },
-  { id: 'tuesday', label: 'Tue', labelSv: 'Tis' },
-  { id: 'wednesday', label: 'Wed', labelSv: 'Ons' },
-  { id: 'thursday', label: 'Thu', labelSv: 'Tor' },
-  { id: 'friday', label: 'Fri', labelSv: 'Fre' },
-  { id: 'saturday', label: 'Sat', labelSv: 'Lör' },
-  { id: 'sunday', label: 'Sun', labelSv: 'Sön' },
+  { id: 'monday', key: 'availability.days.monday' },
+  { id: 'tuesday', key: 'availability.days.tuesday' },
+  { id: 'wednesday', key: 'availability.days.wednesday' },
+  { id: 'thursday', key: 'availability.days.thursday' },
+  { id: 'friday', key: 'availability.days.friday' },
+  { id: 'saturday', key: 'availability.days.saturday' },
+  { id: 'sunday', key: 'availability.days.sunday' },
 ]
 
 interface OnboardingWizardProps {
@@ -118,200 +119,150 @@ type StepId = 'sport' | 'experience' | 'biometrics' | 'sport_specific' | 'availa
 
 interface StepDefinition {
   id: StepId
-  titleEn: string
-  titleSv: string
-  descriptionEn: string
-  descriptionSv: string
+  titleKey: string
+  descriptionKey: string
 }
 
 const BASE_STEPS: StepDefinition[] = [
   {
     id: 'sport',
-    titleEn: 'Select Sport',
-    titleSv: 'Välj sport',
-    descriptionEn: 'Select your primary sport to customize your training experience.',
-    descriptionSv: 'Välj din huvudsakliga sport för att anpassa din träningsupplevelse.',
+    titleKey: 'steps.sport.title',
+    descriptionKey: 'steps.sport.description',
   },
   {
     id: 'experience',
-    titleEn: 'Experience Level',
-    titleSv: 'Erfarenhetsnivå',
-    descriptionEn: 'Tell us about your experience level.',
-    descriptionSv: 'Berätta om din erfarenhetsnivå.',
+    titleKey: 'steps.experience.title',
+    descriptionKey: 'steps.experience.description',
   },
   {
     id: 'biometrics',
-    titleEn: 'Biometrics',
-    titleSv: 'Biometri',
-    descriptionEn: 'Help us calculate your training zones by providing heart rate data.',
-    descriptionSv: 'Hjälp oss beräkna dina träningszoner genom att ange pulsdata.',
+    titleKey: 'steps.biometrics.title',
+    descriptionKey: 'steps.biometrics.description',
   },
 ]
 
 const CYCLING_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Cycling Setup',
-  titleSv: 'Cyklinginställningar',
-  descriptionEn: 'Configure your cycling-specific settings and equipment.',
-  descriptionSv: 'Konfigurera dina cykelspecifika inställningar och utrustning.',
+  titleKey: 'steps.cycling.title',
+  descriptionKey: 'steps.cycling.description',
 }
 
 const SKIING_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Skiing Setup',
-  titleSv: 'Skidinställningar',
-  descriptionEn: 'Configure your skiing-specific settings and training methods.',
-  descriptionSv: 'Konfigurera dina skidspecifika inställningar och träningsmetoder.',
+  titleKey: 'steps.skiing.title',
+  descriptionKey: 'steps.skiing.description',
 }
 
 const SWIMMING_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Swimming Setup',
-  titleSv: 'Siminställningar',
-  descriptionEn: 'Configure your swimming-specific settings and training environment.',
-  descriptionSv: 'Konfigurera dina simspecifika inställningar och träningsmiljö.',
+  titleKey: 'steps.swimming.title',
+  descriptionKey: 'steps.swimming.description',
 }
 
 const TRIATHLON_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Triathlon Setup',
-  titleSv: 'Triathloninställningar',
-  descriptionEn: 'Configure your triathlon-specific settings for swim, bike, and run.',
-  descriptionSv: 'Konfigurera dina triathlonspecifika inställningar för sim, cykel och löpning.',
+  titleKey: 'steps.triathlon.title',
+  descriptionKey: 'steps.triathlon.description',
 }
 
 const HYROX_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'HYROX Setup',
-  titleSv: 'HYROX-inställningar',
-  descriptionEn: 'Configure your HYROX-specific settings, benchmarks, and training preferences.',
-  descriptionSv: 'Konfigurera dina HYROX-specifika inställningar, benchmark-tider och träningspreferenser.',
+  titleKey: 'steps.hyrox.title',
+  descriptionKey: 'steps.hyrox.description',
 }
 
 const GENERAL_FITNESS_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Fitness Setup',
-  titleSv: 'Fitnessinställningar',
-  descriptionEn: 'Configure your fitness goals, preferences, and training style.',
-  descriptionSv: 'Konfigurera dina träningsmål, preferenser och träningsstil.',
+  titleKey: 'steps.fitness.title',
+  descriptionKey: 'steps.fitness.description',
 }
 
 const FUNCTIONAL_FITNESS_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Functional Fitness Setup',
-  titleSv: 'Funktionell fitness-inställningar',
-  descriptionEn: 'Configure your benchmarks, gymnastics skills, and training preferences.',
-  descriptionSv: 'Konfigurera dina benchmarks, gymnastik-skills och träningspreferenser.',
+  titleKey: 'steps.functionalFitness.title',
+  descriptionKey: 'steps.functionalFitness.description',
 }
 
 const HOCKEY_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Ice Hockey Setup',
-  titleSv: 'Ishockeyinställningar',
-  descriptionEn: 'Configure your position, team info, and training preferences.',
-  descriptionSv: 'Konfigurera din position, laginformation och träningspreferenser.',
+  titleKey: 'steps.hockey.title',
+  descriptionKey: 'steps.hockey.description',
 }
 
 const FOOTBALL_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Football Setup',
-  titleSv: 'Fotbollsinställningar',
-  descriptionEn: 'Configure your position, team info, and physical benchmarks.',
-  descriptionSv: 'Konfigurera din position, laginformation och fysiska tester.',
+  titleKey: 'steps.football.title',
+  descriptionKey: 'steps.football.description',
 }
 
 const HANDBALL_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Handball Setup',
-  titleSv: 'Handbollsinställningar',
-  descriptionEn: 'Configure your position, team info, and training preferences.',
-  descriptionSv: 'Konfigurera din position, laginformation och träningspreferenser.',
+  titleKey: 'steps.handball.title',
+  descriptionKey: 'steps.handball.description',
 }
 
 const FLOORBALL_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Floorball Setup',
-  titleSv: 'Innebandyinställningar',
-  descriptionEn: 'Configure your position, team info, and training preferences.',
-  descriptionSv: 'Konfigurera din position, laginformation och träningspreferenser.',
+  titleKey: 'steps.floorball.title',
+  descriptionKey: 'steps.floorball.description',
 }
 
 const BASKETBALL_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Basketball Setup',
-  titleSv: 'Basketinställningar',
-  descriptionEn: 'Configure your position, team info, and physical benchmarks.',
-  descriptionSv: 'Konfigurera din position, laginformation och fysiska tester.',
+  titleKey: 'steps.basketball.title',
+  descriptionKey: 'steps.basketball.description',
 }
 
 const VOLLEYBALL_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Volleyball Setup',
-  titleSv: 'Volleybollinställningar',
-  descriptionEn: 'Configure your position, team info, and physical benchmarks.',
-  descriptionSv: 'Konfigurera din position, laginformation och fysiska tester.',
+  titleKey: 'steps.volleyball.title',
+  descriptionKey: 'steps.volleyball.description',
 }
 
 const TENNIS_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Tennis Setup',
-  titleSv: 'Tennisinställningar',
-  descriptionEn: 'Configure your play style, benchmarks, and training preferences.',
-  descriptionSv: 'Konfigurera din spelstil, fysiska tester och träningspreferenser.',
+  titleKey: 'steps.tennis.title',
+  descriptionKey: 'steps.tennis.description',
 }
 
 const PADEL_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Padel Setup',
-  titleSv: 'Padelinställningar',
-  descriptionEn: 'Configure your position, partner info, and physical benchmarks.',
-  descriptionSv: 'Konfigurera din position, partnerinformation och fysiska tester.',
+  titleKey: 'steps.padel.title',
+  descriptionKey: 'steps.padel.description',
 }
 
 const NUTRITION_STEP: StepDefinition = {
   id: 'sport_specific',
-  titleEn: 'Nutrition Setup',
-  titleSv: 'Kostinställningar',
-  descriptionEn: 'Set your nutrition goals, dietary preferences, and macro targets.',
-  descriptionSv: 'Ställ in dina kostmål, kostpreferenser och makromål.',
+  titleKey: 'steps.nutrition.title',
+  descriptionKey: 'steps.nutrition.description',
 }
 
 const AI_PROGRAM_STEP: StepDefinition = {
   id: 'ai_program',
-  titleEn: 'AI Training Program',
-  titleSv: 'AI-träningsprogram',
-  descriptionEn: 'Would you like AI to create a personalized training program for you?',
-  descriptionSv: 'Vill du att AI skapar ett personligt träningsprogram åt dig?',
+  titleKey: 'steps.aiProgram.title',
+  descriptionKey: 'steps.aiProgram.description',
 }
 
 const COMMON_STEPS: StepDefinition[] = [
   {
     id: 'availability',
-    titleEn: 'Weekly Availability',
-    titleSv: 'Tillgänglighet',
-    descriptionEn: 'When can you train during the week?',
-    descriptionSv: 'När kan du träna under veckan?',
+    titleKey: 'steps.availability.title',
+    descriptionKey: 'steps.availability.description',
   },
   {
     id: 'equipment',
-    titleEn: 'Equipment',
-    titleSv: 'Utrustning',
-    descriptionEn: 'What equipment do you have access to?',
-    descriptionSv: 'Vilken utrustning har du tillgång till?',
+    titleKey: 'steps.equipment.title',
+    descriptionKey: 'steps.equipment.description',
   },
   {
     id: 'goals',
-    titleEn: 'Goals',
-    titleSv: 'Mål',
-    descriptionEn: 'What are your training goals?',
-    descriptionSv: 'Vad är dina träningsmål?',
+    titleKey: 'steps.goals.title',
+    descriptionKey: 'steps.goals.description',
   },
   {
     id: 'summary',
-    titleEn: 'Your Training Profile',
-    titleSv: 'Din träningsprofil',
-    descriptionEn: 'Review your fitness estimate and training zone setup.',
-    descriptionSv: 'Granska din konditionsuppskattning och träningszonsinställning.',
+    titleKey: 'steps.summary.title',
+    descriptionKey: 'steps.summary.description',
   },
 ]
 
@@ -335,7 +286,7 @@ export function OnboardingWizard({
   const [hasAssignedCoach, setHasAssignedCoach] = useState(false)
   const [isGeneratingProgram, setIsGeneratingProgram] = useState(false)
   const [generationProgress, setGenerationProgress] = useState(0)
-  const [programGenerated, setProgramGenerated] = useState(false)
+  const t = useTranslations('components.onboardingWizard')
 
   const [data, setData] = useState<OnboardingData>({
     primarySport: initialSport || null,
@@ -430,12 +381,9 @@ export function OnboardingWizard({
         throw new Error('Failed to generate program')
       }
 
-      setProgramGenerated(true)
       toast({
-        title: locale === 'sv' ? 'Program skapat!' : 'Program created!',
-        description: locale === 'sv'
-          ? 'Ditt AI-träningsprogram har skapats.'
-          : 'Your AI training program has been created.',
+        title: t('toasts.aiProgramCreated.title'),
+        description: t('toasts.aiProgramCreated.description'),
       })
 
       // Move to next step after short delay
@@ -444,10 +392,8 @@ export function OnboardingWizard({
       }, 1500)
     } catch (error) {
       toast({
-        title: locale === 'sv' ? 'Fel' : 'Error',
-        description: locale === 'sv'
-          ? 'Kunde inte skapa programmet. Du kan försöka igen senare från din dashboard.'
-          : 'Could not create program. You can try again later from your dashboard.',
+        title: t('toasts.error.title'),
+        description: t('toasts.error.description'),
         variant: 'destructive',
       })
     } finally {
@@ -456,8 +402,6 @@ export function OnboardingWizard({
   }
 
   // Compute steps based on selected sport
-  const isNutritionFocus = data.primarySport === 'NUTRITION'
-
   const steps = useMemo(() => {
     // Nutrition-focused users get a streamlined flow
     if (data.primarySport === 'NUTRITION') {
@@ -751,10 +695,8 @@ export function OnboardingWizard({
       }
 
       toast({
-        title: locale === 'sv' ? 'Profil skapad!' : 'Profile created!',
-        description: locale === 'sv'
-          ? 'Din sportprofil har sparats.'
-          : 'Your sport profile has been saved.',
+        title: t('toasts.profileCreated.title'),
+        description: t('toasts.profileCreated.description'),
       })
 
       if (onComplete) {
@@ -764,10 +706,8 @@ export function OnboardingWizard({
       }
     } catch (error) {
       toast({
-        title: locale === 'sv' ? 'Fel' : 'Error',
-        description: locale === 'sv'
-          ? 'Kunde inte spara profilen. Försök igen.'
-          : 'Could not save profile. Please try again.',
+        title: t('toasts.saveError.title'),
+        description: t('toasts.saveError.description'),
         variant: 'destructive',
       })
     } finally {
@@ -775,7 +715,24 @@ export function OnboardingWizard({
     }
   }
 
-  const t = (en: string, sv: string) => (locale === 'sv' ? sv : en)
+  const getGoalPlaceholderKey = (sport: SportType | null) => {
+    switch (sport) {
+      case 'CYCLING':
+        return 'goals.placeholders.cycling'
+      case 'SKIING':
+        return 'goals.placeholders.skiing'
+      case 'SWIMMING':
+        return 'goals.placeholders.swimming'
+      case 'TRIATHLON':
+        return 'goals.placeholders.triathlon'
+      case 'HYROX':
+        return 'goals.placeholders.hydrox'
+      case 'GENERAL_FITNESS':
+        return 'goals.placeholders.generalFitness'
+      default:
+        return 'goals.placeholders.default'
+    }
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-4">
@@ -783,15 +740,15 @@ export function OnboardingWizard({
         <CardHeader>
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-2xl">
-              {t(`Welcome, ${clientName}!`, `Välkommen, ${clientName}!`)}
+              {t('header.welcome', { clientName })}
             </CardTitle>
             <span className="text-sm text-muted-foreground">
-              {t(`Step ${stepIndex + 1} of ${totalSteps}`, `Steg ${stepIndex + 1} av ${totalSteps}`)}
+              {t('header.step', { step: stepIndex + 1, total: totalSteps })}
             </span>
           </div>
           <Progress value={((stepIndex + 1) / totalSteps) * 100} className="h-2" />
           <CardDescription className="mt-4">
-            {locale === 'sv' ? currentStep.descriptionSv : currentStep.descriptionEn}
+            {t(currentStep.descriptionKey)}
           </CardDescription>
         </CardHeader>
 
@@ -855,7 +812,7 @@ export function OnboardingWizard({
               {data.primarySport && (
                 <div className="pt-4 border-t">
                   <Label className="text-base mb-3 block">
-                    {t('Secondary sports (optional)', 'Sekundära sporter (valfritt)')}
+                    {t('labels.secondarySports')}
                   </Label>
                   <MultiSportSelector
                     value={data.secondarySports}
@@ -891,9 +848,9 @@ export function OnboardingWizard({
                   <RadioGroupItem value={level.value} id={level.value} />
                   <div>
                     <p className="font-medium">
-                      {locale === 'sv' ? level.labelSv : level.label}
+                      {t(level.labelKey)}
                     </p>
-                    <p className="text-sm text-muted-foreground">{level.description}</p>
+                    <p className="text-sm text-muted-foreground">{t(level.descriptionKey)}</p>
                   </div>
                 </Label>
               ))}
@@ -1047,7 +1004,7 @@ export function OnboardingWizard({
               <div className="grid grid-cols-7 gap-2">
                 {DAYS_OF_WEEK.map((day) => (
                   <div key={day.id} className="text-center">
-                    <Label className="text-sm">{locale === 'sv' ? day.labelSv : day.label}</Label>
+                    <Label className="text-sm">{t(day.key)}</Label>
                     <div
                       className={cn(
                         'mt-2 p-4 rounded-lg border-2 cursor-pointer transition-all',
@@ -1073,7 +1030,7 @@ export function OnboardingWizard({
                 ))}
               </div>
               <div className="space-y-2">
-                <Label>{t('Preferred session length (minutes)', 'Föredragen passlängd (minuter)')}</Label>
+                <Label>{t('labels.preferredSessionLength')}</Label>
                 <Input
                   type="number"
                   min={15}
@@ -1107,7 +1064,7 @@ export function OnboardingWizard({
                       })
                     }
                   />
-                  <span>{locale === 'sv' ? item.labelSv : item.label}</span>
+                  <span>{t(item.labelKey)}</span>
                 </Label>
               ))}
             </div>
@@ -1117,51 +1074,16 @@ export function OnboardingWizard({
           {currentStep.id === 'goals' && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label>{t('What is your main goal?', 'Vad är ditt huvudmål?')}</Label>
+                <Label>{t('labels.mainGoal')}</Label>
                 <Textarea
-                  placeholder={
-                    data.primarySport === 'CYCLING'
-                      ? t(
-                          'e.g., Increase FTP to 300W, complete a Gran Fondo, win a local race...',
-                          't.ex. Öka FTP till 300W, slutföra en Gran Fondo, vinna en lokal tävling...'
-                        )
-                      : data.primarySport === 'SKIING'
-                        ? t(
-                            'e.g., Complete Vasaloppet, improve threshold pace, win age group...',
-                            't.ex. Slutföra Vasaloppet, förbättra tröskeltempot, vinna åldersgrupp...'
-                          )
-                        : data.primarySport === 'SWIMMING'
-                          ? t(
-                              'e.g., Improve CSS to 1:30/100m, complete an open water race, qualify for Masters nationals...',
-                              't.ex. Förbättra CSS till 1:30/100m, slutföra ett öppet vatten-lopp, kvala till Masters-SM...'
-                            )
-                          : data.primarySport === 'TRIATHLON'
-                            ? t(
-                                'e.g., Complete my first Olympic triathlon, qualify for 70.3 Worlds, sub-10 hour Ironman...',
-                                't.ex. Slutföra min första olympiska triathlon, kvala till 70.3 VM, sub-10 timmar Ironman...'
-                              )
-                            : data.primarySport === 'HYROX'
-                              ? t(
-                                  'e.g., Complete my first HYROX under 90 min, qualify for World Championship, podium in Pro...',
-                                  't.ex. Slutföra mitt första HYROX under 90 min, kvala till VM, pall i Pro-klassen...'
-                                )
-                              : data.primarySport === 'GENERAL_FITNESS'
-                                ? t(
-                                    'e.g., Lose 5 kg, build daily exercise habits, improve energy levels, get stronger...',
-                                    't.ex. Gå ner 5 kg, bygga dagliga träningsvanor, förbättra energinivåer, bli starkare...'
-                                  )
-                                : t(
-                                  'e.g., Run a marathon under 3:30, improve my overall fitness...',
-                                  't.ex. Springa maraton under 3:30, förbättra min allmänna kondition...'
-                                )
-                  }
+                  placeholder={t(getGoalPlaceholderKey(data.primarySport))}
                   value={data.currentGoal}
                   onChange={(e) => updateData({ currentGoal: e.target.value })}
                   rows={3}
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t('Target date (optional)', 'Måldatum (valfritt)')}</Label>
+                <Label>{t('labels.targetDate')}</Label>
                 <Input
                   type="date"
                   value={data.targetDate}
@@ -1175,18 +1097,15 @@ export function OnboardingWizard({
                 <Card className="border-blue-200 bg-blue-50/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">
-                      {t('Recent Race Time (optional)', 'Senaste tävlingstid (valfritt)')}
+                      {t('labels.recentRaceTime')}
                     </CardTitle>
                     <CardDescription>
-                      {t(
-                        'A recent race result helps us calculate your fitness level and personalize your training zones.',
-                        'Ett nytt tävlingsresultat hjälper oss beräkna din konditionsnivå och personalisera dina träningszoner.'
-                      )}
+                      {t('labels.recentRaceDescription')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label>{t('Distance', 'Distans')}</Label>
+                      <Label>{t('labels.distance')}</Label>
                       <div className="flex flex-wrap gap-2">
                         {[
                           { id: '1500M', label: '1500m' },
@@ -1194,7 +1113,7 @@ export function OnboardingWizard({
                           { id: '3K', label: '3K' },
                           { id: '5K', label: '5K' },
                           { id: '10K', label: '10K' },
-                          { id: 'HALF_MARATHON', label: locale === 'sv' ? 'Halvmaraton' : 'Half Marathon' },
+                          { id: 'HALF_MARATHON', labelKey: 'race.halfMarathon' },
                           { id: 'MARATHON', label: 'Marathon' },
                         ].map((dist) => (
                           <button
@@ -1213,7 +1132,7 @@ export function OnboardingWizard({
                                 : 'border-border hover:border-primary/50'
                             )}
                           >
-                            {dist.label}
+                            {dist.labelKey ? t(dist.labelKey) : dist.label}
                           </button>
                         ))}
                       </div>
@@ -1221,7 +1140,7 @@ export function OnboardingWizard({
 
                     {data.recentRaceTime.distance && (
                       <div className="space-y-2">
-                        <Label>{t('Time', 'Tid')}</Label>
+                        <Label>{t('labels.time')}</Label>
                         <div className="flex items-center gap-2">
                           {(data.recentRaceTime.distance === 'HALF_MARATHON' || data.recentRaceTime.distance === 'MARATHON') && (
                             <>
@@ -1239,7 +1158,7 @@ export function OnboardingWizard({
                                 })}
                                 className="w-16 text-center"
                               />
-                              <span className="text-sm text-muted-foreground">{t('h', 't')}</span>
+                              <span className="text-sm text-muted-foreground">{t('labels.hours')}</span>
                             </>
                           )}
                           <Input
@@ -1256,7 +1175,7 @@ export function OnboardingWizard({
                             })}
                             className="w-16 text-center"
                           />
-                          <span className="text-sm text-muted-foreground">min</span>
+                          <span className="text-sm text-muted-foreground">{t('labels.minutes')}</span>
                           <Input
                             type="number"
                             min={0}
@@ -1271,7 +1190,7 @@ export function OnboardingWizard({
                             })}
                             className="w-16 text-center"
                           />
-                          <span className="text-sm text-muted-foreground">{t('sec', 'sek')}</span>
+                          <span className="text-sm text-muted-foreground">{t('labels.seconds')}</span>
                         </div>
                       </div>
                     )}
@@ -1322,14 +1241,14 @@ export function OnboardingWizard({
               onClick={handleBack}
               disabled={stepIndex === 0}
             >
-              {t('Back', 'Tillbaka')}
+              {t('buttons.back')}
             </Button>
             {stepIndex < totalSteps - 1 ? (
               <Button
                 onClick={handleNext}
                 disabled={!canProceed()}
               >
-                {t('Next', 'Nästa')}
+                {t('buttons.next')}
               </Button>
             ) : (
               <Button
@@ -1337,8 +1256,8 @@ export function OnboardingWizard({
                 disabled={isSubmitting}
               >
                 {isSubmitting
-                  ? t('Saving...', 'Sparar...')
-                  : t('Complete Setup', 'Slutför inställning')}
+                  ? t('buttons.saving')
+                  : t('buttons.completeSetup')}
               </Button>
             )}
           </CardFooter>

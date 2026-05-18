@@ -6869,6 +6869,203 @@
         }
       }
     },
+    "onboardingWizard": {
+      "header": {
+        "welcome": "Välkommen, {clientName}!",
+        "step": "Steg {step} av {total}"
+      },
+      "steps": {
+        "sport": {
+          "title": "Välj sport",
+          "description": "Välj din huvudsakliga sport för att anpassa din träningsupplevelse."
+        },
+        "experience": {
+          "title": "Erfarenhetsnivå",
+          "description": "Berätta om din erfarenhetsnivå."
+        },
+        "biometrics": {
+          "title": "Biometri",
+          "description": "Hjälp oss beräkna dina träningszoner genom att ange pulsdata."
+        },
+        "cycling": {
+          "title": "Cyklinginställningar",
+          "description": "Konfigurera dina cykelspecifika inställningar och utrustning."
+        },
+        "skiing": {
+          "title": "Skidinställningar",
+          "description": "Konfigurera dina skidspecifika inställningar och träningsmetoder."
+        },
+        "swimming": {
+          "title": "Siminställningar",
+          "description": "Konfigurera dina simspecifika inställningar och träningsmiljö."
+        },
+        "triathlon": {
+          "title": "Triathloninställningar",
+          "description": "Konfigurera dina triathlonspecifika inställningar för sim, cykel och löpning."
+        },
+        "hyrox": {
+          "title": "HYROX-inställningar",
+          "description": "Konfigurera dina HYROX-specifika inställningar, benchmark-tider och träningspreferenser."
+        },
+        "fitness": {
+          "title": "Fitnessinställningar",
+          "description": "Konfigurera dina träningsmål, preferenser och träningsstil."
+        },
+        "functionalFitness": {
+          "title": "Funktionell fitness-inställningar",
+          "description": "Konfigurera dina benchmarks, gymnastik-skills och träningspreferenser."
+        },
+        "hockey": {
+          "title": "Ishockeyinställningar",
+          "description": "Konfigurera din position, laginformation och träningspreferenser."
+        },
+        "football": {
+          "title": "Fotbollsinställningar",
+          "description": "Konfigurera din position, laginformation och fysiska tester."
+        },
+        "handball": {
+          "title": "Handbollsinställningar",
+          "description": "Konfigurera din position, laginformation och träningspreferenser."
+        },
+        "floorball": {
+          "title": "Innebandyinställningar",
+          "description": "Konfigurera din position, laginformation och träningspreferenser."
+        },
+        "basketball": {
+          "title": "Basketinställningar",
+          "description": "Konfigurera din position, laginformation och fysiska tester."
+        },
+        "volleyball": {
+          "title": "Volleybollinställningar",
+          "description": "Konfigurera din position, laginformation och fysiska tester."
+        },
+        "tennis": {
+          "title": "Tennisinställningar",
+          "description": "Konfigurera din spelstil, fysiska tester och träningspreferenser."
+        },
+        "padel": {
+          "title": "Padelinställningar",
+          "description": "Konfigurera din position, partnerinformation och fysiska tester."
+        },
+        "nutrition": {
+          "title": "Kostinställningar",
+          "description": "Ställ in dina kostmål, kostpreferenser och makromål."
+        },
+        "aiProgram": {
+          "title": "AI-träningsprogram",
+          "description": "Vill du att AI skapar ett personligt träningsprogram åt dig?"
+        },
+        "availability": {
+          "title": "Tillgänglighet",
+          "description": "När kan du träna under veckan?"
+        },
+        "equipment": {
+          "title": "Utrustning",
+          "description": "Vilken utrustning har du tillgång till?"
+        },
+        "goals": {
+          "title": "Mål",
+          "description": "Vad är dina träningsmål?"
+        },
+        "summary": {
+          "title": "Din träningsprofil",
+          "description": "Granska din konditionsuppskattning och träningszonsinställning."
+        }
+      },
+      "labels": {
+        "secondarySports": "Sekundära sporter (valfritt)",
+        "preferredSessionLength": "Föredragen passlängd (minuter)",
+        "mainGoal": "Vad är ditt huvudmål?",
+        "targetDate": "Måldatum (valfritt)",
+        "recentRaceTime": "Senaste tävlingstid (valfritt)",
+        "recentRaceDescription": "Ett tävlingsresultat hjälper oss beräkna din konditionsnivå och personalisera dina träningszoner.",
+        "distance": "Distans",
+        "time": "Tid",
+        "hours": "t",
+        "minutes": "min",
+        "seconds": "sek"
+      },
+      "availability": {
+        "days": {
+          "monday": "Mån",
+          "tuesday": "Tis",
+          "wednesday": "Ons",
+          "thursday": "Tor",
+          "friday": "Fre",
+          "saturday": "Lör",
+          "sunday": "Sön"
+        }
+      },
+      "experience": {
+        "levels": {
+          "beginner": {
+            "label": "Nybörjare",
+            "description": "<1 år"
+          },
+          "intermediate": {
+            "label": "Mellanliggande",
+            "description": "1-3 år"
+          },
+          "advanced": {
+            "label": "Avancerad",
+            "description": "3-5 år"
+          },
+          "elite": {
+            "label": "Elit",
+            "description": "5+ år"
+          }
+        }
+      },
+      "equipment": {
+        "treadmill": "Löpband",
+        "stationaryBike": "Motionscykel",
+        "rowingMachine": "Roddmaskin",
+        "skiErg": "SkiErg",
+        "poolAccess": "Tillgång till pool",
+        "gymAccess": "Tillgång till gym",
+        "powerMeter": "Wattmätare",
+        "hrMonitor": "Pulsmätare",
+        "lactateMeter": "Laktatmätare"
+      },
+      "race": {
+        "halfMarathon": "Halvmaraton"
+      },
+      "goals": {
+        "placeholders": {
+          "default": "t.ex. Springa maraton under 3:30, förbättra min allmänna kondition...",
+          "cycling": "t.ex. Öka FTP till 300W, slutföra en Gran Fondo, vinna en lokal tävling...",
+          "skiing": "t.ex. Slutföra Vasaloppet, förbättra tröskeltempot, vinna åldersgrupp...",
+          "swimming": "t.ex. Förbättra CSS till 1:30/100m, slutföra ett öppet vatten-lopp, kvala till Masters-SM...",
+          "triathlon": "t.ex. Slutföra min första olympiska triathlon, kvala till 70.3 VM, sub-10 timmar Ironman...",
+          "hydrox": "t.ex. Slutföra mitt första HYROX under 90 min, kvala till VM, pall i Pro-klassen...",
+          "generalFitness": "t.ex. Gå ner 5 kg, bygga dagliga träningsvanor, förbättra energinivåer, bli starkare..."
+        }
+      },
+      "buttons": {
+        "back": "Tillbaka",
+        "next": "Nästa",
+        "saving": "Sparar...",
+        "completeSetup": "Slutför inställning"
+      },
+      "toasts": {
+        "profileCreated": {
+          "title": "Profil skapad!",
+          "description": "Din sportprofil har sparats."
+        },
+        "saveError": {
+          "title": "Fel",
+          "description": "Kunde inte spara profilen. Försök igen."
+        },
+        "aiProgramCreated": {
+          "title": "Program skapat!",
+          "description": "Ditt AI-träningsprogram har skapats."
+        },
+        "error": {
+          "title": "Fel",
+          "description": "Kunde inte skapa programmet. Du kan försöka igen senare från din dashboard."
+        }
+      }
+    },
     "mealInputMethodSelector": {
       "title": "Logga mat",
       "description": "Välj hur du vill registrera din måltid",
