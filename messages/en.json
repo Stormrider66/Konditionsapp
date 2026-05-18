@@ -143,6 +143,56 @@
       "title": "Food History",
       "subtitle": "Your foods & nutrition sources"
     },
+    "pdfDemo": {
+      "header": {
+        "title": "PDF Export Demo",
+        "subtitle": "Test PDF export with Swedish characters (åäö, ÅÄÖ) and charts"
+      },
+      "controls": {
+        "title": "Test Controls",
+        "testNames": {
+          "running": "Run Test",
+          "cycling": "Cycle Test"
+        }
+      },
+      "testFacts": {
+        "title": "Checks:",
+        "items": {
+          "swedishCharacters": "Swedish characters: {characters} (in names: {runningClient}, {cyclingClient})",
+          "chartExport": "Chart export: Recharts SVG to PDF",
+          "gradientColors": "Gradient colors: Header using gradient-primary",
+          "tables": "Tables: Training zones and Power Zones",
+          "multiPage": "Multi-page: Long reports across multiple pages",
+          "resolution": "Resolution: High-quality (scale=2)"
+        }
+      },
+      "export": {
+        "title": "Export options:",
+        "print": "Print (browser)"
+      },
+      "status": {
+        "loading": "Generating report...",
+        "empty": "Select a test above to generate report"
+      },
+      "errors": {
+        "title": "Error:",
+        "unknown": "Unknown error"
+      },
+      "sampleData": {
+        "clients": {
+          "running": {
+            "notes": "Experienced runner, goal: improve marathon time"
+          },
+          "cycling": {
+            "notes": "Competitive cyclist, trains 12h per week"
+          }
+        },
+        "testNotes": {
+          "running": "Excellent test! The athlete showed good running economy and strong anaerobic capacity.",
+          "cycling": "Very strong cycle test. High FTP and steady power development."
+        }
+      }
+    },
     "privacySettings": {
       "backToSettings": "Back to settings",
       "title": "Privacy",

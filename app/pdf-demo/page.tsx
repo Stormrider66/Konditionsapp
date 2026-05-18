@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
 import { performAllCalculations } from '@/lib/calculations'
@@ -160,6 +161,8 @@ const sampleCyclingStages: TestStage[] = [
 ]
 
 export default function PDFDemoPage() {
+  const t = useTranslations('pages.pdfDemo')
+
   const [reportData, setReportData] = useState<{
     client: Client
     test: Test
@@ -174,7 +177,16 @@ export default function PDFDemoPage() {
     setTestType(type)
 
     try {
-      const client = type === 'RUNNING' ? sampleClients.running : sampleClients.cycling
+      const isRunning = type === 'RUNNING'
+      const client = isRunning
+        ? {
+            ...sampleClients.running,
+            notes: t('sampleData.clients.running.notes'),
+          }
+        : {
+            ...sampleClients.cycling,
+            notes: t('sampleData.clients.cycling.notes'),
+          }
       const stages = type === 'RUNNING' ? sampleRunningStages : sampleCyclingStages
 
       const test: Test = {
@@ -184,9 +196,9 @@ export default function PDFDemoPage() {
         testDate: new Date('2025-09-15'),
         testType: type,
         status: 'COMPLETED',
-        notes: type === 'RUNNING'
-          ? 'Utmärkt test! Klienten visade god löpekonomi och stark anaerob kapacitet.'
-          : 'Mycket bra cykeltest. Högt FTP-värde och jämn kraftutveckling.',
+        notes: isRunning
+          ? t('sampleData.testNotes.running')
+          : t('sampleData.testNotes.cycling'),
         testStages: stages,
       }
 
@@ -199,13 +211,12 @@ export default function PDFDemoPage() {
       })
     } catch (error) {
       console.error('Error generating report:', error)
-      alert(`Fel: ${error instanceof Error ? error.message : 'Okänt fel'}`)
+      alert(`${t('errors.title')} ${error instanceof Error ? error.message : t('errors.unknown')}`)
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
-  // Generera löptest som default
   useEffect(() => {
     generateReport('RUNNING')
   }, [generateReport])
@@ -214,9 +225,9 @@ export default function PDFDemoPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="gradient-primary text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold">PDF Export Demo</h1>
+          <h1 className="text-3xl font-bold">{t('header.title')}</h1>
           <p className="text-white/90 mt-1">
-            Testa PDF-export med svenska tecken (åäö, ÅÄÖ) och diagram
+            {t('header.subtitle')}
           </p>
         </div>
       </header>
@@ -224,7 +235,7 @@ export default function PDFDemoPage() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Control Panel */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6 print:hidden">
-          <h2 className="text-2xl font-semibold mb-4">Test-kontroller</h2>
+          <h2 className="text-2xl font-semibold mb-4">{t('controls.title')}</h2>
 
           <div className="flex gap-4 mb-4">
             <button
@@ -236,7 +247,7 @@ export default function PDFDemoPage() {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               } disabled:opacity-50`}
             >
-              Löptest
+              {t('controls.testNames.running')}
             </button>
             <button
               onClick={() => generateReport('CYCLING')}
@@ -247,30 +258,36 @@ export default function PDFDemoPage() {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               } disabled:opacity-50`}
             >
-              Cykeltest
+              {t('controls.testNames.cycling')}
             </button>
           </div>
 
           <div className="border-t pt-4 mt-4">
-            <h3 className="font-semibold mb-2">Testar:</h3>
+            <h3 className="font-semibold mb-2">{t('testFacts.title')}</h3>
             <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-              <li>Svenska tecken: åäö, ÅÄÖ (i namn: Åsa Östergren, Erik Ängström)</li>
-              <li>Diagram-export: Recharts SVG till PDF</li>
-              <li>Gradient-färger: Header med gradient-primary</li>
-              <li>Tabeller: Träningszoner och Power Zones</li>
-              <li>Multi-page: Långa rapporter över flera sidor</li>
-              <li>Upplösning: High-quality (scale=2)</li>
+              <li>
+                {t('testFacts.items.swedishCharacters', {
+                  characters: 'åäö, ÅÄÖ',
+                  runningClient: sampleClients.running.name,
+                  cyclingClient: sampleClients.cycling.name,
+                })}
+              </li>
+              <li>{t('testFacts.items.chartExport')}</li>
+              <li>{t('testFacts.items.gradientColors')}</li>
+              <li>{t('testFacts.items.tables')}</li>
+              <li>{t('testFacts.items.multiPage')}</li>
+              <li>{t('testFacts.items.resolution')}</li>
             </ul>
           </div>
 
           <div className="border-t pt-4 mt-4">
-            <h3 className="font-semibold mb-2">Export-alternativ:</h3>
+            <h3 className="font-semibold mb-2">{t('export.title')}</h3>
             <div className="flex gap-4">
               <button
                 onClick={() => window.print()}
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
               >
-                Skriv ut (browser)
+                {t('export.print')}
               </button>
               {reportData && (
                 <PDFExportButton
@@ -294,7 +311,7 @@ export default function PDFDemoPage() {
         {isLoading ? (
           <div className="bg-white rounded-lg shadow-lg p-12 text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Genererar rapport...</p>
+            <p className="text-gray-600">{t('status.loading')}</p>
           </div>
         ) : reportData ? (
           <ReportTemplate
@@ -306,7 +323,7 @@ export default function PDFDemoPage() {
           />
         ) : (
           <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-            <p className="text-gray-600">Välj ett test ovan för att generera rapport</p>
+            <p className="text-gray-600">{t('status.empty')}</p>
           </div>
         )}
       </main>

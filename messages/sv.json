@@ -143,6 +143,56 @@
       "title": "Mathistorik",
       "subtitle": "Dina livsmedel & näringskällor"
     },
+    "pdfDemo": {
+      "header": {
+        "title": "PDF Export Demo",
+        "subtitle": "Testa PDF-export med svenska tecken (åäö, ÅÄÖ) och diagram"
+      },
+      "controls": {
+        "title": "Test-kontroller",
+        "testNames": {
+          "running": "Löptest",
+          "cycling": "Cykeltest"
+        }
+      },
+      "testFacts": {
+        "title": "Testar:",
+        "items": {
+          "swedishCharacters": "Svenska tecken: {characters} (i namn: {runningClient}, {cyclingClient})",
+          "chartExport": "Diagram-export: Recharts SVG till PDF",
+          "gradientColors": "Gradient-färger: Header med gradient-primary",
+          "tables": "Tabeller: Träningszoner och Power Zones",
+          "multiPage": "Multi-page: Långa rapporter över flera sidor",
+          "resolution": "Upplösning: High-quality (scale=2)"
+        }
+      },
+      "export": {
+        "title": "Export-alternativ:",
+        "print": "Skriv ut (browser)"
+      },
+      "status": {
+        "loading": "Genererar rapport...",
+        "empty": "Välj ett test ovan för att generera rapport"
+      },
+      "errors": {
+        "title": "Fel:",
+        "unknown": "Okänt fel"
+      },
+      "sampleData": {
+        "clients": {
+          "running": {
+            "notes": "Erfaren löpare, mål: förbättra maraton-tid"
+          },
+          "cycling": {
+            "notes": "Tävlingscyklist, tränar 12h/vecka"
+          }
+        },
+        "testNotes": {
+          "running": "Utmärkt test! Klienten visade god löpekonomi och stark anaerob kapacitet.",
+          "cycling": "Mycket bra cykeltest. Högt FTP-värde och jämn kraftutveckling."
+        }
+      }
+    },
     "privacySettings": {
       "backToSettings": "Tillbaka till inställningar",
       "title": "Integritet",
