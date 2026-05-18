@@ -2096,7 +2096,11 @@
       "inviteDescription": "Skapa ditt konto för att gå med i teamet",
       "defaultTeamName": "ett team",
       "athletePrompt": "Är du atlet?",
-      "athleteSignupLink": "Registrera dig som atlet"
+      "athleteSignupLink": "Registrera dig som atlet",
+      "validation": {
+        "passwordsDoNotMatch": "Lösenorden matchar inte",
+        "athleteProfileRequired": "Alla fält för atletprofilen krävs"
+      }
     },
     "athleteSignup": {
       "choosePlan": "Välj din plan",

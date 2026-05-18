@@ -2096,7 +2096,11 @@
       "inviteDescription": "Create your account to join the team",
       "defaultTeamName": "a team",
       "athletePrompt": "Are you an athlete?",
-      "athleteSignupLink": "Register as an athlete"
+      "athleteSignupLink": "Register as an athlete",
+      "validation": {
+        "passwordsDoNotMatch": "Passwords do not match",
+        "athleteProfileRequired": "All athlete profile fields are required"
+      }
     },
     "athleteSignup": {
       "choosePlan": "Choose your plan",

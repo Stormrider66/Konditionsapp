@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -17,36 +17,37 @@ import { Loader2, Gift, CheckCircle2, User, Building2, Search, X, Dumbbell } fro
 import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
-const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string(),
-  createAthleteProfile: z.boolean(),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
-  birthDate: z.string().optional(),
-  height: z.string().optional(),
-  weight: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-}).refine((data) => {
-  if (data.createAthleteProfile) {
-    return data.gender && data.birthDate && data.height && data.weight
-  }
-  return true
-}, {
-  message: 'All athlete profile fields are required',
-  path: ['gender'],
-})
-
-type RegisterFormData = z.infer<typeof registerSchema>
+type RegisterFormData = z.infer<ReturnType<typeof createRegisterSchema>>
 
 interface ReferralInfo {
   code: string
   referrerName: string
   benefit: string
 }
+
+const createRegisterSchema = (t: (key: string, params?: Record<string, string | number>) => string) =>
+  z.object({
+    name: z.string().min(2, t('minCharacters', { count: 2 })),
+    email: z.string().email(t('invalidEmail')),
+    password: z.string().min(6, t('passwordMinLength')),
+    confirmPassword: z.string(),
+    createAthleteProfile: z.boolean(),
+    gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+    birthDate: z.string().optional(),
+    height: z.string().optional(),
+    weight: z.string().optional(),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('coachSignup.validation.passwordsDoNotMatch'),
+    path: ['confirmPassword'],
+  }).refine((data) => {
+    if (data.createAthleteProfile) {
+      return data.gender && data.birthDate && data.height && data.weight
+    }
+    return true
+  }, {
+    message: t('coachSignup.validation.athleteProfileRequired'),
+    path: ['gender'],
+  })
 
 function CoachSignupForm() {
   const t = useTranslations('auth')
@@ -109,6 +110,8 @@ function CoachSignupForm() {
       setReferralValidated(true)
     }
   }
+
+  const registerSchema = useMemo(() => createRegisterSchema(t), [t])
 
   const {
     register,
@@ -379,32 +382,32 @@ function CoachSignupForm() {
             />
             <label htmlFor="createAthleteProfile" className="text-sm font-medium cursor-pointer flex items-center gap-2">
               <User className="h-4 w-4" />
-              {t('alsoUseAsAthlete') || 'I also want to use the app as an athlete'}
+              {t('alsoUseAsAthlete')}
             </label>
           </div>
           <p className="text-xs text-muted-foreground">
-            {t('athleteProfileDescription') || 'Create a personal athlete profile for self-coaching and tracking your own training.'}
+            {t('athleteProfileDescription')}
           </p>
 
           {createAthleteProfile && (
             <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
               <p className="text-sm font-medium text-blue-800">
-                {t('athleteProfileFields') || 'Athlete Profile Information'}
+                {t('athleteProfileFields')}
               </p>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">{t('genderLabel') || 'Gender'}</label>
+                <label className="text-sm font-medium">{t('genderLabel')}</label>
                 <Select
                   onValueChange={(value) => setValue('gender', value as 'MALE' | 'FEMALE' | 'OTHER')}
                   disabled={isLoading}
                 >
                   <SelectTrigger className={errors.gender ? 'border-red-500' : ''}>
-                    <SelectValue placeholder={t('selectGender') || 'Select gender'} />
+                    <SelectValue placeholder={t('selectGender')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MALE">{t('male') || 'Male'}</SelectItem>
-                    <SelectItem value="FEMALE">{t('female') || 'Female'}</SelectItem>
-                    <SelectItem value="OTHER">{t('other') || 'Other'}</SelectItem>
+                    <SelectItem value="MALE">{t('male')}</SelectItem>
+                    <SelectItem value="FEMALE">{t('female')}</SelectItem>
+                    <SelectItem value="OTHER">{t('other')}</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.gender && <p className="text-sm text-red-500">{errors.gender.message}</p>}
@@ -412,7 +415,7 @@ function CoachSignupForm() {
 
               <div className="space-y-2">
                 <label htmlFor="birthDate" className="text-sm font-medium">
-                  {t('birthDateLabel') || 'Birth Date'}
+                  {t('birthDateLabel')}
                 </label>
                 <input
                   id="birthDate"
@@ -424,11 +427,11 @@ function CoachSignupForm() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="height" className="text-sm font-medium">{t('heightLabel') || 'Height (cm)'}</label>
-                  <input
-                    id="height"
-                    type="number"
+              <div className="space-y-2">
+                <label htmlFor="height" className="text-sm font-medium">{t('heightLabel')}</label>
+                <input
+                  id="height"
+                  type="number"
                     step="0.1"
                     className={`flex h-10 w-full rounded-md border ${errors.height ? 'border-red-500' : 'border-input'} bg-background px-3 py-2 text-sm`}
                     placeholder="175"
@@ -437,7 +440,7 @@ function CoachSignupForm() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="weight" className="text-sm font-medium">{t('weightLabel') || 'Weight (kg)'}</label>
+                  <label htmlFor="weight" className="text-sm font-medium">{t('weightLabel')}</label>
                   <input
                     id="weight"
                     type="number"
@@ -458,7 +461,7 @@ function CoachSignupForm() {
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <label className="text-sm font-medium">
-              {t('joinGym.title') || 'Join an existing gym or club (optional)'}
+              {t('joinGym.title')}
             </label>
           </div>
 
@@ -478,7 +481,7 @@ function CoachSignupForm() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   className="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  placeholder={t('joinGym.searchPlaceholder') || 'Search for gym or club...'}
+                  placeholder={t('joinGym.searchPlaceholder')}
                   value={gymSearch}
                   onChange={(e) => searchGyms(e.target.value)}
                 />
@@ -505,13 +508,13 @@ function CoachSignupForm() {
               {searchingGyms && (
                 <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg p-3 text-center">
                   <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                  <span className="text-sm text-muted-foreground">{t('joinGym.searching') || 'Searching...'}</span>
+                  <span className="text-sm text-muted-foreground">{t('joinGym.searching')}</span>
                 </div>
               )}
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            {t('joinGym.description') || 'A join request will be sent to the gym owner for approval.'}
+            {t('joinGym.description')}
           </p>
         </div>
 
