@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
+import { useTranslations } from '@/i18n/client'
 
 interface PhysioGlassHeaderProps {
     user: any
@@ -44,9 +45,10 @@ interface PhysioGlassHeaderProps {
 export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps) {
     const pathname = usePathname()
     const router = useRouter()
+    const tPhysioHeader = useTranslations('components.physioHeader')
     const [isOpen, setIsOpen] = useState(false)
     const [businessName, setBusinessName] = useState<string | null>(null)
-    const displayName = user?.user_metadata?.name || user?.email || 'Physio'
+    const displayName = user?.user_metadata?.name || user?.email || tPhysioHeader('fallbackName')
 
     const physioHref = (path: string) => (
         businessSlug ? `/${businessSlug}/physio${path}` : '/login'
@@ -78,30 +80,30 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
 
     // Main navigation items
     const mainNavItems = [
-        { href: physioHref('/dashboard'), label: 'Dashboard', icon: LayoutDashboard },
-        { href: physioHref('/athletes'), label: 'Athletes', icon: Users },
-        { href: physioHref('/treatments'), label: 'Treatments', icon: Stethoscope },
-        { href: physioHref('/rehab-programs'), label: 'Rehab', icon: Activity },
+        { href: physioHref('/dashboard'), label: tPhysioHeader('nav.dashboard'), icon: LayoutDashboard },
+        { href: physioHref('/athletes'), label: tPhysioHeader('nav.athletes'), icon: Users },
+        { href: physioHref('/treatments'), label: tPhysioHeader('nav.treatments'), icon: Stethoscope },
+        { href: physioHref('/rehab-programs'), label: tPhysioHeader('nav.rehab'), icon: Activity },
     ]
 
     // Dropdown groups
     const navGroups = {
         tools: {
-            label: 'Tools',
+            label: tPhysioHeader('groups.tools'),
             icon: ClipboardList,
             items: [
-                { href: physioHref('/screenings'), label: 'Movement Screens', icon: Clipboard },
-                { href: physioHref('/restrictions'), label: 'Restrictions', icon: Ban },
-                { href: physioHref('/acute-reports'), label: 'Acute Reports', icon: AlertTriangle },
+                { href: physioHref('/screenings'), label: tPhysioHeader('nav.movementScreens'), icon: Clipboard },
+                { href: physioHref('/restrictions'), label: tPhysioHeader('nav.restrictions'), icon: Ban },
+                { href: physioHref('/acute-reports'), label: tPhysioHeader('nav.acuteReports'), icon: AlertTriangle },
             ]
         },
         more: {
-            label: 'More',
+            label: tPhysioHeader('groups.more'),
             icon: Menu,
             items: [
-                { href: physioHref('/messages'), label: 'Care Team', icon: MessageSquare },
-                { href: physioHref('/reports'), label: 'Reports', icon: FileText },
-                { href: physioHref('/settings'), label: 'Settings', icon: Settings },
+                { href: physioHref('/messages'), label: tPhysioHeader('nav.careTeam'), icon: MessageSquare },
+                { href: physioHref('/reports'), label: tPhysioHeader('nav.reports'), icon: FileText },
+                { href: physioHref('/settings'), label: tPhysioHeader('nav.settings'), icon: Settings },
             ]
         }
     }
@@ -238,13 +240,13 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href={physioHref('/settings')}>
                                         <Settings className="mr-2 h-4 w-4" />
-                                        <span>Settings</span>
+                                        <span>{tPhysioHeader('menu.settings')}</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
+                                    <span>{tPhysioHeader('menu.logOut')}</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -255,14 +257,14 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="lg:hidden text-slate-300 hover:text-white hover:bg-white/10">
                                 <Menu className="h-6 w-6" />
-                                <span className="sr-only">Toggle menu</span>
+                                <span className="sr-only">{tPhysioHeader('menu.toggleMenu')}</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="right" className="bg-slate-950 border-l border-white/10 text-slate-200 w-[300px] overflow-y-auto" aria-describedby={undefined}>
-                            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+                            <SheetTitle className="sr-only">{tPhysioHeader('menu.navigationMenu')}</SheetTitle>
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
-                                    <span className="font-bold text-lg">Menu</span>
+                                    <span className="font-bold text-lg">{tPhysioHeader('nav.menu')}</span>
                                     <div className="flex gap-1">
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
                                         <NotificationBell />
@@ -305,7 +307,7 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
                                         className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
                                     >
                                         <LogOut className="w-5 h-5" />
-                                        Log out
+                                        {tPhysioHeader('menu.logOut')}
                                     </button>
                                 </div>
                             </div>

@@ -52,6 +52,7 @@ import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
+import { useTranslations } from '@/i18n/client'
 
 interface CoachGlassHeaderProps {
     user: any
@@ -60,10 +61,11 @@ interface CoachGlassHeaderProps {
 export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
     const pathname = usePathname()
     const router = useRouter()
+    const tCoachHeader = useTranslations('components.coachHeader')
     const [isOpen, setIsOpen] = useState(false)
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
     const [platformAdminRole, setPlatformAdminRole] = useState<string | null>(null)
-    const displayName = user?.email || 'Coach'
+    const displayName = user?.email || tCoachHeader('fallbackName')
     const businessSlug = getBusinessSlugFromPathname(pathname)
     const basePath = businessSlug ? `/${businessSlug}` : ''
     const coachHref = (path: string) => basePath ? `${basePath}/coach${path}` : '/login'
@@ -101,45 +103,45 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
 
     // Top Level Links
     const mainNavItems = [
-        { href: coachHref('/dashboard'), label: 'Dashboard', icon: LayoutDashboard },
-        { href: coachHref('/calendar'), label: 'Kalender', icon: CalendarDays },
-        { href: coachHref('/clients'), label: 'Atleter', icon: Users },
-        { href: coachHref('/programs'), label: 'Program', icon: FileStack },
+        { href: coachHref('/dashboard'), label: tCoachHeader('nav.dashboard'), icon: LayoutDashboard },
+        { href: coachHref('/calendar'), label: tCoachHeader('nav.calendar'), icon: CalendarDays },
+        { href: coachHref('/clients'), label: tCoachHeader('nav.athletes'), icon: Users },
+        { href: coachHref('/programs'), label: tCoachHeader('nav.programs'), icon: FileStack },
     ]
 
     // Dropdown Groups
     const navGroups = {
         tools: {
-            label: 'Verktyg',
+            label: tCoachHeader('groups.tools'),
             icon: Wrench,
             items: [
-                { href: coachHref('/test'), label: 'Nytt Test', icon: Activity },
-                { href: coachHref('/ai-studio'), label: 'AI Studio', icon: Sparkles },
-                { href: coachHref('/hybrid-studio'), label: 'Hybrid Studio', icon: Flame },
-                { href: coachHref('/strength'), label: 'Strength Studio', icon: Dumbbell },
-                { href: coachHref('/cardio'), label: 'Cardio Studio', icon: Heart },
-                { href: coachHref('/agility-studio'), label: 'Agility Studio', icon: Zap },
-                { href: coachHref('/ergometer-tests'), label: 'Ergometertester', icon: Gauge },
-                { href: coachHref('/video-analysis'), label: 'Videoanalys', icon: Video },
-                { href: coachHref('/monitoring'), label: 'Monitorering', icon: Activity },
-                { href: coachHref('/live-hr'), label: 'Live HR', icon: Heart },
-                { href: coachHref('/interval-sessions'), label: 'Intervaller', icon: Timer },
+                { href: coachHref('/test'), label: tCoachHeader('nav.newTest'), icon: Activity },
+                { href: coachHref('/ai-studio'), label: tCoachHeader('nav.aiStudio'), icon: Sparkles },
+                { href: coachHref('/hybrid-studio'), label: tCoachHeader('nav.hybridStudio'), icon: Flame },
+                { href: coachHref('/strength'), label: tCoachHeader('nav.strengthStudio'), icon: Dumbbell },
+                { href: coachHref('/cardio'), label: tCoachHeader('nav.cardioStudio'), icon: Heart },
+                { href: coachHref('/agility-studio'), label: tCoachHeader('nav.agilityStudio'), icon: Zap },
+                { href: coachHref('/ergometer-tests'), label: tCoachHeader('nav.ergometerTests'), icon: Gauge },
+                { href: coachHref('/video-analysis'), label: tCoachHeader('nav.videoAnalysis'), icon: Video },
+                { href: coachHref('/monitoring'), label: tCoachHeader('nav.monitoring'), icon: Activity },
+                { href: coachHref('/live-hr'), label: tCoachHeader('nav.liveHr'), icon: Heart },
+                { href: coachHref('/interval-sessions'), label: tCoachHeader('nav.intervals'), icon: Timer },
             ]
         },
         more: {
-            label: 'Mer',
+            label: tCoachHeader('groups.more'),
             icon: Menu,
             items: [
-                { href: coachHref('/social'), label: 'Sociala medier', icon: Share2 },
-                { href: coachHref('/competitions'), label: 'Utmaningar', icon: Trophy },
-                { href: coachHref('/community'), label: 'Community', icon: Megaphone },
-                { href: coachHref('/analytics'), label: 'Analys', icon: BarChart3 },
-                { href: coachHref('/teams'), label: 'Lag', icon: Users2 },
-                { href: coachHref('/organizations'), label: 'Organisationer', icon: Building2 },
-                { href: coachHref('/documents'), label: 'Dokument', icon: FileStack },
-                { href: coachHref('/messages'), label: 'Meddelanden', icon: MessageSquare },
-                { href: coachHref('/referrals'), label: 'Värvningar', icon: Gift },
-                { href: coachHref('/settings'), label: 'Inställningar', icon: Settings },
+                { href: coachHref('/social'), label: tCoachHeader('nav.socialMedia'), icon: Share2 },
+                { href: coachHref('/competitions'), label: tCoachHeader('nav.challenges'), icon: Trophy },
+                { href: coachHref('/community'), label: tCoachHeader('nav.community'), icon: Megaphone },
+                { href: coachHref('/analytics'), label: tCoachHeader('nav.analytics'), icon: BarChart3 },
+                { href: coachHref('/teams'), label: tCoachHeader('nav.teams'), icon: Users2 },
+                { href: coachHref('/organizations'), label: tCoachHeader('nav.organizations'), icon: Building2 },
+                { href: coachHref('/documents'), label: tCoachHeader('nav.documents'), icon: FileStack },
+                { href: coachHref('/messages'), label: tCoachHeader('nav.messages'), icon: MessageSquare },
+                { href: coachHref('/referrals'), label: tCoachHeader('nav.referrals'), icon: Gift },
+                { href: coachHref('/settings'), label: tCoachHeader('nav.settings'), icon: Settings },
             ]
         }
     }
@@ -149,11 +151,11 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
         ...navGroups.more.items,
         // Add Business Admin link if user is OWNER or ADMIN of business
         ...((businessRole === 'OWNER' || businessRole === 'ADMIN')
-            ? [{ href: coachHref('/admin'), label: 'Admin', icon: Shield }]
+            ? [{ href: coachHref('/admin'), label: tCoachHeader('nav.admin'), icon: Shield }]
             : []),
         // Add Platform Admin link if user has a platform adminRole
         ...(platformAdminRole
-            ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }]
+            ? [{ href: '/admin', label: tCoachHeader('nav.platformAdmin'), icon: Shield }]
             : [])
     ]
 
@@ -294,7 +296,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href={coachHref('/settings')}>
                                         <Settings className="mr-2 h-4 w-4" />
-                                        <span>Settings</span>
+                                        <span>{tCoachHeader('menu.settings')}</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-white/10" />
@@ -302,7 +304,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
+                                    <span>{tCoachHeader('menu.logOut')}</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -313,14 +315,14 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="lg:hidden text-slate-300 hover:text-white hover:bg-white/10">
                                 <Menu className="h-6 w-6" />
-                                <span className="sr-only">Toggle menu</span>
+                                <span className="sr-only">{tCoachHeader('menu.toggleMenu')}</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="right" className="bg-slate-950 border-l border-white/10 text-slate-200 w-[300px] overflow-y-auto" aria-describedby={undefined}>
-                            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+                            <SheetTitle className="sr-only">{tCoachHeader('menu.navigationMenu')}</SheetTitle>
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
-                                    <span className="font-bold text-lg">Menu</span>
+                                    <span className="font-bold text-lg">{tCoachHeader('nav.menu')}</span>
                                     <div className="flex gap-1">
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
                                         <NotificationBell />
@@ -368,7 +370,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                                         className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
                                     >
                                         <LogOut className="w-5 h-5" />
-                                        Log out
+                                        {tCoachHeader('menu.logOut')}
                                     </button>
                                 </div>
                             </div>

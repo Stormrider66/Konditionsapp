@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { MessageSquare } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 interface MessagesLinkProps {
   role: 'COACH' | 'ATHLETE'
@@ -15,6 +16,7 @@ interface MessagesLinkProps {
 
 export function MessagesLink({ role, variant = 'desktop', isActive = false }: MessagesLinkProps) {
   const basePath = useBasePath()
+  const t = useTranslations('nav')
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -63,7 +65,7 @@ export function MessagesLink({ role, variant = 'desktop', isActive = false }: Me
             </Badge>
           )}
         </div>
-        <span className="font-medium text-base">Meddelanden</span>
+        <span className="font-medium text-base">{t('messages')}</span>
       </Link>
     )
   }
@@ -78,7 +80,7 @@ export function MessagesLink({ role, variant = 'desktop', isActive = false }: Me
       }`}
     >
       <MessageSquare className="w-5 h-5" />
-      <span className="font-medium">Meddelanden</span>
+      <span className="font-medium">{t('messages')}</span>
       {unreadCount > 0 && (
         <Badge
           variant="destructive"

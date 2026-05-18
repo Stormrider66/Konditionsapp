@@ -5055,6 +5055,141 @@
         "navigationMenu": "Navigation menu"
       }
     },
+    "coachHeader": {
+      "fallbackName": "Coach",
+      "groups": {
+        "tools": "Tools",
+        "more": "More"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "calendar": "Calendar",
+        "athletes": "Athletes",
+        "programs": "Programs",
+        "newTest": "New test",
+        "aiStudio": "AI Studio",
+        "hybridStudio": "Hybrid Studio",
+        "strengthStudio": "Strength Studio",
+        "cardioStudio": "Cardio Studio",
+        "agilityStudio": "Agility Studio",
+        "ergometerTests": "Ergometer tests",
+        "videoAnalysis": "Video analysis",
+        "monitoring": "Monitoring",
+        "liveHr": "Live HR",
+        "intervals": "Intervals",
+        "socialMedia": "Social media",
+        "challenges": "Challenges",
+        "community": "Community",
+        "analytics": "Analytics",
+        "teams": "Teams",
+        "organizations": "Organizations",
+        "documents": "Documents",
+        "messages": "Messages",
+        "referrals": "Referrals",
+        "settings": "Settings",
+        "admin": "Admin",
+        "platformAdmin": "Platform Admin",
+        "menu": "Menu"
+      },
+      "menu": {
+        "toggleMenu": "Toggle menu",
+        "navigationMenu": "Navigation menu",
+        "settings": "Settings",
+        "logOut": "Log out"
+      }
+    },
+    "physioHeader": {
+      "fallbackName": "Physio",
+      "groups": {
+        "tools": "Tools",
+        "more": "More"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "athletes": "Athletes",
+        "treatments": "Treatments",
+        "rehab": "Rehab",
+        "movementScreens": "Movement screens",
+        "restrictions": "Restrictions",
+        "acuteReports": "Acute reports",
+        "careTeam": "Care team",
+        "reports": "Reports",
+        "settings": "Settings",
+        "messages": "Messages",
+        "menu": "Menu"
+      },
+      "menu": {
+        "toggleMenu": "Toggle menu",
+        "navigationMenu": "Navigation menu",
+        "settings": "Settings",
+        "logOut": "Log out"
+      }
+    },
+    "businessCoachHeader": {
+      "fallbackName": "Coach",
+      "groups": {
+        "tools": "Tools",
+        "more": "More"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "calendar": "Calendar",
+        "athletes": "Athletes",
+        "programs": "Programs",
+        "test": "New test",
+        "testOverview": "Test overview",
+        "aiStudio": "AI Studio",
+        "aiCanvas": "AI Canvas",
+        "hybridStudio": "Hybrid Studio",
+        "strengthStudio": "Strength Studio",
+        "cardioStudio": "Cardio Studio",
+        "agilityStudio": "Agility Studio",
+        "ergometerTests": "Ergometer tests",
+        "videoAnalysis": "Video analysis",
+        "monitoring": "Monitoring",
+        "liveHr": "Live HR",
+        "intervals": "Intervals",
+        "drills": "Drill board",
+        "hockeyTests": "Hockey tests",
+        "testProtocols": "Test protocols",
+        "staff": "Staff",
+        "socialMedia": "Social media",
+        "challenges": "Challenges",
+        "community": "Community",
+        "analytics": "Analytics",
+        "teams": "Teams",
+        "browseAthletes": "Find athletes",
+        "organizations": "Organizations",
+        "documents": "Documents",
+        "messages": "Messages",
+        "referrals": "Referrals",
+        "settings": "Settings",
+        "admin": "Admin",
+        "platformAdmin": "Platform Admin",
+        "menu": "Menu",
+        "moreTools": "More tools"
+      },
+      "menu": {
+        "toggleMenu": "Toggle menu",
+        "navigationMenu": "Navigation menu",
+        "settings": "Settings",
+        "logOut": "Log out",
+        "viewAs": "View as",
+        "rolePreview": "Role preview",
+        "active": "Active",
+        "clear": "Clear role preview",
+        "note": "Super admin mode. Does not change roles in the database."
+      },
+      "roles": {
+        "owner": "Owner",
+        "admin": "Chief coach",
+        "coach": "Head coach",
+        "physicalTrainer": "Physical trainer",
+        "assistantCoach": "Assistant coach",
+        "physio": "Physiotherapist",
+        "member": "Member"
+      }
+    },
     "sportSwitcher": {
       "switchSport": "Switch sport",
       "primary": "Primary",

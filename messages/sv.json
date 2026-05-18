@@ -5055,6 +5055,141 @@
         "navigationMenu": "Navigationsmeny"
       }
     },
+    "coachHeader": {
+      "fallbackName": "Coach",
+      "groups": {
+        "tools": "Verktyg",
+        "more": "Mer"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "calendar": "Kalender",
+        "athletes": "Atleter",
+        "programs": "Program",
+        "newTest": "Nytt test",
+        "aiStudio": "AI Studio",
+        "hybridStudio": "Hybrid Studio",
+        "strengthStudio": "Strength Studio",
+        "cardioStudio": "Cardio Studio",
+        "agilityStudio": "Agility Studio",
+        "ergometerTests": "Ergometertester",
+        "videoAnalysis": "Videoanalys",
+        "monitoring": "Monitorering",
+        "liveHr": "Live HR",
+        "intervals": "Intervaller",
+        "socialMedia": "Sociala medier",
+        "challenges": "Utmaningar",
+        "community": "Community",
+        "analytics": "Analys",
+        "teams": "Lag",
+        "organizations": "Organisationer",
+        "documents": "Dokument",
+        "messages": "Meddelanden",
+        "referrals": "Värvningar",
+        "settings": "Inställningar",
+        "admin": "Admin",
+        "platformAdmin": "Platform Admin",
+        "menu": "Meny"
+      },
+      "menu": {
+        "toggleMenu": "Växla meny",
+        "navigationMenu": "Navigationsmeny",
+        "settings": "Inställningar",
+        "logOut": "Logga ut"
+      }
+    },
+    "physioHeader": {
+      "fallbackName": "Fysio",
+      "groups": {
+        "tools": "Verktyg",
+        "more": "Mer"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "athletes": "Atleter",
+        "treatments": "Behandlingar",
+        "rehab": "Rehab",
+        "movementScreens": "Rörelseanalys",
+        "restrictions": "Restriktioner",
+        "acuteReports": "Akuta rapporter",
+        "careTeam": "Vårdteam",
+        "reports": "Rapporter",
+        "settings": "Inställningar",
+        "messages": "Meddelanden",
+        "menu": "Meny"
+      },
+      "menu": {
+        "toggleMenu": "Växla meny",
+        "navigationMenu": "Navigationsmeny",
+        "settings": "Inställningar",
+        "logOut": "Logga ut"
+      }
+    },
+    "businessCoachHeader": {
+      "fallbackName": "Coach",
+      "groups": {
+        "tools": "Verktyg",
+        "more": "Mer"
+      },
+      "nav": {
+        "dashboard": "Dashboard",
+        "calendar": "Kalender",
+        "athletes": "Atleter",
+        "programs": "Program",
+        "test": "Nytt test",
+        "testOverview": "Testöversikt",
+        "aiStudio": "AI Studio",
+        "aiCanvas": "AI Canvas",
+        "hybridStudio": "Hybrid Studio",
+        "strengthStudio": "Strength Studio",
+        "cardioStudio": "Cardio Studio",
+        "agilityStudio": "Agility Studio",
+        "ergometerTests": "Ergometertester",
+        "videoAnalysis": "Videoanalys",
+        "monitoring": "Monitorering",
+        "liveHr": "Live HR",
+        "intervals": "Intervaller",
+        "drills": "Taktiktavla",
+        "hockeyTests": "Hockeytester",
+        "testProtocols": "Testprotokoll",
+        "staff": "Personal",
+        "socialMedia": "Sociala medier",
+        "challenges": "Utmaningar",
+        "community": "Community",
+        "analytics": "Analys",
+        "teams": "Lag",
+        "browseAthletes": "Hitta atleter",
+        "organizations": "Organisationer",
+        "documents": "Dokument",
+        "messages": "Meddelanden",
+        "referrals": "Värvningar",
+        "settings": "Inställningar",
+        "admin": "Admin",
+        "platformAdmin": "Platform Admin",
+        "menu": "Meny",
+        "moreTools": "Fler verktyg"
+      },
+      "menu": {
+        "toggleMenu": "Växla meny",
+        "navigationMenu": "Navigationsmeny",
+        "settings": "Inställningar",
+        "logOut": "Logga ut",
+        "viewAs": "Visa som",
+        "rolePreview": "Rollförhandsvisning",
+        "active": "Aktiv",
+        "clear": "Rensa förhandsvisning",
+        "note": "Super admin-läge. Ändrar inte roller i databasen."
+      },
+      "roles": {
+        "owner": "Ägare",
+        "admin": "Sportchef",
+        "coach": "Huvudtränare",
+        "physicalTrainer": "Fystränare",
+        "assistantCoach": "Assisterande tränare",
+        "physio": "Fysioterapeut",
+        "member": "Medlem"
+      }
+    },
     "sportSwitcher": {
       "switchSport": "Byt sport",
       "primary": "Huvud",

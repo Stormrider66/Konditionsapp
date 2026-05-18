@@ -54,6 +54,7 @@ import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
 import { OrgSwitcher } from '@/components/coach/OrgSwitcher'
+import { useTranslations } from '@/i18n/client'
 
 interface BusinessCoachGlassHeaderProps {
     user: {
@@ -69,6 +70,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const pathname = usePathname()
     const router = useRouter()
     const branding = useBusinessBrandingOptional()
+    const tBusinessCoachHeader = useTranslations('components.businessCoachHeader')
     const [isOpen, setIsOpen] = useState(false)
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
     const [businessName, setBusinessName] = useState<string | null>(branding?.businessName ?? null)
@@ -77,7 +79,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const [rolePreviewSaving, setRolePreviewSaving] = useState(false)
     const [dashboardMode, setDashboardMode] = useState<'PT' | 'TEAM' | 'GYM'>('PT')
     const [staffRole, setStaffRole] = useState<string>('COACH')
-    const displayName = user?.email || 'Coach'
+    const displayName = user?.email || tBusinessCoachHeader('fallbackName')
 
     // Prefer the branding context (populated server-side at layout level) — falls back to fetched name.
     const resolvedName = branding?.businessName || businessName
@@ -88,13 +90,13 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
     const rolePreviewOptions = [
-        { value: 'OWNER', label: 'Ägare' },
-        { value: 'ADMIN', label: 'Sportchef' },
-        { value: 'COACH', label: 'Huvudtränare' },
-        { value: 'PHYSICAL_TRAINER', label: 'Fystränare' },
-        { value: 'ASSISTANT_COACH', label: 'Assisterande tränare' },
-        { value: 'PHYSIO', label: 'Fysioterapeut' },
-        { value: 'MEMBER', label: 'Medlem' },
+        { value: 'OWNER', label: tBusinessCoachHeader('roles.owner') },
+        { value: 'ADMIN', label: tBusinessCoachHeader('roles.admin') },
+        { value: 'COACH', label: tBusinessCoachHeader('roles.coach') },
+        { value: 'PHYSICAL_TRAINER', label: tBusinessCoachHeader('roles.physicalTrainer') },
+        { value: 'ASSISTANT_COACH', label: tBusinessCoachHeader('roles.assistantCoach') },
+        { value: 'PHYSIO', label: tBusinessCoachHeader('roles.physio') },
+        { value: 'MEMBER', label: tBusinessCoachHeader('roles.member') },
     ]
 
     // Fetch business context and dashboard mode
@@ -168,46 +170,46 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
     // Top Level Links - using business-scoped URLs
     const mainNavItems = [
-        { href: `${basePath}/coach/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
-        { href: `${basePath}/coach/calendar`, label: 'Kalender', icon: CalendarDays },
-        { href: `${basePath}/coach/clients`, label: 'Atleter', icon: Users },
-        { href: `${basePath}/coach/programs`, label: 'Program', icon: FileStack },
+        { href: `${basePath}/coach/dashboard`, label: tBusinessCoachHeader('nav.dashboard'), icon: LayoutDashboard },
+        { href: `${basePath}/coach/calendar`, label: tBusinessCoachHeader('nav.calendar'), icon: CalendarDays },
+        { href: `${basePath}/coach/clients`, label: tBusinessCoachHeader('nav.athletes'), icon: Users },
+        { href: `${basePath}/coach/programs`, label: tBusinessCoachHeader('nav.programs'), icon: FileStack },
     ]
 
     // All tool items
     const allToolItems = {
-        test: { href: `${basePath}/coach/test`, label: 'Nytt Test', icon: Activity },
-        testOverview: { href: `${basePath}/coach/test-overview`, label: 'Testöversikt', icon: BarChart3 },
-        aiStudio: { href: `${basePath}/coach/ai-studio`, label: 'AI Studio', icon: Sparkles },
-        aiCanvas: { href: `${basePath}/coach/ai-canvas`, label: 'AI Canvas', icon: FileStack },
-        hybrid: { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
-        strength: { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
-        cardio: { href: `${basePath}/coach/cardio`, label: 'Cardio Studio', icon: Heart },
-        agility: { href: `${basePath}/coach/agility-studio`, label: 'Agility Studio', icon: Zap },
-        ergometer: { href: `${basePath}/coach/ergometer-tests`, label: 'Ergometertester', icon: Gauge },
-        video: { href: `${basePath}/coach/video-analysis`, label: 'Videoanalys', icon: Video },
-        monitoring: { href: `${basePath}/coach/monitoring`, label: 'Monitorering', icon: Activity },
-        liveHR: { href: `${basePath}/coach/live-hr`, label: 'Live HR', icon: Heart },
-        intervals: { href: `${basePath}/coach/interval-sessions`, label: 'Intervaller', icon: Timer },
-        drills: { href: `${basePath}/coach/drills`, label: 'Taktiktavla', icon: FileStack },
-        hockeyTests: { href: `${basePath}/coach/hockey-tests`, label: 'Hockeytester', icon: Shield },
-        testProtocols: { href: `${basePath}/coach/test-protocols`, label: 'Testprotokoll', icon: FileStack },
+        test: { href: `${basePath}/coach/test`, label: tBusinessCoachHeader('nav.test'), icon: Activity },
+        testOverview: { href: `${basePath}/coach/test-overview`, label: tBusinessCoachHeader('nav.testOverview'), icon: BarChart3 },
+        aiStudio: { href: `${basePath}/coach/ai-studio`, label: tBusinessCoachHeader('nav.aiStudio'), icon: Sparkles },
+        aiCanvas: { href: `${basePath}/coach/ai-canvas`, label: tBusinessCoachHeader('nav.aiCanvas'), icon: FileStack },
+        hybrid: { href: `${basePath}/coach/hybrid-studio`, label: tBusinessCoachHeader('nav.hybridStudio'), icon: Flame },
+        strength: { href: `${basePath}/coach/strength`, label: tBusinessCoachHeader('nav.strengthStudio'), icon: Dumbbell },
+        cardio: { href: `${basePath}/coach/cardio`, label: tBusinessCoachHeader('nav.cardioStudio'), icon: Heart },
+        agility: { href: `${basePath}/coach/agility-studio`, label: tBusinessCoachHeader('nav.agilityStudio'), icon: Zap },
+        ergometer: { href: `${basePath}/coach/ergometer-tests`, label: tBusinessCoachHeader('nav.ergometerTests'), icon: Gauge },
+        video: { href: `${basePath}/coach/video-analysis`, label: tBusinessCoachHeader('nav.videoAnalysis'), icon: Video },
+        monitoring: { href: `${basePath}/coach/monitoring`, label: tBusinessCoachHeader('nav.monitoring'), icon: Activity },
+        liveHR: { href: `${basePath}/coach/live-hr`, label: tBusinessCoachHeader('nav.liveHr'), icon: Heart },
+        intervals: { href: `${basePath}/coach/interval-sessions`, label: tBusinessCoachHeader('nav.intervals'), icon: Timer },
+        drills: { href: `${basePath}/coach/drills`, label: tBusinessCoachHeader('nav.drills'), icon: FileStack },
+        hockeyTests: { href: `${basePath}/coach/hockey-tests`, label: tBusinessCoachHeader('nav.hockeyTests'), icon: Shield },
+        testProtocols: { href: `${basePath}/coach/test-protocols`, label: tBusinessCoachHeader('nav.testProtocols'), icon: FileStack },
     }
 
     // All "more" items
     const allMoreItems = {
-        staff: { href: `${basePath}/coach/staff`, label: 'Personal', icon: Shield },
-        social: { href: `${basePath}/coach/social`, label: 'Sociala medier', icon: Share2 },
-        competitions: { href: `${basePath}/coach/competitions`, label: 'Utmaningar', icon: Trophy },
-        community: { href: `${basePath}/coach/community`, label: 'Community', icon: Megaphone },
-        analytics: { href: `${basePath}/coach/analytics`, label: 'Analys', icon: BarChart3 },
-        teams: { href: `${basePath}/coach/teams`, label: 'Lag', icon: Users2 },
-        browse: { href: `${basePath}/coach/browse-athletes`, label: 'Hitta Atleter', icon: UserPlus },
-        orgs: { href: `${basePath}/coach/organizations`, label: 'Organisationer', icon: Building2 },
-        docs: { href: `${basePath}/coach/documents`, label: 'Dokument', icon: FileStack },
-        messages: { href: `${basePath}/coach/messages`, label: 'Meddelanden', icon: MessageSquare },
-        referrals: { href: `${basePath}/coach/referrals`, label: 'Värvningar', icon: Gift },
-        settings: { href: `${basePath}/coach/settings`, label: 'Inställningar', icon: Settings },
+        staff: { href: `${basePath}/coach/staff`, label: tBusinessCoachHeader('nav.staff'), icon: Shield },
+        social: { href: `${basePath}/coach/social`, label: tBusinessCoachHeader('nav.socialMedia'), icon: Share2 },
+        competitions: { href: `${basePath}/coach/competitions`, label: tBusinessCoachHeader('nav.challenges'), icon: Trophy },
+        community: { href: `${basePath}/coach/community`, label: tBusinessCoachHeader('nav.community'), icon: Megaphone },
+        analytics: { href: `${basePath}/coach/analytics`, label: tBusinessCoachHeader('nav.analytics'), icon: BarChart3 },
+        teams: { href: `${basePath}/coach/teams`, label: tBusinessCoachHeader('nav.teams'), icon: Users2 },
+        browse: { href: `${basePath}/coach/browse-athletes`, label: tBusinessCoachHeader('nav.browseAthletes'), icon: UserPlus },
+        orgs: { href: `${basePath}/coach/organizations`, label: tBusinessCoachHeader('nav.organizations'), icon: Building2 },
+        docs: { href: `${basePath}/coach/documents`, label: tBusinessCoachHeader('nav.documents'), icon: FileStack },
+        messages: { href: `${basePath}/coach/messages`, label: tBusinessCoachHeader('nav.messages'), icon: MessageSquare },
+        referrals: { href: `${basePath}/coach/referrals`, label: tBusinessCoachHeader('nav.referrals'), icon: Gift },
+        settings: { href: `${basePath}/coach/settings`, label: tBusinessCoachHeader('nav.settings'), icon: Settings },
     }
 
     // Mode-specific tool items
@@ -295,12 +297,12 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     // Dropdown Groups
     const navGroups = {
         tools: {
-            label: 'Verktyg',
+            label: tBusinessCoachHeader('groups.tools'),
             icon: Wrench,
             items: [...prioritizedTools, ...remainingTools],
         },
         more: {
-            label: 'Mer',
+            label: tBusinessCoachHeader('groups.more'),
             icon: Menu,
             items: [...prioritizedMore, ...remainingMore],
         }
@@ -310,10 +312,10 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     // Admin links
     const adminLinks = [
         ...((businessRole === 'OWNER' || businessRole === 'ADMIN')
-            ? [{ href: `${basePath}/coach/admin`, label: 'Admin', icon: Shield }]
+            ? [{ href: `${basePath}/coach/admin`, label: tBusinessCoachHeader('nav.admin'), icon: Shield }]
             : []),
         ...(platformAdminRole
-            ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }]
+            ? [{ href: '/admin', label: tBusinessCoachHeader('nav.platformAdmin'), icon: Shield }]
             : [])
     ]
 
@@ -507,14 +509,14 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                         <UserCog className="h-3.5 w-3.5" />
                                         {rolePreview
                                             ? rolePreviewOptions.find((role) => role.value === rolePreview)?.label ?? rolePreview
-                                            : 'Visa som'}
+                                            : tBusinessCoachHeader('menu.viewAs')}
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent className="w-56 bg-slate-900 border-white/10 text-slate-200" align="end">
                                     <DropdownMenuLabel>
-                                        Rollförhandsvisning
+                                        {tBusinessCoachHeader('menu.rolePreview')}
                                         <p className="mt-1 text-[10px] font-normal text-slate-400">
-                                            Super admin-läge. Ändrar inte roller i databasen.
+                                            {tBusinessCoachHeader('menu.note')}
                                         </p>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator className="bg-white/10" />
@@ -527,7 +529,11 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                         >
                                             <UserCog className="mr-2 h-4 w-4" />
                                             <span>{option.label}</span>
-                                            {rolePreview === option.value && <span className="ml-auto text-[10px] text-amber-200">Aktiv</span>}
+                                            {rolePreview === option.value && (
+                                                <span className="ml-auto text-[10px] text-amber-200">
+                                                    {tBusinessCoachHeader('menu.active')}
+                                                </span>
+                                            )}
                                         </DropdownMenuItem>
                                     ))}
                                     {rolePreview && (
@@ -538,7 +544,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                                 onClick={() => { void applyRolePreview(null) }}
                                                 className="focus:bg-white/10 focus:text-white cursor-pointer"
                                             >
-                                                Rensa förhandsvisning
+                                                {tBusinessCoachHeader('menu.clear')}
                                             </DropdownMenuItem>
                                         </>
                                     )}
@@ -575,7 +581,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href={`${basePath}/coach/settings`}>
                                         <Settings className="mr-2 h-4 w-4" />
-                                        <span>Settings</span>
+                                        <span>{tBusinessCoachHeader('menu.settings')}</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-white/10" />
@@ -583,7 +589,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
+                                    <span>{tBusinessCoachHeader('menu.logOut')}</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -594,14 +600,14 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" className="xl:hidden text-slate-300 hover:text-white hover:bg-white/10">
                                 <Menu className="h-6 w-6" />
-                                <span className="sr-only">Toggle menu</span>
+                                <span className="sr-only">{tBusinessCoachHeader('menu.toggleMenu')}</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="right" className="bg-slate-950 border-l border-white/10 text-slate-200 w-[300px] overflow-y-auto" aria-describedby={undefined}>
-                            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+                            <SheetTitle className="sr-only">{tBusinessCoachHeader('menu.navigationMenu')}</SheetTitle>
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
-                                    <span className="font-bold text-lg">{resolvedName || 'Menu'}</span>
+                                    <span className="font-bold text-lg">{resolvedName || tBusinessCoachHeader('nav.menu')}</span>
                                     <div className="flex gap-1">
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
                                         <NotificationBell />
@@ -637,7 +643,9 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                     {mobileRemaining.length > 0 && (
                                         <>
                                             <div className="my-2 mx-4 h-px bg-white/10" />
-                                            <p className="px-4 py-1 text-[10px] uppercase tracking-widest text-slate-500">Fler verktyg</p>
+                                            <p className="px-4 py-1 text-[10px] uppercase tracking-widest text-slate-500">
+                                                {tBusinessCoachHeader('nav.moreTools')}
+                                            </p>
                                             {mobileRemaining.map((item) => {
                                                 const isActive = pathname === item.href
                                                 return (
@@ -679,7 +687,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                         className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
                                     >
                                         <LogOut className="w-5 h-5" />
-                                        Log out
+                                        {tBusinessCoachHeader('menu.logOut')}
                                     </button>
                                 </div>
                             </div>

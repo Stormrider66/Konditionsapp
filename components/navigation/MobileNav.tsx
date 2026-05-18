@@ -62,6 +62,7 @@ interface MobileNavProps {
 
 export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavProps) {
   const t = useTranslations('nav')
+  const tCoachHeader = useTranslations('components.coachHeader')
   const tSports = useTranslations('sports')
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -169,9 +170,13 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
         { href: coachHref('/referrals'), label: t('mobile.referrals'), icon: Gift },
         { href: coachHref('/settings/ai'), label: t('mobile.settings'), icon: Settings },
         // Business admin for OWNER/ADMIN members
-        ...(isBusinessAdmin ? [{ href: coachHref('/admin'), label: 'Admin', icon: Shield }] : []),
+        ...(isBusinessAdmin
+          ? [{ href: coachHref('/admin'), label: tCoachHeader('nav.admin'), icon: Shield }]
+          : []),
         // Platform admin only for ADMIN role users
-        ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }] : []),
+        ...(userRole === 'ADMIN'
+          ? [{ href: '/admin', label: tCoachHeader('nav.platformAdmin'), icon: Shield }]
+          : []),
       ],
     },
   }
@@ -200,9 +205,9 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: coachHref('/referrals'), label: t('mobile.referrals'), icon: Gift },
     { href: coachHref('/settings/ai'), label: t('mobile.settings'), icon: Settings },
     // Business admin for OWNER/ADMIN members
-    ...(isBusinessAdmin ? [{ href: coachHref('/admin'), label: 'Admin', icon: Shield }] : []),
+    ...(isBusinessAdmin ? [{ href: coachHref('/admin'), label: tCoachHeader('nav.admin'), icon: Shield }] : []),
     // Platform admin only for ADMIN role users
-    ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }] : []),
+    ...(userRole === 'ADMIN' ? [{ href: '/admin', label: tCoachHeader('nav.platformAdmin'), icon: Shield }] : []),
   ]
 
   // Existing rendering code still expects these groups separately.
@@ -306,7 +311,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
               <button
                 onClick={toggleMenu}
                 className="p-2 hover:bg-white/10 rounded-lg transition min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label="Toggle menu"
+                aria-label={tCoachHeader('menu.toggleMenu')}
               >
                 {isOpen ? (
                   <X className="w-6 h-6" />
