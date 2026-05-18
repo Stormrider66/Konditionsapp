@@ -4859,6 +4859,7 @@
         }
       },
       "actions": {
+        "aiStudio": "AI Studio",
         "processAll": "Bearbeta alla ({count})",
         "upload": "Ladda upp",
         "settings": "Inställningar",
@@ -4871,6 +4872,10 @@
       "search": {
         "placeholder": "Sök dokument..."
       },
+      "errors": {
+        "processFailed": "Kunde inte bearbeta dokumentet",
+        "deleteFailed": "Kunde inte ta bort dokumentet"
+      },
       "emptyState": {
         "noResults": "Inga dokument hittades",
         "noResultsDescription": "Försök med en annan sökning",
@@ -4878,7 +4883,8 @@
         "noDocumentsDescription": "Ladda upp PDF:er, Excel-filer eller textdokument för att komma igång"
       },
       "meta": {
-        "uploadedAt": "Uppladdat"
+        "uploadedAt": "Uppladdat",
+        "chunks": "{count, plural, one {# chunk} other {# chunks}}"
       },
       "stats": {
         "documents": "Dokument",

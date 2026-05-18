@@ -4810,9 +4810,9 @@
           "uploading": "Uploading...",
           "processingForAI": "Processing for AI...",
           "uploadAndProcess": "Upload & process",
-        "upload": "Upload"
-      }
-    },
+          "upload": "Upload"
+        }
+      },
     "documentPreview": {
       "tabs": {
         "info": "Info",
@@ -4859,6 +4859,7 @@
         }
       },
       "actions": {
+        "aiStudio": "AI Studio",
         "processAll": "Process all ({count})",
         "upload": "Upload",
         "settings": "Settings",
@@ -4871,6 +4872,10 @@
       "search": {
         "placeholder": "Search documents..."
       },
+      "errors": {
+        "processFailed": "Could not process document",
+        "deleteFailed": "Could not delete document"
+      },
       "emptyState": {
         "noResults": "No documents found",
         "noResultsDescription": "Try another search",
@@ -4878,7 +4883,8 @@
         "noDocumentsDescription": "Upload PDFs, Excel files, or text documents to get started"
       },
       "meta": {
-        "uploadedAt": "Uploaded"
+        "uploadedAt": "Uploaded",
+        "chunks": "{count, plural, one {# chunk} other {# chunks}}"
       },
       "stats": {
         "documents": "Documents",

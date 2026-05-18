@@ -211,7 +211,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process document')
+        throw new Error(data.error || t('errors.processFailed'))
       }
 
       toast({
@@ -314,7 +314,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
 
     if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to delete document')
+        throw new Error(data.error || t('errors.deleteFailed'))
       }
 
       setDocuments((prev) => prev.filter((d) => d.id !== deleteDocument.id))
@@ -355,7 +355,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
           <Button asChild variant="outline">
             <Link href={`${basePath}/coach/ai-studio`}>
               <Bot className="h-4 w-4 mr-2" />
-              AI Studio
+              {t('actions.aiStudio')}
             </Link>
           </Button>
           {pendingDocuments.length > 0 && hasOpenAIKey && (
@@ -464,7 +464,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
                   <span>•</span>
                   <span>{formatFileSize(doc.fileSize)}</span>
                   <span>•</span>
-                  <span>{doc.chunkCount} chunks</span>
+                  <span>{t('meta.chunks', { count: doc.chunkCount })}</span>
                 </div>
 
                 <p className="text-xs text-muted-foreground">
