@@ -16,6 +16,7 @@ import { Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
 
 export default function ResetPasswordPage() {
   const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -150,7 +151,7 @@ export default function ResetPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Trainomics
+            {tCommon('appName')}
           </CardTitle>
           <CardDescription className="text-center">
             {isSuccess ? t('resetPassword.messages.updated') : t('resetPassword.description')}

@@ -48,7 +48,9 @@
     "daily": "Daglig",
     "weekly": "Veckovis",
     "monthly": "Månadsvis",
-    "yearly": "Årsvis"
+    "yearly": "Årsvis",
+    "appName": "Trainomics",
+    "appTagline": "Plattform för träningsintelligens"
   },
   "metadata": {
     "athlete": {
@@ -124,6 +126,13 @@
     }
   },
   "pages": {
+    "replyToVerified": {
+      "titleSuccess": "Adress bekräftad",
+      "titleError": "Bekräftelse misslyckades",
+      "messageSuccess": "Klart att skicka.",
+      "messageError": "Försök igen från Branding-fliken.",
+      "returnToHome": "Till {appName}"
+    },
     "nutritionWrapped": {
       "backToNutrition": "Tillbaka till koststatistik",
       "title": "Kostsammanfattning",

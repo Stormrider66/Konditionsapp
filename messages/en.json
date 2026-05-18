@@ -48,7 +48,9 @@
     "daily": "Daily",
     "weekly": "Weekly",
     "monthly": "Monthly",
-    "yearly": "Yearly"
+    "yearly": "Yearly",
+    "appName": "Trainomics",
+    "appTagline": "Training Intelligence Platform"
   },
   "metadata": {
     "athlete": {
@@ -124,6 +126,13 @@
     }
   },
   "pages": {
+    "replyToVerified": {
+      "titleSuccess": "Address verified",
+      "titleError": "Verification failed",
+      "messageSuccess": "Ready to send.",
+      "messageError": "Please try again from the Branding tab.",
+      "returnToHome": "Back to {appName}"
+    },
     "nutritionWrapped": {
       "backToNutrition": "Back to nutrition stats",
       "title": "Nutrition Summary",

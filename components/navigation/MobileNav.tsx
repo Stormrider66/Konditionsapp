@@ -62,6 +62,7 @@ interface MobileNavProps {
 
 export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavProps) {
   const t = useTranslations('nav')
+  const tCommon = useTranslations('common')
   const tCoachHeader = useTranslations('components.coachHeader')
   const tSports = useTranslations('sports')
   const [isOpen, setIsOpen] = useState(false)
@@ -320,7 +321,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
                 )}
               </button>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold">Trainomics</h1>
+                <h1 className="text-lg sm:text-xl font-bold">{tCommon('appName')}</h1>
                 {userRole === 'ATHLETE' && sportDisplay && (
                   <p className="text-xs text-white/80 flex items-center gap-1">
                     <span>{sportDisplay.icon}</span>
@@ -392,8 +393,8 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">Trainomics</h1>
-              <p className="text-white/80 text-sm">Training Intelligence Platform</p>
+              <h1 className="text-2xl font-bold">{tCommon('appName')}</h1>
+              <p className="text-white/80 text-sm">{tCommon('appTagline')}</p>
             </div>
             <div className="flex items-center gap-2">
               {/* Main nav links */}

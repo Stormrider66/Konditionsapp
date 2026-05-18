@@ -4,6 +4,7 @@
 // and ?message=... from the redirect produced by the verify route.
 import Link from 'next/link'
 import { CheckCircle2, AlertCircle } from 'lucide-react'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   searchParams: Promise<{ status?: string; message?: string }>
@@ -12,6 +13,8 @@ interface PageProps {
 export default async function ReplyToVerifiedPage({ searchParams }: PageProps) {
   const { status, message } = await searchParams
   const ok = status === 'ok'
+  const t = await getTranslations('pages.replyToVerified')
+  const tCommon = await getTranslations('common')
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-slate-950 px-4">
@@ -24,16 +27,16 @@ export default async function ReplyToVerifiedPage({ searchParams }: PageProps) {
           )}
         </div>
         <h1 className="text-xl font-semibold dark:text-white">
-          {ok ? 'Adress bekräftad' : 'Bekräftelse misslyckades'}
+          {ok ? t('titleSuccess') : t('titleError')}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {message || (ok ? 'Klart att skicka.' : 'Försök igen från Branding-fliken.')}
+          {message || (ok ? t('messageSuccess') : t('messageError'))}
         </p>
         <Link
           href="/"
           className="mt-6 inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          Till Trainomics
+          {t('returnToHome', { appName: tCommon('appName') })}
         </Link>
       </div>
     </div>
