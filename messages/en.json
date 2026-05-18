@@ -8790,6 +8790,31 @@
         },
         "selectAthletePlaceholder": "Select athlete"
       },
+    "pendingCoachRequests": {
+      "title": "Incoming requests ({count})",
+      "subtitle": "Athletes wanting to hire you as their coach",
+      "labels": {
+        "error": "Error"
+      },
+      "actions": {
+        "accept": "Accept",
+        "reject": "Reject"
+      },
+      "errors": {
+        "fetchFailed": "Failed to fetch requests",
+        "acceptFailed": "Could not accept request",
+        "rejectFailed": "Could not reject request"
+      },
+      "toasts": {
+        "accepted": {
+          "title": "Request accepted",
+          "description": "{athleteName} is now your athlete."
+        },
+        "rejected": {
+          "title": "Request rejected"
+        }
+      }
+    },
     "dmaxCurveChart": {
       "title": "Lactate curve with thresholds",
       "intensityLabel": {

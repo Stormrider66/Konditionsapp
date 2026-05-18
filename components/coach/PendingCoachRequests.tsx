@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
+import { useTranslations } from '@/i18n/client'
 
 interface CoachRequestItem {
   id: string
@@ -28,6 +29,7 @@ interface PendingCoachRequestsProps {
 }
 
 export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCoachRequestsProps) {
+  const tPendingCoachRequests = useTranslations('components.pendingCoachRequests')
   const [requests, setRequests] = useState<CoachRequestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -38,13 +40,13 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
       try {
         setLoading(true)
         const res = await fetch(`/api/business/${businessId}/coach-requests?status=PENDING`)
-        if (!res.ok) throw new Error('Kunde inte hämta förfrågningar')
+        if (!res.ok) throw new Error(tPendingCoachRequests('errors.fetchFailed'))
         const json = await res.json()
         setRequests(json.requests || [])
       } catch {
         toast({
-          title: 'Fel',
-          description: 'Kunde inte hämta väntande förfrågningar.',
+          title: tPendingCoachRequests('labels.error'),
+          description: tPendingCoachRequests('errors.fetchPendingRequests'),
           variant: 'destructive',
         })
       } finally {
@@ -52,7 +54,7 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
       }
     }
     fetchRequests()
-  }, [businessId, toast])
+  }, [businessId, toast, tPendingCoachRequests])
 
   const handleAccept = async (requestId: string) => {
     try {
@@ -64,19 +66,21 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Kunde inte acceptera förfrågan')
+        throw new Error(errorData.error || tPendingCoachRequests('errors.acceptFailed'))
       }
       const req = requests.find(r => r.id === requestId)
       toast({
-        title: 'Förfrågan accepterad',
-        description: `${req?.athlete.name || req?.athlete.email} är nu din atlet.`,
+        title: tPendingCoachRequests('toasts.accepted.title'),
+        description: tPendingCoachRequests('toasts.accepted.description', {
+          athleteName: req?.athlete.name || req?.athlete.email,
+        }),
       })
       setRequests(prev => prev.filter(r => r.id !== requestId))
       onRequestHandled?.()
     } catch (err: any) {
       toast({
-        title: 'Fel',
-        description: err.message || 'Kunde inte acceptera förfrågan.',
+        title: tPendingCoachRequests('labels.error'),
+        description: err.message || tPendingCoachRequests('errors.acceptFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -94,16 +98,16 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Kunde inte avvisa förfrågan')
+        throw new Error(errorData.error || tPendingCoachRequests('errors.rejectFailed'))
       }
       toast({
-        title: 'Förfrågan avvisad',
+        title: tPendingCoachRequests('toasts.rejected.title'),
       })
       setRequests(prev => prev.filter(r => r.id !== requestId))
     } catch (err: any) {
       toast({
-        title: 'Fel',
-        description: err.message || 'Kunde inte avvisa förfrågan.',
+        title: tPendingCoachRequests('labels.error'),
+        description: err.message || tPendingCoachRequests('errors.rejectFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -131,11 +135,11 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
         <div className="flex items-center gap-2">
           <UserPlus className="w-5 h-5 text-amber-400" />
           <CardTitle className="text-lg text-white">
-            Inkommande förfrågningar ({requests.length})
+            {tPendingCoachRequests('title', { count: requests.length })}
           </CardTitle>
         </div>
         <p className="text-sm text-slate-400">
-          Atleter som vill ha dig som coach
+          {tPendingCoachRequests('subtitle')}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -183,7 +187,7 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-1" />
-                    Acceptera
+                    {tPendingCoachRequests('actions.accept')}
                   </>
                 )}
               </Button>
@@ -195,7 +199,7 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
                 className="border-red-500/30 text-red-400 hover:bg-red-500/10"
               >
                 <X className="w-4 h-4 mr-1" />
-                Avvisa
+                {tPendingCoachRequests('actions.reject')}
               </Button>
             </div>
           </div>

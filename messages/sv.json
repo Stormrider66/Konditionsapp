@@ -8790,6 +8790,31 @@
         },
         "selectAthletePlaceholder": "Välj atlet"
       },
+    "pendingCoachRequests": {
+      "title": "Inkommande förfrågningar ({count})",
+      "subtitle": "Atleter som vill ha dig som coach",
+      "labels": {
+        "error": "Fel"
+      },
+      "actions": {
+        "accept": "Acceptera",
+        "reject": "Avvisa"
+      },
+      "errors": {
+        "fetchFailed": "Kunde inte hämta förfrågningar",
+        "acceptFailed": "Kunde inte acceptera förfrågan",
+        "rejectFailed": "Kunde inte avvisa förfrågan"
+      },
+      "toasts": {
+        "accepted": {
+          "title": "Förfrågan accepterad",
+          "description": "{athleteName} är nu din atlet."
+        },
+        "rejected": {
+          "title": "Förfrågan avvisad"
+        }
+      }
+    },
     "dmaxCurveChart": {
       "title": "Laktatkurva med tröskelvärden",
       "intensityLabel": {
