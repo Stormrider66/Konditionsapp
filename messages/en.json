@@ -16347,6 +16347,273 @@
           "shin": "Shin"
         },
         "pain": "Pain: {level}/10"
+      },
+      "programGenerationForm": {
+        "validation": {
+          "clientRequired": "Select a client",
+          "createFailed": "Failed to create program"
+        },
+        "errors": {
+          "createFailed": "Could not create program"
+        },
+        "toasts": {
+          "createdTitle": "Program created!",
+          "createdDescription": "The training program has been generated and is ready to use.",
+          "errorTitle": "Something went wrong"
+        },
+        "sections": {
+          "programType": "Program type",
+          "goal": "2. Goal setting",
+          "athleteProfile": "4. Athlete profile",
+          "equipment": "5. Equipment & Monitoring",
+          "methodology": "6. Training methodology",
+          "programStructure": "7. Program structure",
+          "programStructureCustom": "2. Program structure",
+          "injury": "8. Injuries & Health",
+          "injuryCustom": "3. Injuries & Health",
+          "notes": "9. Notes (optional)",
+          "notesCustom": "4. Notes (optional)"
+        },
+        "steps": {
+          "client": "1. Select client",
+          "clientAndTest": " and test",
+          "goalType": "Goal setting",
+          "timeGoal": "3. Time goal (optional)",
+          "athleteProfile": "4. Athlete profile",
+          "equipment": "5. Equipment & monitoring",
+          "methodology": "6. Training methodology",
+          "programStructure": "7. Program structure",
+          "programStructureCustom": "2. Program structure",
+          "injury": "8. Injuries & Health",
+          "injuryCustom": "3. Injuries & Health",
+          "notes": "9. Notes (optional)",
+          "notesCustom": "4. Notes (optional)"
+        },
+        "mode": {
+          "auto": {
+            "title": "Test-based program",
+            "description": "Generate a program based on test data and training zones."
+          },
+          "custom": {
+            "title": "Custom program",
+            "description": "Create an empty program and build sessions manually - no test required."
+          }
+        },
+        "fields": {
+          "goalType": {
+            "label": "Goal type"
+          },
+          "clientLabel": "Client *",
+          "clientPlaceholder": "Select a client",
+          "testLabel": "Performance test *",
+          "testPlaceholder": "Select a test",
+          "targetRaceDateLabel": "Competition date (optional)",
+          "targetDatePlaceholder": "Select date",
+          "targetTimeLabel": "Target time for competition",
+          "targetTimePlaceholder": "e.g. 3:30:00 for marathon"
+        },
+        "goalOptions": {
+          "marathon": "Marathon (42.2 km)",
+          "halfMarathon": "Half Marathon (21.1 km)",
+          "tenK": "10K",
+          "fiveK": "5K",
+          "fitness": "General fitness",
+          "cycling": "Cycling",
+          "skiing": "Skiing",
+          "swimming": "Swimming",
+          "triathlon": "Triathlon",
+          "hyrox": "HYROX",
+          "custom": "Custom"
+        },
+        "fitness": {
+          "goalTitle": "Fitness goals",
+          "primaryGoalLabel": "Primary goal *",
+          "primaryGoalPlaceholder": "Select your main goal",
+          "primaryGoalDescription": "The program is adapted to your main goal.",
+          "activityLevelLabel": "Current activity level *",
+          "activityLevelPlaceholder": "Select your level",
+          "activityLevelDescription": "This affects intensity and volume in the program.",
+          "goalOptions": {
+            "weightLoss": "Weight loss",
+            "generalHealth": "General health",
+            "strength": "Strength",
+            "endurance": "Endurance",
+            "flexibility": "Flexibility",
+            "stressRelief": "Stress management"
+          },
+          "activityLevelOptions": {
+            "sedentary": "Mostly inactive (rarely exercise)",
+            "lightlyActive": "Lightly active (1-2 sessions/week)",
+            "moderatelyActive": "Moderately active (3-4 sessions/week)",
+            "veryActive": "Very active (5-6 sessions/week)",
+            "athlete": "Athlete (daily training)"
+          },
+          "gymAccessLabel": "Gym access",
+          "gymAccessDescription": "Enables strength sessions with equipment."
+        },
+        "descriptions": {
+          "testSelection": "Choose the test the program should be based on",
+          "durationFromRaceDate": "Program length is calculated automatically from competition date",
+          "timeFormat": "Format: HH:MM:SS (e.g. 3:30:00)",
+          "targetTimeDescription": "Format: HH:MM:SS (e.g. 3:30:00)"
+        },
+        "messages": {
+          "noTestAvailable": "No test available. Choose the \"Custom\" mode to create a program without test data."
+        },
+        "athleteProfile": {
+          "yearsRunningLabel": "Years of regular training",
+          "yearsRunningPlaceholder": "e.g. 3",
+          "yearsRunningDescription": "Used for methodology selection and volume build-up",
+          "currentWeeklyVolumeLabel": "Current weekly volume (km)",
+          "currentWeeklyVolumePlaceholder": "e.g. 40",
+          "currentWeeklyVolumeDescription": "Average weekly volume over the last 4 weeks",
+          "longestLongRunLabel": "Longest long run (km)",
+          "longestLongRunPlaceholder": "e.g. 18",
+          "longestLongRunDescription": "Last 3 months",
+          "recentRaceTitle": "Latest race result (optional)",
+          "recentRaceDistanceLabel": "Distance",
+          "recentRaceDistanceOptions": {
+            "none": "No recent race",
+            "fiveK": "5K",
+            "tenK": "10K",
+            "halfMarathon": "Half marathon",
+            "marathon": "Marathon"
+          },
+          "recentRaceTimeLabel": "Time",
+          "recentRaceTimePlaceholder": "e.g. 0:45:30 for 10K",
+          "recentRaceTimeDescription": "Format: HH:MM:SS (used for VDOT calculation)"
+        },
+        "equipment": {
+          "lactateMeterLabel": "Lactate meter available",
+          "lactateMeterDescription": "Required for Norwegian methodology (double threshold sessions)",
+          "hrvMonitorLabel": "HRV monitor available",
+          "hrvMonitorDescription": "Enables daily readiness assessment",
+          "powerMeterLabel": "Power meter (cycling)",
+          "powerMeterDescription": "For cycling-specific programs"
+        },
+        "methodology": {
+          "label": "Select training methodology *",
+          "description": "Methodology determines intensity distribution and training setup.",
+          "options": {
+            "auto": {
+              "title": "Automatic selection",
+              "description": "System selects the best method based on profile"
+            },
+            "polarized": {
+              "title": "Polarized (80/20)",
+              "description": "80% easy, 20% hard - for advanced runners"
+            },
+            "norwegian": {
+              "title": "Norwegian (Doubles)",
+              "description": "Double threshold + double sessions - for elite runners"
+            },
+            "norwegianSingle": {
+              "title": "Norwegian (Single)",
+              "description": "Double threshold without double sessions - for advanced runners"
+            },
+            "canova": {
+              "title": "Canova",
+              "description": "Mixed intensity - for marathon specialists"
+            },
+            "pyramidal": {
+              "title": "Pyramidal",
+              "description": "Balanced distribution - for intermediate runners"
+            },
+            "lydiard": {
+              "title": "Lydiard",
+              "description": "Basic build-up with an aerobic base"
+            },
+            "custom": {
+              "title": "Custom (Build from scratch)",
+              "description": "Create an empty program and build sessions one by one"
+            }
+          },
+          "recommendations": {
+            "norwegian": "NORWEGIAN - You meet the requirements for Norwegian methodology (double threshold)",
+            "canova": "CANOVA - Recommended for experienced marathon runners",
+            "polarized": "POLARIZED - 80/20 method suits your experience level",
+            "pyramidal": "PYRAMIDAL - Balanced intensity distribution for intermediate runners",
+            "lydiard": "LYDIARD - Basic build-up with focus on aerobic base"
+          }
+        },
+        "alerts": {
+          "customMode": {
+            "title": "Custom mode:",
+            "description": "You are creating an empty program without test data. Add sessions manually after the program is created."
+          },
+          "customProgramBuilder": {
+            "title": "Custom Program Builder",
+            "description": "You will create an empty program with just date and weeks. After creation, use the calendar view to add running, strength, core and alternative sessions each day."
+          },
+          "recommendationTitle": "Recommendation",
+          "schedulingRecommendationTitle": "Recommendation",
+          "schedulingRecommendationMessage": "Schedule strength and core directly after {sessionLabel} to optimize recovery and save time."
+        },
+        "programStructure": {
+          "durationWeeksLabel": "Number of weeks *",
+          "durationWeeksDescription": "4-52 weeks",
+          "durationWeeksFromRaceDateDescription": "✓ Calculated automatically from competition date",
+          "maxSessionDurationLabel": "Maximum time per session (min)",
+          "maxSessionDurationPlaceholder": "e.g. 120",
+          "maxSessionDurationDescription": "Limits long sessions based on available time",
+          "sessionsPerWeekTitle": "Sessions per week",
+          "sessionsPerWeekSuffix": "per week *",
+          "runningSessionsDescription": "1-14 (can include double sessions)",
+          "strengthSessionsLabel": "Strength sessions per week",
+          "strengthSessionsDescription": "0-7 strength sessions",
+          "coreSessionsLabel": "Core sessions per week",
+          "coreSessionsDescription": "0-7 core sessions",
+          "alternativeSessionsLabel": "Alternative training per week",
+          "alternativeSessionsDescription": "0-7 (cycling, swimming, DWR, etc.)",
+          "schedulingTitle": "Session scheduling",
+          "scheduleStrengthLabel": "Add strength session directly after {sessionLabel}",
+          "scheduleStrengthDescription": "Same day PM session (recommended for time efficiency)",
+          "scheduleCoreLabel": "Add core session directly after {sessionLabel}",
+          "scheduleCoreDescription": "Same day PM session (effective for core activation)",
+          "sessionLabels": {
+            "cycling": "Cycling",
+            "swimming": "Swimming",
+            "skiing": "Skiing",
+            "triathlon": "Main session",
+            "hyrox": "HYROX session",
+            "fitness": "Fitness session",
+            "marathon": "Running session",
+            "halfMarathon": "Running session",
+            "tenK": "Running session",
+            "fiveK": "Running session",
+            "custom": "Main session",
+            "default": "Running session"
+          },
+          "sessionLabelsLower": {
+            "cycling": "cycling session",
+            "swimming": "swimming",
+            "skiing": "skiing",
+            "triathlon": "main session",
+            "hyrox": "HYROX session",
+            "fitness": "fitness session",
+            "marathon": "running session",
+            "halfMarathon": "running session",
+            "tenK": "running session",
+            "fiveK": "running session",
+            "custom": "main session",
+            "default": "running session"
+          }
+        },
+        "injury": {
+          "label": "Recent injury or discomfort",
+          "description": "Program is adapted for a safe return to training.",
+          "detailsLabel": "Describe the issue",
+          "detailsPlaceholder": "E.g. plantar fasciitis, pain under foot...",
+          "detailsDescription": "Helps the system choose appropriate volume and intensity."
+        },
+        "notes": {
+          "placeholder": "Add any notes about the program, specific considerations, or goals..."
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "createEmptyProgram": "Create empty program",
+          "generateProgram": "Generate program"
+        }
       }
     }
   },

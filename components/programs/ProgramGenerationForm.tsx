@@ -40,9 +40,13 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useTranslations } from '@/i18n/client'
 
-const formSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
+type TranslateFn = (key: string, values?: Record<string, string | number | boolean>) => string
+
+const createFormSchema = (t: TranslateFn) =>
+  z.object({
+  clientId: z.string().min(1, t('validation.clientRequired')),
   testId: z.string().optional(), // Optional for CUSTOM methodology
 
   // Goal Configuration
@@ -122,14 +126,14 @@ const formSchema = z.object({
   notes: z.string().optional(),
 })
 
-type FormData = z.infer<typeof formSchema>
+type FormData = z.infer<ReturnType<typeof createFormSchema>>
 
 interface ProgramGenerationFormProps {
   clients: any[]
 }
 
 // Helper function to recommend methodology based on athlete profile
-function recommendMethodology(data: Partial<FormData>): string {
+function recommendMethodology(data: Partial<FormData>, t: TranslateFn): string {
   const { yearsRunning, currentWeeklyVolume, hasLactateMeter, hasHRVMonitor, goalType } = data
 
   // Norwegian Method - Elite athletes with equipment
@@ -139,12 +143,12 @@ function recommendMethodology(data: Partial<FormData>): string {
     hasLactateMeter &&
     hasHRVMonitor
   ) {
-    return 'NORWEGIAN - Du uppfyller kraven för Norska metoden (dubbel tröskelträning)'
+    return t('methodology.recommendations.norwegian')
   }
 
   // Canova - Marathon specialists
   if (goalType === 'marathon' && yearsRunning && yearsRunning >= 3) {
-    return 'CANOVA - Rekommenderas för erfarna maratonlöpare'
+    return t('methodology.recommendations.canova')
   }
 
   // Polarized - Advanced athletes
@@ -152,19 +156,20 @@ function recommendMethodology(data: Partial<FormData>): string {
     yearsRunning && yearsRunning >= 2 &&
     currentWeeklyVolume && currentWeeklyVolume >= 40
   ) {
-    return 'POLARIZED - 80/20-metoden passar din erfarenhetsnivå'
+    return t('methodology.recommendations.polarized')
   }
 
   // Pyramidal - Intermediate athletes
   if (yearsRunning && yearsRunning >= 1) {
-    return 'PYRAMIDAL - Balanserad intensitetsfördelning för medelerfarna'
+    return t('methodology.recommendations.pyramidal')
   }
 
   // Lydiard - Beginners
-  return 'LYDIARD - Grundläggande uppbyggnad med fokus på aerob bas'
+  return t('methodology.recommendations.lydiard')
 }
 
 export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
+  const t = useTranslations('components.careTeam.programGenerationForm')
   const router = useRouter()
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
@@ -173,6 +178,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [methodologyRecommendation, setMethodologyRecommendation] = useState<string>('')
+  const formSchema = createFormSchema(t)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema) as any,
@@ -222,9 +228,9 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   ])
 
   useEffect(() => {
-    const recommendation = recommendMethodology(form.getValues())
+    const recommendation = recommendMethodology(form.getValues(), t)
     setMethodologyRecommendation(recommendation)
-  }, [form, watchedFields])
+  }, [form, watchedFields, t])
 
   // Auto-calculate program duration from race date
   const targetRaceDate = form.watch('targetRaceDate')
@@ -272,12 +278,12 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att skapa program')
+        throw new Error(result.error || t('errors.createFailed'))
       }
 
       toast({
-        title: 'Program skapat!',
-        description: 'Träningsprogrammet har genererats och är klart att användas.',
+        title: t('toasts.createdTitle'),
+        description: t('toasts.createdDescription'),
       })
 
       // Redirect to the new program
@@ -294,7 +300,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
 
       console.error('Error generating program:', error)
       toast({
-        title: 'Något gick fel',
+        title: t('toasts.errorTitle'),
         description: error.message,
         variant: 'destructive',
       })
@@ -310,7 +316,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {/* Program Mode Selection */}
         <Card className="border-2">
           <CardHeader>
-            <CardTitle>Programtyp</CardTitle>
+            <CardTitle>{t('sections.programType')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -322,8 +328,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                     ? 'border-primary bg-primary/5'
                     : 'border-muted hover:border-muted-foreground/50'
                 )}
-              >
-                <div className="flex items-start gap-3">
+                >
+                  <div className="flex items-start gap-3">
                   <div className={cn(
                     'w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5',
                     !isCustomMode ? 'border-primary' : 'border-muted-foreground'
@@ -331,9 +337,9 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                     {!isCustomMode && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                   </div>
                   <div>
-                    <h3 className="font-semibold">Testbaserat program</h3>
+                    <h3 className="font-semibold">{t('mode.auto.title')}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Generera program baserat på konditionstest med träningszoner
+                      {t('mode.auto.description')}
                     </p>
                   </div>
                 </div>
@@ -356,9 +362,9 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                     {isCustomMode && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                   </div>
                   <div>
-                    <h3 className="font-semibold">Anpassat program</h3>
+                    <h3 className="font-semibold">{t('mode.custom.title')}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Skapa tomt program och bygg pass manuellt - inget test krävs
+                      {t('mode.custom.description')}
                     </p>
                   </div>
                 </div>
@@ -370,7 +376,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {/* Client & Test Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>1. Välj klient {!isCustomMode && 'och test'}</CardTitle>
+            <CardTitle>
+              {t('steps.client')}
+              {!isCustomMode && t('steps.clientAndTest')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -378,7 +387,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
               name="clientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Klient *</FormLabel>
+                  <FormLabel>{t('fields.clientLabel')}</FormLabel>
                   <Select
                     onValueChange={(value) => {
                       field.onChange(value)
@@ -386,10 +395,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       form.setValue('testId', '')
                     }}
                     value={field.value}
-                  >
-                    <FormControl>
+                    >
+                      <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Välj klient" />
+                        <SelectValue placeholder={t('fields.clientPlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -412,12 +421,12 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 name="testId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Konditionstest *</FormLabel>
+                    <FormLabel>{t('fields.testLabel')}</FormLabel>
                     {selectedClient.tests && selectedClient.tests.length > 0 ? (
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj test" />
+                            <SelectValue placeholder={t('fields.testPlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -432,11 +441,11 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       </Select>
                     ) : (
                       <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/30">
-                        Ingen test tillgänglig. Välj &quot;Custom&quot; metodik för att skapa program utan test.
+                        {t('messages.noTestAvailable')}
                       </div>
                     )}
                     <FormDescription>
-                      Välj det test som programmet ska baseras på
+                      {t('descriptions.testSelection')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -448,8 +457,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
               <Alert className="bg-blue-50 border-blue-200">
                 <Info className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800">
-                  <strong>Custom-läge:</strong> Du skapar ett tomt program utan testdata.
-                  Lägg till pass manuellt efter att programmet skapats.
+                  <strong>{t('alerts.customMode.title')}</strong> {t('alerts.customMode.description')}
                 </AlertDescription>
               </Alert>
             )}
@@ -459,7 +467,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {/* Goal Configuration */}
         <Card>
           <CardHeader>
-            <CardTitle>2. Målsättning</CardTitle>
+            <CardTitle>{t('sections.goal')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -467,7 +475,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
               name="goalType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Typ av mål *</FormLabel>
+                  <FormLabel>{t('fields.goalType.label')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -475,17 +483,17 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="marathon">Marathon (42.2 km)</SelectItem>
-                      <SelectItem value="half-marathon">Halvmaraton (21.1 km)</SelectItem>
-                      <SelectItem value="10k">10K</SelectItem>
-                      <SelectItem value="5k">5K</SelectItem>
-                      <SelectItem value="fitness">Allmän fitness</SelectItem>
-                      <SelectItem value="cycling">Cykling</SelectItem>
-                      <SelectItem value="skiing">Skidåkning</SelectItem>
-                      <SelectItem value="swimming">Simning</SelectItem>
-                      <SelectItem value="triathlon">Triathlon</SelectItem>
-                      <SelectItem value="hyrox">HYROX</SelectItem>
-                      <SelectItem value="custom">Anpassad</SelectItem>
+                      <SelectItem value="marathon">{t('goalOptions.marathon')}</SelectItem>
+                      <SelectItem value="half-marathon">{t('goalOptions.halfMarathon')}</SelectItem>
+                      <SelectItem value="10k">{t('goalOptions.tenK')}</SelectItem>
+                      <SelectItem value="5k">{t('goalOptions.fiveK')}</SelectItem>
+                      <SelectItem value="fitness">{t('goalOptions.fitness')}</SelectItem>
+                      <SelectItem value="cycling">{t('goalOptions.cycling')}</SelectItem>
+                      <SelectItem value="skiing">{t('goalOptions.skiing')}</SelectItem>
+                      <SelectItem value="swimming">{t('goalOptions.swimming')}</SelectItem>
+                      <SelectItem value="triathlon">{t('goalOptions.triathlon')}</SelectItem>
+                      <SelectItem value="hyrox">{t('goalOptions.hyrox')}</SelectItem>
+                      <SelectItem value="custom">{t('goalOptions.custom')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -496,32 +504,32 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
             {/* General Fitness Goal Configuration */}
             {form.watch('goalType') === 'fitness' && (
               <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                <h4 className="font-medium">Fitness-mål</h4>
+                <h4 className="font-medium">{t('fitness.goalTitle')}</h4>
 
                 <FormField
                   control={form.control}
                   name="fitnessGoal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Primärt mål *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Välj ditt huvudmål" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="weight_loss">Viktminskning</SelectItem>
-                          <SelectItem value="general_health">Allmän hälsa</SelectItem>
-                          <SelectItem value="strength">Styrka</SelectItem>
-                          <SelectItem value="endurance">Uthållighet</SelectItem>
-                          <SelectItem value="flexibility">Rörlighet</SelectItem>
-                          <SelectItem value="stress_relief">Stresshantering</SelectItem>
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('fitness.primaryGoalLabel')}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('fitness.primaryGoalPlaceholder')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                          <SelectItem value="weight_loss">{t('fitness.goalOptions.weightLoss')}</SelectItem>
+                          <SelectItem value="general_health">{t('fitness.goalOptions.generalHealth')}</SelectItem>
+                          <SelectItem value="strength">{t('fitness.goalOptions.strength')}</SelectItem>
+                          <SelectItem value="endurance">{t('fitness.goalOptions.endurance')}</SelectItem>
+                          <SelectItem value="flexibility">{t('fitness.goalOptions.flexibility')}</SelectItem>
+                          <SelectItem value="stress_relief">{t('fitness.goalOptions.stressRelief')}</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormDescription>
-                        Programmet anpassas efter ditt huvudmål
-                      </FormDescription>
+                    <FormDescription>
+                      {t('fitness.primaryGoalDescription')}
+                    </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -530,26 +538,26 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 <FormField
                   control={form.control}
                   name="fitnessLevel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nuvarande aktivitetsnivå *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Välj din nivå" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="sedentary">Stillasittande (tränar sällan)</SelectItem>
-                          <SelectItem value="lightly_active">Lätt aktiv (1-2 pass/vecka)</SelectItem>
-                          <SelectItem value="moderately_active">Måttligt aktiv (3-4 pass/vecka)</SelectItem>
-                          <SelectItem value="very_active">Mycket aktiv (5-6 pass/vecka)</SelectItem>
-                          <SelectItem value="athlete">Idrottare (daglig träning)</SelectItem>
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('fitness.activityLevelLabel')}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('fitness.activityLevelPlaceholder')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                          <SelectItem value="sedentary">{t('fitness.activityLevelOptions.sedentary')}</SelectItem>
+                          <SelectItem value="lightly_active">{t('fitness.activityLevelOptions.lightlyActive')}</SelectItem>
+                          <SelectItem value="moderately_active">{t('fitness.activityLevelOptions.moderatelyActive')}</SelectItem>
+                          <SelectItem value="very_active">{t('fitness.activityLevelOptions.veryActive')}</SelectItem>
+                          <SelectItem value="athlete">{t('fitness.activityLevelOptions.athlete')}</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormDescription>
-                        Påverkar intensitet och volym i programmet
-                      </FormDescription>
+                    <FormDescription>
+                      {t('fitness.activityLevelDescription')}
+                    </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -567,9 +575,9 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Tillgång till gym</FormLabel>
+                        <FormLabel>{t('fitness.gymAccessLabel')}</FormLabel>
                         <FormDescription>
-                          Möjliggör styrkeövningar med utrustning
+                          {t('fitness.gymAccessDescription')}
                         </FormDescription>
                       </div>
                     </FormItem>
@@ -583,7 +591,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
               name="targetRaceDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Tävlingsdatum (valfritt)</FormLabel>
+                  <FormLabel>{t('fields.targetRaceDateLabel')}</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -594,11 +602,11 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                             !field.value && 'text-muted-foreground'
                           )}
                         >
-                          {field.value ? (
-                            format(field.value, 'PPP', { locale: sv })
-                          ) : (
-                            <span>Välj datum</span>
-                          )}
+                            {field.value ? (
+                              format(field.value, 'PPP', { locale: sv })
+                            ) : (
+                              <span>{t('fields.targetDatePlaceholder')}</span>
+                            )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -616,7 +624,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                     </PopoverContent>
                   </Popover>
                   <FormDescription>
-                    Programlängden beräknas automatiskt från tävlingsdatum
+                    {t('descriptions.durationFromRaceDate')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -629,7 +637,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {!isCustomMode && form.watch('goalType') !== 'fitness' && (
           <Card>
             <CardHeader>
-              <CardTitle>3. Tidsmål (valfritt)</CardTitle>
+              <CardTitle>{t('steps.timeGoal')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
@@ -637,15 +645,15 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 name="targetTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Måltid för tävling</FormLabel>
+                    <FormLabel>{t('fields.targetTimeLabel')}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="t.ex. 3:30:00 för marathon"
+                        placeholder={t('fields.targetTimePlaceholder')}
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Format: HH:MM:SS (t.ex. 3:30:00)
+                      {t('descriptions.timeFormat')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -659,7 +667,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {!isCustomMode && (
         <Card>
           <CardHeader>
-            <CardTitle>4. Löparprofil</CardTitle>
+            <CardTitle>{t('steps.athleteProfile')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -668,13 +676,13 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 name="yearsRunning"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>År av regelbunden träning</FormLabel>
+                    <FormLabel>{t('athleteProfile.yearsRunningLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min={0}
                         max={50}
-                        placeholder="t.ex. 3"
+                        placeholder={t('athleteProfile.yearsRunningPlaceholder')}
                         {...field}
                         onChange={(e) =>
                           field.onChange(
@@ -685,7 +693,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       />
                     </FormControl>
                     <FormDescription>
-                      Används för metodval och volymuppbyggnad
+                      {t('athleteProfile.yearsRunningDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -697,12 +705,12 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 name="currentWeeklyVolume"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nuvarande veckvolym (km)</FormLabel>
+                    <FormLabel>{t('athleteProfile.currentWeeklyVolumeLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min={0}
-                        placeholder="t.ex. 40"
+                        placeholder={t('athleteProfile.currentWeeklyVolumePlaceholder')}
                         {...field}
                         onChange={(e) =>
                           field.onChange(
@@ -713,7 +721,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       />
                     </FormControl>
                     <FormDescription>
-                      Genomsnittlig veckvolym senaste 4 veckorna
+                      {t('athleteProfile.currentWeeklyVolumeDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -725,13 +733,13 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 name="longestLongRun"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Längsta långa passet (km)</FormLabel>
+                    <FormLabel>{t('athleteProfile.longestLongRunLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min={0}
                         max={50}
-                        placeholder="t.ex. 18"
+                        placeholder={t('athleteProfile.longestLongRunPlaceholder')}
                         {...field}
                         onChange={(e) =>
                           field.onChange(
@@ -742,7 +750,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       />
                     </FormControl>
                     <FormDescription>
-                      Senaste 3 månaderna
+                      {t('athleteProfile.longestLongRunDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -752,14 +760,14 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
 
             {/* Recent Race */}
             <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Senaste tävlingsresultat (valfritt)</h4>
+              <h4 className="font-medium mb-3">{t('athleteProfile.recentRaceTitle')}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="recentRaceDistance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Distans</FormLabel>
+                      <FormLabel>{t('athleteProfile.recentRaceDistanceLabel')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -767,11 +775,11 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="NONE">Inget nyligt lopp</SelectItem>
-                          <SelectItem value="5K">5K</SelectItem>
-                          <SelectItem value="10K">10K</SelectItem>
-                          <SelectItem value="HALF">Halvmaraton</SelectItem>
-                          <SelectItem value="MARATHON">Marathon</SelectItem>
+                          <SelectItem value="NONE">{t('athleteProfile.recentRaceDistanceOptions.none')}</SelectItem>
+                          <SelectItem value="5K">{t('athleteProfile.recentRaceDistanceOptions.fiveK')}</SelectItem>
+                          <SelectItem value="10K">{t('athleteProfile.recentRaceDistanceOptions.tenK')}</SelectItem>
+                          <SelectItem value="HALF">{t('athleteProfile.recentRaceDistanceOptions.halfMarathon')}</SelectItem>
+                          <SelectItem value="MARATHON">{t('athleteProfile.recentRaceDistanceOptions.marathon')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -784,15 +792,15 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   name="recentRaceTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tid</FormLabel>
+                      <FormLabel>{t('athleteProfile.recentRaceTimeLabel')}</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="t.ex. 0:45:30 för 10K"
+                          placeholder={t('athleteProfile.recentRaceTimePlaceholder')}
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        Format: HH:MM:SS (används för VDOT-beräkning)
+                        {t('athleteProfile.recentRaceTimeDescription')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -808,7 +816,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {!isCustomMode && (
         <Card>
           <CardHeader>
-            <CardTitle>5. Utrustning & Monitorering</CardTitle>
+            <CardTitle>{t('steps.equipment')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -824,10 +832,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>
-                      Laktatmätare tillgänglig
+                      {t('equipment.lactateMeterLabel')}
                     </FormLabel>
                     <FormDescription>
-                      Krävs för Norska metoden (dubbel tröskelträning)
+                      {t('equipment.lactateMeterDescription')}
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -847,10 +855,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>
-                      HRV-monitor tillgänglig
+                      {t('equipment.hrvMonitorLabel')}
                     </FormLabel>
                     <FormDescription>
-                      Möjliggör daglig readiness-bedömning
+                      {t('equipment.hrvMonitorDescription')}
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -870,10 +878,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>
-                      Effektmätare (för cykling)
+                      {t('equipment.powerMeterLabel')}
                     </FormLabel>
                     <FormDescription>
-                      För cykelspecifika program
+                      {t('equipment.powerMeterDescription')}
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -887,14 +895,14 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {!isCustomMode && (
         <Card>
           <CardHeader>
-            <CardTitle>6. Träningsmetodik</CardTitle>
+            <CardTitle>{t('steps.methodology')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {methodologyRecommendation && (
               <Alert>
                 <Lightbulb className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Rekommendation:</strong> {methodologyRecommendation}
+                  <strong>{t('alerts.recommendationTitle')}:</strong> {methodologyRecommendation}
                 </AlertDescription>
               </Alert>
             )}
@@ -904,7 +912,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
               name="methodology"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Välj träningsmetodik *</FormLabel>
+                  <FormLabel>{t('methodology.label')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -914,72 +922,72 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                     <SelectContent>
                       <SelectItem value="AUTO">
                         <div>
-                          <div className="font-medium">Automatiskt val</div>
+                          <div className="font-medium">{t('methodology.options.auto.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Systemet väljer bästa metod baserat på profil
+                            {t('methodology.options.auto.description')}
                           </div>
                         </div>
                       </SelectItem>
                       <SelectItem value="POLARIZED">
                         <div>
-                          <div className="font-medium">Polarized (80/20)</div>
+                          <div className="font-medium">{t('methodology.options.polarized.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            80% lätt, 20% hårt - för avancerade löpare
+                            {t('methodology.options.polarized.description')}
                           </div>
                         </div>
                       </SelectItem>
                       <SelectItem value="NORWEGIAN">
                         <div>
-                          <div className="font-medium">Norwegian (Doubles)</div>
+                          <div className="font-medium">{t('methodology.options.norwegian.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Dubbel tröskel + dubbelpass - för elitlöpare
+                            {t('methodology.options.norwegian.description')}
                           </div>
                         </div>
                       </SelectItem>
                       <SelectItem value="NORWEGIAN_SINGLE">
                         <div>
-                          <div className="font-medium">Norwegian (Single)</div>
+                          <div className="font-medium">{t('methodology.options.norwegianSingle.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Dubbel tröskel utan dubbelpass - för avancerade
+                            {t('methodology.options.norwegianSingle.description')}
                           </div>
                         </div>
                       </SelectItem>
                       <SelectItem value="CANOVA">
                         <div>
-                          <div className="font-medium">Canova</div>
+                          <div className="font-medium">{t('methodology.options.canova.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Mixad intensitet - för maratonspecialister
+                            {t('methodology.options.canova.description')}
                           </div>
                         </div>
                       </SelectItem>
                       <SelectItem value="PYRAMIDAL">
                         <div>
-                          <div className="font-medium">Pyramidal</div>
+                          <div className="font-medium">{t('methodology.options.pyramidal.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Balanserad fördelning - för medelerfarna
+                            {t('methodology.options.pyramidal.description')}
                           </div>
                         </div>
                       </SelectItem>
                       <SelectItem value="LYDIARD">
                         <div>
-                          <div className="font-medium">Lydiard</div>
+                          <div className="font-medium">{t('methodology.options.lydiard.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Grundläggande uppbyggnad - aerob bas
+                            {t('methodology.options.lydiard.description')}
                           </div>
                         </div>
                       </SelectItem>
                       <SelectItem value="CUSTOM">
                         <div>
-                          <div className="font-medium">Custom (Bygg från grunden)</div>
+                          <div className="font-medium">{t('methodology.options.custom.title')}</div>
                           <div className="text-sm text-muted-foreground">
-                            Skapa ett tomt program och bygg passnivå för passnivå
+                            {t('methodology.options.custom.description')}
                           </div>
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Metodiken styr intensitetsfördelning och träningsupplägg
+                    {t('methodology.description')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -991,9 +999,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
               <Alert className="mt-4">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Custom Program Builder:</strong> Du kommer att skapa ett tomt program med bara datum och veckor.
-                  Efter att programmet har skapats kan du använda kalendervyn för att lägga till löppass, styrkepass,
-                  core-pass och alternativa träningspass på varje dag.
+                  <strong>{t('alerts.customProgramBuilder.title')}:</strong>{' '}
+                  {t('alerts.customProgramBuilder.description')}
                 </AlertDescription>
               </Alert>
             )}
@@ -1004,7 +1011,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {/* Program Structure */}
         <Card>
           <CardHeader>
-            <CardTitle>{isCustomMode ? '2' : '7'}. Programstruktur</CardTitle>
+            <CardTitle>{isCustomMode ? t('steps.programStructureCustom') : t('steps.programStructure')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1013,7 +1020,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 name="durationWeeks"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Antal veckor *</FormLabel>
+                    <FormLabel>{t('programStructure.durationWeeksLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -1030,8 +1037,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                     </FormControl>
                     <FormDescription>
                       {targetRaceDate
-                        ? '✓ Beräknat automatiskt från tävlingsdatum'
-                        : '4-52 veckor'}
+                        ? t('programStructure.durationWeeksFromRaceDateDescription')
+                        : t('programStructure.durationWeeksDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1043,13 +1050,13 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 name="maxSessionDuration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Max tid per pass (min)</FormLabel>
+                    <FormLabel>{t('programStructure.maxSessionDurationLabel')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min={30}
                         max={300}
-                        placeholder="t.ex. 120"
+                        placeholder={t('programStructure.maxSessionDurationPlaceholder')}
                         {...field}
                         onChange={(e) =>
                           field.onChange(
@@ -1060,7 +1067,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       />
                     </FormControl>
                     <FormDescription>
-                      Begränsar långa pass baserat på tillgänglig tid
+                      {t('programStructure.maxSessionDurationDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1070,7 +1077,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
 
             {/* Granular Session Control */}
             <div className="border-t pt-4 mt-4">
-              <h4 className="font-medium mb-3">Antal pass per vecka</h4>
+              <h4 className="font-medium mb-3">{t('programStructure.sessionsPerWeekTitle')}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -1079,23 +1086,23 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                     // Sport-specific label
                     const goalType = form.watch('goalType')
                     const sessionLabels: Record<string, string> = {
-                      'cycling': 'Cykelpass',
-                      'swimming': 'Simpass',
-                      'skiing': 'Skidpass',
-                      'triathlon': 'Huvudpass',
-                      'hyrox': 'HYROX-pass',
-                      'fitness': 'Konditionspass',
-                      'marathon': 'Löppass',
-                      'half-marathon': 'Löppass',
-                      '10k': 'Löppass',
-                      '5k': 'Löppass',
-                      'custom': 'Huvudpass',
+                      'cycling': t('programStructure.sessionLabels.cycling'),
+                      'swimming': t('programStructure.sessionLabels.swimming'),
+                      'skiing': t('programStructure.sessionLabels.skiing'),
+                      'triathlon': t('programStructure.sessionLabels.triathlon'),
+                      'hyrox': t('programStructure.sessionLabels.hyrox'),
+                      'fitness': t('programStructure.sessionLabels.fitness'),
+                      'marathon': t('programStructure.sessionLabels.marathon'),
+                      'half-marathon': t('programStructure.sessionLabels.halfMarathon'),
+                      '10k': t('programStructure.sessionLabels.tenK'),
+                      '5k': t('programStructure.sessionLabels.fiveK'),
+                      'custom': t('programStructure.sessionLabels.custom'),
                     }
-                    const sessionLabel = sessionLabels[goalType] || 'Löppass'
+                    const sessionLabel = sessionLabels[goalType] || t('programStructure.sessionLabels.default')
 
                     return (
                     <FormItem>
-                      <FormLabel>{sessionLabel} per vecka *</FormLabel>
+                      <FormLabel>{`${sessionLabel} ${t('programStructure.sessionsPerWeekSuffix')}`}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -1111,7 +1118,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                         />
                       </FormControl>
                       <FormDescription>
-                        1-14 (kan inkludera dubbelpass)
+                        {t('programStructure.runningSessionsDescription')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1123,7 +1130,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   name="strengthSessionsPerWeek"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Styrkepass per vecka</FormLabel>
+                    <FormLabel>{t('programStructure.strengthSessionsLabel')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -1138,8 +1145,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                           }
                         />
                       </FormControl>
-                      <FormDescription>
-                        0-7 styrketräningspass
+                    <FormDescription>
+                        {t('programStructure.strengthSessionsDescription')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1151,7 +1158,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   name="coreSessionsPerWeek"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Core-pass per vecka</FormLabel>
+                      <FormLabel>{t('programStructure.coreSessionsLabel')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -1166,8 +1173,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                           }
                         />
                       </FormControl>
-                      <FormDescription>
-                        0-7 core-träningspass
+                    <FormDescription>
+                        {t('programStructure.coreSessionsDescription')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1179,7 +1186,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   name="alternativeTrainingSessionsPerWeek"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Alternativträning per vecka</FormLabel>
+                      <FormLabel>{t('programStructure.alternativeSessionsLabel')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -1194,8 +1201,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                           }
                         />
                       </FormControl>
-                      <FormDescription>
-                        0-7 (cykel, simning, DWR, etc.)
+                    <FormDescription>
+                        {t('programStructure.alternativeSessionsDescription')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1206,32 +1213,32 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
 
             {/* Session Scheduling Options */}
             <div className="border-t pt-4 mt-4">
-              <h4 className="font-medium mb-3">Schemaläggning av pass</h4>
+              <h4 className="font-medium mb-3">{t('programStructure.schedulingTitle')}</h4>
               {(() => {
                 const goalType = form.watch('goalType')
                 const sessionLabelsLower: Record<string, string> = {
-                  'cycling': 'cykelpass',
-                  'swimming': 'simpass',
-                  'skiing': 'skidpass',
-                  'triathlon': 'huvudpass',
-                  'hyrox': 'HYROX-pass',
-                  'fitness': 'konditionspass',
-                  'marathon': 'löppass',
-                  'half-marathon': 'löppass',
-                  '10k': 'löppass',
-                  '5k': 'löppass',
-                  'custom': 'huvudpass',
+                  'cycling': t('programStructure.sessionLabelsLower.cycling'),
+                  'swimming': t('programStructure.sessionLabelsLower.swimming'),
+                  'skiing': t('programStructure.sessionLabelsLower.skiing'),
+                  'triathlon': t('programStructure.sessionLabelsLower.triathlon'),
+                  'hyrox': t('programStructure.sessionLabelsLower.hyrox'),
+                  'fitness': t('programStructure.sessionLabelsLower.fitness'),
+                  'marathon': t('programStructure.sessionLabelsLower.marathon'),
+                  'half-marathon': t('programStructure.sessionLabelsLower.halfMarathon'),
+                  '10k': t('programStructure.sessionLabelsLower.tenK'),
+                  '5k': t('programStructure.sessionLabelsLower.fiveK'),
+                  'custom': t('programStructure.sessionLabelsLower.custom'),
                 }
-                const mainSessionLabel = sessionLabelsLower[goalType] || 'löppass'
+                const mainSessionLabel = sessionLabelsLower[goalType] || t('programStructure.sessionLabelsLower.default')
 
                 return (
                   <>
-                    <Alert className="mb-4">
-                      <Info className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>Rekommendation:</strong> Schemalägg styrka och core direkt efter {mainSessionLabel} för att optimera återhämtning och spara tid.
-                      </AlertDescription>
-                    </Alert>
+                      <Alert className="mb-4">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          <strong>{t('alerts.schedulingRecommendationTitle')}:</strong> {t('alerts.schedulingRecommendationMessage', { sessionLabel: mainSessionLabel })}
+                        </AlertDescription>
+                      </Alert>
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
@@ -1246,10 +1253,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>
-                                Lägg styrkepass direkt efter {mainSessionLabel}
+                                {t('programStructure.scheduleStrengthLabel', { sessionLabel: mainSessionLabel })}
                               </FormLabel>
                               <FormDescription>
-                                Samma dag PM-session (rekommenderas för tidseffektivitet)
+                                {t('programStructure.scheduleStrengthDescription')}
                               </FormDescription>
                             </div>
                           </FormItem>
@@ -1269,10 +1276,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                             </FormControl>
                             <div className="space-y-1 leading-none">
                               <FormLabel>
-                                Lägg core-pass direkt efter {mainSessionLabel}
+                                {t('programStructure.scheduleCoreLabel', { sessionLabel: mainSessionLabel })}
                               </FormLabel>
                               <FormDescription>
-                                Samma dag PM-session (effektivt för core-aktivering)
+                                {t('programStructure.scheduleCoreDescription')}
                               </FormDescription>
                             </div>
                           </FormItem>
@@ -1289,7 +1296,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {/* Injury & Health */}
         <Card>
           <CardHeader>
-            <CardTitle>{isCustomMode ? '3' : '8'}. Skador & Hälsa</CardTitle>
+            <CardTitle>{isCustomMode ? t('steps.injuryCustom') : t('steps.injury')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -1305,10 +1312,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel>
-                      Nylig skada eller besvär
+                      {t('injury.label')}
                     </FormLabel>
                     <FormDescription>
-                      Program anpassas för säker återgång till träning
+                      {t('injury.description')}
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -1321,16 +1328,16 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 name="injuryDetails"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Beskriv skadan</FormLabel>
+                    <FormLabel>{t('injury.detailsLabel')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="T.ex. Plantar fasciit, smärta under foten..."
+                        placeholder={t('injury.detailsPlaceholder')}
                         rows={3}
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Hjälper systemet välja lämplig volym och intensitet
+                      {t('injury.detailsDescription')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1343,7 +1350,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {/* Notes */}
         <Card>
           <CardHeader>
-            <CardTitle>{isCustomMode ? '4' : '9'}. Anteckningar (valfritt)</CardTitle>
+            <CardTitle>{isCustomMode ? t('steps.notesCustom') : t('steps.notes')}</CardTitle>
           </CardHeader>
           <CardContent>
             <FormField
@@ -1353,7 +1360,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 <FormItem>
                   <FormControl>
                     <Textarea
-                      placeholder="Lägg till eventuella anteckningar om programmet, speciella hänsyn, eller mål..."
+                      placeholder={t('notes.placeholder')}
                       rows={4}
                       {...field}
                     />
@@ -1373,11 +1380,11 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
             onClick={() => router.back()}
             disabled={isSubmitting}
           >
-            Avbryt
+            {t('actions.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isCustomMode ? 'Skapa tomt program' : 'Generera program'}
+            {isCustomMode ? t('actions.createEmptyProgram') : t('actions.generateProgram')}
           </Button>
         </div>
       </form>
