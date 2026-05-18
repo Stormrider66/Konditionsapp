@@ -1,7 +1,7 @@
 // app/athlete/video-analysis/page.tsx
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Video } from 'lucide-react'
+import { getTranslations } from '@/i18n/server'
 
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
@@ -34,6 +34,7 @@ type VideoAnalysisWithVideo = Omit<VideoAnalysisRow, 'videoUrl'> & {
 export default async function AthleteVideoAnalysisPage() {
   const basePath = '' // Standard athlete route
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  const t = await getTranslations('athletePages.videoAnalysis')
 
   // Prisma typings can appear stale locally (especially on Windows) if `prisma generate` didn’t fully run.
   // Calling through `any` avoids TS false-positives about select fields/relations.
@@ -62,12 +63,12 @@ export default async function AthleteVideoAnalysisPage() {
     videoAnalyses.map(async (analysis): Promise<VideoAnalysisWithVideo> => {
       // Guard: if videoUrl is null/empty, return early with error message
       if (!analysis.videoUrl) {
-        return {
-          ...analysis,
-          videoUrl: null,
-          videoError: 'Videon saknas för denna analys.',
+          return {
+            ...analysis,
+            videoUrl: null,
+            videoError: t('errors.missingVideo'),
+          }
         }
-      }
 
       const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
 
@@ -92,14 +93,14 @@ export default async function AthleteVideoAnalysisPage() {
           return {
             ...analysis,
             videoUrl: null,
-            videoError: 'Videon kunde inte laddas (ogiltigt URL-format).',
+            videoError: t('errors.invalidUrl'),
           }
         }
         // Non-HTTP, non-path value - shouldn't happen, but treat as error
         return {
           ...analysis,
           videoUrl: null,
-          videoError: 'Videon saknas för denna analys.',
+          videoError: t('errors.missingVideo'),
         }
       }
 
@@ -113,7 +114,7 @@ export default async function AthleteVideoAnalysisPage() {
         return {
           ...analysis,
           videoUrl: null,
-          videoError: 'Kunde inte ladda videon (åtkomstfel). Försök igen senare.',
+          videoError: t('errors.accessDenied'),
         }
       }
     })
@@ -126,7 +127,7 @@ export default async function AthleteVideoAnalysisPage() {
         <Link href={`${basePath}/athlete/profile?tab=technique`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-4">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka till profil
+            {t('backToProfile')}
           </Button>
         </Link>
 
@@ -135,8 +136,8 @@ export default async function AthleteVideoAnalysisPage() {
             <Video className="h-6 w-6 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Ladda upp video</h1>
-            <p className="text-muted-foreground text-sm">Ladda upp en video av din teknik for analys</p>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground text-sm">{t('description')}</p>
           </div>
         </div>
       </div>
@@ -144,11 +145,8 @@ export default async function AthleteVideoAnalysisPage() {
       {/* Upload Section */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Ny videoanalys</CardTitle>
-          <CardDescription>
-            Ladda upp en video av din lopstil, lyft eller annan teknik. Din coach kommer att analysera videon och ge
-            feedback.
-          </CardDescription>
+          <CardTitle>{t('upload.title')}</CardTitle>
+          <CardDescription>{t('upload.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <AthleteVideoUploader clientId={clientId} />
@@ -159,8 +157,8 @@ export default async function AthleteVideoAnalysisPage() {
       {analysesWithSignedUrls.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Dina videoanalyser</CardTitle>
-            <CardDescription>Klicka på en analys för att se detaljerad feedback</CardDescription>
+            <CardTitle>{t('recent.title')}</CardTitle>
+            <CardDescription>{t('recent.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
