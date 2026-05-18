@@ -10042,6 +10042,48 @@
         "other": "Other"
       }
     },
+    "physioAthleteList": {
+      "header": {
+        "title": "Athletes",
+        "subtitle": "Manage and monitor your assigned athletes"
+      },
+      "filters": {
+        "searchPlaceholder": "Search athletes...",
+        "filterPlaceholder": "Filter",
+        "all": "All Athletes",
+        "injuries": "With Injuries",
+        "restrictions": "With Restrictions"
+      },
+      "results": {
+        "summary": "Showing {shown} of {total} athletes"
+      },
+      "empty": {
+        "title": "No athletes found",
+        "searchHint": "Try adjusting your search terms",
+        "noAthletes": "You have no assigned athletes"
+      },
+      "status": {
+        "labels": {
+          "injury": "Injury",
+          "restriction": "Restriction"
+        },
+        "inRehab": "In Rehab",
+        "more": "more"
+      },
+      "labels": {
+        "pain": "Pain"
+      },
+      "checkin": {
+        "last": "Last check-in"
+      },
+      "phases": {
+        "ACUTE": "Acute",
+        "SUBACUTE": "Subacute",
+        "REMODELING": "Remodeling",
+        "FUNCTIONAL": "Functional",
+        "RETURN_TO_SPORT": "Return to sport"
+      }
+    },
     "treatmentSessionForm": {
       "sections": {
         "athlete": "Athlete",

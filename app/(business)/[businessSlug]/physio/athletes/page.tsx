@@ -23,6 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { useTranslations } from '@/i18n/client'
 
 interface Athlete {
     id: string
@@ -66,6 +67,7 @@ export default function BusinessPhysioAthletesPage() {
     const params = useParams()
     const businessSlug = params.businessSlug as string
     const basePath = `/${businessSlug}/physio`
+    const t = useTranslations('components.physioAthleteList')
 
     const [athletes, setAthletes] = useState<Athlete[]>([])
     const [loading, setLoading] = useState(true)
@@ -114,12 +116,20 @@ export default function BusinessPhysioAthletesPage() {
         RETURN_TO_SPORT: 'bg-green-500/20 text-green-400',
     }
 
+    const formatPhase = (phase: string) => {
+        return t(`phases.${phase}` as any)
+    }
+
+    const formatRestrictionType = (value: string) => {
+        return value.replace(/_/g, ' ')
+    }
+
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Page Header */}
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2">Athletes</h1>
-                <p className="text-slate-400">Manage and monitor your assigned athletes</p>
+                <h1 className="text-3xl font-bold text-white mb-2">{t('header.title')}</h1>
+                <p className="text-slate-400">{t('header.subtitle')}</p>
             </div>
 
             {/* Search and Filters */}
@@ -127,7 +137,7 @@ export default function BusinessPhysioAthletesPage() {
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input
-                        placeholder="Search athletes..."
+                        placeholder={t('filters.searchPlaceholder')}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="pl-10 bg-slate-900/50 border-white/10 text-white placeholder:text-slate-500"
@@ -136,19 +146,19 @@ export default function BusinessPhysioAthletesPage() {
                 <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
                     <SelectTrigger className="w-[180px] bg-slate-900/50 border-white/10 text-white">
                         <Filter className="w-4 h-4 mr-2 text-slate-400" />
-                        <SelectValue placeholder="Filter" />
+                        <SelectValue placeholder={t('filters.filterPlaceholder')} />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-white/10">
-                        <SelectItem value="all" className="text-slate-200">All Athletes</SelectItem>
-                        <SelectItem value="injured" className="text-slate-200">With Injuries</SelectItem>
-                        <SelectItem value="restricted" className="text-slate-200">With Restrictions</SelectItem>
+                        <SelectItem value="all" className="text-slate-200">{t('filters.all')}</SelectItem>
+                        <SelectItem value="injured" className="text-slate-200">{t('filters.injuries')}</SelectItem>
+                        <SelectItem value="restricted" className="text-slate-200">{t('filters.restrictions')}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
             {/* Results count */}
             <p className="text-slate-400 text-sm mb-4">
-                Showing {athletes.length} of {total} athletes
+                {t('results.summary', { shown: athletes.length, total })}
             </p>
 
             {/* Athletes Grid */}
@@ -162,9 +172,9 @@ export default function BusinessPhysioAthletesPage() {
                 <Card className="bg-slate-900/50 border-white/10">
                     <CardContent className="p-12 text-center">
                         <Users className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-                        <p className="text-slate-400 text-lg">No athletes found</p>
+                        <p className="text-slate-400 text-lg">{t('empty.title')}</p>
                         <p className="text-slate-500 text-sm mt-2">
-                            {search ? 'Try adjusting your search terms' : 'You have no assigned athletes'}
+                            {search ? t('empty.searchHint') : t('empty.noAthletes')}
                         </p>
                     </CardContent>
                 </Card>
@@ -194,19 +204,19 @@ export default function BusinessPhysioAthletesPage() {
                                         {athlete.stats.activeInjuries > 0 && (
                                             <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
                                                 <AlertTriangle className="w-3 h-3 mr-1" />
-                                                {athlete.stats.activeInjuries} Injury
+                                                {athlete.stats.activeInjuries} {t('status.labels.injury')}
                                             </Badge>
                                         )}
                                         {athlete.stats.activeRestrictions > 0 && (
                                             <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
                                                 <Ban className="w-3 h-3 mr-1" />
-                                                {athlete.stats.activeRestrictions} Restriction
+                                                {athlete.stats.activeRestrictions} {t('status.labels.restriction')}
                                             </Badge>
                                         )}
                                         {athlete.stats.activeRehabPrograms > 0 && (
                                             <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                                                 <Activity className="w-3 h-3 mr-1" />
-                                                In Rehab
+                                                {t('status.inRehab')}
                                             </Badge>
                                         )}
                                     </div>
@@ -219,12 +229,12 @@ export default function BusinessPhysioAthletesPage() {
                                                     {athlete.currentInjury.injuryType}
                                                 </span>
                                                 <Badge className={phaseColors[athlete.currentInjury.phase] || 'bg-slate-500/20 text-slate-400'}>
-                                                    {athlete.currentInjury.phase}
+                                                    {formatPhase(athlete.currentInjury.phase)}
                                                 </Badge>
                                             </div>
                                             <p className="text-xs text-slate-500 mb-2">{athlete.currentInjury.bodyPart}</p>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs text-slate-500">Pain:</span>
+                                                <span className="text-xs text-slate-500">{t('labels.pain')}:</span>
                                                 <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
                                                     <div
                                                         className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"
@@ -245,12 +255,12 @@ export default function BusinessPhysioAthletesPage() {
                                                     variant="outline"
                                                     className={`text-xs ${severityColors[restriction.severity] || ''}`}
                                                 >
-                                                    {restriction.type.replace(/_/g, ' ')}
+                                                    {formatRestrictionType(restriction.type)}
                                                 </Badge>
                                             ))}
                                             {athlete.activeRestrictions.length > 2 && (
                                                 <Badge variant="outline" className="text-xs text-slate-400">
-                                                    +{athlete.activeRestrictions.length - 2} more
+                                                    +{athlete.activeRestrictions.length - 2} {t('status.more')}
                                                 </Badge>
                                             )}
                                         </div>
@@ -259,10 +269,10 @@ export default function BusinessPhysioAthletesPage() {
                                     {/* Latest Check-in */}
                                     {athlete.latestCheckIn && (
                                         <div className="mt-3 pt-3 border-t border-white/5 text-xs text-slate-500">
-                                            Last check-in: {new Date(athlete.latestCheckIn.date).toLocaleDateString()}
+                                            {t('checkin.last')}: {new Date(athlete.latestCheckIn.date).toLocaleDateString()}
                                             {athlete.latestCheckIn.injuryPain !== null && (
                                                 <span className="ml-2">
-                                                    Pain: {athlete.latestCheckIn.injuryPain}/10
+                                                    {t('labels.pain')}: {athlete.latestCheckIn.injuryPain}/10
                                                 </span>
                                             )}
                                         </div>

@@ -10409,6 +10409,48 @@
         "other": "Annat"
       }
     },
+    "physioAthleteList": {
+      "header": {
+        "title": "Atleter",
+        "subtitle": "Hantera och följ upp dina tilldelade atleter"
+      },
+      "filters": {
+        "searchPlaceholder": "Sök atleter...",
+        "filterPlaceholder": "Filtrera",
+        "all": "Alla atleter",
+        "injuries": "Med skador",
+        "restrictions": "Med restriktioner"
+      },
+      "results": {
+        "summary": "Visar {shown} av {total} atleter"
+      },
+      "empty": {
+        "title": "Inga atleter hittades",
+        "searchHint": "Försök justera dina söktermer",
+        "noAthletes": "Du har inga tilldelade atleter"
+      },
+      "status": {
+        "labels": {
+          "injury": "Skada",
+          "restriction": "Restriktion"
+        },
+        "inRehab": "I rehab",
+        "more": "fler"
+      },
+      "labels": {
+        "pain": "Smärta"
+      },
+      "checkin": {
+        "last": "Senaste incheckning"
+      },
+      "phases": {
+        "ACUTE": "Akut",
+        "SUBACUTE": "Subakut",
+        "REMODELING": "Remodellering",
+        "FUNCTIONAL": "Funktionell",
+        "RETURN_TO_SPORT": "Återgång till idrott"
+      }
+    },
     "treatmentSessionForm": {
       "sections": {
         "athlete": "Atlet",
