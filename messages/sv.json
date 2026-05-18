@@ -1572,6 +1572,34 @@
     "forgotPasswordSending": "Skickar länk...",
     "forgotPasswordSendLink": "Skicka återställningslänk",
     "forgotPasswordBackToLogin": "Tillbaka till inloggning",
+    "resetPassword": {
+      "description": "Ange ditt nya lösenord",
+      "submit": "Uppdatera lösenord",
+      "backToLogin": "Tillbaka till inloggning",
+      "requestNewLink": "Begär ny återställningslänk",
+      "labels": {
+        "newPassword": "Nytt lösenord",
+        "confirmPassword": "Bekräfta lösenord"
+      },
+      "placeholders": {
+        "password": "Minst 6 tecken",
+        "confirmPassword": "Ange lösenordet igen"
+      },
+      "validation": {
+        "passwordMinLength": "Lösenordet måste vara minst 6 tecken",
+        "passwordsDoNotMatch": "Lösenorden matchar inte"
+      },
+      "messages": {
+        "invalidLink": "Länken för att välja nytt lösenord är ogiltig eller har gått ut.",
+        "verifyingLink": "Verifierar återställningslänk...",
+        "redirecting": "Ditt lösenord har uppdaterats. Du omdirigeras till inloggningssidan...",
+        "updated": "Lösenord uppdaterat!",
+        "updatedDescription": "Du kan nu logga in med ditt nya lösenord.",
+        "loading": "Uppdaterar...",
+        "tryAgain": "Kunde inte uppdatera lösenordet. Försök igen.",
+        "updateFailed": "Kunde inte uppdatera lösenord"
+      }
+    },
     "noAccount": "Har du inget konto?",
     "hasAccount": "Har du redan ett konto?",
     "signUpLink": "Registrera dig",

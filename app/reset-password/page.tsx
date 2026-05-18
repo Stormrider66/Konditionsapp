@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslations } from '@/i18n/client'
 import { createClient } from '@/lib/supabase/client'
 import { logAuthEventClient } from '@/lib/auth/log-auth-event-client'
 import { Button } from '@/components/ui/button'
@@ -13,19 +14,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
 
-const resetPasswordSchema = z
-  .object({
-    password: z.string().min(6, 'Lösenordet måste vara minst 6 tecken'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Lösenorden matchar inte',
-    path: ['confirmPassword'],
-  })
-
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
-
 export default function ResetPasswordPage() {
+  const t = useTranslations('auth')
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -33,6 +23,20 @@ export default function ResetPasswordPage() {
   const [isReady, setIsReady] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [isInvalidLink, setIsInvalidLink] = useState(false)
+  const resetPasswordSchema = React.useMemo(
+    () =>
+      z
+        .object({
+          password: z.string().min(6, t('resetPassword.validation.passwordMinLength')),
+          confirmPassword: z.string(),
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: t('resetPassword.validation.passwordsDoNotMatch'),
+          path: ['confirmPassword'],
+        }),
+    [t],
+  )
+  type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
   const {
     register,
@@ -105,7 +109,7 @@ export default function ResetPasswordPage() {
 
       if (error) {
         toast({
-          title: 'Kunde inte uppdatera lösenord',
+          title: t('resetPassword.messages.updateFailed'),
           description: error.message,
           variant: 'destructive',
         })
@@ -122,8 +126,8 @@ export default function ResetPasswordPage() {
 
       setIsSuccess(true)
       toast({
-        title: 'Lösenord uppdaterat!',
-        description: 'Du kan nu logga in med ditt nya lösenord.',
+        title: t('resetPassword.messages.updated'),
+        description: t('resetPassword.messages.updatedDescription'),
       })
 
       // Redirect to login after a short delay
@@ -132,8 +136,8 @@ export default function ResetPasswordPage() {
       }, 2000)
     } catch {
       toast({
-        title: 'Ett fel uppstod',
-        description: 'Kunde inte uppdatera lösenordet. Försök igen.',
+        title: t('errorOccurred'),
+        description: t('resetPassword.messages.tryAgain'),
         variant: 'destructive',
       })
     } finally {
@@ -149,7 +153,7 @@ export default function ResetPasswordPage() {
             Trainomics
           </CardTitle>
           <CardDescription className="text-center">
-            {isSuccess ? 'Lösenord uppdaterat!' : 'Ange ditt nya lösenord'}
+            {isSuccess ? t('resetPassword.messages.updated') : t('resetPassword.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -159,13 +163,13 @@ export default function ResetPasswordPage() {
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Ditt lösenord har uppdaterats. Du omdirigeras till inloggningssidan...
+                {t('resetPassword.messages.redirecting')}
               </p>
             </div>
           ) : isInvalidLink ? (
             <div className="text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                Länken för att välja nytt lösenord är ogiltig eller har gått ut.
+                {t('resetPassword.messages.invalidLink')}
               </p>
               <Button
                 type="button"
@@ -173,14 +177,14 @@ export default function ResetPasswordPage() {
                 className="w-full"
                 onClick={() => router.push('/forgot-password')}
               >
-                Begär ny återställningslänk
+                {t('resetPassword.requestNewLink')}
               </Button>
             </div>
           ) : !isReady ? (
             <div className="text-center space-y-4">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Verifierar återställningslänk...
+                {t('resetPassword.messages.verifyingLink')}
               </p>
             </div>
           ) : (
@@ -190,7 +194,7 @@ export default function ResetPasswordPage() {
                   htmlFor="password"
                   className="text-sm font-medium leading-none"
                 >
-                  Nytt lösenord
+                  {t('resetPassword.labels.newPassword')}
                 </label>
                 <input
                   id="password"
@@ -198,7 +202,7 @@ export default function ResetPasswordPage() {
                   className={`flex h-10 w-full rounded-md border ${
                     errors.password ? 'border-red-500' : 'border-input'
                   } bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                  placeholder="Minst 6 tecken"
+                  placeholder={t('resetPassword.placeholders.password')}
                   {...register('password')}
                   disabled={isLoading}
                 />
@@ -214,7 +218,7 @@ export default function ResetPasswordPage() {
                   htmlFor="confirmPassword"
                   className="text-sm font-medium leading-none"
                 >
-                  Bekräfta lösenord
+                  {t('resetPassword.labels.confirmPassword')}
                 </label>
                 <input
                   id="confirmPassword"
@@ -222,7 +226,7 @@ export default function ResetPasswordPage() {
                   className={`flex h-10 w-full rounded-md border ${
                     errors.confirmPassword ? 'border-red-500' : 'border-input'
                   } bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                  placeholder="Ange lösenordet igen"
+                  placeholder={t('resetPassword.placeholders.confirmPassword')}
                   {...register('confirmPassword')}
                   disabled={isLoading}
                 />
@@ -241,10 +245,10 @@ export default function ResetPasswordPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uppdaterar...
+                    {t('resetPassword.messages.loading')}
                   </>
                 ) : (
-                  'Uppdatera lösenord'
+                  t('resetPassword.submit')
                 )}
               </Button>
             </form>
@@ -256,7 +260,7 @@ export default function ResetPasswordPage() {
             className="text-sm text-blue-600 hover:underline flex items-center gap-1"
           >
             <ArrowLeft className="h-3 w-3" />
-            Tillbaka till inloggning
+            {t('resetPassword.backToLogin')}
           </Link>
         </CardFooter>
       </Card>

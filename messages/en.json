@@ -1572,6 +1572,34 @@
     "forgotPasswordSending": "Sending link...",
     "forgotPasswordSendLink": "Send reset link",
     "forgotPasswordBackToLogin": "Back to login",
+    "resetPassword": {
+      "description": "Enter your new password",
+      "submit": "Update password",
+      "backToLogin": "Back to login",
+      "requestNewLink": "Request a new reset link",
+      "labels": {
+        "newPassword": "New password",
+        "confirmPassword": "Confirm password"
+      },
+      "placeholders": {
+        "password": "At least 6 characters",
+        "confirmPassword": "Re-enter your password"
+      },
+      "validation": {
+        "passwordMinLength": "Password must be at least 6 characters",
+        "passwordsDoNotMatch": "Passwords do not match"
+      },
+      "messages": {
+        "invalidLink": "This reset link is invalid or has expired.",
+        "verifyingLink": "Verifying reset link...",
+        "redirecting": "Your password has been updated. Redirecting to login page...",
+        "updated": "Password updated!",
+        "updatedDescription": "You can now log in with your new password.",
+        "loading": "Updating...",
+        "tryAgain": "Failed to update password. Please try again.",
+        "updateFailed": "Could not update password"
+      }
+    },
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "signUpLink": "Sign up",
