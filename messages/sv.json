@@ -3877,6 +3877,46 @@
         "withTotal": "{hourly} g/h, {total} g totalt"
       }
     },
+    "todaysWorkouts": {
+      "title": "Dagens pass",
+      "titleWithCount": "Dagens pass ({count})",
+      "restDay": {
+        "title": "Vilodag idag!",
+        "description": "Använd tiden för återhämtning och förberedelser"
+      },
+      "status": {
+        "completed": "Klar"
+      },
+      "actions": {
+        "viewResult": "Visa resultat",
+        "start": "Starta pass",
+        "continue": "Fortsätt pass",
+        "viewLog": "Visa logg",
+        "edit": "Redigera",
+        "log": "Logga pass"
+      },
+      "intensities": {
+        "recovery": "Återhämtning",
+        "easy": "Lätt",
+        "moderate": "Måttlig",
+        "threshold": "Tröskel",
+        "interval": "Intervall"
+      },
+      "segment": {
+        "restSuffix": " med {rest}s vila"
+      },
+      "segmentTypes": {
+        "warmup": "Uppvärmning",
+        "interval": "Intervall",
+        "cooldown": "Nedvärmning",
+        "work": "Arbete",
+        "rest": "Vila",
+        "exercise": "Övning"
+      },
+      "wod": {
+        "aiPass": "AI-pass"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Träningsbibliotek",

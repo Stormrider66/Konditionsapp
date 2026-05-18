@@ -3877,6 +3877,46 @@
         "withTotal": "{hourly} g/h, {total} g total"
       }
     },
+    "todaysWorkouts": {
+      "title": "Today's workouts",
+      "titleWithCount": "Today's workouts ({count})",
+      "restDay": {
+        "title": "Rest day today!",
+        "description": "Use the time for recovery and preparation"
+      },
+      "status": {
+        "completed": "Completed"
+      },
+      "actions": {
+        "viewResult": "View result",
+        "start": "Start workout",
+        "continue": "Continue workout",
+        "viewLog": "View log",
+        "edit": "Edit",
+        "log": "Log workout"
+      },
+      "intensities": {
+        "recovery": "Recovery",
+        "easy": "Easy",
+        "moderate": "Moderate",
+        "threshold": "Threshold",
+        "interval": "Interval"
+      },
+      "segment": {
+        "restSuffix": " with {rest}s rest"
+      },
+      "segmentTypes": {
+        "warmup": "Warm-up",
+        "interval": "Interval",
+        "cooldown": "Cool-down",
+        "work": "Work",
+        "rest": "Rest",
+        "exercise": "Exercise"
+      },
+      "wod": {
+        "aiPass": "AI-pass"
+      }
+    },
     "trainingLibraryClient": {
       "header": {
         "title": "Training library",

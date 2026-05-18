@@ -1,17 +1,30 @@
 // components/athlete/TodaysWorkouts.tsx
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Calendar, CheckCircle2, Clock, MapPin, Timer, Sparkles } from 'lucide-react'
-import { formatPace } from '@/lib/utils'
-import { DashboardWorkoutWithContext } from '@/types/prisma-types'
-import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
-import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
-import { OptimizeWorkoutButton } from './OptimizeWorkoutButton'
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from "@/components/ui/GlassCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Calendar,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  Timer,
+  Sparkles,
+} from "lucide-react";
+import { formatPace } from "@/lib/utils";
+import { DashboardWorkoutWithContext } from "@/types/prisma-types";
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from "@/lib/themes";
+import { FormattedWorkoutInstructions } from "./workout/FormattedWorkoutInstructions";
+import { OptimizeWorkoutButton } from "./OptimizeWorkoutButton";
+import { useTranslations } from "@/i18n/client";
 import {
   DashboardItem,
   getAssignmentRoute,
@@ -21,45 +34,51 @@ import {
   getWODRoute,
   getWODModeLabel,
   getWODBadgeStyle,
-} from '@/types/dashboard-items'
+} from "@/types/dashboard-items";
 
 interface TodaysWorkoutsProps {
-  items: DashboardItem[]
-  variant?: 'default' | 'glass'
-  clientId?: string
-  basePath?: string
+  items: DashboardItem[];
+  variant?: "default" | "glass";
+  clientId?: string;
+  basePath?: string;
 }
 
 function getItemId(item: DashboardItem): string {
-  if (item.kind === 'program') return item.workout.id
-  return item.id
+  if (item.kind === "program") return item.workout.id;
+  return item.id;
 }
 
-export function TodaysWorkouts({ items, variant = 'default', clientId, basePath = '' }: TodaysWorkoutsProps) {
-  const themeContext = useWorkoutThemeOptional()
-  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+export function TodaysWorkouts({
+  items,
+  variant = "default",
+  clientId,
+  basePath = "",
+}: TodaysWorkoutsProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+  const t = useTranslations("components.todaysWorkouts");
 
   if (items.length === 0) {
-    if (variant === 'glass') {
+    if (variant === "glass") {
       return (
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-orange-500" />
-              Dagens pass
+              {t("title")}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <div className="text-center py-8">
               <Calendar className="mx-auto h-12 w-12 mb-4 text-slate-600" />
-              <p className="text-slate-400">Vilodag idag!</p>
+              <p className="text-slate-400">{t("restDay.title")}</p>
               <p className="text-sm mt-2 text-slate-500">
-                Använd tiden för återhämtning och förberedelser
+                {t("restDay.description")}
               </p>
             </div>
           </GlassCardContent>
         </GlassCard>
-      )
+      );
     }
 
     return (
@@ -75,7 +94,7 @@ export function TodaysWorkouts({ items, variant = 'default', clientId, basePath 
             style={{ color: theme.colors.textPrimary }}
           >
             <Calendar className="h-5 w-5" />
-            Dagens pass
+            {t("title")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -84,38 +103,65 @@ export function TodaysWorkouts({ items, variant = 'default', clientId, basePath 
               className="mx-auto h-12 w-12 mb-4"
               style={{ color: theme.colors.textMuted }}
             />
-            <p style={{ color: theme.colors.textMuted }}>Vilodag idag!</p>
-            <p className="text-sm mt-2" style={{ color: theme.colors.textMuted }}>
-              Använd tiden för återhämtning och förberedelser
+            <p style={{ color: theme.colors.textMuted }}>
+              {t("restDay.title")}
+            </p>
+            <p
+              className="text-sm mt-2"
+              style={{ color: theme.colors.textMuted }}
+            >
+              {t("restDay.description")}
             </p>
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
-  if (variant === 'glass') {
+  if (variant === "glass") {
     return (
       <GlassCard>
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-orange-500" />
-            Dagens pass ({items.length})
+            {t("titleWithCount", { count: items.length })}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
-          {items.map((item) => (
-            item.kind === 'program'
-              ? <WorkoutCard key={getItemId(item)} workout={item.workout} theme={theme} variant="glass" clientId={clientId} basePath={basePath} />
-              : item.kind === 'wod'
-                ? <WODCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
-                : item.kind === 'assignment'
-                  ? <AssignmentCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
-                  : null
-          ))}
+          {items.map((item) =>
+            item.kind === "program" ? (
+              <WorkoutCard
+                key={getItemId(item)}
+                workout={item.workout}
+                theme={theme}
+                variant="glass"
+                clientId={clientId}
+                basePath={basePath}
+                t={t}
+              />
+            ) : item.kind === "wod" ? (
+              <WODCard
+                key={getItemId(item)}
+                item={item}
+                theme={theme}
+                variant="glass"
+                basePath={basePath}
+                t={t}
+              />
+            ) : item.kind === "assignment" ? (
+              <AssignmentCard
+                key={getItemId(item)}
+                item={item}
+                theme={theme}
+                variant="glass"
+                basePath={basePath}
+                t={t}
+              />
+            ) : null,
+          )}
         </GlassCardContent>
       </GlassCard>
-    )
+    );
   }
 
   return (
@@ -131,37 +177,65 @@ export function TodaysWorkouts({ items, variant = 'default', clientId, basePath 
           style={{ color: theme.colors.textPrimary }}
         >
           <Calendar className="h-5 w-5" />
-          Dagens pass ({items.length})
+          {t("titleWithCount", { count: items.length })}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {items.map((item) => (
-          item.kind === 'program'
-            ? <WorkoutCard key={getItemId(item)} workout={item.workout} theme={theme} clientId={clientId} basePath={basePath} />
-            : item.kind === 'wod'
-              ? <WODCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
-              : item.kind === 'assignment'
-                ? <AssignmentCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
-                : null
-        ))}
+        {items.map((item) =>
+          item.kind === "program" ? (
+            <WorkoutCard
+              key={getItemId(item)}
+              workout={item.workout}
+              theme={theme}
+              clientId={clientId}
+              basePath={basePath}
+              t={t}
+            />
+          ) : item.kind === "wod" ? (
+            <WODCard
+              key={getItemId(item)}
+              item={item}
+              theme={theme}
+              basePath={basePath}
+              t={t}
+            />
+          ) : item.kind === "assignment" ? (
+            <AssignmentCard
+              key={getItemId(item)}
+              item={item}
+              theme={theme}
+              basePath={basePath}
+              t={t}
+            />
+          ) : null,
+        )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 // ── WOD Card ──────────────────────────────────────────────────────────────
 
-function WODCard({ item, theme, variant = 'default', basePath = '' }: {
-  item: DashboardItem & { kind: 'wod' }
-  theme: typeof MINIMALIST_WHITE_THEME
-  variant?: 'default' | 'glass'
-  basePath?: string
+function WODCard({
+  item,
+  theme,
+  variant = "default",
+  basePath = "",
+  t,
+}: {
+  item: DashboardItem & { kind: "wod" };
+  theme: typeof MINIMALIST_WHITE_THEME;
+  variant?: "default" | "glass";
+  basePath?: string;
+  t: (key: string, values?: Record<string, number | string>) => string;
 }) {
-  const completed = item.status === 'COMPLETED'
-  const route = getWODRoute(item, basePath)
-  const badgeStyle = getWODBadgeStyle()
+  const completed = item.status === "COMPLETED";
+  const route = getWODRoute(item, basePath);
+  const badgeStyle = getWODBadgeStyle();
+  const actionLabel =
+    item.status === "STARTED" ? t("actions.continue") : t("actions.start");
 
-  if (variant === 'glass') {
+  if (variant === "glass") {
     return (
       <div className="border border-white/10 rounded-lg p-3 sm:p-4 space-y-3 hover:bg-white/5 transition-colors bg-black/20">
         <div className="flex items-start justify-between gap-2">
@@ -173,12 +247,14 @@ function WODCard({ item, theme, variant = 'default', basePath = '' }: {
               {completed && (
                 <Badge variant="default" className="bg-green-500 flex-shrink-0">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                  <span className="text-xs">Klar</span>
+                  <span className="text-xs">{t("status.completed")}</span>
                 </Badge>
               )}
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}>
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}
+              >
                 <Sparkles className="h-3 w-3" />
-                AI-Pass
+                {t("wod.aiPass")}
               </span>
               <span className="text-xs text-emerald-400">
                 {getWODModeLabel(item.mode)}
@@ -207,8 +283,12 @@ function WODCard({ item, theme, variant = 'default', basePath = '' }: {
         {completed ? (
           <div className="flex flex-col sm:flex-row gap-2">
             <Link href={route} className="flex-1">
-              <Button variant="outline" size="sm" className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10">
-                Visa resultat
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10"
+              >
+                {t("actions.viewResult")}
               </Button>
             </Link>
           </div>
@@ -216,13 +296,13 @@ function WODCard({ item, theme, variant = 'default', basePath = '' }: {
           <div className="flex flex-col sm:flex-row gap-2">
             <Link href={route} className="flex-1">
               <Button className="w-full min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border-0">
-                {item.status === 'STARTED' ? 'Fortsätt pass' : 'Starta pass'}
+                {actionLabel}
               </Button>
             </Link>
           </div>
         )}
       </div>
-    )
+    );
   }
 
   // Default variant
@@ -246,12 +326,14 @@ function WODCard({ item, theme, variant = 'default', basePath = '' }: {
             {completed && (
               <Badge variant="default" className="bg-green-500 flex-shrink-0">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                <span className="text-xs">Klar</span>
+                <span className="text-xs">{t("status.completed")}</span>
               </Badge>
             )}
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}
+            >
               <Sparkles className="h-3 w-3" />
-              AI-Pass
+              {t("wod.aiPass")}
             </span>
           </div>
           {item.subtitle && (
@@ -265,7 +347,10 @@ function WODCard({ item, theme, variant = 'default', basePath = '' }: {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm" style={{ color: theme.colors.textMuted }}>
+      <div
+        className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm"
+        style={{ color: theme.colors.textMuted }}
+      >
         <span className="flex items-center gap-1 flex-shrink-0">
           <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
           {item.actualDuration || item.requestedDuration} min
@@ -281,7 +366,7 @@ function WODCard({ item, theme, variant = 'default', basePath = '' }: {
         <div className="flex flex-col sm:flex-row gap-2">
           <Link href={route} className="flex-1">
             <Button variant="outline" size="sm" className="w-full min-h-[40px]">
-              Visa resultat
+              {t("actions.viewResult")}
             </Button>
           </Link>
         </div>
@@ -291,33 +376,40 @@ function WODCard({ item, theme, variant = 'default', basePath = '' }: {
             <Button
               className="w-full min-h-[44px]"
               style={{
-                backgroundColor: '#059669',
-                color: '#ffffff',
+                backgroundColor: "#059669",
+                color: "#ffffff",
               }}
             >
-              {item.status === 'STARTED' ? 'Fortsätt pass' : 'Starta pass'}
+              {actionLabel}
             </Button>
           </Link>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ── Assignment Card ────────────────────────────────────────────────────────
 
-function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
-  item: DashboardItem & { kind: 'assignment' }
-  theme: typeof MINIMALIST_WHITE_THEME
-  variant?: 'default' | 'glass'
-  basePath?: string
+function AssignmentCard({
+  item,
+  theme,
+  variant = "default",
+  basePath = "",
+  t,
+}: {
+  item: DashboardItem & { kind: "assignment" };
+  theme: typeof MINIMALIST_WHITE_THEME;
+  variant?: "default" | "glass";
+  basePath?: string;
+  t: (key: string, values?: Record<string, number | string>) => string;
 }) {
-  const completed = item.status === 'COMPLETED'
-  const TypeIcon = getAssignmentTypeIcon(item.assignmentType)
-  const badgeStyle = getAssignmentTypeBadgeStyle(item.assignmentType)
-  const route = getAssignmentRoute(item, basePath)
+  const completed = item.status === "COMPLETED";
+  const TypeIcon = getAssignmentTypeIcon(item.assignmentType);
+  const badgeStyle = getAssignmentTypeBadgeStyle(item.assignmentType);
+  const route = getAssignmentRoute(item, basePath);
 
-  if (variant === 'glass') {
+  if (variant === "glass") {
     return (
       <div className="border border-white/10 rounded-lg p-3 sm:p-4 space-y-3 hover:bg-white/5 transition-colors bg-black/20">
         {/* Header */}
@@ -330,10 +422,12 @@ function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
               {completed && (
                 <Badge variant="default" className="bg-green-500 flex-shrink-0">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                  <span className="text-xs">Klar</span>
+                  <span className="text-xs">{t("status.completed")}</span>
                 </Badge>
               )}
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}>
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}
+              >
                 <TypeIcon className="h-3 w-3" />
                 {getAssignmentTypeLabel(item.assignmentType)}
               </span>
@@ -371,8 +465,12 @@ function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
         {completed ? (
           <div className="flex flex-col sm:flex-row gap-2">
             <Link href={route} className="flex-1">
-              <Button variant="outline" size="sm" className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10">
-                Visa resultat
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10"
+              >
+                {t("actions.viewResult")}
               </Button>
             </Link>
           </div>
@@ -380,13 +478,13 @@ function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
           <div className="flex flex-col sm:flex-row gap-2">
             <Link href={route} className="flex-1">
               <Button className="w-full min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border-0">
-                Starta pass
+                {t("actions.start")}
               </Button>
             </Link>
           </div>
         )}
       </div>
-    )
+    );
   }
 
   // Default variant
@@ -410,10 +508,12 @@ function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
             {completed && (
               <Badge variant="default" className="bg-green-500 flex-shrink-0">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                <span className="text-xs">Klar</span>
+                <span className="text-xs">{t("status.completed")}</span>
               </Badge>
             )}
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}
+            >
               <TypeIcon className="h-3 w-3" />
               {getAssignmentTypeLabel(item.assignmentType)}
             </span>
@@ -430,7 +530,10 @@ function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
       </div>
 
       {/* Footer - Duration, Scheduling info */}
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm" style={{ color: theme.colors.textMuted }}>
+      <div
+        className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm"
+        style={{ color: theme.colors.textMuted }}
+      >
         {item.startTime && (
           <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-500">
             <Timer className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -455,7 +558,7 @@ function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
         <div className="flex flex-col sm:flex-row gap-2">
           <Link href={route} className="flex-1">
             <Button variant="outline" size="sm" className="w-full min-h-[40px]">
-              Visa resultat
+              {t("actions.viewResult")}
             </Button>
           </Link>
         </div>
@@ -469,21 +572,36 @@ function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
                 color: theme.colors.accentText,
               }}
             >
-              Starta pass
+              {t("actions.start")}
             </Button>
           </Link>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ── Program Workout Card (existing) ────────────────────────────────────────
 
-function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath = '' }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', clientId?: string, basePath?: string }) {
-  const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
+function WorkoutCard({
+  workout,
+  theme,
+  variant = "default",
+  clientId,
+  basePath = "",
+  t,
+}: {
+  workout: DashboardWorkoutWithContext;
+  theme: typeof MINIMALIST_WHITE_THEME;
+  variant?: "default" | "glass";
+  clientId?: string;
+  basePath?: string;
+  t: (key: string, values?: Record<string, number | string>) => string;
+}) {
+  const isCompleted =
+    workout.logs && workout.logs.length > 0 && workout.logs[0].completed;
 
-  if (variant === 'glass') {
+  if (variant === "glass") {
     return (
       <div className="border border-white/10 rounded-lg p-3 sm:p-4 space-y-3 hover:bg-white/5 transition-colors bg-black/20">
         {/* Header */}
@@ -496,11 +614,14 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
               {isCompleted && (
                 <Badge variant="default" className="bg-green-500 flex-shrink-0">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                  <span className="text-xs">Klar</span>
+                  <span className="text-xs">{t("status.completed")}</span>
                 </Badge>
               )}
-              <Badge variant="outline" className={`${getIntensityBadgeClass(workout.intensity)} flex-shrink-0 text-xs border-opacity-50`}>
-                {formatIntensity(workout.intensity)}
+              <Badge
+                variant="outline"
+                className={`${getIntensityBadgeClass(workout.intensity)} flex-shrink-0 text-xs border-opacity-50`}
+              >
+                {formatIntensity(workout.intensity, t)}
               </Badge>
             </div>
             <p className="text-xs sm:text-sm truncate text-slate-400">
@@ -524,15 +645,24 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
           <div className="space-y-1">
             {workout.segments.map((segment) => (
               <div key={segment.id} className="flex items-start gap-2 text-xs">
-                <Badge variant="secondary" className="text-xs flex-shrink-0 bg-white/10 text-slate-200 hover:bg-white/20">
-                  {formatSegmentType(segment.type)}
+                <Badge
+                  variant="secondary"
+                  className="text-xs flex-shrink-0 bg-white/10 text-slate-200 hover:bg-white/20"
+                >
+                  {formatSegmentType(segment.type, t)}
                 </Badge>
                 <span className="line-clamp-2 flex-1 min-w-0 text-slate-400">
                   {segment.exercise && segment.exercise.nameSv ? (
                     <>
                       {segment.exercise.nameSv}
                       {segment.sets && segment.repsCount && (
-                        <> ({segment.sets} set × {segment.repsCount} reps{segment.rest && ` med ${segment.rest}s vila`})</>
+                        <>
+                          {" "}
+                          ({segment.sets} set × {segment.repsCount} reps
+                          {segment.rest &&
+                            t("segment.restSuffix", { rest: segment.rest })}
+                          )
+                        </>
                       )}
                     </>
                   ) : (
@@ -577,17 +707,27 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
 
         {isCompleted ? (
           <div className="flex flex-col sm:flex-row gap-2">
-            <Link href={`${basePath}/athlete/workouts/${workout.id}`} className="flex-1">
-              <Button variant="outline" size="sm" className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10">
-                Visa logg
+            <Link
+              href={`${basePath}/athlete/workouts/${workout.id}`}
+              className="flex-1"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10"
+              >
+                {t("actions.viewLog")}
               </Button>
             </Link>
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row gap-2">
-            <Link href={`${basePath}/athlete/workouts/${workout.id}/log`} className="flex-1">
+            <Link
+              href={`${basePath}/athlete/workouts/${workout.id}/log`}
+              className="flex-1"
+            >
               <Button className="w-full min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border-0">
-                Logga pass
+                {t("actions.log")}
               </Button>
             </Link>
             {clientId && (
@@ -603,7 +743,7 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
           </div>
         )}
       </div>
-    )
+    );
   }
 
   return (
@@ -626,11 +766,14 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
             {isCompleted && (
               <Badge variant="default" className="bg-green-500 flex-shrink-0">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                <span className="text-xs">Klar</span>
+                <span className="text-xs">{t("status.completed")}</span>
               </Badge>
             )}
-            <Badge variant="outline" className={`${getIntensityBadgeClass(workout.intensity)} flex-shrink-0 text-xs`}>
-              {formatIntensity(workout.intensity)}
+            <Badge
+              variant="outline"
+              className={`${getIntensityBadgeClass(workout.intensity)} flex-shrink-0 text-xs`}
+            >
+              {formatIntensity(workout.intensity, t)}
             </Badge>
           </div>
           <p
@@ -657,7 +800,7 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
           {workout.segments.map((segment) => (
             <div key={segment.id} className="flex items-start gap-2 text-xs">
               <Badge variant="secondary" className="text-xs flex-shrink-0">
-                {formatSegmentType(segment.type)}
+                {formatSegmentType(segment.type, t)}
               </Badge>
               <span
                 className="line-clamp-2 flex-1 min-w-0"
@@ -668,7 +811,13 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
                   <>
                     {segment.exercise.nameSv}
                     {segment.sets && segment.repsCount && (
-                      <> ({segment.sets} set × {segment.repsCount} reps{segment.rest && ` med ${segment.rest}s vila`})</>
+                      <>
+                        {" "}
+                        ({segment.sets} set × {segment.repsCount} reps
+                        {segment.rest &&
+                          t("segment.restSuffix", { rest: segment.rest })}
+                        )
+                      </>
                     )}
                   </>
                 ) : (
@@ -691,7 +840,10 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
       )}
 
       {/* Footer - Duration, Distance, Scheduling info */}
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm" style={{ color: theme.colors.textMuted }}>
+      <div
+        className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm"
+        style={{ color: theme.colors.textMuted }}
+      >
         {workout.startTime && (
           <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-500">
             <Timer className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -720,20 +872,29 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
 
       {isCompleted ? (
         <div className="flex flex-col sm:flex-row gap-2">
-          <Link href={`${basePath}/athlete/workouts/${workout.id}`} className="flex-1">
+          <Link
+            href={`${basePath}/athlete/workouts/${workout.id}`}
+            className="flex-1"
+          >
             <Button variant="outline" size="sm" className="w-full min-h-[40px]">
-              Visa logg
+              {t("actions.viewLog")}
             </Button>
           </Link>
-          <Link href={`${basePath}/athlete/workouts/${workout.id}/log`} className="flex-1">
+          <Link
+            href={`${basePath}/athlete/workouts/${workout.id}/log`}
+            className="flex-1"
+          >
             <Button variant="outline" size="sm" className="w-full min-h-[40px]">
-              Redigera
+              {t("actions.edit")}
             </Button>
           </Link>
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row gap-2">
-          <Link href={`${basePath}/athlete/workouts/${workout.id}/log`} className="flex-1">
+          <Link
+            href={`${basePath}/athlete/workouts/${workout.id}/log`}
+            className="flex-1"
+          >
             <Button
               className="w-full min-h-[44px]"
               style={{
@@ -741,7 +902,7 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
                 color: theme.colors.accentText,
               }}
             >
-              Logga pass
+              {t("actions.log")}
             </Button>
           </Link>
           {clientId && (
@@ -756,47 +917,55 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
         </div>
       )}
     </div>
-  )
+  );
 }
 
-function formatIntensity(intensity: string): string {
+function formatIntensity(
+  intensity: string,
+  t: (key: string, values?: Record<string, number | string>) => string,
+): string {
   const intensities: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Max',
-  }
-  return intensities[intensity] || intensity
+    RECOVERY: t("intensities.recovery"),
+    EASY: t("intensities.easy"),
+    MODERATE: t("intensities.moderate"),
+    THRESHOLD: t("intensities.threshold"),
+    INTERVAL: t("intensities.interval"),
+    MAX: "Max",
+  };
+  return intensities[intensity] || intensity;
 }
 
-function formatSegmentType(type: string): string {
+function formatSegmentType(
+  type: string,
+  t: (key: string, values?: Record<string, number | string>) => string,
+): string {
   const types: Record<string, string> = {
-    warmup: 'Uppvärmning',
-    interval: 'Intervall',
-    cooldown: 'Nedvärmning',
-    work: 'Arbete',
-    rest: 'Vila',
-    exercise: 'Övning',
-    WARMUP: 'Uppvärmning',
-    INTERVAL: 'Intervall',
-    COOLDOWN: 'Nedvärmning',
-    WORK: 'Arbete',
-    REST: 'Vila',
-    EXERCISE: 'Övning',
-  }
-  return types[type] || type
+    warmup: "warmup",
+    interval: "interval",
+    cooldown: "cooldown",
+    work: "work",
+    rest: "rest",
+    exercise: "exercise",
+    WARMUP: "warmup",
+    INTERVAL: "interval",
+    COOLDOWN: "cooldown",
+    WORK: "work",
+    REST: "rest",
+    EXERCISE: "exercise",
+  };
+  const typeKey = types[type];
+  if (!typeKey) return type;
+  return t(`segmentTypes.${typeKey}`);
 }
 
 function getIntensityBadgeClass(intensity: string): string {
   const classes: Record<string, string> = {
-    RECOVERY: 'border-purple-300 text-purple-700',
-    EASY: 'border-green-300 text-green-700',
-    MODERATE: 'border-yellow-300 text-yellow-700',
-    THRESHOLD: 'border-orange-300 text-orange-700',
-    INTERVAL: 'border-red-300 text-red-700',
-    MAX: 'border-red-500 text-red-800',
-  }
-  return classes[intensity] || ''
+    RECOVERY: "border-purple-300 text-purple-700",
+    EASY: "border-green-300 text-green-700",
+    MODERATE: "border-yellow-300 text-yellow-700",
+    THRESHOLD: "border-orange-300 text-orange-700",
+    INTERVAL: "border-red-300 text-red-700",
+    MAX: "border-red-500 text-red-800",
+  };
+  return classes[intensity] || "";
 }
