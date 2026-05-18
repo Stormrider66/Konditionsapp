@@ -111,7 +111,7 @@ export function BusinessAthleteHeader({
                 { href: `${basePath}/athlete/wod/history`, label: t('nav.aiWorkouts'), icon: Sparkles },
                 { href: `${basePath}/athlete/training-library`, label: t('nav.trainingLibrary'), icon: Library },
                 { href: `${basePath}/athlete/vbt`, label: t('nav.vbtData'), icon: Gauge },
-                { href: `${basePath}/athlete/concept2`, label: 'Concept2', icon: Ship },
+                { href: `${basePath}/athlete/concept2`, label: t('nav.concept2'), icon: Ship },
                 { href: `${basePath}/athlete/video-analysis`, label: t('nav.videoAnalysis'), icon: Video },
             ]
         },

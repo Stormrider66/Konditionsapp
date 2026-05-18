@@ -8578,6 +8578,11 @@
         "training": "Träning",
         "more": "Mer"
       },
+      "brand": {
+        "initial": "K",
+        "name": "Konditionstest",
+        "domain": ".se"
+      },
       "nav": {
         "dashboard": "Dashboard",
         "checkIn": "Check-in",
@@ -8664,6 +8669,7 @@
         "aiWorkouts": "AI-pass",
         "trainingLibrary": "Träningsbibliotek",
         "vbtData": "VBT-data",
+        "concept2": "Concept2",
         "videoAnalysis": "Videoanalys",
         "myProfile": "Min profil",
         "myCoach": "Min coach",
@@ -8687,6 +8693,11 @@
       "groups": {
         "tools": "Verktyg",
         "more": "Mer"
+      },
+      "brand": {
+        "initial": "C",
+        "prefix": "Star by",
+        "accent": "Thomson"
       },
       "nav": {
         "dashboard": "Dashboard",

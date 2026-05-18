@@ -174,10 +174,10 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                 <div className="flex items-center gap-4">
                     <Link href={coachHref('/dashboard')} className="flex items-center gap-2 group">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.8)] transition-all">
-                            C
+                            {tCoachHeader('brand.initial')}
                         </div>
                         <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
-                            Star by<span className="text-blue-500"> Thomson</span>
+                            {tCoachHeader('brand.prefix')}<span className="text-blue-500"> {tCoachHeader('brand.accent')}</span>
                         </span>
                     </Link>
                 </div>

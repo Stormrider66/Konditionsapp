@@ -8578,6 +8578,11 @@
         "training": "Training",
         "more": "More"
       },
+      "brand": {
+        "initial": "K",
+        "name": "Konditionstest",
+        "domain": ".se"
+      },
       "nav": {
         "dashboard": "Dashboard",
         "checkIn": "Check-in",
@@ -8664,6 +8669,7 @@
         "aiWorkouts": "AI workouts",
         "trainingLibrary": "Training library",
         "vbtData": "VBT data",
+        "concept2": "Concept2",
         "videoAnalysis": "Video analysis",
         "myProfile": "My profile",
         "myCoach": "My coach",
@@ -8687,6 +8693,11 @@
       "groups": {
         "tools": "Tools",
         "more": "More"
+      },
+      "brand": {
+        "initial": "C",
+        "prefix": "Star by",
+        "accent": "Thomson"
       },
       "nav": {
         "dashboard": "Dashboard",

@@ -150,10 +150,10 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                 <div className="flex items-center gap-4">
                     <Link href="/athlete/dashboard" className="flex items-center gap-2 group">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(249,115,22,0.5)] group-hover:shadow-[0_0_20px_rgba(249,115,22,0.8)] transition-all">
-                            K
+                            {t('brand.initial')}
                         </div>
                         <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
-                            Konditionstest<span className="text-orange-500">.se</span>
+                            {t('brand.name')}<span className="text-orange-500">{t('brand.domain')}</span>
                         </span>
                     </Link>
 
