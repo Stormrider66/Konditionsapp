@@ -10441,6 +10441,59 @@
       "watchBrands": {
         "other": "Annan"
       }
+    },
+    "aiProgramOfferStep": {
+      "coach": {
+        "title": "Du har en coach!",
+        "description": "Din coach kommer att skapa och hantera ditt träningsprogram. Du kan hoppa över detta steg.",
+        "actions": {
+          "continue": "Fortsätt"
+        }
+      },
+      "generating": {
+        "title": "Skapar ditt träningsprogram...",
+        "description": "Vår AI analyserar din profil och skapar ett personligt program.",
+        "progress": {
+          "analyzingGoals": "Analyserar dina mål...",
+          "buildingPeriodization": "Bygger periodisering...",
+          "creatingWorkouts": "Skapar träningspass...",
+          "finalizingProgram": "Slutför programmet..."
+        }
+      },
+      "upgrade": {
+        "title": "Uppgradera för att generera AI-program",
+        "description": "AI-träningsprogramgenerering kräver en Standard- eller Pro-prenumeration.",
+        "benefits": {
+          "personalizedPlans": "Personliga träningsplaner",
+          "goalBasedPeriodization": "Målbaserad periodisering",
+          "adaptiveWorkouts": "Adaptiva träningspass"
+        },
+        "actions": {
+          "upgradeNow": "Uppgradera nu",
+          "skipForNow": "Hoppa över"
+        }
+      },
+      "offer": {
+        "title": "Skapa ditt AI-träningsprogram",
+        "description": "Baserat på din profil, mål och tillgänglighet skapar vår AI ett personligt träningsprogram just för dig.",
+        "benefits": {
+          "fullPeriodizationTitle": "Full periodisering",
+          "fullPeriodizationDescription": "En komplett träningsplan från bas till topp, strukturerad kring ditt måldatum.",
+          "sportSpecificWorkoutsTitle": "Sportspecifika pass",
+          "sportSpecificWorkoutsDescription": "Varje pass är anpassat för din sport, konditionsnivå och tillgänglig utrustning.",
+          "smartProgressionTitle": "Smart progression",
+          "smartProgressionDescription": "Ditt program anpassas baserat på din progression och dagliga beredskap."
+        },
+        "badge": {
+          "pro": "Ingår i din Pro-prenumeration",
+          "standard": "Ingår i din Standard-prenumeration"
+        },
+        "actions": {
+          "generate": "Generera mitt program",
+          "skip": "Hoppa över - jag skapar senare"
+        },
+        "info": "Du kan alltid generera eller ändra ditt program senare från din dashboard."
+      }
     }
   },
   "api": {

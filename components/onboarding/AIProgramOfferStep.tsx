@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from '@/i18n/client'
 import {
   Sparkles,
   Check,
@@ -18,7 +19,6 @@ import {
 } from 'lucide-react'
 
 interface Props {
-  locale?: 'en' | 'sv'
   subscriptionTier: 'FREE' | 'STANDARD' | 'PRO' | null
   onGenerate: () => Promise<void>
   onSkip: () => void
@@ -28,7 +28,6 @@ interface Props {
 }
 
 export function AIProgramOfferStep({
-  locale = 'sv',
   subscriptionTier,
   onGenerate,
   onSkip,
@@ -37,7 +36,7 @@ export function AIProgramOfferStep({
   hasAssignedCoach = false,
 }: Props) {
   const basePath = useBasePath()
-  const t = (en: string, sv: string) => locale === 'sv' ? sv : en
+  const t = useTranslations('components.aiProgramOfferStep')
 
   const canGenerate = (subscriptionTier === 'STANDARD' || subscriptionTier === 'PRO') && !hasAssignedCoach
 
@@ -51,18 +50,15 @@ export function AIProgramOfferStep({
               <Check className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
             <CardTitle className="text-xl">
-              {t('You have a coach!', 'Du har en coach!')}
+              {t('coach.title')}
             </CardTitle>
             <CardDescription className="text-base">
-              {t(
-                'Your coach will create and manage your training program. You can skip this step.',
-                'Din coach kommer att skapa och hantera ditt träningsprogram. Du kan hoppa över detta steg.'
-              )}
+              {t('coach.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <Button onClick={onSkip} size="lg">
-              {t('Continue', 'Fortsätt')}
+              {t('coach.actions.continue')}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </CardContent>
@@ -81,13 +77,10 @@ export function AIProgramOfferStep({
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
             <CardTitle className="text-xl">
-              {t('Creating Your Training Program...', 'Skapar ditt träningsprogram...')}
+              {t('generating.title')}
             </CardTitle>
             <CardDescription className="text-base">
-              {t(
-                'Our AI is analyzing your profile and creating a personalized program.',
-                'Vår AI analyserar din profil och skapar ett personligt program.'
-              )}
+              {t('generating.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -96,12 +89,12 @@ export function AIProgramOfferStep({
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>
                 {generationProgress < 30
-                  ? t('Analyzing your goals...', 'Analyserar dina mål...')
+                  ? t('generating.progress.analyzingGoals')
                   : generationProgress < 60
-                    ? t('Building periodization...', 'Bygger periodisering...')
+                    ? t('generating.progress.buildingPeriodization')
                     : generationProgress < 90
-                      ? t('Creating workouts...', 'Skapar träningspass...')
-                      : t('Finalizing program...', 'Slutför programmet...')
+                      ? t('generating.progress.creatingWorkouts')
+                      : t('generating.progress.finalizingProgram')
                 }
               </span>
             </div>
@@ -121,13 +114,10 @@ export function AIProgramOfferStep({
               <Lock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
             </div>
             <CardTitle className="text-xl">
-              {t('Upgrade to Generate AI Programs', 'Uppgradera för att generera AI-program')}
+              {t('upgrade.title')}
             </CardTitle>
             <CardDescription className="text-base">
-              {t(
-                'AI training program generation requires a Standard or Pro subscription.',
-                'AI-träningsprogramgenerering kräver en Standard- eller Pro-prenumeration.'
-              )}
+              {t('upgrade.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -136,30 +126,30 @@ export function AIProgramOfferStep({
                 <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
                   <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </div>
-                <span>{t('Personalized training plans', 'Personliga träningsplaner')}</span>
+                <span>{t('upgrade.benefits.personalizedPlans')}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                   <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
-                <span>{t('Goal-based periodization', 'Målbaserad periodisering')}</span>
+                <span>{t('upgrade.benefits.goalBasedPeriodization')}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 </div>
-                <span>{t('Adaptive workouts', 'Adaptiva träningspass')}</span>
+                <span>{t('upgrade.benefits.adaptiveWorkouts')}</span>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button variant="default" size="lg" className="flex-1" asChild>
                 <Link href={`${basePath}/athlete/subscription`}>
-                  {t('Upgrade Now', 'Uppgradera nu')}
+                  {t('upgrade.actions.upgradeNow')}
                 </Link>
               </Button>
               <Button variant="outline" size="lg" className="flex-1" onClick={onSkip}>
-                {t('Skip for Now', 'Hoppa över')}
+                {t('upgrade.actions.skipForNow')}
               </Button>
             </div>
           </CardContent>
@@ -177,13 +167,10 @@ export function AIProgramOfferStep({
             <Sparkles className="w-8 h-8 text-primary" />
           </div>
           <CardTitle className="text-2xl">
-            {t('Create Your AI Training Program', 'Skapa ditt AI-träningsprogram')}
+            {t('offer.title')}
           </CardTitle>
           <CardDescription className="text-base">
-            {t(
-              'Based on your profile, goals, and availability, our AI will create a personalized training program just for you.',
-              'Baserat på din profil, mål och tillgänglighet skapar vår AI ett personligt träningsprogram just för dig.'
-            )}
+            {t('offer.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -194,12 +181,9 @@ export function AIProgramOfferStep({
                 <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h4 className="font-medium">{t('Full Periodization', 'Full periodisering')}</h4>
+                <h4 className="font-medium">{t('offer.benefits.fullPeriodizationTitle')}</h4>
                 <p className="text-sm text-muted-foreground">
-                  {t(
-                    'A complete training plan from base to peak, structured around your goal date.',
-                    'En komplett träningsplan från bas till topp, strukturerad kring ditt måldatum.'
-                  )}
+                  {t('offer.benefits.fullPeriodizationDescription')}
                 </p>
               </div>
             </div>
@@ -208,12 +192,9 @@ export function AIProgramOfferStep({
                 <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h4 className="font-medium">{t('Sport-Specific Workouts', 'Sportspecifika pass')}</h4>
+                <h4 className="font-medium">{t('offer.benefits.sportSpecificWorkoutsTitle')}</h4>
                 <p className="text-sm text-muted-foreground">
-                  {t(
-                    'Every session is tailored to your sport, fitness level, and available equipment.',
-                    'Varje pass är anpassat för din sport, konditionsnivå och tillgänglig utrustning.'
-                  )}
+                  {t('offer.benefits.sportSpecificWorkoutsDescription')}
                 </p>
               </div>
             </div>
@@ -222,12 +203,9 @@ export function AIProgramOfferStep({
                 <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <h4 className="font-medium">{t('Smart Progression', 'Smart progression')}</h4>
+                <h4 className="font-medium">{t('offer.benefits.smartProgressionTitle')}</h4>
                 <p className="text-sm text-muted-foreground">
-                  {t(
-                    'Your program adapts based on your progress and daily readiness.',
-                    'Ditt program anpassas baserat på din progression och dagliga beredskap.'
-                  )}
+                  {t('offer.benefits.smartProgressionDescription')}
                 </p>
               </div>
             </div>
@@ -237,8 +215,8 @@ export function AIProgramOfferStep({
           <div className="flex justify-center">
             <Badge variant="secondary" className="text-xs">
               {subscriptionTier === 'PRO'
-                ? t('Included in your Pro subscription', 'Ingår i din Pro-prenumeration')
-                : t('Included in your Standard subscription', 'Ingår i din Standard-prenumeration')
+                ? t('offer.badge.pro')
+                : t('offer.badge.standard')
               }
             </Badge>
           </div>
@@ -247,10 +225,10 @@ export function AIProgramOfferStep({
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button size="lg" className="flex-1" onClick={onGenerate}>
               <Sparkles className="w-4 h-4 mr-2" />
-              {t('Generate My Program', 'Generera mitt program')}
+              {t('offer.actions.generate')}
             </Button>
             <Button variant="outline" size="lg" className="flex-1" onClick={onSkip}>
-              {t('Skip - I\'ll Create Later', 'Hoppa över - jag skapar senare')}
+              {t('offer.actions.skip')}
             </Button>
           </div>
         </CardContent>
@@ -258,10 +236,7 @@ export function AIProgramOfferStep({
 
       {/* Info */}
       <p className="text-sm text-muted-foreground text-center">
-        {t(
-          'You can always generate or modify your program later from your dashboard.',
-          'Du kan alltid generera eller ändra ditt program senare från din dashboard.'
-        )}
+        {t('offer.info')}
       </p>
     </div>
   )

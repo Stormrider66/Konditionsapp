@@ -1284,7 +1284,6 @@ export function OnboardingWizard({
           {/* Step: AI Program Generation Offer */}
           {currentStep.id === 'ai_program' && (
             <AIProgramOfferStep
-              locale={locale}
               subscriptionTier={subscriptionTier}
               onGenerate={handleGenerateProgram}
               onSkip={handleNext}

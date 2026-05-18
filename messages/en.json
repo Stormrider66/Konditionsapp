@@ -10441,6 +10441,59 @@
       "watchBrands": {
         "other": "Other"
       }
+    },
+    "aiProgramOfferStep": {
+      "coach": {
+        "title": "You have a coach!",
+        "description": "Your coach will create and manage your training program. You can skip this step.",
+        "actions": {
+          "continue": "Continue"
+        }
+      },
+      "generating": {
+        "title": "Creating Your Training Program...",
+        "description": "Our AI is analyzing your profile and creating a personalized program.",
+        "progress": {
+          "analyzingGoals": "Analyzing your goals...",
+          "buildingPeriodization": "Building periodization...",
+          "creatingWorkouts": "Creating workouts...",
+          "finalizingProgram": "Finalizing program..."
+        }
+      },
+      "upgrade": {
+        "title": "Upgrade to Generate AI Programs",
+        "description": "AI training program generation requires a Standard or Pro subscription.",
+        "benefits": {
+          "personalizedPlans": "Personalized training plans",
+          "goalBasedPeriodization": "Goal-based periodization",
+          "adaptiveWorkouts": "Adaptive workouts"
+        },
+        "actions": {
+          "upgradeNow": "Upgrade Now",
+          "skipForNow": "Skip for now"
+        }
+      },
+      "offer": {
+        "title": "Create Your AI Training Program",
+        "description": "Based on your profile, goals, and availability, our AI will create a personalized training program just for you.",
+        "benefits": {
+          "fullPeriodizationTitle": "Full periodization",
+          "fullPeriodizationDescription": "A complete training plan from base to peak, structured around your goal date.",
+          "sportSpecificWorkoutsTitle": "Sport-specific workouts",
+          "sportSpecificWorkoutsDescription": "Every session is tailored to your sport, fitness level, and available equipment.",
+          "smartProgressionTitle": "Smart progression",
+          "smartProgressionDescription": "Your program adapts based on your progress and daily readiness."
+        },
+        "badge": {
+          "pro": "Included in your Pro subscription",
+          "standard": "Included in your Standard subscription"
+        },
+        "actions": {
+          "generate": "Generate My Program",
+          "skip": "Skip - I'll Create Later"
+        },
+        "info": "You can always generate or modify your program later from your dashboard."
+      }
     }
   },
   "api": {
