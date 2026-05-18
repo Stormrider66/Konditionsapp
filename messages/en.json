@@ -5033,6 +5033,153 @@
           "fodmap": "FODMAP"
         }
       },
+      "generalFitness": {
+        "titles": {
+          "primaryGoal": "Primary goal",
+          "currentFitness": "Current fitness",
+          "healthMetrics": "Health metrics (optional)",
+          "activities": "Training activities",
+          "trainingPreferences": "Training preferences",
+          "equipment": "Equipment",
+          "limitations": "Limitations (optional)"
+        },
+        "descriptions": {
+          "primaryGoal": "What is your main training goal?",
+          "currentFitness": "How active are you right now?",
+          "healthMetrics": "This helps us adapt your training better",
+          "activities": "Which activities do you enjoy?",
+          "limitations": "Do you have any injuries or limitations we should take into account?"
+        },
+        "labels": {
+          "secondaryGoals": "Secondary goals (optional)",
+          "fitnessLevel": "Fitness level",
+          "yearsExercising": "How many years have you exercised regularly?",
+          "currentWeight": "Current weight (kg)",
+          "targetWeight": "Target weight (kg)",
+          "height": "Height (cm)",
+          "age": "Age",
+          "restingHeartRate": "Resting heart rate (bpm)",
+          "preferredActivities": "Preferred activities (select several)",
+          "dislikedActivities": "Disliked / avoid",
+          "weeklyWorkouts": "Training sessions per week: {count}",
+          "preferredWorkoutDuration": "Desired session length: {minutes} min",
+          "preferredTimeOfDay": "Preferred time of day",
+          "hasGymAccess": "Access to gym",
+          "hasHomeEquipment": "Have home training equipment",
+          "homeEquipment": "What equipment do you have at home?",
+          "injuryNotes": "Describe your symptoms",
+          "hasInjuries": "I have injuries or discomfort",
+          "sections": "Sections"
+        },
+        "placeholders": {
+          "selectFitnessLevel": "Choose level",
+          "currentWeight": "75",
+          "targetWeight": "70",
+          "height": "175",
+          "age": "35",
+          "restingHeartRate": "65",
+          "injuryNotes": "E.g. knee pain, back discomfort..."
+        },
+        "primaryGoals": {
+          "weightLoss": {
+            "label": "Weight loss",
+            "description": "Lose weight and improve body composition"
+          },
+          "generalHealth": {
+            "label": "General health",
+            "description": "Improve overall health and wellbeing"
+          },
+          "strength": {
+            "label": "Strength",
+            "description": "Build muscle and increase strength"
+          },
+          "endurance": {
+            "label": "Endurance",
+            "description": "Improve cardio fitness and endurance"
+          },
+          "flexibility": {
+            "label": "Mobility",
+            "description": "Improve flexibility and reduce stiffness"
+          },
+          "stressRelief": {
+            "label": "Stress management",
+            "description": "Reduce stress and improve mental health"
+          }
+        },
+        "secondaryGoals": {
+          "betterSleep": "Better sleep",
+          "moreEnergy": "More energy",
+          "betterPosture": "Improved posture",
+          "socialLife": "Social life",
+          "moreConfidence": "More confidence",
+          "injuryPrevention": "Injury prevention",
+          "betterBalance": "Better balance",
+          "mentalSharpness": "Mental sharpness"
+        },
+        "fitnessLevels": {
+          "sedentary": {
+            "label": "Sedentary",
+            "description": "Little or no regular training"
+          },
+          "lightlyActive": {
+            "label": "Lightly active",
+            "description": "Train 1-2 times/week"
+          },
+          "moderatelyActive": {
+            "label": "Moderately active",
+            "description": "Train 3-4 times/week"
+          },
+          "veryActive": {
+            "label": "Very active",
+            "description": "Train 5-6 times/week"
+          },
+          "athlete": {
+            "label": "Athlete",
+            "description": "Train daily, often multiple times"
+          }
+        },
+        "activities": {
+          "walking": "Walking",
+          "running": "Running",
+          "cycling": "Cycling",
+          "swimming": "Swimming",
+          "gym": "Gym/Strength training",
+          "yoga": "Yoga",
+          "pilates": "Pilates",
+          "dancing": "Dancing",
+          "hiking": "Hiking",
+          "groupClasses": "Group training",
+          "martialArts": "Martial arts",
+          "tennis": "Tennis/Padel",
+          "golf": "Golf",
+          "skiing": "Skiing",
+          "rowing": "Rowing"
+        },
+        "timeOfDay": {
+          "morning": "Morning (06-10)",
+          "afternoon": "Afternoon (12-16)",
+          "evening": "Evening (17-21)",
+          "flexible": "Flexible"
+        },
+        "trainingMode": {
+          "indoor": "Indoor",
+          "outdoor": "Outdoor",
+          "group": "Group training",
+          "solo": "Solo training"
+        },
+        "homeEquipment": {
+          "dumbbells": "Dumbbells",
+          "resistanceBands": "Resistance bands",
+          "yogaMat": "Yoga mat",
+          "kettlebell": "Kettlebell",
+          "pullUpBar": "Pull-up bar",
+          "treadmill": "Treadmill",
+          "exerciseBike": "Exercise bike",
+          "rowingMachine": "Rowing machine",
+          "foamRoller": "Foam roller",
+          "trx": "TRX/Sling trainer"
+        }
+      },
       "hockey": {
         "sections": {
           "positionAndTeam": {

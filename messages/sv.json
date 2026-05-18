@@ -4921,6 +4921,153 @@
           "next": "Nästa"
         }
       },
+      "generalFitness": {
+        "titles": {
+          "primaryGoal": "Huvudmål",
+          "currentFitness": "Nuvarande kondition",
+          "healthMetrics": "Hälsomått (valfritt)",
+          "activities": "Träningsaktiviteter",
+          "trainingPreferences": "Träningspreferenser",
+          "equipment": "Utrustning",
+          "limitations": "Begränsningar (valfritt)"
+        },
+        "descriptions": {
+          "primaryGoal": "Vad är ditt huvudsakliga träningsmål?",
+          "currentFitness": "Hur aktiv är du just nu?",
+          "healthMetrics": "Det hjälper oss att anpassa din träning bättre",
+          "activities": "Vilka aktiviteter gillar du?",
+          "limitations": "Har du några skador eller begränsningar vi bör ta hänsyn till?"
+        },
+        "labels": {
+          "secondaryGoals": "Sekundära mål (valfritt)",
+          "fitnessLevel": "Aktivitetsnivå",
+          "yearsExercising": "Hur länge har du tränat regelbundet? (år)",
+          "currentWeight": "Nuvarande vikt (kg)",
+          "targetWeight": "Målvikt (kg)",
+          "height": "Längd (cm)",
+          "age": "Ålder",
+          "restingHeartRate": "Vilopuls (bpm)",
+          "preferredActivities": "Gillar (välj flera)",
+          "dislikedActivities": "Ogillar / Vill undvika",
+          "weeklyWorkouts": "Träningspass per vecka: {count}",
+          "preferredWorkoutDuration": "Önskad passlängd: {minutes} min",
+          "preferredTimeOfDay": "Föredragen tid på dagen",
+          "hasGymAccess": "Tillgång till gym",
+          "hasHomeEquipment": "Har hemmaträningsutrustning",
+          "homeEquipment": "Vilken utrustning har du hemma?",
+          "injuryNotes": "Beskriv dina besvär",
+          "hasInjuries": "Jag har skador eller besvär",
+          "sections": "Sektioner"
+        },
+        "placeholders": {
+          "selectFitnessLevel": "Välj nivå",
+          "currentWeight": "75",
+          "targetWeight": "70",
+          "height": "175",
+          "age": "35",
+          "restingHeartRate": "65",
+          "injuryNotes": "T.ex. ont i knät, ryggbesvär..."
+        },
+        "primaryGoals": {
+          "weightLoss": {
+            "label": "Viktminskning",
+            "description": "Gå ner i vikt och förbättra kroppssammansättning"
+          },
+          "generalHealth": {
+            "label": "Allmän hälsa",
+            "description": "Förbättra övergripande hälsa och välbefinnande"
+          },
+          "strength": {
+            "label": "Styrka",
+            "description": "Bygga muskler och öka styrka"
+          },
+          "endurance": {
+            "label": "Uthållighet",
+            "description": "Förbättra kondition och uthållighet"
+          },
+          "flexibility": {
+            "label": "Rörlighet",
+            "description": "Öka rörlighet och minska stelhet"
+          },
+          "stressRelief": {
+            "label": "Stresshantering",
+            "description": "Minska stress och förbättra mental hälsa"
+          }
+        },
+        "secondaryGoals": {
+          "betterSleep": "Bättre sömn",
+          "moreEnergy": "Mer energi",
+          "betterPosture": "Förbättrad hållning",
+          "socialLife": "Socialt umgänge",
+          "moreConfidence": "Öka självförtroende",
+          "injuryPrevention": "Förebygga skador",
+          "betterBalance": "Förbättra balans",
+          "mentalSharpness": "Mental skärpa"
+        },
+        "fitnessLevels": {
+          "sedentary": {
+            "label": "Stillasittande",
+            "description": "Lite eller ingen regelbunden träning"
+          },
+          "lightlyActive": {
+            "label": "Lätt aktiv",
+            "description": "Tränar 1-2 gånger/vecka"
+          },
+          "moderatelyActive": {
+            "label": "Måttligt aktiv",
+            "description": "Tränar 3-4 gånger/vecka"
+          },
+          "veryActive": {
+            "label": "Mycket aktiv",
+            "description": "Tränar 5-6 gånger/vecka"
+          },
+          "athlete": {
+            "label": "Idrottare",
+            "description": "Tränar dagligen, ofta mer än en gång"
+          }
+        },
+        "activities": {
+          "walking": "Promenader",
+          "running": "Löpning",
+          "cycling": "Cykling",
+          "swimming": "Simning",
+          "gym": "Gym/Styrketräning",
+          "yoga": "Yoga",
+          "pilates": "Pilates",
+          "dancing": "Dans",
+          "hiking": "Vandring",
+          "groupClasses": "Gruppträning",
+          "martialArts": "Kampsport",
+          "tennis": "Tennis/Padel",
+          "golf": "Golf",
+          "skiing": "Skidåkning",
+          "rowing": "Rodd"
+        },
+        "timeOfDay": {
+          "morning": "Morgon (06-10)",
+          "afternoon": "Eftermiddag (12-16)",
+          "evening": "Kväll (17-21)",
+          "flexible": "Flexibel"
+        },
+        "trainingMode": {
+          "indoor": "Inomhus",
+          "outdoor": "Utomhus",
+          "group": "Gruppträning",
+          "solo": "Egen träning"
+        },
+        "homeEquipment": {
+          "dumbbells": "Hantlar",
+          "resistanceBands": "Gummiband",
+          "yogaMat": "Yogamatta",
+          "kettlebell": "Kettlebell",
+          "pullUpBar": "Dragstång",
+          "treadmill": "Löpband",
+          "exerciseBike": "Motionscykel",
+          "rowingMachine": "Roddmaskin",
+          "foamRoller": "Foam roller",
+          "trx": "TRX/Sling trainer"
+        }
+      },
       "nutrition": {
         "titles": {
           "goal": "Vad är ditt mål?",

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
 import { Heart, Target, Dumbbell, Activity, Flame, Scale } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export interface GeneralFitnessSettings {
   // Primary goals
@@ -82,62 +83,62 @@ export const DEFAULT_GENERAL_FITNESS_SETTINGS: GeneralFitnessSettings = {
 }
 
 const PRIMARY_GOALS = [
-  { value: 'weight_loss', label: 'Viktminskning', icon: Scale, description: 'Gå ner i vikt och förbättra kroppssammansättning' },
-  { value: 'general_health', label: 'Allmän hälsa', icon: Heart, description: 'Förbättra övergripande hälsa och välbefinnande' },
-  { value: 'strength', label: 'Styrka', icon: Dumbbell, description: 'Bygga muskler och öka styrka' },
-  { value: 'endurance', label: 'Uthållighet', icon: Activity, description: 'Förbättra kondition och uthållighet' },
-  { value: 'flexibility', label: 'Rörlighet', icon: Target, description: 'Öka rörlighet och minska stelhet' },
-  { value: 'stress_relief', label: 'Stresshantering', icon: Heart, description: 'Minska stress och förbättra mental hälsa' },
+  { value: 'weight_loss', label: 'primaryGoals.weightLoss.label', icon: Scale, description: 'primaryGoals.weightLoss.description' },
+  { value: 'general_health', label: 'primaryGoals.generalHealth.label', icon: Heart, description: 'primaryGoals.generalHealth.description' },
+  { value: 'strength', label: 'primaryGoals.strength.label', icon: Dumbbell, description: 'primaryGoals.strength.description' },
+  { value: 'endurance', label: 'primaryGoals.endurance.label', icon: Activity, description: 'primaryGoals.endurance.description' },
+  { value: 'flexibility', label: 'primaryGoals.flexibility.label', icon: Target, description: 'primaryGoals.flexibility.description' },
+  { value: 'stress_relief', label: 'primaryGoals.stressRelief.label', icon: Heart, description: 'primaryGoals.stressRelief.description' },
 ]
 
 const SECONDARY_GOALS = [
-  'Bättre sömn',
-  'Mer energi',
-  'Förbättrad hållning',
-  'Socialt umgänge',
-  'Öka självförtroende',
-  'Förebygga skador',
-  'Förbättra balans',
-  'Mental skärpa',
+  { id: 'betterSleep', label: 'secondaryGoals.betterSleep' },
+  { id: 'moreEnergy', label: 'secondaryGoals.moreEnergy' },
+  { id: 'betterPosture', label: 'secondaryGoals.betterPosture' },
+  { id: 'socialLife', label: 'secondaryGoals.socialLife' },
+  { id: 'moreConfidence', label: 'secondaryGoals.moreConfidence' },
+  { id: 'injuryPrevention', label: 'secondaryGoals.injuryPrevention' },
+  { id: 'betterBalance', label: 'secondaryGoals.betterBalance' },
+  { id: 'mentalSharpness', label: 'secondaryGoals.mentalSharpness' },
 ]
 
 const FITNESS_LEVELS = [
-  { value: 'sedentary', label: 'Stillasittande', description: 'Lite eller ingen regelbunden träning' },
-  { value: 'lightly_active', label: 'Lätt aktiv', description: 'Tränar 1-2 gånger/vecka' },
-  { value: 'moderately_active', label: 'Måttligt aktiv', description: 'Tränar 3-4 gånger/vecka' },
-  { value: 'very_active', label: 'Mycket aktiv', description: 'Tränar 5-6 gånger/vecka' },
-  { value: 'athlete', label: 'Idrottare', description: 'Tränar dagligen, ofta mer än en gång' },
+  { value: 'sedentary', label: 'fitnessLevels.sedentary.label', description: 'fitnessLevels.sedentary.description' },
+  { value: 'lightly_active', label: 'fitnessLevels.lightlyActive.label', description: 'fitnessLevels.lightlyActive.description' },
+  { value: 'moderately_active', label: 'fitnessLevels.moderatelyActive.label', description: 'fitnessLevels.moderatelyActive.description' },
+  { value: 'very_active', label: 'fitnessLevels.veryActive.label', description: 'fitnessLevels.veryActive.description' },
+  { value: 'athlete', label: 'fitnessLevels.athlete.label', description: 'fitnessLevels.athlete.description' },
 ]
 
 const ACTIVITIES = [
-  { id: 'walking', label: 'Promenader' },
-  { id: 'running', label: 'Löpning' },
-  { id: 'cycling', label: 'Cykling' },
-  { id: 'swimming', label: 'Simning' },
-  { id: 'gym', label: 'Gym/Styrketräning' },
-  { id: 'yoga', label: 'Yoga' },
-  { id: 'pilates', label: 'Pilates' },
-  { id: 'dancing', label: 'Dans' },
-  { id: 'hiking', label: 'Vandring' },
-  { id: 'group_classes', label: 'Gruppträning' },
-  { id: 'martial_arts', label: 'Kampsport' },
-  { id: 'tennis', label: 'Tennis/Padel' },
-  { id: 'golf', label: 'Golf' },
-  { id: 'skiing', label: 'Skidåkning' },
-  { id: 'rowing', label: 'Rodd' },
+  { id: 'walking', label: 'activities.walking' },
+  { id: 'running', label: 'activities.running' },
+  { id: 'cycling', label: 'activities.cycling' },
+  { id: 'swimming', label: 'activities.swimming' },
+  { id: 'gym', label: 'activities.gym' },
+  { id: 'yoga', label: 'activities.yoga' },
+  { id: 'pilates', label: 'activities.pilates' },
+  { id: 'dancing', label: 'activities.dancing' },
+  { id: 'hiking', label: 'activities.hiking' },
+  { id: 'group_classes', label: 'activities.groupClasses' },
+  { id: 'martial_arts', label: 'activities.martialArts' },
+  { id: 'tennis', label: 'activities.tennis' },
+  { id: 'golf', label: 'activities.golf' },
+  { id: 'skiing', label: 'activities.skiing' },
+  { id: 'rowing', label: 'activities.rowing' },
 ]
 
 const HOME_EQUIPMENT = [
-  { id: 'dumbbells', label: 'Hantlar' },
-  { id: 'resistance_bands', label: 'Gummiband' },
-  { id: 'yoga_mat', label: 'Yogamatta' },
-  { id: 'kettlebell', label: 'Kettlebell' },
-  { id: 'pull_up_bar', label: 'Dragstång' },
-  { id: 'treadmill', label: 'Löpband' },
-  { id: 'exercise_bike', label: 'Motionscykel' },
-  { id: 'rowing_machine', label: 'Roddmaskin' },
-  { id: 'foam_roller', label: 'Foam roller' },
-  { id: 'trx', label: 'TRX/Sling trainer' },
+  { id: 'dumbbells', label: 'homeEquipment.dumbbells' },
+  { id: 'resistance_bands', label: 'homeEquipment.resistanceBands' },
+  { id: 'yoga_mat', label: 'homeEquipment.yogaMat' },
+  { id: 'kettlebell', label: 'homeEquipment.kettlebell' },
+  { id: 'pull_up_bar', label: 'homeEquipment.pullUpBar' },
+  { id: 'treadmill', label: 'homeEquipment.treadmill' },
+  { id: 'exercise_bike', label: 'homeEquipment.exerciseBike' },
+  { id: 'rowing_machine', label: 'homeEquipment.rowingMachine' },
+  { id: 'foam_roller', label: 'homeEquipment.foamRoller' },
+  { id: 'trx', label: 'homeEquipment.trx' },
 ]
 
 interface GeneralFitnessOnboardingProps {
@@ -146,6 +147,7 @@ interface GeneralFitnessOnboardingProps {
 }
 
 export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessOnboardingProps) {
+  const t = useTranslations('components.onboarding.generalFitness')
   const updateField = <K extends keyof GeneralFitnessSettings>(field: K, value: GeneralFitnessSettings[K]) => {
     onUpdate({ ...settings, [field]: value })
   }
@@ -165,14 +167,14 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-green-500" />
-            Huvudmål
+            {t('titles.primaryGoal')}
           </CardTitle>
           <CardDescription>
-            Vad är ditt viktigaste träningsmål?
+            {t('descriptions.primaryGoal')}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {PRIMARY_GOALS.map((goal) => {
               const Icon = goal.icon
               const isSelected = settings.primaryGoal === goal.value
@@ -187,27 +189,27 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                   }`}
                 >
                   <Icon className={`h-6 w-6 mb-2 ${isSelected ? 'text-green-500' : 'text-muted-foreground'}`} />
-                  <div className="font-medium text-sm">{goal.label}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{goal.description}</div>
+                  <div className="font-medium text-sm">{t(goal.label)}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{t(goal.description)}</div>
                 </div>
               )
             })}
           </div>
 
           <div className="mt-6 space-y-2">
-            <Label>Sekundära mål (valfritt)</Label>
+            <Label>{t('labels.secondaryGoals')}</Label>
             <div className="flex flex-wrap gap-2">
               {SECONDARY_GOALS.map((goal) => (
                 <div
-                  key={goal}
-                  onClick={() => toggleArrayItem('secondaryGoals', goal)}
+                  key={goal.id}
+                  onClick={() => toggleArrayItem('secondaryGoals', goal.id)}
                   className={`px-3 py-1 rounded-full text-sm cursor-pointer transition-all ${
-                    settings.secondaryGoals.includes(goal)
+                    settings.secondaryGoals.includes(goal.id)
                       ? 'bg-green-500 text-white'
                       : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
-                  {goal}
+                  {t(goal.label)}
                 </div>
               ))}
             </div>
@@ -217,31 +219,31 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
 
       {/* Fitness Level */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-blue-500" />
-            Nuvarande kondition
-          </CardTitle>
-          <CardDescription>
-            Hur aktiv är du just nu?
-          </CardDescription>
-        </CardHeader>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-blue-500" />
+              {t('titles.currentFitness')}
+            </CardTitle>
+            <CardDescription>
+            {t('descriptions.currentFitness')}
+            </CardDescription>
+          </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Aktivitetsnivå</Label>
+            <Label>{t('labels.fitnessLevel')}</Label>
             <Select
               value={settings.fitnessLevel}
               onValueChange={(value) => updateField('fitnessLevel', value as GeneralFitnessSettings['fitnessLevel'])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj nivå" />
+                <SelectValue placeholder={t('placeholders.selectFitnessLevel')} />
               </SelectTrigger>
               <SelectContent>
                 {FITNESS_LEVELS.map((level) => (
                   <SelectItem key={level.value} value={level.value}>
                     <div>
-                      <div className="font-medium">{level.label}</div>
-                      <div className="text-xs text-muted-foreground">{level.description}</div>
+                      <div className="font-medium">{t(level.label)}</div>
+                      <div className="text-xs text-muted-foreground">{t(level.description)}</div>
                     </div>
                   </SelectItem>
                 ))}
@@ -250,7 +252,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
           </div>
 
           <div className="space-y-2">
-            <Label>Hur länge har du tränat regelbundet? (år)</Label>
+            <Label>{t('labels.yearsExercising')}</Label>
             <Input
               type="number"
               min={0}
@@ -267,10 +269,10 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Heart className="h-5 w-5 text-red-500" />
-            Hälsomått (valfritt)
+            {t('titles.healthMetrics')}
           </CardTitle>
           <CardDescription>
-            Hjälper oss anpassa din träning bättre
+            {t('descriptions.healthMetrics')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -283,55 +285,55 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                 max={250}
                 value={settings.currentWeight || ''}
                 onChange={(e) => updateField('currentWeight', e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="75"
+                placeholder={t('placeholders.currentWeight')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Målvikt (kg)</Label>
+              <Label>{t('labels.targetWeight')}</Label>
               <Input
                 type="number"
                 min={30}
                 max={250}
                 value={settings.targetWeight || ''}
                 onChange={(e) => updateField('targetWeight', e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="70"
+                placeholder={t('placeholders.targetWeight')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Längd (cm)</Label>
+              <Label>{t('labels.height')}</Label>
               <Input
                 type="number"
                 min={100}
                 max={250}
                 value={settings.height || ''}
                 onChange={(e) => updateField('height', e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="175"
+                placeholder={t('placeholders.height')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Ålder</Label>
+              <Label>{t('labels.age')}</Label>
               <Input
                 type="number"
                 min={16}
                 max={100}
                 value={settings.age || ''}
                 onChange={(e) => updateField('age', e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="35"
+                placeholder={t('placeholders.age')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Vilopuls (bpm)</Label>
+              <Label>{t('labels.restingHeartRate')}</Label>
               <Input
                 type="number"
                 min={30}
                 max={120}
                 value={settings.restingHeartRate || ''}
                 onChange={(e) => updateField('restingHeartRate', e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="65"
+                placeholder={t('placeholders.restingHeartRate')}
               />
             </div>
           </div>
@@ -343,15 +345,15 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-orange-500" />
-            Träningsaktiviteter
+            {t('titles.activities')}
           </CardTitle>
           <CardDescription>
-            Vilka aktiviteter gillar du?
+            {t('descriptions.activities')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Gillar (välj flera)</Label>
+            <Label>{t('labels.preferredActivities')}</Label>
             <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
               {ACTIVITIES.map((activity) => (
                 <div
@@ -363,14 +365,14 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                       : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
-                  {activity.label}
+                  {t(activity.label)}
                 </div>
               ))}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Ogillar / Vill undvika</Label>
+            <Label>{t('labels.dislikedActivities')}</Label>
             <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
               {ACTIVITIES.map((activity) => (
                 <div
@@ -382,7 +384,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                       : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
-                  {activity.label}
+                  {t(activity.label)}
                 </div>
               ))}
             </div>
@@ -395,13 +397,13 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Dumbbell className="h-5 w-5 text-purple-500" />
-            Träningspreferenser
+            {t('titles.trainingPreferences')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Träningspass per vecka: {settings.weeklyWorkouts}</Label>
+              <Label>{t('labels.weeklyWorkouts', { count: settings.weeklyWorkouts })}</Label>
               <Slider
                 value={[settings.weeklyWorkouts]}
                 onValueChange={([value]) => updateField('weeklyWorkouts', value)}
@@ -412,7 +414,11 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
             </div>
 
             <div className="space-y-2">
-              <Label>Önskad passlängd: {settings.preferredWorkoutDuration} min</Label>
+              <Label>
+                {t('labels.preferredWorkoutDuration', {
+                  minutes: settings.preferredWorkoutDuration,
+                })}
+              </Label>
               <Slider
                 value={[settings.preferredWorkoutDuration]}
                 onValueChange={([value]) => updateField('preferredWorkoutDuration', value)}
@@ -424,7 +430,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
           </div>
 
           <div className="space-y-2">
-            <Label>Föredragen tid på dagen</Label>
+            <Label>{t('labels.preferredTimeOfDay')}</Label>
             <Select
               value={settings.preferredTimeOfDay}
               onValueChange={(value) => updateField('preferredTimeOfDay', value as GeneralFitnessSettings['preferredTimeOfDay'])}
@@ -433,10 +439,10 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="morning">Morgon (06-10)</SelectItem>
-                <SelectItem value="afternoon">Eftermiddag (12-16)</SelectItem>
-                <SelectItem value="evening">Kväll (17-21)</SelectItem>
-                <SelectItem value="flexible">Flexibel</SelectItem>
+                <SelectItem value="morning">{t('timeOfDay.morning')}</SelectItem>
+                <SelectItem value="afternoon">{t('timeOfDay.afternoon')}</SelectItem>
+                <SelectItem value="evening">{t('timeOfDay.evening')}</SelectItem>
+                <SelectItem value="flexible">{t('timeOfDay.flexible')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -448,7 +454,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                 checked={settings.preferIndoor}
                 onCheckedChange={(checked) => updateField('preferIndoor', checked === true)}
               />
-              <Label htmlFor="indoor">Inomhus</Label>
+              <Label htmlFor="indoor">{t('trainingMode.indoor')}</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -456,7 +462,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                 checked={settings.preferOutdoor}
                 onCheckedChange={(checked) => updateField('preferOutdoor', checked === true)}
               />
-              <Label htmlFor="outdoor">Utomhus</Label>
+              <Label htmlFor="outdoor">{t('trainingMode.outdoor')}</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -464,7 +470,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                 checked={settings.preferGroup}
                 onCheckedChange={(checked) => updateField('preferGroup', checked === true)}
               />
-              <Label htmlFor="group">Gruppträning</Label>
+              <Label htmlFor="group">{t('trainingMode.group')}</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -472,7 +478,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                 checked={settings.preferSolo}
                 onCheckedChange={(checked) => updateField('preferSolo', checked === true)}
               />
-              <Label htmlFor="solo">Egen träning</Label>
+              <Label htmlFor="solo">{t('trainingMode.solo')}</Label>
             </div>
           </div>
         </CardContent>
@@ -481,7 +487,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
       {/* Equipment */}
       <Card>
         <CardHeader>
-          <CardTitle>Utrustning</CardTitle>
+          <CardTitle>{t('titles.equipment')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
@@ -491,7 +497,7 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                 checked={settings.hasGymAccess}
                 onCheckedChange={(checked) => updateField('hasGymAccess', checked === true)}
               />
-              <Label htmlFor="gym">Tillgång till gym</Label>
+              <Label htmlFor="gym">{t('labels.hasGymAccess')}</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -499,13 +505,13 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                 checked={settings.hasHomeEquipment}
                 onCheckedChange={(checked) => updateField('hasHomeEquipment', checked === true)}
               />
-              <Label htmlFor="homeequip">Har hemmaträningsutrustning</Label>
+              <Label htmlFor="homeequip">{t('labels.hasHomeEquipment')}</Label>
             </div>
           </div>
 
           {settings.hasHomeEquipment && (
             <div className="space-y-2">
-              <Label>Vilken utrustning har du hemma?</Label>
+              <Label>{t('labels.homeEquipment')}</Label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {HOME_EQUIPMENT.map((item) => (
                   <div
@@ -514,10 +520,10 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
                     className={`px-3 py-2 rounded-lg text-sm text-center cursor-pointer transition-all ${
                       settings.homeEquipment.includes(item.id)
                         ? 'bg-purple-500 text-white'
-                        : 'bg-muted hover:bg-muted/80'
-                    }`}
-                  >
-                    {item.label}
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                    {t(item.label)}
                   </div>
                 ))}
               </div>
@@ -529,9 +535,9 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
       {/* Limitations */}
       <Card>
         <CardHeader>
-          <CardTitle>Begränsningar (valfritt)</CardTitle>
+          <CardTitle>{t('titles.limitations')}</CardTitle>
           <CardDescription>
-            Har du några skador eller begränsningar vi bör ta hänsyn till?
+            {t('descriptions.limitations')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -541,16 +547,16 @@ export function GeneralFitnessOnboarding({ settings, onUpdate }: GeneralFitnessO
               checked={settings.hasInjuries}
               onCheckedChange={(checked) => updateField('hasInjuries', checked === true)}
             />
-            <Label htmlFor="injuries">Jag har skador eller besvär</Label>
+            <Label htmlFor="injuries">{t('labels.hasInjuries')}</Label>
           </div>
 
           {settings.hasInjuries && (
             <div className="space-y-2">
-              <Label>Beskriv dina besvär</Label>
+              <Label>{t('labels.injuryNotes')}</Label>
               <Input
                 value={settings.injuryNotes}
                 onChange={(e) => updateField('injuryNotes', e.target.value)}
-                placeholder="T.ex. ont i knät, ryggbesvär..."
+                placeholder={t('placeholders.injuryNotes')}
               />
             </div>
           )}
