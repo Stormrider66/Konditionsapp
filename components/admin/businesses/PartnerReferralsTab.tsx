@@ -33,6 +33,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useTranslations } from '@/i18n/client'
 
 interface PartnerReferral {
   id: string
@@ -80,6 +81,7 @@ interface PartnerReferralsTabProps {
 }
 
 export function PartnerReferralsTab({ businessId, businessSlug, businessName }: PartnerReferralsTabProps) {
+  const t = useTranslations('components.partnerReferralsTab')
   const [referrals, setReferrals] = useState<PartnerReferral[]>([])
   const [stats, setStats] = useState<ReferralStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -104,21 +106,21 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
       }
 
       const response = await fetch(`/api/admin/businesses/${businessId}/referrals?${params}`)
-      if (!response.ok) throw new Error('Failed to fetch referrals')
+      if (!response.ok) throw new Error(t('errors.fetchFailed'))
 
       const result = await response.json()
       setReferrals(result.data.referrals)
       setStats(result.data.stats)
       setTotalPages(result.data.pagination.totalPages)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load referrals')
+      setError(err instanceof Error ? err.message : t('errors.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [businessId, page, statusFilter])
+  }, [businessId, page, statusFilter, t])
 
   useEffect(() => {
-    fetchReferrals()
+    void fetchReferrals()
   }, [fetchReferrals])
 
   const copyReferralLink = async () => {
@@ -141,12 +143,12 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
-      PENDING: { variant: 'secondary', label: 'Pending' },
-      ACTIVE: { variant: 'default', label: 'Active' },
-      CHURNED: { variant: 'destructive', label: 'Churned' },
-      EXPIRED: { variant: 'outline', label: 'Expired' },
+      PENDING: { variant: 'secondary', label: t('status.pending') },
+      ACTIVE: { variant: 'default', label: t('status.active') },
+      CHURNED: { variant: 'destructive', label: t('status.churned') },
+      EXPIRED: { variant: 'outline', label: t('status.expired') },
     }
-    const config = variants[status] || { variant: 'outline' as const, label: status }
+    const config = variants[status] || { variant: 'outline' as const, label: t('status.unknown') }
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
@@ -166,7 +168,7 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
         <p className="text-destructive">{error}</p>
         <Button variant="outline" size="sm" onClick={fetchReferrals} className="mt-2">
           <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
+          {t('actions.retry')}
         </Button>
       </div>
     )
@@ -179,10 +181,10 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <ExternalLink className="h-4 w-4" />
-            Partner Referral Link
+            {t('header.title')}
           </CardTitle>
           <CardDescription>
-            Share this link with {businessName} to let them invite new users
+            {t('header.description', { businessName })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -196,7 +198,7 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
               variant="outline"
               size="icon"
               onClick={copyReferralLink}
-              aria-label={copied ? 'Kopierad' : 'Kopiera referenslänk'}
+              aria-label={copied ? t('copy.ariaCopied') : t('copy.ariaCopy')}
             >
               {copied ? (
                 <Check className="h-4 w-4 text-green-500" />
@@ -206,7 +208,7 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Users who sign up through this link will be tracked as referrals for {businessName}
+            {t('header.trackingInfo', { businessName })}
           </p>
         </CardContent>
       </Card>
@@ -218,12 +220,16 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
             <CardContent className="pt-4">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Total Referrals</span>
+                <span className="text-sm text-muted-foreground">{t('stats.totalReferrals')}</span>
               </div>
               <p className="text-2xl font-bold mt-1">{stats.totalReferrals}</p>
               <div className="flex gap-2 mt-2 text-xs">
-                <span className="text-green-600">{stats.byStatus.active} active</span>
-                <span className="text-muted-foreground">{stats.byStatus.pending} pending</span>
+                <span className="text-green-600">
+                  {stats.byStatus.active} {t('stats.active')}
+                </span>
+                <span className="text-muted-foreground">
+                  {stats.byStatus.pending} {t('stats.pending')}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -232,11 +238,11 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
             <CardContent className="pt-4">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Total Revenue</span>
+                <span className="text-sm text-muted-foreground">{t('stats.totalRevenue')}</span>
               </div>
               <p className="text-2xl font-bold mt-1">{formatCurrency(stats.revenue.total)}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Generated by referrals
+                {t('stats.generatedByReferrals')}
               </p>
             </CardContent>
           </Card>
@@ -245,13 +251,13 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
             <CardContent className="pt-4">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Business Share</span>
+                <span className="text-sm text-muted-foreground">{t('stats.businessShare')}</span>
               </div>
               <p className="text-2xl font-bold mt-1 text-green-600">
                 {formatCurrency(stats.revenue.businessShare)}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                {stats.revenueSharePercent}% revenue share
+                {t('stats.revenueSharePercent', { percent: stats.revenueSharePercent })}
               </p>
             </CardContent>
           </Card>
@@ -260,13 +266,13 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
             <CardContent className="pt-4">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Pending Payout</span>
+                <span className="text-sm text-muted-foreground">{t('stats.pendingPayout')}</span>
               </div>
               <p className="text-2xl font-bold mt-1 text-amber-600">
                 {formatCurrency(stats.revenue.pendingPayout)}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Awaiting transfer
+                {t('stats.awaitingTransfer')}
               </p>
             </CardContent>
           </Card>
@@ -280,23 +286,23 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 <UserPlus className="h-4 w-4" />
-                Referred Users
+                {t('table.title')}
               </CardTitle>
               <CardDescription>
-                Users who signed up through {businessName}&apos;s referral link
+                {t('table.subtitle', { businessName })}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t('filter.placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="CHURNED">Churned</SelectItem>
-                  <SelectItem value="EXPIRED">Expired</SelectItem>
+                  <SelectItem value="all">{t('filter.all')}</SelectItem>
+                  <SelectItem value="PENDING">{t('status.pending')}</SelectItem>
+                  <SelectItem value="ACTIVE">{t('status.active')}</SelectItem>
+                  <SelectItem value="CHURNED">{t('status.churned')}</SelectItem>
+                  <SelectItem value="EXPIRED">{t('status.expired')}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -304,7 +310,7 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
                 size="icon"
                 onClick={fetchReferrals}
                 disabled={loading}
-                aria-label="Uppdatera referenslista"
+                aria-label={t('actions.refreshList')}
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>
@@ -315,14 +321,14 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
           {loading && referrals.length === 0 ? (
             <div className="text-center py-8">
               <RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mt-2">Loading referrals...</p>
+              <p className="text-sm text-muted-foreground mt-2">{t('loading')}</p>
             </div>
           ) : referrals.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No referrals yet</p>
+              <p className="text-sm text-muted-foreground">{t('empty.title')}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Share the referral link with {businessName} to get started
+                {t('empty.description', { businessName })}
               </p>
             </div>
           ) : (
@@ -330,12 +336,12 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Subscription</TableHead>
-                    <TableHead className="text-right">Revenue</TableHead>
-                    <TableHead className="text-right">Business Share</TableHead>
-                    <TableHead>Signed Up</TableHead>
+                    <TableHead>{t('table.columns.user')}</TableHead>
+                    <TableHead>{t('table.columns.status')}</TableHead>
+                    <TableHead>{t('table.columns.subscription')}</TableHead>
+                    <TableHead className="text-right">{t('table.columns.revenue')}</TableHead>
+                    <TableHead className="text-right">{t('table.columns.businessShare')}</TableHead>
+                    <TableHead>{t('table.columns.signedUp')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -343,7 +349,9 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
                     <TableRow key={referral.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{referral.user.name || 'Unknown'}</p>
+                          <p className="font-medium">
+                            {referral.user.name || t('table.unknownUser')}
+                          </p>
                           <p className="text-xs text-muted-foreground">{referral.user.email}</p>
                         </div>
                       </TableCell>
@@ -353,11 +361,14 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
                           <div>
                             <p className="text-sm">{referral.subscriptionTier}</p>
                             <p className="text-xs text-muted-foreground">
-                              {formatCurrency(referral.monthlyAmount, referral.currency)}/mo
+                              {formatCurrency(referral.monthlyAmount, referral.currency)}
+                              {t('table.monthly')}
                             </p>
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">Free</span>
+                          <span className="text-sm text-muted-foreground">
+                            {t('subscription.free')}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -378,24 +389,24 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
+                    {t('pagination.label', { current: page, total: totalPages })}
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
                     >
-                      Previous
+                      {t('pagination.previous')}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
                     >
-                      Next
+                      {t('pagination.next')}
                     </Button>
                   </div>
                 </div>

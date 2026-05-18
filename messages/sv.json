@@ -4601,6 +4601,109 @@
         "refresh": "Uppdatera mätvärden"
       }
     },
+    "pricingTierCard": {
+      "status": {
+        "inactive": "Inaktiv"
+      },
+      "billing": {
+        "monthly": "/må",
+        "yearly": "/år"
+      },
+      "labels": {
+        "athletes": "atleter",
+        "monthlyPrice": "Månatligt pris (öre)",
+        "yearlyPrice": "Årligt pris (öre)",
+        "maxAthletes": "Max antal atleter",
+        "aiChatLimit": "AI-chat limit",
+        "active": "Aktiv"
+      },
+      "limits": {
+        "unlimitedSuffix": "Sätt till -1 för att inte begränsa",
+        "unlimitedAthletes": "Obegränsat antal atleter",
+        "unlimitedAiMessages": "Obegränsat antal AI-meddelanden",
+        "noAiAccess": "Ingen AI-access",
+        "aiMessagesPerMonth": "AI-meddelanden/månad"
+      },
+      "features": "Funktioner",
+      "moreFeatures": "fler funktioner",
+      "editDialog": {
+        "title": "Redigera",
+        "description": "Redigera pris och gränser för denna nivå."
+      },
+      "actions": {
+        "edit": "Redigera",
+        "save": "Spara",
+        "cancel": "Avbryt"
+      }
+    },
+    "partnerReferralsTab": {
+      "errors": {
+        "fetchFailed": "Kunde inte hämta värvningar",
+        "loadFailed": "Kunde inte ladda värvningar"
+      },
+      "actions": {
+        "retry": "Försök igen",
+        "refreshList": "Uppdatera värvningslistan"
+      },
+      "copy": {
+        "ariaCopy": "Kopiera referenslänk",
+        "ariaCopied": "Kopierad"
+      },
+      "header": {
+        "title": "Partner-värvningslänk",
+        "description": "Dela den här länken med {businessName} så de kan bjuda in nya användare",
+        "trackingInfo": "Användare som registrerar sig via den här länken kommer att spåras som värvningar för {businessName}"
+      },
+      "stats": {
+        "totalReferrals": "Totala värvningar",
+        "active": "aktiva",
+        "pending": "väntande",
+        "totalRevenue": "Totala intäkter",
+        "generatedByReferrals": "Genererat av värvningar",
+        "businessShare": "Företagsdelning",
+        "revenueSharePercent": "{percent}% intäktsandel",
+        "pendingPayout": "Utestående utbetalning",
+        "awaitingTransfer": "Inväntar överföring"
+      },
+      "table": {
+        "title": "Värvade användare",
+        "subtitle": "Användare som har registrerat sig via {businessName}s värvningslänk",
+        "columns": {
+          "user": "Användare",
+          "status": "Status",
+          "subscription": "Prenumeration",
+          "revenue": "Intäkter",
+          "businessShare": "Företagsdelning",
+          "signedUp": "Registrerad"
+        },
+        "unknownUser": "Okänd",
+        "monthly": "/mån"
+      },
+      "subscription": {
+        "free": "Gratis"
+      },
+      "filter": {
+        "placeholder": "Status",
+        "all": "Alla statusar"
+      },
+      "status": {
+        "pending": "Väntande",
+        "active": "Aktiv",
+        "churned": "Avslutad",
+        "expired": "Utgången",
+        "unknown": "Okänd"
+      },
+      "loading": "Laddar värvningar...",
+      "empty": {
+        "title": "Inga värvningar ännu",
+        "description": "Dela värvningslänken med {businessName} för att komma igång"
+      },
+      "pagination": {
+        "label": "Sida {current} av {total}",
+        "previous": "Föregående",
+        "next": "Nästa"
+      }
+    },
     "cyclingDashboard": {
       "emptyState": {
         "description": "Slutför din cykelprofil för att se dina mätvärden."

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Edit, Check, X, Users, MessageCircle, Infinity } from 'lucide-react';
 import { PricingTier } from '@/types';
+import { useTranslations } from '@/i18n/client';
 
 interface PricingTierCardProps {
   tier: PricingTier;
@@ -25,6 +26,7 @@ interface PricingTierCardProps {
 }
 
 export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCardProps) {
+  const t = useTranslations('components.pricingTierCard')
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     monthlyPriceCents: tier.monthlyPriceCents,
@@ -64,7 +66,7 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
         </div>
         {!tier.isActive && (
           <Badge variant="outline" className="text-red-500 border-red-500 w-fit">
-            Inactive
+            {t('status.inactive')}
           </Badge>
         )}
       </CardHeader>
@@ -72,11 +74,12 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
         <div>
           <p className="text-3xl font-bold">
             {formatPrice(tier.monthlyPriceCents, tier.currency)}
-            <span className="text-sm font-normal text-muted-foreground">/mo</span>
+            <span className="text-sm font-normal text-muted-foreground">{t('billing.monthly')}</span>
           </p>
           {tier.yearlyPriceCents && tier.yearlyPriceCents > 0 && (
             <p className="text-sm text-muted-foreground">
-              {formatPrice(tier.yearlyPriceCents, tier.currency)}/year
+              {formatPrice(tier.yearlyPriceCents, tier.currency)}
+              <span className="text-sm font-normal text-muted-foreground">{t('billing.yearly')}</span>
             </p>
           )}
         </div>
@@ -87,10 +90,10 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
             <span>
               {tier.maxAthletes === -1 ? (
                 <span className="flex items-center gap-1">
-                  <Infinity className="h-3 w-3" /> Unlimited athletes
+                  <Infinity className="h-3 w-3" /> {t('limits.unlimitedAthletes')}
                 </span>
               ) : (
-                `${tier.maxAthletes} athletes`
+                `${tier.maxAthletes} ${t('labels.athletes')}`
               )}
             </span>
           </div>
@@ -99,19 +102,19 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
             <span>
               {tier.aiChatLimit === -1 ? (
                 <span className="flex items-center gap-1">
-                  <Infinity className="h-3 w-3" /> Unlimited AI messages
+                  <Infinity className="h-3 w-3" /> {t('limits.unlimitedAiMessages')}
                 </span>
               ) : tier.aiChatLimit === 0 ? (
-                'No AI access'
+                t('limits.noAiAccess')
               ) : (
-                `${tier.aiChatLimit} AI messages/mo`
+                `${tier.aiChatLimit} ${t('limits.aiMessagesPerMonth')}`
               )}
             </span>
           </div>
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Features:</p>
+          <p className="text-xs font-medium text-muted-foreground">{t('features')}</p>
           <ul className="text-xs space-y-1">
             {(tier.features as string[]).slice(0, 4).map((feature, i) => (
               <li key={i} className="flex items-start gap-1">
@@ -120,8 +123,8 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
               </li>
             ))}
             {(tier.features as string[]).length > 4 && (
-              <li className="text-muted-foreground">
-                +{(tier.features as string[]).length - 4} more
+                <li className="text-muted-foreground">
+                +{(tier.features as string[]).length - 4} {t('moreFeatures')}
               </li>
             )}
           </ul>
@@ -138,20 +141,22 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
           <DialogTrigger asChild>
             <Button variant="outline" size="sm" className="w-full">
               <Edit className="h-4 w-4 mr-2" />
-              Edit
+              {t('actions.edit')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit {tier.displayName}</DialogTitle>
+              <DialogTitle>
+                {t('editDialog.title')} {tier.displayName}
+              </DialogTitle>
               <DialogDescription>
-                Update pricing and limits for this tier
+                {t('editDialog.description')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="monthlyPrice">Monthly Price (öre)</Label>
+                  <Label htmlFor="monthlyPrice">{t('labels.monthlyPrice')}</Label>
                   <Input
                     id="monthlyPrice"
                     type="number"
@@ -168,7 +173,7 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
                   </p>
                 </div>
                 <div>
-                  <Label htmlFor="yearlyPrice">Yearly Price (öre)</Label>
+                  <Label htmlFor="yearlyPrice">{t('labels.yearlyPrice')}</Label>
                   <Input
                     id="yearlyPrice"
                     type="number"
@@ -188,7 +193,7 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="maxAthletes">Max Athletes</Label>
+                  <Label htmlFor="maxAthletes">{t('labels.maxAthletes')}</Label>
                   <Input
                     id="maxAthletes"
                     type="number"
@@ -200,10 +205,12 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
                       }))
                     }
                   />
-                  <p className="text-xs text-muted-foreground mt-1">-1 = unlimited</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t('limits.unlimitedSuffix')}
+                  </p>
                 </div>
                 <div>
-                  <Label htmlFor="aiChatLimit">AI Chat Limit</Label>
+                  <Label htmlFor="aiChatLimit">{t('labels.aiChatLimit')}</Label>
                   <Input
                     id="aiChatLimit"
                     type="number"
@@ -216,7 +223,7 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
                     }
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    -1 = unlimited, 0 = no access
+                    {t('limits.unlimitedSuffix')}
                   </p>
                 </div>
               </div>
@@ -229,17 +236,17 @@ export function PricingTierCard({ tier, formatPrice, onUpdate }: PricingTierCard
                     setEditData((d) => ({ ...d, isActive: checked }))
                   }
                 />
-                <Label htmlFor="isActive">Active</Label>
+                <Label htmlFor="isActive">{t('labels.active')}</Label>
               </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsEditing(false)}>
                 <X className="h-4 w-4 mr-2" />
-                Cancel
+                {t('actions.cancel')}
               </Button>
               <Button onClick={handleSave} disabled={saving}>
                 <Check className="h-4 w-4 mr-2" />
-                Save
+                {t('actions.save')}
               </Button>
             </div>
           </DialogContent>
