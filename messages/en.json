@@ -6159,6 +6159,33 @@
           "gymnasticsSkills": "What level are you at on different gymnastics movements?",
           "olympicLifting": "Your olympic lifting experience and how you like to train"
         },
+        "benchmarks": {
+          "fran": {
+            "label": "Fran",
+            "preset": "21-15-9",
+            "movements": "Thrusters + Pull-ups"
+          },
+          "grace": {
+            "label": "Grace",
+            "preset": "30 reps",
+            "movements": "Clean & Jerks"
+          },
+          "diane": {
+            "label": "Diane",
+            "preset": "21-15-9",
+            "movements": "Deadlifts + HSPU"
+          },
+          "helen": {
+            "label": "Helen",
+            "preset": "3 rounds",
+            "movements": "400m + KB + PU"
+          },
+          "murph": {
+            "label": "Murph",
+            "preset": "Hero",
+            "movements": "1mi + 100/200/300 + 1mi"
+          }
+        },
         "labels": {
           "experienceLevel": "Experience level",
           "yearsTraining": "Years of training",

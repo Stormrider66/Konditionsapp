@@ -9,6 +9,7 @@ import { ChangeSportDialog } from '@/components/athlete/ChangeSportDialog'
 import { SPORT_OPTIONS } from '@/components/onboarding/SportSelector'
 import { SportType } from '@prisma/client'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ManageSportsSectionProps {
   clientId: string
@@ -20,12 +21,20 @@ interface ManageSportsSectionProps {
 
 export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSectionProps) {
   const [showChangeSportDialog, setShowChangeSportDialog] = useState(false)
+  const locale = useLocale()
+  const tSport = useTranslations('components.sportSelector')
+  const localeKey = locale === 'en' ? 'en' : 'sv'
 
   const primarySportInfo = SPORT_OPTIONS.find(s => s.value === sportProfile.primarySport)
   const secondarySports = (sportProfile.secondarySports || []) as SportType[]
   const secondarySportsInfo = secondarySports
     .map(sport => SPORT_OPTIONS.find(s => s.value === sport))
     .filter(Boolean)
+
+  const getSportLabel = (sport: SportType | undefined) => {
+    if (!sport) return ''
+    return tSport(`sports.${sport}.label.${localeKey}`)
+  }
 
   return (
     <>
@@ -48,7 +57,7 @@ export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSect
                     <span className="text-2xl">{primarySportInfo.icon}</span>
                     <div>
                       <p className="text-sm font-bold text-slate-900 dark:text-white">
-                        {primarySportInfo.labelSv}
+                        {getSportLabel(primarySportInfo?.value as SportType)}
                       </p>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                         Huvudsport
@@ -69,7 +78,7 @@ export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSect
                           className="gap-1.5 h-8 px-3 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10"
                         >
                           <span>{sport.icon}</span>
-                          <span className="text-xs">{sport.labelSv}</span>
+                          <span className="text-xs">{getSportLabel(sport.value as SportType)}</span>
                         </Badge>
                       ))}
                     </div>

@@ -412,67 +412,67 @@ export function FunctionalFitnessOnboarding({ settings, onUpdate }: FunctionalFi
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                Fran
-                <Badge variant="secondary" className="text-xs">21-15-9</Badge>
+                {t('benchmarks.fran.label')}
+                <Badge variant="secondary" className="text-xs">{t('benchmarks.fran.preset')}</Badge>
               </Label>
               <Input
                 placeholder="3:00"
                 value={formatTimeInput(settings.benchmarks.fran)}
                 onChange={(e) => updateBenchmark('fran', parseTimeInput(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">Thrusters + Pull-ups</p>
+              <p className="text-xs text-muted-foreground">{t('benchmarks.fran.movements')}</p>
             </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                Grace
-                <Badge variant="secondary" className="text-xs">30 reps</Badge>
+                {t('benchmarks.grace.label')}
+                <Badge variant="secondary" className="text-xs">{t('benchmarks.grace.preset')}</Badge>
               </Label>
               <Input
                 placeholder="2:30"
                 value={formatTimeInput(settings.benchmarks.grace)}
                 onChange={(e) => updateBenchmark('grace', parseTimeInput(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">Clean & Jerks</p>
+              <p className="text-xs text-muted-foreground">{t('benchmarks.grace.movements')}</p>
             </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                Diane
-                <Badge variant="secondary" className="text-xs">21-15-9</Badge>
+                {t('benchmarks.diane.label')}
+                <Badge variant="secondary" className="text-xs">{t('benchmarks.diane.preset')}</Badge>
               </Label>
               <Input
                 placeholder="4:00"
                 value={formatTimeInput(settings.benchmarks.diane)}
                 onChange={(e) => updateBenchmark('diane', parseTimeInput(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">Deadlifts + HSPU</p>
+              <p className="text-xs text-muted-foreground">{t('benchmarks.diane.movements')}</p>
             </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                Helen
-                <Badge variant="secondary" className="text-xs">3 rounds</Badge>
+                {t('benchmarks.helen.label')}
+                <Badge variant="secondary" className="text-xs">{t('benchmarks.helen.preset')}</Badge>
               </Label>
               <Input
                 placeholder="10:00"
                 value={formatTimeInput(settings.benchmarks.helen)}
                 onChange={(e) => updateBenchmark('helen', parseTimeInput(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">400m + KB + PU</p>
+              <p className="text-xs text-muted-foreground">{t('benchmarks.helen.movements')}</p>
             </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                Murph
-                <Badge variant="secondary" className="text-xs">Hero</Badge>
+                {t('benchmarks.murph.label')}
+                <Badge variant="secondary" className="text-xs">{t('benchmarks.murph.preset')}</Badge>
               </Label>
               <Input
                 placeholder="45:00"
                 value={formatTimeInput(settings.benchmarks.murph)}
                 onChange={(e) => updateBenchmark('murph', parseTimeInput(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">1mi + 100/200/300 + 1mi</p>
+              <p className="text-xs text-muted-foreground">{t('benchmarks.murph.movements')}</p>
             </div>
           </div>
         </CardContent>

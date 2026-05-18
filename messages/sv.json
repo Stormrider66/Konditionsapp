@@ -6047,6 +6047,33 @@
           "gymnasticsSkills": "Vilken nivå har du på olika gymnastikrörelser?",
           "olympicLifting": "Din erfarenhet av olympiska lyft och hur du vill träna"
         },
+        "benchmarks": {
+          "fran": {
+            "label": "Fran",
+            "preset": "21-15-9",
+            "movements": "Thrusters + pull-ups"
+          },
+          "grace": {
+            "label": "Grace",
+            "preset": "30 reps",
+            "movements": "Clean & Jerks"
+          },
+          "diane": {
+            "label": "Diane",
+            "preset": "21-15-9",
+            "movements": "Marklyft + HSPU"
+          },
+          "helen": {
+            "label": "Helen",
+            "preset": "3 varv",
+            "movements": "400m + KB + PU"
+          },
+          "murph": {
+            "label": "Murph",
+            "preset": "Hero",
+            "movements": "1mi + 100/200/300 + 1mi"
+          }
+        },
         "labels": {
           "experienceLevel": "Erfarenhetsnivå",
           "yearsTraining": "År av träning",
