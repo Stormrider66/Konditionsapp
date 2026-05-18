@@ -65,7 +65,7 @@ import {
   LifeBuoy,
   Coins,
 } from 'lucide-react';
-import { useTranslations } from '@/i18n/client';
+import { useLocale, useTranslations } from '@/i18n/client';
 import { ContractsTable } from '@/components/admin/contracts/ContractsTable';
 import { PricingTiersManager } from '@/components/admin/pricing/PricingTiersManager';
 import { MonitoringDashboard } from '@/components/admin/monitoring/MonitoringDashboard';
@@ -90,7 +90,7 @@ import {
   Bar,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
 
 interface AdminDashboardClientProps {
   userId: string;
@@ -171,23 +171,13 @@ interface BusinessOption {
   name: string;
 }
 
-const COACH_TIER_OPTIONS = [
-  { value: 'FREE', label: 'Free' },
-  { value: 'BASIC', label: 'Basic' },
-  { value: 'PRO', label: 'Pro' },
-  { value: 'ENTERPRISE', label: 'Enterprise' },
-] as const;
-
-const ATHLETE_TIER_OPTIONS = [
-  { value: 'FREE', label: 'Free' },
-  { value: 'STANDARD', label: 'Standard' },
-  { value: 'PRO', label: 'Pro' },
-  { value: 'ELITE', label: 'Elite' },
-] as const;
+const COACH_TIER_OPTIONS = ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'] as const;
+const ATHLETE_TIER_OPTIONS = ['FREE', 'STANDARD', 'PRO', 'ELITE'] as const;
 
 export function AdminDashboardClient({ userId, userName }: AdminDashboardClientProps) {
   const t = useTranslations('admin');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
 
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -260,11 +250,11 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         setDeleteDialogUser(null);
         fetchUsers();
       } else {
-        alert(result.error || 'Kunde inte ta bort användaren');
+        alert(result.error || t('deleteUserError'));
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Ett fel uppstod vid borttagning av användaren');
+      alert(t('deleteUserUnexpected'));
     } finally {
       setDeleting(false);
     }
@@ -392,7 +382,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
     const customAiAllowanceSek = trimmed === '' ? null : Number(trimmed);
 
     if (customAiAllowanceSek !== null && (!Number.isFinite(customAiAllowanceSek) || customAiAllowanceSek < 0)) {
-      alert('Ange ett positivt belopp eller lämna tomt för standard.');
+      alert(t('positiveAmountOrDefault'));
       return;
     }
 
@@ -406,11 +396,11 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
       if (response.ok && result.success) {
         fetchUsers();
       } else {
-        alert(result.error || 'Kunde inte uppdatera AI-krediter');
+        alert(result.error || t('aiCreditUpdateError'));
       }
     } catch (error) {
       console.error('Error updating athlete AI allowance:', error);
-      alert('Ett fel uppstod vid uppdatering av AI-krediter');
+      alert(t('aiCreditUpdateUnexpected'));
     }
   };
 
@@ -441,19 +431,51 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         setEditingEmailUserId(null);
         fetchUsers();
       } else {
-        alert(result.error || 'Kunde inte uppdatera e-post');
+        alert(result.error || t('emailUpdateError'));
       }
     } catch (error) {
       console.error('Error updating email:', error);
-      alert('Ett fel uppstod vid uppdatering av e-post');
+      alert(t('emailUpdateUnexpected'));
     }
   };
 
   const formatChartDate = (dateStr: string) => {
+    const chartLocale = locale === 'en' ? enUS : sv;
     try {
-      return format(parseISO(dateStr), 'd MMM', { locale: sv });
+      return format(parseISO(dateStr), 'd MMM', { locale: chartLocale });
     } catch {
       return dateStr;
+    }
+  };
+
+  const getTierLabel = (tier: string) => {
+    switch (tier) {
+      case 'ENTERPRISE':
+        return t('tierEnterprise');
+      case 'PRO':
+        return t('tierPro');
+      case 'BASIC':
+        return t('tierBasic');
+      case 'STANDARD':
+        return t('tierStandard');
+      case 'ELITE':
+        return t('tierElite');
+      case 'FREE':
+      default:
+        return t('tierFree');
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'COACH':
+        return t('roleCoach');
+      case 'ATHLETE':
+        return t('roleAthlete');
+      case 'ADMIN':
+        return t('roleAdmin');
+      default:
+        return role;
     }
   };
 
@@ -520,51 +542,51 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
             <TabsTrigger value="users" className="whitespace-nowrap">{t('users')}</TabsTrigger>
             <TabsTrigger value="businesses" className="flex items-center gap-1 whitespace-nowrap">
               <Building2 className="h-3 w-3" />
-              Businesses
+              {t('businesses')}
             </TabsTrigger>
             <TabsTrigger value="pricing" className="flex items-center gap-1 whitespace-nowrap">
               <CreditCard className="h-3 w-3" />
-              Pricing
+              {t('pricing')}
             </TabsTrigger>
             <TabsTrigger value="unit-economics" className="flex items-center gap-1 whitespace-nowrap">
               <TrendingUp className="h-3 w-3" />
-              Unit Economics
+              {t('unitEconomics')}
             </TabsTrigger>
             <TabsTrigger value="ai-costs" className="flex items-center gap-1 whitespace-nowrap">
               <Coins className="h-3 w-3" />
-              AI Costs
+              {t('aiCosts')}
             </TabsTrigger>
             <TabsTrigger value="contracts" className="flex items-center gap-1 whitespace-nowrap">
               <FileText className="h-3 w-3" />
-              Contracts
+              {t('contracts')}
             </TabsTrigger>
             <TabsTrigger value="monitoring" className="flex items-center gap-1 whitespace-nowrap">
               <Monitor className="h-3 w-3" />
-              Monitoring
+              {t('monitoring')}
             </TabsTrigger>
             <TabsTrigger value="data-health" className="flex items-center gap-1 whitespace-nowrap">
               <Shield className="h-3 w-3" />
-              Data Health
+              {t('dataHealth')}
             </TabsTrigger>
             <TabsTrigger value="ai-models" className="flex items-center gap-1 whitespace-nowrap">
               <Bot className="h-3 w-3" />
-              AI Models
+              {t('aiModels')}
             </TabsTrigger>
             <TabsTrigger value="ai-skills" className="flex items-center gap-1 whitespace-nowrap">
               <BrainCircuit className="h-3 w-3" />
-              AI Skills
+              {t('aiSkills')}
             </TabsTrigger>
             <TabsTrigger value="operator-agents" className="flex items-center gap-1 whitespace-nowrap">
               <Bot className="h-3 w-3" />
-              Agents
+              {t('agents')}
             </TabsTrigger>
             <TabsTrigger value="support" className="flex items-center gap-1 whitespace-nowrap">
               <LifeBuoy className="h-3 w-3" />
-              Support
+              {t('support')}
             </TabsTrigger>
             <TabsTrigger value="weekly-reports" className="flex items-center gap-1 whitespace-nowrap">
               <FileText className="h-3 w-3" />
-              Reports
+              {t('reports')}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -687,7 +709,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                       return (
                         <div key={tier} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Badge className={getTierColor(tier)}>{tier}</Badge>
+                            <Badge className={getTierColor(tier)}>{getTierLabel(tier)}</Badge>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
@@ -744,7 +766,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                   <CardContent className="space-y-3">
                     {['COACH', 'ATHLETE', 'ADMIN'].map((role) => (
                       <div key={role} className="flex justify-between items-center">
-                        <Badge className={getRoleColor(role)}>{role}</Badge>
+                        <Badge className={getRoleColor(role)}>{getRoleLabel(role)}</Badge>
                         <span className="font-medium">{stats.users.byRole[role] || 0}</span>
                       </div>
                     ))}
@@ -813,18 +835,18 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">{t('allRoles')}</SelectItem>
-                    <SelectItem value="COACH">Coach</SelectItem>
-                    <SelectItem value="ATHLETE">Athlete</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="COACH">{t('roleCoach')}</SelectItem>
+                    <SelectItem value="ATHLETE">{t('roleAthlete')}</SelectItem>
+                    <SelectItem value="ADMIN">{t('roleAdmin')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={businessFilter} onValueChange={setBusinessFilter}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Alla företag" />
+                    <SelectValue placeholder={t('allBusinesses')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">Alla företag</SelectItem>
-                    <SelectItem value="NONE">Standard (inget företag)</SelectItem>
+                    <SelectItem value="ALL">{t('allBusinesses')}</SelectItem>
+                    <SelectItem value="NONE">{t('noBusiness')}</SelectItem>
                     {businessOptions.map((b) => (
                       <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                     ))}
@@ -846,14 +868,14 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                           <TableHead>{t('name')}</TableHead>
                           <TableHead className="min-w-[220px]">{t('email')}</TableHead>
                           <TableHead className="w-[112px]">{t('role')}</TableHead>
-                          <TableHead className="w-[136px]">Platform</TableHead>
+                          <TableHead className="w-[136px]">{t('platform')}</TableHead>
                           <TableHead className="w-[128px]">{t('tier')}</TableHead>
-                          <TableHead className="w-[150px]">AI SEK</TableHead>
+                          <TableHead className="w-[150px]">{t('aiBudget')}</TableHead>
                           <TableHead className="w-[72px]">{t('clients')}</TableHead>
-                          <TableHead>Företag</TableHead>
+                          <TableHead>{t('businesses')}</TableHead>
                           <TableHead className="w-[104px] whitespace-nowrap">{t('joined')}</TableHead>
                           <TableHead className="sticky right-0 z-10 w-[56px] bg-background text-right">
-                            <span className="sr-only">Åtgärder</span>
+                            <span className="sr-only">{t('actions')}</span>
                           </TableHead>
                         </TableRow>
                       </TableHeader>
@@ -909,7 +931,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                       setEditingEmailValue(user.email);
                                     }}
                                     className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="Ändra e-post"
+                                    title={t('editEmail')}
                                   >
                                     <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                                   </button>
@@ -925,9 +947,9 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="COACH">Coach</SelectItem>
-                                  <SelectItem value="ATHLETE">Athlete</SelectItem>
-                                  <SelectItem value="ADMIN">Admin</SelectItem>
+                                  <SelectItem value="COACH">{t('roleCoach')}</SelectItem>
+                                  <SelectItem value="ATHLETE">{t('roleAthlete')}</SelectItem>
+                                  <SelectItem value="ADMIN">{t('roleAdmin')}</SelectItem>
                                 </SelectContent>
                               </Select>
                             </TableCell>
@@ -940,10 +962,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="NONE">-</SelectItem>
-                                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                                  <SelectItem value="ADMIN">Admin</SelectItem>
-                                  <SelectItem value="SUPPORT">Support</SelectItem>
+                                  <SelectItem value="NONE">{t('none')}</SelectItem>
+                                  <SelectItem value="SUPER_ADMIN">{t('roleSuperAdmin')}</SelectItem>
+                                  <SelectItem value="ADMIN">{t('roleAdmin')}</SelectItem>
+                                  <SelectItem value="SUPPORT">{t('roleSupport')}</SelectItem>
                                 </SelectContent>
                               </Select>
                             </TableCell>
@@ -957,8 +979,8 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                 </SelectTrigger>
                                 <SelectContent>
                                   {(user.role === 'ATHLETE' ? ATHLETE_TIER_OPTIONS : COACH_TIER_OPTIONS).map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
-                                      {option.label}
+                                    <SelectItem key={option} value={option}>
+                                      {getTierLabel(option)}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -970,7 +992,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                   <div className="flex items-center gap-2">
                                     <Input
                                       defaultValue={user.subscription?.customAiAllowanceSek ?? ''}
-                                      placeholder="Auto"
+                                      placeholder={t('auto')}
                                       className="h-8 w-[76px] text-sm"
                                       inputMode="decimal"
                                       onBlur={(event) => {
@@ -985,17 +1007,17 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                           event.currentTarget.blur();
                                         }
                                       }}
-                                      title="Tomt värde använder planens eller företagets standard"
+                                      title={t('emptyValueUsesDefaultAiAllowance')}
                                     />
                                     <span className="text-xs font-medium text-muted-foreground">
                                       {user.subscription?.effectiveAiAllowanceSek ?? '-'} SEK
                                     </span>
                                   </div>
                                   <p className="text-[11px] leading-tight text-muted-foreground">
-                                    Effektiv månadsgräns
+                                    {t('effectiveMonthlyLimit')}
                                     {user.subscription?.businessEliteAiAllowanceSek !== null &&
                                     user.subscription?.businessEliteAiAllowanceSek !== undefined
-                                      ? `, Elite default ${user.subscription.businessEliteAiAllowanceSek} SEK`
+                                      ? `, ${t('eliteDefaultAiAllowance', { amount: user.subscription.businessEliteAiAllowanceSek })}`
                                       : ''}
                                   </p>
                                 </div>
@@ -1012,7 +1034,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                     <button
                                       onClick={() => removeUserFromBusiness(user.id, b.id)}
                                       className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      title={`Ta bort från ${b.name}`}
+                                      title={t('removeCompanyTitle', { name: b.name })}
                                     >
                                       <X className="h-3 w-3" />
                                     </button>
@@ -1021,10 +1043,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                 <button
                                   onClick={() => setAssignDialogUser(user)}
                                   className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                  title="Tilldela företag"
+                                  title={t('assignBusiness')}
                                 >
                                   <Plus className="h-3 w-3" />
-                                  {user.businesses.length === 0 && 'Tilldela'}
+                                  {user.businesses.length === 0 && t('assign')}
                                 </button>
                               </div>
                             </TableCell>
@@ -1037,7 +1059,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                                 onClick={() => setDeleteDialogUser(user)}
-                                title="Ta bort användare"
+                                title={t('deleteUser')}
                                 disabled={user.id === userId}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1132,15 +1154,17 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
       <Dialog open={!!assignDialogUser} onOpenChange={(open) => { if (!open) { setAssignDialogUser(null); setSelectedBusinessId(''); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tilldela företag</DialogTitle>
+            <DialogTitle>{t('assignBusiness')}</DialogTitle>
             <DialogDescription>
-              Tilldela {assignDialogUser?.name || assignDialogUser?.email} till ett företag.
+              {t('assignBusinessDescription', {
+                user: assignDialogUser?.name || assignDialogUser?.email || '',
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Select value={selectedBusinessId} onValueChange={setSelectedBusinessId}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj företag..." />
+                <SelectValue placeholder={t('chooseBusiness')} />
               </SelectTrigger>
               <SelectContent>
                 {businessOptions
@@ -1152,13 +1176,13 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
             </Select>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => { setAssignDialogUser(null); setSelectedBusinessId(''); }}>
-                Avbryt
+                {tCommon('cancel')}
               </Button>
               <Button
                 disabled={!selectedBusinessId}
                 onClick={() => assignDialogUser && assignUserToBusiness(assignDialogUser.id, selectedBusinessId)}
               >
-                Tilldela
+                {t('assign')}
               </Button>
             </div>
           </div>
@@ -1169,15 +1193,17 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
       <AlertDialog open={!!deleteDialogUser} onOpenChange={(open) => { if (!open) setDeleteDialogUser(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort användare</AlertDialogTitle>
+            <AlertDialogTitle>{t('deleteUser')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ta bort <strong>{deleteDialogUser?.name || deleteDialogUser?.email}</strong>
+              {t('deleteUserConfirmation', {
+                user: deleteDialogUser?.name || deleteDialogUser?.email || '',
+              })}
               {deleteDialogUser?.name && <> ({deleteDialogUser.email})</>}?
-              All data kopplad till användaren raderas permanent. Denna åtgärd kan inte ångras.
+              {t('deleteUserWarning')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{tCommon('cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleting}
@@ -1186,7 +1212,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                 if (deleteDialogUser) deleteUser(deleteDialogUser.id);
               }}
             >
-              {deleting ? 'Tar bort...' : 'Ta bort'}
+              {deleting ? t('deleting') : tCommon('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

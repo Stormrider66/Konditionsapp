@@ -10,7 +10,7 @@ export default async function AdminPage() {
   return (
     <AdminDashboardClient
       userId={user.id}
-      userName={user.name || 'Admin'}
+      userName={user.name || t('fallbackAdminLabel')}
     />
   );
 }
