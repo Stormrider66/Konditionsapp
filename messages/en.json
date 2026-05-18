@@ -4559,6 +4559,97 @@
         }
       }
     },
+    "programImportClient": {
+      "title": {
+        "step1": "Step 1 — Submit program",
+        "step2": "Step 2 — Review and publish"
+      },
+      "step1Description": "Choose how you want to provide it. We interpret the content with AI and place it in the standard program editor.",
+      "step2Description": "Fix fields, add/remove sessions, and assign to an athlete. No database changes are saved until you publish.",
+      "tabs": {
+        "pasteText": "Paste text",
+        "uploadFile": "Upload file"
+      },
+      "pastePlaceholder": "Paste the program here.\n\nExample:\nWeek 1 (Base):\n  Mon – Easy run 45 min zone 2\n  Tue – Strength (squat 3x8, lunge 3x10, plank 3x45s)\n  Wed – Rest\n  Thu – Tempo 10 min + 5 x 3 min threshold + 10 min\n  ...",
+      "selectFileCta": "Select file",
+      "removeFile": "Remove file",
+      "dropHint": "Drop a file here, or click to choose one",
+      "supportedFormats": "Excel · CSV · PDF · text · image (screenshot, photo, handwritten)",
+      "visionHint": "Image → vision mode (Gemini 3.1 Pro)",
+      "aiQualityLabel": "AI quality",
+      "preferClaudeTitle": "Prefer Claude",
+      "preferClaudeDescription": "More literal on text programs — requires Anthropic key",
+      "parseButton": {
+        "parsing": "Interpreting program…",
+        "default": "Interpret with AI"
+      },
+      "toasts": {
+        "parseSuccessTitle": "Program imported",
+        "importedProgramName": "Imported program",
+        "parseWarningsTitle": "Import complete — review warnings",
+        "parseSuccessDescription": "Model: {model}. Review in the editor below.",
+        "parseFailedTitle": "Import failed",
+        "parseFailedDescription": "Could not parse the program",
+        "unknownError": "Unknown error",
+        "resolveFailedTitle": "Could not match exercises",
+        "resolveFailedDescription": "Exercise matching is not available right now. You can still publish — exercises will stay as free text and can be mapped later.",
+        "retryUpdated": "Reinterpretation updated",
+        "retryFailedTitle": "Re-interpretation failed",
+        "missingAthleteTitle": "Choose an athlete",
+        "missingAthleteDescription": "Choose who the program should be assigned to before publishing.",
+        "publishedTitle": "Program published",
+        "publishedDescription": "Opening program view…"
+      },
+      "mapping": {
+        "heading": "Exercise mapping",
+        "badge": {
+          "mapped": "Mapped",
+          "skipped": "Skipped",
+          "mappedCount": "{mapped}/{total} mapped",
+          "skippedCount": " · {count} skipped"
+        },
+        "status": {
+          "resolving": "Searching for matches in the exercise library…",
+          "allLinked": "All remaining exercises are linked.",
+          "allLinkedSkips": "All remaining exercises are linked. {skipped} skipped.",
+          "linkHint": "Choose the right exercise to link strength sessions to progression data."
+        },
+        "empty": {
+          "newMappingHint": "Did you add new exercises in the editor? Scan again to match them to the library."
+        },
+        "rowSource": "From import",
+        "rowSkip": "Skip",
+        "rowSkipTitle": "Skip — keep as free-text",
+        "scanAgain": "Scan again",
+        "missing": "No suitable matches found. Create the exercise manually after publishing."
+      },
+      "assignAthlete": {
+        "title": "Assign athlete",
+        "description": "Choose who the program should be published to.",
+        "placeholder": "Select athlete…",
+        "noAthletes": "No athletes found",
+        "publishHint": "Use the \"Publish\" button in the editor when you are done."
+      },
+      "ownProgram": {
+        "title": "Your program",
+        "description": "When published, the program lands in your calendar and does not replace an ongoing program — you can always go back and edit it."
+      },
+      "reset": "Start over",
+      "intent": {
+        "fast": {
+          "label": "Fast (cheapest)",
+          "hint": "Best for simple text or CSV. Fast but may miss complex PDFs."
+        },
+        "balanced": {
+          "label": "Balanced (recommended)",
+          "hint": "Gemini 3 Flash / Sonnet / GPT-5 Mini. Best cost/quality balance."
+        },
+        "powerful": {
+          "label": "Powerful (best quality)",
+          "hint": "Gemini 3.1 Pro / Opus. Use for messy PDFs and complex programs."
+        }
+      }
+    },
     "practiceSheetPrintButton": {
       "actions": {
         "copyLink": "Copy link",

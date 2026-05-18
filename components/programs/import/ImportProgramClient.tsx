@@ -14,6 +14,7 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from '@/i18n/client'
 import {
   Card,
   CardContent,
@@ -127,24 +128,6 @@ function isImageFile(f: File | null): boolean {
   return f.type.startsWith('image/') || IMAGE_EXTENSION_RE.test(f.name)
 }
 
-const INTENT_OPTIONS: { value: ModelIntent; label: string; hint: string }[] = [
-  {
-    value: 'fast',
-    label: 'Snabb (billigast)',
-    hint: 'Lättast paste/CSV. Snabb men tar missar i komplexa PDF:er.',
-  },
-  {
-    value: 'balanced',
-    label: 'Balanserad (rekommenderas)',
-    hint: 'Gemini 3 Flash / Sonnet / GPT-5 Mini. Bäst kostnad/kvalitet.',
-  },
-  {
-    value: 'powerful',
-    label: 'Kraftfull (bäst kvalitet)',
-    hint: 'Gemini 3.1 Pro / Opus. Använd för röriga PDF:er och komplexa program.',
-  },
-]
-
 export function ImportProgramClient({
   clients,
   basePath,
@@ -153,6 +136,7 @@ export function ImportProgramClient({
 }: ImportProgramClientProps) {
   const { toast } = useToast()
   const router = useRouter()
+  const t = useTranslations('components.programImportClient')
 
   const [tab, setTab] = useState<'paste' | 'upload'>('paste')
   const [pastedText, setPastedText] = useState('')
@@ -172,6 +156,24 @@ export function ImportProgramClient({
     },
     [basePath, programDetailPath]
   )
+
+  const intentOptions = [
+    {
+      value: 'fast' as ModelIntent,
+      label: t('intent.fast.label'),
+      hint: t('intent.fast.hint'),
+    },
+    {
+      value: 'balanced' as ModelIntent,
+      label: t('intent.balanced.label'),
+      hint: t('intent.balanced.hint'),
+    },
+    {
+      value: 'powerful' as ModelIntent,
+      label: t('intent.powerful.label'),
+      hint: t('intent.powerful.hint'),
+    },
+  ]
 
   const [parsing, setParsing] = useState(false)
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
@@ -309,7 +311,7 @@ export function ImportProgramClient({
       if (!response.ok || !data?.success) {
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) throw allowanceError
-        throw new Error(data?.error || 'Kunde inte tolka programmet')
+        throw new Error(data?.error || t('toasts.parseFailedDescription'))
       }
 
       const typedData = data as ParseResponse
@@ -319,24 +321,26 @@ export function ImportProgramClient({
       applyResolutions(typedData.resolutions ?? [])
       if (typedData.warnings.length > 0) {
         toast({
-          title: 'Importen är klar — läs varningarna',
+          title: t('toasts.parseWarningsTitle'),
           description: typedData.warnings[0],
         })
       } else {
         toast({
-          title: 'Program importerat',
-          description: `Modell: ${typedData.modelUsed}. Granska i editorn nedan.`,
+          title: t('toasts.parseSuccessTitle'),
+          description: t('toasts.parseSuccessDescription', {
+            model: typedData.modelUsed,
+          }),
         })
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Okänt fel'
+      const msg = e instanceof Error ? e.message : t('toasts.unknownError')
       const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
       if (!isAiAllowanceExhaustedError(e)) {
         setParseError(description)
         setAiAllowanceAction(null)
       }
       toast({
-        title: 'Import misslyckades',
+        title: t('toasts.parseFailedTitle'),
         description,
         variant: 'destructive',
       })
@@ -380,9 +384,9 @@ export function ImportProgramClient({
     } catch {
       setResolutions([])
       toast({
-        title: 'Kunde inte matcha övningar',
+        title: t('toasts.resolveFailedTitle'),
         description:
-          'Övningskopplingen är inte tillgänglig just nu. Du kan fortfarande publicera — övningarna stannar som fritext och kan mappas senare.',
+          t('toasts.resolveFailedDescription'),
       })
     } finally {
       setResolving(false)
@@ -424,25 +428,25 @@ export function ImportProgramClient({
       if (!response.ok || !data?.success) {
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) throw allowanceError
-        throw new Error(data?.error || 'Kunde inte tolka programmet')
+        throw new Error(data?.error || t('toasts.parseFailedDescription'))
       }
       const typedData = data as ParseResponse
       setParseResult(typedData)
       applyResolutions(typedData.resolutions ?? [])
       setSkippedNames(new Set())
       toast({
-        title: 'Tolkning uppdaterad',
-        description: `Kör igen med ${typedData.modelUsed}.`,
+        title: t('toasts.retryUpdated'),
+        description: t('toasts.parseSuccessDescription', { model: typedData.modelUsed }),
       })
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Okänt fel'
+      const msg = e instanceof Error ? e.message : t('toasts.unknownError')
       const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
       if (!isAiAllowanceExhaustedError(e)) {
         setParseError(description)
         setAiAllowanceAction(null)
       }
       toast({
-        title: 'Omkörningen misslyckades',
+        title: t('toasts.retryFailedTitle'),
         description,
         variant: 'destructive',
       })
@@ -465,8 +469,8 @@ export function ImportProgramClient({
   const handlePublishClick = (currentDraftJson: string) => {
     if (!selectedAthleteId) {
       toast({
-        title: 'Välj en atlet',
-        description: 'Välj vem programmet ska tilldelas innan du publicerar.',
+        title: t('toasts.missingAthleteTitle'),
+        description: t('toasts.missingAthleteDescription'),
         variant: 'destructive',
       })
       return
@@ -488,23 +492,20 @@ export function ImportProgramClient({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-blue-500" />
-              Steg 1 — Lämna in programmet
+              {t('title.step1')}
             </CardTitle>
-            <CardDescription>
-              Välj hur du vill lämna in det. Vi tolkar innehållet med AI och
-              lägger resultatet i den vanliga programredigeraren.
-            </CardDescription>
+            <CardDescription>{t('step1Description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs value={tab} onValueChange={(v) => setTab(v as 'paste' | 'upload')}>
               <TabsList className="grid grid-cols-2 max-w-md">
                 <TabsTrigger value="paste">
                   <FileText className="h-4 w-4 mr-1" />
-                  Klistra in text
+                  {t('tabs.pasteText')}
                 </TabsTrigger>
                 <TabsTrigger value="upload">
                   <FileUp className="h-4 w-4 mr-1" />
-                  Ladda upp fil
+                  {t('tabs.uploadFile')}
                 </TabsTrigger>
               </TabsList>
 
@@ -513,7 +514,7 @@ export function ImportProgramClient({
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}
                   rows={14}
-                  placeholder={`Klistra in programmet här.\n\nT.ex.\nVecka 1 (Bas):\n  Mån – Lugn löpning 45 min zon 2\n  Tis – Styrka (knäböj 3x8, utfall 3x10, plankan 3x45s)\n  Ons – Vila\n  Tor – Tempo 10 min + 5 x 3 min tröskel + 10 min\n  ...`}
+                  placeholder={t('pastePlaceholder')}
                   className="font-mono text-sm"
                 />
               </TabsContent>
@@ -559,7 +560,7 @@ export function ImportProgramClient({
                               <>
                                 {' · '}
                                 <span className="text-purple-600">
-                                  Bild → vision-läge (Gemini 3.1 Pro)
+                                  {t('visionHint')}
                                 </span>
                               </>
                             )}
@@ -570,7 +571,7 @@ export function ImportProgramClient({
                         variant="ghost"
                         size="icon"
                         onClick={() => setFile(null)}
-                        aria-label="Ta bort filen"
+                        aria-label={t('removeFile')}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -579,10 +580,10 @@ export function ImportProgramClient({
                     <>
                       <Upload className="h-10 w-10 mx-auto text-slate-400 mb-2" />
                       <p className="text-sm font-medium mb-1">
-                        Släpp en fil här, eller klicka för att välja
+                        {t('dropHint')}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Excel · CSV · PDF · text · bild (skärmdump, foto, handskrivet)
+                        {t('supportedFormats')}
                       </p>
                       <input
                         type="file"
@@ -602,7 +603,7 @@ export function ImportProgramClient({
                           document.getElementById('import-file-input')?.click()
                         }
                       >
-                        Välj fil
+                        {t('selectFileCta')}
                       </Button>
                     </>
                   )}
@@ -612,7 +613,7 @@ export function ImportProgramClient({
 
             <div className="flex flex-col sm:flex-row sm:items-end gap-3 pt-2">
               <div className="space-y-1 flex-1 max-w-sm">
-                <Label className="text-xs">AI-kvalitet</Label>
+                <Label className="text-xs">{t('aiQualityLabel')}</Label>
                 <Select
                   value={intent}
                   onValueChange={(v) => setIntent(v as ModelIntent)}
@@ -621,7 +622,7 @@ export function ImportProgramClient({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {INTENT_OPTIONS.map((opt) => (
+                    {intentOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         <div className="flex flex-col">
                           <span>{opt.label}</span>
@@ -642,9 +643,9 @@ export function ImportProgramClient({
                   onCheckedChange={setPreferClaude}
                 />
                 <label htmlFor="prefer-claude" className="text-xs cursor-pointer select-none">
-                  <div className="font-medium">Prioritera Claude</div>
+                  <div className="font-medium">{t('preferClaudeTitle')}</div>
                   <div className="text-muted-foreground">
-                    Mer ordagrann på textprogram — kräver Anthropic-nyckel
+                    {t('preferClaudeDescription')}
                   </div>
                 </label>
               </div>
@@ -659,12 +660,12 @@ export function ImportProgramClient({
                 {parsing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Tolkar programmet…
+                    {t('parseButton.parsing')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Tolka med AI
+                    {t('parseButton.default')}
                   </>
                 )}
               </Button>
@@ -688,19 +689,17 @@ export function ImportProgramClient({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">
-                    Steg 2 — Granska och publicera
+                    {t('title.step2')}
                     <Badge variant="outline">{parseResult.inputKind}</Badge>
                     <Badge variant="secondary">{parseResult.modelUsed}</Badge>
                   </CardTitle>
                   <CardDescription>
-                    Rätta fält, lägg till/ta bort pass och tilldela till en
-                    atlet. Inga ändringar sparas till databasen förrän du
-                    publicerar.
+                    {t('step2Description')}
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleReset}>
                   <X className="h-4 w-4 mr-1" />
-                  Börja om
+                  {t('reset')}
                 </Button>
               </div>
             </CardHeader>
@@ -737,9 +736,9 @@ export function ImportProgramClient({
               {!selfOnly && (
                 <Card className="h-fit">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Tilldela atlet</CardTitle>
+                    <CardTitle className="text-sm">{t('assignAthlete.title')}</CardTitle>
                     <CardDescription className="text-xs">
-                      Välj vem programmet ska publiceras till.
+                      {t('assignAthlete.description')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
@@ -748,12 +747,12 @@ export function ImportProgramClient({
                       onValueChange={setSelectedAthleteId}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Välj atlet…" />
+                        <SelectValue placeholder={t('assignAthlete.placeholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {clients.length === 0 ? (
                           <div className="px-2 py-1 text-sm text-muted-foreground">
-                            Inga atleter funna
+                            {t('assignAthlete.noAthletes')}
                           </div>
                         ) : (
                           clients.map((c) => (
@@ -765,7 +764,7 @@ export function ImportProgramClient({
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Använd &quot;Publicera&quot;-knappen i editorn när du är klar.
+                      {t('assignAthlete.publishHint')}
                     </p>
                   </CardContent>
                 </Card>
@@ -773,11 +772,9 @@ export function ImportProgramClient({
               {selfOnly && (
                 <Card className="h-fit border-blue-200 bg-blue-50/50">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Ditt program</CardTitle>
+                    <CardTitle className="text-sm">{t('ownProgram.title')}</CardTitle>
                     <CardDescription className="text-xs">
-                      När du publicerar landar programmet i din kalender och
-                      ersätter inte pågående program — du kan alltid gå tillbaka
-                      och ändra.
+                      {t('ownProgram.description')}
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -787,7 +784,7 @@ export function ImportProgramClient({
                 <Card className="h-fit">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center justify-between">
-                      <span>Övningskoppling</span>
+                      <span>{t('mapping.heading')}</span>
                       {!resolving && (
                         <Badge
                           variant={needsMapping.length === 0 ? 'outline' : 'secondary'}
@@ -797,19 +794,27 @@ export function ImportProgramClient({
                               : ''
                           }
                         >
-                          {mappedCount}/{totalExercises} mappade
-                          {skippedCount > 0 && ` · ${skippedCount} hoppade över`}
+                          {t('mapping.badge.mappedCount', {
+                            mapped: mappedCount,
+                            total: totalExercises,
+                          })}
+                          {skippedCount > 0 &&
+                            t('mapping.badge.skippedCount', { count: skippedCount })}
                         </Badge>
                       )}
                     </CardTitle>
                     <CardDescription className="text-xs">
                       {resolving
-                        ? 'Söker matchningar i övningsbiblioteket…'
+                        ? t('mapping.status.resolving')
                         : needsMapping.length === 0
                         ? skippedCount > 0
-                          ? 'Alla kvarvarande övningar kopplade.'
-                          : 'Alla övningar kopplade till biblioteket.'
-                        : 'Välj rätt övning för att länka styrkepass till progressionsdata.'}
+                          ? t('mapping.status.allLinkedSkips', {
+                              skipped: t('mapping.badge.skippedCount', {
+                                count: skippedCount,
+                              }),
+                            })
+                          : t('mapping.status.allLinked')
+                        : t('mapping.status.linkHint')}
                     </CardDescription>
                   </CardHeader>
                   {!resolving && (
@@ -830,8 +835,7 @@ export function ImportProgramClient({
                       ))}
                       <div className="pt-1 flex items-center justify-between gap-2 border-t">
                         <p className="text-[11px] text-muted-foreground">
-                          Lade du till nya övningar i editorn? Sök igen för att
-                          matcha dem mot biblioteket.
+                          {t('mapping.empty.newMappingHint')}
                         </p>
                         <Button
                           type="button"
@@ -842,7 +846,7 @@ export function ImportProgramClient({
                           }
                           disabled={resolving}
                         >
-                          Scanna igen
+                          {t('mapping.scanAgain')}
                         </Button>
                       </div>
                     </CardContent>
@@ -856,14 +860,14 @@ export function ImportProgramClient({
             <PublishProgramDialog
               open={publishOpen}
               onOpenChange={setPublishOpen}
-              programName={extractProgramName(publishContent)}
+              programName={extractProgramName(publishContent, t('toasts.importedProgramName'))}
               athleteId={selectedAthlete.id}
               athleteName={selectedAthlete.name}
               aiOutput={publishContent}
               onSuccess={(programId) => {
                 toast({
-                  title: 'Programmet publicerades',
-                  description: 'Öppnar programvyn…',
+                  title: t('toasts.publishedTitle'),
+                  description: t('toasts.publishedDescription'),
                 })
                 router.push(resolveProgramPath(programId))
               }}
@@ -880,9 +884,9 @@ export function ImportProgramClient({
  * EnhancedProgramPreview re-parses on its own; this is just for the dialog
  * header while we wait for the full parse.
  */
-function extractProgramName(output: string): string {
+function extractProgramName(output: string, fallbackName: string): string {
   const m = output.match(/"name"\s*:\s*"([^"\\]{1,120})"/)
-  return m?.[1] ?? 'Importerat program'
+  return m?.[1] ?? fallbackName
 }
 
 /**
@@ -898,6 +902,7 @@ function NeedsMappingRow({
   onPick: (exerciseId: string) => void
   onSkip: () => void
 }) {
+  const t = useTranslations('components.programImportClient')
   const top = resolution.candidates.slice(0, 3)
   return (
     <div className="border rounded-lg p-2 space-y-1.5 bg-white dark:bg-slate-900">
@@ -907,7 +912,7 @@ function NeedsMappingRow({
             {resolution.name}
           </div>
           <div className="text-[10px] text-muted-foreground">
-            Från importen
+            {t('mapping.rowSource')}
           </div>
         </div>
         <Button
@@ -915,14 +920,14 @@ function NeedsMappingRow({
           size="sm"
           className="h-7 text-xs text-muted-foreground"
           onClick={onSkip}
-          title="Hoppa över — låt den stanna som fritext"
+          title={t('mapping.rowSkipTitle')}
         >
-          Hoppa över
+          {t('mapping.rowSkip')}
         </Button>
       </div>
       {top.length === 0 ? (
         <div className="text-xs text-muted-foreground italic py-1">
-          Inga rimliga träffar hittades. Skapa övningen manuellt efter publicering.
+          {t('mapping.missing')}
         </div>
       ) : (
         <div className="space-y-1">

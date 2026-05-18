@@ -4559,6 +4559,97 @@
         }
       }
     },
+    "programImportClient": {
+      "title": {
+        "step1": "Steg 1 — Lämna in programmet",
+        "step2": "Steg 2 — Granska och publicera"
+      },
+      "step1Description": "Välj hur du vill lämna in programmet. Vi tolkar innehållet med AI och lägger resultatet i den vanliga programredigeraren.",
+      "step2Description": "Rätta fält, lägg till eller ta bort pass och tilldela till en atlet. Inga ändringar sparas i databasen förrän du publicerar.",
+      "tabs": {
+        "pasteText": "Klistra in text",
+        "uploadFile": "Ladda upp fil"
+      },
+      "pastePlaceholder": "Klistra in programmet här.\n\nExempel:\nVecka 1 (Grund):\n  Mån – Lugn löpning 45 min zon 2\n  Tis – Styrka (knäböj 3x8, utfall 3x10, plankan 3x45s)\n  Ons – Vila\n  Tor – Tempo 10 min + 5 x 3 min tröskel + 10 min\n  ...",
+      "selectFileCta": "Välj fil",
+      "removeFile": "Ta bort fil",
+      "dropHint": "Släpp en fil här, eller klicka för att välja",
+      "supportedFormats": "Excel · CSV · PDF · text · bild (skärmdump, foto, handskrivet)",
+      "visionHint": "Bild → vision-läge (Gemini 3.1 Pro)",
+      "aiQualityLabel": "AI-kvalitet",
+      "preferClaudeTitle": "Prioritera Claude",
+      "preferClaudeDescription": "Mer ordagrann på textprogram — kräver Anthropic-nyckel",
+      "parseButton": {
+        "parsing": "Tolkar programmet…",
+        "default": "Tolka med AI"
+      },
+      "toasts": {
+        "parseSuccessTitle": "Program importerat",
+        "importedProgramName": "Importerat program",
+        "parseWarningsTitle": "Importen är klar — läs varningarna",
+        "parseSuccessDescription": "Modell: {model}. Granska i editorn nedan.",
+        "parseFailedTitle": "Import misslyckades",
+        "parseFailedDescription": "Kunde inte tolka programmet",
+        "unknownError": "Okänt fel",
+        "resolveFailedTitle": "Kunde inte matcha övningar",
+        "resolveFailedDescription": "Övningskopplingen är inte tillgänglig just nu. Du kan fortfarande publicera — övningarna stannar som fritext och kan mappas senare.",
+        "retryUpdated": "Tolkning uppdaterad",
+        "retryFailedTitle": "Omkörningen misslyckades",
+        "missingAthleteTitle": "Välj en atlet",
+        "missingAthleteDescription": "Välj vem programmet ska tilldelas innan du publicerar.",
+        "publishedTitle": "Programmet publicerades",
+        "publishedDescription": "Öppnar programvyn…"
+      },
+      "mapping": {
+        "heading": "Övningskoppling",
+        "badge": {
+          "mapped": "Mappade",
+          "skipped": "Hoppade över",
+          "mappedCount": "{mapped}/{total} mappade",
+          "skippedCount": " · {count} hoppade över"
+        },
+        "status": {
+          "resolving": "Söker matchningar i övningsbiblioteket…",
+          "allLinked": "Alla kvarvarande övningar är länkade.",
+          "allLinkedSkips": "Alla kvarvarande övningar är länkade. {skipped} hoppade över.",
+          "linkHint": "Välj rätt övning för att länka styrkepass till progressionsdata."
+        },
+        "empty": {
+          "newMappingHint": "Lade du till nya övningar i editorn? Sök igen för att matcha dem mot biblioteket."
+        },
+        "rowSource": "Från importen",
+        "rowSkip": "Hoppa över",
+        "rowSkipTitle": "Hoppa över — låt den stanna som fritext",
+        "scanAgain": "Scanna igen",
+        "missing": "Inga rimliga träffar hittades. Skapa övningen manuellt efter publicering."
+      },
+      "assignAthlete": {
+        "title": "Tilldela atlet",
+        "description": "Välj vem programmet ska publiceras till.",
+        "placeholder": "Välj atlet…",
+        "noAthletes": "Inga atleter funna",
+        "publishHint": "Använd \"Publicera\"-knappen i editorn när du är klar."
+      },
+      "ownProgram": {
+        "title": "Ditt program",
+        "description": "När du publicerar landar programmet i din kalender och ersätter inte pågående program — du kan alltid gå tillbaka och ändra."
+      },
+      "reset": "Börja om",
+      "intent": {
+        "fast": {
+          "label": "Snabb (billigast)",
+          "hint": "Lättast paste/CSV. Snabb men riskerar att missa komplexa PDF:er."
+        },
+        "balanced": {
+          "label": "Balanserad (rekommenderas)",
+          "hint": "Gemini 3 Flash / Sonnet / GPT-5 Mini. Bäst kostnad/kvalitet."
+        },
+        "powerful": {
+          "label": "Kraftfull (bäst kvalitet)",
+          "hint": "Gemini 3.1 Pro / Opus. Använd för röriga PDF:er och komplexa program."
+        }
+      }
+    },
     "practiceSheetPrintButton": {
       "actions": {
         "copyLink": "Kopiera länk",
