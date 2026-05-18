@@ -4575,6 +4575,14 @@
         "network": "Could not connect to the server."
       }
     },
+    "wizardProgress": {
+      "steps": {
+        "sport": "Sport",
+        "goals": "Goals",
+        "dataSource": "Data source",
+        "configure": "Configure"
+      }
+    },
     "lactateScan": {
       "buttonText": "Scan lactate",
       "dialogTitle": "Lactate Reading",

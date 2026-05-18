@@ -2,17 +2,18 @@
 
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface Step {
   id: number
-  label: string
+  labelKey: string
 }
 
 const steps: Step[] = [
-  { id: 1, label: 'Sport' },
-  { id: 2, label: 'Mål' },
-  { id: 3, label: 'Datakälla' },
-  { id: 4, label: 'Konfigurera' },
+  { id: 1, labelKey: 'steps.sport' },
+  { id: 2, labelKey: 'steps.goals' },
+  { id: 3, labelKey: 'steps.dataSource' },
+  { id: 4, labelKey: 'steps.configure' },
 ]
 
 interface WizardProgressProps {
@@ -20,6 +21,7 @@ interface WizardProgressProps {
 }
 
 export function WizardProgress({ currentStep }: WizardProgressProps) {
+  const t = useTranslations('components.wizardProgress')
   return (
     <div className="w-full">
       <div className="flex items-center justify-between">
@@ -56,7 +58,7 @@ export function WizardProgress({ currentStep }: WizardProgressProps) {
                       : 'text-muted-foreground'
                   )}
                 >
-                  {step.label}
+                  {t(step.labelKey)}
                 </span>
               </div>
 

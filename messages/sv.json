@@ -4575,6 +4575,14 @@
         "network": "Kunde inte ansluta till servern."
       }
     },
+    "wizardProgress": {
+      "steps": {
+        "sport": "Sport",
+        "goals": "Mål",
+        "dataSource": "Datakälla",
+        "configure": "Konfigurera"
+      }
+    },
     "lactateScan": {
       "buttonText": "Skanna laktat",
       "dialogTitle": "Laktatavläsning",
