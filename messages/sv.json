@@ -10408,6 +10408,66 @@
       "charts": {
         "title": "Testdiagram"
       },
+      "hybridProgress": {
+        "title": "Progression för hybridpass",
+        "empty": {
+          "noResults": "Inga resultat att visa",
+          "logFirstWorkout": "Logga ditt första pass för att se statistik"
+        },
+        "stats": {
+          "total": "Totalt pass",
+          "prs": "Personliga rekord",
+          "avgRpe": "Snitt RPE"
+        },
+        "filters": {
+          "workoutsAll": "Alla pass",
+          "typesAll": "Alla typer"
+        },
+        "scoreTypes": {
+          "forTime": "For Time",
+          "roundsReps": "AMRAP",
+          "load": "Last",
+          "calories": "Kalorier"
+        },
+        "series": {
+          "time": "Tid",
+          "rounds": "Rundor",
+          "score": "Poäng"
+        },
+        "tabs": {
+          "timeline": "Tidslinje",
+          "benchmarks": "Benchmark",
+          "volume": "Volym",
+          "effort": "RPE"
+        },
+        "timeline": {
+          "minResults": "Minst 2 resultat krävs för graf",
+          "forTimeTitle": "For Time (lägre är bättre)",
+          "amrapTitle": "AMRAP (högre är bättre)",
+          "roundsSuffix": " rundor",
+          "repsSuffix": " reps"
+        },
+        "benchmarks": {
+          "title": "Pass med flera resultat - jämför första vs senaste",
+          "emptyTitle": "Inga benchmark-jämförelser tillgängliga",
+          "emptyDescription": "Gör samma pass flera gånger för att se progression",
+          "attempts": "försök"
+        },
+        "volume": {
+          "title": "Pass per vecka (senaste 12 veckorna)",
+          "barLabel": "Pass",
+          "average": "Snitt"
+        },
+        "effort": {
+          "title": "RPE-fördelning",
+          "barLabel": "Antal pass",
+          "levels": {
+            "low": "Lätt",
+            "medium": "Moderat",
+            "high": "Maximalt"
+          }
+        }
+      },
       "metabolic": {
         "title": "Metabol analys",
         "pace": "Tempo",

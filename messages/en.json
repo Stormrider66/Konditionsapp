@@ -10408,6 +10408,66 @@
       "charts": {
         "title": "Test charts"
       },
+      "hybridProgress": {
+        "title": "Hybrid Workout Progression",
+        "empty": {
+          "noResults": "No results to show",
+          "logFirstWorkout": "Log your first workout to see statistics"
+        },
+        "stats": {
+          "total": "Total workouts",
+          "prs": "Personal records",
+          "avgRpe": "Average RPE"
+        },
+        "filters": {
+          "workoutsAll": "All workouts",
+          "typesAll": "All types"
+        },
+        "scoreTypes": {
+          "forTime": "For Time",
+          "roundsReps": "AMRAP",
+          "load": "Load",
+          "calories": "Calories"
+        },
+        "series": {
+          "time": "Time",
+          "rounds": "Rounds",
+          "score": "Score"
+        },
+        "tabs": {
+          "timeline": "Timeline",
+          "benchmarks": "Benchmarks",
+          "volume": "Volume",
+          "effort": "RPE"
+        },
+        "timeline": {
+          "minResults": "At least 2 results required for chart",
+          "forTimeTitle": "For Time (lower is better)",
+          "amrapTitle": "AMRAP (higher is better)",
+          "roundsSuffix": " rounds",
+          "repsSuffix": " reps"
+        },
+        "benchmarks": {
+          "title": "Workouts with multiple results - compare first vs latest",
+          "emptyTitle": "No benchmark comparisons available",
+          "emptyDescription": "Complete the same workout multiple times to see progression",
+          "attempts": "attempts"
+        },
+        "volume": {
+          "title": "Workouts per week (last 12 weeks)",
+          "barLabel": "Workouts",
+          "average": "Average"
+        },
+        "effort": {
+          "title": "RPE Distribution",
+          "barLabel": "Number of workouts",
+          "levels": {
+            "low": "Easy",
+            "medium": "Moderate",
+            "high": "Maximum"
+          }
+        }
+      },
       "metabolic": {
         "title": "Metabolic analysis",
         "pace": "Pace",
@@ -15363,6 +15423,7 @@
         "loading": "Loading result...",
         "completed": "Completed",
         "result": "Result",
+        "target": "Target",
         "targetTime": "Target time",
         "pace": "Pace",
         "averagePulse": "Average pulse",

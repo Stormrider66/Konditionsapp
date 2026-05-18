@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, TrendingUp, TrendingDown, Clock, Target, Dumbbell } from 'lucide-react';
+import { useTranslations } from '@/i18n/client';
 
 export interface HybridWorkoutResultData {
   id: string;
@@ -60,6 +61,12 @@ interface HybridProgressChartProps {
 
 type ViewMode = 'timeline' | 'benchmarks' | 'volume' | 'effort';
 
+interface TooltipLabels {
+  time: string;
+  rounds: string;
+  scoreLabel: string;
+}
+
 // Format time from seconds to mm:ss or hh:mm:ss
 function formatTime(seconds: number): string {
   if (seconds < 3600) {
@@ -74,7 +81,7 @@ function formatTime(seconds: number): string {
 }
 
 // Custom tooltip for the charts
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label, labels }: { active: boolean; payload?: any[]; label?: string; labels: TooltipLabels }) {
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;
@@ -91,7 +98,7 @@ function CustomTooltip({ active, payload, label }: any) {
           />
           <span>{entry.name}:</span>
           <span className="font-medium">
-            {entry.name === 'Tid' ? formatTime(entry.value) : entry.value}
+            {entry.name === labels.time ? formatTime(entry.value) : entry.value}
           </span>
         </div>
       ))}
@@ -109,6 +116,13 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
   const [selectedWorkout, setSelectedWorkout] = useState<string>('all');
   const [scoreFilter, setScoreFilter] = useState<string>('all');
+  const t = useTranslations('components.charts.hybridProgress');
+
+  const labels = {
+    time: t('series.time'),
+    rounds: t('series.rounds'),
+    scoreLabel: t('series.score'),
+  };
 
   // Get unique workouts for filter
   const uniqueWorkouts = useMemo(() => {
@@ -267,13 +281,13 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
   if (results.length === 0) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          <Dumbbell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Inga resultat att visa</p>
-          <p className="text-sm mt-2">Logga ditt första pass för att se statistik</p>
-        </CardContent>
-      </Card>
-    );
+      <CardContent className="py-12 text-center text-muted-foreground">
+        <Dumbbell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>{t('empty.noResults')}</p>
+        <p className="text-sm mt-2">{t('empty.logFirstWorkout')}</p>
+      </CardContent>
+    </Card>
+  );
   }
 
   return (
@@ -283,7 +297,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
           <div>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Hybrid Workout Progression
+              {t('title')}
             </CardTitle>
             {athleteName && (
               <CardDescription>{athleteName}</CardDescription>
@@ -294,10 +308,10 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
             {/* Workout filter */}
             <Select value={selectedWorkout} onValueChange={setSelectedWorkout}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Alla pass" />
+                <SelectValue placeholder={t('filters.workoutsAll')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alla pass</SelectItem>
+                <SelectItem value="all">{t('filters.workoutsAll')}</SelectItem>
                 {uniqueWorkouts.map(([id, name]) => (
                   <SelectItem key={id} value={id}>
                     {name}
@@ -309,14 +323,14 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
             {/* Score type filter */}
             <Select value={scoreFilter} onValueChange={setScoreFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Alla typer" />
+                <SelectValue placeholder={t('filters.typesAll')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alla typer</SelectItem>
-                <SelectItem value="TIME">For Time</SelectItem>
-                <SelectItem value="ROUNDS_REPS">AMRAP</SelectItem>
-                <SelectItem value="LOAD">Load</SelectItem>
-                <SelectItem value="CALORIES">Kalorier</SelectItem>
+                <SelectItem value="all">{t('filters.typesAll')}</SelectItem>
+                <SelectItem value="TIME">{t('scoreTypes.forTime')}</SelectItem>
+                <SelectItem value="ROUNDS_REPS">{t('scoreTypes.roundsReps')}</SelectItem>
+                <SelectItem value="LOAD">{t('scoreTypes.load')}</SelectItem>
+                <SelectItem value="CALORIES">{t('scoreTypes.calories')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -326,14 +340,14 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
           <div className="bg-muted/50 rounded-lg p-3">
             <div className="text-2xl font-bold">{stats.total}</div>
-            <div className="text-xs text-muted-foreground">Totalt pass</div>
+            <div className="text-xs text-muted-foreground">{t('stats.total')}</div>
           </div>
           <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded-lg p-3">
             <div className="text-2xl font-bold text-yellow-600 flex items-center gap-1">
               <Trophy className="h-5 w-5" />
               {stats.prs}
             </div>
-            <div className="text-xs text-muted-foreground">Personliga rekord</div>
+            <div className="text-xs text-muted-foreground">{t('stats.prs')}</div>
           </div>
           <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3">
             <div className="text-2xl font-bold text-blue-600">{stats.rxPercentage}%</div>
@@ -341,7 +355,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
           </div>
           <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
             <div className="text-2xl font-bold text-green-600">{stats.avgEffort}</div>
-            <div className="text-xs text-muted-foreground">Snitt RPE</div>
+            <div className="text-xs text-muted-foreground">{t('stats.avgRpe')}</div>
           </div>
         </div>
       </CardHeader>
@@ -349,16 +363,16 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
       <CardContent>
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
           <TabsList className="mb-6">
-            <TabsTrigger value="timeline">Tidslinje</TabsTrigger>
-            <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
-            <TabsTrigger value="volume">Volym</TabsTrigger>
-            <TabsTrigger value="effort">RPE</TabsTrigger>
+            <TabsTrigger value="timeline">{t('tabs.timeline')}</TabsTrigger>
+            <TabsTrigger value="benchmarks">{t('tabs.benchmarks')}</TabsTrigger>
+            <TabsTrigger value="volume">{t('tabs.volume')}</TabsTrigger>
+            <TabsTrigger value="effort">{t('tabs.effort')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="timeline">
             {timelineData.length < 2 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <p>Minst 2 resultat krävs för graf</p>
+                <p>{t('timeline.minResults')}</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -367,7 +381,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                   <div>
                     <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      For Time (lägre är bättre)
+                      {t('timeline.forTimeTitle')}
                     </h4>
                     <ResponsiveContainer width="100%" height={250}>
                       <LineChart
@@ -381,7 +395,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                           tickFormatter={(v) => formatTime(v)}
                           reversed
                         />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<CustomTooltip labels={labels} />} />
                         <Line
                           type="monotone"
                           dataKey="timeScore"
@@ -413,7 +427,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                               />
                             );
                           }}
-                          name="Tid"
+                          name={labels.time}
                           connectNulls
                         />
                       </LineChart>
@@ -426,7 +440,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                   <div>
                     <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                       <Target className="h-4 w-4" />
-                      AMRAP (högre är bättre)
+                      {t('timeline.amrapTitle')}
                     </h4>
                     <ResponsiveContainer width="100%" height={250}>
                       <LineChart
@@ -445,7 +459,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                                 <p className="font-semibold text-sm">{data.workoutName}</p>
                                 <p className="text-xs text-muted-foreground mb-2">{data.fullDate}</p>
                                 <p className="text-sm">
-                                  {data.rounds} rundor{data.reps ? ` + ${data.reps} reps` : ''}
+                                  {data.rounds} {t('timeline.roundsSuffix')}{data.reps ? ` + ${data.reps} ${t('timeline.repsSuffix')}` : ''}
                                 </p>
                                 {data.isPR && (
                                   <Badge variant="default" className="mt-2 bg-yellow-500">
@@ -474,7 +488,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                               />
                             );
                           }}
-                          name="Rundor"
+                          name={labels.rounds}
                           connectNulls
                         />
                       </LineChart>
@@ -489,12 +503,12 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
             {selectedWorkout === 'all' ? (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Pass med flera resultat - jämför första vs senaste
+                  {t('benchmarks.title')}
                 </p>
                 {benchmarkData.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p>Inga benchmark-jämförelser tillgängliga</p>
-                    <p className="text-sm mt-2">Gör samma pass flera gånger för att se progression</p>
+                    <p>{t('benchmarks.emptyTitle')}</p>
+                    <p className="text-sm mt-2">{t('benchmarks.emptyDescription')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -505,8 +519,8 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                       >
                         <div>
                           <div className="font-medium">{b.workoutName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {b.count} försök
+                            <div className="text-sm text-muted-foreground">
+                            {b.count} {t('benchmarks.attempts')}
                           </div>
                         </div>
                         <div className="text-right">
@@ -546,11 +560,11 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                   <Legend />
                   <Line
                     type="monotone"
-                    dataKey="score"
+                  dataKey="score"
                     stroke="#8b5cf6"
                     strokeWidth={2}
                     dot={{ r: 4 }}
-                    name="Score"
+                    name={labels.scoreLabel}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -559,19 +573,19 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
 
           <TabsContent value="volume">
             <div>
-              <h4 className="text-sm font-medium mb-3">Pass per vecka (senaste 12 veckorna)</h4>
+              <h4 className="text-sm font-medium mb-3">{t('volume.title')}</h4>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={volumeData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="workouts" fill="#3b82f6" name="Pass" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="workouts" fill="#3b82f6" name={t('volume.barLabel')} radius={[4, 4, 0, 0]} />
                   <ReferenceLine
                     y={volumeData.reduce((sum, d) => sum + d.workouts, 0) / volumeData.length}
                     stroke="#f59e0b"
                     strokeDasharray="5 5"
-                    label={{ value: 'Snitt', position: 'right', fontSize: 11 }}
+                    label={{ value: t('volume.average'), position: 'right', fontSize: 11 }}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -580,7 +594,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
 
           <TabsContent value="effort">
             <div>
-              <h4 className="text-sm font-medium mb-3">RPE-fördelning</h4>
+              <h4 className="text-sm font-medium mb-3">{t('effort.title')}</h4>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={effortData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -590,15 +604,15 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
                   <Bar
                     dataKey="count"
                     fill="#10b981"
-                    name="Antal pass"
+                    name={t('effort.barLabel')}
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
               <div className="flex justify-between text-xs text-muted-foreground mt-2 px-4">
-                <span>Lätt</span>
-                <span>Moderat</span>
-                <span>Maximalt</span>
+                <span>{t('effort.levels.low')}</span>
+                <span>{t('effort.levels.medium')}</span>
+                <span>{t('effort.levels.high')}</span>
               </div>
             </div>
           </TabsContent>
