@@ -5032,6 +5032,208 @@
           "histamine": "Histamine",
           "fodmap": "FODMAP"
         }
+      },
+      "hockey": {
+        "sections": {
+          "positionAndTeam": {
+            "title": "Position & Team",
+            "description": "Tell us about your role on the team and competition level."
+          },
+          "seasonAndIceTime": {
+            "title": "Season & Ice Time",
+            "description": "What phase are you in and how much ice time do you get?"
+          },
+          "playStyle": {
+            "title": "Play Style",
+            "description": "What type of player are you?"
+          },
+          "strengths": {
+            "title": "Strengths & Focus Areas",
+            "description": "What physical attributes do you want to improve?"
+          },
+          "injuryHistory": {
+            "title": "Injury History",
+            "description": "Which injuries should we take into account in training?"
+          },
+          "trainingConditions": {
+            "title": "Training Conditions",
+            "description": "What training opportunities do you have access to?"
+          }
+        },
+        "labels": {
+          "position": "Position",
+          "teamName": "Team",
+          "leagueLevel": "League Level",
+          "yearsPlaying": "Years playing hockey",
+          "currentSeasonPhase": "Current season phase",
+          "averageIceTime": "Average ice time per match (minutes)",
+          "shiftsPerMatch": "Shifts per game",
+          "averageShiftLengthLabel": "Average shift length:",
+          "playStyle": "Your play style",
+          "strengthFocus": "Strengths to build on",
+          "weaknesses": "Areas to improve",
+          "previousInjuries": "Previous injuries (select relevant)",
+          "noteLabel": "Note",
+          "weeklyOffIceSessions": "Off-ice sessions per week (strength/endurance)",
+          "hasAccessToIce": "Access to ice",
+          "hasAccessToGym": "Access to gym"
+        },
+        "placeholders": {
+          "position": "Choose position",
+          "teamName": "e.g. Luleå HF",
+          "leagueLevel": "Choose league",
+          "seasonPhase": "Choose season phase",
+          "averageIceTime": "e.g. 18",
+          "shiftsPerMatch": "e.g. 22",
+          "playStyle": "Choose play style"
+        },
+        "units": {
+          "seconds": "seconds"
+        },
+        "positions": {
+          "center": {
+            "label": "Center",
+            "description": "Playmaking, two-way transition, puck control"
+          },
+          "wing": {
+            "label": "Wing/Forward",
+            "description": "Goal scoring, speed, offensive focus"
+          },
+          "defense": {
+            "label": "Defense",
+            "description": "Defensive responsibilities, puck movement, physical play"
+          },
+          "goalie": {
+            "label": "Goalie",
+            "description": "Reactions, positioning, mental strength"
+          }
+        },
+        "leagueLevels": {
+          "recreational": {
+            "label": "Recreational hockey",
+            "description": "Recreational, veteran, fun and social play"
+          },
+          "junior": {
+            "label": "Junior",
+            "description": "U18, U20, or equivalent"
+          },
+          "hockeyettan": {
+            "label": "Hockeyettan",
+            "description": "Division 1 hockey"
+          },
+          "division3": {
+            "label": "Division 3",
+            "description": "Third highest level"
+          },
+          "division2": {
+            "label": "Division 2",
+            "description": "Second highest level"
+          },
+          "division1": {
+            "label": "Division 1",
+            "description": "Highest amateur level"
+          },
+          "hockeyAllsvenskan": {
+            "label": "HockeyAllsvenskan",
+            "description": "Second highest pro level"
+          },
+          "shl": {
+            "label": "SHL",
+            "description": "Highest national league level"
+          }
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Build base strength and conditioning"
+          },
+          "preSeason": {
+            "label": "Pre-season",
+            "description": "August-September, sport-specific training"
+          },
+          "inSeason": {
+            "label": "In-season",
+            "description": "September-March, maintenance and match focus"
+          },
+          "playoffs": {
+            "label": "Playoffs",
+            "description": "March-May, rest and peak form"
+          }
+        },
+        "playStyles": {
+          "offensive": {
+            "label": "Offensive",
+            "description": "Focus on scoring and assists"
+          },
+          "defensive": {
+            "label": "Defensive",
+            "description": "Reliable in own zone, blocking"
+          },
+          "twoWay": {
+            "label": "Two-way",
+            "description": "Balanced in both zones"
+          },
+          "physical": {
+            "label": "Physical",
+            "description": "Board battles, checks, presence"
+          },
+          "skill": {
+            "label": "Technical",
+            "description": "Puck control, creativity"
+          }
+        },
+        "strengths": {
+          "skatingSpeed": "Skating speed",
+          "acceleration": "Acceleration",
+          "shotPower": "Shot power",
+          "physicalBattles": "Physical battles",
+          "endurance": "Endurance",
+          "agility": "Agility",
+          "coreStability": "Core stability",
+          "upperBody": "Upper body strength"
+        },
+        "weaknesses": {
+          "skatingTechnique": "Skating technique",
+          "backwardsSkating": "Backwards skating",
+          "shotAccuracy": "Shot accuracy",
+          "faceoffs": "Faceoffs",
+          "positioning": "Positioning",
+          "puckHandling": "Puck handling",
+          "passing": "Passing",
+          "defensivePlay": "Defensive play"
+        },
+        "injuries": {
+          "groin": "Groin",
+          "hip": "Hip",
+          "knee": "Knee",
+          "shoulder": "Shoulder",
+          "ankle": "Ankle",
+          "back": "Back",
+          "concussion": "Concussion",
+          "wristHand": "Wrist/hand"
+        },
+        "notes": {
+          "injuryFocus": "We will account for these injuries in your training with an extra focus on preventive exercises."
+        },
+        "tips": {
+          "positionPrefix": "Tips for",
+          "goalie": {
+            "1": "Prioritize hip mobility and flexibility",
+            "2": "Lateral power for lateral movement",
+            "3": "Reaction training and mental focus"
+          },
+          "defense": {
+            "1": "Build aerobic endurance for longer shifts",
+            "2": "Focus on hip and groin strength",
+            "3": "Upper body strength for physical battles"
+          },
+          "default": {
+            "1": "Explosive acceleration and sprint ability",
+            "2": "Rotational power for shooting",
+            "3": "Fast recovery between shifts"
+          }
+        },
+        "positionFallback": "your position"
       }
     },
     "footballOnboarding": {

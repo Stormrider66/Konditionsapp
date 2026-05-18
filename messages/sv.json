@@ -5032,6 +5032,208 @@
           "histamine": "Histamin",
           "fodmap": "FODMAP"
         }
+      },
+      "hockey": {
+        "sections": {
+          "positionAndTeam": {
+            "title": "Position & lag",
+            "description": "Berätta om din roll i laget och nivån du spelar på"
+          },
+          "seasonAndIceTime": {
+            "title": "Säsong & istid",
+            "description": "Vilken fas av säsongen är du i och hur mycket istid får du?"
+          },
+          "playStyle": {
+            "title": "Spelstil",
+            "description": "Vilken typ av spelare är du?"
+          },
+          "strengths": {
+            "title": "Styrkor och fokusområden",
+            "description": "Vilka fysiska egenskaper vill du utveckla?"
+          },
+          "injuryHistory": {
+            "title": "Skador",
+            "description": "Vilka skador ska vi ta hänsyn till i träningen?"
+          },
+          "trainingConditions": {
+            "title": "Träningsförutsättningar",
+            "description": "Vilken tillgång har du till träningsmöjligheter?"
+          }
+        },
+        "labels": {
+          "position": "Position",
+          "teamName": "Lag",
+          "leagueLevel": "Liganivå",
+          "yearsPlaying": "Antal år som hockeyspelare",
+          "currentSeasonPhase": "Nuvarande säsongsfas",
+          "averageIceTime": "Genomsnittlig istid per match (minuter)",
+          "shiftsPerMatch": "Byten per match",
+          "averageShiftLengthLabel": "Genomsnittlig byteslängd:",
+          "playStyle": "Din spelstil",
+          "strengthFocus": "Styrkor att bygga vidare på",
+          "weaknesses": "Utvecklingsområden",
+          "previousInjuries": "Tidigare skador (välj relevanta)",
+          "noteLabel": "Obs",
+          "weeklyOffIceSessions": "Off-ice pass per vecka (styrka/kondition)",
+          "hasAccessToIce": "Tillgång till istid",
+          "hasAccessToGym": "Tillgång till gym"
+        },
+        "placeholders": {
+          "position": "Välj position",
+          "teamName": "e.g. Luleå HF",
+          "leagueLevel": "Välj liga",
+          "seasonPhase": "Välj fas",
+          "averageIceTime": "e.g. 18",
+          "shiftsPerMatch": "e.g. 22",
+          "playStyle": "Välj spelstil"
+        },
+        "units": {
+          "seconds": "sekunder"
+        },
+        "positions": {
+          "center": {
+            "label": "Center",
+            "description": "Tekningar, tvåvägsspel, playmaking"
+          },
+          "wing": {
+            "label": "Wing/Forward",
+            "description": "Målskytte, fart, offensivt fokus"
+          },
+          "defense": {
+            "label": "Back",
+            "description": "Defensivt ansvar, puckflytt, fysiskt spel"
+          },
+          "goalie": {
+            "label": "Målvakt",
+            "description": "Reflexer, positionering, mental styrka"
+          }
+        },
+        "leagueLevels": {
+          "recreational": {
+            "label": "Motionshockey",
+            "description": "Korp, veteraner, träning för nöjes skull"
+          },
+          "junior": {
+            "label": "Junior",
+            "description": "J18, J20, eller motsvarande"
+          },
+          "hockeyettan": {
+            "label": "Hockeyettan",
+            "description": "Division 1-hockey"
+          },
+          "division3": {
+            "label": "Division 3",
+            "description": "Tredje högsta nivån"
+          },
+          "division2": {
+            "label": "Division 2",
+            "description": "Andra högsta nivån"
+          },
+          "division1": {
+            "label": "Division 1",
+            "description": "Högsta amatörnivån"
+          },
+          "hockeyAllsvenskan": {
+            "label": "Hockeyallsvenskan",
+            "description": "Näst högsta proffsnivån"
+          },
+          "shl": {
+            "label": "SHL",
+            "description": "Svenska Hockey Ligan - högsta nivån"
+          }
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Bygga bas och styrka"
+          },
+          "preSeason": {
+            "label": "Försäsong",
+            "description": "Augusti-september, sport-specifik träning"
+          },
+          "inSeason": {
+            "label": "Säsong",
+            "description": "September-mars, underhåll och matchfokus"
+          },
+          "playoffs": {
+            "label": "Slutspel",
+            "description": "Mars-maj, vila och toppform"
+          }
+        },
+        "playStyles": {
+          "offensive": {
+            "label": "Offensiv",
+            "description": "Fokus på målskytte och assists"
+          },
+          "defensive": {
+            "label": "Defensiv",
+            "description": "Pålitlig i egen zon, blockeringar"
+          },
+          "twoWay": {
+            "label": "Tvåvägsspelare",
+            "description": "Balanserad i båda zonerna"
+          },
+          "physical": {
+            "label": "Fysisk",
+            "description": "Kroppsspel, tacklingar, närvaro"
+          },
+          "skill": {
+            "label": "Teknisk",
+            "description": "Puckhantering, kreativitet"
+          }
+        },
+        "strengths": {
+          "skatingSpeed": "Skridskohastighet",
+          "acceleration": "Acceleration",
+          "shotPower": "Skottstyrka",
+          "physicalBattles": "Fysiska dueller",
+          "endurance": "Uthållighet",
+          "agility": "Kvickhet",
+          "coreStability": "Core-stabilitet",
+          "upperBody": "Överkroppsstyrka"
+        },
+        "weaknesses": {
+          "skatingTechnique": "Skridskoteknik",
+          "backwardsSkating": "Baklängesåkning",
+          "shotAccuracy": "Skottaccuracy",
+          "faceoffs": "Tekningar",
+          "positioning": "Positionering",
+          "puckHandling": "Puckhantering",
+          "passing": "Passningar",
+          "defensivePlay": "Defensivt spel"
+        },
+        "injuries": {
+          "groin": "Ljumske",
+          "hip": "Höft",
+          "knee": "Knä",
+          "shoulder": "Axel",
+          "ankle": "Fotled",
+          "back": "Rygg",
+          "concussion": "Hjärnskakning",
+          "wristHand": "Handled/hand"
+        },
+        "notes": {
+          "injuryFocus": "Vi tar hänsyn till dessa i träningsprogrammet med extra fokus på förebyggande övningar."
+        },
+        "tips": {
+          "positionPrefix": "Tips för",
+          "goalie": {
+            "1": "Prioritera höftrörlighet och flexibilitet",
+            "2": "Sidostegskraft för sidförflyttningar",
+            "3": "Reaktionsträning och mental fokus"
+          },
+          "defense": {
+            "1": "Bygg aerob uthållighet för längre byten",
+            "2": "Fokusera på höft- och ljumskstyrka",
+            "3": "Överkroppsstyrka för dueller"
+          },
+          "default": {
+            "1": "Explosiv acceleration och sprintförmåga",
+            "2": "Rotationsstyrka för skott",
+            "3": "Snabb återhämtning mellan byten"
+          }
+        },
+        "positionFallback": "din position"
       }
     },
     "footballOnboarding": {
