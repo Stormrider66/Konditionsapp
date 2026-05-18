@@ -9890,6 +9890,7 @@
           "animate": "Animate"
         },
         "toasts": {
+          "pdfDownloaded": "PDF downloaded!",
           "analyzed": "Drill analyzed!",
           "generated": "Drill generated!",
           "saved": "Drill saved!",
@@ -9901,11 +9902,25 @@
           "generationFailed": "Generation failed",
           "imageAnalysisError": "Could not analyze the image",
           "generateError": "Could not generate the drill",
+          "diagramMissing": "Show diagram first",
+          "exportFailed": "Could not create PDF",
+          "fetchFailed": "Could not fetch drills",
           "saveError": "Could not save the drill",
           "saveFailed": "Could not save the drill",
+          "copyFailed": "Could not copy the drill",
           "descriptionTooShort": "Describe the drill with at least a few words",
           "nothingToSave": "No drill to save",
           "minContent": "Add at least one player or movement"
+        },
+        "labels": {
+          "published": "Published",
+          "draft": "Draft"
+        }
+      },
+      "list": {
+        "empty": {
+          "title": "No drills yet",
+          "subtitle": "Create a new drill from a photo or manually"
         }
       },
       "creator": {
@@ -9925,9 +9940,105 @@
         "editorTitle": "Editor",
         "diagramTitle": "Drill diagram"
       },
+      "library": {
+        "sourceLabels": {
+          "manual": "Manual",
+          "clipboardPhoto": "AI photo",
+          "manualEditor": "Manual editor",
+          "aiText": "AI text",
+          "template": "Template",
+          "default": "Manual"
+        },
+        "sports": {
+          "iceHockey": "Ice hockey",
+          "football": "Football",
+          "handball": "Handball",
+          "basketball": "Basketball",
+          "floorball": "Floorball"
+        },
+        "searchPlaceholder": "Search drills...",
+        "sportFilter": {
+          "all": "All sports"
+        },
+        "resultCount": "{count, plural, one {# drill in club library} other {# drills in club library}}",
+        "empty": "No shared drills found",
+        "allClub": "Entire club",
+        "copyToTeamPlaceholder": "Copy to team...",
+        "copySuccess": "Copied to {teamName}!",
+        "defaultTeamName": "the team"
+      },
       "editor": {
         "drawDrillTitle": "Draw drill",
-        "description": "Place players, draw movements and passes directly on the rink."
+        "description": "Place players, draw movements and passes directly on the rink.",
+        "toolbar": {
+          "select": {
+            "label": "Select / Move",
+            "short": "Select"
+          },
+          "player": {
+            "label": "Add player",
+            "short": "Player"
+          },
+          "movement": {
+            "label": "Draw movement",
+            "short": "Movement"
+          },
+          "zone": {
+            "label": "Mark zone",
+            "short": "Zone"
+          },
+          "annotation": {
+            "label": "Add text",
+            "short": "Text"
+          },
+          "undo": "Undo (Ctrl+Z)",
+          "deleteSelected": "Delete selected (Del)",
+          "clearAll": "Clear all"
+        },
+        "hockeyPresets": {
+          "attack": "Attack 5",
+          "defense": "Defense 5"
+        },
+        "options": {
+          "position": "Position",
+          "team": "Team",
+          "teamHome": "Home",
+          "teamAway": "Away",
+          "quick": "Quick",
+          "type": "Type",
+          "phase": "Phase",
+          "parallelMovements": "Movements in same phase play simultaneously",
+          "color": "Color:",
+          "player": "Player",
+          "annotationLabel": "Text:",
+          "auto": "Auto"
+        },
+        "hints": {
+          "selectMovementEndpoint": "Click end point...",
+          "drawZone": "Click opposite corner...",
+          "placeAnnotation": "Click rink to place",
+          "selectElement": "Click a player or movement to select",
+          "placeHint": "Click rink to place elements"
+        },
+        "selection": {
+          "selectedPlayer": "Selected player:",
+          "selectedMovement": "Selected movement:"
+        },
+        "sequence": {
+          "title": "Phases",
+          "movementCount": "{count, plural, one {# movement} other {# movements}}",
+          "newPhase": "New phase",
+          "duplicatePhase": "Duplicate",
+          "deletePhase": "Delete phase"
+        },
+        "statusBar": {
+          "players": "{count} players",
+          "movements": "{count} movements",
+          "zones": "{count} zones",
+          "annotations": "{count} texts",
+          "placeHint": "Click rink to place elements"
+        },
+        "annotationPlaceholder": "E.g. 'Breakout'"
       }
     },
     "onboardingWizard": {

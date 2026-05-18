@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ClipboardList, Play, Download } from 'lucide-react'
 import { exportDrillPDF } from '@/lib/drills/export-pdf'
 import { toast } from 'sonner'
+import { useTranslations } from '@/i18n/client'
 
 interface Drill {
   id: string
@@ -33,6 +34,7 @@ function formatDate(iso: string): string {
 }
 
 export function DrillList({ teamId }: DrillListProps) {
+  const t = useTranslations('components.drills')
   const [drills, setDrills] = useState<Drill[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -44,7 +46,7 @@ export function DrillList({ teamId }: DrillListProps) {
       // Find the SVG element inside the rink container
       const svg = rinkRef.current?.querySelector('svg')
       if (!svg) {
-        toast.error('Visa diagrammet först')
+        toast.error(t('common.errors.diagramMissing'))
         return
       }
       try {
@@ -57,12 +59,12 @@ export function DrillList({ teamId }: DrillListProps) {
           teamName: drill.team?.name,
           createdAt: drill.createdAt,
         })
-        toast.success('PDF nedladdad!')
+        toast.success(t('common.toasts.pdfDownloaded'))
       } catch {
-        toast.error('Kunde inte skapa PDF')
+        toast.error(t('common.errors.exportFailed'))
       }
     },
-    []
+    [t]
   )
 
   useEffect(() => {
@@ -76,13 +78,13 @@ export function DrillList({ teamId }: DrillListProps) {
           setDrills(data.drills || [])
         }
       } catch {
-        toast.error('Kunde inte hämta övningar')
+        toast.error(t('common.errors.fetchFailed'))
       } finally {
         setLoading(false)
       }
     }
-    fetchDrills()
-  }, [teamId])
+    void fetchDrills()
+  }, [teamId, t])
 
   if (loading) {
     return (
@@ -98,8 +100,8 @@ export function DrillList({ teamId }: DrillListProps) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-40" />
-        <p>Inga övningar ännu</p>
-        <p className="text-xs mt-1">Skapa en ny övning från ett foto eller manuellt</p>
+        <p>{t('list.empty.title')}</p>
+        <p className="text-xs mt-1">{t('list.empty.subtitle')}</p>
       </div>
     )
   }
@@ -133,7 +135,7 @@ export function DrillList({ teamId }: DrillListProps) {
                   <Badge variant="outline" className="text-[10px]">AI</Badge>
                 )}
                 <Badge variant={drill.isPublished ? 'default' : 'secondary'} className="text-[10px]">
-                  {drill.isPublished ? 'Publicerad' : 'Utkast'}
+                  {drill.isPublished ? t('common.labels.published') : t('common.labels.draft')}
                 </Badge>
               </div>
             </div>
@@ -171,7 +173,7 @@ export function DrillList({ teamId }: DrillListProps) {
                       }}
                     >
                       <Play className="h-3.5 w-3.5 mr-1.5" />
-                      {animatingId === drill.id ? 'Visa diagram' : 'Animera'}
+                      {animatingId === drill.id ? t('common.actions.showDiagram') : t('common.actions.animate')}
                     </Button>
                   )}
                   {animatingId !== drill.id && (
@@ -180,7 +182,7 @@ export function DrillList({ teamId }: DrillListProps) {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleExportPDF(drill)
+                        void handleExportPDF(drill)
                       }}
                     >
                       <Download className="h-3.5 w-3.5 mr-1.5" />

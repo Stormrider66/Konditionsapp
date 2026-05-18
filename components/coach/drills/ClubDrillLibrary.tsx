@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { exportDrillPDF } from '@/lib/drills/export-pdf'
 import { toast } from 'sonner'
+import { useTranslations } from '@/i18n/client'
 
 interface SharedDrill {
   id: string
@@ -57,15 +58,8 @@ function formatDate(iso: string): string {
   })
 }
 
-const SOURCE_LABELS: Record<string, string> = {
-  MANUAL: 'Manuell',
-  CLIPBOARD_PHOTO: 'AI-foto',
-  MANUAL_EDITOR: 'Ritad',
-  AI_TEXT: 'AI-text',
-  TEMPLATE: 'Mall',
-}
-
 export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
+  const t = useTranslations('components.drills')
   const [drills, setDrills] = useState<SharedDrill[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -74,12 +68,22 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
   const [animatingId, setAnimatingId] = useState<string | null>(null)
   const [copying, setCopying] = useState<string | null>(null)
   const rinkRef = useRef<HTMLDivElement>(null)
+  const SOURCE_LABELS = useMemo(
+    () => ({
+      MANUAL: t('library.sourceLabels.manual'),
+      CLIPBOARD_PHOTO: t('library.sourceLabels.clipboardPhoto'),
+      MANUAL_EDITOR: t('library.sourceLabels.manualEditor'),
+      AI_TEXT: t('library.sourceLabels.aiText'),
+      TEMPLATE: t('library.sourceLabels.template'),
+    }),
+    [t]
+  )
 
   const handleExportPDF = useCallback(
     async (drill: SharedDrill) => {
       const svg = rinkRef.current?.querySelector('svg')
       if (!svg) {
-        toast.error('Visa diagrammet först')
+        toast.error(t('common.errors.diagramMissing'))
         return
       }
       try {
@@ -92,12 +96,12 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
           teamName: drill.team?.name,
           createdAt: drill.createdAt,
         })
-        toast.success('PDF nedladdad!')
+        toast.success(t('common.toasts.pdfDownloaded'))
       } catch {
-        toast.error('Kunde inte skapa PDF')
+        toast.error(t('common.errors.exportFailed'))
       }
     },
-    []
+    [t]
   )
 
   useEffect(() => {
@@ -109,13 +113,13 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
           setDrills(data.drills || [])
         }
       } catch {
-        toast.error('Kunde inte hämta övningar')
+        toast.error(t('common.errors.fetchFailed'))
       } finally {
         setLoading(false)
       }
     }
-    fetchDrills()
-  }, [])
+    void fetchDrills()
+  }, [t])
 
   const filtered = useMemo(() => {
     let result = drills
@@ -158,9 +162,13 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
       if (!res.ok) throw new Error('Failed')
 
       const team = teams.find((t) => t.id === targetTeamId)
-      toast.success(`Kopierad till ${team?.name || 'laget'}!`)
+      toast.success(
+        t('library.copySuccess', {
+          teamName: team?.name || t('library.defaultTeamName'),
+        })
+      )
     } catch {
-      toast.error('Kunde inte kopiera övningen')
+      toast.error(t('common.errors.copyFailed'))
     } finally {
       setCopying(null)
     }
@@ -173,11 +181,11 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
   }, [drills])
 
   const SPORT_LABELS: Record<string, string> = {
-    ICE_HOCKEY: 'Ishockey',
-    FOOTBALL: 'Fotboll',
-    HANDBALL: 'Handboll',
-    BASKETBALL: 'Basket',
-    FLOORBALL: 'Innebandy',
+    ICE_HOCKEY: t('library.sports.iceHockey'),
+    FOOTBALL: t('library.sports.football'),
+    HANDBALL: t('library.sports.handball'),
+    BASKETBALL: t('library.sports.basketball'),
+    FLOORBALL: t('library.sports.floorball'),
   }
 
   if (loading) {
@@ -199,7 +207,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Sök övningar..."
+            placeholder={t('library.searchPlaceholder')}
             className="pl-8 h-8 text-sm"
           />
         </div>
@@ -209,7 +217,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alla sporter</SelectItem>
+              <SelectItem value="all">{t('library.sportFilter.all')}</SelectItem>
               {sportTypes.map((st) => (
                 <SelectItem key={st} value={st}>
                   {SPORT_LABELS[st] || st}
@@ -222,20 +230,21 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
 
       {/* Results count */}
       <p className="text-xs text-muted-foreground">
-        {filtered.length} övningar i klubbbiblioteket
+        {t('library.resultCount', { count: filtered.length })}
       </p>
 
       {/* Drill cards */}
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Globe className="h-8 w-8 mx-auto mb-2 opacity-40" />
-          <p>Inga delade övningar hittades</p>
+          <p>{t('library.empty')}</p>
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((drill) => {
             const isExpanded = expandedId === drill.id
             const isAnimating = animatingId === drill.id
+            const sourceLabel = SOURCE_LABELS[drill.sourceType as keyof typeof SOURCE_LABELS]
 
             return (
               <Card
@@ -265,7 +274,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
                           <>
                             <span>·</span>
                             <Globe className="h-3 w-3" />
-                            <span>Hela klubben</span>
+                            <span>{t('library.allClub')}</span>
                           </>
                         )}
                       </div>
@@ -274,9 +283,9 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
                       <Badge variant="outline" className="text-[9px]">
                         {SPORT_LABELS[drill.sportType] || drill.sportType}
                       </Badge>
-                      {SOURCE_LABELS[drill.sourceType] && (
+                      {sourceLabel && (
                         <Badge variant="secondary" className="text-[9px]">
-                          {SOURCE_LABELS[drill.sourceType]}
+                          {sourceLabel}
                         </Badge>
                       )}
                     </div>
@@ -313,7 +322,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
                             onClick={() => setAnimatingId(isAnimating ? null : drill.id)}
                           >
                             <Play className="h-3.5 w-3.5 mr-1" />
-                            {isAnimating ? 'Diagram' : 'Animera'}
+                            {isAnimating ? t('common.actions.showDiagram') : t('common.actions.animate')}
                           </Button>
                         )}
 
@@ -324,7 +333,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
                           >
                             <SelectTrigger className="h-8 w-auto text-xs">
                               <Copy className="h-3 w-3 mr-1" />
-                              <SelectValue placeholder="Kopiera till lag..." />
+                              <SelectValue placeholder={t('library.copyToTeamPlaceholder')} />
                             </SelectTrigger>
                             <SelectContent>
                               {teams.map((t) => (

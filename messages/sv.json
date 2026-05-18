@@ -9890,6 +9890,7 @@
           "animate": "Animera"
         },
         "toasts": {
+          "pdfDownloaded": "PDF nedladdad!",
           "analyzed": "Övningen analyserad!",
           "generated": "Övning genererad!",
           "saved": "Övning sparad!",
@@ -9901,11 +9902,25 @@
           "generationFailed": "Generering misslyckades",
           "imageAnalysisError": "Kunde inte analysera bilden",
           "generateError": "Kunde inte generera övning",
+          "diagramMissing": "Visa diagrammet först",
+          "exportFailed": "Kunde inte skapa PDF",
+          "fetchFailed": "Kunde inte hämta övningar",
           "saveError": "Kunde inte spara övningen",
           "saveFailed": "Kunde inte spara övningen",
+          "copyFailed": "Kunde inte kopiera övning",
           "descriptionTooShort": "Beskriv övningen med minst några ord",
           "nothingToSave": "Ingen övning att spara",
           "minContent": "Lägg till minst en spelare eller rörelse"
+        },
+        "labels": {
+          "published": "Publicerad",
+          "draft": "Utkast"
+        }
+      },
+      "list": {
+        "empty": {
+          "title": "Inga övningar ännu",
+          "subtitle": "Skapa en ny övning från ett foto eller manuellt"
         }
       },
       "creator": {
@@ -9927,7 +9942,103 @@
       },
       "editor": {
         "drawDrillTitle": "Rita övning",
-        "description": "Placera spelare, rita rörelser och passningar direkt på planen."
+        "description": "Placera spelare, rita rörelser och passningar direkt på planen.",
+        "toolbar": {
+          "select": {
+            "label": "Välj / flytta",
+            "short": "Välj"
+          },
+          "player": {
+            "label": "Lägg till spelare",
+            "short": "Spelare"
+          },
+          "movement": {
+            "label": "Rita rörelse",
+            "short": "Rörelse"
+          },
+          "zone": {
+            "label": "Markera zon",
+            "short": "Zon"
+          },
+          "annotation": {
+            "label": "Lägg till text",
+            "short": "Text"
+          },
+          "undo": "Ångra (Ctrl+Z)",
+          "deleteSelected": "Radera vald (Del)",
+          "clearAll": "Rensa allt"
+        },
+        "hockeyPresets": {
+          "attack": "Anfall 5",
+          "defense": "Försvar 5"
+        },
+        "options": {
+          "position": "Position:",
+          "team": "Lag:",
+          "teamHome": "Hemma",
+          "teamAway": "Borta",
+          "quick": "Snabbt:",
+          "type": "Typ:",
+          "phase": "Steg:",
+          "parallelMovements": "Samma steg spelas samtidigt",
+          "color": "Färg:",
+          "player": "Spelare:",
+          "annotationLabel": "Text:",
+          "auto": "Auto"
+        },
+        "hints": {
+          "selectMovementEndpoint": "Klicka på slutpunkt...",
+          "drawZone": "Klicka på andra hörnet...",
+          "placeAnnotation": "Klicka på rinken för att placera",
+          "selectElement": "Klicka på en spelare eller rörelse för att välja",
+          "placeHint": "Klicka på rinken för att placera element"
+        },
+        "selection": {
+          "selectedPlayer": "Vald spelare:",
+          "selectedMovement": "Vald rörelse:"
+        },
+        "sequence": {
+          "title": "Spelsteg",
+          "movementCount": "{count} rörelser",
+          "newPhase": "Nytt steg",
+          "duplicatePhase": "Kopiera",
+          "deletePhase": "Radera steg"
+        },
+        "statusBar": {
+          "players": "{count} spelare",
+          "movements": "{count} rörelser",
+          "zones": "{count} zoner",
+          "annotations": "{count} texter",
+          "placeHint": "Klicka på rinken för att placera element"
+        },
+        "annotationPlaceholder": "T.ex. 'Breakout'"
+      },
+      "library": {
+        "sourceLabels": {
+          "manual": "Manuell",
+          "clipboardPhoto": "AI-foto",
+          "manualEditor": "Ritad",
+          "aiText": "AI-text",
+          "template": "Mall",
+          "default": "Manuell"
+        },
+        "sports": {
+          "iceHockey": "Ishockey",
+          "football": "Fotboll",
+          "handball": "Handboll",
+          "basketball": "Basket",
+          "floorball": "Innebandy"
+        },
+        "searchPlaceholder": "Sök övningar...",
+        "sportFilter": {
+          "all": "Alla sporter"
+        },
+        "resultCount": "{count, plural, one {# övning i klubbbiblioteket} other {# övningar i klubbbiblioteket}}",
+        "empty": "Inga delade övningar hittades",
+        "allClub": "Hela klubben",
+        "copyToTeamPlaceholder": "Kopiera till lag...",
+        "copySuccess": "Kopierad till {teamName}!",
+        "defaultTeamName": "laget"
       }
     },
     "onboardingWizard": {

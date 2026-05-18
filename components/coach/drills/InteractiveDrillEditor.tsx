@@ -29,6 +29,7 @@ import {
   getSportConfig,
   type DrillSportType,
 } from '@/remotion/drills/surfaces'
+import { useTranslations } from '@/i18n/client'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -135,6 +136,7 @@ export function InteractiveDrillEditor({
   onChange,
   sportType = 'ICE_HOCKEY',
 }: InteractiveDrillEditorProps) {
+  const t = useTranslations('components.drills')
   const sportConfig = useMemo(() => getSportConfig(sportType), [sportType])
   const SURFACE_W = sportConfig.width
   const SURFACE_H = sportConfig.height
@@ -592,13 +594,16 @@ export function InteractiveDrillEditor({
 
   // ─── Render ───────────────────────────────────────────────────────
 
-  const toolbarItems: { tool: Tool; icon: React.ReactNode; label: string; shortLabel: string }[] = [
-    { tool: 'select', icon: <MousePointer2 className="h-4 w-4" />, label: 'Välj / Flytta', shortLabel: 'Välj' },
-    { tool: 'player', icon: <UserPlus className="h-4 w-4" />, label: 'Lägg till spelare', shortLabel: 'Spelare' },
-    { tool: 'movement', icon: <MoveRight className="h-4 w-4" />, label: 'Rita rörelse', shortLabel: 'Rörelse' },
-    { tool: 'zone', icon: <Square className="h-4 w-4" />, label: 'Markera zon', shortLabel: 'Zon' },
-    { tool: 'annotation', icon: <Type className="h-4 w-4" />, label: 'Lägg till text', shortLabel: 'Text' },
-  ]
+  const toolbarItems: { tool: Tool; icon: React.ReactNode; label: string; shortLabel: string }[] = useMemo(
+    () => [
+      { tool: 'select', icon: <MousePointer2 className="h-4 w-4" />, label: t('editor.toolbar.select.label'), shortLabel: t('editor.toolbar.select.short') },
+      { tool: 'player', icon: <UserPlus className="h-4 w-4" />, label: t('editor.toolbar.player.label'), shortLabel: t('editor.toolbar.player.short') },
+      { tool: 'movement', icon: <MoveRight className="h-4 w-4" />, label: t('editor.toolbar.movement.label'), shortLabel: t('editor.toolbar.movement.short') },
+      { tool: 'zone', icon: <Square className="h-4 w-4" />, label: t('editor.toolbar.zone.label'), shortLabel: t('editor.toolbar.zone.short') },
+      { tool: 'annotation', icon: <Type className="h-4 w-4" />, label: t('editor.toolbar.annotation.label'), shortLabel: t('editor.toolbar.annotation.short') },
+    ],
+    [t]
+  )
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -648,7 +653,7 @@ export function InteractiveDrillEditor({
                 <Undo2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Ångra (Ctrl+Z)</TooltipContent>
+            <TooltipContent side="bottom">{t('editor.toolbar.undo')}</TooltipContent>
           </Tooltip>
 
           {/* Delete selected */}
@@ -664,7 +669,7 @@ export function InteractiveDrillEditor({
                 <Trash2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Radera vald (Del)</TooltipContent>
+            <TooltipContent side="bottom">{t('editor.toolbar.deleteSelected')}</TooltipContent>
           </Tooltip>
 
           {/* Clear all */}
@@ -680,7 +685,7 @@ export function InteractiveDrillEditor({
                 <RotateCcw className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Rensa allt</TooltipContent>
+            <TooltipContent side="bottom">{t('editor.toolbar.clearAll')}</TooltipContent>
           </Tooltip>
         </div>
 
@@ -689,7 +694,7 @@ export function InteractiveDrillEditor({
           {activeTool === 'player' && (
             <>
               <div className="flex items-center gap-1.5">
-                <Label className="text-xs whitespace-nowrap">Position:</Label>
+                <Label className="text-xs whitespace-nowrap">{t('editor.options.position')}</Label>
                 <div className="flex gap-0.5">
                   {PLAYER_LABELS.slice(0, 6).map((l) => (
                     <Button
@@ -705,7 +710,7 @@ export function InteractiveDrillEditor({
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <Label className="text-xs">Lag:</Label>
+                <Label className="text-xs">{t('editor.options.team')}</Label>
                 <Button
                   variant={playerTeam === 'home' ? 'default' : 'outline'}
                   size="sm"
@@ -713,7 +718,7 @@ export function InteractiveDrillEditor({
                   style={playerTeam === 'home' ? { backgroundColor: '#dc2626' } : {}}
                   onClick={() => setPlayerTeam('home')}
                 >
-                  Hemma
+                  {t('editor.options.teamHome')}
                 </Button>
                 <Button
                   variant={playerTeam === 'away' ? 'default' : 'outline'}
@@ -722,12 +727,12 @@ export function InteractiveDrillEditor({
                   style={playerTeam === 'away' ? { backgroundColor: '#2563eb' } : {}}
                   onClick={() => setPlayerTeam('away')}
                 >
-                  Borta
+                  {t('editor.options.teamAway')}
                 </Button>
               </div>
               {sportType === 'ICE_HOCKEY' && (
                 <div className="flex items-center gap-1.5">
-                  <Label className="text-xs">Snabbt:</Label>
+                  <Label className="text-xs">{t('editor.options.quick')}</Label>
                   <Button
                     variant="outline"
                     size="sm"
@@ -735,7 +740,7 @@ export function InteractiveDrillEditor({
                     onClick={() => addHockeyPreset('attack')}
                   >
                     <UsersRound className="h-3.5 w-3.5" />
-                    Anfall 5
+                    {t('editor.hockeyPresets.attack')}
                   </Button>
                   <Button
                     variant="outline"
@@ -744,7 +749,7 @@ export function InteractiveDrillEditor({
                     onClick={() => addHockeyPreset('defense')}
                   >
                     <ShieldPlus className="h-3.5 w-3.5" />
-                    Försvar 5
+                    {t('editor.hockeyPresets.defense')}
                   </Button>
                   <Button
                     variant="outline"
@@ -762,7 +767,7 @@ export function InteractiveDrillEditor({
           {activeTool === 'movement' && (
             <>
               <div className="flex items-center gap-1.5">
-                <Label className="text-xs whitespace-nowrap">Typ:</Label>
+                <Label className="text-xs whitespace-nowrap">{t('editor.options.type')}</Label>
                 {(Object.keys(MOVEMENT_STYLES) as MovementType[]).map((t) => (
                   <Button
                     key={t}
@@ -780,7 +785,7 @@ export function InteractiveDrillEditor({
                 ))}
               </div>
               <div className="flex items-center gap-1.5">
-                <Label className="text-xs whitespace-nowrap">Steg:</Label>
+                <Label className="text-xs whitespace-nowrap">{t('editor.options.phase')}</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -807,12 +812,12 @@ export function InteractiveDrillEditor({
                   +
                 </Button>
                 <span className="text-xs text-muted-foreground">
-                  Samma steg spelas samtidigt
+                  {t('editor.options.parallelMovements')}
                 </span>
               </div>
               {movementStart && (
                 <span className="text-xs text-muted-foreground">
-                  Klicka på slutpunkt...
+                  {t('editor.hints.selectMovementEndpoint')}
                 </span>
               )}
             </>
@@ -820,7 +825,7 @@ export function InteractiveDrillEditor({
 
           {activeTool === 'zone' && (
             <div className="flex items-center gap-1.5">
-              <Label className="text-xs">Färg:</Label>
+              <Label className="text-xs">{t('editor.options.color')}</Label>
               {ZONE_COLORS.map((c) => (
                 <button
                   key={c}
@@ -831,7 +836,7 @@ export function InteractiveDrillEditor({
               ))}
               {zoneStart && (
                 <span className="text-xs text-muted-foreground ml-2">
-                  Klicka på andra hörnet...
+                  {t('editor.hints.drawZone')}
                 </span>
               )}
             </div>
@@ -839,22 +844,22 @@ export function InteractiveDrillEditor({
 
           {activeTool === 'annotation' && (
             <div className="flex items-center gap-1.5">
-              <Label className="text-xs">Text:</Label>
+              <Label className="text-xs">{t('editor.options.annotationLabel')}</Label>
               <Input
                 value={annotationText}
                 onChange={(e) => setAnnotationText(e.target.value)}
-                placeholder="T.ex. 'Breakout'"
+                placeholder={t('editor.annotationPlaceholder')}
                 className="h-7 text-xs w-40"
               />
               <span className="text-xs text-muted-foreground">
-                Klicka på rinken för att placera
+                {t('editor.hints.placeAnnotation')}
               </span>
             </div>
           )}
 
           {activeTool === 'select' && !selectedId && (
             <span className="text-xs text-muted-foreground">
-              Klicka på en spelare eller rörelse för att välja
+              {t('editor.hints.selectElement')}
             </span>
           )}
         </div>
@@ -862,9 +867,9 @@ export function InteractiveDrillEditor({
         {/* Selected player editor */}
         {activeTool === 'select' && selectedPlayer && (
           <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/50 rounded-md">
-            <Label className="text-xs font-medium">Vald spelare:</Label>
+            <Label className="text-xs font-medium">{t('editor.selection.selectedPlayer')}</Label>
             <div className="flex items-center gap-1">
-              <Label className="text-xs">Position:</Label>
+              <Label className="text-xs">{t('editor.options.position')}</Label>
               <div className="flex gap-0.5">
                 {PLAYER_LABELS.slice(0, 6).map((l) => (
                   <Button
@@ -887,7 +892,7 @@ export function InteractiveDrillEditor({
                 style={selectedPlayer.team === 'home' ? { backgroundColor: '#dc2626' } : {}}
                 onClick={() => updateSelectedPlayer({ team: 'home' })}
               >
-                Hemma
+                {t('editor.options.teamHome')}
               </Button>
               <Button
                 variant={selectedPlayer.team === 'away' ? 'default' : 'outline'}
@@ -896,7 +901,7 @@ export function InteractiveDrillEditor({
                 style={selectedPlayer.team === 'away' ? { backgroundColor: '#2563eb' } : {}}
                 onClick={() => updateSelectedPlayer({ team: 'away' })}
               >
-                Borta
+                {t('editor.options.teamAway')}
               </Button>
             </div>
           </div>
@@ -904,9 +909,9 @@ export function InteractiveDrillEditor({
 
         {activeTool === 'select' && selectedMovement && (
           <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/50 rounded-md">
-            <Label className="text-xs font-medium">Vald rörelse:</Label>
+            <Label className="text-xs font-medium">{t('editor.selection.selectedMovement')}</Label>
             <div className="flex items-center gap-1">
-              <Label className="text-xs">Typ:</Label>
+              <Label className="text-xs">{t('editor.options.type')}</Label>
               {(Object.keys(MOVEMENT_STYLES) as MovementType[]).map((t) => (
                 <Button
                   key={t}
@@ -924,7 +929,7 @@ export function InteractiveDrillEditor({
               ))}
             </div>
             <div className="flex items-center gap-1">
-              <Label className="text-xs">Steg:</Label>
+              <Label className="text-xs">{t('editor.options.phase')}</Label>
               <Input
                 type="number"
                 min={1}
@@ -935,16 +940,16 @@ export function InteractiveDrillEditor({
             </div>
             {selectedMovement.type === 'skate' && (
               <div className="flex items-center gap-1">
-                <Label className="text-xs">Spelare:</Label>
+                <Label className="text-xs">{t('editor.options.player')}</Label>
                 <select
                   value={selectedMovement.playerId ?? 'auto'}
                   onChange={(e) => updateSelectedMovement({ playerId: e.target.value === 'auto' ? null : e.target.value })}
                   className="h-6 rounded border bg-background px-2 text-[10px]"
                 >
-                  <option value="auto">Auto</option>
+                  <option value="auto">{t('editor.options.auto')}</option>
                   {players.map((player) => (
                     <option key={player.id} value={player.id}>
-                      {player.label} ({player.team === 'home' ? 'röd' : 'blå'})
+                      {player.label} ({player.team === 'home' ? t('editor.teamColors.home') : t('editor.teamColors.away')})
                     </option>
                   ))}
                 </select>
@@ -959,7 +964,7 @@ export function InteractiveDrillEditor({
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                 <div className="mr-1 flex items-center gap-1.5 text-xs font-medium">
                   <Layers3 className="h-3.5 w-3.5" />
-                  Spelsteg
+                  {t('editor.sequence.title')}
                 </div>
                 {phaseGroups.map((group) => {
                   const isActive = group.phase === activePhase
@@ -980,7 +985,7 @@ export function InteractiveDrillEditor({
                         {group.phase}
                       </span>
                       <span className="truncate">
-                        {group.movements.length} rörelser
+                        {t('editor.sequence.movementCount', { count: group.movements.length })}
                         {group.label ? ` · ${group.label}` : ''}
                       </span>
                     </button>
@@ -995,7 +1000,7 @@ export function InteractiveDrillEditor({
                   className="h-8 gap-1.5 text-xs"
                   onClick={createNextPhase}
                 >
-                  + Nytt steg
+                  {t('editor.sequence.newPhase')}
                 </Button>
                 <Button
                   type="button"
@@ -1005,7 +1010,7 @@ export function InteractiveDrillEditor({
                   onClick={() => duplicatePhase(activePhase)}
                 >
                   <Copy className="h-3.5 w-3.5" />
-                  Kopiera
+                  {t('editor.sequence.duplicatePhase')}
                 </Button>
                 <Button
                   type="button"
@@ -1015,7 +1020,7 @@ export function InteractiveDrillEditor({
                   onClick={() => deletePhase(activePhase)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Radera steg
+                  {t('editor.sequence.deletePhase')}
                 </Button>
               </div>
             </div>
@@ -1269,11 +1274,11 @@ export function InteractiveDrillEditor({
         {/* Status bar */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>
-            {players.length} spelare · {movements.length} rörelser
-            {zones.length > 0 && ` · ${zones.length} zoner`}
-            {annotations.length > 0 && ` · ${annotations.length} texter`}
+            {t('editor.statusBar.players', { count: players.length })} · {t('editor.statusBar.movements', { count: movements.length })}
+            {zones.length > 0 && ` · ${t('editor.statusBar.zones', { count: zones.length })}`}
+            {annotations.length > 0 && ` · ${t('editor.statusBar.annotations', { count: annotations.length })}`}
           </span>
-          <span>Klicka på rinken för att placera element</span>
+          <span>{t('editor.statusBar.placeHint')}</span>
         </div>
       </div>
     </TooltipProvider>
