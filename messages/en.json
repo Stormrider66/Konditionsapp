@@ -1239,7 +1239,49 @@
     },
     "wodHistory": {
       "metadataTitle": "WOD History | Konditionstest",
-      "metadataDescription": "View your previous AI-generated workouts"
+      "metadataDescription": "View your previous AI-generated workouts",
+      "header": {
+        "title": "WOD History",
+        "subtitle": "AI-generated workouts"
+      },
+      "metrics": {
+        "generated": "Generated",
+        "completed": "Completed",
+        "minutes": "Minutes"
+      },
+      "filters": {
+        "all": "All ({count})",
+        "completed": "Completed",
+        "pending": "Ongoing"
+      },
+      "empty": {
+        "title": "No workouts to show",
+        "messageAll": "You have not generated any AI workouts yet.",
+        "messageCompleted": "No completed workouts yet.",
+        "messagePending": "No active workouts.",
+        "action": "Create a workout"
+      },
+      "status": {
+        "generated": "Not started",
+        "started": "Started",
+        "completed": "Completed",
+        "abandoned": "Abandoned"
+      },
+      "modes": {
+        "structured": "Structured",
+        "casual": "Casual",
+        "fun": "Just for fun!"
+      },
+      "workoutMeta": {
+        "exerciseCount": "{exerciseCount} exercises"
+      },
+      "labels": {
+        "completedSuffix": "Completed {distance}"
+      },
+      "repeat": {
+        "action": "Repeat",
+        "loading": "Creating..."
+      }
     },
     "nutrition": {
       "stats": {

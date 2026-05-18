@@ -1239,7 +1239,49 @@
     },
     "wodHistory": {
       "metadataTitle": "WOD Historik | Konditionstest",
-      "metadataDescription": "Se dina tidigare AI-genererade träningspass"
+      "metadataDescription": "Se dina tidigare AI-genererade träningspass",
+      "header": {
+        "title": "WOD Historik",
+        "subtitle": "AI-genererade pass"
+      },
+      "metrics": {
+        "generated": "Genererade",
+        "completed": "Slutförda",
+        "minutes": "Minuter"
+      },
+      "filters": {
+        "all": "Alla ({count})",
+        "completed": "Slutförda",
+        "pending": "Ej klara"
+      },
+      "empty": {
+        "title": "Inga pass att visa",
+        "messageAll": "Du har inte genererat några AI-pass än.",
+        "messageCompleted": "Inga slutförda pass ännu.",
+        "messagePending": "Inga pågående pass.",
+        "action": "Skapa ett pass"
+      },
+      "status": {
+        "generated": "Ej påbörjad",
+        "started": "Påbörjad",
+        "completed": "Slutförd",
+        "abandoned": "Avbruten"
+      },
+      "modes": {
+        "structured": "Strukturerat",
+        "casual": "Avslappnat",
+        "fun": "Bara kul!"
+      },
+      "workoutMeta": {
+        "exerciseCount": "{exerciseCount} övningar"
+      },
+      "labels": {
+        "completedSuffix": "Slutförd {distance}"
+      },
+      "repeat": {
+        "action": "Gör om",
+        "loading": "Skapar..."
+      }
     },
     "nutrition": {
       "stats": {

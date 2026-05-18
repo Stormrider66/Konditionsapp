@@ -12,7 +12,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import {
   ChevronLeft,
   CheckCircle2,
@@ -23,13 +23,13 @@ import {
   XCircle,
   Sparkles,
   Timer,
-  TrendingUp,
   Calendar,
   Zap,
   RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { WODWorkout } from '@/types/wod'
+import { useTranslations } from '@/i18n/client'
 
 interface WODHistoryItem {
   id: string
@@ -59,42 +59,43 @@ interface WODHistoryClientProps {
   basePath?: string
 }
 
-const STATUS_CONFIG = {
-  GENERATED: {
-    label: 'Ej påbörjad',
-    icon: Clock,
-    color: 'text-slate-500',
-    bgColor: 'bg-slate-100 dark:bg-slate-800',
-  },
-  STARTED: {
-    label: 'Påbörjad',
-    icon: Play,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
-  },
-  COMPLETED: {
-    label: 'Slutförd',
-    icon: CheckCircle2,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
-  },
-  ABANDONED: {
-    label: 'Avbruten',
-    icon: XCircle,
-    color: 'text-red-500',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
-  },
-}
-
-const MODE_LABELS: Record<string, string> = {
-  STRUCTURED: 'Strukturerat',
-  CASUAL: 'Avslappnat',
-  FUN: 'Bara kul!',
-}
-
 export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClientProps) {
   const [filter, setFilter] = useState<'all' | 'completed' | 'pending'>('all')
   const [repeating, setRepeating] = useState<string | null>(null)
+  const t = useTranslations('athletePages.wodHistory')
+
+  const statusConfig = {
+    GENERATED: {
+      label: t('status.generated'),
+      icon: Clock,
+      color: 'text-slate-500',
+      bgColor: 'bg-slate-100 dark:bg-slate-800',
+    },
+    STARTED: {
+      label: t('status.started'),
+      icon: Play,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+    },
+    COMPLETED: {
+      label: t('status.completed'),
+      icon: CheckCircle2,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
+    },
+    ABANDONED: {
+      label: t('status.abandoned'),
+      icon: XCircle,
+      color: 'text-red-500',
+      bgColor: 'bg-red-100 dark:bg-red-900/30',
+    },
+  } as const
+
+  const modeLabels = {
+    STRUCTURED: t('modes.structured'),
+    CASUAL: t('modes.casual'),
+    FUN: t('modes.fun'),
+  } as const
 
   const handleRepeat = async (wodId: string, e: React.MouseEvent) => {
     e.preventDefault()
@@ -148,10 +149,10 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
             </div>
             <div>
               <h1 className="text-lg font-black uppercase italic tracking-tight leading-none">
-                WOD Historik
+                {t('header.title')}
               </h1>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">
-                AI-genererade pass
+                {t('header.subtitle')}
               </p>
             </div>
           </div>
@@ -167,7 +168,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
               <Dumbbell className="h-5 w-5 mx-auto mb-1 text-blue-500" />
               <p className="text-2xl font-bold">{stats.total}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Genererade
+                {t('metrics.generated')}
               </p>
             </GlassCardContent>
           </GlassCard>
@@ -176,7 +177,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
               <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-green-500" />
               <p className="text-2xl font-bold">{stats.completed}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Slutförda
+                {t('metrics.completed')}
               </p>
             </GlassCardContent>
           </GlassCard>
@@ -185,7 +186,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
               <Timer className="h-5 w-5 mx-auto mb-1 text-orange-500" />
               <p className="text-2xl font-bold">{stats.totalMinutes}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Minuter
+                {t('metrics.minutes')}
               </p>
             </GlassCardContent>
           </GlassCard>
@@ -199,7 +200,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
             onClick={() => setFilter('all')}
             className="flex-1"
           >
-            Alla ({wods.length})
+            {t('filters.all', { count: wods.length })}
           </Button>
           <Button
             variant={filter === 'completed' ? 'default' : 'outline'}
@@ -207,7 +208,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
             onClick={() => setFilter('completed')}
             className="flex-1"
           >
-            Slutförda
+            {t('filters.completed')}
           </Button>
           <Button
             variant={filter === 'pending' ? 'default' : 'outline'}
@@ -215,36 +216,36 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
             onClick={() => setFilter('pending')}
             className="flex-1"
           >
-            Ej klara
+            {t('filters.pending')}
           </Button>
         </div>
 
         {/* WOD list */}
         {filteredWods.length === 0 ? (
-          <GlassCard>
-            <GlassCardContent className="p-8 text-center">
-              <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="font-semibold mb-2">Inga pass att visa</h3>
+            <GlassCard>
+              <GlassCardContent className="p-8 text-center">
+                <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="font-semibold mb-2">{t('empty.title')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 {filter === 'all'
-                  ? 'Du har inte genererat några AI-pass än.'
+                  ? t('empty.messageAll')
                   : filter === 'completed'
-                    ? 'Inga slutförda pass ännu.'
-                    : 'Inga pågående pass.'}
+                    ? t('empty.messageCompleted')
+                    : t('empty.messagePending')}
               </p>
               <Link href={`${basePath}/athlete/dashboard`}>
-                <Button>
-                  <Zap className="h-4 w-4 mr-2" />
-                  Skapa ett pass
-                </Button>
-              </Link>
-            </GlassCardContent>
-          </GlassCard>
+                  <Button>
+                    <Zap className="h-4 w-4 mr-2" />
+                    {t('empty.action')}
+                  </Button>
+                </Link>
+              </GlassCardContent>
+            </GlassCard>
         ) : (
           <div className="space-y-3">
             {filteredWods.map(wod => {
-              const statusConfig = STATUS_CONFIG[wod.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.GENERATED
-              const StatusIcon = statusConfig.icon
+              const status = statusConfig[wod.status as keyof typeof statusConfig] || statusConfig.GENERATED
+              const StatusIcon = status.icon
               const workout = wod.workoutJson as WODWorkout | null
               const exerciseCount = workout?.sections?.reduce((sum, s) => sum + s.exercises.length, 0) || 0
 
@@ -254,8 +255,8 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
                     <GlassCardContent className="p-4">
                       <div className="flex items-start gap-3">
                         {/* Status icon */}
-                        <div className={cn('p-2 rounded-lg shrink-0', statusConfig.bgColor)}>
-                          <StatusIcon className={cn('h-5 w-5', statusConfig.color)} />
+                        <div className={cn('p-2 rounded-lg shrink-0', status.bgColor)}>
+                          <StatusIcon className={cn('h-5 w-5', status.color)} />
                         </div>
 
                         {/* Content */}
@@ -270,7 +271,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
                               )}
                             </div>
                             <Badge variant="outline" className="shrink-0 text-xs">
-                              {MODE_LABELS[wod.mode] || wod.mode}
+                              {modeLabels[wod.mode as keyof typeof modeLabels] || wod.mode}
                             </Badge>
                           </div>
 
@@ -286,7 +287,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
                             </span>
                             <span className="flex items-center gap-1">
                               <Dumbbell className="h-3 w-3" />
-                              {exerciseCount} övningar
+                              {t('workoutMeta.exerciseCount', { exerciseCount })}
                             </span>
                             {wod.sessionRPE && (
                               <span className="flex items-center gap-1">
@@ -300,7 +301,12 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
                           <div className="flex items-center justify-between mt-2">
                             {wod.completedAt && (
                               <p className="text-xs text-green-600 dark:text-green-400">
-                                Slutförd {formatDistanceToNow(new Date(wod.completedAt), { addSuffix: true, locale: sv })}
+                                {t('labels.completedSuffix', {
+                                  distance: formatDistanceToNow(new Date(wod.completedAt), {
+                                    addSuffix: true,
+                                    locale: sv,
+                                  }),
+                                })}
                               </p>
                             )}
                             {wod.status === 'COMPLETED' && (
@@ -312,7 +318,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
                                 disabled={repeating === wod.id}
                               >
                                 <RotateCcw className={cn('h-3 w-3 mr-1', repeating === wod.id && 'animate-spin')} />
-                                {repeating === wod.id ? 'Skapar...' : 'Gör om'}
+                                {repeating === wod.id ? t('repeat.loading') : t('repeat.action')}
                               </Button>
                             )}
                           </div>
