@@ -673,8 +673,8 @@ export function CalendarEventItem({
             <DialogDescription className={isGlass ? 'text-slate-400' : ''}>
               {workoutResult?.athleteName ? `${workoutResult.athleteName} · ` : ''}
               {workoutResult?.completedAt
-                    ? t('calendarItem.event.registeredAt', {
-                    time: formatResultDate(workoutResult.completedAt, dateLocaleCode),
+                ? t('calendarItem.event.registeredAt', {
+                    time: formatResultDate(workoutResult.completedAt, dateLocaleCode) ?? '',
                   })
                 : t('calendarItem.event.resultPlaceholder')
               }

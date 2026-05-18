@@ -383,7 +383,7 @@ function ReadinessBanner({ readiness }: { readiness?: PreviewWorkoutData['readin
     <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-2 text-sm', tone)}>
       <Heart className="h-4 w-4" />
       <span>
-        {t('readiness.label', { score: readiness.score })}
+        {t('readiness.label', { score: readiness.score ?? '-' })}
         {readiness.message ? ` — ${readiness.message}` : ''}
       </span>
     </div>

@@ -72,7 +72,7 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
       toast({
         title: tPendingCoachRequests('toasts.accepted.title'),
         description: tPendingCoachRequests('toasts.accepted.description', {
-          athleteName: req?.athlete.name || req?.athlete.email,
+          athleteName: req?.athlete.name || req?.athlete.email || 'Athlete',
         }),
       })
       setRequests(prev => prev.filter(r => r.id !== requestId))

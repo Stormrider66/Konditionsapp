@@ -328,7 +328,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             {tDmaxCurveChart('explanation.lt1Text', {
               intensity: lt1Point.intensity,
               intensityUnit,
-              lactate: aerobicThreshold?.lactate?.toFixed(2),
+              lactate: lt1Point.lt1Lactate.toFixed(2),
             })}
           </p>
         )}
@@ -338,7 +338,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             {tDmaxCurveChart('explanation.lt2Text', {
               intensity: lt2Point.intensity,
               intensityUnit,
-              lactate: anaerobicThreshold?.lactate?.toFixed(2),
+              lactate: lt2Point.lt2Lactate.toFixed(2),
             })}
           </p>
         )}

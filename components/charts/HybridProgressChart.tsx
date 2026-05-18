@@ -81,7 +81,7 @@ function formatTime(seconds: number): string {
 }
 
 // Custom tooltip for the charts
-function CustomTooltip({ active, payload, label, labels }: { active: boolean; payload?: any[]; label?: string; labels: TooltipLabels }) {
+function CustomTooltip({ active, payload, label, labels }: { active?: boolean; payload?: any[]; label?: string; labels: TooltipLabels }) {
   if (!active || !payload || !payload.length) return null;
 
   const data = payload[0].payload;

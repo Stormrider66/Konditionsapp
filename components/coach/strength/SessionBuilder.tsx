@@ -425,7 +425,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
             </div>
             {onCancel && (
               <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{tSessionBuilder('labels.editing', { athleteName: initialData?.name })}</span>
+                <span>{tSessionBuilder('labels.editing', { athleteName: initialData?.name ?? sessionName })}</span>
                 <Button variant="ghost" size="sm" onClick={onCancel} className="ml-auto">
                   <X className="h-4 w-4 mr-1" />
                   {tSessionBuilder('actions.cancel')}
