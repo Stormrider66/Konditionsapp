@@ -1231,7 +1231,32 @@
     },
     "rehab": {
       "metadataTitle": "Rehabilitering | Athlete",
-      "metadataDescription": "Se dina aktiva rehabiliteringsprogram och övningar"
+      "metadataDescription": "Se dina aktiva rehabiliteringsprogram och övningar",
+      "title": "Rehabilitering",
+      "subtitle": "Dina rehabiliteringsprogram och övningar",
+      "contactPhysio": "Kontakta fysio",
+      "tabs": {
+        "active": "Aktiva ({count})",
+        "completed": "Avslutade ({count})"
+      },
+      "empty": {
+        "active": "Inga aktiva program",
+        "completed": "Inga avslutade program"
+      },
+      "phases": {
+        "acute": "Akut",
+        "subacute": "Subakut",
+        "remodeling": "Remodellering",
+        "functional": "Funktionell",
+        "return_to_sport": "Återgång till idrott"
+      },
+      "stats": {
+        "exercises": "{count, plural, one {# övning} other {# övningar}}",
+        "milestones": "{count, plural, one {# milstolpe} other {# milstolpar}}",
+        "logs": "{count, plural, one {# logg} other {# loggar}}"
+      },
+      "milestonesProgress": "Milstolpsprogress",
+      "estimatedEndDate": "Beräknat slutdatum: {date}"
     },
     "prs": {
       "metadataTitle": "Mina PR | Athlete",

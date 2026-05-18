@@ -1231,7 +1231,32 @@
     },
     "rehab": {
       "metadataTitle": "Rehabilitation | Athlete",
-      "metadataDescription": "View your active rehabilitation programs and exercises"
+      "metadataDescription": "View your active rehabilitation programs and exercises",
+      "title": "Rehabilitation",
+      "subtitle": "Your rehabilitation programs and exercises",
+      "contactPhysio": "Contact physio",
+      "tabs": {
+        "active": "Active ({count})",
+        "completed": "Completed ({count})"
+      },
+      "empty": {
+        "active": "No active programs",
+        "completed": "No completed programs"
+      },
+      "phases": {
+        "acute": "Acute",
+        "subacute": "Subacute",
+        "remodeling": "Remodelling",
+        "functional": "Functional",
+        "return_to_sport": "Return to sport"
+      },
+      "stats": {
+        "exercises": "{count, plural, one {# exercise} other {# exercises}}",
+        "milestones": "{count, plural, one {# milestone} other {# milestones}}",
+        "logs": "{count, plural, one {# log} other {# logs}}"
+      },
+      "milestonesProgress": "Milestone progress",
+      "estimatedEndDate": "Estimated end date: {date}"
     },
     "prs": {
       "metadataTitle": "My PRs | Athlete",

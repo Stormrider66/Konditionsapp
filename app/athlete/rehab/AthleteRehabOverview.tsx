@@ -12,13 +12,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription,
-} from '@/components/ui/GlassCard'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import {
   Stethoscope,
   Dumbbell,
@@ -33,6 +27,7 @@ import {
 } from 'lucide-react'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { RehabDayView } from '@/components/athlete/RehabDayView'
+import { useTranslations } from '@/i18n/client'
 
 interface RehabProgram {
   id: string
@@ -71,14 +66,6 @@ interface AthleteRehabOverviewProps {
   clientId: string
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  ACUTE: 'Akut',
-  SUBACUTE: 'Subakut',
-  REMODELING: 'Remodellering',
-  FUNCTIONAL: 'Funktionell',
-  RETURN_TO_SPORT: 'Återgång till idrott',
-}
-
 const PHASE_COLORS: Record<string, string> = {
   ACUTE: 'bg-red-500/20 text-red-400 border-red-500/30',
   SUBACUTE: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
@@ -87,18 +74,12 @@ const PHASE_COLORS: Record<string, string> = {
   RETURN_TO_SPORT: 'bg-green-500/20 text-green-400 border-green-500/30',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  ACTIVE: 'Aktivt',
-  PAUSED: 'Pausat',
-  COMPLETED: 'Slutfört',
-  CANCELLED: 'Avbrutet',
-}
-
 export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
   const router = useRouter()
   const [programs, setPrograms] = useState<RehabProgram[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')
+  const t = useTranslations('athletePages.rehab')
 
   useEffect(() => {
     async function fetchPrograms() {
@@ -148,8 +129,8 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Rehabilitering</h1>
-          <p className="text-slate-400 mt-1">Dina rehabiliteringsprogram och övningar</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">{t('title')}</h1>
+          <p className="text-slate-400 mt-1">{t('subtitle')}</p>
         </div>
         <Button
           onClick={handleContactPhysio}
@@ -157,7 +138,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
           className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
         >
           <MessageCircle className="h-4 w-4 mr-2" />
-          Kontakta fysio
+          {t('contactPhysio')}
         </Button>
       </div>
 
@@ -186,7 +167,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
           )}
         >
           <Activity className="h-4 w-4 mr-2" />
-          Aktiva ({activePrograms.length})
+          {t('tabs.active', { count: activePrograms.length })}
         </Button>
         <Button
           variant="ghost"
@@ -199,7 +180,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
           )}
         >
           <CheckCircle2 className="h-4 w-4 mr-2" />
-          Avslutade ({completedPrograms.length})
+          {t('tabs.completed', { count: completedPrograms.length })}
         </Button>
       </div>
 
@@ -215,7 +196,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
           <GlassCardContent className="flex flex-col items-center justify-center py-12 text-slate-500">
             <Stethoscope className="h-12 w-12 mb-3 opacity-50" />
             <p className="font-medium">
-              {activeTab === 'active' ? 'Inga aktiva program' : 'Inga avslutade program'}
+              {activeTab === 'active' ? t('empty.active') : t('empty.completed')}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -241,7 +222,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
                         variant="outline"
                         className={cn('text-[10px] font-bold', PHASE_COLORS[program.currentPhase])}
                       >
-                        {PHASE_LABELS[program.currentPhase]}
+                        {t(`phases.${program.currentPhase.toLowerCase()}` as const)}
                       </Badge>
                     </div>
 
@@ -254,15 +235,15 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
                     <div className="flex items-center gap-4 text-sm text-slate-500">
                       <div className="flex items-center gap-1.5">
                         <Dumbbell className="h-4 w-4" />
-                        <span>{program._count.exercises} övningar</span>
+                        <span>{t('stats.exercises', { count: program._count.exercises })}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Target className="h-4 w-4" />
-                        <span>{program._count.milestones} milstolpar</span>
+                        <span>{t('stats.milestones', { count: program._count.milestones })}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Clock className="h-4 w-4" />
-                        <span>{program._count.progressLogs} loggar</span>
+                        <span>{t('stats.logs', { count: program._count.progressLogs })}</span>
                       </div>
                     </div>
 
@@ -270,7 +251,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
                     {program.milestones.length > 0 && (
                       <div className="mt-4">
                         <div className="flex justify-between text-xs text-slate-500 mb-1">
-                          <span>Milstolpsprogress</span>
+                          <span>{t('milestonesProgress')}</span>
                           <span>
                             {program.milestones.filter((m) => m.achieved).length}/
                             {program.milestones.length}
@@ -314,7 +295,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
                 {program.estimatedEndDate && (
                   <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 text-xs text-slate-500">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>Beräknat slutdatum: {formatDate(program.estimatedEndDate)}</span>
+                    <span>{t('estimatedEndDate', { date: formatDate(program.estimatedEndDate) })}</span>
                   </div>
                 )}
               </GlassCardContent>
