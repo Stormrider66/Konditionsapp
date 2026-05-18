@@ -2320,6 +2320,102 @@
           "library": "Sparade"
         }
       },
+      "practicePlanner": {
+        "title": "Träningsplanering",
+        "description": "Bygg en komplett isträning med teknik, taktik, special teams, kedjor och tidsblock.",
+        "defaultTitle": "Träning",
+        "descriptionTitle": "Träningsplan",
+        "minutesLabel": "min",
+        "labels": {
+          "title": "Titel",
+          "team": "Lag",
+          "startTime": "Starttid",
+          "phase": "Fas",
+          "intensity": "Intensitet",
+          "lineGroups": "Kedjor / grupper",
+          "goalieNotes": "Målvakter",
+          "coachNotes": "Coachnoteringar"
+        },
+        "placeholders": {
+          "title": "T.ex. Teknikträning",
+          "selectTeam": "Välj lag...",
+          "lineGroups": "T.ex. backpar, femmor, färggrupper...",
+          "goalieNotes": "T.ex. separat uppvärmning, skottvolym, teknikfokus...",
+          "coachNotes": "Nyckelbudskap, påminnelser, belastningsstyrning...",
+          "workRest": "T.ex. 40/20",
+          "coaching": "Nyckelpunkt för blocket..."
+        },
+        "blocks": {
+          "defaultWarmupTitle": "Uppvärmning",
+          "newActivity": "Ny aktivitet"
+        },
+        "focus": {
+          "warmup": "Uppvärmning",
+          "skill": "Teknik",
+          "skating": "Skridskoåkning",
+          "tactical": "Taktik",
+          "specialTeams": "Special teams",
+          "smallArea": "Liten yta",
+          "conditioning": "Kondition",
+          "game": "Spel",
+          "cooldown": "Nedvarvning"
+        },
+        "phases": {
+          "preseason": "Försäsong",
+          "season": "Säsong",
+          "matchPrep": "Matchförberedelse",
+          "recovery": "Återhämtning",
+          "camp": "Läger"
+        },
+        "intensities": {
+          "low": "Låg",
+          "moderate": "Måttlig",
+          "high": "Hög",
+          "matchLike": "Matchliknande"
+        },
+        "planSummary": {
+          "focus": "Fokus",
+          "workRest": "Arbete/vila",
+          "coachingNotes": "Coachning",
+          "phase": "Fas",
+          "intensity": "Intensitet",
+          "linesGroups": "Kedjor/grupper",
+          "goalieNotes": "Målvakter",
+          "coachNotes": "Coachnoteringar"
+        },
+        "timeline": {
+          "title": "Program",
+          "totalMinutes": "{count} min",
+          "minLabel": "min"
+        },
+        "fields": {
+          "focus": "Fokus",
+          "workRest": "Arbete/vila",
+          "coaching": "Coachning"
+        },
+        "actions": {
+          "showDiagram": "Visa diagram",
+          "hideDiagram": "Dölj diagram",
+          "addActivity": "Aktivitet",
+          "addTemplate": "Mall",
+          "addSavedDrill": "+ Sparad övning",
+          "cancel": "Avbryt",
+          "saving": "Sparar...",
+          "saveToCalendar": "Spara till kalender"
+        },
+        "templatePicker": {
+          "title": "Välj övningsmall"
+        },
+        "validation": {
+          "selectTeam": "Välj ett lag",
+          "selectDate": "Välj ett datum",
+          "addAtLeastOneActivity": "Lägg till minst en aktivitet"
+        },
+        "toasts": {
+          "saved": "Träningsplan sparad i kalendern!",
+          "saveFailed": "Kunde inte spara träningsplanen"
+        }
+      },
       "workoutPrint": {
         "preparing": "Förbereder utskrift..."
       },

@@ -28,8 +28,47 @@ import {
   ClipboardList,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from '@/i18n/client'
 
 // ─── Types ──────────────────────────────────────────────────────────────
+
+type PracticeBlockFocus =
+  | 'warmup'
+  | 'skill'
+  | 'skating'
+  | 'tactical'
+  | 'specialTeams'
+  | 'smallArea'
+  | 'conditioning'
+  | 'game'
+  | 'cooldown'
+
+const BLOCK_FOCUS_OPTIONS: { value: PracticeBlockFocus; labelKey: string }[] = [
+  { value: 'warmup', labelKey: 'focus.warmup' },
+  { value: 'skill', labelKey: 'focus.skill' },
+  { value: 'skating', labelKey: 'focus.skating' },
+  { value: 'tactical', labelKey: 'focus.tactical' },
+  { value: 'specialTeams', labelKey: 'focus.specialTeams' },
+  { value: 'smallArea', labelKey: 'focus.smallArea' },
+  { value: 'conditioning', labelKey: 'focus.conditioning' },
+  { value: 'game', labelKey: 'focus.game' },
+  { value: 'cooldown', labelKey: 'focus.cooldown' },
+]
+
+const PRACTICE_PHASE_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'preseason', labelKey: 'phases.preseason' },
+  { value: 'season', labelKey: 'phases.season' },
+  { value: 'matchPrep', labelKey: 'phases.matchPrep' },
+  { value: 'recovery', labelKey: 'phases.recovery' },
+  { value: 'camp', labelKey: 'phases.camp' },
+]
+
+const INTENSITY_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: 'low', labelKey: 'intensities.low' },
+  { value: 'moderate', labelKey: 'intensities.moderate' },
+  { value: 'high', labelKey: 'intensities.high' },
+  { value: 'matchLike', labelKey: 'intensities.matchLike' },
+]
 
 interface PracticeBlock {
   id: string
@@ -66,48 +105,6 @@ function nextBlockId() {
   return `block-${Date.now()}-${_blockId}`
 }
 
-const DEFAULT_BLOCKS: PracticeBlock[] = [
-  { id: 'default-warmup', type: 'custom', focus: 'warmup', title: 'Uppvärmning', durationMinutes: 10 },
-]
-
-type PracticeBlockFocus =
-  | 'warmup'
-  | 'skill'
-  | 'skating'
-  | 'tactical'
-  | 'specialTeams'
-  | 'smallArea'
-  | 'conditioning'
-  | 'game'
-  | 'cooldown'
-
-const BLOCK_FOCUS_OPTIONS: { value: PracticeBlockFocus; label: string }[] = [
-  { value: 'warmup', label: 'Uppvärmning' },
-  { value: 'skill', label: 'Teknik' },
-  { value: 'skating', label: 'Skridsko' },
-  { value: 'tactical', label: 'Taktik' },
-  { value: 'specialTeams', label: 'Special teams' },
-  { value: 'smallArea', label: 'Smålagsspel' },
-  { value: 'conditioning', label: 'Fys på is' },
-  { value: 'game', label: 'Spel' },
-  { value: 'cooldown', label: 'Nedvarvning' },
-]
-
-const PRACTICE_PHASE_OPTIONS = [
-  'Försäsong',
-  'Säsong',
-  'Matchförberedande',
-  'Återhämtning',
-  'Camp',
-]
-
-const INTENSITY_OPTIONS = [
-  'Låg',
-  'Måttlig',
-  'Hög',
-  'Matchlik',
-]
-
 function getTemplateFocus(category: DrillTemplate['category']): PracticeBlockFocus {
   if (category === 'warmup') return 'warmup'
   if (category === 'shooting' || category === 'passing' || category === 'rush') return 'skill'
@@ -115,20 +112,48 @@ function getTemplateFocus(category: DrillTemplate['category']): PracticeBlockFoc
   return 'tactical'
 }
 
-function focusLabel(focus: PracticeBlockFocus) {
-  return BLOCK_FOCUS_OPTIONS.find((option) => option.value === focus)?.label ?? focus
-}
-
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function PracticePlanner({ teams }: PracticePlannerProps) {
-  const [blocks, setBlocks] = useState<PracticeBlock[]>(DEFAULT_BLOCKS)
+  const t = useTranslations('coach.pages.practicePlanner')
+  const tCommon = useTranslations('common')
+  const blockFocusOptions = useMemo(
+    () => BLOCK_FOCUS_OPTIONS.map((option) => ({ ...option, label: t(option.labelKey) })),
+    [t]
+  )
+  const phaseOptions = useMemo(
+    () => PRACTICE_PHASE_OPTIONS.map((option) => ({ ...option, label: t(option.labelKey) })),
+    [t]
+  )
+  const intensityOptions = useMemo(
+    () => INTENSITY_OPTIONS.map((option) => ({ ...option, label: t(option.labelKey) })),
+    [t]
+  )
+  const focusLabel = useCallback(
+    (focus: PracticeBlockFocus) => blockFocusOptions.find((o) => o.value === focus)?.label ?? focus,
+    [blockFocusOptions]
+  )
+
+  const defaultBlocks = useMemo<PracticeBlock[]>(
+    () => [
+      {
+        id: 'default-warmup',
+        type: 'custom',
+        focus: 'warmup',
+        title: t('blocks.defaultWarmupTitle'),
+        durationMinutes: 10,
+      },
+    ],
+    [t]
+  )
+
+  const [blocks, setBlocks] = useState<PracticeBlock[]>(defaultBlocks)
   const [title, setTitle] = useState('')
   const [teamId, setTeamId] = useState('')
   const [date, setDate] = useState('')
   const [startTime, setStartTime] = useState('17:00')
-  const [practicePhase, setPracticePhase] = useState('Säsong')
-  const [practiceIntensity, setPracticeIntensity] = useState('Måttlig')
+  const [practicePhase, setPracticePhase] = useState('season')
+  const [practiceIntensity, setPracticeIntensity] = useState('moderate')
   const [lineGroups, setLineGroups] = useState('')
   const [goalieNotes, setGoalieNotes] = useState('')
   const [coachNotes, setCoachNotes] = useState('')
@@ -165,11 +190,11 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         id: nextBlockId(),
         type: 'custom',
         focus: 'skill',
-        title: 'Ny aktivitet',
+        title: t('blocks.newActivity'),
         durationMinutes: 10,
       },
     ])
-  }, [])
+  }, [t])
 
   const addDrillBlock = useCallback(
     (template: DrillTemplate, insertAt?: number) => {
@@ -262,15 +287,15 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
   // Save as TeamEvent with practice plan in description
   const handleSave = async () => {
     if (!teamId || teamId === 'none') {
-      toast.error('Välj ett lag')
+      toast.error(t('validation.selectTeam'))
       return
     }
     if (!date) {
-      toast.error('Välj ett datum')
+      toast.error(t('validation.selectDate'))
       return
     }
     if (blocks.length === 0) {
-      toast.error('Lägg till minst en aktivitet')
+      toast.error(t('validation.addAtLeastOneActivity'))
       return
     }
 
@@ -279,23 +304,23 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
       .map(
         (b) =>
           [
-            `${formatTime(b.startMin)}-${formatTime(b.endMin)} ${b.title} (${b.durationMinutes} min)`,
-            `  Fokus: ${focusLabel(b.focus)}${b.workRest ? ` | Arbete/vila: ${b.workRest}` : ''}`,
+            `${formatTime(b.startMin)}-${formatTime(b.endMin)} ${b.title} (${b.durationMinutes} ${t('minutesLabel')})`,
+            `  ${t('planSummary.focus')}: ${focusLabel(b.focus)}${b.workRest ? ` | ${t('planSummary.workRest')}: ${b.workRest}` : ''}`,
             b.description ? `  ${b.description}` : null,
-            b.coachingNotes ? `  Coachning: ${b.coachingNotes}` : null,
+            b.coachingNotes ? `  ${t('planSummary.coachingNotes')}: ${b.coachingNotes}` : null,
           ].filter(Boolean).join('\n')
       )
       .join('\n')
 
     const meta = [
-      `Fas: ${practicePhase}`,
-      `Intensitet: ${practiceIntensity}`,
-      lineGroups ? `Kedjor/grupper: ${lineGroups}` : null,
-      goalieNotes ? `Målvakter: ${goalieNotes}` : null,
-      coachNotes ? `Coachnoteringar: ${coachNotes}` : null,
+      `${t('planSummary.phase')}: ${practicePhase}`,
+      `${t('planSummary.intensity')}: ${practiceIntensity}`,
+      lineGroups ? `${t('planSummary.linesGroups')}: ${lineGroups}` : null,
+      goalieNotes ? `${t('planSummary.goalieNotes')}: ${goalieNotes}` : null,
+      coachNotes ? `${t('planSummary.coachNotes')}: ${coachNotes}` : null,
     ].filter(Boolean).join('\n')
 
-    const fullDescription = `Träningsplan — ${totalMinutes} min\n${meta ? `\n${meta}` : ''}\n\n${planText}`
+    const fullDescription = `${t('descriptionTitle')} — ${totalMinutes} ${t('minutesLabel')}\n${meta ? `\n${meta}` : ''}\n\n${planText}`
 
     setSaving(true)
     try {
@@ -303,7 +328,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: title || `Träning ${date}`,
+          title: title || `${t('defaultTitle')} ${date}`,
           description: fullDescription,
           type: 'PRACTICE',
           startDate: `${date}T${startTime || '17:00'}:00`,
@@ -314,16 +339,16 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
 
       if (!res.ok) throw new Error('Failed')
 
-      toast.success('Träningsplan sparad i kalendern!')
+      toast.success(t('toasts.saved'))
       // Reset
-      setBlocks(DEFAULT_BLOCKS)
+      setBlocks(defaultBlocks)
       setTitle('')
       setDate('')
       setLineGroups('')
       setGoalieNotes('')
       setCoachNotes('')
     } catch {
-      toast.error('Kunde inte spara träningsplanen')
+      toast.error(t('toasts.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -336,34 +361,34 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Calendar className="h-5 w-5 text-indigo-500" />
-            Träningsplanering
+            {t('title')}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Bygg en komplett isträning med teknik, taktik, special teams, kedjor och tidsblock.
+            {t('description')}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Titel</Label>
+              <Label className="text-xs">{t('labels.title')}</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="T.ex. Teknikträning"
+                placeholder={t('placeholders.title')}
                 className="h-8 text-sm"
               />
             </div>
             {teams.length > 0 && (
               <div className="space-y-1.5">
-                <Label className="text-xs">Lag</Label>
+                <Label className="text-xs">{t('labels.team')}</Label>
                 <Select value={teamId} onValueChange={setTeamId}>
                   <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Välj lag..." />
+                    <SelectValue placeholder={t('placeholders.selectTeam')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {teams.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name}
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -373,7 +398,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Datum</Label>
+              <Label className="text-xs">{tCommon('date')}</Label>
               <Input
                 type="date"
                 value={date}
@@ -382,7 +407,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Starttid</Label>
+              <Label className="text-xs">{t('labels.startTime')}</Label>
               <Input
                 type="time"
                 value={startTime}
@@ -393,27 +418,31 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Fas</Label>
+              <Label className="text-xs">{t('labels.phase')}</Label>
               <Select value={practicePhase} onValueChange={setPracticePhase}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PRACTICE_PHASE_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  {phaseOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Intensitet</Label>
+              <Label className="text-xs">{t('labels.intensity')}</Label>
               <Select value={practiceIntensity} onValueChange={setPracticeIntensity}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {INTENSITY_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  {intensityOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -421,31 +450,31 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Kedjor / grupper</Label>
+              <Label className="text-xs">{t('labels.lineGroups')}</Label>
               <Textarea
                 value={lineGroups}
                 onChange={(e) => setLineGroups(e.target.value)}
-                placeholder="T.ex. backpar, femmor, färggrupper..."
+                placeholder={t('placeholders.lineGroups')}
                 rows={2}
                 className="text-sm"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Målvakter</Label>
+              <Label className="text-xs">{t('labels.goalieNotes')}</Label>
               <Textarea
                 value={goalieNotes}
                 onChange={(e) => setGoalieNotes(e.target.value)}
-                placeholder="T.ex. separat uppvärmning, skottvolym, teknikfokus..."
+                placeholder={t('placeholders.goalieNotes')}
                 rows={2}
                 className="text-sm"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Coachnoteringar</Label>
+              <Label className="text-xs">{t('labels.coachNotes')}</Label>
               <Textarea
                 value={coachNotes}
                 onChange={(e) => setCoachNotes(e.target.value)}
-                placeholder="Nyckelbudskap, påminnelser, belastningsstyrning..."
+                placeholder={t('placeholders.coachNotes')}
                 rows={2}
                 className="text-sm"
               />
@@ -460,11 +489,11 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <ClipboardList className="h-5 w-5" />
-              Program
+              {t('timeline.title')}
             </CardTitle>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
-              {totalMinutes} min
+              {t('timeline.totalMinutes', { count: totalMinutes })}
               {startTime && (
                 <span className="ml-1">
                   ({formatTime(0)}–{formatTime(totalMinutes)})
@@ -480,7 +509,9 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               <div className="flex items-center gap-2">
                 {/* Time badge */}
                 <div className="text-[10px] text-muted-foreground font-mono w-14 flex-shrink-0">
-                  {startTime ? formatTime(block.startMin) : `+${block.startMin}min`}
+                  {startTime
+                    ? formatTime(block.startMin)
+                    : `+${block.startMin} ${t('minutesLabel')}`}
                 </div>
 
                 {/* Move buttons */}
@@ -533,7 +564,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                     }
                     className="h-7 w-14 text-xs text-center"
                   />
-                  <span className="text-xs text-muted-foreground">min</span>
+                  <span className="text-xs text-muted-foreground">{t('minutesLabel')}</span>
                 </div>
 
                 {/* Delete */}
@@ -549,7 +580,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
 
               <div className="grid grid-cols-1 gap-2 md:grid-cols-[160px_160px_1fr]">
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Fokus</Label>
+                  <Label className="text-[10px] text-muted-foreground">{t('fields.focus')}</Label>
                   <Select
                     value={block.focus}
                     onValueChange={(value) => updateBlock(block.id, { focus: value as PracticeBlockFocus })}
@@ -558,7 +589,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {BLOCK_FOCUS_OPTIONS.map((option) => (
+                      {blockFocusOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -567,20 +598,20 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Arbete/vila</Label>
+                  <Label className="text-[10px] text-muted-foreground">{t('fields.workRest')}</Label>
                   <Input
                     value={block.workRest || ''}
                     onChange={(e) => updateBlock(block.id, { workRest: e.target.value || undefined })}
-                    placeholder="T.ex. 40/20"
+                    placeholder={t('placeholders.workRest')}
                     className="h-7 text-xs"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Coachning</Label>
+                  <Label className="text-[10px] text-muted-foreground">{t('fields.coaching')}</Label>
                   <Input
                     value={block.coachingNotes || ''}
                     onChange={(e) => updateBlock(block.id, { coachingNotes: e.target.value || undefined })}
-                    placeholder="Nyckelpunkt för blocket..."
+                    placeholder={t('placeholders.coaching')}
                     className="h-7 text-xs"
                   />
                 </div>
@@ -597,7 +628,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                       setExpandedBlockId(expandedBlockId === block.id ? null : block.id)
                     }
                   >
-                    {expandedBlockId === block.id ? 'Dölj diagram' : 'Visa diagram'}
+                    {expandedBlockId === block.id ? t('actions.hideDiagram') : t('actions.showDiagram')}
                   </Button>
                   {expandedBlockId === block.id && (
                     <div className="mt-2">
@@ -613,7 +644,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
           <div className="flex flex-wrap gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={addCustomBlock}>
               <Plus className="h-3.5 w-3.5 mr-1" />
-              Aktivitet
+              {t('actions.addActivity')}
             </Button>
             <Button
               variant="outline"
@@ -621,7 +652,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               onClick={() => setShowTemplatePickerFor(blocks.length - 1)}
             >
               <Plus className="h-3.5 w-3.5 mr-1" />
-              Mall
+              {t('actions.addTemplate')}
             </Button>
             {savedDrills.length > 0 && (
               <Select
@@ -631,7 +662,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                 }}
               >
                 <SelectTrigger className="h-8 w-auto text-xs">
-                  <SelectValue placeholder="+ Sparad övning" />
+                  <SelectValue placeholder={t('actions.addSavedDrill')} />
                 </SelectTrigger>
                 <SelectContent>
                   {savedDrills.map((d) => (
@@ -648,13 +679,13 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
           {showTemplatePickerFor !== null && (
             <div className="border rounded-lg p-3 bg-muted/30 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Välj övningsmall</span>
+                <span className="text-sm font-medium">{t('templatePicker.title')}</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowTemplatePickerFor(null)}
                 >
-                  Avbryt
+                  {t('actions.cancel')}
                 </Button>
               </div>
               <DrillTemplateLibrary
@@ -672,7 +703,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         className="w-full"
       >
         <Save className="h-4 w-4 mr-1.5" />
-        {saving ? 'Sparar...' : 'Spara till kalender'}
+        {saving ? t('actions.saving') : t('actions.saveToCalendar')}
       </Button>
     </div>
   )

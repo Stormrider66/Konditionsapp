@@ -2320,6 +2320,102 @@
           "library": "Saved"
         }
       },
+      "practicePlanner": {
+        "title": "Practice planning",
+        "description": "Build a complete on-ice practice with technique, tactics, special teams, drills and time blocks.",
+        "defaultTitle": "Training",
+        "descriptionTitle": "Practice plan",
+        "minutesLabel": "min",
+        "labels": {
+          "title": "Title",
+          "team": "Team",
+          "startTime": "Start time",
+          "phase": "Phase",
+          "intensity": "Intensity",
+          "lineGroups": "Lines / groups",
+          "goalieNotes": "Goalie notes",
+          "coachNotes": "Coach notes"
+        },
+        "placeholders": {
+          "title": "e.g. Technique training",
+          "selectTeam": "Select team...",
+          "lineGroups": "e.g. pair skating, first units, color groups...",
+          "goalieNotes": "e.g. separate warm-up, shot volume, technique focus...",
+          "coachNotes": "Key messages, reminders, workload control...",
+          "workRest": "e.g. 40/20",
+          "coaching": "Key point for this block..."
+        },
+        "blocks": {
+          "defaultWarmupTitle": "Warm-up",
+          "newActivity": "New activity"
+        },
+        "focus": {
+          "warmup": "Warm-up",
+          "skill": "Skills",
+          "skating": "Skating",
+          "tactical": "Tactical",
+          "specialTeams": "Special teams",
+          "smallArea": "Small area",
+          "conditioning": "Conditioning",
+          "game": "Game",
+          "cooldown": "Cool-down"
+        },
+        "phases": {
+          "preseason": "Preseason",
+          "season": "In-season",
+          "matchPrep": "Match prep",
+          "recovery": "Recovery",
+          "camp": "Camp"
+        },
+        "intensities": {
+          "low": "Low",
+          "moderate": "Moderate",
+          "high": "High",
+          "matchLike": "Match-like"
+        },
+        "planSummary": {
+          "focus": "Focus",
+          "workRest": "Work/rest",
+          "coachingNotes": "Coaching notes",
+          "phase": "Phase",
+          "intensity": "Intensity",
+          "linesGroups": "Lines/groups",
+          "goalieNotes": "Goalies",
+          "coachNotes": "Coach notes"
+        },
+        "timeline": {
+          "title": "Program",
+          "totalMinutes": "{count} min",
+          "minLabel": "min"
+        },
+        "fields": {
+          "focus": "Focus",
+          "workRest": "Work/rest",
+          "coaching": "Coaching"
+        },
+        "actions": {
+          "showDiagram": "Show diagram",
+          "hideDiagram": "Hide diagram",
+          "addActivity": "Activity",
+          "addTemplate": "Template",
+          "addSavedDrill": "+ Saved drill",
+          "cancel": "Cancel",
+          "saving": "Saving...",
+          "saveToCalendar": "Save to calendar"
+        },
+        "templatePicker": {
+          "title": "Choose drill template"
+        },
+        "validation": {
+          "selectTeam": "Select a team",
+          "selectDate": "Select a date",
+          "addAtLeastOneActivity": "Add at least one activity"
+        },
+        "toasts": {
+          "saved": "Practice plan saved to calendar!",
+          "saveFailed": "Could not save practice plan"
+        }
+      },
       "workoutPrint": {
         "preparing": "Preparing print view..."
       },
