@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import type { Metadata } from 'next'
+import { getLocale, getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ token: string }>
@@ -10,6 +11,10 @@ interface PageProps {
 
 export default async function PublicAchievementPage({ params }: PageProps) {
   const { token } = await params
+  const t = await getTranslations('pages.publicAchievement')
+  const tCommon = await getTranslations('common')
+  const locale = await getLocale()
+  const dateLocale = locale ?? 'en'
 
   const achievement = await prisma.sharedAchievement.findUnique({
     where: { publicToken: token },
@@ -30,16 +35,16 @@ export default async function PublicAchievementPage({ params }: PageProps) {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Länken har gått ut
+            {t('expired.title')}
           </h1>
           <p className="text-gray-600 mb-6">
-            Den här delningslänken är inte längre giltig.
+            {t('expired.description')}
           </p>
           <Link
             href="/signup"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
           >
-            Skapa konto på Trainomics
+            {t('expired.createAccount')}
           </Link>
         </div>
       </div>
@@ -74,7 +79,7 @@ export default async function PublicAchievementPage({ params }: PageProps) {
             )}
             <p className="text-sm text-gray-400">
               {achievement.client.name} &middot;{' '}
-              {achievement.createdAt.toLocaleDateString('sv-SE', {
+              {achievement.createdAt.toLocaleDateString(dateLocale, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -85,13 +90,13 @@ export default async function PublicAchievementPage({ params }: PageProps) {
           {/* Branding + CTA */}
           <div className="text-center pt-4 border-t">
             <p className="text-sm text-gray-500 mb-4">
-              Powered by <span className="font-semibold">Trainomics</span>
+              {t('poweredBy', { appName: tCommon('appName') })}
             </p>
             <Link
               href="/signup"
               className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 text-sm font-medium"
             >
-              Börja träna smartare — skapa konto gratis
+              {t('cta')}
             </Link>
           </div>
         </div>
@@ -101,6 +106,7 @@ export default async function PublicAchievementPage({ params }: PageProps) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const t = await getTranslations('pages.publicAchievement')
   const { token } = await params
 
   const achievement = await prisma.sharedAchievement.findUnique({
@@ -111,15 +117,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   })
 
   if (!achievement) {
-    return { title: 'Prestation ej hittad' }
+    return {
+      title: t('notFoundTitle'),
+      description: t('notFoundDescription'),
+    }
   }
 
   return {
     title: `${achievement.title} — ${achievement.client.name}`,
-    description: achievement.description || 'En prestation delad via Trainomics',
+    description: achievement.description || t('descriptionFallback'),
     openGraph: {
       title: `${achievement.title} — ${achievement.client.name}`,
-      description: achievement.description || 'En prestation delad via Trainomics',
+      description: achievement.description || t('descriptionFallback'),
       images: achievement.imageUrl
         ? [{ url: achievement.imageUrl, width: 1200, height: 630, alt: achievement.title }]
         : [],
@@ -128,7 +137,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image',
       title: `${achievement.title} — ${achievement.client.name}`,
-      description: achievement.description || 'En prestation delad via Trainomics',
+      description: achievement.description || t('descriptionFallback'),
       images: achievement.imageUrl ? [achievement.imageUrl] : [],
     },
   }

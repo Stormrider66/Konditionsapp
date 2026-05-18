@@ -881,6 +881,18 @@
         "createAccount": "Skapa konto för att spara dina rapporter"
       }
     },
+    "publicAchievement": {
+      "notFoundTitle": "Prestation ej hittad",
+      "notFoundDescription": "Denna delade prestation är inte längre tillgänglig.",
+      "descriptionFallback": "En delad prestation från Trainomics",
+      "expired": {
+        "title": "Länken har gått ut",
+        "description": "Den här delningslänken till prestationen är inte längre giltig.",
+        "createAccount": "Skapa konto på Trainomics"
+      },
+      "poweredBy": "Drivs av {appName}",
+      "cta": "Börja träna smartare — skapa konto gratis"
+    },
     "checkIn": {
       "titlePrefix": "Daglig",
       "titleAccent": "Check-in",
@@ -12530,6 +12542,105 @@
         "both": "båda",
         "pain": "Smärta: {pain}/10",
         "phase": "Fas: {phase}"
+      }
+    },
+    "triathlonOnboarding": {
+      "targetRaceDistanceLabel": "Måldistans",
+      "experienceLevelLabel": "Erfarenhetsnivå",
+      "raceDistances": {
+        "superSprint": {
+          "label": "Super sprint"
+        },
+        "sprint": {
+          "label": "Sprint"
+        },
+        "olympic": {
+          "label": "Olympisk triathlon"
+        },
+        "halfIronman": {
+          "label": "Halv-Ironman"
+        },
+        "ironman": {
+          "label": "Ironman"
+        }
+      },
+      "experienceLevels": {
+        "beginner": "Nybörjare",
+        "intermediate": "Medel",
+        "advanced": "Avancerad",
+        "elite": "Elit"
+      },
+      "disciplineBalance": {
+        "title": "Disciplinbalans",
+        "description": "Välj din starkaste och svagaste gren så vi kan prioritera träningsfokus.",
+        "strongestDiscipline": "Starkaste disciplinen",
+        "weakestDiscipline": "Svagaste disciplinen"
+      },
+      "disciplines": {
+        "swim": "Simning",
+        "bike": "Cykling",
+        "run": "Löpning"
+      },
+      "swimming": {
+        "title": "Simning",
+        "currentCss": "Aktuell kritisk simhastighet",
+        "format": "Format: MM:SS per 100m",
+        "lastCssTest": "Senaste CSS-testdatum",
+        "openWaterExperience": "Öppet-vatten-erfarenhet",
+        "wetsuit": "Wetsuit-typ"
+      },
+      "openWaterExperience": {
+        "levels": {
+          "none": "Inget öppet vatten",
+          "beginner": "Nybörjare",
+          "intermediate": "Medel",
+          "advanced": "Avancerad"
+        }
+      },
+      "wetsuitOptions": {
+        "fullsuit": "Fullsuit",
+        "sleeveless": "Manschetter",
+        "swimskin": "Swimskin",
+        "none": "Ingen wetsuit"
+      },
+      "triBikeTypes": {
+        "ttTri": "TT-triathloncykel",
+        "roadClip": "Landsvägscykel med clip-on",
+        "road": "Landsvägscykel"
+      },
+      "cycling": {
+        "title": "Cykling",
+        "currentFtp": "Aktuell FTP",
+        "lastFtpTest": "Senaste FTP-testdatum",
+        "setup": "Utrustning",
+        "hasPowerMeter": "Jag har en powermätare"
+      },
+      "running": {
+        "title": "Löpning",
+        "thresholdPace": "Aktuell tröskelfart",
+        "lastThresholdTest": "Senaste tröskeltestdatum",
+        "format": "Format: MM:SS per km"
+      },
+      "trainingVolume": {
+        "title": "Träningsvolym",
+        "description": "Hur mycket tid kan du realistiskt träna per vecka?",
+        "weeklyHoursAvailable": "Tillgänglig veckotid",
+        "swim": "Simning",
+        "bike": "Cykling",
+        "run": "Löpning",
+        "bricks": "Brick-pass",
+        "sessionsPerWeek": "pass/vecka",
+        "brickPerWeek": "brick-pass/vecka",
+        "totalSessions": "Totala pass denna vecka:",
+        "week": "vecka"
+      },
+      "equipmentAndBody": {
+        "title": "Utrustning och kropp",
+        "heartRateMonitor": "Jag har pulsklocka",
+        "gpsWatch": "Jag har GPS-klocka",
+        "indoorTrainer": "Jag har inomhusträningscykel",
+        "bodyWeight": "Kroppsvikt",
+        "powerToWeight": "Effekt/vikt:"
       }
     },
     "fitnessSummary": {

@@ -7,45 +7,48 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Waves, Bike, PersonStanding } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 // Race distances
 const RACE_DISTANCES = [
-  { id: 'super_sprint', label: 'Super Sprint', labelSv: 'Super Sprint', swim: '400m', bike: '10km', run: '2.5km' },
-  { id: 'sprint', label: 'Sprint', labelSv: 'Sprint', swim: '750m', bike: '20km', run: '5km' },
-  { id: 'olympic', label: 'Olympic', labelSv: 'Olympisk', swim: '1.5km', bike: '40km', run: '10km' },
-  { id: 'half_ironman', label: 'Half Ironman (70.3)', labelSv: 'Halv Ironman (70.3)', swim: '1.9km', bike: '90km', run: '21.1km' },
-  { id: 'ironman', label: 'Ironman (140.6)', labelSv: 'Ironman (140.6)', swim: '3.8km', bike: '180km', run: '42.2km' },
+  { id: 'super_sprint', translationKey: 'superSprint', swim: '400m', bike: '10km', run: '2.5km' },
+  { id: 'sprint', translationKey: 'sprint', swim: '750m', bike: '20km', run: '5km' },
+  { id: 'olympic', translationKey: 'olympic', swim: '1.5km', bike: '40km', run: '10km' },
+  { id: 'half_ironman', translationKey: 'halfIronman', swim: '1.9km', bike: '90km', run: '21.1km' },
+  { id: 'ironman', translationKey: 'ironman', swim: '3.8km', bike: '180km', run: '42.2km' },
 ]
 
 // Experience levels
 const EXPERIENCE_LEVELS = [
-  { id: 'beginner', label: 'Beginner', labelSv: 'Nybörjare', description: 'First triathlon or <1 year experience' },
-  { id: 'intermediate', label: 'Intermediate', labelSv: 'Mellan', description: '1-3 years, multiple races completed' },
-  { id: 'advanced', label: 'Advanced', labelSv: 'Avancerad', description: '3+ years, racing regularly' },
-  { id: 'elite', label: 'Elite', labelSv: 'Elit', description: 'Competitive age-grouper or professional' },
+  { id: 'beginner', translationKey: 'beginner' },
+  { id: 'intermediate', translationKey: 'intermediate' },
+  { id: 'advanced', translationKey: 'advanced' },
+  { id: 'elite', translationKey: 'elite' },
 ]
 
 // Strongest/weakest discipline
 const DISCIPLINES = [
-  { id: 'swim', label: 'Swim', labelSv: 'Simning', icon: Waves },
-  { id: 'bike', label: 'Bike', labelSv: 'Cykling', icon: Bike },
-  { id: 'run', label: 'Run', labelSv: 'Löpning', icon: PersonStanding },
+  { id: 'swim', translationKey: 'swim' },
+  { id: 'bike', translationKey: 'bike' },
+  { id: 'run', translationKey: 'run' },
 ]
 
 // Bike types for triathlon
 const TRI_BIKE_TYPES = [
-  { id: 'tt_tri', label: 'TT/Triathlon Bike', labelSv: 'TT/Triathloncykel' },
-  { id: 'road_clip', label: 'Road Bike with Clip-on Bars', labelSv: 'Landsvägscykel med påklippsbyglar' },
-  { id: 'road', label: 'Road Bike Only', labelSv: 'Endast landsvägscykel' },
+  { id: 'tt_tri', translationKey: 'ttTri' },
+  { id: 'road_clip', translationKey: 'roadClip' },
+  { id: 'road', translationKey: 'road' },
 ]
 
 // Wetsuit options
 const WETSUIT_OPTIONS = [
-  { id: 'fullsuit', label: 'Full Wetsuit', labelSv: 'Hel våtdräkt' },
-  { id: 'sleeveless', label: 'Sleeveless Wetsuit', labelSv: 'Ärmlös våtdräkt' },
-  { id: 'swimskin', label: 'Swimskin Only', labelSv: 'Endast swimskin' },
-  { id: 'none', label: 'No Wetsuit', labelSv: 'Ingen våtdräkt' },
+  { id: 'fullsuit', translationKey: 'fullsuit' },
+  { id: 'sleeveless', translationKey: 'sleeveless' },
+  { id: 'swimskin', translationKey: 'swimskin' },
+  { id: 'none', translationKey: 'none' },
 ]
+
+const OPEN_WATER_EXPERIENCE_OPTIONS = ['none', 'beginner', 'intermediate', 'advanced'] as const
 
 export interface TriathlonSettings {
   // Race preferences
@@ -115,13 +118,14 @@ function parsePace(value: string): number | null {
 export function TriathlonOnboarding({
   value,
   onChange,
-  locale = 'sv',
 }: TriathlonOnboardingProps) {
-  const t = (en: string, sv: string) => (locale === 'sv' ? sv : en)
+  const t = useTranslations('components.triathlonOnboarding')
 
   const updateSettings = (updates: Partial<TriathlonSettings>) => {
     onChange({ ...value, ...updates })
   }
+
+  const totalWeeklySessions = value.swimSessions + value.bikeSessions + value.runSessions + value.brickWorkoutsPerWeek
 
   return (
     <div className="space-y-8">
@@ -129,7 +133,7 @@ export function TriathlonOnboarding({
       <div className="space-y-6">
         <div className="space-y-4">
           <Label className="text-base font-semibold">
-            {t('What is your target race distance?', 'Vilken är din måltävlingsdistans?')}
+            {t('targetRaceDistanceLabel')}
           </Label>
           <RadioGroup
             value={value.targetRaceDistance}
@@ -149,7 +153,7 @@ export function TriathlonOnboarding({
               >
                 <div className="flex items-center gap-3">
                   <RadioGroupItem value={race.id} id={`race-${race.id}`} />
-                  <span className="font-medium">{locale === 'sv' ? race.labelSv : race.label}</span>
+                  <span className="font-medium">{t(`raceDistances.${race.translationKey}.label`)}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {race.swim} / {race.bike} / {race.run}
@@ -161,7 +165,7 @@ export function TriathlonOnboarding({
 
         <div className="space-y-4">
           <Label className="text-base font-semibold">
-            {t('What is your triathlon experience level?', 'Vilken är din erfarenhetsnivå inom triathlon?')}
+            {t('experienceLevelLabel')}
           </Label>
           <RadioGroup
             value={value.experienceLevel}
@@ -181,7 +185,7 @@ export function TriathlonOnboarding({
               >
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value={level.id} id={`exp-${level.id}`} />
-                  <span className="font-medium">{locale === 'sv' ? level.labelSv : level.label}</span>
+                  <span className="font-medium">{t(`experienceLevels.${level.translationKey}`)}</span>
                 </div>
               </Label>
             ))}
@@ -193,19 +197,16 @@ export function TriathlonOnboarding({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {t('Discipline Balance', 'Disciplinbalans')}
+            {t('disciplineBalance.title')}
           </CardTitle>
           <CardDescription>
-            {t(
-              'Help us understand your strengths and areas for improvement',
-              'Hjälp oss förstå dina styrkor och förbättringsområden'
-            )}
+            {t('disciplineBalance.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-3">
-              <Label>{t('Strongest discipline', 'Starkaste disciplin')}</Label>
+              <Label>{t('disciplineBalance.strongestDiscipline')}</Label>
               <RadioGroup
                 value={value.strongestDiscipline}
                 onValueChange={(val) => updateSettings({ strongestDiscipline: val })}
@@ -223,14 +224,20 @@ export function TriathlonOnboarding({
                     )}
                   >
                     <RadioGroupItem value={disc.id} id={`strong-${disc.id}`} />
-                    <disc.icon className="h-4 w-4" />
-                    <span>{locale === 'sv' ? disc.labelSv : disc.label}</span>
+                    {disc.id === 'run' ? (
+                      <PersonStanding className="h-4 w-4" />
+                    ) : disc.id === 'bike' ? (
+                      <Bike className="h-4 w-4" />
+                    ) : (
+                      <Waves className="h-4 w-4" />
+                    )}
+                    <span>{t(`disciplines.${disc.translationKey}`)}</span>
                   </Label>
                 ))}
               </RadioGroup>
             </div>
             <div className="space-y-3">
-              <Label>{t('Weakest discipline', 'Svagaste disciplin')}</Label>
+              <Label>{t('disciplineBalance.weakestDiscipline')}</Label>
               <RadioGroup
                 value={value.weakestDiscipline}
                 onValueChange={(val) => updateSettings({ weakestDiscipline: val })}
@@ -248,8 +255,14 @@ export function TriathlonOnboarding({
                     )}
                   >
                     <RadioGroupItem value={disc.id} id={`weak-${disc.id}`} />
-                    <disc.icon className="h-4 w-4" />
-                    <span>{locale === 'sv' ? disc.labelSv : disc.label}</span>
+                    {disc.id === 'run' ? (
+                      <PersonStanding className="h-4 w-4" />
+                    ) : disc.id === 'bike' ? (
+                      <Bike className="h-4 w-4" />
+                    ) : (
+                      <Waves className="h-4 w-4" />
+                    )}
+                    <span>{t(`disciplines.${disc.translationKey}`)}</span>
                   </Label>
                 ))}
               </RadioGroup>
@@ -263,23 +276,23 @@ export function TriathlonOnboarding({
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Waves className="h-5 w-5 text-blue-500" />
-            {t('Swimming', 'Simning')}
+            {t('swimming.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t('Current CSS (per 100m)', 'Nuvarande CSS (per 100m)')}</Label>
+              <Label>{t('swimming.currentCss')}</Label>
               <Input
                 type="text"
                 placeholder="1:45"
                 value={value.currentCss ? formatPace(value.currentCss) : ''}
                 onChange={(e) => updateSettings({ currentCss: parsePace(e.target.value) })}
               />
-              <p className="text-xs text-muted-foreground">{t('Format: M:SS', 'Format: M:SS')}</p>
+              <p className="text-xs text-muted-foreground">{t('swimming.format')}</p>
             </div>
             <div className="space-y-2">
-              <Label>{t('Last CSS test', 'Senaste CSS-test')}</Label>
+              <Label>{t('swimming.lastCssTest')}</Label>
               <Input
                 type="date"
                 value={value.cssTestDate || ''}
@@ -289,13 +302,13 @@ export function TriathlonOnboarding({
           </div>
 
           <div className="space-y-3">
-            <Label>{t('Open water experience', 'Erfarenhet av öppet vatten')}</Label>
+            <Label>{t('swimming.openWaterExperience')}</Label>
             <RadioGroup
               value={value.openWaterExperience}
-              onValueChange={(val) => updateSettings({ openWaterExperience: val as any })}
+              onValueChange={(val) => updateSettings({ openWaterExperience: val as typeof OPEN_WATER_EXPERIENCE_OPTIONS[number] })}
               className="grid grid-cols-2 sm:grid-cols-4 gap-2"
             >
-              {['none', 'beginner', 'intermediate', 'advanced'].map((level) => (
+              {OPEN_WATER_EXPERIENCE_OPTIONS.map((level) => (
                 <Label
                   key={level}
                   htmlFor={`ow-${level}`}
@@ -307,16 +320,14 @@ export function TriathlonOnboarding({
                   )}
                 >
                   <RadioGroupItem value={level} id={`ow-${level}`} />
-                  <span>{t(level.charAt(0).toUpperCase() + level.slice(1),
-                    level === 'none' ? 'Ingen' : level === 'beginner' ? 'Nybörjare' : level === 'intermediate' ? 'Mellan' : 'Avancerad'
-                  )}</span>
+                  <span>{t(`openWaterExperience.levels.${level}`)}</span>
                 </Label>
               ))}
             </RadioGroup>
           </div>
 
           <div className="space-y-3">
-            <Label>{t('Wetsuit', 'Våtdräkt')}</Label>
+            <Label>{t('swimming.wetsuit')}</Label>
             <RadioGroup
               value={value.wetsuitType}
               onValueChange={(val) => updateSettings({ wetsuitType: val })}
@@ -334,7 +345,7 @@ export function TriathlonOnboarding({
                   )}
                 >
                   <RadioGroupItem value={ws.id} id={`ws-${ws.id}`} />
-                  <span>{locale === 'sv' ? ws.labelSv : ws.label}</span>
+                  <span>{t(`wetsuitOptions.${ws.translationKey}`)}</span>
                 </Label>
               ))}
             </RadioGroup>
@@ -347,13 +358,13 @@ export function TriathlonOnboarding({
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Bike className="h-5 w-5 text-yellow-500" />
-            {t('Cycling', 'Cykling')}
+            {t('cycling.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t('Current FTP (watts)', 'Nuvarande FTP (watt)')}</Label>
+              <Label>{t('cycling.currentFtp')}</Label>
               <Input
                 type="number"
                 placeholder="250"
@@ -362,7 +373,7 @@ export function TriathlonOnboarding({
               />
             </div>
             <div className="space-y-2">
-              <Label>{t('Last FTP test', 'Senaste FTP-test')}</Label>
+              <Label>{t('cycling.lastFtpTest')}</Label>
               <Input
                 type="date"
                 value={value.ftpTestDate || ''}
@@ -372,7 +383,7 @@ export function TriathlonOnboarding({
           </div>
 
           <div className="space-y-3">
-            <Label>{t('Bike setup', 'Cykeluppsättning')}</Label>
+            <Label>{t('cycling.setup')}</Label>
             <RadioGroup
               value={value.bikeType}
               onValueChange={(val) => updateSettings({ bikeType: val })}
@@ -390,7 +401,7 @@ export function TriathlonOnboarding({
                   )}
                 >
                   <RadioGroupItem value={bike.id} id={`bike-${bike.id}`} />
-                  <span>{locale === 'sv' ? bike.labelSv : bike.label}</span>
+                  <span>{t(`triBikeTypes.${bike.translationKey}`)}</span>
                 </Label>
               ))}
             </RadioGroup>
@@ -401,7 +412,7 @@ export function TriathlonOnboarding({
               checked={value.hasPowerMeter}
               onCheckedChange={(checked) => updateSettings({ hasPowerMeter: !!checked })}
             />
-            <span>{t('I have a power meter', 'Jag har en wattmätare')}</span>
+            <span>{t('cycling.hasPowerMeter')}</span>
           </Label>
         </CardContent>
       </Card>
@@ -411,23 +422,23 @@ export function TriathlonOnboarding({
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <PersonStanding className="h-5 w-5 text-green-500" />
-            {t('Running', 'Löpning')}
+            {t('running.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t('Threshold pace (per km)', 'Tröskeltempo (per km)')}</Label>
+              <Label>{t('running.thresholdPace')}</Label>
               <Input
                 type="text"
                 placeholder="4:30"
                 value={value.currentThresholdPace ? formatPace(value.currentThresholdPace) : ''}
                 onChange={(e) => updateSettings({ currentThresholdPace: parsePace(e.target.value) })}
               />
-              <p className="text-xs text-muted-foreground">{t('Format: M:SS', 'Format: M:SS')}</p>
+              <p className="text-xs text-muted-foreground">{t('running.format')}</p>
             </div>
             <div className="space-y-2">
-              <Label>{t('Last threshold test', 'Senaste tröskeltest')}</Label>
+              <Label>{t('running.lastThresholdTest')}</Label>
               <Input
                 type="date"
                 value={value.thresholdTestDate || ''}
@@ -442,18 +453,15 @@ export function TriathlonOnboarding({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {t('Training Volume', 'Träningsvolym')}
+            {t('trainingVolume.title')}
           </CardTitle>
           <CardDescription>
-            {t(
-              'Plan your weekly training distribution',
-              'Planera din veckofördelning av träning'
-            )}
+            {t('trainingVolume.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label>{t('Weekly hours available', 'Tillgängliga träningstimmar per vecka')}: {value.weeklyHoursAvailable}h</Label>
+            <Label>{t('trainingVolume.weeklyHoursAvailable')}: {value.weeklyHoursAvailable}h</Label>
             <input
               type="range"
               min={4}
@@ -476,7 +484,7 @@ export function TriathlonOnboarding({
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <Waves className="h-4 w-4 text-blue-500" />
-                {t('Swim', 'Sim')}
+                {t('trainingVolume.swim')}
               </Label>
               <Input
                 type="number"
@@ -485,12 +493,12 @@ export function TriathlonOnboarding({
                 value={value.swimSessions}
                 onChange={(e) => updateSettings({ swimSessions: parseInt(e.target.value) || 0 })}
               />
-              <p className="text-xs text-muted-foreground">{t('sessions/week', 'pass/vecka')}</p>
+              <p className="text-xs text-muted-foreground">{t('trainingVolume.sessionsPerWeek')}</p>
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <Bike className="h-4 w-4 text-yellow-500" />
-                {t('Bike', 'Cykel')}
+                {t('trainingVolume.bike')}
               </Label>
               <Input
                 type="number"
@@ -499,12 +507,12 @@ export function TriathlonOnboarding({
                 value={value.bikeSessions}
                 onChange={(e) => updateSettings({ bikeSessions: parseInt(e.target.value) || 0 })}
               />
-              <p className="text-xs text-muted-foreground">{t('sessions/week', 'pass/vecka')}</p>
+              <p className="text-xs text-muted-foreground">{t('trainingVolume.sessionsPerWeek')}</p>
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <PersonStanding className="h-4 w-4 text-green-500" />
-                {t('Run', 'Löp')}
+                {t('trainingVolume.run')}
               </Label>
               <Input
                 type="number"
@@ -513,11 +521,11 @@ export function TriathlonOnboarding({
                 value={value.runSessions}
                 onChange={(e) => updateSettings({ runSessions: parseInt(e.target.value) || 0 })}
               />
-              <p className="text-xs text-muted-foreground">{t('sessions/week', 'pass/vecka')}</p>
+              <p className="text-xs text-muted-foreground">{t('trainingVolume.sessionsPerWeek')}</p>
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
-                {t('Bricks', 'Kombi')}
+                {t('trainingVolume.bricks')}
               </Label>
               <Input
                 type="number"
@@ -526,13 +534,12 @@ export function TriathlonOnboarding({
                 value={value.brickWorkoutsPerWeek}
                 onChange={(e) => updateSettings({ brickWorkoutsPerWeek: parseInt(e.target.value) || 0 })}
               />
-              <p className="text-xs text-muted-foreground">{t('brick/week', 'kombi/vecka')}</p>
+              <p className="text-xs text-muted-foreground">{t('trainingVolume.brickPerWeek')}</p>
             </div>
           </div>
 
           <p className="text-sm text-muted-foreground">
-            {t('Total sessions:', 'Totalt antal pass:')} {value.swimSessions + value.bikeSessions + value.runSessions + value.brickWorkoutsPerWeek}/
-            {t('week', 'vecka')}
+            {t('trainingVolume.totalSessions')} {totalWeeklySessions}/{t('trainingVolume.week')}
           </p>
         </CardContent>
       </Card>
@@ -541,7 +548,7 @@ export function TriathlonOnboarding({
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {t('Equipment & Body', 'Utrustning & Kropp')}
+            {t('equipmentAndBody.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -551,26 +558,26 @@ export function TriathlonOnboarding({
                 checked={value.hasHeartRateMonitor}
                 onCheckedChange={(checked) => updateSettings({ hasHeartRateMonitor: !!checked })}
               />
-              <span>{t('Heart rate monitor', 'Pulsmätare')}</span>
+              <span>{t('equipmentAndBody.heartRateMonitor')}</span>
             </Label>
             <Label className="flex items-center gap-3 cursor-pointer">
               <Checkbox
                 checked={value.hasGpsWatch}
                 onCheckedChange={(checked) => updateSettings({ hasGpsWatch: !!checked })}
               />
-              <span>{t('GPS watch', 'GPS-klocka')}</span>
+              <span>{t('equipmentAndBody.gpsWatch')}</span>
             </Label>
             <Label className="flex items-center gap-3 cursor-pointer">
               <Checkbox
                 checked={value.hasIndoorTrainer}
                 onCheckedChange={(checked) => updateSettings({ hasIndoorTrainer: !!checked })}
               />
-              <span>{t('Indoor trainer (smart trainer/spinning)', 'Inomhusrulle (smart trainer/spinning)')}</span>
+              <span>{t('equipmentAndBody.indoorTrainer')}</span>
             </Label>
           </div>
 
           <div className="space-y-2">
-            <Label>{t('Body weight (kg)', 'Kroppsvikt (kg)')}</Label>
+            <Label>{t('equipmentAndBody.bodyWeight')}</Label>
             <Input
               type="number"
               placeholder="70"
@@ -580,7 +587,7 @@ export function TriathlonOnboarding({
             />
             {value.currentFtp && value.weight && (
               <p className="text-sm text-muted-foreground">
-                {t('Power to weight:', 'Effekt/vikt:')} <span className="font-semibold">{(value.currentFtp / value.weight).toFixed(2)} W/kg</span>
+                {t('equipmentAndBody.powerToWeight')} <span className="font-semibold">{(value.currentFtp / value.weight).toFixed(2)} W/kg</span>
               </p>
             )}
           </div>

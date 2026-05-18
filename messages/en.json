@@ -881,6 +881,18 @@
         "createAccount": "Create an account to save your reports"
       }
     },
+    "publicAchievement": {
+      "notFoundTitle": "Achievement not found",
+      "notFoundDescription": "This shared achievement is no longer available.",
+      "descriptionFallback": "A performance achievement shared via Trainomics",
+      "expired": {
+        "title": "The link has expired",
+        "description": "This shared achievement link is no longer valid.",
+        "createAccount": "Create an account on Trainomics"
+      },
+      "poweredBy": "Powered by {appName}",
+      "cta": "Start training smarter — create account free"
+    },
     "checkIn": {
       "titlePrefix": "Daily",
       "titleAccent": "Check-in",
@@ -12532,6 +12544,105 @@
         "phase": "Phase: {phase}"
       }
     },
+    "triathlonOnboarding": {
+        "targetRaceDistanceLabel": "Target race distance",
+        "experienceLevelLabel": "Experience level",
+        "raceDistances": {
+          "superSprint": {
+            "label": "Super-sprint"
+          },
+          "sprint": {
+            "label": "Sprint"
+          },
+          "olympic": {
+            "label": "Olympic"
+          },
+          "halfIronman": {
+            "label": "Half Ironman"
+          },
+          "ironman": {
+            "label": "Ironman"
+          }
+        },
+        "experienceLevels": {
+          "beginner": "Beginner",
+          "intermediate": "Intermediate",
+          "advanced": "Advanced",
+          "elite": "Elite"
+        },
+        "disciplineBalance": {
+          "title": "Discipline balance",
+          "description": "Select your strongest and weakest disciplines to help us prioritize training focus.",
+          "strongestDiscipline": "Strongest discipline",
+          "weakestDiscipline": "Weakest discipline"
+        },
+        "disciplines": {
+          "swim": "Swimming",
+          "bike": "Cycling",
+          "run": "Running"
+        },
+        "swimming": {
+          "title": "Swimming",
+          "currentCss": "Current critical swim speed",
+          "format": "Format: MM:SS per 100m",
+          "lastCssTest": "Last CSS test date",
+          "openWaterExperience": "Open-water experience",
+          "wetsuit": "Wetsuit type"
+        },
+        "openWaterExperience": {
+          "levels": {
+            "none": "No open-water",
+            "beginner": "Beginner",
+            "intermediate": "Intermediate",
+            "advanced": "Advanced"
+          }
+        },
+        "wetsuitOptions": {
+          "fullsuit": "Full suit",
+          "sleeveless": "Sleeveless / no sleeves",
+          "swimskin": "Swimskin",
+          "none": "No wetsuit"
+        },
+        "triBikeTypes": {
+          "ttTri": "TT tri bike",
+          "roadClip": "Road bike with clip-ons",
+          "road": "Road bike"
+        },
+        "cycling": {
+          "title": "Cycling",
+          "currentFtp": "Current FTP",
+          "lastFtpTest": "Last FTP test date",
+          "setup": "Bike setup",
+          "hasPowerMeter": "I have a power meter"
+        },
+        "running": {
+          "title": "Running",
+          "thresholdPace": "Current threshold pace",
+          "lastThresholdTest": "Last threshold test date",
+          "format": "Format: MM:SS per km"
+        },
+        "trainingVolume": {
+          "title": "Training volume",
+          "description": "How much time can you realistically train each week?",
+          "weeklyHoursAvailable": "Available weekly training time",
+          "swim": "Swim",
+          "bike": "Bike",
+          "run": "Run",
+          "bricks": "Brick workouts",
+          "sessionsPerWeek": "sessions/week",
+          "brickPerWeek": "brick sessions/week",
+          "totalSessions": "Total sessions this week:",
+          "week": "week"
+        },
+        "equipmentAndBody": {
+          "title": "Equipment and body",
+          "heartRateMonitor": "I have a heart rate monitor",
+          "gpsWatch": "I have a GPS watch",
+          "indoorTrainer": "I have an indoor trainer",
+          "bodyWeight": "Body weight",
+          "powerToWeight": "Power-to-weight ratio:"
+        }
+      },
     "fitnessSummary": {
       "title": {
         "empty": "Fitness Estimate",

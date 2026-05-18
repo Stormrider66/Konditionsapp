@@ -46,6 +46,10 @@ function renderResetPasswordPage() {
 }
 
 describe('ResetPasswordPage', () => {
+  const labels = messages.auth.resetPassword.labels
+  const resetPasswordMessages = messages.auth.resetPassword.messages
+  const requestNewLinkText = messages.auth.resetPassword.requestNewLink
+
   beforeEach(() => {
     vi.clearAllMocks()
 
@@ -70,10 +74,10 @@ describe('ResetPasswordPage', () => {
     renderResetPasswordPage()
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Nytt lösenord')).toBeInTheDocument()
+      expect(screen.getByLabelText(labels.newPassword)).toBeInTheDocument()
     })
 
-    expect(screen.getByLabelText('Bekräfta lösenord')).toBeInTheDocument()
+    expect(screen.getByLabelText(labels.confirmPassword)).toBeInTheDocument()
   })
 
   it('shows an invalid-link state when callback includes an auth error', async () => {
@@ -84,7 +88,7 @@ describe('ResetPasswordPage', () => {
     renderResetPasswordPage()
 
     expect(
-      await screen.findByText('Länken för att välja nytt lösenord är ogiltig eller har gått ut.')
+      await screen.findByText(resetPasswordMessages.invalidLink)
     ).toBeInTheDocument()
   })
 
@@ -97,7 +101,7 @@ describe('ResetPasswordPage', () => {
     renderResetPasswordPage()
 
     await user.click(
-      await screen.findByRole('button', { name: 'Begär ny återställningslänk' })
+      await screen.findByRole('button', { name: requestNewLinkText })
     )
 
     expect(pushMock).toHaveBeenCalledWith('/forgot-password')
