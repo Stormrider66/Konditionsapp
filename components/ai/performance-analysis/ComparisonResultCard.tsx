@@ -9,6 +9,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useTranslations } from '@/i18n/client'
 import {
   TrendingUp,
   TrendingDown,
@@ -29,6 +30,8 @@ interface ComparisonResultCardProps {
 }
 
 export function ComparisonResultCard({ result, className }: ComparisonResultCardProps) {
+  const t = useTranslations('components.comparisonResultCard')
+
   return (
     <div className={cn('space-y-4', className)}>
       {/* Comparison Header */}
@@ -36,35 +39,35 @@ export function ComparisonResultCard({ result, className }: ComparisonResultCard
         <CardHeader>
           <div className="flex items-center gap-2">
             <GitCompare className="h-5 w-5 text-indigo-600" />
-            <CardTitle>Testjämförelse</CardTitle>
+            <CardTitle>{t('title')}</CardTitle>
           </div>
           <CardDescription>
             {formatDate(result.comparison.testDates.previous)} → {formatDate(result.comparison.testDates.current)}
             <span className="ml-2 text-muted-foreground">
-              ({result.comparison.testDates.daysBetween} dagar)
+              ({result.comparison.testDates.daysBetween} {t('days')})
             </span>
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="deltas">
             <TabsList>
-              <TabsTrigger value="deltas">Förändringar</TabsTrigger>
-              <TabsTrigger value="training">Träning mellan</TabsTrigger>
+              <TabsTrigger value="deltas">{t('tabs.deltas')}</TabsTrigger>
+              <TabsTrigger value="training">{t('tabs.training')}</TabsTrigger>
               {result.correlationAnalysis && (
-                <TabsTrigger value="correlation">Korrelation</TabsTrigger>
+                <TabsTrigger value="correlation">{t('tabs.correlation')}</TabsTrigger>
               )}
             </TabsList>
 
             <TabsContent value="deltas" className="mt-4">
               <div className="grid gap-3 md:grid-cols-2">
-                <DeltaCard label="VO2max" unit="ml/kg/min" delta={result.comparison.deltas.vo2max} />
-                <DeltaCard label="Max-puls" unit="bpm" delta={result.comparison.deltas.maxHR} />
-                <DeltaCard label="Aerob tröskel (puls)" unit="bpm" delta={result.comparison.deltas.aerobicThresholdHR} />
-                <DeltaCard label="Aerob tröskel (intensitet)" delta={result.comparison.deltas.aerobicThresholdIntensity} />
-                <DeltaCard label="Anaerob tröskel (puls)" unit="bpm" delta={result.comparison.deltas.anaerobicThresholdHR} />
-                <DeltaCard label="Anaerob tröskel (intensitet)" delta={result.comparison.deltas.anaerobicThresholdIntensity} />
-                <DeltaCard label="Löpekonomi" unit="ml/kg/km" delta={result.comparison.deltas.economy} inverted />
-                <DeltaCard label="Max-laktat" unit="mmol/L" delta={result.comparison.deltas.maxLactate} />
+                <DeltaCard label={t('deltaLabels.vo2max')} unit="ml/kg/min" delta={result.comparison.deltas.vo2max} />
+                <DeltaCard label={t('deltaLabels.maxHR')} unit="bpm" delta={result.comparison.deltas.maxHR} />
+                <DeltaCard label={t('deltaLabels.aerobicThresholdHR')} unit="bpm" delta={result.comparison.deltas.aerobicThresholdHR} />
+                <DeltaCard label={t('deltaLabels.aerobicThresholdIntensity')} delta={result.comparison.deltas.aerobicThresholdIntensity} />
+                <DeltaCard label={t('deltaLabels.anaerobicThresholdHR')} unit="bpm" delta={result.comparison.deltas.anaerobicThresholdHR} />
+                <DeltaCard label={t('deltaLabels.anaerobicThresholdIntensity')} delta={result.comparison.deltas.anaerobicThresholdIntensity} />
+                <DeltaCard label={t('deltaLabels.economy')} unit="ml/kg/km" delta={result.comparison.deltas.economy} inverted />
+                <DeltaCard label={t('deltaLabels.maxLactate')} unit="mmol/L" delta={result.comparison.deltas.maxLactate} />
               </div>
             </TabsContent>
 
@@ -72,31 +75,31 @@ export function ComparisonResultCard({ result, className }: ComparisonResultCard
               {result.comparison.trainingBetweenTests ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <StatCard
-                    label="Veckor"
+                    label={t('stats.weeks')}
                     value={result.comparison.trainingBetweenTests.weeks.toString()}
                   />
                   <StatCard
-                    label="Totala pass"
+                    label={t('stats.totalSessions')}
                     value={result.comparison.trainingBetweenTests.totalSessions.toString()}
                   />
                   <StatCard
-                    label="Veckovolym"
+                    label={t('stats.avgWeeklyVolume')}
                     value={result.comparison.trainingBetweenTests.avgWeeklyVolume}
                   />
                   <StatCard
-                    label="Dominerande träning"
+                    label={t('stats.dominantTrainingType')}
                     value={result.comparison.trainingBetweenTests.dominantTrainingType}
                   />
                   <div className="md:col-span-2 lg:col-span-4">
                     <StatCard
-                      label="Zonfördelning"
+                      label={t('stats.zoneDistribution')}
                       value={result.comparison.trainingBetweenTests.zoneDistributionSummary}
                     />
                   </div>
                 </div>
               ) : (
                 <p className="text-muted-foreground text-center py-8">
-                  Ingen träningsdata tillgänglig för perioden mellan testerna.
+                  {t('noTrainingData')}
                 </p>
               )}
             </TabsContent>
@@ -105,7 +108,7 @@ export function ComparisonResultCard({ result, className }: ComparisonResultCard
               <TabsContent value="correlation" className="mt-4">
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium mb-2">Troliga bidragande faktorer</h4>
+                    <h4 className="font-medium mb-2">{t('correlation.likelyContributors')}</h4>
                     <div className="space-y-2">
                       {result.correlationAnalysis.likelyContributors.map((contributor, i) => (
                         <div
@@ -121,9 +124,9 @@ export function ComparisonResultCard({ result, className }: ComparisonResultCard
                             <span className="font-medium">{contributor.factor}</span>
                             <div className="flex items-center gap-2">
                               <Badge variant="outline">
-                                {contributor.impact === 'POSITIVE' && 'Positiv'}
-                                {contributor.impact === 'NEGATIVE' && 'Negativ'}
-                                {contributor.impact === 'NEUTRAL' && 'Neutral'}
+                                {contributor.impact === 'POSITIVE' && t('trend.positive')}
+                                {contributor.impact === 'NEGATIVE' && t('trend.negative')}
+                                {contributor.impact === 'NEUTRAL' && t('trend.neutral')}
                               </Badge>
                               <span className="text-sm text-muted-foreground">
                                 {(contributor.confidence * 100).toFixed(0)}%
@@ -141,7 +144,7 @@ export function ComparisonResultCard({ result, className }: ComparisonResultCard
                   {result.correlationAnalysis.unexplainedVariance && (
                     <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
                       <h4 className="font-medium text-amber-800 dark:text-amber-400">
-                        Oförklarad variation
+                        {t('correlation.unexplainedVarianceTitle')}
                       </h4>
                       <p className="text-sm text-muted-foreground mt-1">
                         {result.correlationAnalysis.unexplainedVariance}

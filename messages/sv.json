@@ -4739,6 +4739,42 @@
         }
       }
     },
+    "comparisonResultCard": {
+      "title": "Testjämförelse",
+      "days": "dagar",
+      "tabs": {
+        "deltas": "Förändringar",
+        "training": "Träning mellan",
+        "correlation": "Korrelation"
+      },
+      "deltaLabels": {
+        "vo2max": "VO2max",
+        "maxHR": "Max-puls",
+        "aerobicThresholdHR": "Aerob tröskel (puls)",
+        "aerobicThresholdIntensity": "Aerob tröskel (intensitet)",
+        "anaerobicThresholdHR": "Anaerob tröskel (puls)",
+        "anaerobicThresholdIntensity": "Anaerob tröskel (intensitet)",
+        "economy": "Löpekonomi",
+        "maxLactate": "Max-laktat"
+      },
+      "stats": {
+        "weeks": "Veckor",
+        "totalSessions": "Totala pass",
+        "avgWeeklyVolume": "Veckovolym",
+        "dominantTrainingType": "Dominerande träning",
+        "zoneDistribution": "Zonfördelning"
+      },
+      "noTrainingData": "Ingen träningsdata tillgänglig för perioden mellan testerna.",
+      "correlation": {
+        "likelyContributors": "Troliga bidragande faktorer",
+        "unexplainedVarianceTitle": "Oförklarad variation"
+      },
+      "trend": {
+        "positive": "Positiv",
+        "negative": "Negativ",
+        "neutral": "Neutral"
+      }
+    },
     "footballOnboarding": {
       "sections": {
         "positionAndTeam": {

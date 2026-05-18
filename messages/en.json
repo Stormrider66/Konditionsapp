@@ -4739,6 +4739,42 @@
         }
       }
     },
+    "comparisonResultCard": {
+      "title": "Test comparison",
+      "days": "days",
+      "tabs": {
+        "deltas": "Changes",
+        "training": "Training between",
+        "correlation": "Correlation"
+      },
+      "deltaLabels": {
+        "vo2max": "VO2max",
+        "maxHR": "Max HR",
+        "aerobicThresholdHR": "Aerobic threshold (HR)",
+        "aerobicThresholdIntensity": "Aerobic threshold (intensity)",
+        "anaerobicThresholdHR": "Anaerobic threshold (HR)",
+        "anaerobicThresholdIntensity": "Anaerobic threshold (intensity)",
+        "economy": "Running economy",
+        "maxLactate": "Max lactate"
+      },
+      "stats": {
+        "weeks": "Weeks",
+        "totalSessions": "Total sessions",
+        "avgWeeklyVolume": "Weekly volume",
+        "dominantTrainingType": "Dominant training type",
+        "zoneDistribution": "Zone distribution"
+      },
+      "noTrainingData": "No training data available for the period between tests.",
+      "correlation": {
+        "likelyContributors": "Likely contributing factors",
+        "unexplainedVarianceTitle": "Unexplained variance"
+      },
+      "trend": {
+        "positive": "Positive",
+        "negative": "Negative",
+        "neutral": "Neutral"
+      }
+    },
     "footballOnboarding": {
       "sections": {
         "positionAndTeam": {
