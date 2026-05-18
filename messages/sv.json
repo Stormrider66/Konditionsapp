@@ -5959,6 +5959,173 @@
         },
         "positionFallback": "din position"
       },
+      "basketball": {
+        "badge": "Basket",
+        "stepProgress": "Steg {step} av {totalSteps}",
+        "stepTitles": {
+          "position": "Välj din position",
+          "teamAndLevel": "Lag och nivå",
+          "playStyleAndPhysical": "Spelstil och fysik",
+          "physicalTests": "Fysiska tester",
+          "strengthTests": "Styrketester",
+          "strengthsAndWeaknesses": "Styrkor och svagheter",
+          "injuryHistory": "Skador och träning"
+        },
+        "stepDescriptions": {
+          "position": "Vilken position spelar du främst?",
+          "teamAndLevel": "Information om ditt lag och tävlingsnivå",
+          "playStyleAndPhysical": "Din spelstil och fysiska attribut",
+          "physicalTests": "Dina senaste testresultat för snabbhet och rörlighet",
+          "strengthTests": "Dina senaste testresultat för styrka",
+          "strengthsAndWeaknesses": "Vad är dina styrkor och utvecklingsområden?",
+          "injuryHistory": "Tidigare skador och träningsförutsättningar"
+        },
+        "fields": {
+          "teamName": "Lagnamn",
+          "leagueLevel": "Liganivå",
+          "seasonPhase": "Säsongsfas",
+          "matchesPerWeek": "Matcher per vecka",
+          "avgMinutesPerMatch": "Genomsnittlig speltid per match (min)",
+          "yearsPlaying": "År som spelare",
+          "playStyle": "Spelstil",
+          "shootingHand": "Skotthand",
+          "height": "Längd (cm)",
+          "wingspan": "Vingspann (cm)",
+          "verticalJump": "Vertikalhopp (cm)",
+          "standingReach": "Räckvidd stående (cm)",
+          "sprint3_4Court": "3/4 court sprint (sek)",
+          "laneAgility": "Lane Agility (sek)",
+          "shuttleRun": "Shuttle Run (sek)",
+          "benchPress": "Bänkpress 1RM (kg)",
+          "squat": "Knäböj 1RM (kg)",
+          "yoyoIR1Level": "Yo-Yo IR1 nivå",
+          "weeklyTraining": "Träningspass per vecka (utöver matcher)",
+          "gymAccess": "Jag har tillgång till gym"
+        },
+        "sections": {
+          "physicalTests": "Fysiska tester",
+          "strengthTests": "Styrketester",
+          "strengths": "Dina styrkor",
+          "weaknesses": "Utvecklingsområden",
+          "injuries": "Tidigare skador",
+          "trainingConditions": "Träningsförutsättningar"
+        },
+        "placeholders": {
+          "teamName": "T.ex. Norrköping Dolphins",
+          "height": "T.ex. 185",
+          "wingspan": "T.ex. 190",
+          "avgMinutesPerMatch": "T.ex. 25",
+          "sprint3_4Court": "T.ex. 3.3",
+          "laneAgility": "T.ex. 11.0",
+          "shuttleRun": "T.ex. 29.5",
+          "verticalJump": "T.ex. 75",
+          "standingReach": "T.ex. 250",
+          "benchPress": "T.ex. 80",
+          "squat": "T.ex. 120",
+          "yoyoIR1Level": "T.ex. 18.0"
+        },
+        "helpers": {
+          "oneRMTip": "Ange dina senaste 1RM-resultat för att få positionsspecifika rekommendationer."
+        },
+        "positions": {
+          "pointGuard": {
+            "label": "Point Guard (1)",
+            "description": "Spelets regissör som styr anfallet"
+          },
+          "shootingGuard": {
+            "label": "Shooting Guard (2)",
+            "description": "Yttre poängfokuserad perimeterspelare"
+          },
+          "smallForward": {
+            "label": "Small Forward (3)",
+            "description": "Allsidig scorer och försvarare"
+          },
+          "powerForward": {
+            "label": "Power Forward (4)",
+            "description": "Stark frontcourt-spelare nära korgen"
+          },
+          "center": {
+            "label": "Center (5)",
+            "description": "Ankare i korgen och skydd nära korgen"
+          }
+        },
+        "leagueLevels": {
+          "recreational": "Korpen/Motion",
+          "division3": "Division 3",
+          "division2": "Division 2",
+          "division1": "Division 1",
+          "basketligan": "Basketligan",
+          "sbl": "SBL (Svenska Basketligan)"
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Fokus på fysisk utveckling"
+          },
+          "preSeason": {
+            "label": "Försäsong",
+            "description": "Matchförberedelse"
+          },
+          "inSeason": {
+            "label": "Säsong",
+            "description": "Matcher och underhåll"
+          },
+          "playoffs": {
+            "label": "Slutspel",
+            "description": "Peak performance"
+          }
+        },
+        "playStyles": {
+          "scoring": {
+            "label": "Poänggörare",
+            "description": "Fokus på att göra poäng med effektiv offensiv"
+          },
+          "playmaking": {
+            "label": "Speluppbyggare",
+            "description": "Skapar chanser för lagkamrater"
+          },
+          "defense": {
+            "label": "Försvarare",
+            "description": "Specialiserad defensiv specialist"
+          },
+          "rebounding": {
+            "label": "Reboundare",
+            "description": "Dominerar vid korgen"
+          },
+          "allround": {
+            "label": "Allround",
+            "description": "Bidrar inom alla områden"
+          }
+        },
+        "strengths": {
+          "verticalJump": "Vertikalhopp",
+          "speed": "Snabbhet",
+          "agility": "Kvickhet",
+          "strength": "Styrka",
+          "endurance": "Uthållighet",
+          "shooting": "Skottförmåga",
+          "courtVision": "Spelförståelse",
+          "defense": "Försvar"
+        },
+        "injuries": {
+          "ankle": "Fotledsskada",
+          "kneeAcl": "Knäskada (ACL/MCL)",
+          "patellar": "Patellar tendinit",
+          "back": "Ryggproblem",
+          "shoulder": "Axelskada",
+          "groin": "Ljumskskada",
+          "hamstring": "Hamstringsskada",
+          "finger": "Fingerskada"
+        },
+        "shootingHands": {
+          "right": "Höger",
+          "left": "Vänster"
+        },
+        "actions": {
+          "back": "Tillbaka",
+          "next": "Nästa"
+        }
+      },
       "floorball": {
         "sections": {
           "positionAndTeam": {

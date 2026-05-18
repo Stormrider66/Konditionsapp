@@ -5959,6 +5959,173 @@
         },
         "positionFallback": "your position"
       },
+      "basketball": {
+        "badge": "Basketball",
+        "stepProgress": "Step {step} of {totalSteps}",
+        "stepTitles": {
+          "position": "Choose your position",
+          "teamAndLevel": "Team and level",
+          "playStyleAndPhysical": "Playing style and physical profile",
+          "physicalTests": "Physical tests",
+          "strengthTests": "Strength tests",
+          "strengthsAndWeaknesses": "Strengths and weaknesses",
+          "injuryHistory": "Injury history and training"
+        },
+        "stepDescriptions": {
+          "position": "Which position do you play most?",
+          "teamAndLevel": "Information about your team and competition level",
+          "playStyleAndPhysical": "Your play style and physical attributes",
+          "physicalTests": "Your latest results from speed and agility tests",
+          "strengthTests": "Your latest strength test results",
+          "strengthsAndWeaknesses": "What are your strengths and development areas?",
+          "injuryHistory": "Previous injuries and training conditions"
+        },
+        "fields": {
+          "teamName": "Team name",
+          "leagueLevel": "League level",
+          "seasonPhase": "Season phase",
+          "matchesPerWeek": "Matches per week",
+          "avgMinutesPerMatch": "Average minutes per match",
+          "yearsPlaying": "Years playing",
+          "playStyle": "Play style",
+          "shootingHand": "Shooting hand",
+          "height": "Height (cm)",
+          "wingspan": "Wingspan (cm)",
+          "verticalJump": "Vertical jump (cm)",
+          "standingReach": "Standing reach (cm)",
+          "sprint3_4Court": "3/4 court sprint (sec)",
+          "laneAgility": "Lane agility (sec)",
+          "shuttleRun": "Shuttle run (sec)",
+          "benchPress": "Bench press 1RM (kg)",
+          "squat": "Squat 1RM (kg)",
+          "yoyoIR1Level": "Yo-Yo IR1 level",
+          "weeklyTraining": "Training sessions per week (outside matches)",
+          "gymAccess": "I have access to a gym"
+        },
+        "sections": {
+          "physicalTests": "Physical tests",
+          "strengthTests": "Strength tests",
+          "strengths": "Your strengths",
+          "weaknesses": "Development areas",
+          "injuries": "Previous injuries",
+          "trainingConditions": "Training conditions"
+        },
+        "placeholders": {
+          "teamName": "e.g. Stockholm Eagles",
+          "height": "e.g. 185",
+          "wingspan": "e.g. 190",
+          "avgMinutesPerMatch": "e.g. 25",
+          "sprint3_4Court": "e.g. 3.3",
+          "laneAgility": "e.g. 11.0",
+          "shuttleRun": "e.g. 29.5",
+          "verticalJump": "e.g. 75",
+          "standingReach": "e.g. 250",
+          "benchPress": "e.g. 80",
+          "squat": "e.g. 120",
+          "yoyoIR1Level": "e.g. 18.0"
+        },
+        "helpers": {
+          "oneRMTip": "Enter your latest 1RM results to get position-specific recommendations."
+        },
+        "positions": {
+          "pointGuard": {
+            "label": "Point Guard (1)",
+            "description": "Primary playmaker who directs offense"
+          },
+          "shootingGuard": {
+            "label": "Shooting Guard (2)",
+            "description": "Outside scoring-focused perimeter player"
+          },
+          "smallForward": {
+            "label": "Small Forward (3)",
+            "description": "Versatile scorer and defender"
+          },
+          "powerForward": {
+            "label": "Power Forward (4)",
+            "description": "Strong frontcourt player close to the basket"
+          },
+          "center": {
+            "label": "Center (5)",
+            "description": "Post anchor and rim protector"
+          }
+        },
+        "leagueLevels": {
+          "recreational": "Recreational/Motion",
+          "division3": "Division 3",
+          "division2": "Division 2",
+          "division1": "Division 1",
+          "basketligan": "Basketligan",
+          "sbl": "SBL (Swedish Basketball League)"
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Focus on physical development"
+          },
+          "preSeason": {
+            "label": "Pre-season",
+            "description": "Match preparation"
+          },
+          "inSeason": {
+            "label": "In-season",
+            "description": "Matches and maintenance"
+          },
+          "playoffs": {
+            "label": "Playoffs",
+            "description": "Peak performance"
+          }
+        },
+        "playStyles": {
+          "scoring": {
+            "label": "Scoring",
+            "description": "Focus on points and efficient offense"
+          },
+          "playmaking": {
+            "label": "Playmaking",
+            "description": "Creates opportunities for teammates"
+          },
+          "defense": {
+            "label": "Defense",
+            "description": "Specialized defensive specialist"
+          },
+          "rebounding": {
+            "label": "Rebounding",
+            "description": "Dominates around the basket"
+          },
+          "allround": {
+            "label": "All-round",
+            "description": "Contributes in all areas"
+          }
+        },
+        "strengths": {
+          "verticalJump": "Vertical jump",
+          "speed": "Speed",
+          "agility": "Agility",
+          "strength": "Strength",
+          "endurance": "Endurance",
+          "shooting": "Shooting",
+          "courtVision": "Court vision",
+          "defense": "Defense"
+        },
+        "injuries": {
+          "ankle": "Ankle injury",
+          "kneeAcl": "Knee injury (ACL/MCL)",
+          "patellar": "Patellar tendinopathy",
+          "back": "Back problem",
+          "shoulder": "Shoulder injury",
+          "groin": "Groin strain",
+          "hamstring": "Hamstring strain",
+          "finger": "Finger injury"
+        },
+        "shootingHands": {
+          "right": "Right",
+          "left": "Left"
+        },
+        "actions": {
+          "back": "Back",
+          "next": "Next"
+        }
+      },
       "floorball": {
         "sections": {
           "positionAndTeam": {
