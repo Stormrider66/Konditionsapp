@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 import type {
   PreviewExercise,
   PreviewWorkoutData,
@@ -35,27 +36,33 @@ import type {
 
 const SECTION_CONFIG: Record<
   WorkoutSection,
-  { label: string; icon: typeof Flame; accent: string }
+  { labelKey: 'warmup' | 'main' | 'prehab' | 'core' | 'recovery' | 'cooldown'; icon: typeof Flame; accent: string }
 > = {
-  WARMUP: { label: 'Uppvärmning', icon: Flame, accent: 'text-amber-500' },
-  MAIN: { label: 'Huvudpass', icon: Dumbbell, accent: 'text-primary' },
-  PREHAB: { label: 'Prehab', icon: ShieldCheck, accent: 'text-teal-500' },
-  CORE: { label: 'Core', icon: Target, accent: 'text-purple-500' },
-  COOLDOWN: { label: 'Nedvarvning', icon: Timer, accent: 'text-emerald-500' },
+  WARMUP: { labelKey: 'warmup', icon: Flame, accent: 'text-amber-500' },
+  MAIN: { labelKey: 'main', icon: Dumbbell, accent: 'text-primary' },
+  PREHAB: { labelKey: 'prehab', icon: ShieldCheck, accent: 'text-teal-500' },
+  CORE: { labelKey: 'core', icon: Target, accent: 'text-purple-500' },
+  COOLDOWN: { labelKey: 'cooldown', icon: Timer, accent: 'text-emerald-500' },
 }
 
-const KIND_LABEL: Record<WorkoutKind, string> = {
-  strength: 'Styrka',
-  cardio: 'Kondition',
-  hybrid: 'Hybrid',
-  agility: 'Agility',
+const KIND_LABEL: Record<
+  WorkoutKind,
+  'strength' | 'cardio' | 'hybrid' | 'agility'
+> = {
+  strength: 'strength',
+  cardio: 'cardio',
+  hybrid: 'hybrid',
+  agility: 'agility',
 }
 
-const INTENSITY_LABEL: Record<NonNullable<PreviewWorkoutData['workout']['intensity']>, string> = {
-  LOW: 'Lätt',
-  MODERATE: 'Måttlig',
-  HIGH: 'Hård',
-  MAX: 'Max',
+const INTENSITY_LABEL: Record<
+  NonNullable<PreviewWorkoutData['workout']['intensity']>,
+  'low' | 'moderate' | 'high' | 'max'
+> = {
+  LOW: 'low',
+  MODERATE: 'moderate',
+  HIGH: 'high',
+  MAX: 'max',
 }
 
 export interface WorkoutPreviewProps {
@@ -92,6 +99,7 @@ export function WorkoutPreview({
   audioSlot,
   defaultCollapsed = false,
 }: WorkoutPreviewProps) {
+  const t = useTranslations('components.workoutPreview')
   const { workout, sections, exercises, progress, readiness, assignment } = data
 
   const firstSection = sections[0]?.type
@@ -121,9 +129,9 @@ export function WorkoutPreview({
     })
   }
 
-  const kindLabel = workout.kind ? KIND_LABEL[workout.kind] : 'Styrka'
-  const intensityLabel = workout.intensity ? INTENSITY_LABEL[workout.intensity] : null
-  const resumeLabel = progress.completedSets > 0 ? 'Fortsätt pass' : 'Starta pass'
+  const kindLabel = t(`kinds.${workout.kind ? KIND_LABEL[workout.kind] : KIND_LABEL.strength}`)
+  const intensityLabel = workout.intensity ? t(`intensity.${INTENSITY_LABEL[workout.intensity]}`) : null
+  const resumeLabel = progress.completedSets > 0 ? t('actions.continue') : t('actions.start')
 
   const heroImage =
     exercises.find((e) => e.section === 'MAIN' && e.imageUrls?.[0])?.imageUrls?.[0] ??
@@ -157,7 +165,7 @@ export function WorkoutPreview({
           {assignment.notes && (
             <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm">
               <p className="mb-0.5 text-xs font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
-                Coach-anteckning
+                {t('labels.coachNote')}
               </p>
               <p className="text-foreground/90">{assignment.notes}</p>
             </div>
@@ -196,9 +204,9 @@ export function WorkoutPreview({
                             <Icon className={cn('h-4 w-4', cfg.accent)} />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold">{cfg.label}</p>
+                            <p className="text-sm font-semibold">{t(`sections.${cfg.labelKey}`)}</p>
                             <p className="text-xs text-muted-foreground">
-                              {section.exerciseCount} övningar
+                              {t('stats.exerciseCount', { count: section.exerciseCount })}
                               {section.duration ? ` · ${section.duration} min` : ''}
                             </p>
                           </div>
@@ -273,6 +281,7 @@ function Header({
   audioSlot?: ReactNode
   heroImage?: string
 }) {
+  const t = useTranslations('components.workoutPreview')
   return (
     <header className="relative sticky top-0 z-10 overflow-hidden border-b border-border/60 bg-background/95 backdrop-blur">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
@@ -297,7 +306,7 @@ function Header({
               {isAiGenerated && (
                 <Badge className="gap-1 bg-primary/15 text-primary border-primary/20" variant="outline">
                   <Sparkles className="h-3 w-3" />
-                  AI-genererat pass
+                  {t('tags.aiGenerated')}
                 </Badge>
               )}
               <Badge variant="secondary" className="gap-1">
@@ -316,11 +325,11 @@ function Header({
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               {estimatedDuration != null && (
                 <Chip icon={<Clock className="h-3.5 w-3.5" />}>
-                  {estimatedDuration} min
+                  {estimatedDuration} {t('labels.minutes')}
                 </Chip>
               )}
               <Chip icon={<Dumbbell className="h-3.5 w-3.5" />}>
-                {totalExercises} övningar
+                {t('stats.exerciseCount', { count: totalExercises })}
               </Chip>
               {intensityLabel && (
                 <Chip icon={<Flame className="h-3.5 w-3.5" />}>{intensityLabel}</Chip>
@@ -330,7 +339,7 @@ function Header({
           <div className="flex shrink-0 items-center gap-1">
             {audioSlot}
             {onClose && (
-              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Stäng">
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('actions.close')}>
                 <X className="h-5 w-5" />
               </Button>
             )}
@@ -351,13 +360,14 @@ function Chip({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 }
 
 function ReadinessBanner({ readiness }: { readiness?: PreviewWorkoutData['readiness'] }) {
+  const t = useTranslations('components.workoutPreview')
   if (!readiness) return null
   if (!readiness.available) {
     return (
       <div className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm">
         <Heart className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div>
-          <p className="font-medium">Ingen beredskapsdata tillgänglig</p>
+          <p className="font-medium">{t('readiness.unavailable')}</p>
           {readiness.message && (
             <p className="mt-0.5 text-xs text-muted-foreground">{readiness.message}</p>
           )}
@@ -373,7 +383,7 @@ function ReadinessBanner({ readiness }: { readiness?: PreviewWorkoutData['readin
     <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-2 text-sm', tone)}>
       <Heart className="h-4 w-4" />
       <span>
-        Beredskap: <strong className="font-semibold">{readiness.score}</strong>
+        {t('readiness.label', { score: readiness.score })}
         {readiness.message ? ` — ${readiness.message}` : ''}
       </span>
     </div>
@@ -389,12 +399,17 @@ function ProgressRow({
   totalSetsTarget: number
   percentComplete: number
 }) {
+  const t = useTranslations('components.workoutPreview')
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2.5">
       <div className="mb-1.5 flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">Pågående pass</span>
+        <span className="text-muted-foreground">{t('progress.activeWorkout')}</span>
         <span className="font-medium">
-          {completedSets}/{totalSetsTarget} set · {percentComplete}%
+          {t('progress.setProgress', {
+            completed: completedSets,
+            total: totalSetsTarget,
+            percent: percentComplete,
+          })}
         </span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -416,6 +431,7 @@ function ExerciseRow({
   exercise: PreviewExercise
   onClick?: () => void
 }) {
+  const t = useTranslations('components.workoutPreview')
   const done = exercise.completedSets >= exercise.sets
   const inProgress = exercise.completedSets > 0 && !done
   const content = (
@@ -450,7 +466,9 @@ function ExerciseRow({
         <p className="truncate text-xs text-muted-foreground">
           {exercise.sets}×{exercise.repsTarget}
           {exercise.weight ? ` · ${exercise.weight} kg` : ''}
-          {exercise.restSeconds ? ` · vila ${formatRest(exercise.restSeconds)}` : ''}
+          {exercise.restSeconds
+            ? ` · ${t('labels.rest', { value: formatRest(exercise.restSeconds) })}`
+            : ''}
         </p>
       </div>
       {inProgress && (
@@ -490,6 +508,7 @@ function DefaultFooter({
   onRegenerate?: () => void
   allDone: boolean
 }) {
+  const t = useTranslations('components.workoutPreview')
   return (
     <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur">
       <div className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-6">
@@ -497,7 +516,7 @@ function DefaultFooter({
           {onRegenerate && (
             <Button variant="outline" className="h-12 flex-1 sm:flex-none" onClick={onRegenerate}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Generera nytt
+              {t('actions.regenerate')}
             </Button>
           )}
           {onStart && !allDone && (
@@ -515,12 +534,12 @@ function DefaultFooter({
               {allDone ? (
                 <>
                   <Check className="mr-2 h-5 w-5" />
-                  Slutför
+                  {t('actions.complete')}
                 </>
               ) : (
                 <>
                   <AlertCircle className="mr-2 h-4 w-4" />
-                  Avsluta pass
+                  {t('actions.finish')}
                 </>
               )}
             </Button>

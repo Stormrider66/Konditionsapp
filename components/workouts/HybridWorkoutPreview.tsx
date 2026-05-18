@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { WorkoutPreview } from './WorkoutPreview'
 import { CompleteSessionDialog } from './CompleteSessionDialog'
+import { useTranslations } from '@/i18n/client'
 import type {
   CompleteSessionPayload,
   PreviewExercise,
@@ -82,15 +83,15 @@ interface HybridWorkoutPreviewProps {
   onCompleted?: () => void
 }
 
-const FORMAT_LABELS: Record<string, string> = {
-  FOR_TIME: 'For Time',
-  AMRAP: 'AMRAP',
-  EMOM: 'EMOM',
-  TABATA: 'Tabata',
-  CHIPPER: 'Chipper',
-  LADDER: 'Ladder',
-  INTERVALS: 'Intervaller',
-  HYROX_SIM: 'HYROX Sim',
+const FORMAT_LABEL_KEYS: Record<string, string> = {
+  FOR_TIME: 'forTime',
+  AMRAP: 'amrap',
+  EMOM: 'emom',
+  TABATA: 'tabata',
+  CHIPPER: 'chipper',
+  LADDER: 'ladder',
+  INTERVALS: 'intervals',
+  HYROX_SIM: 'hyroxSim',
 }
 
 function describeTarget(m: HybridFocusMovement): string {
@@ -103,7 +104,7 @@ function describeTarget(m: HybridFocusMovement): string {
   return parts.join(' · ') || '—'
 }
 
-function mapToPreviewData(api: HybridFocusApiResponse['data']): PreviewWorkoutData {
+function mapToPreviewData(api: HybridFocusApiResponse['data'], mainSectionName: string): PreviewWorkoutData {
   const exercises: PreviewExercise[] = api.movements.map((m, idx) => ({
     id: m.id,
     exerciseId: m.exerciseId,
@@ -122,7 +123,7 @@ function mapToPreviewData(api: HybridFocusApiResponse['data']): PreviewWorkoutDa
   }))
 
   const sections: PreviewSection[] = [
-    { type: 'MAIN', name: 'Huvudpass', exerciseCount: exercises.length },
+    { type: 'MAIN', name: mainSectionName, exerciseCount: exercises.length },
   ]
 
   const completed = exercises.filter((e) => e.completedSets > 0).length
@@ -139,7 +140,7 @@ function mapToPreviewData(api: HybridFocusApiResponse['data']): PreviewWorkoutDa
       description: api.workout.description,
       estimatedDuration: api.workout.totalMinutes ?? api.workout.timeCap ?? null,
       kind: 'hybrid',
-      tags: [FORMAT_LABELS[api.workout.format] ?? api.workout.format],
+      tags: [api.workout.format],
     },
     sections,
     exercises,
@@ -171,6 +172,7 @@ export function HybridWorkoutPreview({
   onClose,
   onCompleted,
 }: HybridWorkoutPreviewProps) {
+  const t = useTranslations('components.workoutPreview')
   const [apiData, setApiData] = useState<HybridFocusApiResponse['data'] | null>(null)
   const [data, setData] = useState<PreviewWorkoutData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -184,17 +186,22 @@ export function HybridWorkoutPreview({
     setIsLoading(true)
     try {
       const res = await fetch(`/api/hybrid-workouts/${assignmentId}/focus-mode`)
-      if (!res.ok) throw new Error('Failed to load workout')
+      if (!res.ok) throw new Error(t('errors.loadFailed'))
       const json = (await res.json()) as HybridFocusApiResponse
-      if (!json.success) throw new Error('Failed to load workout')
+      if (!json.success) throw new Error(t('errors.loadFailed'))
       setApiData(json.data)
-      setData(mapToPreviewData(json.data))
+      const formatKey = FORMAT_LABEL_KEYS[json.data.workout.format]
+      const formatLabel = formatKey
+        ? t(`formats.${formatKey}`)
+        : t('formats.custom', { value: json.data.workout.format })
+      const previewData = mapToPreviewData(json.data, t('sections.main'))
+      setData({ ...previewData, workout: { ...previewData.workout, tags: [formatLabel] } })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunde inte ladda passet')
+      setError(e instanceof Error ? e.message : t('errors.loadFailed'))
     } finally {
       setIsLoading(false)
     }
-  }, [assignmentId])
+  }, [assignmentId, t])
 
   useEffect(() => {
     startedAtRef.current = Date.now()
@@ -257,8 +264,8 @@ export function HybridWorkoutPreview({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background p-6">
         <div className="max-w-sm rounded-xl border bg-card p-6 text-center">
-          <p className="mb-3 text-sm text-muted-foreground">{error ?? 'Kunde inte ladda passet.'}</p>
-          <Button onClick={onClose}>Stäng</Button>
+          <p className="mb-3 text-sm text-muted-foreground">{error ?? t('errors.loadFailed')}</p>
+          <Button onClick={onClose}>{t('actions.close')}</Button>
         </div>
       </div>
     )

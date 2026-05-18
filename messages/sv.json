@@ -4575,6 +4575,92 @@
         "network": "Kunde inte ansluta till servern."
       }
     },
+    "workoutPreview": {
+      "sections": {
+        "warmup": "Uppvärmning",
+        "main": "Huvudpass",
+        "prehab": "Prehab",
+        "core": "Core",
+        "recovery": "Återhämtning",
+        "cooldown": "Nedvarvning"
+      },
+      "kinds": {
+        "strength": "Styrka",
+        "cardio": "Kondition",
+        "hybrid": "Hybrid",
+        "agility": "Agility"
+      },
+      "intensity": {
+        "low": "Lätt",
+        "moderate": "Måttlig",
+        "high": "Hård",
+        "max": "Max"
+      },
+      "tags": {
+        "aiGenerated": "AI-genererat pass"
+      },
+      "labels": {
+        "coachNote": "Coach-anteckning",
+        "minutes": "min",
+        "rest": "vila {value}"
+      },
+      "stats": {
+        "exerciseCount": "{count, plural, one {# övning} other {# övningar}}",
+        "setProgress": "{completed}/{total} {total, plural, one {set} other {set}} · {percent}%"
+      },
+      "readiness": {
+        "unavailable": "Ingen beredskapsdata tillgänglig",
+        "label": "Beredskap: {score}"
+      },
+      "progress": {
+        "activeWorkout": "Pågående pass"
+      },
+      "actions": {
+        "start": "Starta pass",
+        "continue": "Fortsätt pass",
+        "regenerate": "Generera nytt",
+        "complete": "Slutför",
+        "finish": "Avsluta pass",
+        "close": "Stäng",
+        "voiceCoach": "AI-röstcoach"
+      },
+      "errors": {
+        "loadFailed": "Kunde inte ladda passet"
+      },
+      "formats": {
+        "forTime": "For Time",
+        "amrap": "AMRAP",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Ladder",
+        "intervals": "Intervaller",
+        "hyroxSim": "HYROX Sim",
+        "custom": "{value}"
+      }
+    },
+    "completeSessionDialog": {
+      "title": "Avsluta pass",
+      "description": "Lägg till en kort summering. Allt är valfritt — du kan avsluta direkt.",
+      "missingSets": {
+        "title": "{completed} av {total} set loggade",
+        "info": "Ologgade set räknas som genomförda utan data."
+      },
+      "fields": {
+        "rpeLabel": "Känsla (RPE)",
+        "durationLabel": "Tid (minuter)",
+        "notesLabel": "Anteckningar (valfritt)",
+        "notesPlaceholder": "Hur kändes passet?"
+      },
+      "rpeScale": {
+        "easy": "Lätt",
+        "hard": "Mycket hårt"
+      },
+      "buttons": {
+        "cancel": "Avbryt",
+        "confirm": "Avsluta pass"
+      }
+    },
     "wizardProgress": {
       "steps": {
         "sport": "Sport",

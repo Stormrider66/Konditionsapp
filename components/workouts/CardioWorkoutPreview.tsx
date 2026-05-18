@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { WorkoutPreview } from './WorkoutPreview'
 import { CompleteSessionDialog } from './CompleteSessionDialog'
+import { useTranslations } from '@/i18n/client'
 import type {
   CompleteSessionPayload,
   PreviewExercise,
@@ -109,6 +110,8 @@ function formatPace(secPerKm?: number): string {
 function mapToPreviewData(
   api: CardioFocusApiResponse['data'],
   kindLabel: string,
+  zoneLabel: string,
+  sectionNames: Partial<Record<WorkoutSection, string>>,
 ): PreviewWorkoutData {
   const exercises: PreviewExercise[] = api.segments.map((seg, idx) => {
     const section = SEGMENT_TYPE_TO_SECTION[seg.type] ?? 'MAIN'
@@ -116,7 +119,7 @@ function mapToPreviewData(
     if (seg.plannedDuration) meta.push(formatDuration(seg.plannedDuration))
     if (seg.plannedDistance) meta.push(`${seg.plannedDistance.toFixed(2)} km`)
     if (seg.plannedPace) meta.push(formatPace(seg.plannedPace))
-    if (seg.plannedZone) meta.push(`Zon ${seg.plannedZone}`)
+    if (seg.plannedZone) meta.push(`${zoneLabel} ${seg.plannedZone}`)
     return {
       id: seg.id,
       exerciseId: seg.id,
@@ -143,14 +146,7 @@ function mapToPreviewData(
     .filter((s) => (sectionCounts.get(s) ?? 0) > 0)
     .map((s) => ({
       type: s,
-      name:
-        s === 'WARMUP'
-          ? 'Uppvärmning'
-          : s === 'COOLDOWN'
-            ? 'Nedvarvning'
-            : s === 'CORE'
-              ? 'Återhämtning'
-              : 'Huvudpass',
+      name: sectionNames[s] ?? s,
       exerciseCount: sectionCounts.get(s) ?? 0,
     }))
 
@@ -192,6 +188,7 @@ export function CardioWorkoutPreview({
   onClose,
   onCompleted,
 }: CardioWorkoutPreviewProps) {
+  const t = useTranslations('components.workoutPreview')
   const [data, setData] = useState<PreviewWorkoutData | null>(null)
   const [apiData, setApiData] = useState<CardioFocusApiResponse['data'] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -201,22 +198,33 @@ export function CardioWorkoutPreview({
   const [voiceCoachActive, setVoiceCoachActive] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const startedAtRef = useRef<number | null>(null)
+  const sectionNames = useMemo<Partial<Record<WorkoutSection, string>>>(() => {
+    return {
+      WARMUP: t('sections.warmup'),
+      MAIN: t('sections.main'),
+      CORE: t('sections.recovery'),
+      PREHAB: t('sections.prehab'),
+      COOLDOWN: t('sections.cooldown'),
+    }
+  }, [t])
 
   const refresh = useCallback(async () => {
     setIsLoading(true)
     try {
       const res = await fetch(`/api/cardio-sessions/${assignmentId}/focus-mode`)
-      if (!res.ok) throw new Error('Failed to load workout')
+      if (!res.ok) throw new Error(t('errors.loadFailed'))
       const json = (await res.json()) as CardioFocusApiResponse
-      if (!json.success) throw new Error('Failed to load workout')
+      if (!json.success) throw new Error(t('errors.loadFailed'))
       setApiData(json.data)
-      setData(mapToPreviewData(json.data, 'Kondition'))
+      setData(
+        mapToPreviewData(json.data, t('kinds.cardio'), t('labels.zone'), sectionNames),
+      )
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunde inte ladda passet')
+      setError(e instanceof Error ? e.message : t('errors.loadFailed'))
     } finally {
       setIsLoading(false)
     }
-  }, [assignmentId])
+  }, [assignmentId, sectionNames, t])
 
   useEffect(() => {
     startedAtRef.current = Date.now()
@@ -280,8 +288,8 @@ export function CardioWorkoutPreview({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background p-6">
         <div className="max-w-sm rounded-xl border bg-card p-6 text-center">
-          <p className="mb-3 text-sm text-muted-foreground">{error ?? 'Kunde inte ladda passet.'}</p>
-          <Button onClick={onClose}>Stäng</Button>
+          <p className="mb-3 text-sm text-muted-foreground">{error ?? t('errors.loadFailed')}</p>
+          <Button onClick={onClose}>{t('actions.close')}</Button>
         </div>
       </div>
     )
@@ -348,7 +356,7 @@ export function CardioWorkoutPreview({
               variant={voiceCoachActive ? 'default' : 'outline'}
               size="icon"
               onClick={() => setVoiceCoachActive((v) => !v)}
-              title="AI-röstcoach"
+              title={t('actions.voiceCoach')}
             >
               <Radio className="h-4 w-4" />
             </Button>

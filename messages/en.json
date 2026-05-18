@@ -4575,6 +4575,92 @@
         "network": "Could not connect to the server."
       }
     },
+    "workoutPreview": {
+      "sections": {
+        "warmup": "Warmup",
+        "main": "Main session",
+        "prehab": "Prehab",
+        "core": "Core",
+        "recovery": "Recovery",
+        "cooldown": "Cooldown"
+      },
+      "kinds": {
+        "strength": "Strength",
+        "cardio": "Cardio",
+        "hybrid": "Hybrid",
+        "agility": "Agility"
+      },
+      "intensity": {
+        "low": "Easy",
+        "moderate": "Moderate",
+        "high": "Hard",
+        "max": "Max"
+      },
+      "tags": {
+        "aiGenerated": "AI-generated workout"
+      },
+      "labels": {
+        "coachNote": "Coach note",
+        "minutes": "min",
+        "rest": "Rest {value}"
+      },
+      "stats": {
+        "exerciseCount": "{count, plural, one {# exercise} other {# exercises}}",
+        "setProgress": "{completed}/{total} {total, plural, one {set} other {sets}} · {percent}%"
+      },
+      "readiness": {
+        "unavailable": "No readiness data available",
+        "label": "Readiness: {score}"
+      },
+      "progress": {
+        "activeWorkout": "Active workout"
+      },
+      "actions": {
+        "start": "Start workout",
+        "continue": "Continue workout",
+        "regenerate": "Generate new",
+        "complete": "Complete",
+        "finish": "Finish workout",
+        "close": "Close",
+        "voiceCoach": "AI voice coach"
+      },
+      "errors": {
+        "loadFailed": "Could not load workout"
+      },
+      "formats": {
+        "forTime": "For Time",
+        "amrap": "AMRAP",
+        "emom": "EMOM",
+        "tabata": "Tabata",
+        "chipper": "Chipper",
+        "ladder": "Ladder",
+        "intervals": "Intervals",
+        "hyroxSim": "HYROX Sim",
+        "custom": "{value}"
+      }
+    },
+    "completeSessionDialog": {
+      "title": "Finish workout",
+      "description": "Add a short summary. All fields are optional — you can finish directly.",
+      "missingSets": {
+        "title": "{completed} of {total} sets logged",
+        "info": "Unlogged sets count as completed without data."
+      },
+      "fields": {
+        "rpeLabel": "How did it feel (RPE)",
+        "durationLabel": "Duration (minutes)",
+        "notesLabel": "Notes (optional)",
+        "notesPlaceholder": "How did the workout feel?"
+      },
+      "rpeScale": {
+        "easy": "Easy",
+        "hard": "Very hard"
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "confirm": "Finish workout"
+      }
+    },
     "wizardProgress": {
       "steps": {
         "sport": "Sport",

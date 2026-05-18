@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { AlertCircle, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 import type { CompleteSessionPayload } from './types'
 
 interface CompleteSessionDialogProps {
@@ -41,6 +42,7 @@ export function CompleteSessionDialog({
   const [notes, setNotes] = useState('')
   const [duration, setDuration] = useState<number>(defaultDurationMinutes ?? 45)
   const [isSaving, setIsSaving] = useState(false)
+  const t = useTranslations('components.completeSessionDialog')
 
   const missingSets = Math.max(0, totalSetsTarget - completedSets)
   const hasMissingSets = missingSets > 0
@@ -67,9 +69,9 @@ export function CompleteSessionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Avsluta pass</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Lägg till en kort summering. Allt är valfritt — du kan avsluta direkt.
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -79,10 +81,13 @@ export function CompleteSessionDialog({
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <div>
                 <p className="font-medium">
-                  {completedSets} av {totalSetsTarget} set loggade
+                  {t('missingSets.title', {
+                    completed: completedSets,
+                    total: totalSetsTarget,
+                  })}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Ologgade set räknas som genomförda utan data.
+                  {t('missingSets.info')}
                 </p>
               </div>
             </div>
@@ -90,7 +95,7 @@ export function CompleteSessionDialog({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Känsla (RPE)</Label>
+              <Label>{t('fields.rpeLabel')}</Label>
               <Badge className={cn('min-w-[36px] justify-center text-white', rpeColor)}>
                 {rpe}
               </Badge>
@@ -103,13 +108,13 @@ export function CompleteSessionDialog({
               step={0.5}
             />
             <div className="flex justify-between text-[11px] text-muted-foreground">
-              <span>Lätt</span>
-              <span>Mycket hårt</span>
+              <span>{t('rpeScale.easy')}</span>
+              <span>{t('rpeScale.hard')}</span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="duration">Tid (minuter)</Label>
+            <Label htmlFor="duration">{t('fields.durationLabel')}</Label>
             <input
               id="duration"
               type="number"
@@ -121,12 +126,12 @@ export function CompleteSessionDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+            <Label htmlFor="notes">{t('fields.notesLabel')}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Hur kändes passet?"
+              placeholder={t('fields.notesPlaceholder')}
               rows={3}
             />
           </div>
@@ -134,7 +139,7 @@ export function CompleteSessionDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            Avbryt
+            {t('buttons.cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={isSaving}>
             {isSaving ? (
@@ -142,7 +147,7 @@ export function CompleteSessionDialog({
             ) : (
               <Check className="mr-2 h-4 w-4" />
             )}
-            Avsluta pass
+            {t('buttons.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
