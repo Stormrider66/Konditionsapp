@@ -4,7 +4,9 @@ import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { NextIntlClientProvider } from 'next-intl'
 import ResetPasswordPage from './page'
+import messages from '@/messages/sv.json'
 
 const pushMock = vi.fn()
 const toastMock = vi.fn()
@@ -35,6 +37,14 @@ vi.mock('@/lib/supabase/client', () => ({
   }),
 }))
 
+function renderResetPasswordPage() {
+  return render(
+    <NextIntlClientProvider locale="sv" messages={messages}>
+      <ResetPasswordPage />
+    </NextIntlClientProvider>
+  )
+}
+
 describe('ResetPasswordPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -57,7 +67,7 @@ describe('ResetPasswordPage', () => {
       data: { session: { access_token: 'token' } },
     })
 
-    render(<ResetPasswordPage />)
+    renderResetPasswordPage()
 
     await waitFor(() => {
       expect(screen.getByLabelText('Nytt lösenord')).toBeInTheDocument()
@@ -71,7 +81,7 @@ describe('ResetPasswordPage', () => {
       key === 'error' ? 'auth_callback_failed' : null
     )
 
-    render(<ResetPasswordPage />)
+    renderResetPasswordPage()
 
     expect(
       await screen.findByText('Länken för att välja nytt lösenord är ogiltig eller har gått ut.')
@@ -84,7 +94,7 @@ describe('ResetPasswordPage', () => {
       key === 'error' ? 'auth_callback_failed' : null
     )
 
-    render(<ResetPasswordPage />)
+    renderResetPasswordPage()
 
     await user.click(
       await screen.findByRole('button', { name: 'Begär ny återställningslänk' })
