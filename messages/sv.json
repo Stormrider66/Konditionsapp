@@ -5326,6 +5326,67 @@
           "wKg": "W/kg"
         }
       },
+      "skiing": {
+        "labels": {
+          "technique": "Vilken skidteknik använder du?",
+          "primaryDiscipline": "Vad är din primära skiddisciplin?",
+          "terrain": "Vilken terräng tränar du vanligtvis på?",
+          "thresholdPace": "Tröskeltempo (min/km)",
+          "lastThresholdTest": "Senaste tröskeltest",
+          "bodyWeight": "Kroppsvikt (kg)",
+          "heartRateMonitor": "Jag har en pulsmätare",
+          "trainingMethods": "Träningsmetoder du använder",
+          "weeklyHours": "Genomsnittlig veckoträningstid",
+          "onSnowAccessMonths": "Månader med snötillgång per år"
+        },
+        "titles": {
+          "performanceData": "Prestationsdata",
+          "trainingSetup": "Träningsinställningar"
+        },
+        "descriptions": {
+          "performanceData": "Ditt tröskeltempo hjälper oss beräkna träningszoner",
+          "thresholdPace": "Det tempo du kan hålla i ca 1 timme"
+        },
+        "techniques": {
+          "classic": "Klassisk",
+          "skating": "Skate",
+          "both": "Båda teknikerna"
+        },
+        "disciplines": {
+          "distance": "Distans / Maraton",
+          "sprint": "Sprint",
+          "skiathlon": "Skiathlon",
+          "biathlon": "Skidskytte",
+          "recreational": "Motionsskidåkning",
+          "touring": "Skidturism",
+          "orienteering": "Skidorientering"
+        },
+        "terrainTypes": {
+          "flat": "Platt terräng",
+          "hilly": "Kuperad terräng",
+          "mountainous": "Fjällterräng",
+          "mixed": "Blandad"
+        },
+        "trainingMethods": {
+          "onSnow": "Snöskidåkning",
+          "rollerSki": "Rullskidor",
+          "skiTreadmill": "Skidergometer",
+          "running": "Löpning",
+          "cycling": "Cykling",
+          "strength": "Styrketräning"
+        },
+        "placeholders": {
+          "thresholdPace": "t.ex. 4.5",
+          "bodyWeight": "t.ex. 70"
+        },
+        "snowAccess": {
+          "rollerOnly": "0 mån (endast rullskidor)",
+          "yearRound": "12 mån (snö året runt)"
+        },
+        "units": {
+          "months": "månader"
+        }
+      },
       "nutrition": {
         "titles": {
           "goal": "Vad är ditt mål?",

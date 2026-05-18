@@ -5438,6 +5438,67 @@
           "wKg": "W/kg"
         }
       },
+      "skiing": {
+        "labels": {
+          "technique": "What skiing technique do you use?",
+          "primaryDiscipline": "What is your primary skiing discipline?",
+          "terrain": "What terrain do you typically train on?",
+          "thresholdPace": "Threshold pace (min/km)",
+          "lastThresholdTest": "Last threshold test",
+          "bodyWeight": "Body weight (kg)",
+          "heartRateMonitor": "I have a heart rate monitor",
+          "trainingMethods": "Training methods you use",
+          "weeklyHours": "Average weekly training hours",
+          "onSnowAccessMonths": "Months with snow access per year"
+        },
+        "titles": {
+          "performanceData": "Performance data",
+          "trainingSetup": "Training setup"
+        },
+        "descriptions": {
+          "performanceData": "Your threshold pace helps us calculate training zones",
+          "thresholdPace": "The pace you can sustain for about 1 hour"
+        },
+        "techniques": {
+          "classic": "Classic",
+          "skating": "Skating",
+          "both": "Both techniques"
+        },
+        "disciplines": {
+          "distance": "Distance / Marathon",
+          "sprint": "Sprint",
+          "skiathlon": "Skiathlon",
+          "biathlon": "Biathlon",
+          "recreational": "Recreational",
+          "touring": "Ski Touring",
+          "orienteering": "Ski Orienteering"
+        },
+        "terrainTypes": {
+          "flat": "Flat terrain",
+          "hilly": "Hilly terrain",
+          "mountainous": "Mountainous",
+          "mixed": "Mixed"
+        },
+        "trainingMethods": {
+          "onSnow": "On-snow skiing",
+          "rollerSki": "Roller skiing",
+          "skiTreadmill": "Ski treadmill",
+          "running": "Running",
+          "cycling": "Cycling",
+          "strength": "Strength training"
+        },
+        "placeholders": {
+          "thresholdPace": "e.g. 4.5",
+          "bodyWeight": "e.g. 70"
+        },
+        "snowAccess": {
+          "rollerOnly": "0 months (roller ski only)",
+          "yearRound": "12 months (year-round snow)"
+        },
+        "units": {
+          "months": "months"
+        }
+      },
       "hockey": {
         "sections": {
           "positionAndTeam": {
