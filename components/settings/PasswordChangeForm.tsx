@@ -9,29 +9,30 @@ import { Button } from '@/components/ui/button'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
-
-const passwordChangeSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Ange ditt nuvarande lösenord'),
-    newPassword: z.string().min(6, 'Lösenordet måste vara minst 6 tecken'),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Lösenorden matchar inte',
-    path: ['confirmPassword'],
-  })
-
-type PasswordChangeFormData = z.infer<typeof passwordChangeSchema>
+import { useTranslations } from '@/i18n/client'
 
 interface PasswordChangeFormProps {
   userEmail: string
 }
 
 export function PasswordChangeForm({ userEmail }: PasswordChangeFormProps) {
+  const t = useTranslations('components.settings.password')
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
+  const passwordChangeSchema = z
+    .object({
+      currentPassword: z.string().min(1, t('validation.currentPasswordRequired')),
+      newPassword: z.string().min(6, t('validation.newPasswordMinLength')),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t('validation.passwordsDoNotMatch'),
+      path: ['confirmPassword'],
+    })
+
+  type PasswordChangeFormData = z.infer<typeof passwordChangeSchema>
 
   const {
     register,
@@ -56,8 +57,8 @@ export function PasswordChangeForm({ userEmail }: PasswordChangeFormProps) {
 
       if (signInError) {
         toast({
-          title: 'Fel lösenord',
-          description: 'Det nuvarande lösenordet är felaktigt.',
+          title: t('toasts.invalidCurrentPassword.title'),
+          description: t('toasts.invalidCurrentPassword.description'),
           variant: 'destructive',
         })
         return
@@ -70,7 +71,7 @@ export function PasswordChangeForm({ userEmail }: PasswordChangeFormProps) {
 
       if (updateError) {
         toast({
-          title: 'Kunde inte uppdatera lösenord',
+          title: t('toasts.updateFailed.title'),
           description: updateError.message,
           variant: 'destructive',
         })
@@ -78,15 +79,15 @@ export function PasswordChangeForm({ userEmail }: PasswordChangeFormProps) {
       }
 
       toast({
-        title: 'Lösenord uppdaterat!',
-        description: 'Ditt lösenord har ändrats.',
+        title: t('toasts.updated.title'),
+        description: t('toasts.updated.description'),
       })
 
       reset()
     } catch {
       toast({
-        title: 'Ett fel uppstod',
-        description: 'Kunde inte uppdatera lösenordet. Försök igen.',
+        title: t('toasts.catchError.title'),
+        description: t('toasts.catchError.description'),
         variant: 'destructive',
       })
     } finally {
@@ -103,12 +104,12 @@ export function PasswordChangeForm({ userEmail }: PasswordChangeFormProps) {
     <GlassCard>
       <GlassCardContent className="p-6">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-          Byt lösenord
+          {t('title')}
         </h3>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="currentPassword" className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Nuvarande lösenord
+              {t('fields.currentPassword')}
             </label>
             <div className="relative">
               <input
@@ -133,14 +134,14 @@ export function PasswordChangeForm({ userEmail }: PasswordChangeFormProps) {
 
           <div className="space-y-2">
             <label htmlFor="newPassword" className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Nytt lösenord
+              {t('fields.newPassword')}
             </label>
             <div className="relative">
               <input
                 id="newPassword"
                 type={showNewPassword ? 'text' : 'password'}
                 className={inputClasses(!!errors.newPassword)}
-                placeholder="Minst 6 tecken"
+                placeholder={t('placeholders.newPassword')}
                 {...register('newPassword')}
                 disabled={isLoading}
               />
@@ -159,13 +160,13 @@ export function PasswordChangeForm({ userEmail }: PasswordChangeFormProps) {
 
           <div className="space-y-2">
             <label htmlFor="confirmPassword" className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Bekräfta nytt lösenord
+              {t('fields.confirmPassword')}
             </label>
             <input
               id="confirmPassword"
               type="password"
               className={inputClasses(!!errors.confirmPassword)}
-              placeholder="Ange lösenordet igen"
+              placeholder={t('placeholders.confirmPassword')}
               {...register('confirmPassword')}
               disabled={isLoading}
             />
@@ -183,10 +184,10 @@ export function PasswordChangeForm({ userEmail }: PasswordChangeFormProps) {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uppdaterar...
+                {t('updatingButton')}
               </>
             ) : (
-              'Byt lösenord'
+              t('submitButton')
             )}
           </Button>
         </form>

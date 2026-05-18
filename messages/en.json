@@ -16000,6 +16000,68 @@
         "info": "You can always generate or modify your program later from your dashboard."
       }
     },
+    "settings": {
+      "profile": {
+        "title": "Profile",
+        "fields": {
+          "name": "Name",
+          "email": "Email"
+        },
+        "emailReadOnlyHint": "Email address cannot be changed",
+        "saveButton": "Save changes",
+        "savingButton": "Saving...",
+        "toasts": {
+          "validation": {
+            "title": "Name is missing",
+            "description": "Enter your name."
+          },
+          "success": {
+            "title": "Saved!",
+            "description": "Your name has been updated."
+          },
+          "error": {
+            "title": "Error",
+            "description": "Failed to update name. Please try again."
+          }
+        }
+      },
+      "password": {
+        "title": "Change password",
+        "fields": {
+          "currentPassword": "Current password",
+          "newPassword": "New password",
+          "confirmPassword": "Confirm new password"
+        },
+        "placeholders": {
+          "newPassword": "At least 6 characters",
+          "confirmPassword": "Re-enter your password"
+        },
+        "updatingButton": "Updating...",
+        "submitButton": "Change password",
+        "validation": {
+          "currentPasswordRequired": "Enter your current password",
+          "newPasswordMinLength": "Password must be at least 6 characters",
+          "passwordsDoNotMatch": "Passwords do not match"
+        },
+        "toasts": {
+          "invalidCurrentPassword": {
+            "title": "Incorrect password",
+            "description": "The current password is incorrect."
+          },
+          "updateFailed": {
+            "title": "Could not update password"
+          },
+          "updated": {
+            "title": "Password updated!",
+            "description": "Your password has been changed."
+          },
+          "catchError": {
+            "title": "An error occurred",
+            "description": "Could not update password. Please try again."
+          }
+        }
+      }
+    },
     "careTeam": {
       "inbox": {
         "title": "Messages",

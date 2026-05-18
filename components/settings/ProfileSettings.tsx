@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslations } from '@/i18n/client'
 import { Loader2 } from 'lucide-react'
 
 interface ProfileSettingsProps {
@@ -12,6 +13,7 @@ interface ProfileSettingsProps {
 }
 
 export function ProfileSettings({ userName, userEmail }: ProfileSettingsProps) {
+  const t = useTranslations('components.settings.profile')
   const { toast } = useToast()
   const [name, setName] = useState(userName)
   const [isLoading, setIsLoading] = useState(false)
@@ -25,8 +27,8 @@ export function ProfileSettings({ userName, userEmail }: ProfileSettingsProps) {
   const handleSave = async () => {
     if (!name.trim()) {
       toast({
-        title: 'Namn saknas',
-        description: 'Ange ditt namn.',
+        title: t('toasts.validation.title'),
+        description: t('toasts.validation.description'),
         variant: 'destructive',
       })
       return
@@ -46,15 +48,15 @@ export function ProfileSettings({ userName, userEmail }: ProfileSettingsProps) {
       }
 
       toast({
-        title: 'Sparad!',
-        description: 'Ditt namn har uppdaterats.',
+        title: t('toasts.success.title'),
+        description: t('toasts.success.description'),
       })
 
       setIsDirty(false)
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte uppdatera namnet. Försök igen.',
+        title: t('toasts.error.title'),
+        description: t('toasts.error.description'),
         variant: 'destructive',
       })
     } finally {
@@ -66,12 +68,12 @@ export function ProfileSettings({ userName, userEmail }: ProfileSettingsProps) {
     <GlassCard>
       <GlassCardContent className="p-6 space-y-4">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-          Profil
+          {t('title')}
         </h3>
 
         <div className="space-y-2">
           <label htmlFor="profileName" className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            Namn
+            {t('fields.name')}
           </label>
           <input
             id="profileName"
@@ -85,7 +87,7 @@ export function ProfileSettings({ userName, userEmail }: ProfileSettingsProps) {
 
         <div className="space-y-2">
           <label htmlFor="profileEmail" className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            E-post
+            {t('fields.email')}
           </label>
           <input
             id="profileEmail"
@@ -95,7 +97,7 @@ export function ProfileSettings({ userName, userEmail }: ProfileSettingsProps) {
             className="flex h-10 w-full rounded-md border border-slate-200 dark:border-white/10 bg-slate-100/50 dark:bg-white/[0.02] px-3 py-2 text-sm text-slate-500 dark:text-slate-400 cursor-not-allowed"
           />
           <p className="text-[10px] text-slate-400 dark:text-slate-500">
-            E-postadressen kan inte ändras
+            {t('emailReadOnlyHint')}
           </p>
         </div>
 
@@ -109,10 +111,10 @@ export function ProfileSettings({ userName, userEmail }: ProfileSettingsProps) {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sparar...
+                {t('savingButton')}
               </>
             ) : (
-              'Spara ändringar'
+              t('saveButton')
             )}
           </Button>
         )}

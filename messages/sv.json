@@ -16000,6 +16000,68 @@
         "info": "Du kan alltid generera eller ändra ditt program senare från din dashboard."
       }
     },
+    "settings": {
+      "profile": {
+        "title": "Profil",
+        "fields": {
+          "name": "Namn",
+          "email": "E-post"
+        },
+        "emailReadOnlyHint": "E-postadressen kan inte ändras",
+        "saveButton": "Spara ändringar",
+        "savingButton": "Sparar...",
+        "toasts": {
+          "validation": {
+            "title": "Namn saknas",
+            "description": "Ange ditt namn."
+          },
+          "success": {
+            "title": "Sparad!",
+            "description": "Ditt namn har uppdaterats."
+          },
+          "error": {
+            "title": "Fel",
+            "description": "Kunde inte uppdatera namnet. Försök igen."
+          }
+        }
+      },
+      "password": {
+        "title": "Byt lösenord",
+        "fields": {
+          "currentPassword": "Nuvarande lösenord",
+          "newPassword": "Nytt lösenord",
+          "confirmPassword": "Bekräfta nytt lösenord"
+        },
+        "placeholders": {
+          "newPassword": "Minst 6 tecken",
+          "confirmPassword": "Ange lösenordet igen"
+        },
+        "updatingButton": "Uppdaterar...",
+        "submitButton": "Byt lösenord",
+        "validation": {
+          "currentPasswordRequired": "Ange ditt nuvarande lösenord",
+          "newPasswordMinLength": "Lösenordet måste vara minst 6 tecken",
+          "passwordsDoNotMatch": "Lösenorden matchar inte"
+        },
+        "toasts": {
+          "invalidCurrentPassword": {
+            "title": "Fel lösenord",
+            "description": "Det nuvarande lösenordet är felaktigt."
+          },
+          "updateFailed": {
+            "title": "Kunde inte uppdatera lösenord"
+          },
+          "updated": {
+            "title": "Lösenord uppdaterat!",
+            "description": "Ditt lösenord har ändrats."
+          },
+          "catchError": {
+            "title": "Ett fel uppstod",
+            "description": "Kunde inte uppdatera lösenordet. Försök igen."
+          }
+        }
+      }
+    },
     "careTeam": {
       "inbox": {
         "title": "Meddelanden",
