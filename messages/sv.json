@@ -1281,6 +1281,37 @@
       "formTitle": "Mätningsdata",
       "formDescription": "Fyll i värden från din bioimpedansvåg. Du behöver inte fylla i alla fält."
     },
+    "wodExecution": {
+      "loading": "Laddar pass...",
+      "error": {
+        "title": "Kunde inte ladda passet",
+        "fallback": "Kunde inte ladda passet",
+        "unknown": "Okänt fel",
+        "backToDashboard": "Tillbaka till dashboard"
+      },
+      "rest": {
+        "title": "Vila",
+        "secondsLeft": "{secondsLeft} sekunder kvar",
+        "skip": "Hoppa över",
+        "completedExercises": "{completedExercises} av {totalExercises} övningar klara"
+      },
+      "completion": {
+        "title": "Bra jobbat!",
+        "allDone": "Du har slutfört alla {totalExercises} övningar",
+        "finish": "Avsluta pass",
+        "repeat": "Gör om detta pass"
+      },
+      "exercise": {
+        "progress": "Övning {currentExerciseIndex} av {totalExercises}",
+        "rest": "Vila: {restSeconds}s",
+        "completed": "Markerad som klar"
+      },
+      "navigation": {
+        "previous": "Föregående",
+        "complete": "Klar",
+        "next": "Nästa"
+      }
+    },
     "settingsNutrition": {
       "title": "Kost & Näring",
       "description": "Anpassa dina kostpreferenser och mål",

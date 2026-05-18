@@ -1281,6 +1281,37 @@
       "formTitle": "Measurement data",
       "formDescription": "Fill in values from your bioimpedance scale. You do not need to fill in every field."
     },
+    "wodExecution": {
+      "loading": "Loading workout...",
+      "error": {
+        "title": "Could not load workout",
+        "fallback": "Failed to load workout",
+        "unknown": "Unknown error",
+        "backToDashboard": "Back to dashboard"
+      },
+      "rest": {
+        "title": "Rest",
+        "secondsLeft": "{secondsLeft} seconds left",
+        "skip": "Skip",
+        "completedExercises": "{completedExercises} of {totalExercises} exercises completed"
+      },
+      "completion": {
+        "title": "Great job!",
+        "allDone": "You have completed all {totalExercises} exercises",
+        "finish": "Finish workout",
+        "repeat": "Repeat this workout"
+      },
+      "exercise": {
+        "progress": "Exercise {currentExerciseIndex} of {totalExercises}",
+        "rest": "Rest: {restSeconds}s",
+        "completed": "Marked as completed"
+      },
+      "navigation": {
+        "previous": "Previous",
+        "complete": "Done",
+        "next": "Next"
+      }
+    },
     "settingsNutrition": {
       "title": "Food & Nutrition",
       "description": "Customize your nutrition preferences and goals",

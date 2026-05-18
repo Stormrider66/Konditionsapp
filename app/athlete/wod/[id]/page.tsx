@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
 import type { WODWorkout, WODSection, WODExercise, WODSectionType } from '@/types/wod'
+import { useTranslations } from '@/i18n/client'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -65,6 +66,7 @@ export default function WODExecutionPage({ params }: PageProps) {
   const { id } = use(params)
   const basePath = useBasePath()
   const router = useRouter()
+  const t = useTranslations('athletePages.wodExecution')
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -129,7 +131,7 @@ export default function WODExecutionPage({ params }: PageProps) {
         })
       } catch (err) {
         console.error('Failed to fetch WOD:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load workout')
+        setError(err instanceof Error ? err.message : t('error.fallback'))
       } finally {
         setLoading(false)
       }
@@ -279,7 +281,7 @@ export default function WODExecutionPage({ params }: PageProps) {
       <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-500" />
-          <p className="text-muted-foreground">Laddar pass...</p>
+          <p className="text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
     )
@@ -292,10 +294,10 @@ export default function WODExecutionPage({ params }: PageProps) {
         <GlassCard className="max-w-md w-full">
           <GlassCardContent className="p-6 text-center">
             <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Kunde inte ladda passet</h2>
-            <p className="text-muted-foreground mb-4">{error || 'Okänt fel'}</p>
+            <h2 className="text-xl font-bold mb-2">{t('error.title')}</h2>
+            <p className="text-muted-foreground mb-4">{error || t('error.unknown')}</p>
             <Button onClick={() => router.push(`${basePath}/athlete/dashboard`)}>
-              Tillbaka till dashboard
+              {t('error.backToDashboard')}
             </Button>
           </GlassCardContent>
         </GlassCard>
@@ -308,14 +310,16 @@ export default function WODExecutionPage({ params }: PageProps) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Vila</h2>
+          <h2 className="text-2xl font-bold mb-2">{t('rest.title')}</h2>
           <div className="text-7xl font-bold text-orange-500 mb-4">
             {restTimeLeft}
           </div>
-          <p className="text-muted-foreground mb-8">sekunder kvar</p>
+          <p className="text-muted-foreground mb-8">
+            {t('rest.secondsLeft', { secondsLeft: restTimeLeft })}
+          </p>
           <Button onClick={skipRest} variant="outline" size="lg">
             <SkipForward className="h-4 w-4 mr-2" />
-            Hoppa över
+            {t('rest.skip')}
           </Button>
         </div>
 
@@ -323,7 +327,7 @@ export default function WODExecutionPage({ params }: PageProps) {
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <Progress value={progressPercent} className="h-2" />
           <p className="text-center text-sm text-muted-foreground mt-2">
-            {completedExercises.size} av {totalExercises} övningar klara
+            {t('rest.completedExercises', { completedExercises: completedExercises.size, totalExercises })}
           </p>
         </div>
       </div>
@@ -350,10 +354,10 @@ export default function WODExecutionPage({ params }: PageProps) {
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-4">
         <div className="text-center">
           <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold mb-2">Bra jobbat!</h2>
+          <h2 className="text-3xl font-bold mb-2">{t('completion.title')}</h2>
           <p className="text-xl text-muted-foreground mb-2">{workout.title}</p>
           <p className="text-muted-foreground mb-8">
-            Du har slutfört alla {totalExercises} övningar
+            {t('completion.allDone', { totalExercises })}
           </p>
           <div className="flex flex-col gap-3">
             <Button
@@ -361,7 +365,7 @@ export default function WODExecutionPage({ params }: PageProps) {
               size="lg"
               className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
             >
-              Avsluta pass
+              {t('completion.finish')}
             </Button>
             <Button
               onClick={handleRepeat}
@@ -369,7 +373,7 @@ export default function WODExecutionPage({ params }: PageProps) {
               size="lg"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              Gör om detta pass
+              {t('completion.repeat')}
             </Button>
           </div>
         </div>
@@ -391,7 +395,7 @@ export default function WODExecutionPage({ params }: PageProps) {
         <div className="text-center">
           <p className="text-sm text-muted-foreground">{workout.title}</p>
           <p className="text-xs text-muted-foreground">
-            Övning {currentIndex + 1} av {totalExercises}
+            {t('exercise.progress', { currentExerciseIndex: currentIndex + 1, totalExercises })}
           </p>
         </div>
         <div className="w-9" /> {/* Spacer for alignment */}
@@ -442,7 +446,7 @@ export default function WODExecutionPage({ params }: PageProps) {
           )}
           {currentExercise?.restSeconds && (
             <Badge variant="outline" className="text-sm">
-              Vila: {currentExercise.restSeconds}s
+              {t('exercise.rest', { restSeconds: currentExercise.restSeconds })}
             </Badge>
           )}
         </div>
@@ -462,7 +466,7 @@ export default function WODExecutionPage({ params }: PageProps) {
         {isCompleted && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 mb-4">
             <CheckCircle2 className="h-4 w-4" />
-            <span className="text-sm font-medium">Markerad som klar</span>
+            <span className="text-sm font-medium">{t('exercise.completed')}</span>
           </div>
         )}
       </div>
@@ -478,7 +482,7 @@ export default function WODExecutionPage({ params }: PageProps) {
             className="flex-1"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Föregående
+            {t('navigation.previous')}
           </Button>
 
           {!isCompleted ? (
@@ -488,7 +492,7 @@ export default function WODExecutionPage({ params }: PageProps) {
               className="flex-[2] bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              Klar
+              {t('navigation.complete')}
             </Button>
           ) : (
             <Button
@@ -497,7 +501,7 @@ export default function WODExecutionPage({ params }: PageProps) {
               disabled={currentIndex >= totalExercises - 1}
               className="flex-[2]"
             >
-              Nästa
+              {t('navigation.next')}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           )}
