@@ -170,9 +170,9 @@ function ingredientRowsToRecipeItems(rows: IngredientRow[]) {
   return rows
     .filter((row) => row.name.trim().length > 0 && row.grams > 0)
     .map((row) => ({
-      foodId: row.foodId,
+      foodId: row.foodId ?? undefined,
       name: row.name.trim(),
-      category: row.category,
+      category: row.category ?? undefined,
       grams: row.grams,
       caloriesPer100g: row.caloriesPer100g ?? 0,
       proteinPer100g: row.proteinPer100g ?? 0,

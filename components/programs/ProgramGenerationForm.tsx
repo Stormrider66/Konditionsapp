@@ -42,7 +42,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useTranslations } from '@/i18n/client'
 
-type TranslateFn = (key: string, values?: Record<string, string | number | boolean>) => string
+type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string
 
 const createFormSchema = (t: TranslateFn) =>
   z.object({

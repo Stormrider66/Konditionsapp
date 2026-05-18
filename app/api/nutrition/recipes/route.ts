@@ -4,25 +4,58 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
-const recipeItemSchema = z.object({
-  foodId: z.string().optional(),
+const optionalString = z.preprocess(
+  (value) => (value === null ? undefined : value),
+  z.string().trim().min(1).optional()
+)
+
+const optionalNutrient = (max: number) =>
+  z.preprocess(
+    (value) => (value === null ? undefined : value),
+    z.number().finite().nonnegative().max(max).optional()
+  )
+
+export const recipeItemSchema = z.object({
+  foodId: optionalString,
   name: z.string().trim().min(1).max(120),
-  category: z.string().optional(),
+  category: optionalString,
   grams: z.number().finite().positive().max(10000),
-  caloriesPer100g: z.number().finite().nonnegative().max(2000).optional(),
-  proteinPer100g: z.number().finite().nonnegative().max(100).optional(),
-  carbsPer100g: z.number().finite().nonnegative().max(100).optional(),
-  fatPer100g: z.number().finite().nonnegative().max(100).optional(),
-  fiberPer100g: z.number().finite().nonnegative().max(100).optional(),
+  caloriesPer100g: optionalNutrient(2000),
+  proteinPer100g: optionalNutrient(100),
+  carbsPer100g: optionalNutrient(100),
+  fatPer100g: optionalNutrient(100),
+  fiberPer100g: optionalNutrient(100),
 })
 
-const createRecipeSchema = z.object({
+export const createRecipeSchema = z.object({
   name: z.string().trim().min(2).max(80),
-  description: z.string().trim().max(500).optional(),
+  description: z.preprocess(
+    (value) => (value === null || value === '' ? undefined : value),
+    z.string().trim().max(500).optional()
+  ),
   baseServings: z.number().finite().positive().max(100).default(1),
   source: z.enum(['MANUAL', 'SCAN', 'MEAL_COPY']).default('MANUAL'),
   items: z.array(recipeItemSchema).min(1).max(80),
 })
+
+function recipeValidationMessage(error: z.ZodError) {
+  const issue = error.issues[0]
+  const path = issue?.path.join('.') || ''
+
+  if (path.includes('name')) {
+    return 'Kunde inte spara receptet. Kontrollera receptnamnet.'
+  }
+
+  if (path.includes('items') && path.includes('grams')) {
+    return 'Kunde inte spara receptet. Kontrollera gramangivelserna.'
+  }
+
+  if (path.includes('Per100g')) {
+    return 'Kunde inte spara receptet. Kontrollera näringsvärdena per 100 g.'
+  }
+
+  return 'Kunde inte spara receptet. Kontrollera ingredienserna och försök igen.'
+}
 
 // GET /api/nutrition/recipes - List saved recipe templates for the athlete.
 export async function GET() {
@@ -60,7 +93,11 @@ export async function POST(request: NextRequest) {
     const validation = createRecipeSchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Validation failed', details: validation.error.errors },
+        {
+          success: false,
+          error: recipeValidationMessage(validation.error),
+          details: validation.error.errors,
+        },
         { status: 400 }
       )
     }
