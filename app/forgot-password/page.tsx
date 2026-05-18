@@ -12,6 +12,7 @@ import { useTranslations } from '@/i18n/client'
 
 export default function ForgotPasswordPage() {
   const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
   const forgotPasswordSchema = z.object({
     email: z.string().email(t('invalidEmail')),
   })
@@ -52,7 +53,7 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Trainomics
+            {tCommon('appName')}
           </CardTitle>
           <CardDescription className="text-center">
             {isSubmitted
