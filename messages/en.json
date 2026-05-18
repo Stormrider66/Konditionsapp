@@ -4477,6 +4477,61 @@
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
     },
+    "teamForm": {
+      "title": {
+        "create": "Create new team",
+        "edit": "Edit team"
+      },
+      "fields": {
+        "name": {
+          "label": "Team name *",
+          "placeholder": "E.g. Training Group A"
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Optional description of team"
+        },
+        "organization": {
+          "label": "Organization",
+          "placeholder": "Select organization (optional)...",
+          "noSelection": "No organization"
+        },
+        "sport": {
+          "label": "Sport",
+          "placeholder": "Select sport (optional)...",
+          "noSelection": "No sport selected"
+        }
+      },
+      "sportTypeOptions": {
+        "football": "Football",
+        "iceHockey": "Ice Hockey",
+        "handball": "Handball",
+        "floorball": "Floorball"
+      },
+      "actions": {
+        "save": "Save team",
+        "create": "Create team",
+        "update": "Update team",
+        "saving": "Saving...",
+        "cancel": "Cancel"
+      },
+      "toasts": {
+        "error": {
+          "title": "Error"
+        },
+        "success": {
+          "title": "Success!",
+          "created": "The team has been created.",
+          "updated": "The team has been updated."
+        }
+      },
+      "validation": {
+        "nameRequired": "Team must have a name"
+      },
+      "errors": {
+        "unknown": "Something went wrong"
+      }
+    },
     "lactateScan": {
       "buttonText": "Scan lactate",
       "dialogTitle": "Lactate Reading",

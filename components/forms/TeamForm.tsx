@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslations } from '@/i18n/client'
 import type { Team } from '@/types'
 
 interface Organization {
@@ -27,15 +28,14 @@ interface TeamFormProps {
   onCancel?: () => void
 }
 
-// Sport type options
-const sportTypeOptions = [
-  { value: 'TEAM_FOOTBALL', label: 'Fotboll' },
-  { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey' },
-  { value: 'TEAM_HANDBALL', label: 'Handboll' },
-  { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
-]
-
 export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormProps) {
+  const t = useTranslations('components.teamForm')
+  const sportTypeOptions = [
+    { value: 'TEAM_FOOTBALL', label: t('sportTypeOptions.football') },
+    { value: 'TEAM_ICE_HOCKEY', label: t('sportTypeOptions.iceHockey') },
+    { value: 'TEAM_HANDBALL', label: t('sportTypeOptions.handball') },
+    { value: 'TEAM_FLOORBALL', label: t('sportTypeOptions.floorball') },
+  ]
   const [name, setName] = useState(team?.name || '')
   const [description, setDescription] = useState(team?.description || '')
   const [organizationId, setOrganizationId] = useState<string>(
@@ -73,8 +73,8 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
 
     if (!name.trim()) {
       toast({
-        title: 'Fel',
-        description: 'Laget måste ha ett namn',
+        title: t('toasts.error.title'),
+        description: t('validation.nameRequired'),
         variant: 'destructive',
       })
       return
@@ -103,12 +103,12 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || 'Något gick fel')
+        throw new Error(result.error || t('errors.unknown'))
       }
 
       toast({
-        title: 'Framgång!',
-        description: team ? 'Laget har uppdaterats' : 'Laget har skapats',
+        title: t('toasts.success.title'),
+        description: team ? t('toasts.success.updated') : t('toasts.success.created'),
       })
 
       if (onSuccess) {
@@ -116,8 +116,8 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
       }
     } catch (error) {
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Något gick fel',
+        title: t('toasts.error.title'),
+        description: error instanceof Error ? error.message : t('errors.unknown'),
         variant: 'destructive',
       })
     } finally {
@@ -128,28 +128,28 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{team ? 'Redigera lag' : 'Skapa nytt lag'}</CardTitle>
+        <CardTitle>{team ? t('title.edit') : t('title.create')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Lagnamn *</Label>
+            <Label htmlFor="name">{t('fields.name.label')}</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="T.ex. Träningsgrupp A"
+              placeholder={t('fields.name.placeholder')}
               disabled={isLoading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Beskrivning</Label>
+            <Label htmlFor="description">{t('fields.description.label')}</Label>
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Valfri beskrivning av laget"
+              placeholder={t('fields.description.placeholder')}
               rows={3}
               disabled={isLoading}
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -157,17 +157,17 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="organization">Organisation</Label>
+            <Label htmlFor="organization">{t('fields.organization.label')}</Label>
             <Select
               value={organizationId}
               onValueChange={setOrganizationId}
               disabled={isLoading || loadingOrgs}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj organisation (valfritt)..." />
+                <SelectValue placeholder={t('fields.organization.placeholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Ingen organisation</SelectItem>
+                <SelectItem value="none">{t('fields.organization.noSelection')}</SelectItem>
                 {organizations.map((org) => (
                   <SelectItem key={org.id} value={org.id}>
                     {org.name}
@@ -178,17 +178,17 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="sportType">Sport</Label>
+            <Label htmlFor="sportType">{t('fields.sport.label')}</Label>
             <Select
               value={sportType}
               onValueChange={setSportType}
               disabled={isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj sport (valfritt)..." />
+                <SelectValue placeholder={t('fields.sport.placeholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Ingen sport vald</SelectItem>
+                <SelectItem value="none">{t('fields.sport.noSelection')}</SelectItem>
                 {sportTypeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -200,11 +200,15 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
 
           <div className="flex gap-2">
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Sparar...' : team ? 'Uppdatera lag' : 'Skapa lag'}
+              {isLoading
+                ? t('actions.saving')
+                : team
+                  ? t('actions.update')
+                  : t('actions.create')}
             </Button>
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-                Avbryt
+                {t('actions.cancel')}
               </Button>
             )}
           </div>

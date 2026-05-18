@@ -4477,6 +4477,61 @@
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
     },
+    "teamForm": {
+      "title": {
+        "create": "Skapa nytt lag",
+        "edit": "Redigera lag"
+      },
+      "fields": {
+        "name": {
+          "label": "Lagnamn *",
+          "placeholder": "T.ex. Träningsgrupp A"
+        },
+        "description": {
+          "label": "Beskrivning",
+          "placeholder": "Valfri beskrivning av laget"
+        },
+        "organization": {
+          "label": "Organisation",
+          "placeholder": "Välj organisation (valfritt)...",
+          "noSelection": "Ingen organisation"
+        },
+        "sport": {
+          "label": "Sport",
+          "placeholder": "Välj sport (valfritt)...",
+          "noSelection": "Ingen sport vald"
+        }
+      },
+      "sportTypeOptions": {
+        "football": "Fotboll",
+        "iceHockey": "Ishockey",
+        "handball": "Handboll",
+        "floorball": "Innebandy"
+      },
+      "actions": {
+        "save": "Spara lag",
+        "create": "Skapa lag",
+        "update": "Uppdatera lag",
+        "saving": "Sparar...",
+        "cancel": "Avbryt"
+      },
+      "toasts": {
+        "error": {
+          "title": "Fel"
+        },
+        "success": {
+          "title": "Framgång!",
+          "created": "Laget har skapats.",
+          "updated": "Laget har uppdaterats."
+        }
+      },
+      "validation": {
+        "nameRequired": "Laget måste ha ett namn"
+      },
+      "errors": {
+        "unknown": "Något gick fel"
+      }
+    },
     "lactateScan": {
       "buttonText": "Skanna laktat",
       "dialogTitle": "Laktatavläsning",
