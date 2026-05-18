@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 interface BusinessEntry {
   membershipId: string
@@ -25,24 +26,27 @@ interface BusinessEntry {
   type: string
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  OWNER: 'Ägare',
-  ADMIN: 'Sportchef',
-  COACH: 'Huvudtränare',
-  PHYSICAL_TRAINER: 'Fystränare',
-  ASSISTANT_COACH: 'Ass. tränare',
-  PHYSIO: 'Fysioterapeut',
-  MEMBER: 'Medlem',
-}
-
-function labelFor(role: string, businessType: string): string {
-  if (role === 'ADMIN' && businessType !== 'CLUB') return 'Administratör'
-  return ROLE_LABELS[role] || role
-}
-
 export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
   const [businesses, setBusinesses] = useState<BusinessEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const tRoles = useTranslations('components.businessCoachHeader')
+  const tOrgSwitcher = useTranslations('components.orgSwitcher')
+
+  const roleLabelFor = (role: string, businessType: string): string => {
+    if (role === 'OWNER') return tRoles('roles.owner')
+    if (role === 'ADMIN') {
+      return businessType !== 'CLUB'
+        ? tOrgSwitcher('roles.adminNonClub')
+        : tRoles('roles.admin')
+    }
+    if (role === 'COACH') return tRoles('roles.coach')
+    if (role === 'PHYSICAL_TRAINER') return tRoles('roles.physicalTrainer')
+    if (role === 'ASSISTANT_COACH') return tRoles('roles.assistantCoach')
+    if (role === 'PHYSIO') return tRoles('roles.physio')
+    if (role === 'MEMBER') return tRoles('roles.member')
+
+    return role
+  }
 
   useEffect(() => {
     const fetchBusinesses = async () => {
@@ -69,7 +73,7 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
   const current = businesses.find((b) => b.slug === currentSlug)
   // Fallback: if slug doesn't match any business (stale URL), use first business
   const displayBiz = current || businesses[0]
-  const currentRole = labelFor(displayBiz.role, displayBiz.type)
+  const currentRole = roleLabelFor(displayBiz.role, displayBiz.type)
 
   // Organisation switches should land on that organisation's stable home.
   // Preserving deep paths like team/client ids can point to records that only
@@ -84,7 +88,7 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
         <button
           className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-white text-slate-400 max-w-[180px]"
           title={`${displayBiz.name} — ${currentRole}`}
-          aria-label={`Byt organisation, nuvarande: ${displayBiz.name}`}
+          aria-label={tOrgSwitcher('a11y.switchOrganization', { org: displayBiz.name })}
         >
           <Building2 className="w-4 h-4 shrink-0 opacity-50" />
           <span className="truncate hidden sm:inline">
@@ -98,11 +102,11 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
         align="start"
       >
         <DropdownMenuLabel className="text-xs text-slate-500 uppercase tracking-wider">
-          Mina organisationer
+          {tOrgSwitcher('labels.title')}
         </DropdownMenuLabel>
         {businesses.map((biz) => {
           const isActive = biz.slug === currentSlug
-          const roleLabel = labelFor(biz.role, biz.type)
+          const roleLabel = roleLabelFor(biz.role, biz.type)
           return (
             <DropdownMenuItem
               key={biz.businessId}
@@ -149,8 +153,8 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
               <CalendarDays className="w-4 h-4 text-white" />
             </div>
             <div>
-              <span className="text-sm font-medium">Samlad kalender</span>
-              <p className="text-xs text-slate-500">Alla organisationer</p>
+              <span className="text-sm font-medium">{tOrgSwitcher('calendar.title')}</span>
+              <p className="text-xs text-slate-500">{tOrgSwitcher('calendar.subtitle')}</p>
             </div>
           </Link>
         </DropdownMenuItem>

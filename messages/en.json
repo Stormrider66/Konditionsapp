@@ -3027,7 +3027,9 @@
       "noCreditCard": "No credit card required to start."
     },
     "footer": {
-      "copyright": "All rights reserved."
+      "copyright": "All rights reserved.",
+      "privacy": "Privacy policy",
+      "terms": "Terms of service"
     },
     "segments": {
       "hub": {
@@ -5100,6 +5102,7 @@
     },
     "physioHeader": {
       "fallbackName": "Physio",
+      "portal": "Portal",
       "groups": {
         "tools": "Tools",
         "more": "More"
@@ -10440,6 +10443,24 @@
       },
       "watchBrands": {
         "other": "Other"
+      }
+    },
+    "userNav": {
+      "fallbackName": "User"
+    },
+    "orgSwitcher": {
+      "labels": {
+        "title": "My organizations"
+      },
+      "calendar": {
+        "title": "Unified calendar",
+        "subtitle": "All organizations"
+      },
+      "roles": {
+        "adminNonClub": "Administrator"
+      },
+      "a11y": {
+        "switchOrganization": "Switch organization, current: {org}"
       }
     },
     "aiProgramOfferStep": {

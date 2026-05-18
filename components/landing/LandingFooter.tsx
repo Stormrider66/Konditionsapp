@@ -30,10 +30,10 @@ export function LandingFooter() {
             {t('nav.pricing')}
           </Link>
           <Link href="/privacy" className="hover:text-foreground transition-colors">
-            Privacy Policy
+            {t('footer.privacy')}
           </Link>
           <Link href="/terms" className="hover:text-foreground transition-colors">
-            Terms of Service
+            {t('footer.terms')}
           </Link>
         </nav>
         <p className="text-center text-muted-foreground text-sm">

@@ -126,7 +126,7 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
                             {businessName ? businessName.charAt(0).toUpperCase() : <Stethoscope className="w-4 h-4" />}
                         </div>
                         <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
-                            {businessName || 'Physio'}<span className="text-emerald-500"> Portal</span>
+                            {businessName || tPhysioHeader('fallbackName')}<span className="text-emerald-500"> {tPhysioHeader('portal')}</span>
                         </span>
                     </Link>
                 </div>

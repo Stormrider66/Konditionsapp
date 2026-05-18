@@ -25,6 +25,7 @@ interface UserNavProps {
 
 export function UserNav({ user }: UserNavProps) {
   const t = useTranslations('common')
+  const tUserNav = useTranslations('components.userNav')
   const tAuth = useTranslations('auth')
   const router = useRouter()
   const pathname = usePathname()
@@ -77,7 +78,7 @@ export function UserNav({ user }: UserNavProps) {
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none truncate">
-              {user.user_metadata?.name || 'User'}
+              {user.user_metadata?.name || tUserNav('fallbackName')}
             </p>
             <p className="text-xs leading-none text-muted-foreground truncate">
               {user.email}

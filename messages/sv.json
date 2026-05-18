@@ -2966,7 +2966,9 @@
       "noCreditCard": "Inga kreditkortskrav för att starta."
     },
     "footer": {
-      "copyright": "Alla rättigheter förbehållna."
+      "copyright": "Alla rättigheter förbehållna.",
+      "privacy": "Integritetspolicy",
+      "terms": "Användarvillkor"
     },
     "segments": {
       "hub": {
@@ -5100,6 +5102,7 @@
     },
     "physioHeader": {
       "fallbackName": "Fysio",
+      "portal": "Portal",
       "groups": {
         "tools": "Verktyg",
         "more": "Mer"
@@ -10440,6 +10443,24 @@
       },
       "watchBrands": {
         "other": "Annan"
+      }
+    },
+    "userNav": {
+      "fallbackName": "Användare"
+    },
+    "orgSwitcher": {
+      "labels": {
+        "title": "Mina organisationer"
+      },
+      "calendar": {
+        "title": "Samlad kalender",
+        "subtitle": "Alla organisationer"
+      },
+      "roles": {
+        "adminNonClub": "Administratör"
+      },
+      "a11y": {
+        "switchOrganization": "Byt organisation, nuvarande: {org}"
       }
     },
     "aiProgramOfferStep": {
