@@ -4532,6 +4532,49 @@
         "unknown": "Något gick fel"
       }
     },
+    "smartTestImportDialog": {
+      "title": "Smart testimport",
+      "description": "Importera testdata från foto, dokument eller ljudinspelning",
+      "tabs": {
+        "photo": "Foto",
+        "document": "Dokument",
+        "audio": "Ljud"
+      },
+      "photo": {
+        "primaryAction": "Fotografera eller välj bilder",
+        "multiSelectHint": "Välj flera bilder för att kombinera protokoll + spirometri",
+        "multiImageSummary": "{count} bilder — data sammanfogas automatiskt",
+        "imageAlt": "Bild {index}"
+      },
+      "document": {
+        "selectLabel": "Välj PDF eller CSV",
+        "supportedFormats": "Cosmed-rapport, Kvark-export, CSV-fil"
+      },
+      "audio": {
+        "recordingLabel": "Inspelning ({duration})",
+        "recordingInProgress": "Spelar in {duration}",
+        "stopHint": "Tryck för att stoppa (max 60s)",
+        "transcribeLabel": "Diktera testresultat",
+        "transcribeHint": "\"Steg 1, hastighet 8, puls 120, laktat 1.2\"",
+        "or": "eller",
+        "uploadFile": "Ladda upp ljudfil",
+        "unsupported": "Ljudinspelning stöds inte i denna webbläsare. Ladda upp en ljudfil istället."
+      },
+      "processing": "Extraherar testdata med AI...",
+      "result": {
+        "stagesExtracted": "{count} steg extraherade",
+        "confidence": "{confidence}% säkerhet",
+        "equipmentLabel": "Utrustning",
+        "apply": "Fyll i formuläret"
+      },
+      "errors": {
+        "tooLarge": "Bilderna är för stora. Försök med färre eller mindre bilder.",
+        "parseError": "Serverfel ({status}). Försök igen.",
+        "processingFailed": "Kunde inte bearbeta filerna",
+        "noDataExtracted": "Ingen data kunde extraheras",
+        "network": "Kunde inte ansluta till servern."
+      }
+    },
     "lactateScan": {
       "buttonText": "Skanna laktat",
       "dialogTitle": "Laktatavläsning",

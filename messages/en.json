@@ -4532,6 +4532,49 @@
         "unknown": "Something went wrong"
       }
     },
+    "smartTestImportDialog": {
+      "title": "Smart Test Import",
+      "description": "Import test data from photos, documents, or audio recording",
+      "tabs": {
+        "photo": "Photo",
+        "document": "Document",
+        "audio": "Audio"
+      },
+      "photo": {
+        "primaryAction": "Take photos or choose images",
+        "multiSelectHint": "Select multiple photos to combine protocol + spirometry",
+        "multiImageSummary": "{count} images — protocol and spirometry data are merged automatically",
+        "imageAlt": "Image {index}"
+      },
+      "document": {
+        "selectLabel": "Select PDF or CSV",
+        "supportedFormats": "Cosmed report, Kvark export, CSV file"
+      },
+      "audio": {
+        "recordingLabel": "Recording ({duration})",
+        "recordingInProgress": "Recording {duration}",
+        "stopHint": "Tap to stop (max 60s)",
+        "transcribeLabel": "Dictate test results",
+        "transcribeHint": "\"Step 1, speed 8, heart rate 120, lactate 1.2\"",
+        "or": "or",
+        "uploadFile": "Upload audio file",
+        "unsupported": "Audio recording is not supported in this browser. Upload an audio file instead."
+      },
+      "processing": "Extracting test data with AI...",
+      "result": {
+        "stagesExtracted": "{count} stages extracted",
+        "confidence": "{confidence}% confidence",
+        "equipmentLabel": "Equipment",
+        "apply": "Populate form"
+      },
+      "errors": {
+        "tooLarge": "The images are too large. Try fewer or smaller images.",
+        "parseError": "Server error ({status}). Please try again.",
+        "processingFailed": "Could not process files",
+        "noDataExtracted": "No data could be extracted",
+        "network": "Could not connect to the server."
+      }
+    },
     "lactateScan": {
       "buttonText": "Scan lactate",
       "dialogTitle": "Lactate Reading",

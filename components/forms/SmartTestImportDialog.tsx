@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import { Camera, FileText, Mic, Loader2, Upload, CheckCircle, AlertTriangle, Squ
 import { useAudioRecorder } from '@/hooks/use-audio-recorder'
 import type { TestType } from '@/types'
 import type { TestImportResult } from '@/lib/validations/test-import-schema'
+import { useTranslations } from '@/i18n/client'
 
 interface SmartTestImportDialogProps {
   open: boolean
@@ -31,6 +33,7 @@ export function SmartTestImportDialog({
   clientId,
   onImport,
 }: SmartTestImportDialogProps) {
+  const t = useTranslations('components.smartTestImportDialog')
   const [isProcessing, setIsProcessing] = useState(false)
   const [result, setResult] = useState<TestImportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -128,24 +131,24 @@ export function SmartTestImportDialog({
         } catch {
           throw new Error(
             response.status === 413
-              ? 'Bilderna är för stora. Försök med färre eller mindre bilder.'
-              : `Serverfel (${response.status}). Försök igen.`
+              ? t('errors.tooLarge')
+              : t('errors.parseError', { status: response.status })
           )
         }
 
-        if (!response.ok) throw new Error(data.error || 'Kunde inte bearbeta filerna')
+        if (!response.ok) throw new Error(data.error || t('errors.processingFailed'))
         if (data.success && data.result) {
           setResult(data.result as TestImportResult)
         } else {
-          throw new Error(data.error || 'Ingen data kunde extraheras')
+          throw new Error(data.error || t('errors.noDataExtracted'))
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Kunde inte ansluta till servern.')
+        setError(err instanceof Error ? err.message : t('errors.network'))
       } finally {
         setIsProcessing(false)
       }
     },
-    [testType, clientId, resizeImageIfNeeded]
+    [testType, clientId, resizeImageIfNeeded, t]
   )
 
   const handleImageSelect = useCallback(
@@ -154,7 +157,7 @@ export function SmartTestImportDialog({
       if (files.length === 0) return
       resetState()
       setPreviewUrls(files.map(f => URL.createObjectURL(f)))
-      processFiles(files)
+      void processFiles(files)
       e.target.value = ''
     },
     [processFiles, resetState]
@@ -166,7 +169,7 @@ export function SmartTestImportDialog({
       if (!file) return
       resetState()
       setFileName(file.name)
-      processFiles([file])
+      void processFiles([file])
       e.target.value = ''
     },
     [processFiles, resetState]
@@ -178,7 +181,7 @@ export function SmartTestImportDialog({
       if (!file) return
       resetState()
       setFileName(file.name)
-      processFiles([file])
+      void processFiles([file])
       e.target.value = ''
     },
     [processFiles, resetState]
@@ -189,12 +192,12 @@ export function SmartTestImportDialog({
     try {
       const blob = await recorder.startRecording()
       const file = new File([blob], 'recording.webm', { type: blob.type })
-      setFileName(`Inspelning (${formatDuration(recorder.duration)}s)`)
-      processFiles([file])
+      setFileName(t('audio.recordingLabel', { duration: formatDuration(recorder.duration) }))
+      void processFiles([file])
     } catch {
       // Error handled by recorder hook
     }
-  }, [recorder, processFiles, resetState])
+  }, [recorder, processFiles, resetState, t])
 
   const handleApply = useCallback(() => {
     if (result) {
@@ -214,9 +217,9 @@ export function SmartTestImportDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Smart Testimport</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Importera testdata från foto, dokument eller ljudinspelning
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -224,15 +227,15 @@ export function SmartTestImportDialog({
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="photo" disabled={isProcessing}>
               <Camera className="w-4 h-4 mr-1.5" />
-              Foto
+              {t('tabs.photo')}
             </TabsTrigger>
             <TabsTrigger value="document" disabled={isProcessing}>
               <FileText className="w-4 h-4 mr-1.5" />
-              Dokument
+              {t('tabs.document')}
             </TabsTrigger>
             <TabsTrigger value="audio" disabled={isProcessing}>
               <Mic className="w-4 h-4 mr-1.5" />
-              Ljud
+              {t('tabs.audio')}
             </TabsTrigger>
           </TabsList>
 
@@ -251,14 +254,14 @@ export function SmartTestImportDialog({
               className="w-full h-24 border-dashed"
               onClick={() => imageInputRef.current?.click()}
               disabled={isProcessing}
-            >
-              <div className="flex flex-col items-center gap-1.5">
-                <Camera className="w-6 h-6 text-muted-foreground" />
+              >
+                <div className="flex flex-col items-center gap-1.5">
+                  <Camera className="w-6 h-6 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Fotografera eller välj bilder
+                  {t('photo.primaryAction')}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Välj flera bilder för att kombinera protokoll + spirometri
+                  {t('photo.multiSelectHint')}
                 </span>
               </div>
             </Button>
@@ -268,7 +271,7 @@ export function SmartTestImportDialog({
                   <div key={i} className="relative h-28 rounded border overflow-hidden">
                     <Image
                       src={url}
-                      alt={`Bild ${i + 1}`}
+                      alt={t('photo.imageAlt', { index: i + 1 })}
                       fill
                       unoptimized
                       className="object-contain"
@@ -278,7 +281,9 @@ export function SmartTestImportDialog({
               </div>
             )}
             {previewUrls.length > 1 && (
-              <p className="text-xs text-muted-foreground">{previewUrls.length} bilder — data sammanfogas automatiskt</p>
+              <p className="text-xs text-muted-foreground">
+                {t('photo.multiImageSummary', { count: previewUrls.length })}
+              </p>
             )}
           </TabsContent>
 
@@ -300,10 +305,10 @@ export function SmartTestImportDialog({
               <div className="flex flex-col items-center gap-1.5">
                 <Upload className="w-6 h-6 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Välj PDF eller CSV
+                  {t('document.selectLabel')}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Cosmed-rapport, Kvark-export, CSV-fil
+                  {t('document.supportedFormats')}
                 </span>
               </div>
             </Button>
@@ -331,20 +336,20 @@ export function SmartTestImportDialog({
                       <>
                         <Square className="w-6 h-6" />
                         <span className="text-sm">
-                          Spelar in... {formatDuration(recorder.duration)}
+                          {t('audio.recordingInProgress', { duration: formatDuration(recorder.duration) })}
                         </span>
                         <span className="text-xs opacity-80">
-                          Tryck för att stoppa (max 60s)
+                          {t('audio.stopHint')}
                         </span>
                       </>
                     ) : (
                       <>
                         <Mic className="w-6 h-6 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
-                          Diktera testresultat
+                          {t('audio.transcribeLabel')}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          &quot;Steg 1, hastighet 8, puls 120, laktat 1.2&quot;
+                          {t('audio.transcribeHint')}
                         </span>
                       </>
                     )}
@@ -357,7 +362,7 @@ export function SmartTestImportDialog({
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-background px-2 text-muted-foreground">
-                      eller
+                      {t('audio.or')}
                     </span>
                   </div>
                 </div>
@@ -377,14 +382,13 @@ export function SmartTestImportDialog({
                   disabled={isProcessing || recorder.isRecording}
                 >
                   <Upload className="w-4 h-4 mr-1.5" />
-                  Ladda upp ljudfil
+                  {t('audio.uploadFile')}
                 </Button>
               </div>
             ) : (
               <Alert>
                 <AlertDescription>
-                  Ljudinspelning stöds inte i denna webbläsare. Ladda upp en
-                  ljudfil istället.
+                  {t('audio.unsupported')}
                 </AlertDescription>
               </Alert>
             )}
@@ -399,7 +403,7 @@ export function SmartTestImportDialog({
           <div className="flex items-center justify-center gap-2 py-4">
             <Loader2 className="w-5 h-5 animate-spin text-primary" />
             <span className="text-sm text-muted-foreground">
-              Extraherar testdata med AI...
+              {t('processing')}
             </span>
           </div>
         )}
@@ -419,17 +423,17 @@ export function SmartTestImportDialog({
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600" />
                 <span className="font-medium text-sm">
-                  {result.stages.length} steg extraherade
+                  {t('result.stagesExtracted', { count: result.stages.length })}
                 </span>
               </div>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${confidenceColor}`}>
-                {Math.round(result.confidence * 100)}% säkerhet
+                {t('result.confidence', { confidence: Math.round(result.confidence * 100) })}
               </span>
             </div>
 
             {result.detectedEquipment && (
               <p className="text-xs text-muted-foreground">
-                Utrustning: {result.detectedEquipment}
+                {t('result.equipmentLabel')}: {result.detectedEquipment}
               </p>
             )}
 
@@ -451,7 +455,7 @@ export function SmartTestImportDialog({
             )}
 
             <Button onClick={handleApply} className="w-full">
-              Fyll i formuläret
+              {t('result.apply')}
             </Button>
           </div>
         )}
@@ -465,4 +469,3 @@ function formatDuration(seconds: number): string {
   const s = seconds % 60
   return `${m}:${s.toString().padStart(2, '0')}`
 }
-import Image from 'next/image'
