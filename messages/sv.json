@@ -16060,6 +16060,52 @@
             "description": "Kunde inte uppdatera lösenordet. Försök igen."
           }
         }
+      },
+      "coach": {
+        "header": {
+          "title": "Inställningar",
+          "subtitle": "Coach Preferenser"
+        },
+        "sections": {
+          "loggedInAs": "Inloggad som",
+          "profile": "Profil",
+          "password": "Lösenord",
+          "subscription": "Prenumeration",
+          "dashboard": "Dashboard",
+          "appearance": "Utseende",
+          "ai": "AI Inställningar",
+          "integrations": "Integrationer",
+          "calendarSharing": "Kalenderdelning"
+        },
+        "subscription": {
+          "title": "Prenumeration",
+          "description": "Hantera din plan och betalning"
+        },
+        "dashboard": {
+          "title": "Anpassa min dashboard",
+          "description": "Välj vilka widgets du vill se och i vilken ordning"
+        },
+        "athleteDashboards": {
+          "title": "Atleternas dashboards",
+          "description": "Sätt mallar för verksamhet, lag eller individ"
+        },
+        "aiConfig": {
+          "title": "AI Modell & Konfiguration",
+          "description": "Hantera AI-modeller och system promptar"
+        },
+        "aiCosts": {
+          "title": "AI-kostnader",
+          "description": "Se kostnad per funktion och atlet"
+        },
+        "integrations": {
+          "calendar": {
+            "title": "Kalendersynk"
+          },
+          "platforms": {
+            "title": "Gymplattformar",
+            "description": "Zoezi, Wondr, Boka Direkt, MindBody"
+          }
+        }
       }
     },
     "careTeam": {

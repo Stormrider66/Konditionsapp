@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard, LayoutDashboard, CalendarDays, Plug, Building2, Users } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, ChevronRight, DollarSign, CreditCard, LayoutDashboard, CalendarDays, Plug, Users } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -10,6 +10,7 @@ import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { DashboardModeSelector } from '@/components/coach/settings/DashboardModeSelector'
 import { CalendarSharingSettings } from '@/components/coach/settings/CalendarSharingSettings'
+import { useTranslations } from '@/i18n/client'
 interface CoachSettingsClientProps {
     userEmail: string
     businessSlug?: string
@@ -18,6 +19,7 @@ interface CoachSettingsClientProps {
 }
 
 export function CoachSettingsClient({ userEmail, businessSlug, userName = '', businessId }: CoachSettingsClientProps) {
+    const t = useTranslations('components.settings.coach')
     const displayName = userName || userEmail || 'Coach'
     const coachHref = (path: string) => (
         businessSlug ? `/${businessSlug}/coach${path}` : '/login'
@@ -40,8 +42,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                             <Settings className="h-5 w-5 text-orange-600 dark:text-orange-400 transition-colors" />
                         </div>
                         <div>
-                            <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">Inställningar</h1>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">Coach Preferenser</p>
+                            <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">{t('header.title')}</h1>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">{t('header.subtitle')}</p>
                         </div>
                     </div>
                 </div>
@@ -52,7 +54,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                 {/* Coach Info */}
                 <GlassCard>
                     <GlassCardContent className="p-6">
-                        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">Inloggad som</h2>
+                        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">{t('sections.loggedInAs')}</h2>
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-xl font-black italic text-slate-700 dark:text-white transition-all">
                                 {displayName.charAt(0).toUpperCase()}
@@ -70,7 +72,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 px-2">
                             <div className="w-1.5 h-4 bg-slate-500 rounded-full" />
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Profil</h3>
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.profile')}</h3>
                         </div>
                         <ProfileSettings userName={displayName} userEmail={userEmail} />
                     </div>
@@ -81,7 +83,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 px-2">
                             <div className="w-1.5 h-4 bg-red-500 rounded-full" />
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Lösenord</h3>
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.password')}</h3>
                         </div>
                         <PasswordChangeForm userEmail={userEmail} />
                     </div>
@@ -91,7 +93,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 px-2">
                         <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Prenumeration</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.subscription')}</h3>
                     </div>
                     <Link href={coachHref('/subscription')}>
                         <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
@@ -101,8 +103,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">Prenumeration</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Hantera din plan och betalning</p>
+                                        <p className="font-semibold text-slate-900 dark:text-white">{t('subscription.title')}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('subscription.description')}</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -115,7 +117,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 px-2">
                         <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Dashboard</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.dashboard')}</h3>
                     </div>
                     <DashboardModeSelector />
                     <Link href={coachHref('/settings/dashboard')}>
@@ -126,8 +128,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <LayoutDashboard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">Anpassa min dashboard</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Välj vilka widgets du vill se och i vilken ordning</p>
+                                        <p className="font-semibold text-slate-900 dark:text-white">{t('dashboard.title')}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.description')}</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -142,8 +144,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <Users className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">Atleternas dashboards</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Sätt mallar för verksamhet, lag eller individ</p>
+                                        <p className="font-semibold text-slate-900 dark:text-white">{t('athleteDashboards.title')}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('athleteDashboards.description')}</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -156,7 +158,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 px-2">
                         <div className="w-1.5 h-4 bg-orange-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Utseende</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.appearance')}</h3>
                     </div>
                     <ThemeSelector variant="glass" />
                 </div>
@@ -165,7 +167,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 px-2">
                         <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI Inställningar</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.ai')}</h3>
                     </div>
                     <Link href={coachHref('/settings/ai')}>
                         <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
@@ -175,8 +177,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">AI Modell & Konfiguration</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Hantera AI-modeller och system promptar</p>
+                                        <p className="font-semibold text-slate-900 dark:text-white">{t('aiConfig.title')}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('aiConfig.description')}</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -191,8 +193,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">AI-kostnader</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Se kostnad per funktion och atlet</p>
+                                        <p className="font-semibold text-slate-900 dark:text-white">{t('aiCosts.title')}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('aiCosts.description')}</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -205,7 +207,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 px-2">
                         <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Integrationer</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.integrations')}</h3>
                     </div>
                     <Link href={coachHref('/settings/calendars')}>
                         <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
@@ -215,7 +217,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <CalendarDays className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">Kalendersynk</p>
+                                        <p className="font-semibold text-slate-900 dark:text-white">{t('integrations.calendar.title')}</p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">Google, Outlook, Apple, iCal</p>
                                     </div>
                                 </div>
@@ -231,8 +233,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <Plug className="h-5 w-5 text-teal-600 dark:text-teal-400" />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">Gymplattformar</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Zoezi, Wondr, Boka Direkt, MindBody</p>
+                                        <p className="font-semibold text-slate-900 dark:text-white">{t('integrations.platforms.title')}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('integrations.platforms.description')}</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
@@ -246,7 +248,7 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 px-2">
                             <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Kalenderdelning</h3>
+                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.calendarSharing')}</h3>
                         </div>
                         <CalendarSharingSettings businessId={businessId} />
                     </div>

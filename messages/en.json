@@ -16060,6 +16060,52 @@
             "description": "Could not update password. Please try again."
           }
         }
+      },
+      "coach": {
+        "header": {
+          "title": "Settings",
+          "subtitle": "Coach Preferences"
+        },
+        "sections": {
+          "loggedInAs": "Signed in as",
+          "profile": "Profile",
+          "password": "Password",
+          "subscription": "Subscription",
+          "dashboard": "Dashboard",
+          "appearance": "Appearance",
+          "ai": "AI Settings",
+          "integrations": "Integrations",
+          "calendarSharing": "Calendar sharing"
+        },
+        "subscription": {
+          "title": "Subscription",
+          "description": "Manage your plan and billing"
+        },
+        "dashboard": {
+          "title": "Customize my dashboard",
+          "description": "Choose which widgets you want to see and in what order"
+        },
+        "athleteDashboards": {
+          "title": "Athlete dashboards",
+          "description": "Set templates for organization, teams, or individuals"
+        },
+        "aiConfig": {
+          "title": "AI model & configuration",
+          "description": "Manage AI models and system prompts"
+        },
+        "aiCosts": {
+          "title": "AI costs",
+          "description": "See cost per feature and athlete"
+        },
+        "integrations": {
+          "calendar": {
+            "title": "Calendar sync"
+          },
+          "platforms": {
+            "title": "Gym platforms",
+            "description": "Zoezi, Wondr, Book Direct, MindBody"
+          }
+        }
       }
     },
     "careTeam": {
