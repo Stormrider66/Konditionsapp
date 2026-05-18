@@ -124,6 +124,13 @@
         "title": "Fitness test report - {clientName}",
         "description": "Your personal fitness test report from Trainomics"
       }
+    },
+    "register": {
+      "partner": {
+        "notFound": "Partner not found",
+        "title": "Sign Up with {businessName} | {appName}",
+        "description": "Join through {businessName} and get exclusive access to professional training tools."
+      }
     }
   },
   "pages": {

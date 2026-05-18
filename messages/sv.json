@@ -124,6 +124,13 @@
         "title": "Konditionstestrapport - {clientName}",
         "description": "Din personliga konditionstestrapport från Trainomics"
       }
+    },
+    "register": {
+      "partner": {
+        "notFound": "Partner hittades inte",
+        "title": "Registrera dig hos {businessName} | {appName}",
+        "description": "Gå med via {businessName} och få exklusiv tillgång till professionella träningsverktyg."
+      }
     }
   },
   "pages": {

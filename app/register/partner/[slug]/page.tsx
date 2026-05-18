@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { PartnerRegistrationClient } from './PartnerRegistrationClient'
+import { getTranslations } from '@/i18n/server'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -9,6 +10,9 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
+  const t = await getTranslations('metadata.register.partner')
+  const tCommon = await getTranslations('common')
+  const appName = tCommon('appName')
 
   const business = await prisma.business.findUnique({
     where: { slug, isActive: true },
@@ -16,12 +20,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   })
 
   if (!business) {
-    return { title: 'Partner Not Found' }
+    return { title: t('notFound') }
   }
 
   return {
-    title: `Sign Up with ${business.name} | VO2max App`,
-    description: `Join through ${business.name} and get exclusive access to professional training tools.`
+    title: t('title', { businessName: business.name, appName }),
+    description: t('description', { businessName: business.name }),
   }
 }
 
