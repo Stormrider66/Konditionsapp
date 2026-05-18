@@ -13374,6 +13374,108 @@
         "switchOrganization": "Byt organisation, nuvarande: {org}"
       }
     },
+    "unifiedCalendar": {
+      "actions": {
+        "filter": "Filter",
+        "today": "Idag",
+        "new": "Ny",
+        "cancel": "Avbryt",
+        "create": "Skapa händelse",
+        "saving": "Sparar...",
+        "openInBusinessCalendar": "Öppna i {businessName}s kalender →",
+        "openFilter": "Öppna filtret",
+        "openFilterMore": "för att visa fler."
+      },
+      "eventDialog": {
+        "title": "Ny händelse"
+      },
+      "header": {
+        "title": "Samlad kalender",
+        "organizationCount": "{count, plural, one {# organisation} other {# organisationer}}",
+        "conflictCount": "{count, plural, one {# konflikt} other {# konflikter}}"
+      },
+      "view": {
+        "week": "Vecka",
+        "month": "Månad"
+      },
+      "tabs": {
+        "personal": "Mitt schema",
+        "personalShort": "Mitt",
+        "allTeams": "Alla lag",
+        "allTeamsShort": "Lag",
+        "planning": "Planering",
+        "planningShort": "Plan"
+      },
+      "sidebar": {
+        "organizations": "Organisationer",
+        "eventCount": "{count, plural, one {# händelse} other {# händelser}}"
+      },
+      "a11y": {
+        "showBusiness": "Visa {name}",
+        "hideBusiness": "Dölj {name}",
+        "previous": "Föregående",
+        "today": "Gå till idag",
+        "next": "Nästa",
+        "createEvent": "Skapa händelse {date}"
+      },
+      "conflicts": {
+        "title": "Konflikter ({count})",
+        "collidesWith": "krockar med",
+        "more": "+{count} fler konflikter"
+      },
+      "labels": {
+        "today": "Idag",
+        "noEvents": "Inga händelser",
+        "conflict": "Konflikt"
+      },
+      "roles": {
+        "owner": "Ägare",
+        "admin": "Sportchef",
+        "coach": "Huvudtränare",
+        "physicalTrainer": "Fystränare",
+        "assistantCoach": "Ass. tränare",
+        "physio": "Fysioterapeut",
+        "member": "Medlem"
+      },
+      "event": {
+        "badgeTeam": "Lag",
+        "badgeInterval": "Intervall",
+        "badgeDefault": "Händelse"
+      },
+      "weekdays": {
+        "monday": "Mån",
+        "tuesday": "Tis",
+        "wednesday": "Ons",
+        "thursday": "Tor",
+        "friday": "Fre",
+        "saturday": "Lör",
+        "sunday": "Sön"
+      },
+      "events": {
+        "more": "+{count} fler"
+      },
+      "emptyState": {
+        "title": "Inga händelser",
+        "hiddenOrganizations": "Du har dolt {count, plural, one {# organisation} other {# organisationer}}.",
+        "openFilter": "Öppna filtret",
+        "andShowMore": "för att visa fler.",
+        "noOrganizations": "Du är inte medlem i någon organisation ännu.",
+        "noEventsInRange": "Det finns inga händelser för den valda perioden. Prova att byta vy eller tidsperiod."
+      },
+      "visibility": {
+        "busyOnly": "Upptagen",
+        "busyNotice": "Den här organisationen delar bara tillgänglighet, inte detaljer."
+      },
+      "form": {
+        "title": "Titel",
+        "titlePlaceholder": "Händelsetitel...",
+        "organization": "Organisation",
+        "date": "Datum",
+        "allDay": "Heldag",
+        "start": "Start",
+        "end": "Slut"
+      }
+    },
     "aiProgramOfferStep": {
       "coach": {
         "title": "Du har en coach!",

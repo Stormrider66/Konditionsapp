@@ -13374,6 +13374,108 @@
         "switchOrganization": "Switch organization, current: {org}"
       }
     },
+    "unifiedCalendar": {
+      "actions": {
+        "filter": "Filter",
+        "today": "Today",
+        "new": "New",
+        "cancel": "Cancel",
+        "create": "Create event",
+        "saving": "Saving...",
+        "openInBusinessCalendar": "Open {businessName}'s calendar →",
+        "openFilter": "Open filter",
+        "openFilterMore": "to show more"
+      },
+      "eventDialog": {
+        "title": "New event"
+      },
+      "header": {
+        "title": "Unified calendar",
+        "organizationCount": "{count, plural, one {# organization} other {# organizations}}",
+        "conflictCount": "{count, plural, one {# conflict} other {# conflicts}}"
+      },
+      "view": {
+        "week": "Week",
+        "month": "Month"
+      },
+      "tabs": {
+        "personal": "My Schedule",
+        "personalShort": "Mine",
+        "allTeams": "All teams",
+        "allTeamsShort": "Teams",
+        "planning": "Planning",
+        "planningShort": "Plan"
+      },
+      "sidebar": {
+        "organizations": "Organizations",
+        "eventCount": "{count, plural, one {# event} other {# events}}"
+      },
+      "a11y": {
+        "showBusiness": "Show {name}",
+        "hideBusiness": "Hide {name}",
+        "previous": "Previous",
+        "today": "Go to today",
+        "next": "Next",
+        "createEvent": "Create event on {date}"
+      },
+      "conflicts": {
+        "title": "Conflicts ({count})",
+        "collidesWith": "conflicts with",
+        "more": "+{count} more conflicts"
+      },
+      "labels": {
+        "today": "Today",
+        "noEvents": "No events",
+        "conflict": "Conflict"
+      },
+      "roles": {
+        "owner": "Owner",
+        "admin": "Club admin",
+        "coach": "Head coach",
+        "physicalTrainer": "Strength coach",
+        "assistantCoach": "Asst. coach",
+        "physio": "Physiotherapist",
+        "member": "Member"
+      },
+      "event": {
+        "badgeTeam": "Team",
+        "badgeInterval": "Interval",
+        "badgeDefault": "Event"
+      },
+      "weekdays": {
+        "monday": "Mon",
+        "tuesday": "Tue",
+        "wednesday": "Wed",
+        "thursday": "Thu",
+        "friday": "Fri",
+        "saturday": "Sat",
+        "sunday": "Sun"
+      },
+      "events": {
+        "more": "+{count} more"
+      },
+      "emptyState": {
+        "title": "No events",
+        "hiddenOrganizations": "You have hidden {count, plural, one {# organization} other {# organizations}}.",
+        "openFilter": "Open filter",
+        "andShowMore": "to show more.",
+        "noOrganizations": "You are not a member of any organization yet.",
+        "noEventsInRange": "There are no events for the selected period. Try switching view or date range."
+      },
+      "visibility": {
+        "busyOnly": "Busy",
+        "busyNotice": "This organization only shares availability, not details."
+      },
+      "form": {
+        "title": "Title",
+        "titlePlaceholder": "Event title...",
+        "organization": "Organization",
+        "date": "Date",
+        "allDay": "All-day",
+        "start": "Start",
+        "end": "End"
+      }
+    },
     "aiProgramOfferStep": {
       "coach": {
         "title": "You have a coach!",

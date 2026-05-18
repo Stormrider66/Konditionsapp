@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 import {
   format,
   startOfWeek,
@@ -78,13 +79,13 @@ interface BusinessInfo {
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  OWNER: 'Ägare',
-  ADMIN: 'Sportchef',
-  COACH: 'Huvudtränare',
-  PHYSICAL_TRAINER: 'Fystränare',
-  ASSISTANT_COACH: 'Ass. tränare',
-  PHYSIO: 'Fysioterapeut',
-  MEMBER: 'Medlem',
+  OWNER: 'roles.owner',
+  ADMIN: 'roles.admin',
+  COACH: 'roles.coach',
+  PHYSICAL_TRAINER: 'roles.physicalTrainer',
+  ASSISTANT_COACH: 'roles.assistantCoach',
+  PHYSIO: 'roles.physio',
+  MEMBER: 'roles.member',
 }
 
 const EVENT_ICONS: Record<string, React.ElementType> = {
@@ -107,10 +108,12 @@ const EVENT_ICONS: Record<string, React.ElementType> = {
 
 const PREFS_CACHE_KEY = 'unified-calendar-prefs'
 const PREFS_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const WEEKDAY_LABEL_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
 
 type ViewMode = 'week' | 'month'
 
 export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
+  const t = useTranslations('components.unifiedCalendar')
   const [events, setEvents] = useState<CrossOrgEvent[]>([])
   const [conflicts, setConflicts] = useState<Conflict[]>([])
   const [businesses, setBusinesses] = useState<BusinessInfo[]>([])
@@ -301,6 +304,15 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
     return Icon
   }
 
+  const getRoleLabel = (role: string) => {
+    const roleLabelKey = ROLE_LABELS[role]
+    return roleLabelKey ? t(roleLabelKey) : role
+  }
+
+  const getEventTypeLabel = (type: CrossOrgEvent['type']) => {
+    return type === 'TEAM_EVENT' ? t('event.badgeTeam') : type === 'INTERVAL_SESSION' ? t('event.badgeInterval') : t('event.badgeDefault')
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       {/* Header */}
@@ -312,12 +324,12 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="text-xl font-bold">Samlad Kalender</h1>
+                <h1 className="text-xl font-bold">{t('header.title')}</h1>
                 <p className="text-sm text-slate-400">
-                  {businesses.length} organisationer
+                  {t('header.organizationCount', { count: businesses.length })}
                   {conflicts.length > 0 && (
                     <span className="text-amber-400 ml-2">
-                      — {conflicts.length} konflikter
+                      — {t('header.conflictCount', { count: conflicts.length })}
                     </span>
                   )}
                 </p>
@@ -331,7 +343,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                 className="border-white/10 bg-white/5 hover:bg-white/10 text-slate-300"
               >
                 <Filter className="w-4 h-4 mr-1" />
-                Filter
+                {t('actions.filter')}
               </Button>
               <div className="flex items-center rounded-lg border border-white/10 overflow-hidden">
                 <button
@@ -341,7 +353,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                     viewMode === 'week' ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
                   )}
                 >
-                  Vecka
+                  {t('view.week')}
                 </button>
                 <button
                   onClick={() => setViewMode('month')}
@@ -350,7 +362,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                     viewMode === 'month' ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
                   )}
                 >
-                  Månad
+                  {t('view.month')}
                 </button>
               </div>
             </div>
@@ -361,18 +373,18 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
             <TabsList className="bg-white/5 border border-white/10">
               <TabsTrigger value="PERSONAL" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 gap-1.5">
                 <UserIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Mitt Schema</span>
-                <span className="sm:hidden">Mitt</span>
+                <span className="hidden sm:inline">{t('tabs.personal')}</span>
+                <span className="sm:hidden">{t('tabs.personalShort')}</span>
               </TabsTrigger>
               <TabsTrigger value="ALL_TEAMS" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 gap-1.5">
                 <Users className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Alla Lag</span>
-                <span className="sm:hidden">Lag</span>
+                <span className="hidden sm:inline">{t('tabs.allTeams')}</span>
+                <span className="sm:hidden">{t('tabs.allTeamsShort')}</span>
               </TabsTrigger>
               <TabsTrigger value="PLANNING" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 gap-1.5">
                 <Layers className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Planering</span>
-                <span className="sm:hidden">Plan</span>
+                <span className="hidden sm:inline">{t('tabs.planning')}</span>
+                <span className="sm:hidden">{t('tabs.planningShort')}</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -386,7 +398,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
             <aside className="w-full lg:w-64 shrink-0 space-y-4">
               {/* Org Filter */}
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <h3 className="text-sm font-semibold text-slate-300 mb-3">Organisationer</h3>
+                <h3 className="text-sm font-semibold text-slate-300 mb-3">{t('sidebar.organizations')}</h3>
                 <div className="space-y-2">
                   {businesses.map((biz) => {
                     const isHidden = hiddenBusinessIds.has(biz.businessId)
@@ -395,7 +407,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                       <button
                         key={biz.businessId}
                         onClick={() => toggleBusiness(biz.businessId)}
-                        aria-label={`${isHidden ? 'Visa' : 'Dölj'} ${biz.name}`}
+                        aria-label={isHidden ? t('a11y.showBusiness', { name: biz.name }) : t('a11y.hideBusiness', { name: biz.name })}
                         aria-pressed={!isHidden}
                         className={cn(
                           'flex items-center gap-3 w-full p-2 rounded-lg transition-colors text-left',
@@ -409,7 +421,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{biz.name}</div>
                           <div className="text-xs text-slate-500">
-                            {ROLE_LABELS[biz.role] || biz.role} — {eventCount} händelser
+                            {getRoleLabel(biz.role)} — {t('sidebar.eventCount', { count: eventCount })}
                           </div>
                         </div>
                         {isHidden ? (
@@ -428,7 +440,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                   <h3 className="text-sm font-semibold text-amber-400 mb-2 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
-                    Konflikter ({conflicts.length})
+                    {t('conflicts.title', { count: conflicts.length })}
                   </h3>
                   <div className="space-y-2">
                     {conflicts.slice(0, 5).map((c, i) => {
@@ -441,7 +453,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: evA.businessColor }} />
                             <span className="truncate">{evA.title}</span>
                           </div>
-                          <div className="text-slate-500 text-center my-0.5">krockar med</div>
+                          <div className="text-slate-500 text-center my-0.5">{t('conflicts.collidesWith')}</div>
                           <div className="flex items-center gap-1.5">
                             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: evB.businessColor }} />
                             <span className="truncate">{evB.title}</span>
@@ -450,7 +462,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                       )
                     })}
                     {conflicts.length > 5 && (
-                      <p className="text-xs text-slate-500">+{conflicts.length - 5} fler konflikter</p>
+                      <p className="text-xs text-slate-500">{t('conflicts.more', { count: conflicts.length - 5 })}</p>
                     )}
                   </div>
                 </div>
@@ -467,7 +479,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   variant="ghost"
                   size="icon"
                   onClick={goPrev}
-                  aria-label="Föregående"
+                  aria-label={t('a11y.previous')}
                   className="text-slate-400 hover:text-white hover:bg-white/10 h-8 w-8"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -476,16 +488,16 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   variant="ghost"
                   size="sm"
                   onClick={goToday}
-                  aria-label="Gå till idag"
+                  aria-label={t('a11y.today')}
                   className="text-slate-400 hover:text-white hover:bg-white/10 text-xs"
                 >
-                  Idag
+                  {t('actions.today')}
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={goNext}
-                  aria-label="Nästa"
+                  aria-label={t('a11y.next')}
                   className="text-slate-400 hover:text-white hover:bg-white/10 h-8 w-8"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -538,7 +550,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                               </span>
                               {today && (
                                 <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400">
-                                  Idag
+                                  {t('labels.today')}
                                 </Badge>
                               )}
                             </div>
@@ -547,7 +559,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                                 variant="ghost"
                                 size="sm"
                                 className="text-slate-500 hover:text-white h-7 text-xs"
-                                aria-label={`Skapa händelse ${format(day, 'd MMMM', { locale: sv })}`}
+                                aria-label={t('a11y.createEvent', { date: format(day, 'd MMMM', { locale: sv }) })}
                                 onClick={() => {
                                   setNewEventDate(format(day, 'yyyy-MM-dd'))
                                   setNewEventTitle('')
@@ -556,12 +568,12 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                                 }}
                               >
                                 <Plus className="w-3 h-3 mr-1" />
-                                Ny
+                                {t('actions.new')}
                               </Button>
                             )}
                           </div>
                           {dayEvents.length === 0 ? (
-                            <p className="text-xs text-slate-600 italic">Inga händelser</p>
+                            <p className="text-xs text-slate-600 italic">{t('labels.noEvents')}</p>
                           ) : (
                             <div className="space-y-1.5">
                               {dayEvents.map((ev) => {
@@ -614,7 +626,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                                       className="text-[10px] shrink-0 border-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
                                       style={{ color: ev.businessColor, borderColor: ev.businessColor + '40' }}
                                     >
-                                      {ev.type === 'TEAM_EVENT' ? 'Lag' : ev.type === 'INTERVAL_SESSION' ? 'Intervall' : 'Händelse'}
+                                      {getEventTypeLabel(ev.type)}
                                     </Badge>
                                   </button>
                                 )
@@ -632,9 +644,9 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   <div>
                     {/* Day headers */}
                     <div className="grid grid-cols-7 gap-1 mb-1">
-                      {['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'].map((d) => (
-                        <div key={d} className="text-center text-xs font-medium text-slate-500 py-2">
-                          {d}
+                      {WEEKDAY_LABEL_KEYS.map((weekdayKey) => (
+                        <div key={weekdayKey} className="text-center text-xs font-medium text-slate-500 py-2">
+                          {t(`weekdays.${weekdayKey}`)}
                         </div>
                       ))}
                     </div>
@@ -690,7 +702,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                                 )
                               })}
                               {dayEvents.length > 3 && (
-                                <p className="text-[10px] text-slate-500 px-1">+{dayEvents.length - 3} fler</p>
+                                <p className="text-[10px] text-slate-500 px-1">{t('events.more', { count: dayEvents.length - 3 })}</p>
                               )}
                             </div>
                           </div>
@@ -704,23 +716,23 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                 {!isLoading && visibleEvents.length === 0 && (
                   <div className="text-center py-20">
                     <CalendarDays className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-slate-400">Inga händelser</h3>
+                    <h3 className="text-lg font-medium text-slate-400">{t('emptyState.title')}</h3>
                     <p className="text-sm text-slate-600 mt-1 max-w-sm mx-auto">
                       {hiddenBusinessIds.size > 0 ? (
                         <>
-                          Du har dolt {hiddenBusinessIds.size} organisation{hiddenBusinessIds.size > 1 ? 'er' : ''}.{' '}
+                          {t('emptyState.hiddenOrganizations', { count: hiddenBusinessIds.size })}
                           <button
                             onClick={() => setShowFilters(true)}
                             className="text-blue-400 hover:text-blue-300 underline"
                           >
-                            Öppna filtret
+                            {t('emptyState.openFilter')}
                           </button>{' '}
-                          för att visa fler.
+                          {t('emptyState.andShowMore')}
                         </>
                       ) : businesses.length === 0 && !businessesLoading ? (
-                        'Du är inte medlem i någon organisation ännu.'
+                        t('emptyState.noOrganizations')
                       ) : (
-                        'Det finns inga händelser för den valda perioden. Prova att byta vy eller tidsperiod.'
+                        t('emptyState.noEventsInRange')
                       )}
                     </p>
                   </div>
@@ -746,12 +758,12 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   {conflictEventIds.has(selectedEvent.id) && (
                     <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400">
                       <AlertTriangle className="w-3 h-3 mr-1" />
-                      Konflikt
+                      {t('labels.conflict')}
                     </Badge>
                   )}
                 </div>
                 <DialogTitle className="text-lg">
-                  {selectedEvent.visibility === 'BUSY_ONLY' ? 'Upptagen' : selectedEvent.title}
+                  {selectedEvent.visibility === 'BUSY_ONLY' ? t('visibility.busyOnly') : selectedEvent.title}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-3 mt-2">
@@ -801,7 +813,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                 {/* Busy only notice */}
                 {selectedEvent.visibility === 'BUSY_ONLY' && (
                   <div className="text-sm text-slate-500 italic border-t border-white/10 pt-3">
-                    Den här organisationen delar bara tillgänglighet, inte detaljer.
+                    {t('visibility.busyNotice')}
                   </div>
                 )}
 
@@ -812,7 +824,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                       href={`/${selectedEvent.businessSlug}/coach/calendar`}
                       className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                     >
-                      Öppna i {selectedEvent.businessName}s kalender →
+                      {t('actions.openInBusinessCalendar', { businessName: selectedEvent.businessName })}
                     </Link>
                   </div>
                 )}
@@ -826,7 +838,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
       <Dialog open={showNewEvent} onOpenChange={setShowNewEvent}>
         <DialogContent className="bg-slate-900 border-white/10 text-slate-200 max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg">Ny händelse</DialogTitle>
+            <DialogTitle className="text-lg">{t('eventDialog.title')}</DialogTitle>
           </DialogHeader>
           <form
             onSubmit={async (e) => {
@@ -869,13 +881,13 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
           >
             {/* Title */}
             <div>
-              <label htmlFor="new-event-title" className="block text-xs text-slate-500 mb-1">Titel</label>
+              <label htmlFor="new-event-title" className="block text-xs text-slate-500 mb-1">{t('form.title')}</label>
               <input
                 id="new-event-title"
                 type="text"
                 value={newEventTitle}
                 onChange={(e) => setNewEventTitle(e.target.value)}
-                placeholder="Händelsetitel..."
+                placeholder={t('form.titlePlaceholder')}
                 required
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               />
@@ -883,7 +895,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
 
             {/* Business */}
             <div>
-              <label htmlFor="new-event-biz" className="block text-xs text-slate-500 mb-1">Organisation</label>
+              <label htmlFor="new-event-biz" className="block text-xs text-slate-500 mb-1">{t('form.organization')}</label>
               <select
                 id="new-event-biz"
                 value={newEventBizId}
@@ -900,7 +912,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
 
             {/* Date */}
             <div>
-              <label htmlFor="new-event-date" className="block text-xs text-slate-500 mb-1">Datum</label>
+              <label htmlFor="new-event-date" className="block text-xs text-slate-500 mb-1">{t('form.date')}</label>
               <input
                 id="new-event-date"
                 type="date"
@@ -919,14 +931,14 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                 onChange={(e) => setNewEventAllDay(e.target.checked)}
                 className="w-4 h-4 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
               />
-              <span className="text-sm text-slate-300">Heldag</span>
+              <span className="text-sm text-slate-300">{t('form.allDay')}</span>
             </label>
 
             {/* Time inputs */}
             {!newEventAllDay && (
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label htmlFor="new-event-start" className="block text-xs text-slate-500 mb-1">Start</label>
+                  <label htmlFor="new-event-start" className="block text-xs text-slate-500 mb-1">{t('form.start')}</label>
                   <input
                     id="new-event-start"
                     type="time"
@@ -936,7 +948,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   />
                 </div>
                 <div className="flex-1">
-                  <label htmlFor="new-event-end" className="block text-xs text-slate-500 mb-1">Slut</label>
+                  <label htmlFor="new-event-end" className="block text-xs text-slate-500 mb-1">{t('form.end')}</label>
                   <input
                     id="new-event-end"
                     type="time"
@@ -956,7 +968,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                 onClick={() => setShowNewEvent(false)}
                 className="flex-1 text-slate-400 hover:text-white"
               >
-                Avbryt
+                {t('actions.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -966,10 +978,10 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                 {newEventSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    Sparar...
+                    {t('form.saving')}
                   </>
                 ) : (
-                  'Skapa händelse'
+                  t('form.create')
                 )}
               </Button>
             </div>
