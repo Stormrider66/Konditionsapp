@@ -3994,7 +3994,33 @@
     "clients": "Klienter",
     "joined": "Registrerad",
     "page": "Sida",
-    "of": "av"
+    "of": "av",
+    "platform": "Plattform",
+    "aiBudget": "AI SEK",
+    "actions": "Åtgärder",
+    "businesses": "Företag",
+    "allBusinesses": "Alla företag",
+    "noBusiness": "Standard (inget företag)",
+    "assign": "Tilldela",
+    "assignBusiness": "Tilldela företag",
+    "assignBusinessDescription": "Tilldela {user} till ett företag.",
+    "chooseBusiness": "Välj företag...",
+    "editEmail": "Redigera e-post",
+    "removeCompanyTitle": "Ta bort från {name}",
+    "deleteUser": "Ta bort användare",
+    "deleting": "Tar bort...",
+    "deleteUserConfirmation": "Är du säker på att du vill ta bort {user}?",
+    "deleteUserWarning": "All data kopplad till användaren raderas permanent. Denna åtgärd kan inte ångras.",
+    "deleteUserError": "Kunde inte ta bort användaren",
+    "deleteUserUnexpected": "Ett fel uppstod vid borttagning av användaren",
+    "aiCreditUpdateError": "Kunde inte uppdatera AI-krediter",
+    "aiCreditUpdateUnexpected": "Ett fel uppstod vid uppdatering av AI-krediter",
+    "emailUpdateError": "Kunde inte uppdatera e-post",
+    "emailUpdateUnexpected": "Ett fel uppstod vid uppdatering av e-post",
+    "emptyValueUsesDefaultAiAllowance": "Tomt värde använder planens eller företagets standard",
+    "effectiveMonthlyLimit": "Effektiv månadlig gräns",
+    "positiveAmountOrDefault": "Ange ett positivt belopp eller lämna tomt för standard",
+    "removeCompany": "Ta bort företag"
   },
   "onboarding": {
     "welcome": "Välkommen!",
@@ -4980,11 +5006,599 @@
           "ankle": "Fotledsskada",
           "hip": "Höftproblem",
           "calf": "Vadbesvär"
+        }
+      },
+      "handball": {
+        "actions": {
+          "back": "Tillbaka",
+          "next": "Nästa"
+        },
+        "sections": {
+          "positionAndTeam": {
+            "title": "Position och lag",
+            "description": "Berätta om din position, sida och lagdetaljer."
+          },
+          "seasonAndMatchLoad": {
+            "title": "Säsong och matchbelastning",
+            "description": "Nuvarande säsongsfas och hur mycket du spelar."
+          },
+          "playStyle": {
+            "title": "Spelstil",
+            "description": "Vilken spelstil beskriver dig bäst?"
+          },
+          "benchmarks": {
+            "title": "Fysiska tester",
+            "description": "Fyll i senaste testresultat när de finns."
+          },
+          "strengths": {
+            "title": "Styrkor och fokusområden",
+            "description": "Vilka fysiska delar vill du bygga vidare på?"
+          },
+          "injuryHistory": {
+            "title": "Skadehistorik",
+            "description": "Markera tidigare skador för att justera träningen."
+          },
+          "trainingConditions": {
+            "title": "Träningsförutsättningar",
+            "description": "Vilka träningsmöjligheter och utrustning har du?"
+          }
+        },
+        "labels": {
+          "position": "Position",
+          "positionSide": "Positionssida",
+          "teamName": "Lag",
+          "leagueLevel": "Lig nivå",
+          "yearsPlaying": "År som handbollsspelare",
+          "throwingArm": "Kastarm",
+          "currentSeasonPhase": "Aktuell säsongsfas",
+          "matchesPerWeek": "Matcher per vecka",
+          "averageMinutesPerMatch": "Genomsnittliga minuter/match",
+          "trainingSessionsPerWeek": "Träningspass per vecka",
+          "playStyle": "Din spelstil",
+          "strengthFocus": "Styrkor att bygga vidare på",
+          "weaknesses": "Områden att förbättra",
+          "previousInjuries": "Tidigare skador (välj relevanta)",
+          "hasAccessToGym": "Tillgång till gym"
+        },
+        "placeholders": {
+          "position": "Välj position",
+          "teamName": "t.ex. IK Sävehof",
+          "leagueLevel": "Välj lignivå",
+          "seasonPhase": "Välj fas",
+          "yoyoIR1Level": "t.ex. 16.0",
+          "yoyoIR2Level": "t.ex. 24.0",
+          "sprint10m": "t.ex. 1.55",
+          "sprint20m": "t.ex. 3.10",
+          "cmjHeight": "t.ex. 55",
+          "medicineBallThrow": "t.ex. 7.5",
+          "tTestAgility": "t.ex. 7.20",
+          "avgMinutesPerMatch": "t.ex. 45",
+          "playStyle": "Välj spelstil"
+        },
+        "benchmarks": {
+          "yoyoIR1Level": "Yo-Yo IR1 nivå",
+          "yoyoIR2Level": "Yo-Yo IR2 nivå",
+          "sprint10m": "10m sprint (s)",
+          "sprint20m": "20m sprint (s)",
+          "cmjHeight": "CMJ-hopp (cm)",
+          "medicineBallThrow": "Medicinbollkast (m)",
+          "tTestAgility": "T-test smidighet (s)"
+        },
+        "positions": {
+          "goalkeeper": {
+            "label": "Målvakt",
+            "description": "Reaktion, positionering och räddningar"
+          },
+          "wing": {
+            "label": "Ytter",
+            "description": "Snabbhet, genombrott och avslut"
+          },
+          "back": {
+            "label": "Back",
+            "description": "Skottstyrka och genombrutna anfall"
+          },
+          "centerBack": {
+            "label": "Mittback/playmaker",
+            "description": "Tempot, passningar och överblick"
+          },
+          "pivot": {
+            "label": "Lans",
+            "description": "Kontakt, blockering och avslut i trånga lägen"
+          }
+        },
+        "positionSides": {
+          "goalkeeper": {
+            "center": "Målvakt"
+          },
+          "wing": {
+            "left": "Vänsterytter",
+            "right": "Högerytter",
+            "both": "Båda sidor"
+          },
+          "back": {
+            "left": "Vänsterback",
+            "right": "Högerback",
+            "both": "Båda sidor"
+          },
+          "centerBack": {
+            "center": "Mittback"
+          },
+          "pivot": {
+            "center": "Lans"
+          }
+        },
+        "leagueLevels": {
+          "recreational": {
+            "label": "Korpen",
+            "description": "Träningsinriktad och social lek"
+          },
+          "division3": {
+            "label": "Division 3",
+            "description": "Lägsta tävlingsnivå"
+          },
+          "division2": {
+            "label": "Division 2",
+            "description": "Andra nivån"
+          },
+          "division1": {
+            "label": "Division 1",
+            "description": "Högsta amatörnivån"
+          },
+          "allsvenskan": {
+            "label": "Allsvenskan",
+            "description": "Andra proffsnivån"
+          },
+          "handbollsligan": {
+            "label": "Handbollsligan",
+            "description": "Högsta ligan"
+          }
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Maj-juli, bygga bas"
+          },
+          "preSeason": {
+            "label": "Försäsong",
+            "description": "Juli-augusti, matchförberedelse"
+          },
+          "inSeason": {
+            "label": "Säsong",
+            "description": "September-maj"
+          },
+          "playoffs": {
+            "label": "Slutspel",
+            "description": "Slutspel och SM-final"
+          }
+        },
+        "playStyles": {
+          "offensive": {
+            "label": "Offensiv",
+            "description": "Fokus på målskytte och anfall"
+          },
+          "defensive": {
+            "label": "Defensiv",
+            "description": "Fokus på försvar och tacklingar"
+          },
+          "allRound": {
+            "label": "Allround",
+            "description": "Balanserad allt-i-ett stil"
+          },
+          "specialist": {
+            "label": "Specialist",
+            "description": "Specifik roll (t.ex. 7-mot-6)"
+          }
+        },
+        "strengths": {
+          "throwingPower": "Kaststyrka",
+          "sprintSpeed": "Sprintsnabbhet",
+          "jumping": "Hoppkraft",
+          "agility": "Rörlighet",
+          "endurance": "Uthållighet",
+          "upperBody": "Överkroppsstyrka",
+          "coreStability": "Core-stabilitet",
+          "contactStrength": "Kontaktstyrka"
+        },
+        "weaknesses": {
+          "weakArm": "Svag armen",
+          "finishing": "Avslut",
+          "defense": "Försvarsspel",
+          "positioning": "Positionering",
+          "ballHandling": "Bollhantering",
+          "passing": "Passningar",
+          "stamina": "Stamina",
+          "decisionMaking": "Beslutsfattande"
+        },
+        "injuries": {
+          "shoulder": "Axel",
+          "knee": "Knä",
+          "kneeAcl": "Knä (ACL)",
+          "ankle": "Fotled",
+          "groin": "Ljumske",
+          "back": "Rygg",
+          "finger": "Finger",
+          "elbow": "Armbåge"
+        },
+        "throwingArms": {
+          "right": "Höger",
+          "left": "Vänster"
+        },
+        "tips": {
+          "positionPrefix": "Tips för",
+          "goalkeeper": {
+            "1": "Satsa på reaktionsfokus och lateral rörlighet",
+            "2": "Bygg explosivitet för passningar och hopp",
+            "3": "Arbeta med axelstabilitet och höftrörlighet"
+          },
+          "wing": {
+            "1": "Fokusera på sprintacceleration och snabba omställningar",
+            "2": "Bygg hoppkraft för vinkelavslut",
+            "3": "Prioritera uthållighet i högintensiva sekvenser"
+          },
+          "back": {
+            "1": "Utveckla skotstyrka och rotationsstyrka",
+            "2": "Förbättra hoppkraften i avslutsmoment",
+            "3": "Arbeta med skulderstabilitet för skadeförebyggande"
+          },
+          "centerBack": {
+            "1": "Bygg aerob kapacitet för längre pass",
+            "2": "Träna smidighet och snabba fotarbeten",
+            "3": "Förbättra beslutstagande under press"
+          },
+          "pivot": {
+            "1": "Bygg kroppsstyrka för kontakt",
+            "2": "Träna core-stabilitet för balans i dueller",
+            "3": "Skapa explosivitet i trånga utrymmen"
+          }
+        },
+        "notes": {
+          "injuryFocus": "Programmet kommer att lägga in förebyggande arbete för identifierade risker."
+        },
+        "positionFallback": "din position"
+      },
+      "volleyball": {
+        "badge": "Volleyboll",
+        "stepProgress": "Steg {step} av {totalSteps}",
+        "stepTitles": {
+          "position": "Position och nivå",
+          "teamAndLevel": "Lag och nivå",
+          "playStyleAndPhysical": "Spelstil och fysisk profil",
+          "jumpTests": "Hopp- tester",
+          "physicalTests": "Övriga fysiska tester",
+          "strengthsAndWeaknesses": "Styrkor och svagheter",
+          "injuriesAndTraining": "Skador och träningsförutsättningar"
+        },
+        "stepDescriptions": {
+          "position": "Vilken position spelar du mest?",
+          "teamAndLevel": "Berätta om lag och tävlingsnivå.",
+          "playStyleAndPhysical": "Din spelstil och fysiska profil",
+          "jumpTests": "Dina senaste hopp- och räckviddstester",
+          "physicalTests": "Dina senaste smidighets- och styrkeprov",
+          "strengthsAndWeaknesses": "Vilka är dina styrkor och förbättringsområden?",
+          "injuriesAndTraining": "Tidigare skador och träningsmöjligheter"
+        },
+        "fields": {
+          "teamName": "Lagnamn",
+          "leagueLevel": "Lig nivå",
+          "seasonPhase": "Säsongsfas",
+          "matchesPerWeek": "Matcher per vecka",
+          "avgSetsPerMatch": "Genomsnittliga set per match",
+          "yearsPlaying": "Antal år",
+          "playStyle": "Spelstil",
+          "dominantHand": "Huvudhand",
+          "height": "Längd (cm)",
+          "spikeHeight": "Spikhöjd (cm)",
+          "blockHeight": "Blockhöjd (cm)",
+          "verticalJump": "Vertikalhopp (cm)",
+          "spikeJump": "Spikhopp (cm)",
+          "blockJump": "Blockhopp (cm)",
+          "standingReach": "Målnivå (cm)",
+          "agilityTTest": "T-test (sek)",
+          "sprint5m": "5m sprint (sek)",
+          "squat": "Knäböj 1RM (kg)",
+          "powerClean": "Power clean (kg)",
+          "yoyoIR1Level": "Yo-Yo IR1 nivå",
+          "weeklyTrainingSessions": "Träningspass per vecka",
+          "gymAccess": "Jag har tillgång till gym"
+        },
+        "sections": {
+          "jumpTests": "Hopp-tester",
+          "physicalTests": "Fysiska tester",
+          "strengths": "Dina styrkor",
+          "weaknesses": "Utvecklingsområden",
+          "injuries": "Tidigare skador",
+          "trainingConditions": "Träningsförutsättningar"
+        },
+        "placeholders": {
+          "teamName": "t.ex. Stockholm VBK",
+          "height": "t.ex. 190",
+          "spikeHeight": "t.ex. 300",
+          "blockHeight": "t.ex. 290",
+          "avgSetsPerMatch": "t.ex. 3.5",
+          "verticalJump": "t.ex. 60",
+          "spikeJump": "t.ex. 78",
+          "blockJump": "t.ex. 72",
+          "standingReach": "t.ex. 245",
+          "agilityTTest": "t.ex. 9.2",
+          "sprint5m": "t.ex. 1.12",
+          "squat": "t.ex. 130",
+          "powerClean": "t.ex. 80",
+          "yoyoIR1Level": "t.ex. 18.0"
+        },
+        "helpers": {
+          "verticalJump": "Använd ditt bästa hoppförsök från testdag",
+          "spikeJump": "Mät med standardapproach-hopp-test"
+        },
+        "positions": {
+          "setter": {
+            "label": "Sättare",
+            "description": "Bollfördelare och taktisk organisatör"
+          },
+          "outside_hitter": {
+            "label": "Yttre",
+            "description": "Poängskapande och försvar i ytterzon"
+          },
+          "opposite_hitter": {
+            "label": "Mittdelare",
+            "description": "Anfallsspecialisering på höger sida"
+          },
+          "middle_blocker": {
+            "label": "Mitter",
+            "description": "Blockspecialist och snabba attacker"
+          },
+          "libero": {
+            "label": "Libero",
+            "description": "Specialist på försvarsarbete bakåt"
+          }
+        },
+        "leagueLevels": {
+          "recreational": "Rekreation",
+          "division3": "Division 3",
+          "division2": "Division 2",
+          "division1": "Division 1",
+          "elitserien": "Elitserien",
+          "ssl": "SSL"
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Bas och fysisk utveckling"
+          },
+          "preSeason": {
+            "label": "Försäsong",
+            "description": "Matchförberedelse"
+          },
+          "inSeason": {
+            "label": "Säsong",
+            "description": "Matchfokus"
+          },
+          "playoffs": {
+            "label": "Playoff",
+            "description": "Slutspelsfas"
+          }
+        },
+        "playStyles": {
+          "power": {
+            "label": "Kraft",
+            "description": "Hög kraft och tunga attacker"
+          },
+          "finesse": {
+            "label": "Finess",
+            "description": "Taktisk placering och kontroll"
+          },
+          "defensive": {
+            "label": "Defensiv",
+            "description": "Prioritera räddning och täckning"
+          },
+          "allround": {
+            "label": "Allround",
+            "description": "Bidrar både i attack och försvar"
+          }
+        },
+        "strengths": {
+          "verticalJump": "Vertikalhopp",
+          "spikePower": "Spikstyrka",
+          "blocking": "Blockering",
+          "serving": "Serve",
+          "reception": "Mottagning",
+          "defense": "Försvar",
+          "courtVision": "Banaöversikt",
+          "agility": "Smidighet"
+        },
+        "injuries": {
+          "shoulder": "Axel",
+          "kneePatellar": "Knä (patellarsmärtan)",
+          "kneeAcl": "Kondrop (ACL/MCL)",
+          "ankle": "Fotled",
+          "back": "Rygg",
+          "finger": "Finger",
+          "wrist": "Handled"
+        },
+        "handedness": {
+          "right": "Höger",
+          "left": "Vänster"
         },
         "actions": {
           "back": "Tillbaka",
           "next": "Nästa"
         }
+      },
+      "tennis": {
+        "badge": "Tennis",
+        "stepProgress": "Steg {step} av {totalSteps}",
+        "stepTitles": {
+          "playStyle": "Spelstil",
+          "clubAndLevel": "Klubb och nivå",
+          "techniqueAndPhysical": "Teknik och fysisk profil",
+          "speedTests": "Hastighetstester",
+          "strengthAndEndurance": "Styrka och uthållighet",
+          "strengthsAndWeaknesses": "Styrkor och svagheter",
+          "injuriesAndTraining": "Skador och träningsförutsättningar"
+        },
+        "stepDescriptions": {
+          "playStyle": "Hur skulle du beskriva din spelstil?",
+          "clubAndLevel": "Berätta om klubb och tävlingsnivå.",
+          "techniqueAndPhysical": "Position, dominant hand och underlagspreferenser.",
+          "speedTests": "Dina senaste hastighets- och smidighetstester.",
+          "strengthAndEndurance": "Dina bästa styrke- och uthållighetsmarkörer.",
+          "strengthsAndWeaknesses": "Vilka är dina styrkor och utvecklingsprioriteringar?",
+          "injuriesAndTraining": "Tidigare skador och träningsmöjligheter"
+        },
+        "fields": {
+          "clubName": "Klubbnamn",
+          "leagueLevel": "Lig nivå",
+          "seasonPhase": "Säsongsfas",
+          "matchesPerWeek": "Matcher per vecka",
+          "yearsPlaying": "Antal år",
+          "preferredSurface": "Föredraget underlag",
+          "dominantHand": "Huvudhand",
+          "forehandGrip": "Forehandgrepp",
+          "backhandType": "Backhandtyp",
+          "strengths": "Styrkor",
+          "weaknesses": "Svagheter",
+          "injuryHistory": "Skadehistorik",
+          "weeklyTrainingSessions": "Träningspass per vecka",
+          "gymAccess": "Jag har tillgång till ett gym",
+          "height": "Längd (cm)",
+          "serveSpeed": "Servehastighet (km/h)",
+          "sprint5m": "5m sprint (sek)",
+          "sprint10m": "10m sprint (sek)",
+          "sprint20m": "20m sprint (sek)",
+          "agilitySpider": "Spider drill (sek)",
+          "agility505": "5-10-5 shuttle (sek)",
+          "lateralShuffle": "Lateral shuffle 10m (sek)",
+          "verticalJump": "Vertikalhopp (cm)",
+          "medicineBallThrow": "Medicinbollskast (m)",
+          "gripStrength": "Greppstyrka (kg)",
+          "shoulderStrengthRatio": "Axelstyrkeförhållande",
+          "yoyoIR1Level": "Yo-Yo IR1 nivå"
+        },
+        "sections": {
+          "speedTests": "Snabbhet och smidighet",
+          "strengthAndEndurance": "Styrka och uthållighet",
+          "strengths": "Dina styrkor",
+          "weaknesses": "Utvecklingsområden",
+          "injuries": "Skador",
+          "trainingConditions": "Träningsförutsättningar"
+        },
+        "placeholders": {
+          "clubName": "t.ex. Stockholm Tennisklubb",
+          "height": "t.ex. 178",
+          "serveSpeed": "t.ex. 180",
+          "sprint5m": "t.ex. 1.07",
+          "sprint10m": "t.ex. 1.75",
+          "sprint20m": "t.ex. 3.45",
+          "agilitySpider": "t.ex. 14.8",
+          "agility505": "t.ex. 2.32",
+          "lateralShuffle": "t.ex. 4.1",
+          "verticalJump": "t.ex. 44",
+          "medicineBallThrow": "t.ex. 10.7",
+          "gripStrength": "t.ex. 46",
+          "shoulderStrengthRatio": "t.ex. 6.2",
+          "yoyoIR1Level": "t.ex. 16.8"
+        },
+        "helpers": {
+          "agilityTest": "Lateral rörelse och fotarbete i ett test.",
+          "medicineBallThrow": "Använd en 2 kg medicinboll för bäst jämförelse.",
+          "shoulderRatio": "Korrelerar med skulderstyrka i förhållande till vikt."
+        },
+        "playStyles": {
+          "aggressiveBaseliner": {
+            "label": "Aggressiv baslinjespelare",
+            "description": "Högt tempo och hårda, tunga slag"
+          },
+          "serveAndVolleyer": {
+            "label": "Serve-and-volley",
+            "description": "Fokuserar på serve och nätangrepp"
+          },
+          "allCourt": {
+            "label": "All-court",
+            "description": "Balanserad spelstil från baslinje och nät"
+          },
+          "counterPuncher": {
+            "label": "Kontringsspelare",
+            "description": "Bygger tryck med konsekventa returer"
+          },
+          "bigServer": {
+            "label": "Tung server",
+            "description": "Använder serve som huvudvapen"
+          }
+        },
+        "leagueLevels": {
+          "recreational": "Rekreation",
+          "club": "Klubb",
+          "division4": "Division 4",
+          "division3": "Division 3",
+          "division2": "Division 2",
+          "division1": "Division 1",
+          "elitserien": "Topplig",
+          "atpWta": "ATP/WTA nivå"
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Återhämtning och basuppbyggnad"
+          },
+          "preSeason": {
+            "label": "Försäsong",
+            "description": "Bygg styrka och teknikvolym"
+          },
+          "inSeason": {
+            "label": "Säsong",
+            "description": "Tävlingsperiod"
+          },
+          "tournament": {
+            "label": "Turnering",
+            "description": "Topprestanda i viktiga turneringar"
+          }
+        },
+        "surfaces": {
+          "hard": "Hård",
+          "clay": "Grus",
+          "grass": "Gräs",
+          "indoor": "Inomhus",
+          "all": "Alla underlag"
+        },
+        "forehandGrips": {
+          "eastern": "Eastern",
+          "semiWestern": "Semi-western",
+          "western": "Western",
+          "continental": "Kontinental"
+        },
+        "backhandTypes": {
+          "oneHanded": "Enhand",
+          "twoHanded": "Tvåhand"
+        },
+        "strengths": {
+          "serve": "Serve",
+          "forehand": "Forehand",
+          "backhand": "Backhand",
+          "volley": "Volley",
+          "return": "Retur",
+          "movement": "Rörelse",
+          "mental": "Mental",
+          "endurance": "Uthållighet"
+        },
+        "injuries": {
+          "shoulder": "Axel",
+          "elbow": "Armbåge",
+          "wrist": "Handled",
+          "back": "Rygg",
+          "knee": "Knä",
+          "ankle": "Fotled",
+          "hip": "Höft",
+          "abdominal": "Mage/kärna"
+        },
+        "handedness": {
+          "right": "Höger",
+          "left": "Vänster"
+        },
+        "actions": {
+          "back": "Tillbaka",
+          "next": "Nästa"
+        }
+      },
+      "floorball": {
       },
       "generalFitness": {
         "titles": {

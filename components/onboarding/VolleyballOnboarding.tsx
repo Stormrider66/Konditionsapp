@@ -9,10 +9,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   ChevronLeft,
   ChevronRight,
-  Check,
   Target,
   Activity,
   Trophy,
@@ -89,55 +89,55 @@ interface VolleyballOnboardingProps {
 }
 
 const POSITIONS = [
-  { value: 'setter', label: 'Passare', description: 'Spelets dirigent' },
-  { value: 'outside_hitter', label: 'Vänsterspiker', description: 'Allsidig anfallare' },
-  { value: 'opposite_hitter', label: 'Diagonal/Högerspiker', description: 'Kraftfull poängplockare' },
-  { value: 'middle_blocker', label: 'Centerblockare', description: 'Block och snabba anfall' },
-  { value: 'libero', label: 'Libero', description: 'Defensiv specialist' },
+  { value: 'setter', labelKey: 'positions.setter.label', descriptionKey: 'positions.setter.description' },
+  { value: 'outside_hitter', labelKey: 'positions.outsideHitter.label', descriptionKey: 'positions.outsideHitter.description' },
+  { value: 'opposite_hitter', labelKey: 'positions.oppositeHitter.label', descriptionKey: 'positions.oppositeHitter.description' },
+  { value: 'middle_blocker', labelKey: 'positions.middleBlocker.label', descriptionKey: 'positions.middleBlocker.description' },
+  { value: 'libero', labelKey: 'positions.libero.label', descriptionKey: 'positions.libero.description' },
 ]
 
 const LEAGUE_LEVELS = [
-  { value: 'recreational', label: 'Korpen/Motion' },
-  { value: 'division_3', label: 'Division 3' },
-  { value: 'division_2', label: 'Division 2' },
-  { value: 'division_1', label: 'Division 1' },
-  { value: 'elitserien', label: 'Elitserien' },
-  { value: 'ssl', label: 'Svenska Superligan' },
+  { value: 'recreational', labelKey: 'leagueLevels.recreational' },
+  { value: 'division_3', labelKey: 'leagueLevels.division3' },
+  { value: 'division_2', labelKey: 'leagueLevels.division2' },
+  { value: 'division_1', labelKey: 'leagueLevels.division1' },
+  { value: 'elitserien', labelKey: 'leagueLevels.elitserien' },
+  { value: 'ssl', labelKey: 'leagueLevels.ssl' },
 ]
 
 const SEASON_PHASES = [
-  { value: 'off_season', label: 'Off-season', description: 'Fokus på fysisk utveckling' },
-  { value: 'pre_season', label: 'Försäsong', description: 'Matchförberedelse' },
-  { value: 'in_season', label: 'Säsong', description: 'Matcher och underhåll' },
-  { value: 'playoffs', label: 'Slutspel', description: 'Peak performance' },
+  { value: 'off_season', labelKey: 'seasonPhases.offSeason.label', descriptionKey: 'seasonPhases.offSeason.description' },
+  { value: 'pre_season', labelKey: 'seasonPhases.preSeason.label', descriptionKey: 'seasonPhases.preSeason.description' },
+  { value: 'in_season', labelKey: 'seasonPhases.inSeason.label', descriptionKey: 'seasonPhases.inSeason.description' },
+  { value: 'playoffs', labelKey: 'seasonPhases.playoffs.label', descriptionKey: 'seasonPhases.playoffs.description' },
 ]
 
 const PLAY_STYLES = [
-  { value: 'power', label: 'Kraftspelare', description: 'Fokus på hårda slag' },
-  { value: 'finesse', label: 'Tekniker', description: 'Precision och placering' },
-  { value: 'defensive', label: 'Försvarare', description: 'Mottagning och försvar' },
-  { value: 'allround', label: 'Allround', description: 'Bidrar på alla områden' },
+  { value: 'power', labelKey: 'playStyles.power.label', descriptionKey: 'playStyles.power.description' },
+  { value: 'finesse', labelKey: 'playStyles.finesse.label', descriptionKey: 'playStyles.finesse.description' },
+  { value: 'defensive', labelKey: 'playStyles.defensive.label', descriptionKey: 'playStyles.defensive.description' },
+  { value: 'allround', labelKey: 'playStyles.allround.label', descriptionKey: 'playStyles.allround.description' },
 ]
 
 const STRENGTHS = [
-  { id: 'vertical_jump', label: 'Vertikal hoppförmåga' },
-  { id: 'spike_power', label: 'Slagstyrka' },
-  { id: 'blocking', label: 'Blockteknik' },
-  { id: 'serving', label: 'Serve' },
-  { id: 'reception', label: 'Mottagning' },
-  { id: 'defense', label: 'Försvarsspel' },
-  { id: 'court_vision', label: 'Spelförståelse' },
-  { id: 'agility', label: 'Kvickhet' },
+  { id: 'vertical_jump', labelKey: 'strengths.verticalJump' },
+  { id: 'spike_power', labelKey: 'strengths.spikePower' },
+  { id: 'blocking', labelKey: 'strengths.blocking' },
+  { id: 'serving', labelKey: 'strengths.serving' },
+  { id: 'reception', labelKey: 'strengths.reception' },
+  { id: 'defense', labelKey: 'strengths.defense' },
+  { id: 'court_vision', labelKey: 'strengths.courtVision' },
+  { id: 'agility', labelKey: 'strengths.agility' },
 ]
 
 const INJURY_TYPES = [
-  { id: 'shoulder', label: 'Axelskada' },
-  { id: 'knee_patellar', label: 'Hopparknä' },
-  { id: 'knee_acl', label: 'Knäskada (ACL/MCL)' },
-  { id: 'ankle', label: 'Fotledsskada' },
-  { id: 'back', label: 'Ryggproblem' },
-  { id: 'finger', label: 'Fingerskada' },
-  { id: 'wrist', label: 'Handledsbesvär' },
+  { id: 'shoulder', labelKey: 'injuries.shoulder' },
+  { id: 'knee_patellar', labelKey: 'injuries.kneePatellar' },
+  { id: 'knee_acl', labelKey: 'injuries.kneeAcl' },
+  { id: 'ankle', labelKey: 'injuries.ankle' },
+  { id: 'back', labelKey: 'injuries.back' },
+  { id: 'finger', labelKey: 'injuries.finger' },
+  { id: 'wrist', labelKey: 'injuries.wrist' },
 ]
 
 export function VolleyballOnboarding({
@@ -146,6 +146,7 @@ export function VolleyballOnboarding({
 }: VolleyballOnboardingProps) {
   const [step, setStep] = useState(1)
   const [localSettings, setLocalSettings] = useState<VolleyballSettings>(settings)
+  const t = useTranslations('components.onboarding.volleyball')
 
   const totalSteps = 7
   const progress = (step / totalSteps) * 100
@@ -195,30 +196,30 @@ export function VolleyballOnboarding({
       <CardHeader>
         <div className="flex items-center justify-between mb-2">
           <Badge variant="outline" className="text-yellow-600">
-            Volleyboll
+            {t('badge')}
           </Badge>
           <span className="text-sm text-muted-foreground">
-            Steg {step} av {totalSteps}
+            {t('stepProgress', { step, totalSteps })}
           </span>
         </div>
         <Progress value={progress} className="h-2" />
         <CardTitle className="mt-4">
-          {step === 1 && 'Välj din position'}
-          {step === 2 && 'Lag och nivå'}
-          {step === 3 && 'Spelstil och fysik'}
-          {step === 4 && 'Hopptester'}
-          {step === 5 && 'Övriga fysiska tester'}
-          {step === 6 && 'Styrkor och svagheter'}
-          {step === 7 && 'Skadehistorik och träning'}
+          {step === 1 && t('stepTitles.position')}
+          {step === 2 && t('stepTitles.teamAndLevel')}
+          {step === 3 && t('stepTitles.playStyleAndPhysical')}
+          {step === 4 && t('stepTitles.jumpTests')}
+          {step === 5 && t('stepTitles.physicalTests')}
+          {step === 6 && t('stepTitles.strengthsAndWeaknesses')}
+          {step === 7 && t('stepTitles.injuriesAndTraining')}
         </CardTitle>
         <CardDescription>
-          {step === 1 && 'Vilken position spelar du främst?'}
-          {step === 2 && 'Information om ditt lag och tävlingsnivå'}
-          {step === 3 && 'Din spelstil och fysiska attribut'}
-          {step === 4 && 'Dina senaste testresultat för hoppförmåga'}
-          {step === 5 && 'Dina senaste testresultat för snabbhet och styrka'}
-          {step === 6 && 'Vad är dina styrkor och utvecklingsområden?'}
-          {step === 7 && 'Tidigare skador och träningsförutsättningar'}
+          {step === 1 && t('stepDescriptions.position')}
+          {step === 2 && t('stepDescriptions.teamAndLevel')}
+          {step === 3 && t('stepDescriptions.playStyleAndPhysical')}
+          {step === 4 && t('stepDescriptions.jumpTests')}
+          {step === 5 && t('stepDescriptions.physicalTests')}
+          {step === 6 && t('stepDescriptions.strengthsAndWeaknesses')}
+          {step === 7 && t('stepDescriptions.injuriesAndTraining')}
         </CardDescription>
       </CardHeader>
 
@@ -236,8 +237,8 @@ export function VolleyballOnboarding({
               <div key={pos.value} className="flex items-center space-x-3">
                 <RadioGroupItem value={pos.value} id={pos.value} />
                 <Label htmlFor={pos.value} className="flex-1 cursor-pointer">
-                  <div className="font-medium">{pos.label}</div>
-                  <div className="text-sm text-muted-foreground">{pos.description}</div>
+                  <div className="font-medium">{t(pos.labelKey)}</div>
+                  <div className="text-sm text-muted-foreground">{t(pos.descriptionKey)}</div>
                 </Label>
               </div>
             ))}
@@ -248,17 +249,17 @@ export function VolleyballOnboarding({
         {step === 2 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="teamName">Lagnamn</Label>
+              <Label htmlFor="teamName">{t('fields.teamName')}</Label>
               <Input
                 id="teamName"
                 value={localSettings.teamName}
                 onChange={(e) => updateLocalSettings({ teamName: e.target.value })}
-                placeholder="T.ex. Sollentuna VK"
+                placeholder={t('placeholders.teamName')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Liganivå</Label>
+              <Label>{t('fields.leagueLevel')}</Label>
               <RadioGroup
                 value={localSettings.leagueLevel}
                 onValueChange={(value) =>
@@ -269,14 +270,14 @@ export function VolleyballOnboarding({
                 {LEAGUE_LEVELS.map((level) => (
                   <div key={level.value} className="flex items-center space-x-3">
                     <RadioGroupItem value={level.value} id={`league-${level.value}`} />
-                    <Label htmlFor={`league-${level.value}`}>{level.label}</Label>
+                    <Label htmlFor={`league-${level.value}`}>{t(level.labelKey)}</Label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
 
             <div className="space-y-2">
-              <Label>Säsongsfas</Label>
+              <Label>{t('fields.seasonPhase')}</Label>
               <RadioGroup
                 value={localSettings.seasonPhase}
                 onValueChange={(value) =>
@@ -288,8 +289,8 @@ export function VolleyballOnboarding({
                   <div key={phase.value} className="flex items-center space-x-3">
                     <RadioGroupItem value={phase.value} id={`phase-${phase.value}`} />
                     <Label htmlFor={`phase-${phase.value}`} className="cursor-pointer">
-                      <div>{phase.label}</div>
-                      <div className="text-xs text-muted-foreground">{phase.description}</div>
+                      <div>{t(phase.labelKey)}</div>
+                      <div className="text-xs text-muted-foreground">{t(phase.descriptionKey)}</div>
                     </Label>
                   </div>
                 ))}
@@ -298,7 +299,7 @@ export function VolleyballOnboarding({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="matchesPerWeek">Matcher per vecka</Label>
+                <Label htmlFor="matchesPerWeek">{t('fields.matchesPerWeek')}</Label>
                 <Input
                   id="matchesPerWeek"
                   type="number"
@@ -311,7 +312,7 @@ export function VolleyballOnboarding({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="yearsPlaying">År som spelare</Label>
+                <Label htmlFor="yearsPlaying">{t('fields.yearsPlaying')}</Label>
                 <Input
                   id="yearsPlaying"
                   type="number"
@@ -331,7 +332,7 @@ export function VolleyballOnboarding({
         {step === 3 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label>Spelstil</Label>
+              <Label>{t('fields.playStyle')}</Label>
               <RadioGroup
                 value={localSettings.playStyle}
                 onValueChange={(value) =>
@@ -343,8 +344,8 @@ export function VolleyballOnboarding({
                   <div key={style.value} className="flex items-center space-x-3">
                     <RadioGroupItem value={style.value} id={`style-${style.value}`} />
                     <Label htmlFor={`style-${style.value}`} className="cursor-pointer">
-                      <div>{style.label}</div>
-                      <div className="text-xs text-muted-foreground">{style.description}</div>
+                      <div>{t(style.labelKey)}</div>
+                      <div className="text-xs text-muted-foreground">{t(style.descriptionKey)}</div>
                     </Label>
                   </div>
                 ))}
@@ -352,7 +353,7 @@ export function VolleyballOnboarding({
             </div>
 
             <div className="space-y-2">
-              <Label>Dominant hand</Label>
+              <Label>{t('fields.dominantHand')}</Label>
               <RadioGroup
                 value={localSettings.dominantHand}
                 onValueChange={(value) =>
@@ -362,18 +363,18 @@ export function VolleyballOnboarding({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="right" id="hand-right" />
-                  <Label htmlFor="hand-right">Höger</Label>
+                  <Label htmlFor="hand-right">{t('handedness.right')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="left" id="hand-left" />
-                  <Label htmlFor="hand-left">Vänster</Label>
+                  <Label htmlFor="hand-left">{t('handedness.left')}</Label>
                 </div>
               </RadioGroup>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="height">Längd (cm)</Label>
+                <Label htmlFor="height">{t('fields.height')}</Label>
                 <Input
                   id="height"
                   type="number"
@@ -385,11 +386,11 @@ export function VolleyballOnboarding({
                       height: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 185"
+                  placeholder={t('placeholders.height')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="spikeHeight">Smash-höjd (cm)</Label>
+                <Label htmlFor="spikeHeight">{t('fields.spikeHeight')}</Label>
                 <Input
                   id="spikeHeight"
                   type="number"
@@ -401,11 +402,11 @@ export function VolleyballOnboarding({
                       spikeHeight: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 320"
+                  placeholder={t('placeholders.spikeHeight')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="blockHeight">Block-höjd (cm)</Label>
+                <Label htmlFor="blockHeight">{t('fields.blockHeight')}</Label>
                 <Input
                   id="blockHeight"
                   type="number"
@@ -417,13 +418,13 @@ export function VolleyballOnboarding({
                       blockHeight: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 305"
+                  placeholder={t('placeholders.blockHeight')}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="avgSets">Genomsnittligt antal set per match</Label>
+              <Label htmlFor="avgSets">{t('fields.avgSetsPerMatch')}</Label>
               <Input
                 id="avgSets"
                 type="number"
@@ -436,7 +437,7 @@ export function VolleyballOnboarding({
                     avgSetsPerMatch: e.target.value ? parseFloat(e.target.value) : null,
                   })
                 }
-                placeholder="T.ex. 3.5"
+                placeholder={t('placeholders.avgSetsPerMatch')}
               />
             </div>
           </div>
@@ -447,12 +448,12 @@ export function VolleyballOnboarding({
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="h-5 w-5 text-yellow-500" />
-              <span className="font-medium">Hopptester</span>
+              <span className="font-medium">{t('sections.jumpTests')}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="verticalJump">Vertikalhopp (cm)</Label>
+                <Label htmlFor="verticalJump">{t('fields.verticalJump')}</Label>
                 <Input
                   id="verticalJump"
                   type="number"
@@ -462,12 +463,12 @@ export function VolleyballOnboarding({
                       verticalJump: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 70"
+                  placeholder={t('placeholders.verticalJump')}
                 />
-                <p className="text-xs text-muted-foreground">Utan ansats</p>
+                <p className="text-xs text-muted-foreground">{t('helpers.verticalJump')}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="spikeJump">Smash-hopp (cm)</Label>
+                <Label htmlFor="spikeJump">{t('fields.spikeJump')}</Label>
                 <Input
                   id="spikeJump"
                   type="number"
@@ -477,15 +478,15 @@ export function VolleyballOnboarding({
                       spikeJump: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 85"
+                  placeholder={t('placeholders.spikeJump')}
                 />
-                <p className="text-xs text-muted-foreground">Med ansats</p>
+                <p className="text-xs text-muted-foreground">{t('helpers.spikeJump')}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="blockJump">Block-hopp (cm)</Label>
+                <Label htmlFor="blockJump">{t('fields.blockJump')}</Label>
                 <Input
                   id="blockJump"
                   type="number"
@@ -495,11 +496,11 @@ export function VolleyballOnboarding({
                       blockJump: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 65"
+                  placeholder={t('placeholders.blockJump')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="standingReach">Räckvidd stående (cm)</Label>
+                <Label htmlFor="standingReach">{t('fields.standingReach')}</Label>
                 <Input
                   id="standingReach"
                   type="number"
@@ -509,7 +510,7 @@ export function VolleyballOnboarding({
                       standingReach: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 240"
+                  placeholder={t('placeholders.standingReach')}
                 />
               </div>
             </div>
@@ -521,12 +522,12 @@ export function VolleyballOnboarding({
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
               <Dumbbell className="h-5 w-5 text-yellow-500" />
-              <span className="font-medium">Snabbhet och styrka</span>
+              <span className="font-medium">{t('sections.physicalTests')}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="agilityTTest">T-test agility (sek)</Label>
+                <Label htmlFor="agilityTTest">{t('fields.agilityTTest')}</Label>
                 <Input
                   id="agilityTTest"
                   type="number"
@@ -537,11 +538,11 @@ export function VolleyballOnboarding({
                       agilityTTest: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 9.0"
+                  placeholder={t('placeholders.agilityTTest')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sprint5m">5m sprint (sek)</Label>
+                <Label htmlFor="sprint5m">{t('fields.sprint5m')}</Label>
                 <Input
                   id="sprint5m"
                   type="number"
@@ -552,14 +553,14 @@ export function VolleyballOnboarding({
                       sprint5m: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 1.05"
+                  placeholder={t('placeholders.sprint5m')}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="squat">Knäböj 1RM (kg)</Label>
+                <Label htmlFor="squat">{t('fields.squat')}</Label>
                 <Input
                   id="squat"
                   type="number"
@@ -569,11 +570,11 @@ export function VolleyballOnboarding({
                       squat: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 120"
+                  placeholder={t('placeholders.squat')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="powerClean">Power clean 1RM (kg)</Label>
+                <Label htmlFor="powerClean">{t('fields.powerClean')}</Label>
                 <Input
                   id="powerClean"
                   type="number"
@@ -583,13 +584,13 @@ export function VolleyballOnboarding({
                       powerClean: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 80"
+                  placeholder={t('placeholders.powerClean')}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="yoyoIR1Level">Yo-Yo IR1 nivå</Label>
+              <Label htmlFor="yoyoIR1Level">{t('fields.yoyoIR1Level')}</Label>
               <Input
                 id="yoyoIR1Level"
                 type="number"
@@ -600,7 +601,7 @@ export function VolleyballOnboarding({
                     yoyoIR1Level: e.target.value ? parseFloat(e.target.value) : null,
                   })
                 }
-                placeholder="T.ex. 17.0"
+                placeholder={t('placeholders.yoyoIR1Level')}
               />
             </div>
           </div>
@@ -612,7 +613,7 @@ export function VolleyballOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Zap className="h-5 w-5 text-yellow-500" />
-                <span className="font-medium">Dina styrkor</span>
+                <span className="font-medium">{t('sections.strengths')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {STRENGTHS.map((strength) => (
@@ -623,7 +624,7 @@ export function VolleyballOnboarding({
                       onCheckedChange={() => toggleArrayItem('strengthFocus', strength.id)}
                     />
                     <Label htmlFor={`strength-${strength.id}`} className="text-sm cursor-pointer">
-                      {strength.label}
+                      {t(strength.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -633,7 +634,7 @@ export function VolleyballOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Target className="h-5 w-5 text-blue-500" />
-                <span className="font-medium">Utvecklingsområden</span>
+                <span className="font-medium">{t('sections.weaknesses')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {STRENGTHS.map((strength) => (
@@ -644,7 +645,7 @@ export function VolleyballOnboarding({
                       onCheckedChange={() => toggleArrayItem('weaknesses', strength.id)}
                     />
                     <Label htmlFor={`weakness-${strength.id}`} className="text-sm cursor-pointer">
-                      {strength.label}
+                      {t(strength.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -659,7 +660,7 @@ export function VolleyballOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Heart className="h-5 w-5 text-red-500" />
-                <span className="font-medium">Tidigare skador</span>
+                <span className="font-medium">{t('sections.injuries')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {INJURY_TYPES.map((injury) => (
@@ -670,7 +671,7 @@ export function VolleyballOnboarding({
                       onCheckedChange={() => toggleArrayItem('injuryHistory', injury.id)}
                     />
                     <Label htmlFor={`injury-${injury.id}`} className="text-sm cursor-pointer">
-                      {injury.label}
+                      {t(injury.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -680,11 +681,11 @@ export function VolleyballOnboarding({
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                <span className="font-medium">Träningsförutsättningar</span>
+                <span className="font-medium">{t('sections.trainingConditions')}</span>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weeklyTraining">Träningspass per vecka (utöver matcher)</Label>
+                <Label htmlFor="weeklyTraining">{t('fields.weeklyTrainingSessions')}</Label>
                 <Input
                   id="weeklyTraining"
                   type="number"
@@ -706,7 +707,7 @@ export function VolleyballOnboarding({
                   }
                 />
                 <Label htmlFor="gymAccess" className="cursor-pointer">
-                  Jag har tillgång till gym
+                  {t('fields.gymAccess')}
                 </Label>
               </div>
             </div>
@@ -721,10 +722,10 @@ export function VolleyballOnboarding({
             disabled={step === 1}
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
-            Tillbaka
+            {t('actions.back')}
           </Button>
           <Button onClick={handleNext}>
-            Nästa
+            {t('actions.next')}
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>

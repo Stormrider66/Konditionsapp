@@ -9,10 +9,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   ChevronLeft,
   ChevronRight,
-  Check,
   Target,
   Activity,
   Trophy,
@@ -91,66 +91,71 @@ interface TennisOnboardingProps {
 }
 
 const PLAY_STYLES = [
-  { value: 'aggressive_baseliner', label: 'Aggressiv Baslinjespelare', description: 'Dominerar från baslinjen med kraftfulla slag' },
-  { value: 'serve_and_volleyer', label: 'Serve-Volleyspelare', description: 'Attackerar nätet efter serven' },
-  { value: 'all_court', label: 'Allroundspelare', description: 'Anpassar sig till alla situationer' },
-  { value: 'counter_puncher', label: 'Defensiv Spelare', description: 'Returnerar allt och väntar på misstag' },
-  { value: 'big_server', label: 'Servkung', description: 'Förlitar sig på kraftfull serve' },
+  { value: 'aggressive_baseliner', labelKey: 'playStyles.aggressiveBaseliner.label', descriptionKey: 'playStyles.aggressiveBaseliner.description' },
+  { value: 'serve_and_volleyer', labelKey: 'playStyles.serveAndVolleyer.label', descriptionKey: 'playStyles.serveAndVolleyer.description' },
+  { value: 'all_court', labelKey: 'playStyles.allCourt.label', descriptionKey: 'playStyles.allCourt.description' },
+  { value: 'counter_puncher', labelKey: 'playStyles.counterPuncher.label', descriptionKey: 'playStyles.counterPuncher.description' },
+  { value: 'big_server', labelKey: 'playStyles.bigServer.label', descriptionKey: 'playStyles.bigServer.description' },
 ]
 
 const LEAGUE_LEVELS = [
-  { value: 'recreational', label: 'Motionsspelare' },
-  { value: 'club', label: 'Klubbspelare' },
-  { value: 'division_4', label: 'Division 4' },
-  { value: 'division_3', label: 'Division 3' },
-  { value: 'division_2', label: 'Division 2' },
-  { value: 'division_1', label: 'Division 1' },
-  { value: 'elitserien', label: 'Elitserien' },
-  { value: 'atp_wta', label: 'ATP/WTA-ranking' },
+  { value: 'recreational', labelKey: 'leagueLevels.recreational' },
+  { value: 'club', labelKey: 'leagueLevels.club' },
+  { value: 'division_4', labelKey: 'leagueLevels.division4' },
+  { value: 'division_3', labelKey: 'leagueLevels.division3' },
+  { value: 'division_2', labelKey: 'leagueLevels.division2' },
+  { value: 'division_1', labelKey: 'leagueLevels.division1' },
+  { value: 'elitserien', labelKey: 'leagueLevels.elitserien' },
+  { value: 'atp_wta', labelKey: 'leagueLevels.atpWta' },
 ]
 
 const SEASON_PHASES = [
-  { value: 'off_season', label: 'Off-season', description: 'Fysisk utveckling och vila' },
-  { value: 'pre_season', label: 'Försäsong', description: 'Matchförberedelse' },
-  { value: 'in_season', label: 'Säsong', description: 'Matcher och underhåll' },
-  { value: 'tournament', label: 'Turnering', description: 'Peak performance' },
+  { value: 'off_season', labelKey: 'seasonPhases.offSeason.label', descriptionKey: 'seasonPhases.offSeason.description' },
+  { value: 'pre_season', labelKey: 'seasonPhases.preSeason.label', descriptionKey: 'seasonPhases.preSeason.description' },
+  { value: 'in_season', labelKey: 'seasonPhases.inSeason.label', descriptionKey: 'seasonPhases.inSeason.description' },
+  { value: 'tournament', labelKey: 'seasonPhases.tournament.label', descriptionKey: 'seasonPhases.tournament.description' },
 ]
 
 const SURFACES = [
-  { value: 'hard', label: 'Hardcourt' },
-  { value: 'clay', label: 'Grus' },
-  { value: 'grass', label: 'Gräs' },
-  { value: 'indoor', label: 'Inomhus' },
-  { value: 'all', label: 'Alla underlag' },
+  { value: 'hard', labelKey: 'surfaces.hard' },
+  { value: 'clay', labelKey: 'surfaces.clay' },
+  { value: 'grass', labelKey: 'surfaces.grass' },
+  { value: 'indoor', labelKey: 'surfaces.indoor' },
+  { value: 'all', labelKey: 'surfaces.all' },
 ]
 
 const FOREHAND_GRIPS = [
-  { value: 'eastern', label: 'Eastern' },
-  { value: 'semi_western', label: 'Semi-Western' },
-  { value: 'western', label: 'Western' },
-  { value: 'continental', label: 'Continental' },
+  { value: 'eastern', labelKey: 'forehandGrips.eastern' },
+  { value: 'semi_western', labelKey: 'forehandGrips.semiWestern' },
+  { value: 'western', labelKey: 'forehandGrips.western' },
+  { value: 'continental', labelKey: 'forehandGrips.continental' },
+]
+
+const BACKHAND_TYPES = [
+  { value: 'one_handed', labelKey: 'backhandTypes.oneHanded' },
+  { value: 'two_handed', labelKey: 'backhandTypes.twoHanded' },
 ]
 
 const STRENGTHS = [
-  { id: 'serve', label: 'Serve' },
-  { id: 'forehand', label: 'Forehand' },
-  { id: 'backhand', label: 'Backhand' },
-  { id: 'volley', label: 'Volley' },
-  { id: 'return', label: 'Return' },
-  { id: 'movement', label: 'Rörelse/Fotwork' },
-  { id: 'mental', label: 'Mental styrka' },
-  { id: 'endurance', label: 'Uthållighet' },
+  { id: 'serve', labelKey: 'strengths.serve' },
+  { id: 'forehand', labelKey: 'strengths.forehand' },
+  { id: 'backhand', labelKey: 'strengths.backhand' },
+  { id: 'volley', labelKey: 'strengths.volley' },
+  { id: 'return', labelKey: 'strengths.return' },
+  { id: 'movement', labelKey: 'strengths.movement' },
+  { id: 'mental', labelKey: 'strengths.mental' },
+  { id: 'endurance', labelKey: 'strengths.endurance' },
 ]
 
 const INJURY_TYPES = [
-  { id: 'shoulder', label: 'Axelskada' },
-  { id: 'elbow', label: 'Tennisarmbåge' },
-  { id: 'wrist', label: 'Handledsbesvär' },
-  { id: 'back', label: 'Ryggproblem' },
-  { id: 'knee', label: 'Knäskada' },
-  { id: 'ankle', label: 'Fotledsskada' },
-  { id: 'hip', label: 'Höftproblem' },
-  { id: 'abdominal', label: 'Magbesvär' },
+  { id: 'shoulder', labelKey: 'injuries.shoulder' },
+  { id: 'elbow', labelKey: 'injuries.elbow' },
+  { id: 'wrist', labelKey: 'injuries.wrist' },
+  { id: 'back', labelKey: 'injuries.back' },
+  { id: 'knee', labelKey: 'injuries.knee' },
+  { id: 'ankle', labelKey: 'injuries.ankle' },
+  { id: 'hip', labelKey: 'injuries.hip' },
+  { id: 'abdominal', labelKey: 'injuries.abdominal' },
 ]
 
 export function TennisOnboarding({
@@ -159,6 +164,7 @@ export function TennisOnboarding({
 }: TennisOnboardingProps) {
   const [step, setStep] = useState(1)
   const [localSettings, setLocalSettings] = useState<TennisSettings>(settings)
+  const t = useTranslations('components.onboarding.tennis')
 
   const totalSteps = 7
   const progress = (step / totalSteps) * 100
@@ -208,30 +214,30 @@ export function TennisOnboarding({
       <CardHeader>
         <div className="flex items-center justify-between mb-2">
           <Badge variant="outline" className="text-green-600">
-            Tennis
+            {t('badge')}
           </Badge>
           <span className="text-sm text-muted-foreground">
-            Steg {step} av {totalSteps}
+            {t('stepProgress', { step, totalSteps })}
           </span>
         </div>
         <Progress value={progress} className="h-2" />
         <CardTitle className="mt-4">
-          {step === 1 && 'Välj din spelstil'}
-          {step === 2 && 'Klubb och nivå'}
-          {step === 3 && 'Teknik och fysik'}
-          {step === 4 && 'Snabbhetstester'}
-          {step === 5 && 'Kraft och uthållighet'}
-          {step === 6 && 'Styrkor och svagheter'}
-          {step === 7 && 'Skadehistorik och träning'}
+          {step === 1 && t('stepTitles.playStyle')}
+          {step === 2 && t('stepTitles.clubAndLevel')}
+          {step === 3 && t('stepTitles.techniqueAndPhysical')}
+          {step === 4 && t('stepTitles.speedTests')}
+          {step === 5 && t('stepTitles.strengthAndEndurance')}
+          {step === 6 && t('stepTitles.strengthsAndWeaknesses')}
+          {step === 7 && t('stepTitles.injuriesAndTraining')}
         </CardTitle>
         <CardDescription>
-          {step === 1 && 'Vilken spelstil beskriver dig bäst?'}
-          {step === 2 && 'Information om din klubb och tävlingsnivå'}
-          {step === 3 && 'Din teknik och fysiska attribut'}
-          {step === 4 && 'Dina senaste testresultat för snabbhet'}
-          {step === 5 && 'Dina senaste testresultat för kraft och kondition'}
-          {step === 6 && 'Vad är dina styrkor och utvecklingsområden?'}
-          {step === 7 && 'Tidigare skador och träningsförutsättningar'}
+          {step === 1 && t('stepDescriptions.playStyle')}
+          {step === 2 && t('stepDescriptions.clubAndLevel')}
+          {step === 3 && t('stepDescriptions.techniqueAndPhysical')}
+          {step === 4 && t('stepDescriptions.speedTests')}
+          {step === 5 && t('stepDescriptions.strengthAndEndurance')}
+          {step === 6 && t('stepDescriptions.strengthsAndWeaknesses')}
+          {step === 7 && t('stepDescriptions.injuriesAndTraining')}
         </CardDescription>
       </CardHeader>
 
@@ -249,8 +255,8 @@ export function TennisOnboarding({
               <div key={style.value} className="flex items-center space-x-3">
                 <RadioGroupItem value={style.value} id={style.value} />
                 <Label htmlFor={style.value} className="flex-1 cursor-pointer">
-                  <div className="font-medium">{style.label}</div>
-                  <div className="text-sm text-muted-foreground">{style.description}</div>
+                  <div className="font-medium">{t(style.labelKey)}</div>
+                  <div className="text-sm text-muted-foreground">{t(style.descriptionKey)}</div>
                 </Label>
               </div>
             ))}
@@ -261,17 +267,17 @@ export function TennisOnboarding({
         {step === 2 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="clubName">Klubbnamn</Label>
+              <Label htmlFor="clubName">{t('fields.clubName')}</Label>
               <Input
                 id="clubName"
                 value={localSettings.clubName}
                 onChange={(e) => updateLocalSettings({ clubName: e.target.value })}
-                placeholder="T.ex. Kungliga Tennisklubben"
+                placeholder={t('placeholders.clubName')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Nivå</Label>
+              <Label>{t('fields.leagueLevel')}</Label>
               <RadioGroup
                 value={localSettings.leagueLevel}
                 onValueChange={(value) =>
@@ -282,14 +288,14 @@ export function TennisOnboarding({
                 {LEAGUE_LEVELS.map((level) => (
                   <div key={level.value} className="flex items-center space-x-3">
                     <RadioGroupItem value={level.value} id={`league-${level.value}`} />
-                    <Label htmlFor={`league-${level.value}`}>{level.label}</Label>
+                    <Label htmlFor={`league-${level.value}`}>{t(level.labelKey)}</Label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
 
             <div className="space-y-2">
-              <Label>Säsongsfas</Label>
+              <Label>{t('fields.seasonPhase')}</Label>
               <RadioGroup
                 value={localSettings.seasonPhase}
                 onValueChange={(value) =>
@@ -301,8 +307,8 @@ export function TennisOnboarding({
                   <div key={phase.value} className="flex items-center space-x-3">
                     <RadioGroupItem value={phase.value} id={`phase-${phase.value}`} />
                     <Label htmlFor={`phase-${phase.value}`} className="cursor-pointer">
-                      <div>{phase.label}</div>
-                      <div className="text-xs text-muted-foreground">{phase.description}</div>
+                      <div>{t(phase.labelKey)}</div>
+                      <div className="text-xs text-muted-foreground">{t(phase.descriptionKey)}</div>
                     </Label>
                   </div>
                 ))}
@@ -311,7 +317,7 @@ export function TennisOnboarding({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="matchesPerWeek">Matcher per vecka</Label>
+                <Label htmlFor="matchesPerWeek">{t('fields.matchesPerWeek')}</Label>
                 <Input
                   id="matchesPerWeek"
                   type="number"
@@ -324,7 +330,7 @@ export function TennisOnboarding({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="yearsPlaying">År som spelare</Label>
+                <Label htmlFor="yearsPlaying">{t('fields.yearsPlaying')}</Label>
                 <Input
                   id="yearsPlaying"
                   type="number"
@@ -344,7 +350,7 @@ export function TennisOnboarding({
         {step === 3 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label>Favoritunderlag</Label>
+              <Label>{t('fields.preferredSurface')}</Label>
               <RadioGroup
                 value={localSettings.preferredSurface}
                 onValueChange={(value) =>
@@ -355,14 +361,14 @@ export function TennisOnboarding({
                 {SURFACES.map((surface) => (
                   <div key={surface.value} className="flex items-center space-x-2">
                     <RadioGroupItem value={surface.value} id={`surface-${surface.value}`} />
-                    <Label htmlFor={`surface-${surface.value}`}>{surface.label}</Label>
+                    <Label htmlFor={`surface-${surface.value}`}>{t(surface.labelKey)}</Label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
 
             <div className="space-y-2">
-              <Label>Dominant hand</Label>
+              <Label>{t('fields.dominantHand')}</Label>
               <RadioGroup
                 value={localSettings.dominantHand}
                 onValueChange={(value) =>
@@ -372,17 +378,17 @@ export function TennisOnboarding({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="right" id="hand-right" />
-                  <Label htmlFor="hand-right">Höger</Label>
+                  <Label htmlFor="hand-right">{t('handedness.right')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="left" id="hand-left" />
-                  <Label htmlFor="hand-left">Vänster</Label>
+                  <Label htmlFor="hand-left">{t('handedness.left')}</Label>
                 </div>
               </RadioGroup>
             </div>
 
             <div className="space-y-2">
-              <Label>Forehand-grepp</Label>
+              <Label>{t('fields.forehandGrip')}</Label>
               <RadioGroup
                 value={localSettings.forehandGrip}
                 onValueChange={(value) =>
@@ -393,14 +399,14 @@ export function TennisOnboarding({
                 {FOREHAND_GRIPS.map((grip) => (
                   <div key={grip.value} className="flex items-center space-x-2">
                     <RadioGroupItem value={grip.value} id={`grip-${grip.value}`} />
-                    <Label htmlFor={`grip-${grip.value}`}>{grip.label}</Label>
+                    <Label htmlFor={`grip-${grip.value}`}>{t(grip.labelKey)}</Label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
 
             <div className="space-y-2">
-              <Label>Backhand</Label>
+              <Label>{t('fields.backhandType')}</Label>
               <RadioGroup
                 value={localSettings.backhandType}
                 onValueChange={(value) =>
@@ -408,20 +414,18 @@ export function TennisOnboarding({
                 }
                 className="flex space-x-4"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="one_handed" id="bh-one" />
-                  <Label htmlFor="bh-one">Enhands</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="two_handed" id="bh-two" />
-                  <Label htmlFor="bh-two">Tvåhands</Label>
-                </div>
+                {BACKHAND_TYPES.map((type) => (
+                  <div key={type.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={type.value} id={`bh-${type.value}`} />
+                    <Label htmlFor={`bh-${type.value}`}>{t(type.labelKey)}</Label>
+                  </div>
+                ))}
               </RadioGroup>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="height">Längd (cm)</Label>
+                <Label htmlFor="height">{t('fields.height')}</Label>
                 <Input
                   id="height"
                   type="number"
@@ -433,11 +437,11 @@ export function TennisOnboarding({
                       height: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 180"
+                  placeholder={t('placeholders.height')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="serveSpeed">Maxhastighet serve (km/h)</Label>
+                <Label htmlFor="serveSpeed">{t('fields.serveSpeed')}</Label>
                 <Input
                   id="serveSpeed"
                   type="number"
@@ -449,7 +453,7 @@ export function TennisOnboarding({
                       serveSpeed: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 180"
+                  placeholder={t('placeholders.serveSpeed')}
                 />
               </div>
             </div>
@@ -461,12 +465,12 @@ export function TennisOnboarding({
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="h-5 w-5 text-green-500" />
-              <span className="font-medium">Snabbhetstester</span>
+              <span className="font-medium">{t('sections.speedTests')}</span>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="sprint5m">5m sprint (sek)</Label>
+                <Label htmlFor="sprint5m">{t('fields.sprint5m')}</Label>
                 <Input
                   id="sprint5m"
                   type="number"
@@ -477,11 +481,11 @@ export function TennisOnboarding({
                       sprint5m: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 1.05"
+                  placeholder={t('placeholders.sprint5m')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sprint10m">10m sprint (sek)</Label>
+                <Label htmlFor="sprint10m">{t('fields.sprint10m')}</Label>
                 <Input
                   id="sprint10m"
                   type="number"
@@ -492,11 +496,11 @@ export function TennisOnboarding({
                       sprint10m: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 1.75"
+                  placeholder={t('placeholders.sprint10m')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sprint20m">20m sprint (sek)</Label>
+                <Label htmlFor="sprint20m">{t('fields.sprint20m')}</Label>
                 <Input
                   id="sprint20m"
                   type="number"
@@ -507,14 +511,14 @@ export function TennisOnboarding({
                       sprint20m: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 3.00"
+                  placeholder={t('placeholders.sprint20m')}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="agilitySpider">Spider drill (sek)</Label>
+                <Label htmlFor="agilitySpider">{t('fields.agilitySpider')}</Label>
                 <Input
                   id="agilitySpider"
                   type="number"
@@ -525,12 +529,12 @@ export function TennisOnboarding({
                       agilitySpider: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 16.0"
+                  placeholder={t('placeholders.agilitySpider')}
                 />
-                <p className="text-xs text-muted-foreground">Tennisspecifikt agilitytest</p>
+                <p className="text-xs text-muted-foreground">{t('helpers.agilityTest')}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="agility505">5-10-5 shuttle (sek)</Label>
+                <Label htmlFor="agility505">{t('fields.agility505')}</Label>
                 <Input
                   id="agility505"
                   type="number"
@@ -541,7 +545,7 @@ export function TennisOnboarding({
                       agility505: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 2.30"
+                  placeholder={t('placeholders.agility505')}
                 />
               </div>
             </div>
@@ -553,12 +557,12 @@ export function TennisOnboarding({
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
               <Dumbbell className="h-5 w-5 text-green-500" />
-              <span className="font-medium">Kraft och uthållighet</span>
+              <span className="font-medium">{t('sections.strengthAndEndurance')}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="verticalJump">Vertikalhopp (cm)</Label>
+                <Label htmlFor="verticalJump">{t('fields.verticalJump')}</Label>
                 <Input
                   id="verticalJump"
                   type="number"
@@ -568,11 +572,11 @@ export function TennisOnboarding({
                       verticalJump: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 50"
+                  placeholder={t('placeholders.verticalJump')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="medicineBallThrow">Medicinbollkast (m)</Label>
+                <Label htmlFor="medicineBallThrow">{t('fields.medicineBallThrow')}</Label>
                 <Input
                   id="medicineBallThrow"
                   type="number"
@@ -583,15 +587,15 @@ export function TennisOnboarding({
                       medicineBallThrow: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 11.0"
+                  placeholder={t('placeholders.medicineBallThrow')}
                 />
-                <p className="text-xs text-muted-foreground">3kg boll, rotationskast</p>
+                <p className="text-xs text-muted-foreground">{t('helpers.medicineBallThrow')}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="gripStrength">Greppstyrka (kg)</Label>
+                <Label htmlFor="gripStrength">{t('fields.gripStrength')}</Label>
                 <Input
                   id="gripStrength"
                   type="number"
@@ -601,11 +605,11 @@ export function TennisOnboarding({
                       gripStrength: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 50"
+                  placeholder={t('placeholders.gripStrength')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="shoulderRatio">Axelstyrka ER/IR (%)</Label>
+                <Label htmlFor="shoulderRatio">{t('fields.shoulderStrengthRatio')}</Label>
                 <Input
                   id="shoulderRatio"
                   type="number"
@@ -615,14 +619,14 @@ export function TennisOnboarding({
                       shoulderStrengthRatio: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 70"
+                  placeholder={t('placeholders.shoulderStrengthRatio')}
                 />
-                <p className="text-xs text-muted-foreground">Extern/Intern rotation</p>
+                <p className="text-xs text-muted-foreground">{t('helpers.shoulderRatio')}</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="yoyoIR1Level">Yo-Yo IR1 nivå</Label>
+              <Label htmlFor="yoyoIR1Level">{t('fields.yoyoIR1Level')}</Label>
               <Input
                 id="yoyoIR1Level"
                 type="number"
@@ -633,7 +637,7 @@ export function TennisOnboarding({
                     yoyoIR1Level: e.target.value ? parseFloat(e.target.value) : null,
                   })
                 }
-                placeholder="T.ex. 18.0"
+                placeholder={t('placeholders.yoyoIR1Level')}
               />
             </div>
           </div>
@@ -645,7 +649,7 @@ export function TennisOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Zap className="h-5 w-5 text-green-500" />
-                <span className="font-medium">Dina styrkor</span>
+                <span className="font-medium">{t('sections.strengths')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {STRENGTHS.map((strength) => (
@@ -656,7 +660,7 @@ export function TennisOnboarding({
                       onCheckedChange={() => toggleArrayItem('strengthFocus', strength.id)}
                     />
                     <Label htmlFor={`strength-${strength.id}`} className="text-sm cursor-pointer">
-                      {strength.label}
+                      {t(strength.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -666,7 +670,7 @@ export function TennisOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Target className="h-5 w-5 text-blue-500" />
-                <span className="font-medium">Utvecklingsområden</span>
+                <span className="font-medium">{t('sections.weaknesses')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {STRENGTHS.map((strength) => (
@@ -677,7 +681,7 @@ export function TennisOnboarding({
                       onCheckedChange={() => toggleArrayItem('weaknesses', strength.id)}
                     />
                     <Label htmlFor={`weakness-${strength.id}`} className="text-sm cursor-pointer">
-                      {strength.label}
+                      {t(strength.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -692,7 +696,7 @@ export function TennisOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Heart className="h-5 w-5 text-red-500" />
-                <span className="font-medium">Tidigare skador</span>
+                <span className="font-medium">{t('sections.injuries')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {INJURY_TYPES.map((injury) => (
@@ -703,7 +707,7 @@ export function TennisOnboarding({
                       onCheckedChange={() => toggleArrayItem('injuryHistory', injury.id)}
                     />
                     <Label htmlFor={`injury-${injury.id}`} className="text-sm cursor-pointer">
-                      {injury.label}
+                      {t(injury.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -713,11 +717,11 @@ export function TennisOnboarding({
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-green-500" />
-                <span className="font-medium">Träningsförutsättningar</span>
+                <span className="font-medium">{t('sections.trainingConditions')}</span>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weeklyTraining">Träningspass per vecka (utöver matcher)</Label>
+                <Label htmlFor="weeklyTraining">{t('fields.weeklyTrainingSessions')}</Label>
                 <Input
                   id="weeklyTraining"
                   type="number"
@@ -739,7 +743,7 @@ export function TennisOnboarding({
                   }
                 />
                 <Label htmlFor="gymAccess" className="cursor-pointer">
-                  Jag har tillgång till gym
+                  {t('fields.gymAccess')}
                 </Label>
               </div>
             </div>
@@ -754,10 +758,10 @@ export function TennisOnboarding({
             disabled={step === 1}
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
-            Tillbaka
+            {t('actions.back')}
           </Button>
           <Button onClick={handleNext}>
-            Nästa
+            {t('actions.next')}
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>

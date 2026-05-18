@@ -4055,7 +4055,33 @@
     "clients": "Clients",
     "joined": "Joined",
     "page": "Page",
-    "of": "of"
+    "of": "of",
+    "platform": "Platform",
+    "aiBudget": "AI SEK",
+    "actions": "Actions",
+    "businesses": "Companies",
+    "allBusinesses": "All companies",
+    "noBusiness": "Default (no company)",
+    "assign": "Assign",
+    "assignBusiness": "Assign company",
+    "assignBusinessDescription": "Assign {user} to a company.",
+    "chooseBusiness": "Choose company...",
+    "editEmail": "Edit email",
+    "removeCompanyTitle": "Remove {name}",
+    "deleteUser": "Delete user",
+    "deleting": "Deleting...",
+    "deleteUserConfirmation": "Are you sure you want to delete {user}?",
+    "deleteUserWarning": "All data linked to the user is deleted permanently. This action cannot be undone.",
+    "deleteUserError": "Could not delete user",
+    "deleteUserUnexpected": "An unexpected error occurred while deleting user",
+    "aiCreditUpdateError": "Could not update AI credits",
+    "aiCreditUpdateUnexpected": "An unexpected error occurred while updating AI credits",
+    "emailUpdateError": "Could not update email",
+    "emailUpdateUnexpected": "An unexpected error occurred while updating email",
+    "emptyValueUsesDefaultAiAllowance": "Empty value uses plan or company default",
+    "effectiveMonthlyLimit": "Effective monthly limit",
+    "positiveAmountOrDefault": "Enter a positive amount or leave empty for default",
+    "removeCompany": "Remove company"
   },
   "agilityStudio": {
     "title": "Agility Studio",
@@ -4980,11 +5006,599 @@
           "ankle": "Ankle injury",
           "hip": "Hip issues",
           "calf": "Calf problems"
+        }
+      },
+      "handball": {
+        "actions": {
+          "back": "Back",
+          "next": "Next"
+        },
+        "sections": {
+          "positionAndTeam": {
+            "title": "Position & Team",
+            "description": "Tell us about your position, side, and team details."
+          },
+          "seasonAndMatchLoad": {
+            "title": "Season & Match Load",
+            "description": "Current season phase and how much you play."
+          },
+          "playStyle": {
+            "title": "Play Style",
+            "description": "Which style best describes your play."
+          },
+          "benchmarks": {
+            "title": "Physical Benchmarks",
+            "description": "Add your latest physical test results when available."
+          },
+          "strengths": {
+            "title": "Strengths & Focus Areas",
+            "description": "Which physical qualities would you like to build on and improve?"
+          },
+          "injuryHistory": {
+            "title": "Injury History",
+            "description": "Select previous injuries to include in training decisions."
+          },
+          "trainingConditions": {
+            "title": "Training Conditions",
+            "description": "What training opportunities and equipment do you have?"
+          }
+        },
+        "labels": {
+          "position": "Position",
+          "positionSide": "Position Side",
+          "teamName": "Team",
+          "leagueLevel": "League Level",
+          "yearsPlaying": "Years playing handball",
+          "throwingArm": "Throwing Arm",
+          "currentSeasonPhase": "Current season phase",
+          "matchesPerWeek": "Matches per week",
+          "averageMinutesPerMatch": "Average minutes per match",
+          "trainingSessionsPerWeek": "Training sessions per week",
+          "playStyle": "Your play style",
+          "strengthFocus": "Strength areas to continue",
+          "weaknesses": "Areas to improve",
+          "previousInjuries": "Previous injuries (select relevant)",
+          "hasAccessToGym": "Access to gym"
+        },
+        "placeholders": {
+          "position": "Choose position",
+          "teamName": "e.g. IK Sävehof",
+          "leagueLevel": "Choose league level",
+          "seasonPhase": "Choose season phase",
+          "yoyoIR1Level": "e.g. 16.0",
+          "yoyoIR2Level": "e.g. 24.0",
+          "sprint10m": "e.g. 1.55",
+          "sprint20m": "e.g. 3.10",
+          "cmjHeight": "e.g. 55",
+          "medicineBallThrow": "e.g. 7.5",
+          "tTestAgility": "e.g. 7.20",
+          "avgMinutesPerMatch": "e.g. 45",
+          "playStyle": "Choose play style"
+        },
+        "benchmarks": {
+          "yoyoIR1Level": "Yo-Yo IR1 level",
+          "yoyoIR2Level": "Yo-Yo IR2 level",
+          "sprint10m": "10m sprint (s)",
+          "sprint20m": "20m sprint (s)",
+          "cmjHeight": "CMJ jump (cm)",
+          "medicineBallThrow": "Medicine ball throw (m)",
+          "tTestAgility": "T-test agility (s)"
+        },
+        "positions": {
+          "goalkeeper": {
+            "label": "Goalkeeper",
+            "description": "Reaction, positioning and saves"
+          },
+          "wing": {
+            "label": "Wing",
+            "description": "Speed, breakthroughs and finishing"
+          },
+          "back": {
+            "label": "Back",
+            "description": "Shooting and line breaks"
+          },
+          "centerBack": {
+            "label": "Center Back / Playmaker",
+            "description": "Tempo setting, passing and vision"
+          },
+          "pivot": {
+            "label": "Pivot",
+            "description": "Contact, blocking and close-range finishing"
+          }
+        },
+        "positionSides": {
+          "goalkeeper": {
+            "center": "Goalkeeper"
+          },
+          "wing": {
+            "left": "Left Wing",
+            "right": "Right Wing",
+            "both": "Both sides"
+          },
+          "back": {
+            "left": "Left Back",
+            "right": "Right Back",
+            "both": "Both sides"
+          },
+          "centerBack": {
+            "center": "Center Back"
+          },
+          "pivot": {
+            "center": "Pivot"
+          }
+        },
+        "leagueLevels": {
+          "recreational": {
+            "label": "Recreational",
+            "description": "Social and motion play"
+          },
+          "division3": {
+            "label": "Division 3",
+            "description": "Third tier"
+          },
+          "division2": {
+            "label": "Division 2",
+            "description": "Second tier"
+          },
+          "division1": {
+            "label": "Division 1",
+            "description": "Highest amateur level"
+          },
+          "allsvenskan": {
+            "label": "Allsvenskan",
+            "description": "Second highest national league"
+          },
+          "handbollsligan": {
+            "label": "Handbollsligan",
+            "description": "Top national league"
+          }
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "June to July, build base"
+          },
+          "preSeason": {
+            "label": "Pre-season",
+            "description": "July to August, match preparation"
+          },
+          "inSeason": {
+            "label": "In-season",
+            "description": "September to May"
+          },
+          "playoffs": {
+            "label": "Playoffs",
+            "description": "Playoffs and championship phase"
+          }
+        },
+        "playStyles": {
+          "offensive": {
+            "label": "Offensive",
+            "description": "Focus on scoring and shot creation"
+          },
+          "defensive": {
+            "label": "Defensive",
+            "description": "Focus on defense, positioning and tackling"
+          },
+          "allRound": {
+            "label": "All-round",
+            "description": "Balanced all-around play"
+          },
+          "specialist": {
+            "label": "Specialist",
+            "description": "Specific role (for example 7-on-6)"
+          }
+        },
+        "strengths": {
+          "throwingPower": "Throwing power",
+          "sprintSpeed": "Sprint speed",
+          "jumping": "Jumping power",
+          "agility": "Agility",
+          "endurance": "Endurance",
+          "upperBody": "Upper-body strength",
+          "coreStability": "Core stability",
+          "contactStrength": "Contact strength"
+        },
+        "weaknesses": {
+          "weakArm": "Weak arm",
+          "finishing": "Finishing",
+          "defense": "Defense",
+          "positioning": "Positioning",
+          "ballHandling": "Ball handling",
+          "passing": "Passing",
+          "stamina": "Stamina",
+          "decisionMaking": "Decision making"
+        },
+        "injuries": {
+          "shoulder": "Shoulder",
+          "knee": "Knee",
+          "kneeAcl": "ACL knee injury",
+          "ankle": "Ankle",
+          "groin": "Groin",
+          "back": "Back pain",
+          "finger": "Finger",
+          "elbow": "Elbow"
+        },
+        "throwingArms": {
+          "right": "Right",
+          "left": "Left"
+        },
+        "tips": {
+          "positionPrefix": "Tips for",
+          "goalkeeper": {
+            "1": "Prioritize reaction training and lateral movement",
+            "2": "Emphasize explosive power for throws and jumps",
+            "3": "Build shoulder stability and hip mobility"
+          },
+          "wing": {
+            "1": "Focus on sprint acceleration and fast breaks",
+            "2": "Build jump power for angle shooting",
+            "3": "Prioritize repeated high-intensity endurance"
+          },
+          "back": {
+            "1": "Develop shot power and rotational strength",
+            "2": "Improve jump power for jump shots",
+            "3": "Work shoulder stability for prevention"
+          },
+          "centerBack": {
+            "1": "Build aerobic capacity for long shifts",
+            "2": "Train agility and quick footwork",
+            "3": "Improve decision making under pressure"
+          },
+          "pivot": {
+            "1": "Build body strength for contact",
+            "2": "Train core stability for balance in duels",
+            "3": "Improve explosiveness in limited space"
+          }
+        },
+        "notes": {
+          "injuryFocus": "Your program will include preventive work for identified injury risks."
+        },
+        "positionFallback": "your position"
+      },
+      "volleyball": {
+        "badge": "Volleyball",
+        "stepProgress": "Step {step} of {totalSteps}",
+        "stepTitles": {
+          "position": "Position and level",
+          "teamAndLevel": "Team and competition level",
+          "playStyleAndPhysical": "Play style and physical profile",
+          "jumpTests": "Jump tests",
+          "physicalTests": "Additional physical tests",
+          "strengthsAndWeaknesses": "Strengths and weaknesses",
+          "injuriesAndTraining": "Injuries and training conditions"
+        },
+        "stepDescriptions": {
+          "position": "What position do you play most?",
+          "teamAndLevel": "Tell us about your team and competition level.",
+          "playStyleAndPhysical": "Your play style and physical profile",
+          "jumpTests": "Your latest jump and jumping reach tests",
+          "physicalTests": "Your latest agility and power tests",
+          "strengthsAndWeaknesses": "What are your strengths and areas to improve?",
+          "injuriesAndTraining": "Previous injuries and training availability"
+        },
+        "fields": {
+          "teamName": "Team name",
+          "leagueLevel": "League level",
+          "seasonPhase": "Season phase",
+          "matchesPerWeek": "Matches per week",
+          "avgSetsPerMatch": "Average sets per match",
+          "yearsPlaying": "Years playing",
+          "playStyle": "Play style",
+          "dominantHand": "Dominant hand",
+          "height": "Height (cm)",
+          "spikeHeight": "Spike height (cm)",
+          "blockHeight": "Block height (cm)",
+          "verticalJump": "Vertical jump (cm)",
+          "spikeJump": "Spike jump (cm)",
+          "blockJump": "Block jump (cm)",
+          "standingReach": "Standing reach (cm)",
+          "agilityTTest": "Agility T-test (sec)",
+          "sprint5m": "5m sprint (sec)",
+          "squat": "Squat 1RM (kg)",
+          "powerClean": "Power clean (kg)",
+          "yoyoIR1Level": "Yo-Yo IR1 level",
+          "weeklyTrainingSessions": "Training sessions per week",
+          "gymAccess": "I have access to a gym"
+        },
+        "sections": {
+          "jumpTests": "Jump tests",
+          "physicalTests": "Physical tests",
+          "strengths": "Your strengths",
+          "weaknesses": "Areas to improve",
+          "injuries": "Previous injuries",
+          "trainingConditions": "Training conditions"
+        },
+        "placeholders": {
+          "teamName": "e.g. Stockholm VC",
+          "height": "e.g. 190",
+          "spikeHeight": "e.g. 300",
+          "blockHeight": "e.g. 290",
+          "avgSetsPerMatch": "e.g. 3.5",
+          "verticalJump": "e.g. 60",
+          "spikeJump": "e.g. 78",
+          "blockJump": "e.g. 72",
+          "standingReach": "e.g. 245",
+          "agilityTTest": "e.g. 9.2",
+          "sprint5m": "e.g. 1.12",
+          "squat": "e.g. 130",
+          "powerClean": "e.g. 80",
+          "yoyoIR1Level": "e.g. 18.0"
+        },
+        "helpers": {
+          "verticalJump": "Use best jump attempt from a test day",
+          "spikeJump": "Measure with a standard approach jump test"
+        },
+        "positions": {
+          "setter": {
+            "label": "Setter",
+            "description": "Ball distributor and tactical organizer"
+          },
+          "outside_hitter": {
+            "label": "Outside hitter",
+            "description": "Scoring and defense on wings"
+          },
+          "opposite_hitter": {
+            "label": "Opposite",
+            "description": "Right-side attacking specialization"
+          },
+          "middle_blocker": {
+            "label": "Middle blocker",
+            "description": "Blocking specialist and quick attacks"
+          },
+          "libero": {
+            "label": "Libero",
+            "description": "Backcourt defense specialist"
+          }
+        },
+        "leagueLevels": {
+          "recreational": "Recreational",
+          "division3": "Division 3",
+          "division2": "Division 2",
+          "division1": "Division 1",
+          "elitserien": "Top National League",
+          "ssl": "SSL"
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Build physical base"
+          },
+          "preSeason": {
+            "label": "Pre-season",
+            "description": "Match preparation"
+          },
+          "inSeason": {
+            "label": "In season",
+            "description": "Competition phase"
+          },
+          "playoffs": {
+            "label": "Playoffs",
+            "description": "Championship phase"
+          }
+        },
+        "playStyles": {
+          "power": {
+            "label": "Power",
+            "description": "High force and strong attacks"
+          },
+          "finesse": {
+            "label": "Finesse",
+            "description": "Tactical placement and control"
+          },
+          "defensive": {
+            "label": "Defensive",
+            "description": "Prioritize digs and coverage"
+          },
+          "allround": {
+            "label": "All-round",
+            "description": "Contributes offensively and defensively"
+          }
+        },
+        "strengths": {
+          "verticalJump": "Vertical jump",
+          "spikePower": "Spike power",
+          "blocking": "Blocking",
+          "serving": "Serving",
+          "reception": "Reception",
+          "defense": "Defense",
+          "courtVision": "Court vision",
+          "agility": "Agility"
+        },
+        "injuries": {
+          "shoulder": "Shoulder",
+          "kneePatellar": "Patellar knee pain",
+          "kneeAcl": "Knee injury (ACL/MCL)",
+          "ankle": "Ankle",
+          "back": "Back",
+          "finger": "Finger",
+          "wrist": "Wrist"
+        },
+        "handedness": {
+          "right": "Right",
+          "left": "Left"
         },
         "actions": {
           "back": "Back",
           "next": "Next"
         }
+      },
+      "tennis": {
+        "badge": "Tennis",
+        "stepProgress": "Step {step} of {totalSteps}",
+        "stepTitles": {
+          "playStyle": "Playing style",
+          "clubAndLevel": "Club and level",
+          "techniqueAndPhysical": "Technique and physical profile",
+          "speedTests": "Speed tests",
+          "strengthAndEndurance": "Strength and endurance",
+          "strengthsAndWeaknesses": "Strengths and weaknesses",
+          "injuriesAndTraining": "Injuries and training conditions"
+        },
+        "stepDescriptions": {
+          "playStyle": "How do you describe your preferred playing style?",
+          "clubAndLevel": "Tell us about your club and competitive level.",
+          "techniqueAndPhysical": "Your position, dominant hand, and surface preferences.",
+          "speedTests": "Your latest speed and agility results.",
+          "strengthAndEndurance": "Your best strength and aerobic markers.",
+          "strengthsAndWeaknesses": "What are your strengths and development priorities?",
+          "injuriesAndTraining": "Previous injuries and training conditions"
+        },
+        "fields": {
+          "clubName": "Club name",
+          "leagueLevel": "League level",
+          "seasonPhase": "Season phase",
+          "matchesPerWeek": "Matches per week",
+          "yearsPlaying": "Years playing",
+          "preferredSurface": "Preferred surface",
+          "dominantHand": "Dominant hand",
+          "forehandGrip": "Forehand grip",
+          "backhandType": "Backhand type",
+          "strengths": "Strengths",
+          "weaknesses": "Weaknesses",
+          "injuryHistory": "Injury history",
+          "weeklyTrainingSessions": "Training sessions per week",
+          "gymAccess": "I have access to a gym",
+          "height": "Height (cm)",
+          "serveSpeed": "Serve speed (km/h)",
+          "sprint5m": "5m sprint (sec)",
+          "sprint10m": "10m sprint (sec)",
+          "sprint20m": "20m sprint (sec)",
+          "agilitySpider": "Spider drill (sec)",
+          "agility505": "5-10-5 shuttle (sec)",
+          "lateralShuffle": "Lateral shuffle (10m sec)",
+          "verticalJump": "Vertical jump (cm)",
+          "medicineBallThrow": "Medicine ball throw (m)",
+          "gripStrength": "Grip strength (kg)",
+          "shoulderStrengthRatio": "Shoulder strength ratio",
+          "yoyoIR1Level": "Yo-Yo IR1 level"
+        },
+        "sections": {
+          "speedTests": "Speed and agility tests",
+          "strengthAndEndurance": "Strength and endurance tests",
+          "strengths": "Your strengths",
+          "weaknesses": "Development areas",
+          "injuries": "Injury history",
+          "trainingConditions": "Training conditions"
+        },
+        "placeholders": {
+          "clubName": "e.g. Stockholm Tennis Club",
+          "height": "e.g. 178",
+          "serveSpeed": "e.g. 180",
+          "sprint5m": "e.g. 1.07",
+          "sprint10m": "e.g. 1.75",
+          "sprint20m": "e.g. 3.45",
+          "agilitySpider": "e.g. 14.8",
+          "agility505": "e.g. 2.32",
+          "lateralShuffle": "e.g. 4.1",
+          "verticalJump": "e.g. 44",
+          "medicineBallThrow": "e.g. 10.7",
+          "gripStrength": "e.g. 46",
+          "shoulderStrengthRatio": "e.g. 6.2",
+          "yoyoIR1Level": "e.g. 16.8"
+        },
+        "helpers": {
+          "agilityTest": "Lateral movement and footwork in one drill.",
+          "medicineBallThrow": "Use a 2 kg medicine ball for best comparability.",
+          "shoulderRatio": "Ratio of shoulder strength to body weight."
+        },
+        "playStyles": {
+          "aggressiveBaseliner": {
+            "label": "Aggressive Baseliner",
+            "description": "Hard-hitting, high-pressure baseline play"
+          },
+          "serveAndVolleyer": {
+            "label": "Serve and Volley",
+            "description": "Frequent net transitions and serve follow-up"
+          },
+          "allCourt": {
+            "label": "All-court",
+            "description": "Balanced play from baseline and net"
+          },
+          "counterPuncher": {
+            "label": "Counter-puncher",
+            "description": "Consistent defense and counter-attacking"
+          },
+          "bigServer": {
+            "label": "Big Server",
+            "description": "Uses serve as a tactical weapon"
+          }
+        },
+        "leagueLevels": {
+          "recreational": "Recreational",
+          "club": "Club level",
+          "division4": "Division 4",
+          "division3": "Division 3",
+          "division2": "Division 2",
+          "division1": "Division 1",
+          "elitserien": "Top National",
+          "atpWta": "ATP/WTA level"
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Restoration and base training"
+          },
+          "preSeason": {
+            "label": "Pre-season",
+            "description": "Build fitness and technique load"
+          },
+          "inSeason": {
+            "label": "In season",
+            "description": "Tournament competition period"
+          },
+          "tournament": {
+            "label": "Tournament",
+            "description": "Peak around major events"
+          }
+        },
+        "surfaces": {
+          "hard": "Hard court",
+          "clay": "Clay court",
+          "grass": "Grass court",
+          "indoor": "Indoor court",
+          "all": "All surfaces"
+        },
+        "forehandGrips": {
+          "eastern": "Eastern",
+          "semiWestern": "Semi-Western",
+          "western": "Western",
+          "continental": "Continental"
+        },
+        "backhandTypes": {
+          "oneHanded": "One-handed",
+          "twoHanded": "Two-handed"
+        },
+        "strengths": {
+          "serve": "Serve",
+          "forehand": "Forehand",
+          "backhand": "Backhand",
+          "volley": "Volley",
+          "return": "Return",
+          "movement": "Movement",
+          "mental": "Mental focus",
+          "endurance": "Endurance"
+        },
+        "injuries": {
+          "shoulder": "Shoulder",
+          "elbow": "Elbow",
+          "wrist": "Wrist",
+          "back": "Back",
+          "knee": "Knee",
+          "ankle": "Ankle",
+          "hip": "Hip",
+          "abdominal": "Abdominal/core"
+        },
+        "handedness": {
+          "right": "Right",
+          "left": "Left"
+        },
+        "actions": {
+          "back": "Back",
+          "next": "Next"
+        }
+      },
+      "floorball": {
       },
       "nutrition": {
         "titles": {
