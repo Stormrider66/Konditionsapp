@@ -19,9 +19,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Search, Trash2 } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 
 interface AliasRow {
   id: string
@@ -38,6 +39,9 @@ interface Props {
 }
 
 export function ExerciseAliasesClient({ initialAliases }: Props) {
+  const t = useTranslations('components.exerciseAliasesClient')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const { toast } = useToast()
   const [aliases, setAliases] = useState<AliasRow[]>(initialAliases)
   const [search, setSearch] = useState('')
@@ -49,11 +53,11 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
       const params = new URLSearchParams()
       if (q.trim()) params.set('search', q.trim())
       const res = await fetch(`/api/programs/exercise-aliases?${params.toString()}`)
-      if (!res.ok) throw new Error('Kunde inte ladda kopplingar')
+      if (!res.ok) throw new Error(t('errors.fetchFailed'))
       const data = (await res.json()) as { aliases: AliasRow[] }
       setAliases(data.aliases ?? [])
     },
-    []
+    [t]
   )
 
   const handleSearchChange = (value: string) => {
@@ -62,8 +66,8 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
     startTransition(() => {
       void refetch(value).catch((e) => {
         toast({
-          title: 'Sökningen misslyckades',
-          description: e instanceof Error ? e.message : 'Okänt fel',
+          title: t('toasts.searchFailed.title'),
+          description: e instanceof Error ? e.message : t('errors.unknown'),
           variant: 'destructive',
         })
       })
@@ -73,7 +77,10 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
   const handleDelete = async (row: AliasRow) => {
     if (
       !confirm(
-        `Ta bort kopplingen "${row.alias}" → ${row.exerciseName}?\n\nFramtida importer av samma namn kommer behöva mappas manuellt igen.`
+        t('confirmDelete', {
+          alias: row.alias,
+          exerciseName: row.exerciseName,
+        })
       )
     )
       return
@@ -86,17 +93,17 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
       )
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || 'Kunde inte ta bort kopplingen')
+        throw new Error(data?.error || t('errors.deleteFailed'))
       }
       setAliases((prev) => prev.filter((a) => a.id !== row.id))
       toast({
-        title: 'Koppling borttagen',
-        description: `"${row.alias}" kommer inte längre mappas automatiskt.`,
+        title: t('toasts.deleteSuccess.title'),
+        description: t('toasts.deleteSuccess.description', { alias: row.alias }),
       })
     } catch (e) {
       toast({
-        title: 'Misslyckades',
-        description: e instanceof Error ? e.message : 'Okänt fel',
+        title: t('toasts.actionFailed.title'),
+        description: e instanceof Error ? e.message : t('errors.unknown'),
         variant: 'destructive',
       })
     } finally {
@@ -109,9 +116,9 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <CardTitle className="text-lg">Kopplingar</CardTitle>
+            <CardTitle className="text-lg">{t('title')}</CardTitle>
             <CardDescription>
-              {aliases.length} {aliases.length === 1 ? 'koppling' : 'kopplingar'}
+              {t('aliasCount', { count: aliases.length })}
             </CardDescription>
           </div>
           <div className="relative w-full sm:w-72">
@@ -119,7 +126,7 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
             <Input
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Sök namn eller övning…"
+              placeholder={t('searchPlaceholder')}
               className="pl-9"
             />
             {pending && (
@@ -131,10 +138,9 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
       <CardContent>
         {aliases.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p className="font-medium">Inga kopplingar än</p>
+            <p className="font-medium">{t('emptyTitle')}</p>
             <p className="text-sm mt-1">
-              Kopplingar skapas automatiskt när du väljer rätt övning i
-              importflödet.
+              {t('emptyDescription')}
             </p>
           </div>
         ) : (
@@ -164,9 +170,9 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
                       </Badge>
                     )}
                     <span className="text-[10px] text-muted-foreground">
-                      Skapad{' '}
+                      {t('createdPrefix')}{' '}
                       {format(new Date(a.createdAt), 'd MMM yyyy', {
-                        locale: sv,
+                        locale: dateLocale,
                       })}
                     </span>
                   </div>
@@ -177,7 +183,7 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
                   size="icon"
                   onClick={() => handleDelete(a)}
                   disabled={busyId === a.id}
-                  title="Ta bort koppling"
+                  title={t('deleteButton')}
                 >
                   {busyId === a.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

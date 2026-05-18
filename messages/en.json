@@ -4532,6 +4532,33 @@
         "unknown": "Something went wrong"
       }
     },
+    "exerciseAliasesClient": {
+      "title": "Exercise aliases",
+      "aliasCount": "{count, plural, one {# alias} other {# aliases}}",
+      "searchPlaceholder": "Search alias or exercise...",
+      "emptyTitle": "No aliases yet",
+      "emptyDescription": "Aliases are created automatically when you map an imported exercise to the correct library exercise.",
+      "createdPrefix": "Created",
+      "deleteButton": "Delete alias mapping",
+      "confirmDelete": "Delete mapping \"{alias}\" → {exerciseName}?\n\nFuture imports with the same name will need to be mapped manually again.",
+      "errors": {
+        "fetchFailed": "Could not load aliases",
+        "deleteFailed": "Could not delete alias mapping",
+        "unknown": "Something went wrong"
+      },
+      "toasts": {
+        "searchFailed": {
+          "title": "Search failed"
+        },
+        "deleteSuccess": {
+          "title": "Mapping deleted",
+          "description": "\"{alias}\" will no longer be mapped automatically."
+        },
+        "actionFailed": {
+          "title": "Failed"
+        }
+      }
+    },
     "practiceSheetPrintButton": {
       "actions": {
         "copyLink": "Copy link",
