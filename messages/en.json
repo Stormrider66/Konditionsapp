@@ -4920,6 +4920,118 @@
           "back": "Back",
           "next": "Next"
         }
+      },
+      "nutrition": {
+        "titles": {
+          "goal": "What is your goal?",
+          "macroProfile": "Macro profile",
+          "dietStyle": "Diet style",
+          "activityLevel": "Activity level"
+        },
+        "labels": {
+          "targetWeight": "Target weight (kg)",
+          "weeklyChange": "Weekly change (kg)"
+        },
+        "placeholders": {
+          "targetWeight": "75"
+        },
+        "units": {
+          "kg": "kg"
+        },
+        "sections": {
+          "allergies": "Allergies",
+          "intolerances": "Intolerances"
+        },
+        "goalTypes": {
+          "weightLoss": {
+            "label": "Lose weight",
+            "description": "Healthy weight loss while preserving lean mass"
+          },
+          "weightGain": {
+            "label": "Gain weight",
+            "description": "Build mass with a focus on muscle"
+          },
+          "maintain": {
+            "label": "Maintain weight",
+            "description": "Keep stable weight with good nutrition"
+          },
+          "bodyRecomp": {
+            "label": "Body composition",
+            "description": "Reduce fat and increase muscle simultaneously"
+          }
+        },
+        "macroProfiles": {
+          "balanced": {
+            "label": "Balanced",
+            "description": "40% carbs, 30% protein, 30% fat"
+          },
+          "highProtein": {
+            "label": "High protein",
+            "description": "35% carbs, 40% protein, 25% fat"
+          },
+          "lowCarb": {
+            "label": "Low carb",
+            "description": "20% carbs, 35% protein, 45% fat"
+          },
+          "keto": {
+            "label": "Keto",
+            "description": "5% carbs, 25% protein, 70% fat"
+          },
+          "endurance": {
+            "label": "Endurance",
+            "description": "55% carbs, 20% protein, 25% fat"
+          },
+          "strength": {
+            "label": "Strength",
+            "description": "40% carbs, 35% protein, 25% fat"
+          }
+        },
+        "dietaryStyles": {
+          "omnivore": "Omnivore",
+          "flexitarian": "Flexitarian",
+          "pescatarian": "Pescatarian",
+          "vegetarian": "Vegetarian",
+          "vegan": "Vegan"
+        },
+        "activityLevels": {
+          "sedentary": {
+            "label": "Sedentary",
+            "description": "Little or no regular training"
+          },
+          "lightlyActive": {
+            "label": "Lightly active",
+            "description": "1-2 sessions/week"
+          },
+          "active": {
+            "label": "Active",
+            "description": "3-4 sessions/week"
+          },
+          "veryActive": {
+            "label": "Very active",
+            "description": "5-6 sessions/week"
+          },
+          "athlete": {
+            "label": "Athlete",
+            "description": "Daily training"
+          }
+        },
+        "commonAllergies": {
+          "nuts": "Nuts",
+          "peanuts": "Peanuts",
+          "milk": "Milk",
+          "eggs": "Eggs",
+          "soy": "Soy",
+          "wheatGluten": "Wheat/Gluten",
+          "fish": "Fish",
+          "shellfish": "Shellfish"
+        },
+        "commonIntolerances": {
+          "lactose": "Lactose",
+          "gluten": "Gluten",
+          "fruitSugars": "Fruit juice/fructose",
+          "histamine": "Histamine",
+          "fodmap": "FODMAP"
+        }
       }
     },
     "footballOnboarding": {

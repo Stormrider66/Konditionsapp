@@ -4920,6 +4920,118 @@
           "back": "Tillbaka",
           "next": "Nästa"
         }
+      },
+      "nutrition": {
+        "titles": {
+          "goal": "Vad är ditt mål?",
+          "macroProfile": "Makroprofil",
+          "dietStyle": "Koststil",
+          "activityLevel": "Aktivitetsnivå"
+        },
+        "labels": {
+          "targetWeight": "Målvikt (kg)",
+          "weeklyChange": "Förändring per vecka (kg)"
+        },
+        "placeholders": {
+          "targetWeight": "75"
+        },
+        "units": {
+          "kg": "kg"
+        },
+        "sections": {
+          "allergies": "Allergier",
+          "intolerances": "Intoleranser"
+        },
+        "goalTypes": {
+          "weightLoss": {
+            "label": "Gå ner i vikt",
+            "description": "Hälsosam viktnedgång med bibehållen muskelmassa"
+          },
+          "weightGain": {
+            "label": "Gå upp i vikt",
+            "description": "Bygga massa med fokus på muskler"
+          },
+          "maintain": {
+            "label": "Bibehåll vikt",
+            "description": "Håll stabil vikt med bra näring"
+          },
+          "bodyRecomp": {
+            "label": "Kroppssammansättning",
+            "description": "Minska fett och öka muskler samtidigt"
+          }
+        },
+        "macroProfiles": {
+          "balanced": {
+            "label": "Balanserad",
+            "description": "40% kolhydrater, 30% protein, 30% fett"
+          },
+          "highProtein": {
+            "label": "Hög protein",
+            "description": "35% kolhydrater, 40% protein, 25% fett"
+          },
+          "lowCarb": {
+            "label": "Lågkolhydrat",
+            "description": "20% kolhydrater, 35% protein, 45% fett"
+          },
+          "keto": {
+            "label": "Keto",
+            "description": "5% kolhydrater, 25% protein, 70% fett"
+          },
+          "endurance": {
+            "label": "Uthållighet",
+            "description": "55% kolhydrater, 20% protein, 25% fett"
+          },
+          "strength": {
+            "label": "Styrka",
+            "description": "40% kolhydrater, 35% protein, 25% fett"
+          }
+        },
+        "dietaryStyles": {
+          "omnivore": "Allätare",
+          "flexitarian": "Flexitarian",
+          "pescatarian": "Pescatarian",
+          "vegetarian": "Vegetarian",
+          "vegan": "Vegan"
+        },
+        "activityLevels": {
+          "sedentary": {
+            "label": "Stillasittande",
+            "description": "Lite eller ingen träning"
+          },
+          "lightlyActive": {
+            "label": "Lätt aktiv",
+            "description": "1-2 pass/vecka"
+          },
+          "active": {
+            "label": "Aktiv",
+            "description": "3-4 pass/vecka"
+          },
+          "veryActive": {
+            "label": "Mycket aktiv",
+            "description": "5-6 pass/vecka"
+          },
+          "athlete": {
+            "label": "Idrottare",
+            "description": "Daglig träning"
+          }
+        },
+        "commonAllergies": {
+          "nuts": "Nötter",
+          "peanuts": "Jordnötter",
+          "milk": "Mjölk",
+          "eggs": "Ägg",
+          "soy": "Soja",
+          "wheatGluten": "Vete/Gluten",
+          "fish": "Fisk",
+          "shellfish": "Skaldjur"
+        },
+        "commonIntolerances": {
+          "lactose": "Laktos",
+          "gluten": "Gluten",
+          "fruitSugars": "Fruktjuice/Fruktos",
+          "histamine": "Histamin",
+          "fodmap": "FODMAP"
+        }
       }
     },
     "footballOnboarding": {

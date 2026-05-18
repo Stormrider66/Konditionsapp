@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Target, Scale, TrendingDown, TrendingUp, Minus, Activity, Leaf, Utensils } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export interface NutritionSettings {
   goalType: 'WEIGHT_LOSS' | 'WEIGHT_GAIN' | 'MAINTAIN' | 'BODY_RECOMP'
@@ -29,43 +30,43 @@ export const DEFAULT_NUTRITION_SETTINGS: NutritionSettings = {
 }
 
 const GOAL_TYPES = [
-  { value: 'WEIGHT_LOSS', label: 'Gå ner i vikt', icon: TrendingDown, description: 'Hälsosam viktnedgång med bibehållen muskelmassa' },
-  { value: 'WEIGHT_GAIN', label: 'Gå upp i vikt', icon: TrendingUp, description: 'Bygga massa med fokus på muskler' },
-  { value: 'MAINTAIN', label: 'Bibehåll vikt', icon: Minus, description: 'Håll stabil vikt med bra näring' },
-  { value: 'BODY_RECOMP', label: 'Kroppssammansättning', icon: Target, description: 'Minska fett och öka muskler samtidigt' },
+  { value: 'WEIGHT_LOSS', label: 'goalTypes.weightLoss.label', icon: TrendingDown, description: 'goalTypes.weightLoss.description' },
+  { value: 'WEIGHT_GAIN', label: 'goalTypes.weightGain.label', icon: TrendingUp, description: 'goalTypes.weightGain.description' },
+  { value: 'MAINTAIN', label: 'goalTypes.maintain.label', icon: Minus, description: 'goalTypes.maintain.description' },
+  { value: 'BODY_RECOMP', label: 'goalTypes.bodyRecomp.label', icon: Target, description: 'goalTypes.bodyRecomp.description' },
 ] as const
 
 const MACRO_PROFILES = [
-  { value: 'BALANCED', label: 'Balanserad', description: '40% kolhydrater, 30% protein, 30% fett' },
-  { value: 'HIGH_PROTEIN', label: 'Hög protein', description: '35% kolhydrater, 40% protein, 25% fett' },
-  { value: 'LOW_CARB', label: 'Lågkolhydrat', description: '20% kolhydrater, 35% protein, 45% fett' },
-  { value: 'KETO', label: 'Keto', description: '5% kolhydrater, 25% protein, 70% fett' },
-  { value: 'ENDURANCE', label: 'Uthållighet', description: '55% kolhydrater, 20% protein, 25% fett' },
-  { value: 'STRENGTH', label: 'Styrka', description: '40% kolhydrater, 35% protein, 25% fett' },
+  { value: 'BALANCED', label: 'macroProfiles.balanced.label', description: 'macroProfiles.balanced.description' },
+  { value: 'HIGH_PROTEIN', label: 'macroProfiles.highProtein.label', description: 'macroProfiles.highProtein.description' },
+  { value: 'LOW_CARB', label: 'macroProfiles.lowCarb.label', description: 'macroProfiles.lowCarb.description' },
+  { value: 'KETO', label: 'macroProfiles.keto.label', description: 'macroProfiles.keto.description' },
+  { value: 'ENDURANCE', label: 'macroProfiles.endurance.label', description: 'macroProfiles.endurance.description' },
+  { value: 'STRENGTH', label: 'macroProfiles.strength.label', description: 'macroProfiles.strength.description' },
 ] as const
 
 const DIETARY_STYLES = [
-  { value: 'OMNIVORE', label: 'Allätare' },
-  { value: 'FLEXITARIAN', label: 'Flexitarian' },
-  { value: 'PESCATARIAN', label: 'Pescatarian' },
-  { value: 'VEGETARIAN', label: 'Vegetarian' },
-  { value: 'VEGAN', label: 'Vegan' },
+  { value: 'OMNIVORE', label: 'dietaryStyles.omnivore' },
+  { value: 'FLEXITARIAN', label: 'dietaryStyles.flexitarian' },
+  { value: 'PESCATARIAN', label: 'dietaryStyles.pescatarian' },
+  { value: 'VEGETARIAN', label: 'dietaryStyles.vegetarian' },
+  { value: 'VEGAN', label: 'dietaryStyles.vegan' },
 ] as const
 
 const ACTIVITY_LEVELS = [
-  { value: 'SEDENTARY', label: 'Stillasittande', description: 'Lite eller ingen träning' },
-  { value: 'LIGHTLY_ACTIVE', label: 'Lätt aktiv', description: '1-2 pass/vecka' },
-  { value: 'ACTIVE', label: 'Aktiv', description: '3-4 pass/vecka' },
-  { value: 'VERY_ACTIVE', label: 'Mycket aktiv', description: '5-6 pass/vecka' },
-  { value: 'ATHLETE', label: 'Idrottare', description: 'Daglig träning' },
+  { value: 'SEDENTARY', label: 'activityLevels.sedentary.label', description: 'activityLevels.sedentary.description' },
+  { value: 'LIGHTLY_ACTIVE', label: 'activityLevels.lightlyActive.label', description: 'activityLevels.lightlyActive.description' },
+  { value: 'ACTIVE', label: 'activityLevels.active.label', description: 'activityLevels.active.description' },
+  { value: 'VERY_ACTIVE', label: 'activityLevels.veryActive.label', description: 'activityLevels.veryActive.description' },
+  { value: 'ATHLETE', label: 'activityLevels.athlete.label', description: 'activityLevels.athlete.description' },
 ] as const
 
 const COMMON_ALLERGIES = [
-  'Nötter', 'Jordnötter', 'Mjölk', 'Ägg', 'Soja', 'Vete/Gluten', 'Fisk', 'Skaldjur',
+  'nuts', 'peanuts', 'milk', 'eggs', 'soy', 'wheatGluten', 'fish', 'shellfish',
 ]
 
 const COMMON_INTOLERANCES = [
-  'Laktos', 'Gluten', 'Fruktjuice/Fruktos', 'Histamin', 'FODMAP',
+  'lactose', 'gluten', 'fruitSugars', 'histamine', 'fodmap',
 ]
 
 interface NutritionOnboardingProps {
@@ -74,6 +75,8 @@ interface NutritionOnboardingProps {
 }
 
 export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingProps) {
+  const t = useTranslations('components.onboarding.nutrition')
+
   const updateField = <K extends keyof NutritionSettings>(field: K, value: NutritionSettings[K]) => {
     onUpdate({ ...settings, [field]: value })
   }
@@ -93,7 +96,7 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Target className="h-5 w-5 text-emerald-500" />
-            Vad är ditt mål?
+            {t('titles.goal')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -113,9 +116,9 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Icon className="h-4 w-4 text-emerald-600" />
-                    <span className="font-medium text-sm">{goal.label}</span>
+                    <span className="font-medium text-sm">{t(goal.label)}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">{goal.description}</p>
+                  <p className="text-xs text-muted-foreground">{t(goal.description)}</p>
                 </button>
               )
             })}
@@ -126,17 +129,17 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   <Scale className="h-4 w-4 text-muted-foreground" />
-                  Målvikt (kg)
+                  {t('labels.targetWeight')}
                 </Label>
                 <Input
                   type="number"
-                  placeholder="75"
+                  placeholder={t('placeholders.targetWeight')}
                   value={settings.targetWeightKg ?? ''}
                   onChange={(e) => updateField('targetWeightKg', e.target.value ? Number(e.target.value) : null)}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm">Förändring per vecka (kg)</Label>
+                <Label className="text-sm">{t('labels.weeklyChange')}</Label>
                 <div className="flex gap-2">
                   {[0.25, 0.5, 0.75, 1.0].map((rate) => (
                     <button
@@ -149,7 +152,7 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      {rate} kg
+                      {rate} {t('units.kg')}
                     </button>
                   ))}
                 </div>
@@ -164,7 +167,7 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Utensils className="h-5 w-5 text-emerald-500" />
-            Makroprofil
+            {t('titles.macroProfile')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -180,8 +183,8 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <span className="font-medium text-sm block">{profile.label}</span>
-                <span className="text-xs text-muted-foreground">{profile.description}</span>
+                <span className="font-medium text-sm block">{t(profile.label)}</span>
+                <span className="text-xs text-muted-foreground">{t(profile.description)}</span>
               </button>
             ))}
           </div>
@@ -193,7 +196,7 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Leaf className="h-5 w-5 text-emerald-500" />
-            Koststil
+            {t('titles.dietStyle')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -205,18 +208,18 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
                 onClick={() => updateField('dietaryStyle', style.value)}
                 className={`rounded-full border-2 px-4 py-2 text-sm font-medium transition-all ${
                   settings.dietaryStyle === style.value
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                    : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                  : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                {style.label}
+                {t(style.label)}
               </button>
             ))}
           </div>
 
           {/* Allergies */}
           <div className="mt-4 space-y-2">
-            <Label className="text-sm font-medium">Allergier</Label>
+            <Label className="text-sm font-medium">{t('sections.allergies')}</Label>
             <div className="flex flex-wrap gap-2">
               {COMMON_ALLERGIES.map((allergy) => (
                 <label key={allergy} className="flex items-center gap-1.5 text-sm cursor-pointer">
@@ -224,7 +227,7 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
                     checked={settings.allergies.includes(allergy)}
                     onCheckedChange={() => toggleArrayItem('allergies', allergy)}
                   />
-                  {allergy}
+                  {t(`commonAllergies.${allergy}`)}
                 </label>
               ))}
             </div>
@@ -232,7 +235,7 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
 
           {/* Intolerances */}
           <div className="mt-4 space-y-2">
-            <Label className="text-sm font-medium">Intoleranser</Label>
+            <Label className="text-sm font-medium">{t('sections.intolerances')}</Label>
             <div className="flex flex-wrap gap-2">
               {COMMON_INTOLERANCES.map((intolerance) => (
                 <label key={intolerance} className="flex items-center gap-1.5 text-sm cursor-pointer">
@@ -240,7 +243,7 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
                     checked={settings.intolerances.includes(intolerance)}
                     onCheckedChange={() => toggleArrayItem('intolerances', intolerance)}
                   />
-                  {intolerance}
+                  {t(`commonIntolerances.${intolerance}`)}
                 </label>
               ))}
             </div>
@@ -253,7 +256,7 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Activity className="h-5 w-5 text-emerald-500" />
-            Aktivitetsnivå
+            {t('titles.activityLevel')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -269,8 +272,8 @@ export function NutritionOnboarding({ settings, onUpdate }: NutritionOnboardingP
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <span className="font-medium text-sm">{level.label}</span>
-                <span className="text-xs text-muted-foreground ml-2">{level.description}</span>
+                <span className="font-medium text-sm">{t(level.label)}</span>
+                <span className="text-xs text-muted-foreground ml-2">{t(level.description)}</span>
               </button>
             ))}
           </div>
