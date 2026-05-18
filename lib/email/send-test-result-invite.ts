@@ -26,6 +26,7 @@ import { resolveEmailBranding } from '@/lib/email/branding'
 import { emailButton, emailLayout } from '@/lib/email/email-branding-types'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
 import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
+import type { EmailLocale } from './templates'
 
 export interface SendTestResultInviteResult {
   success: boolean
@@ -40,16 +41,58 @@ interface SendOptions {
   coachUserId: string
   /** Optional free-text message from the test leader to the athlete. */
   message?: string
+  locale?: EmailLocale
 }
 
-const TEST_TYPE_LABELS: Record<string, string> = {
-  RUNNING: 'löptest',
-  CYCLING: 'cykeltest',
-  SKIING: 'skidåkningstest',
+const TEST_TYPE_LABELS = {
+  sv: {
+    RUNNING: 'löptest',
+    CYCLING: 'cykeltest',
+    SKIING: 'skidåkningstest',
+  },
+  en: {
+    RUNNING: 'running test',
+    CYCLING: 'cycling test',
+    SKIING: 'ski test',
+  },
 }
 
-function formatTestDate(date: Date): string {
-  return date.toLocaleDateString('sv-SE', {
+function getCopy(locale: EmailLocale) {
+  return locale === 'sv'
+    ? {
+      header: 'Hej',
+      introExisting: (label: string, date: string) =>
+        `Ditt ${label} från ${date} är klart. Klicka nedan för att logga in och se rapporten — du går direkt till resultatet.`,
+      introCreated: (label: string, date: string) =>
+        `Vi har skapat ett konto åt dig så att du kan se ditt ${label} från ${date}. Klicka nedan för att välja ett lösenord — du landar direkt på din rapport.`,
+      ctaExisting: 'Se mitt resultat',
+      ctaCreated: 'Välj lösenord & se resultatet',
+      security: 'Säkerhetspåminnelse: dela inte den här länken — den loggar in dig direkt.',
+      ignore: 'Om du inte väntade dig det här mejlet kan du ignorera det.',
+      messageLabel: 'Meddelande från',
+      signature: 'Med vänliga hälsningar',
+      title: 'Ditt testresultat är klart',
+      fromTestLeader: 'din testledare',
+    }
+    : {
+      header: 'Hi',
+      introExisting: (label: string, date: string) =>
+        `Your ${label} from ${date} is ready. Click below to log in and see the report — you will be taken directly to the result.`,
+      introCreated: (label: string, date: string) =>
+        `We created an account for you so you can view your ${label} from ${date}. Click below to set a password — you'll land directly on your report.`,
+      ctaExisting: 'View my result',
+      ctaCreated: 'Set password and view result',
+      security: 'Security reminder: do not share this link — it logs you in directly.',
+      ignore: 'If you were not expecting this email, you can ignore it.',
+      messageLabel: 'Message from',
+      signature: 'Best regards',
+      title: 'Your test result is ready',
+      fromTestLeader: 'your test leader',
+    }
+}
+
+function formatTestDate(date: Date, locale: EmailLocale): string {
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -108,7 +151,8 @@ export async function sendTestResultInvite(
   const businessSlug = test.client.business.slug
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
   const testPath = `/${businessSlug}/athlete/tests/${test.id}`
-  const testFullUrl = `${appUrl}${testPath}`
+  const locale = opts.locale || 'sv'
+  const copy = getCopy(locale)
 
   // 2. Ensure the athlete has an AthleteAccount. Create on-demand if not.
   let athleteAccountCreated = false
@@ -163,24 +207,24 @@ export async function sendTestResultInvite(
 
   // 5. Build the email content. No result data — only context that helps
   //    the athlete recognise this email is legitimately about their test.
-  const testTypeLabel = TEST_TYPE_LABELS[test.testType] ?? 'test'
-  const testDate = formatTestDate(test.testDate)
+  const testTypeLabel = TEST_TYPE_LABELS[locale][test.testType] ?? 'test'
+  const testDate = formatTestDate(test.testDate, locale)
   const leaderName = test.tester?.name ?? test.testLeader ?? test.user?.name ?? null
   const safeAthleteFirstName = escapeHtml(test.client.name.split(' ')[0] || test.client.name)
   const safeLeaderName = leaderName ? escapeHtml(leaderName) : null
   const safeMessage = opts.message?.trim() ? escapeHtml(opts.message.trim()) : null
 
   const intro = athleteAccountCreated
-    ? `Vi har skapat ett konto åt dig så att du kan se ditt ${testTypeLabel} från ${testDate}. Klicka nedan för att välja ett lösenord — du landar direkt på din rapport.`
-    : `Ditt ${testTypeLabel} från ${testDate} är klart. Klicka nedan för att logga in och se rapporten — du går direkt till resultatet.`
+    ? copy.introCreated(testTypeLabel, testDate)
+    : copy.introExisting(testTypeLabel, testDate)
 
-  const ctaLabel = athleteAccountCreated ? 'Välj lösenord & se resultatet' : 'Se mitt resultat'
+  const ctaLabel = athleteAccountCreated ? copy.ctaCreated : copy.ctaExisting
 
   const messageBlock = safeMessage
     ? `
         <div style="margin: 20px 0; padding: 16px 20px; background: #f8f9fa; border-left: 4px solid ${branding.primaryColor}; border-radius: 4px;">
-          <p style="margin: 0 0 8px 0; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.05em;">
-            Meddelande från ${safeLeaderName ?? 'din testledare'}
+        <p style="margin: 0 0 8px 0; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.05em;">
+            ${copy.messageLabel} ${safeLeaderName ?? copy.fromTestLeader}
           </p>
           <p style="margin: 0; color: #333; font-size: 15px; line-height: 1.6; white-space: pre-line;">${safeMessage}</p>
         </div>
@@ -188,23 +232,25 @@ export async function sendTestResultInvite(
     : ''
 
   const leaderSignature = safeLeaderName
-    ? `<p style="color: #555; margin-top: 30px;">Med vänliga hälsningar,<br/><strong>${safeLeaderName}</strong></p>`
-    : `<p style="color: #555; margin-top: 30px;">Med vänliga hälsningar,<br/><strong>${escapeHtml(branding.senderName)}</strong></p>`
+    ? `<p style="color: #555; margin-top: 30px;">${copy.signature},<br/><strong>${safeLeaderName}</strong></p>`
+    : `<p style="color: #555; margin-top: 30px;">${copy.signature},<br/><strong>${escapeHtml(branding.senderName)}</strong></p>`
 
   const body = `
-    <h2 style="color: #333; margin-top: 0;">Hej ${safeAthleteFirstName},</h2>
+    <h2 style="color: #333; margin-top: 0;">${copy.header} ${safeAthleteFirstName},</h2>
     <p style="color: #555; font-size: 16px; line-height: 1.6;">${intro}</p>
     ${messageBlock}
     ${emailButton(branding, ctaUrl, ctaLabel)}
     <p style="color: #999; font-size: 13px; margin-top: 24px;">
-      Säkerhetspåminnelse: dela inte den här länken — den loggar in dig direkt.
-      Om du inte väntade dig det här mejlet kan du ignorera det.
+      ${copy.security}
+      ${copy.ignore}
     </p>
     ${leaderSignature}
   `
 
-  const html = emailLayout(branding, 'Ditt testresultat är klart', body)
-  const subject = `Ditt ${testTypeLabel} från ${testDate} är klart`
+  const html = emailLayout(branding, copy.title, body)
+  const subject = locale === 'sv'
+    ? `Ditt ${testTypeLabel} från ${testDate} är klart`
+    : `Your ${testTypeLabel} from ${testDate} is ready`
 
   const sent = await sendGenericEmail({
     to: test.client.email,

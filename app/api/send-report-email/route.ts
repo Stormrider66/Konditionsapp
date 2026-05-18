@@ -52,7 +52,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { to, clientName, testDate, testLeader, organization, pdfBase64, customMessage } = body
+    const {
+      to,
+      clientName,
+      testDate,
+      testLeader,
+      organization,
+      pdfBase64,
+      customMessage,
+      locale: rawLocale,
+    } = body
+    const locale = rawLocale === 'en' ? 'en' : 'sv'
 
     if (!to || !pdfBase64) {
       return NextResponse.json(
@@ -108,26 +118,46 @@ export async function POST(request: NextRequest) {
     const safeCustomMessage = customMessage ? sanitizeForEmail(customMessage) : ''
 
     // Format the email with branded layout
-    const emailSubject = `Ditt konditionstest från ${safeOrganization}`
+    const copy = locale === 'en'
+      ? {
+          subject: `Your fitness test report from ${safeOrganization}`,
+          salutation: 'Hi',
+          intro: `Here is the result from your fitness test held on <strong>${safeTestDate}</strong>.`,
+          detailsLabel: 'Test leader:',
+          orgLabel: 'Organization:',
+          pdfHint: 'See attached PDF for your full report with results and training zones.',
+          greeting: 'Best regards',
+          reportTitle: 'Fitness test report',
+        }
+      : {
+          subject: `Ditt konditionstest från ${safeOrganization}`,
+          salutation: 'Hej',
+          intro: `Här är resultatet från ditt konditionstest som genomfördes <strong>${safeTestDate}</strong>.`,
+          detailsLabel: 'Testledare:',
+          orgLabel: 'Organisation:',
+          pdfHint: 'Se bifogad PDF för din fullständiga rapport med resultat och träningszoner.',
+          greeting: 'Med vänliga hälsningar',
+          reportTitle: 'Konditionstestrapport',
+        }
 
     const bodyContent = `
-      <h2 style="color: #333; margin-top: 0;">Hej ${safeClientName},</h2>
+      <h2 style="color: #333; margin-top: 0;">${copy.salutation} ${safeClientName},</h2>
       <p style="color: #555; font-size: 16px; line-height: 1.6;">
-        Här är resultatet från ditt konditionstest som genomfördes <strong>${safeTestDate}</strong>.
+        ${copy.intro}
       </p>
       ${safeCustomMessage ? `<p style="color: #555; font-size: 16px;">${safeCustomMessage}</p>` : ''}
       <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
-        <p style="margin: 5px 0; color: #555;"><strong>Testledare:</strong> ${safeTestLeader}</p>
-        <p style="margin: 5px 0; color: #555;"><strong>Organisation:</strong> ${safeOrganization}</p>
+        <p style="margin: 5px 0; color: #555;"><strong>${copy.detailsLabel}</strong> ${safeTestLeader}</p>
+        <p style="margin: 5px 0; color: #555;"><strong>${copy.orgLabel}</strong> ${safeOrganization}</p>
       </div>
-      <p style="color: #555; font-size: 16px;">Se bifogad PDF för din fullständiga rapport med resultat och träningszoner.</p>
+      <p style="color: #555; font-size: 16px;">${copy.pdfHint}</p>
       <p style="color: #555; margin-top: 30px;">
-        Med vänliga hälsningar,<br/>
+        ${copy.greeting},<br/>
         <strong>${safeOrganization}</strong>
       </p>
     `
 
-    const emailBody = emailLayout(emailBranding, 'Konditionstestrapport', bodyContent)
+    const emailBody = emailLayout(emailBranding, copy.reportTitle, bodyContent)
 
     // Sanitize filename
     const safeFilename = `Konditionstest_${safeClientName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}_${safeTestDate.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`
@@ -153,7 +183,7 @@ export async function POST(request: NextRequest) {
       from: emailBranding.fromAddress,
       replyTo: emailBranding.replyTo,
       to: [to],
-      subject: emailSubject,
+          subject: copy.subject,
       html: emailBody,
       headers: {
         'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${appUrl}/unsubscribe>`,

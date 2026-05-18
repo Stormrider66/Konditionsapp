@@ -7,6 +7,7 @@ import { sendGenericEmail } from '@/lib/email'
 import { resolveEmailBranding } from '@/lib/email/branding'
 import { emailButton, emailLayout } from '@/lib/email/email-branding-types'
 import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
+import type { EmailLocale } from '@/lib/email/templates'
 
 export interface SendAthletePlatformInviteResult {
   success: boolean
@@ -158,6 +159,7 @@ export async function sendAthletePlatformInvite(
   clientId: string,
   coachUserId: string,
   options?: { sendEmail?: boolean },
+  locale: EmailLocale = 'sv',
 ): Promise<SendAthletePlatformInviteResult> {
   const syncResult = await syncAthleteAccountIdentityFromProfile(clientId)
   if (!syncResult.success) return syncResult
@@ -222,6 +224,35 @@ export async function sendAthletePlatformInvite(
   const branding = await resolveEmailBranding(client.businessId ?? null, {
     senderUserId: coachUserId,
   })
+  const copy = locale === 'sv'
+    ? {
+      subject: (name: string) => `Inbjudan till ${name} i Trainomics`,
+      header: 'Välkommen till Trainomics',
+      greeting: (name: string) => `Hej ${name}!`,
+      body: (businessName: string) => `Din tränare på ${businessName} har bjudit in dig till Trainomics.
+      Klicka på knappen nedan för att välja lösenord och komma in i atletportalen.`,
+      button: 'Välj lösenord och logga in',
+      footer: 'Länken är personlig. Om du inte väntade dig den här inbjudan kan du ignorera mejlet.',
+      signature: 'Med vänliga hälsningar',
+      inviteText: (businessName: string) => `Hej! Jag har bjudit in dig till ${businessName} i Trainomics.
+
+Klicka här för att skapa lösenord och komma igång:
+${inviteUrl}${coachFirstName ? `\\n\\n/${coachFirstName}` : ''}`,
+    }
+    : {
+      subject: (name: string) => `Invite to ${name} on Trainomics`,
+      header: 'Welcome to Trainomics',
+      greeting: (name: string) => `Hi ${name}!`,
+      body: (businessName: string) => `Your coach from ${businessName} has invited you to Trainomics.
+      Click the button below to set a password and access the athlete portal.`,
+      button: 'Set password and sign in',
+      footer: 'The link is personal. If you did not expect this invite, you can ignore the email.',
+      signature: 'Best regards',
+      inviteText: (businessName: string) => `Hi! Your coach has invited you to ${businessName} on Trainomics.
+
+Click here to set a password and get started:
+${inviteUrl}${coachFirstName ? `\\n\\n/${coachFirstName}` : ''}`,
+    }
   const coach = await prisma.user.findUnique({
     where: { id: coachUserId },
     select: { name: true },
@@ -230,23 +261,19 @@ export async function sendAthletePlatformInvite(
   const safeFirstName = escapeHtml(client.name.split(' ')[0] || client.name)
   const businessName = client.business?.name || branding.senderName
   const coachFirstName = coach?.name?.trim().split(/\s+/)[0]
-  const inviteText = `Hej! Jag har bjudit in dig till ${businessName} i Trainomics.
-
-Klicka här för att skapa lösenord och komma igång:
-${inviteUrl}${coachFirstName ? `\n\n/${coachFirstName}` : ''}`
+  const inviteText = copy.inviteText(businessName)
   const safeBusinessName = escapeHtml(businessName)
   const body = `
-    <h2 style="color: #333; margin-top: 0;">Hej ${safeFirstName},</h2>
+    <h2 style="color: #333; margin-top: 0;">${copy.greeting(safeFirstName)},</h2>
     <p style="color: #555; font-size: 16px; line-height: 1.6;">
-      Din tränare på ${safeBusinessName} har bjudit in dig till Trainomics.
-      Klicka på knappen nedan för att välja lösenord och komma in i atletportalen.
+      ${copy.body(safeBusinessName)}
     </p>
-    ${emailButton(branding, inviteUrl, 'Välj lösenord och logga in')}
+    ${emailButton(branding, inviteUrl, copy.button)}
     <p style="color: #999; font-size: 13px; margin-top: 24px;">
-      Länken är personlig. Om du inte väntade dig den här inbjudan kan du ignorera mejlet.
+      ${copy.footer}
     </p>
     <p style="color: #555; margin-top: 30px;">
-      Med vänliga hälsningar,<br/><strong>${escapeHtml(branding.senderName)}</strong>
+      ${copy.signature},<br/><strong>${escapeHtml(branding.senderName)}</strong>
     </p>
   `
 
@@ -265,8 +292,8 @@ ${inviteUrl}${coachFirstName ? `\n\n/${coachFirstName}` : ''}`
 
   const sent = await sendGenericEmail({
     to: email,
-    subject: `Inbjudan till ${businessName} i Trainomics`,
-    html: emailLayout(branding, 'Välkommen till Trainomics', body),
+    subject: copy.subject(businessName),
+    html: emailLayout(branding, copy.header, body),
     branding,
     metadata: {
       category: 'invite',

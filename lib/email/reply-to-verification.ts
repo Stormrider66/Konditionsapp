@@ -7,6 +7,7 @@ import { sendGenericEmail } from '@/lib/email'
 import { resolveEmailBranding } from '@/lib/email/branding'
 import { emailButton, emailLayout } from '@/lib/email/email-branding-types'
 import { logger } from '@/lib/logger'
+import type { EmailLocale } from './templates'
 
 const VERIFY_TOKEN_TTL_HOURS = 24
 
@@ -15,6 +16,7 @@ interface SendOptions {
   newReplyToEmail: string
   /** Display name to greet the recipient (`name` field on Business) — falls back to "där" */
   businessName: string
+  locale?: EmailLocale
 }
 
 /**
@@ -26,6 +28,7 @@ export async function sendReplyToVerificationEmail(opts: SendOptions): Promise<{
   success: boolean
   error?: string
 }> {
+  const locale = opts.locale ?? 'sv'
   const token = randomUUID()
   const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000)
 
@@ -45,24 +48,40 @@ export async function sendReplyToVerificationEmail(opts: SendOptions): Promise<{
   // Branded email — uses the business's logo/colors so the recipient
   // recognises it as legitimate even though it lands in their personal inbox.
   const branding = await resolveEmailBranding(opts.businessId)
+  const copy = locale === 'sv'
+    ? {
+        title: 'Bekräfta din svar-adress',
+        organization: 'En verksamhet på Trainomics',
+        message: `${opts.businessName ? `<strong>${opts.businessName}</strong>` : 'En verksamhet på Trainomics'} vill skicka mail som svaras till <strong>${opts.newReplyToEmail}</strong>. Klicka nedan för att bekräfta att du läser den här inkorgen.`,
+        cta: 'Bekräfta svar-adress',
+        footer: `Länken är giltig i ${VERIFY_TOKEN_TTL_HOURS} timmar. Om du inte bett om detta kan du ignorera mejlet
+      — adressen aktiveras inte förrän du klickar.`,
+      }
+    : {
+        title: 'Confirm your reply-to address',
+        organization: 'An organization on Trainomics',
+        message: `${opts.businessName ? `<strong>${opts.businessName}</strong>` : 'An organization on Trainomics'} will send mail to replies at <strong>${opts.newReplyToEmail}</strong>. Click below to confirm this inbox.`,
+        cta: 'Confirm reply address',
+        footer: `This link is valid for ${VERIFY_TOKEN_TTL_HOURS} hours. If you did not request this, you can ignore the email — the address will not be activated until you click.`,
+      }
   const body = `
-    <h2 style="margin-top: 0; color: #333;">Bekräfta din svar-adress</h2>
+    <h2 style="margin-top: 0; color: #333;">${copy.title}</h2>
     <p style="color: #555; font-size: 16px; line-height: 1.6;">
-      ${opts.businessName ? `<strong>${opts.businessName}</strong>` : 'En verksamhet på Trainomics'}
-      vill skicka mail som svaras till <strong>${opts.newReplyToEmail}</strong>.
-      Klicka nedan för att bekräfta att du läser den här inkorgen.
+      ${copy.message}
     </p>
-    ${emailButton(branding, verifyUrl, 'Bekräfta svar-adress')}
+    ${emailButton(branding, verifyUrl, copy.cta)}
     <p style="color: #888; font-size: 13px;">
-      Länken är giltig i ${VERIFY_TOKEN_TTL_HOURS} timmar. Om du inte bett om detta kan du ignorera mejlet
-      — adressen aktiveras inte förrän du klickar.
+      ${copy.footer}
     </p>
   `
-  const html = emailLayout(branding, 'Bekräfta din svar-adress', body)
+  const html = emailLayout(branding, copy.title, body)
 
   const result = await sendGenericEmail({
     to: opts.newReplyToEmail,
-    subject: `Bekräfta svar-adress för ${opts.businessName || 'din verksamhet'}`,
+    subject:
+      locale === 'sv'
+        ? `Bekräfta svar-adress för ${opts.businessName || 'din verksamhet'}`
+        : `Confirm reply-to address for ${opts.businessName || copy.organization}`,
     html,
     branding,
   }).catch((err) => {

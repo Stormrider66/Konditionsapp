@@ -313,20 +313,35 @@ export async function sendApplicationReceivedEmail(
   to: string,
   contactName: string,
   organizationName: string,
-  branding?: EmailBranding
+  branding?: EmailBranding,
+  locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
-  const subject = `Vi har mottagit din ansökan – ${organizationName}`;
+  const content = locale === 'sv'
+    ? {
+      subject: `Vi har mottagit din ansökan – ${organizationName}`,
+      heading: `Tack för din ansökan, ${contactName}!`,
+      line1: `Vi har mottagit din intresseanmälan för <strong>${organizationName}</strong>.`,
+      line2: 'Vårt team kommer att granska din ansökan och återkomma inom kort. Du kommer att få ett e-postmeddelande när din ansökan har godkänts.',
+      greeting: 'Med vänliga hälsningar',
+    }
+    : {
+      subject: `We have received your application – ${organizationName}`,
+      heading: `Thanks for your application, ${contactName}!`,
+      line1: `We have received your inquiry for <strong>${organizationName}</strong>.`,
+      line2: 'Our team will review your application and get back to you shortly. You will receive an email when your application is approved.',
+      greeting: 'Best regards',
+    };
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Tack för din ansökan, ${contactName}!</h2>
-      <p>Vi har mottagit din intresseanmälan för <strong>${organizationName}</strong>.</p>
-      <p>Vårt team kommer att granska din ansökan och återkomma inom kort. Du kommer att få ett e-postmeddelande när din ansökan har godkänts.</p>
-      <p>Med vänliga hälsningar,<br/>${platformName}</p>
+      <h2>${content.heading}</h2>
+      <p>${content.line1}</p>
+      <p>${content.line2}</p>
+      <p>${content.greeting},<br/>${platformName}</p>
     </div>
   `;
-  return sendEmailInternal(to, subject, html, branding);
+  return sendEmailInternal(to, content.subject, html, branding);
 }
 
 /**
@@ -337,27 +352,44 @@ export async function sendApplicationApprovedEmail(
   contactName: string,
   organizationName: string,
   claimUrl: string,
-  branding?: EmailBranding
+  branding?: EmailBranding,
+  locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
   const buttonColor = br?.primaryColor || '#3b82f6';
-  const subject = `Din ansökan har godkänts – ${organizationName}`;
+  const content = locale === 'sv'
+    ? {
+      subject: `Din ansökan har godkänts – ${organizationName}`,
+      heading: `Grattis, ${contactName}!`,
+      approvedLine: `Din ansökan för <strong>${organizationName}</strong> har godkänts.`,
+      cta: 'Aktivera ditt konto',
+      help: 'Länken är giltig i 30 dagar.',
+      greeting: 'Med vänliga hälsningar',
+    }
+    : {
+      subject: `Your application has been approved – ${organizationName}`,
+      heading: `Great, ${contactName}!`,
+      approvedLine: `Your application for <strong>${organizationName}</strong> has been approved.`,
+      cta: 'Activate your account',
+      help: 'The link is valid for 30 days.',
+      greeting: 'Best regards',
+    };
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Grattis, ${contactName}!</h2>
-      <p>Din ansökan för <strong>${organizationName}</strong> har godkänts.</p>
-      <p>Klicka på knappen nedan för att skapa ditt konto och ta över din verksamhet:</p>
+      <h2>${content.heading}</h2>
+      <p>${content.approvedLine}</p>
+      <p>${locale === 'sv' ? 'Klicka på knappen nedan för att skapa ditt konto och ta över din verksamhet:' : 'Click the button below to create your account and take over your account:'}</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${claimUrl}" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-          Aktivera ditt konto
+          ${content.cta}
         </a>
       </div>
-      <p style="color: #666; font-size: 14px;">Länken är giltig i 30 dagar.</p>
-      <p>Med vänliga hälsningar,<br/>${platformName}</p>
+      <p style="color: #666; font-size: 14px;">${content.help}</p>
+      <p>${content.greeting},<br/>${platformName}</p>
     </div>
   `;
-  return sendEmailInternal(to, subject, html, branding);
+  return sendEmailInternal(to, content.subject, html, branding);
 }
 
 /**
@@ -367,27 +399,44 @@ export async function sendJoinRequestNotification(
   ownerEmail: string,
   requesterName: string,
   businessName: string,
-  branding?: EmailBranding
+  branding?: EmailBranding,
+  locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
   const buttonColor = br?.primaryColor || '#3b82f6';
-  const subject = `Ny förfrågan att gå med i ${businessName}`;
+  const content = locale === 'sv'
+    ? {
+      subject: `Ny förfrågan att gå med i ${businessName}`,
+      heading: 'Ny anslutningsförfrågan',
+      text: `<strong>${requesterName}</strong> vill gå med i <strong>${businessName}</strong> som tränare.`,
+      action: 'Logga in för att granska och godkänna eller avslå förfrågan:',
+      cta: 'Granska förfrågan',
+      greeting: 'Med vänliga hälsningar',
+    }
+    : {
+      subject: `New request to join ${businessName}`,
+      heading: 'New join request',
+      text: `<strong>${requesterName}</strong> wants to join <strong>${businessName}</strong> as a coach.`,
+      action: 'Log in to review and approve or decline the request:',
+      cta: 'Review request',
+      greeting: 'Best regards',
+    };
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Ny anslutningsförfrågan</h2>
-      <p><strong>${requesterName}</strong> vill gå med i <strong>${businessName}</strong> som tränare.</p>
-      <p>Logga in för att granska och godkänna eller avslå förfrågan:</p>
+      <h2>${content.heading}</h2>
+      <p>${content.text}</p>
+      <p>${content.action}</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${baseUrl}/coach/settings" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-          Granska förfrågan
+          ${content.cta}
         </a>
       </div>
-      <p>Med vänliga hälsningar,<br/>${platformName}</p>
+      <p>${content.greeting},<br/>${platformName}</p>
     </div>
   `;
-  return sendEmailInternal(ownerEmail, subject, html, branding);
+  return sendEmailInternal(ownerEmail, content.subject, html, branding);
 }
 
 /**
@@ -396,23 +445,42 @@ export async function sendJoinRequestNotification(
 export async function sendNewApplicationNotification(
   adminEmail: string,
   organizationName: string,
-  type: string
+  type: string,
+  locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
-  const typeLabel = type === 'GYM' ? 'Gym/Studio' : 'Team/Klubb';
-  const subject = `Ny verksamhetsansökan: ${organizationName} (${typeLabel})`;
+  const typeLabel = type === 'GYM'
+    ? locale === 'sv'
+      ? 'Gym/Studio'
+      : 'Gym/Studio'
+    : locale === 'sv'
+      ? 'Team/Klubb'
+      : 'Team/Club';
+  const content = locale === 'sv'
+    ? {
+      subject: `Ny verksamhetsansökan: ${organizationName} (${typeLabel})`,
+      heading: 'Ny ansökan att granska',
+      description: `<strong>${organizationName}</strong> har ansökt som <strong>${typeLabel}</strong>.`,
+      cta: 'Granska i admin',
+    }
+    : {
+      subject: `New business application: ${organizationName} (${typeLabel})`,
+      heading: 'Application to review',
+      description: `<strong>${organizationName}</strong> has applied as a <strong>${typeLabel}</strong>.`,
+      cta: 'Review in admin',
+    };
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Ny ansökan att granska</h2>
-      <p><strong>${organizationName}</strong> har ansökt som <strong>${typeLabel}</strong>.</p>
+      <h2>${content.heading}</h2>
+      <p>${content.description}</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${baseUrl}/admin" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-          Granska i admin
+          ${content.cta}
         </a>
       </div>
     </div>
   `;
-  return sendEmailInternal(adminEmail, subject, html);
+  return sendEmailInternal(adminEmail, content.subject, html);
 }
 
 // ==================== COACH INVITE EMAIL ====================
@@ -427,29 +495,48 @@ export async function sendCoachInviteEmail(
   businessName: string,
   setPasswordUrl: string,
   branding?: EmailBranding,
-  metadata?: SendEmailMetadata
+  metadata?: SendEmailMetadata,
+  locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
   const buttonColor = br?.primaryColor || '#3b82f6';
-  const subject = `Du har bjudits in till ${businessName}`;
+  const content = locale === 'sv'
+    ? {
+      subject: `Du har bjudits in till ${businessName}`,
+      heading: `Välkommen, ${recipientName}!`,
+      line: `Du har bjudits in att gå med i <strong>${businessName}</strong> på ${platformName}.`,
+      action: 'Klicka på knappen nedan för att skapa ditt lösenord och komma igång:',
+      cta: 'Skapa lösenord',
+      help: 'Om du inte förväntar dig detta e-postmeddelande kan du ignorera det.',
+      greeting: 'Med vänliga hälsningar',
+    }
+    : {
+      subject: `You've been invited to join ${businessName}`,
+      heading: `Welcome, ${recipientName}!`,
+      line: `You have been invited to join <strong>${businessName}</strong> on ${platformName}.`,
+      action: 'Click the button below to set your password and get started:',
+      cta: 'Set password',
+      help: 'If you did not expect this email, you can ignore it.',
+      greeting: 'Best regards',
+    };
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Välkommen, ${recipientName}!</h2>
-      <p>Du har bjudits in att gå med i <strong>${businessName}</strong> på ${platformName}.</p>
-      <p>Klicka på knappen nedan för att skapa ditt lösenord och komma igång:</p>
+      <h2>${content.heading}</h2>
+      <p>${content.line}</p>
+      <p>${content.action}</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${setPasswordUrl}" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-          Skapa lösenord
+          ${content.cta}
         </a>
       </div>
-      <p style="color: #666; font-size: 14px;">Om du inte förväntar dig detta e-postmeddelande kan du ignorera det.</p>
-      <p>Med vänliga hälsningar,<br/>${platformName}</p>
+      <p style="color: #666; font-size: 14px;">${content.help}</p>
+      <p>${content.greeting},<br/>${platformName}</p>
     </div>
   `;
   return sendEmailInternal(
     to,
-    subject,
+    content.subject,
     html,
     branding,
     {
@@ -469,28 +556,47 @@ export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string,
   recipientName?: string,
-  branding?: EmailBranding
+  branding?: EmailBranding,
+  locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
   const buttonColor = br?.primaryColor || '#3b82f6';
   const name = recipientName || to;
-  const subject = `${platformName} – Välj ett nytt lösenord`;
+  const content = locale === 'sv'
+    ? {
+      subject: `${platformName} – Välj ett nytt lösenord`,
+      heading: `Hej ${name}!`,
+      line1: `Vi fick en förfrågan om att återställa lösenordet för ditt konto på <strong>${platformName}</strong>.`,
+      line2: 'Klicka på knappen nedan för att välja ett nytt lösenord och komma igång igen:',
+      cta: 'Välj nytt lösenord',
+      help: 'Om du inte förväntar dig detta e-postmeddelande kan du ignorera det.',
+      closing: 'Med vänliga hälsningar',
+    }
+    : {
+      subject: `${platformName} – Set a new password`,
+      heading: `Hi ${name}!`,
+      line1: `We received a request to reset the password for your ${platformName} account.`,
+      line2: 'Click the button below to choose a new password and get started again:',
+      cta: 'Choose new password',
+      help: 'If you did not expect this email, you can ignore it.',
+      closing: 'Best regards',
+    };
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2>Hej ${name}!</h2>
-      <p>Vi fick en förfrågan om att återställa lösenordet för ditt konto på <strong>${platformName}</strong>.</p>
-      <p>Klicka på knappen nedan för att välja ett nytt lösenord och komma igång igen:</p>
+      <h2>${content.heading}</h2>
+      <p>${content.line1}</p>
+      <p>${content.line2}</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${resetUrl}" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-          Välj nytt lösenord
+          ${content.cta}
         </a>
       </div>
-      <p style="color: #666; font-size: 14px;">Om du inte förväntar dig detta e-postmeddelande kan du ignorera det.</p>
-      <p>Med vänliga hälsningar,<br/>${platformName}</p>
+      <p style="color: #666; font-size: 14px;">${content.help}</p>
+      <p>${content.closing},<br/>${platformName}</p>
     </div>
   `;
-  return sendEmailInternal(to, subject, html, branding);
+  return sendEmailInternal(to, content.subject, html, branding);
 }
 
 // ==================== GENERIC SEND EMAIL ====================
