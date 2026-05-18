@@ -13,6 +13,7 @@ import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 interface CyclingSettings {
   bikeTypes: string[]
@@ -59,6 +60,7 @@ export function CyclingDashboard({
   experience,
   clientName,
 }: CyclingDashboardProps) {
+  const t = useTranslations('components.cyclingDashboard')
   const basePath = useBasePath()
   const pageCtx = usePageContextOptional()
   const themeContext = useWorkoutThemeOptional()
@@ -115,10 +117,10 @@ export function CyclingDashboard({
         <CardContent className="py-8 text-center">
           <Activity className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
           <p style={{ color: theme.colors.textMuted }}>
-            Slutför din cyklingsprofil för att se dina mätvärden.
+            {t('emptyState.description')}
           </p>
           <Link href={`${basePath}/athlete/onboarding`} className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
-            Gå till onboarding
+            {t('actions.goToOnboarding')}
           </Link>
         </CardContent>
       </Card>

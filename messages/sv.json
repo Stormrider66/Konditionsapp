@@ -4543,6 +4543,22 @@
         "copyLinkFailed": "Kunde inte kopiera länken"
       }
     },
+    "cyclingDashboard": {
+      "emptyState": {
+        "description": "Slutför din cykelprofil för att se dina mätvärden."
+      },
+      "actions": {
+        "goToOnboarding": "Gå till onboarding"
+      }
+    },
+    "skiingDashboard": {
+      "emptyState": {
+        "description": "Slutför din skidprofil för att se dina mätvärden."
+      },
+      "actions": {
+        "goToOnboarding": "Gå till onboarding"
+      }
+    },
     "smartTestImportDialog": {
       "title": "Smart testimport",
       "description": "Importera testdata från foto, dokument eller ljudinspelning",

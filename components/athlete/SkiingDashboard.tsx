@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 interface SkiingSettings {
   technique: string
@@ -152,6 +153,7 @@ export function SkiingDashboard({
   experience,
   clientName,
 }: SkiingDashboardProps) {
+  const t = useTranslations('components.skiingDashboard')
   const basePath = useBasePath()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
@@ -177,10 +179,10 @@ export function SkiingDashboard({
         <CardContent className="py-8 text-center">
           <Activity className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
           <p style={{ color: theme.colors.textMuted }}>
-            Slutför din skidprofil för att se dina mätvärden.
+            {t('emptyState.description')}
           </p>
           <Link href={`${basePath}/athlete/onboarding`} className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
-            Gå till onboarding
+            {t('actions.goToOnboarding')}
           </Link>
         </CardContent>
       </Card>

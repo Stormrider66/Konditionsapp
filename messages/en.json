@@ -4543,6 +4543,22 @@
         "copyLinkFailed": "Could not copy the link"
       }
     },
+    "cyclingDashboard": {
+      "emptyState": {
+        "description": "Complete your cycling profile to view your metrics."
+      },
+      "actions": {
+        "goToOnboarding": "Go to onboarding"
+      }
+    },
+    "skiingDashboard": {
+      "emptyState": {
+        "description": "Complete your skiing profile to view your metrics."
+      },
+      "actions": {
+        "goToOnboarding": "Go to onboarding"
+      }
+    },
     "smartTestImportDialog": {
       "title": "Smart Test Import",
       "description": "Import test data from photos, documents, or audio recording",
