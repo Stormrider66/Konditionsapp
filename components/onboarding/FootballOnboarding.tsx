@@ -5,8 +5,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
 import { Trophy, Timer, Target, Flame, Shield, Zap, MapPin, Activity } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 // ==================== TYPES ====================
 
@@ -90,104 +90,127 @@ export const DEFAULT_FOOTBALL_SETTINGS: FootballSettings = {
 // ==================== CONSTANTS ====================
 
 const POSITIONS = [
-  { value: 'goalkeeper', label: 'Målvakt', description: 'Reflexer, positionering, bollhantering' },
-  { value: 'defender', label: 'Försvarare', description: 'Dueller, speluppbyggnad, positionering' },
-  { value: 'midfielder', label: 'Mittfältare', description: 'Box-to-box, spelfördelning, uthållighet' },
-  { value: 'forward', label: 'Anfallare', description: 'Målskytte, sprint, avslut' },
+  { value: 'goalkeeper', label: 'positionOptions.goalkeeper.label', description: 'positionOptions.goalkeeper.description' },
+  { value: 'defender', label: 'positionOptions.defender.label', description: 'positionOptions.defender.description' },
+  { value: 'midfielder', label: 'positionOptions.midfielder.label', description: 'positionOptions.midfielder.description' },
+  { value: 'forward', label: 'positionOptions.forward.label', description: 'positionOptions.forward.description' },
 ]
 
 const POSITION_DETAILS: Record<string, { value: string; label: string }[]> = {
   goalkeeper: [
-    { value: 'goalkeeper', label: 'Målvakt' },
+    { value: 'goalkeeper', label: 'positionDetails.goalkeeper.goalkeeper' },
   ],
   defender: [
-    { value: 'center_back', label: 'Mittback' },
-    { value: 'left_back', label: 'Vänsterback' },
-    { value: 'right_back', label: 'Högerback' },
-    { value: 'wing_back', label: 'Wingback' },
-    { value: 'sweeper', label: 'Libero' },
+    { value: 'center_back', label: 'positionDetails.defender.centerBack' },
+    { value: 'left_back', label: 'positionDetails.defender.leftBack' },
+    { value: 'right_back', label: 'positionDetails.defender.rightBack' },
+    { value: 'wing_back', label: 'positionDetails.defender.wingBack' },
+    { value: 'sweeper', label: 'positionDetails.defender.sweeper' },
   ],
   midfielder: [
-    { value: 'defensive_mid', label: 'Defensiv mittfältare (6:a)' },
-    { value: 'central_mid', label: 'Central mittfältare (8:a)' },
-    { value: 'attacking_mid', label: 'Offensiv mittfältare (10:a)' },
-    { value: 'left_mid', label: 'Vänster mittfältare' },
-    { value: 'right_mid', label: 'Höger mittfältare' },
+    { value: 'defensive_mid', label: 'positionDetails.midfielder.defensiveMid' },
+    { value: 'central_mid', label: 'positionDetails.midfielder.centralMid' },
+    { value: 'attacking_mid', label: 'positionDetails.midfielder.attackingMid' },
+    { value: 'left_mid', label: 'positionDetails.midfielder.leftMid' },
+    { value: 'right_mid', label: 'positionDetails.midfielder.rightMid' },
   ],
   forward: [
-    { value: 'striker', label: 'Nia/Striker' },
-    { value: 'left_winger', label: 'Vänsterytter' },
-    { value: 'right_winger', label: 'Högerytter' },
-    { value: 'false_nine', label: 'Falsk nia' },
-    { value: 'second_striker', label: 'Andraspets' },
+    { value: 'striker', label: 'positionDetails.forward.striker' },
+    { value: 'left_winger', label: 'positionDetails.forward.leftWinger' },
+    { value: 'right_winger', label: 'positionDetails.forward.rightWinger' },
+    { value: 'false_nine', label: 'positionDetails.forward.falseNine' },
+    { value: 'second_striker', label: 'positionDetails.forward.secondStriker' },
   ],
 }
 
 const LEAGUE_LEVELS = [
-  { value: 'recreational', label: 'Korpen/Motion', description: 'Motionsfotboll' },
-  { value: 'division_4', label: 'Division 4', description: 'Fjärde högsta nivån' },
-  { value: 'division_3', label: 'Division 3', description: 'Tredje högsta nivån' },
-  { value: 'division_2', label: 'Division 2', description: 'Andra högsta nivån' },
-  { value: 'division_1', label: 'Division 1', description: 'Högsta amatörnivån' },
-  { value: 'superettan', label: 'Superettan', description: 'Näst högsta proffsnivån' },
-  { value: 'allsvenskan', label: 'Allsvenskan', description: 'Högsta proffsnivån' },
+  { value: 'recreational', label: 'leagueLevels.recreational.label', description: 'leagueLevels.recreational.description' },
+  { value: 'division_4', label: 'leagueLevels.division4.label', description: 'leagueLevels.division4.description' },
+  { value: 'division_3', label: 'leagueLevels.division3.label', description: 'leagueLevels.division3.description' },
+  { value: 'division_2', label: 'leagueLevels.division2.label', description: 'leagueLevels.division2.description' },
+  { value: 'division_1', label: 'leagueLevels.division1.label', description: 'leagueLevels.division1.description' },
+  { value: 'superettan', label: 'leagueLevels.superettan.label', description: 'leagueLevels.superettan.description' },
+  { value: 'allsvenskan', label: 'leagueLevels.allsvenskan.label', description: 'leagueLevels.allsvenskan.description' },
 ]
 
 const SEASON_PHASES = [
-  { value: 'off_season', label: 'Off-season', description: 'Juni-juli, bygga bas' },
-  { value: 'pre_season', label: 'Försäsong', description: 'Juli-augusti, matchförberedelse' },
-  { value: 'in_season', label: 'Säsong', description: 'Augusti-november, mars-maj' },
-  { value: 'playoffs', label: 'Slutspel/Avgörande', description: 'Slutspel eller viktiga matcher' },
+  { value: 'off_season', label: 'seasonPhases.offSeason.label', description: 'seasonPhases.offSeason.description' },
+  { value: 'pre_season', label: 'seasonPhases.preSeason.label', description: 'seasonPhases.preSeason.description' },
+  { value: 'in_season', label: 'seasonPhases.inSeason.label', description: 'seasonPhases.inSeason.description' },
+  { value: 'playoffs', label: 'seasonPhases.playoffs.label', description: 'seasonPhases.playoffs.description' },
 ]
 
 const PLAY_STYLES = [
-  { value: 'possession', label: 'Bollinnehav', description: 'Passingsspel, kontroll' },
-  { value: 'counter', label: 'Kontring', description: 'Snabba omställningar' },
-  { value: 'pressing', label: 'Högt press', description: 'Aggressivt, vinna boll högt' },
-  { value: 'physical', label: 'Fysiskt', description: 'Duellstark, kraftfull' },
+  { value: 'possession', label: 'playStyles.possession.label', description: 'playStyles.possession.description' },
+  { value: 'counter', label: 'playStyles.counter.label', description: 'playStyles.counter.description' },
+  { value: 'pressing', label: 'playStyles.pressing.label', description: 'playStyles.pressing.description' },
+  { value: 'physical', label: 'playStyles.physical.label', description: 'playStyles.physical.description' },
 ]
 
 const GPS_PROVIDERS = [
-  { value: 'catapult', label: 'Catapult' },
-  { value: 'statsports', label: 'STATSports' },
-  { value: 'polar', label: 'Polar Team Pro' },
-  { value: 'gpexe', label: 'GPexe' },
-  { value: 'playertek', label: 'PlayerTek' },
-  { value: 'other', label: 'Annat' },
+  { value: 'catapult', label: 'gpsProviders.catapult' },
+  { value: 'statsports', label: 'gpsProviders.statsports' },
+  { value: 'polar', label: 'gpsProviders.polar' },
+  { value: 'gpexe', label: 'gpsProviders.gpexe' },
+  { value: 'playertek', label: 'gpsProviders.playertek' },
+  { value: 'other', label: 'gpsProviders.other' },
 ]
 
 const STRENGTH_FOCUS_OPTIONS = [
-  { id: 'sprint_speed', label: 'Sprintsnabbhet' },
-  { id: 'acceleration', label: 'Acceleration' },
-  { id: 'endurance', label: 'Uthållighet' },
-  { id: 'jumping', label: 'Hoppkraft' },
-  { id: 'shooting_power', label: 'Skottstyrka' },
-  { id: 'agility', label: 'Kvickhet' },
-  { id: 'strength_duels', label: 'Duellstyrka' },
-  { id: 'core_stability', label: 'Core-stabilitet' },
+  { id: 'sprint_speed', label: 'strengthFocusOptions.sprintSpeed' },
+  { id: 'acceleration', label: 'strengthFocusOptions.acceleration' },
+  { id: 'endurance', label: 'strengthFocusOptions.endurance' },
+  { id: 'jumping', label: 'strengthFocusOptions.jumping' },
+  { id: 'shooting_power', label: 'strengthFocusOptions.shootingPower' },
+  { id: 'agility', label: 'strengthFocusOptions.agility' },
+  { id: 'strength_duels', label: 'strengthFocusOptions.strengthDuels' },
+  { id: 'core_stability', label: 'strengthFocusOptions.coreStability' },
 ]
 
 const WEAKNESS_OPTIONS = [
-  { id: 'weak_foot', label: 'Svaga foten' },
-  { id: 'heading', label: 'Nickar' },
-  { id: 'positioning', label: 'Positionering' },
-  { id: 'first_touch', label: 'Första touch' },
-  { id: 'passing', label: 'Passningar' },
-  { id: 'finishing', label: 'Avslut' },
-  { id: 'defensive_work', label: 'Defensivt arbete' },
-  { id: 'stamina', label: 'Uthållighet' },
+  { id: 'weak_foot', label: 'weaknessOptions.weakFoot' },
+  { id: 'heading', label: 'weaknessOptions.heading' },
+  { id: 'positioning', label: 'weaknessOptions.positioning' },
+  { id: 'first_touch', label: 'weaknessOptions.firstTouch' },
+  { id: 'passing', label: 'weaknessOptions.passing' },
+  { id: 'finishing', label: 'weaknessOptions.finishing' },
+  { id: 'defensive_work', label: 'weaknessOptions.defensiveWork' },
+  { id: 'stamina', label: 'weaknessOptions.stamina' },
 ]
 
 const INJURY_HISTORY_OPTIONS = [
-  { id: 'hamstring', label: 'Hamstring' },
-  { id: 'groin', label: 'Ljumske' },
-  { id: 'ankle', label: 'Fotled' },
-  { id: 'knee_acl', label: 'Knä (ACL)' },
-  { id: 'knee_meniscus', label: 'Knä (Menisk)' },
-  { id: 'quadriceps', label: 'Quadriceps' },
-  { id: 'calf', label: 'Vad' },
-  { id: 'back', label: 'Rygg' },
+  { id: 'hamstring', label: 'injuryHistory.hamstring' },
+  { id: 'groin', label: 'injuryHistory.groin' },
+  { id: 'ankle', label: 'injuryHistory.ankle' },
+  { id: 'knee_acl', label: 'injuryHistory.kneeAcl' },
+  { id: 'knee_meniscus', label: 'injuryHistory.kneeMeniscus' },
+  { id: 'quadriceps', label: 'injuryHistory.quadriceps' },
+  { id: 'calf', label: 'injuryHistory.calf' },
+  { id: 'back', label: 'injuryHistory.back' },
 ]
+
+const POSITION_TIP_KEYS: Record<FootballSettings['position'], string[]> = {
+  goalkeeper: [
+    'positionTips.goalkeeper.item1',
+    'positionTips.goalkeeper.item2',
+    'positionTips.goalkeeper.item3',
+  ],
+  defender: [
+    'positionTips.defender.item1',
+    'positionTips.defender.item2',
+    'positionTips.defender.item3',
+  ],
+  midfielder: [
+    'positionTips.midfielder.item1',
+    'positionTips.midfielder.item2',
+    'positionTips.midfielder.item3',
+  ],
+  forward: [
+    'positionTips.forward.item1',
+    'positionTips.forward.item2',
+    'positionTips.forward.item3',
+  ],
+}
 
 // ==================== COMPONENT ====================
 
@@ -197,6 +220,8 @@ interface FootballOnboardingProps {
 }
 
 export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingProps) {
+  const t = useTranslations('components.footballOnboarding')
+
   const updateField = <K extends keyof FootballSettings>(field: K, value: FootballSettings[K]) => {
     onUpdate({ ...settings, [field]: value })
   }
@@ -220,6 +245,8 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
   }
 
   const positionDetails = POSITION_DETAILS[settings.position] || []
+  const selectedPosition = POSITIONS.find((p) => p.value === settings.position)
+  const selectedPositionLabel = selectedPosition ? t(selectedPosition.label) : t('positionTips.fallbackPosition')
 
   return (
     <div className="space-y-6">
@@ -228,16 +255,16 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-green-500" />
-            Position & Lag
+            {t('sections.positionAndTeam.title')}
           </CardTitle>
           <CardDescription>
-            Berätta om din roll i laget och vilken nivå du spelar på
+            {t('sections.positionAndTeam.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Position</Label>
+              <Label>{t('fields.position.label')}</Label>
               <Select
                 value={settings.position}
                 onValueChange={(value) => {
@@ -246,14 +273,14 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj position" />
+                  <SelectValue placeholder={t('placeholders.selectPosition')} />
                 </SelectTrigger>
                 <SelectContent>
                   {POSITIONS.map((pos) => (
                     <SelectItem key={pos.value} value={pos.value}>
                       <div>
-                        <div className="font-medium">{pos.label}</div>
-                        <div className="text-xs text-muted-foreground">{pos.description}</div>
+                        <div className="font-medium">{t(pos.label)}</div>
+                        <div className="text-xs text-muted-foreground">{t(pos.description)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -263,18 +290,18 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
 
             {positionDetails.length > 0 && (
               <div className="space-y-2">
-                <Label>Specifik position</Label>
+                <Label>{t('fields.positionDetail.label')}</Label>
                 <Select
                   value={settings.positionDetail}
                   onValueChange={(value) => updateField('positionDetail', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Välj specifik position" />
+                    <SelectValue placeholder={t('placeholders.selectSpecificPosition')} />
                   </SelectTrigger>
                   <SelectContent>
                     {positionDetails.map((pos) => (
                       <SelectItem key={pos.value} value={pos.value}>
-                        {pos.label}
+                        {t(pos.label)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -285,29 +312,29 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Lagnamn</Label>
+              <Label>{t('fields.teamName.label')}</Label>
               <Input
                 value={settings.teamName}
                 onChange={(e) => updateField('teamName', e.target.value)}
-                placeholder="t.ex. Malmö FF"
+                placeholder={t('placeholders.exampleTeam')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Liganivå</Label>
+              <Label>{t('fields.leagueLevel.label')}</Label>
               <Select
                 value={settings.leagueLevel}
                 onValueChange={(value) => updateField('leagueLevel', value as FootballSettings['leagueLevel'])}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj liga" />
+                  <SelectValue placeholder={t('placeholders.selectLeague')} />
                 </SelectTrigger>
                 <SelectContent>
                   {LEAGUE_LEVELS.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
                       <div>
-                        <div className="font-medium">{level.label}</div>
-                        <div className="text-xs text-muted-foreground">{level.description}</div>
+                        <div className="font-medium">{t(level.label)}</div>
+                        <div className="text-xs text-muted-foreground">{t(level.description)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -318,7 +345,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>År som fotbollsspelare</Label>
+              <Label>{t('fields.yearsPlaying.label')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -329,7 +356,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
             </div>
 
             <div className="space-y-2">
-              <Label>Favorit fot</Label>
+              <Label>{t('fields.preferredFootwork.label')}</Label>
               <Select
                 value={settings.preferredFootwork}
                 onValueChange={(value) => updateField('preferredFootwork', value as FootballSettings['preferredFootwork'])}
@@ -338,9 +365,9 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="right">Höger</SelectItem>
-                  <SelectItem value="left">Vänster</SelectItem>
-                  <SelectItem value="both">Tvåfotad</SelectItem>
+                  <SelectItem value="right">{t('preferredFootwork.right')}</SelectItem>
+                  <SelectItem value="left">{t('preferredFootwork.left')}</SelectItem>
+                  <SelectItem value="both">{t('preferredFootwork.both')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -353,28 +380,28 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Timer className="h-5 w-5 text-blue-500" />
-            Säsong & Matchbelastning
+            {t('sections.seasonAndMatchLoad.title')}
           </CardTitle>
           <CardDescription>
-            Vilken fas av säsongen och hur mycket spelar du?
+            {t('sections.seasonAndMatchLoad.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Nuvarande säsongsfas</Label>
+            <Label>{t('fields.seasonPhase.label')}</Label>
             <Select
               value={settings.seasonPhase}
               onValueChange={(value) => updateField('seasonPhase', value as FootballSettings['seasonPhase'])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj fas" />
+                <SelectValue placeholder={t('placeholders.selectSeasonPhase')} />
               </SelectTrigger>
               <SelectContent>
                 {SEASON_PHASES.map((phase) => (
                   <SelectItem key={phase.value} value={phase.value}>
                     <div>
-                      <div className="font-medium">{phase.label}</div>
-                      <div className="text-xs text-muted-foreground">{phase.description}</div>
+                      <div className="font-medium">{t(phase.label)}</div>
+                      <div className="text-xs text-muted-foreground">{t(phase.description)}</div>
                     </div>
                   </SelectItem>
                 ))}
@@ -384,7 +411,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Matcher per vecka</Label>
+              <Label>{t('fields.matchesPerWeek.label')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -395,19 +422,19 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
             </div>
 
             <div className="space-y-2">
-              <Label>Snitt minuter per match</Label>
+              <Label>{t('fields.avgMinutesPerMatch.label')}</Label>
               <Input
                 type="number"
                 min={0}
                 max={120}
                 value={settings.avgMinutesPerMatch ?? ''}
                 onChange={(e) => updateField('avgMinutesPerMatch', e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="t.ex. 75"
+                placeholder={t('placeholders.exampleAvgMinutesPerMatch')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Träningspass per vecka</Label>
+              <Label>{t('fields.weeklyTrainingSessions.label')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -425,28 +452,28 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-orange-500" />
-            Spelstil
+            {t('sections.playStyle.title')}
           </CardTitle>
           <CardDescription>
-            Hur spelar ditt lag och vad är din stil?
+            {t('sections.playStyle.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Lagets spelstil</Label>
+            <Label>{t('fields.playStyle.label')}</Label>
             <Select
               value={settings.playStyle}
               onValueChange={(value) => updateField('playStyle', value as FootballSettings['playStyle'])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj spelstil" />
+                <SelectValue placeholder={t('placeholders.selectPlayStyle')} />
               </SelectTrigger>
               <SelectContent>
                 {PLAY_STYLES.map((style) => (
                   <SelectItem key={style.value} value={style.value}>
                     <div>
-                      <div className="font-medium">{style.label}</div>
-                      <div className="text-xs text-muted-foreground">{style.description}</div>
+                      <div className="font-medium">{t(style.label)}</div>
+                      <div className="text-xs text-muted-foreground">{t(style.description)}</div>
                     </div>
                   </SelectItem>
                 ))}
@@ -461,10 +488,10 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-purple-500" />
-            GPS-data
+            {t('sections.gpsData.title')}
           </CardTitle>
           <CardDescription>
-            Har du tillgång till GPS-spårning under matcher/träning?
+            {t('sections.gpsData.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -474,25 +501,25 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
               checked={settings.hasGPSData}
               onCheckedChange={(checked) => updateField('hasGPSData', !!checked)}
             />
-            <Label htmlFor="hasGPSData">Jag har tillgång till GPS-data</Label>
+            <Label htmlFor="hasGPSData">{t('fields.hasGPSData.label')}</Label>
           </div>
 
           {settings.hasGPSData && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>GPS-leverantör</Label>
+                  <Label>{t('fields.gpsProvider.label')}</Label>
                   <Select
                     value={settings.gpsProvider}
                     onValueChange={(value) => updateField('gpsProvider', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Välj leverantör" />
+                      <SelectValue placeholder={t('placeholders.selectGpsProvider')} />
                     </SelectTrigger>
                     <SelectContent>
                       {GPS_PROVIDERS.map((provider) => (
                         <SelectItem key={provider.value} value={provider.value}>
-                          {provider.label}
+                          {t(provider.label)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -500,7 +527,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Snitt matchdistans (km)</Label>
+                  <Label>{t('fields.avgMatchDistanceKm.label')}</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -508,27 +535,26 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                     max={15}
                     value={settings.avgMatchDistanceKm ?? ''}
                     onChange={(e) => updateField('avgMatchDistanceKm', e.target.value ? parseFloat(e.target.value) : null)}
-                    placeholder="t.ex. 10.5"
+                    placeholder={t('placeholders.exampleAvgMatchDistance')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Snitt sprintdistans (m)</Label>
+                  <Label>{t('fields.avgSprintDistanceM.label')}</Label>
                   <Input
                     type="number"
                     min={0}
                     max={1000}
                     value={settings.avgSprintDistanceM ?? ''}
                     onChange={(e) => updateField('avgSprintDistanceM', e.target.value ? parseInt(e.target.value) : null)}
-                    placeholder="t.ex. 350"
+                    placeholder={t('placeholders.exampleAvgSprintDistance')}
                   />
                 </div>
               </div>
 
               <div className="p-3 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  GPS-data hjälper oss att beräkna din belastning och optimera återhämtning.
-                  Du kan lägga till matchdata efterhand via matchschema-funktionen.
+                  {t('sections.gpsData.info')}
                 </p>
               </div>
             </>
@@ -541,16 +567,16 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-red-500" />
-            Fysiska tester
+            {t('sections.physicalBenchmarks.title')}
           </CardTitle>
           <CardDescription>
-            Fyll i de tester du har resultat från (frivilligt)
+            {t('sections.physicalBenchmarks.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Yo-Yo IR1 (nivå)</Label>
+              <Label>{t('fields.benchmarks.yoyoIR1.label')}</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -558,12 +584,12 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                 max={25}
                 value={settings.benchmarks.yoyoIR1Level ?? ''}
                 onChange={(e) => updateBenchmark('yoyoIR1Level', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 18.3"
+                placeholder={t('placeholders.exampleYoyoIR1')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Yo-Yo IR2 (nivå)</Label>
+              <Label>{t('fields.benchmarks.yoyoIR2.label')}</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -571,12 +597,12 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                 max={25}
                 value={settings.benchmarks.yoyoIR2Level ?? ''}
                 onChange={(e) => updateBenchmark('yoyoIR2Level', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 20.1"
+                placeholder={t('placeholders.exampleYoyoIR2')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>10m sprint (sek)</Label>
+              <Label>{t('fields.benchmarks.sprint10m.label')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -584,12 +610,12 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                 max={3}
                 value={settings.benchmarks.sprint10m ?? ''}
                 onChange={(e) => updateBenchmark('sprint10m', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 1.72"
+                placeholder={t('placeholders.exampleSprint10m')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>30m sprint (sek)</Label>
+              <Label>{t('fields.benchmarks.sprint30m.label')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -597,24 +623,24 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                 max={6}
                 value={settings.benchmarks.sprint30m ?? ''}
                 onChange={(e) => updateBenchmark('sprint30m', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 4.15"
+                placeholder={t('placeholders.exampleSprint30m')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>CMJ hopp (cm)</Label>
+              <Label>{t('fields.benchmarks.cmjHeight.label')}</Label>
               <Input
                 type="number"
                 min={20}
                 max={80}
                 value={settings.benchmarks.cmjHeight ?? ''}
                 onChange={(e) => updateBenchmark('cmjHeight', e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="t.ex. 45"
+                placeholder={t('placeholders.exampleCmjHeight')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Agility test (sek)</Label>
+              <Label>{t('fields.benchmarks.agilityTest.label')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -622,7 +648,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                 max={20}
                 value={settings.benchmarks.agilityTest ?? ''}
                 onChange={(e) => updateBenchmark('agilityTest', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 8.5"
+                placeholder={t('placeholders.exampleAgilityTest')}
               />
             </div>
           </div>
@@ -634,15 +660,15 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-yellow-500" />
-            Styrkor & Utvecklingsområden
+            {t('sections.strengthAndWeakness.title')}
           </CardTitle>
           <CardDescription>
-            Vilka fysiska egenskaper vill du utveckla?
+            {t('sections.strengthAndWeakness.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Styrkor att bygga vidare på</Label>
+            <Label>{t('sections.strengthAndWeakness.strengthsTitle')}</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {STRENGTH_FOCUS_OPTIONS.map((option) => (
                 <div
@@ -660,7 +686,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                     onCheckedChange={() => toggleArrayItem('strengthFocus', option.id)}
                   />
                   <Label htmlFor={`strength-${option.id}`} className="text-sm cursor-pointer">
-                    {option.label}
+                    {t(option.label)}
                   </Label>
                 </div>
               ))}
@@ -668,7 +694,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
           </div>
 
           <div className="space-y-2">
-            <Label>Svagheter att förbättra</Label>
+            <Label>{t('sections.strengthAndWeakness.weaknessesTitle')}</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {WEAKNESS_OPTIONS.map((option) => (
                 <div
@@ -686,7 +712,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                     onCheckedChange={() => toggleArrayItem('weaknesses', option.id)}
                   />
                   <Label htmlFor={`weakness-${option.id}`} className="text-sm cursor-pointer">
-                    {option.label}
+                    {t(option.label)}
                   </Label>
                 </div>
               ))}
@@ -700,15 +726,15 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-red-500" />
-            Skadehistorik
+            {t('sections.injuryHistory.title')}
           </CardTitle>
           <CardDescription>
-            Vilka skador har du haft som vi bör ta hänsyn till?
+            {t('sections.injuryHistory.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Tidigare skador (välj relevanta)</Label>
+            <Label>{t('fields.injuryHistory.label')}</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {INJURY_HISTORY_OPTIONS.map((option) => (
                 <div
@@ -726,7 +752,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
                     onCheckedChange={() => toggleArrayItem('injuryHistory', option.id)}
                   />
                   <Label htmlFor={`injury-${option.id}`} className="text-sm cursor-pointer">
-                    {option.label}
+                    {t(option.label)}
                   </Label>
                 </div>
               ))}
@@ -736,7 +762,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
           {settings.injuryHistory.length > 0 && (
             <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                <strong>Obs:</strong> Vi inkluderar förebyggande övningar (FIFA 11+, Nordic curls, etc.) baserat på din skadehistorik.
+                {t('sections.injuryHistory.warning')}
               </p>
             </div>
           )}
@@ -748,7 +774,7 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-green-500" />
-            Träningsförutsättningar
+            {t('sections.trainingConditions.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -758,37 +784,19 @@ export function FootballOnboarding({ settings, onUpdate }: FootballOnboardingPro
               checked={settings.hasAccessToGym}
               onCheckedChange={(checked) => updateField('hasAccessToGym', !!checked)}
             />
-            <Label htmlFor="hasAccessToGym">Tillgång till gym för styrketräning</Label>
+            <Label htmlFor="hasAccessToGym">{t('fields.hasAccessToGym.label')}</Label>
           </div>
 
           {/* Position-specific tips */}
           <div className="mt-4 p-4 bg-muted rounded-lg space-y-2">
-            <h4 className="font-medium text-sm">Tips för {POSITIONS.find(p => p.value === settings.position)?.label || 'din position'}:</h4>
-            {settings.position === 'goalkeeper' ? (
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Prioritera reaktionsträning och lateral rörlighet</li>
-                <li>• Explosiv kraft i benen för utkast och hopp</li>
-                <li>• Axelstabilitet för att undvika skador</li>
-              </ul>
-            ) : settings.position === 'defender' ? (
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Bygg överkroppsstyrka för dueller</li>
-                <li>• Fokus på hoppkraft för nickdueller</li>
-                <li>• Nordic curls för hamstring-skadeförebyggande</li>
-              </ul>
-            ) : settings.position === 'midfielder' ? (
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Högst krav på aerob kapacitet - bygg Yo-Yo</li>
-                <li>• Repeated sprint ability är kritiskt</li>
-                <li>• Skadeförebyggande extra viktigt vid hög volym</li>
-              </ul>
-            ) : (
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Maximal sprintförmåga - 10m acceleration</li>
-                <li>• Hamstring-förebyggande är kritiskt</li>
-                <li>• Skottstyrka genom rotationsövningar</li>
-              </ul>
-            )}
+            <h4 className="font-medium text-sm">
+              {t('positionTips.title', { position: selectedPositionLabel })}
+            </h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              {POSITION_TIP_KEYS[settings.position].map((tipKey) => (
+                <li key={tipKey}>• {t(tipKey)}</li>
+              ))}
+            </ul>
           </div>
         </CardContent>
       </Card>

@@ -4181,6 +4181,314 @@
         }
       }
     },
+    "footballOnboarding": {
+      "sections": {
+        "positionAndTeam": {
+          "title": "Position & Team",
+          "description": "Tell us your primary position, team, and playing background."
+        },
+        "seasonAndMatchLoad": {
+          "title": "Season & Match Load",
+          "description": "Which phase are you in and how much do you play?"
+        },
+        "playStyle": {
+          "title": "Play Style",
+          "description": "How does your team play and what style do you prefer?"
+        },
+        "gpsData": {
+          "title": "GPS Data",
+          "description": "Do you have GPS tracking available during matches or training?",
+          "info": "GPS data helps us estimate your load and optimize recovery. You can add match data later through the match scheduler."
+        },
+        "physicalBenchmarks": {
+          "title": "Physical Tests",
+          "description": "Fill in any test results you have (optional)."
+        },
+        "strengthAndWeakness": {
+          "title": "Strengths & Development Areas",
+          "description": "Which physical qualities do you want to improve?",
+          "strengthsTitle": "Strengths to build on",
+          "weaknessesTitle": "Areas to improve"
+        },
+        "injuryHistory": {
+          "title": "Injury History",
+          "description": "Which injuries should we account for in planning?",
+          "warning": "Including preventive exercises (FIFA 11+, hamstring-focused accessories, etc.) based on your injury history."
+        },
+        "trainingConditions": {
+          "title": "Training Conditions"
+        }
+      },
+      "fields": {
+        "position": {
+          "label": "Position"
+        },
+        "positionDetail": {
+          "label": "Specific Position"
+        },
+        "teamName": {
+          "label": "Club/Team"
+        },
+        "leagueLevel": {
+          "label": "Competition Level"
+        },
+        "yearsPlaying": {
+          "label": "Years playing"
+        },
+        "preferredFootwork": {
+          "label": "Preferred foot"
+        },
+        "seasonPhase": {
+          "label": "Current season phase"
+        },
+        "matchesPerWeek": {
+          "label": "Matches per week"
+        },
+        "avgMinutesPerMatch": {
+          "label": "Average minutes per match"
+        },
+        "weeklyTrainingSessions": {
+          "label": "Training sessions per week"
+        },
+        "playStyle": {
+          "label": "Team's play style"
+        },
+        "hasGPSData": {
+          "label": "I have access to GPS data"
+        },
+        "gpsProvider": {
+          "label": "GPS provider"
+        },
+        "avgMatchDistanceKm": {
+          "label": "Average match distance (km)"
+        },
+        "avgSprintDistanceM": {
+          "label": "Average sprint distance (m)"
+        },
+        "benchmarks": {
+          "yoyoIR1": {
+            "label": "Yo-Yo IR1 level"
+          },
+          "yoyoIR2": {
+            "label": "Yo-Yo IR2 level"
+          },
+          "sprint10m": {
+            "label": "10m sprint (s)"
+          },
+          "sprint30m": {
+            "label": "30m sprint (s)"
+          },
+          "cmjHeight": {
+            "label": "CMJ jump (cm)"
+          },
+          "agilityTest": {
+            "label": "Agility test (s)"
+          }
+        },
+        "injuryHistory": {
+          "label": "Previous injuries (select applicable)"
+        },
+        "hasAccessToGym": {
+          "label": "Access to gym for strength training"
+        }
+      },
+      "preferredFootwork": {
+        "right": "Right",
+        "left": "Left",
+        "both": "Both"
+      },
+      "positionOptions": {
+        "goalkeeper": {
+          "label": "Goalkeeper",
+          "description": "Backline organizer and shot-stopper"
+        },
+        "defender": {
+          "label": "Defender",
+          "description": "Protect your defensive line and win duels"
+        },
+        "midfielder": {
+          "label": "Midfielder",
+          "description": "Link defense and attack with passing and movement"
+        },
+        "forward": {
+          "label": "Forward",
+          "description": "Create and finish goal-scoring opportunities"
+        }
+      },
+      "positionDetails": {
+        "goalkeeper": {
+          "goalkeeper": "Goalkeeper"
+        },
+        "defender": {
+          "centerBack": "Center Back",
+          "leftBack": "Left Back",
+          "rightBack": "Right Back",
+          "wingBack": "Wing-Back",
+          "sweeper": "Sweeper"
+        },
+        "midfielder": {
+          "defensiveMid": "Defensive Midfielder",
+          "centralMid": "Central Midfielder",
+          "attackingMid": "Attacking Midfielder",
+          "leftMid": "Left Midfielder",
+          "rightMid": "Right Midfielder"
+        },
+        "forward": {
+          "striker": "Striker",
+          "leftWinger": "Left Winger",
+          "rightWinger": "Right Winger",
+          "falseNine": "False 9",
+          "secondStriker": "Second Striker"
+        }
+      },
+      "leagueLevels": {
+        "recreational": {
+          "label": "Recreational",
+          "description": "Training for fun and basic match play"
+        },
+        "division4": {
+          "label": "Division 4",
+          "description": "Lower local amateur level"
+        },
+        "division3": {
+          "label": "Division 3",
+          "description": "Regional competitive division"
+        },
+        "division2": {
+          "label": "Division 2",
+          "description": "Upper amateur competitive division"
+        },
+        "division1": {
+          "label": "Division 1",
+          "description": "Semi-professional and national level matches"
+        },
+        "superettan": {
+          "label": "Superettan",
+          "description": "Professional second-tier league"
+        },
+        "allsvenskan": {
+          "label": "Allsvenskan",
+          "description": "Top domestic league"
+        }
+      },
+      "seasonPhases": {
+        "offSeason": {
+          "label": "Off-season",
+          "description": "Base building and reconditioning"
+        },
+        "preSeason": {
+          "label": "Pre-season",
+          "description": "Work capacity and tactical preparation"
+        },
+        "inSeason": {
+          "label": "In-season",
+          "description": "Peak competitive phase"
+        },
+        "playoffs": {
+          "label": "Playoffs",
+          "description": "Peak intensity and high recovery demand"
+        }
+      },
+      "playStyles": {
+        "possession": {
+          "label": "Possession",
+          "description": "High control and structured build-up play"
+        },
+        "counter": {
+          "label": "Counter-attacking",
+          "description": "Fast transitions and reactive speed"
+        },
+        "pressing": {
+          "label": "Pressing",
+          "description": "High defensive pressure and recovery runs"
+        },
+        "physical": {
+          "label": "Physical",
+          "description": "Direct duels and power-based match style"
+        }
+      },
+      "gpsProviders": {
+        "catapult": "Catapult",
+        "statsports": "STATSports",
+        "polar": "Polar",
+        "gpexe": "GPX",
+        "playertek": "PlayerTek",
+        "other": "Other"
+      },
+      "strengthFocusOptions": {
+        "sprintSpeed": "Sprint speed",
+        "acceleration": "Acceleration",
+        "endurance": "Endurance",
+        "jumping": "Jumping",
+        "shootingPower": "Shooting power",
+        "agility": "Agility",
+        "strengthDuels": "Strength in duels",
+        "coreStability": "Core stability"
+      },
+      "weaknessOptions": {
+        "weakFoot": "Weak foot",
+        "heading": "Heading",
+        "positioning": "Positioning",
+        "firstTouch": "First touch",
+        "passing": "Passing",
+        "finishing": "Finishing",
+        "defensiveWork": "Defensive work",
+        "stamina": "Stamina"
+      },
+      "injuryHistory": {
+        "hamstring": "Hamstring injury",
+        "groin": "Groin strain",
+        "ankle": "Ankle injury",
+        "kneeAcl": "ACL injury",
+        "kneeMeniscus": "Meniscus injury",
+        "quadriceps": "Quadriceps injury",
+        "calf": "Calf injury",
+        "back": "Back pain"
+      },
+      "placeholders": {
+        "selectPosition": "Select position",
+        "selectSpecificPosition": "Select specific position",
+        "exampleTeam": "e.g., FC Example",
+        "selectLeague": "Select league level",
+        "selectSeasonPhase": "Select phase",
+        "matchesPerWeek": "e.g., 2",
+        "selectPlayStyle": "Select play style",
+        "selectGpsProvider": "Select provider",
+        "exampleAvgMinutesPerMatch": "e.g., 75",
+        "exampleAvgMatchDistance": "e.g., 10.5",
+        "exampleAvgSprintDistance": "e.g., 350",
+        "exampleYoyoIR1": "e.g., 18.3",
+        "exampleYoyoIR2": "e.g., 20.1",
+        "exampleSprint10m": "e.g., 1.72",
+        "exampleSprint30m": "e.g., 4.15",
+        "exampleCmjHeight": "e.g., 45",
+        "exampleAgilityTest": "e.g., 8.5"
+      },
+      "positionTips": {
+        "title": "Tips for {position}:",
+        "fallbackPosition": "your position",
+        "goalkeeper": {
+          "item1": "Prioritize reaction training and lateral mobility.",
+          "item2": "Develop explosive lower-body power for throws and jumps.",
+          "item3": "Keep shoulder stability focus to reduce injuries."
+        },
+        "defender": {
+          "item1": "Build upper-body strength for duels.",
+          "item2": "Train aerial power for headed challenges.",
+          "item3": "Include Nordic curl work for hamstring injury prevention."
+        },
+        "midfielder": {
+          "item1": "Highest demand on aerobic capacity: keep building Yo-Yo.",
+          "item2": "Repeated sprint ability is critical.",
+          "item3": "Add extra injury prevention during high volume phases."
+        },
+        "forward": {
+          "item1": "Maximize acceleration in the first 10m.",
+          "item2": "Prioritize hamstring prevention and posterior chain work.",
+          "item3": "Build shot power through rotational exercises."
+        }
+      }
+    },
     "optimizeWorkoutButton": {
       "actions": {
         "optimize": "Optimize",

@@ -4181,6 +4181,314 @@
         }
       }
     },
+    "footballOnboarding": {
+      "sections": {
+        "positionAndTeam": {
+          "title": "Position & lag",
+          "description": "Berätta om din primära position, lag och bakgrund."
+        },
+        "seasonAndMatchLoad": {
+          "title": "Säsong & matchbelastning",
+          "description": "Vilken fas är ni i och hur mycket spelar du?"
+        },
+        "playStyle": {
+          "title": "Spelstil",
+          "description": "Hur spelar ditt lag och vilken stil föredrar du?"
+        },
+        "gpsData": {
+          "title": "GPS-data",
+          "description": "Har du tillgång till GPS-spårning under matcher eller träning?",
+          "info": "GPS-data hjälper oss att beräkna belastning och optimera återhämtning. Du kan lägga till matchdata senare via matchschemat."
+        },
+        "physicalBenchmarks": {
+          "title": "Fysiska tester",
+          "description": "Fyll i de tester du har resultat från (valfritt)."
+        },
+        "strengthAndWeakness": {
+          "title": "Styrkor & utvecklingsområden",
+          "description": "Vilka fysiska egenskaper vill du förbättra?",
+          "strengthsTitle": "Styrkor att bygga vidare på",
+          "weaknessesTitle": "Svagheter att förbättra"
+        },
+        "injuryHistory": {
+          "title": "Skadehistorik",
+          "description": "Vilka skador bör vi ta hänsyn till?",
+          "warning": "Vi inkluderar förebyggande övningar (FIFA 11+, Nordic curls med mera) baserat på din skadehistoria."
+        },
+        "trainingConditions": {
+          "title": "Träningsförutsättningar"
+        }
+      },
+      "fields": {
+        "position": {
+          "label": "Position"
+        },
+        "positionDetail": {
+          "label": "Specifik position"
+        },
+        "teamName": {
+          "label": "Klubb/lag"
+        },
+        "leagueLevel": {
+          "label": "Tävlingsnivå"
+        },
+        "yearsPlaying": {
+          "label": "Antal år som spelar"
+        },
+        "preferredFootwork": {
+          "label": "Föredragen fot"
+        },
+        "seasonPhase": {
+          "label": "Aktuell säsongsfas"
+        },
+        "matchesPerWeek": {
+          "label": "Matcher per vecka"
+        },
+        "avgMinutesPerMatch": {
+          "label": "Snitt minuter per match"
+        },
+        "weeklyTrainingSessions": {
+          "label": "Träningspass per vecka"
+        },
+        "playStyle": {
+          "label": "Lagets spelstil"
+        },
+        "hasGPSData": {
+          "label": "Jag har tillgång till GPS-data"
+        },
+        "gpsProvider": {
+          "label": "GPS-leverantör"
+        },
+        "avgMatchDistanceKm": {
+          "label": "Snitt matchdistans (km)"
+        },
+        "avgSprintDistanceM": {
+          "label": "Snitt sprintdistans (m)"
+        },
+        "benchmarks": {
+          "yoyoIR1": {
+            "label": "Yo-Yo IR1 nivå"
+          },
+          "yoyoIR2": {
+            "label": "Yo-Yo IR2 nivå"
+          },
+          "sprint10m": {
+            "label": "10m sprint (sek)"
+          },
+          "sprint30m": {
+            "label": "30m sprint (sek)"
+          },
+          "cmjHeight": {
+            "label": "CMJ-höjd (cm)"
+          },
+          "agilityTest": {
+            "label": "Agility-test (sek)"
+          }
+        },
+        "injuryHistory": {
+          "label": "Tidigare skador (välj relevanta)"
+        },
+        "hasAccessToGym": {
+          "label": "Tillgång till gym för styrketräning"
+        }
+      },
+      "preferredFootwork": {
+        "right": "Höger",
+        "left": "Vänster",
+        "both": "Båda"
+      },
+      "positionOptions": {
+        "goalkeeper": {
+          "label": "Målvakt",
+          "description": "Backlinjeorganisatör och målförsvarare"
+        },
+        "defender": {
+          "label": "Back",
+          "description": "Skydda försvaret och vinna dueller"
+        },
+        "midfielder": {
+          "label": "Mittfältare",
+          "description": "Länka anfall och försvar med passning och rörelse"
+        },
+        "forward": {
+          "label": "Anfallare",
+          "description": "Skapa och avsluta målchanser"
+        }
+      },
+      "positionDetails": {
+        "goalkeeper": {
+          "goalkeeper": "Målvakt"
+        },
+        "defender": {
+          "centerBack": "Center-back",
+          "leftBack": "Vänsterback",
+          "rightBack": "Högerback",
+          "wingBack": "Wing-back",
+          "sweeper": "Libero"
+        },
+        "midfielder": {
+          "defensiveMid": "Defensiv mittfältare",
+          "centralMid": "Central mittfältare",
+          "attackingMid": "Anfallande mittfältare",
+          "leftMid": "Vänster mittfältare",
+          "rightMid": "Höger mittfältare"
+        },
+        "forward": {
+          "striker": "Anfallare",
+          "leftWinger": "Vänster ytter",
+          "rightWinger": "Höger ytter",
+          "falseNine": "Falsk 9:a",
+          "secondStriker": "Andra anfallare"
+        }
+      },
+      "leagueLevels": {
+        "recreational": {
+          "label": "Motionär",
+          "description": "Träning för nöjes- och matchglädje"
+        },
+        "division4": {
+          "label": "Division 4",
+          "description": "Lokal amatörnivå"
+        },
+        "division3": {
+          "label": "Division 3",
+          "description": "Regionalt konkurrensnivå"
+        },
+        "division2": {
+          "label": "Division 2",
+          "description": "Högre amatörnivå"
+        },
+        "division1": {
+          "label": "Division 1",
+          "description": "Semiprofessionell nationell nivå"
+        },
+        "superettan": {
+          "label": "Superettan",
+          "description": "Professionell andratalig liga"
+        },
+        "allsvenskan": {
+          "label": "Allsvenskan",
+          "description": "Toppnivån i svensk liga"
+        }
+      },
+      "seasonPhases": {
+        "offSeason": {
+          "label": "Lågdel av säsongen",
+          "description": "Bygg bas och återhämta dig."
+        },
+        "preSeason": {
+          "label": "Försäsong",
+          "description": "Arbetskapacitet och taktisk förberedelse"
+        },
+        "inSeason": {
+          "label": "I-säsong",
+          "description": "Tävlingsfas med hög belastning"
+        },
+        "playoffs": {
+          "label": "Playoff",
+          "description": "Maxbelastning och hög återhämtningskrav"
+        }
+      },
+      "playStyles": {
+        "possession": {
+          "label": "Innehav",
+          "description": "Hög bollkontroll och uppbyggnadsspel"
+        },
+        "counter": {
+          "label": "Kontring",
+          "description": "Snabba övergångar och reaktiv hastighet"
+        },
+        "pressing": {
+          "label": "Press",
+          "description": "Högt försvarstryck och snabba återvinningar"
+        },
+        "physical": {
+          "label": "Fysisk",
+          "description": "Direkta dueller och kraftbaserad spelstil"
+        }
+      },
+      "gpsProviders": {
+        "catapult": "Catapult",
+        "statsports": "STATSports",
+        "polar": "Polar",
+        "gpexe": "GPX",
+        "playertek": "PlayerTek",
+        "other": "Övrigt"
+      },
+      "strengthFocusOptions": {
+        "sprintSpeed": "Sprintfart",
+        "acceleration": "Acceleration",
+        "endurance": "Uthållighet",
+        "jumping": "Hoppkraft",
+        "shootingPower": "Skottkraft",
+        "agility": "Rörlighet",
+        "strengthDuels": "Styrka i dueller",
+        "coreStability": "Bålstabilitet"
+      },
+      "weaknessOptions": {
+        "weakFoot": "Svag fot",
+        "heading": "Huvudspel",
+        "positioning": "Positionering",
+        "firstTouch": "Första beröring",
+        "passing": "Passning",
+        "finishing": "Avslut",
+        "defensiveWork": "Defensivt arbete",
+        "stamina": "Uthållighet"
+      },
+      "injuryHistory": {
+        "hamstring": "Baksideslårskada",
+        "groin": "Ljumskskada",
+        "ankle": "Fotledsskada",
+        "kneeAcl": "ACL-skada",
+        "kneeMeniscus": "Meniskskada",
+        "quadriceps": "Framlårskada",
+        "calf": "Vadskada",
+        "back": "Ryggproblem"
+      },
+      "placeholders": {
+        "selectPosition": "Välj position",
+        "selectSpecificPosition": "Välj specifik position",
+        "exampleTeam": "t.ex., FC Exempellag",
+        "selectLeague": "Välj tävlingsnivå",
+        "selectSeasonPhase": "Välj fas",
+        "matchesPerWeek": "t.ex., 2",
+        "selectPlayStyle": "Välj spelstil",
+        "selectGpsProvider": "Välj leverantör",
+        "exampleAvgMinutesPerMatch": "t.ex., 75",
+        "exampleAvgMatchDistance": "t.ex., 10,5",
+        "exampleAvgSprintDistance": "t.ex., 350",
+        "exampleYoyoIR1": "t.ex., 18,3",
+        "exampleYoyoIR2": "t.ex., 20,1",
+        "exampleSprint10m": "t.ex., 1,72",
+        "exampleSprint30m": "t.ex., 4,15",
+        "exampleCmjHeight": "t.ex., 45",
+        "exampleAgilityTest": "t.ex., 8,5"
+      },
+      "positionTips": {
+        "title": "Tips för {position}:",
+        "fallbackPosition": "din position",
+        "goalkeeper": {
+          "item1": "Prioritera reaktionsträning och lateral rörlighet.",
+          "item2": "Bygg explosiv kraft i benen för kast och hopp.",
+          "item3": "Fokusera på axelstabilitet för att minska skaderisken."
+        },
+        "defender": {
+          "item1": "Bygg överkroppsstyrka för dueller.",
+          "item2": "Träna hoppkraft för nickdueller.",
+          "item3": "Inkludera Nordic curls för hamstringsförebyggande."
+        },
+        "midfielder": {
+          "item1": "Högsta krav på aerob kapacitet: bygg vidare på Yo-Yo.",
+          "item2": "Repeated sprint ability är viktigt.",
+          "item3": "Lägg extra vikt vid skadeförebyggande vid hög volym."
+        },
+        "forward": {
+          "item1": "Maximera accelerationen i första 10 metrarna.",
+          "item2": "Prioritera hamstringförebyggande och baksida lår-kedja.",
+          "item3": "Bygg skottstyrka med rotationsövningar."
+        }
+      }
+    },
     "optimizeWorkoutButton": {
       "actions": {
         "optimize": "Optimera",
