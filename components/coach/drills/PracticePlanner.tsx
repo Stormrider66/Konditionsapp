@@ -26,6 +26,9 @@ import {
   ChevronUp,
   Calendar,
   ClipboardList,
+  Copy,
+  Printer,
+  Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from '@/i18n/client'
@@ -282,6 +285,121 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
       return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
     },
     [startTime]
+  )
+
+  const buildPracticePlanText = useCallback(
+    (audience: 'staff' | 'players') => {
+      const selectedTeam = teams.find((team) => team.id === teamId)
+      const header = [
+        title || `${t('defaultTitle')} ${date || ''}`.trim(),
+        selectedTeam?.name ? `${t('share.team')}: ${selectedTeam.name}` : null,
+        date ? `${tCommon('date')}: ${date}` : null,
+        startTime ? `${t('labels.startTime')}: ${formatTime(0)}-${formatTime(totalMinutes)}` : null,
+        `${t('share.duration')}: ${totalMinutes} ${t('minutesLabel')}`,
+        `${t('planSummary.phase')}: ${phaseOptions.find((option) => option.value === practicePhase)?.label ?? practicePhase}`,
+        `${t('planSummary.intensity')}: ${intensityOptions.find((option) => option.value === practiceIntensity)?.label ?? practiceIntensity}`,
+      ].filter(Boolean).join('\n')
+
+      const notes = audience === 'staff'
+        ? [
+            lineGroups ? `${t('planSummary.linesGroups')}: ${lineGroups}` : null,
+            goalieNotes ? `${t('planSummary.goalieNotes')}: ${goalieNotes}` : null,
+            coachNotes ? `${t('planSummary.coachNotes')}: ${coachNotes}` : null,
+          ].filter(Boolean).join('\n')
+        : [
+            lineGroups ? `${t('planSummary.linesGroups')}: ${lineGroups}` : null,
+            goalieNotes ? `${t('planSummary.goalieNotes')}: ${goalieNotes}` : null,
+          ].filter(Boolean).join('\n')
+
+      const plan = timeline
+        .map((block, index) => {
+          const blockLines = [
+            `${index + 1}. ${formatTime(block.startMin)}-${formatTime(block.endMin)} ${block.title} (${block.durationMinutes} ${t('minutesLabel')})`,
+            `${t('planSummary.focus')}: ${focusLabel(block.focus)}${block.workRest ? ` | ${t('planSummary.workRest')}: ${block.workRest}` : ''}`,
+            block.description ? block.description : null,
+            audience === 'staff' && block.coachingNotes
+              ? `${t('planSummary.coachingNotes')}: ${block.coachingNotes}`
+              : null,
+          ].filter(Boolean)
+          return blockLines.join('\n')
+        })
+        .join('\n\n')
+
+      return [
+        header,
+        notes ? `${t('share.notesTitle')}\n${notes}` : null,
+        `${t('descriptionTitle')}\n${plan}`,
+      ].filter(Boolean).join('\n\n')
+    },
+    [
+      teams,
+      teamId,
+      title,
+      date,
+      startTime,
+      totalMinutes,
+      practicePhase,
+      phaseOptions,
+      practiceIntensity,
+      intensityOptions,
+      lineGroups,
+      goalieNotes,
+      coachNotes,
+      timeline,
+      formatTime,
+      focusLabel,
+      t,
+      tCommon,
+    ]
+  )
+
+  const copyPracticePlan = useCallback(
+    async (audience: 'staff' | 'players') => {
+      try {
+        await navigator.clipboard.writeText(buildPracticePlanText(audience))
+        toast.success(audience === 'staff' ? t('toasts.staffPlanCopied') : t('toasts.playerPlanCopied'))
+      } catch {
+        toast.error(t('toasts.copyFailed'))
+      }
+    },
+    [buildPracticePlanText, t]
+  )
+
+  const printPracticePlan = useCallback(
+    (audience: 'staff' | 'players') => {
+      const planText = buildPracticePlanText(audience)
+      const printWindow = window.open('', '_blank', 'noopener,noreferrer')
+      if (!printWindow) {
+        toast.error(t('toasts.printFailed'))
+        return
+      }
+
+      const escaped = planText
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+
+      printWindow.document.write(`
+        <!doctype html>
+        <html>
+          <head>
+            <title>${t('share.printTitle')}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; color: #111827; }
+              pre { white-space: pre-wrap; font: inherit; line-height: 1.45; }
+              @media print { body { margin: 18mm; } }
+            </style>
+          </head>
+          <body>
+            <pre>${escaped}</pre>
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+      printWindow.focus()
+      printWindow.print()
+    },
+    [buildPracticePlanText, t]
   )
 
   // Save as TeamEvent with practice plan in description
@@ -693,6 +811,55 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Share / print */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Users className="h-4 w-4" />
+                {t('share.title')}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('share.description')}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copyPracticePlan('staff')}
+                disabled={blocks.length === 0}
+              >
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                {t('actions.copyStaffPlan')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copyPracticePlan('players')}
+                disabled={blocks.length === 0}
+              >
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                {t('actions.copyPlayerPlan')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => printPracticePlan('staff')}
+                disabled={blocks.length === 0}
+              >
+                <Printer className="h-3.5 w-3.5 mr-1.5" />
+                {t('actions.printStaffPlan')}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

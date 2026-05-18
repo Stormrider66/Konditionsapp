@@ -2449,9 +2449,20 @@
           "addActivity": "Aktivitet",
           "addTemplate": "Mall",
           "addSavedDrill": "+ Sparad övning",
+          "copyStaffPlan": "Kopiera ledarblad",
+          "copyPlayerPlan": "Kopiera spelarversion",
+          "printStaffPlan": "Skriv ut",
           "cancel": "Avbryt",
           "saving": "Sparar...",
           "saveToCalendar": "Spara till kalender"
+        },
+        "share": {
+          "title": "Dela passblad",
+          "description": "Kopiera en komplett ledarversion eller en renare spelarversion. Utskrift öppnar ett enkelt passblad i ett nytt fönster.",
+          "team": "Lag",
+          "duration": "Tid",
+          "notesTitle": "Noteringar",
+          "printTitle": "Passblad"
         },
         "templatePicker": {
           "title": "Välj övningsmall"
@@ -2463,7 +2474,11 @@
         },
         "toasts": {
           "saved": "Träningsplan sparad i kalendern!",
-          "saveFailed": "Kunde inte spara träningsplanen"
+          "saveFailed": "Kunde inte spara träningsplanen",
+          "staffPlanCopied": "Ledarblad kopierat",
+          "playerPlanCopied": "Spelarversion kopierad",
+          "copyFailed": "Kunde inte kopiera passbladet",
+          "printFailed": "Kunde inte öppna utskriftsvy"
         }
       },
       "workoutPrint": {

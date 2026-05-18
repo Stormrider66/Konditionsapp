@@ -2449,9 +2449,20 @@
           "addActivity": "Activity",
           "addTemplate": "Template",
           "addSavedDrill": "+ Saved drill",
+          "copyStaffPlan": "Copy staff sheet",
+          "copyPlayerPlan": "Copy player version",
+          "printStaffPlan": "Print",
           "cancel": "Cancel",
           "saving": "Saving...",
           "saveToCalendar": "Save to calendar"
+        },
+        "share": {
+          "title": "Share practice sheet",
+          "description": "Copy a complete staff version or a cleaner player version. Print opens a simple practice sheet in a new window.",
+          "team": "Team",
+          "duration": "Duration",
+          "notesTitle": "Notes",
+          "printTitle": "Practice sheet"
         },
         "templatePicker": {
           "title": "Choose drill template"
@@ -2463,7 +2474,11 @@
         },
         "toasts": {
           "saved": "Practice plan saved to calendar!",
-          "saveFailed": "Could not save practice plan"
+          "saveFailed": "Could not save practice plan",
+          "staffPlanCopied": "Staff sheet copied",
+          "playerPlanCopied": "Player version copied",
+          "copyFailed": "Could not copy practice sheet",
+          "printFailed": "Could not open print view"
         }
       },
       "workoutPrint": {
