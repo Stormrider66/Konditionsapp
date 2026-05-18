@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Check, Copy, Printer } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from '@/i18n/client'
 
 export function PracticeSheetActions() {
+  const t = useTranslations('components.practiceSheetPrintButton')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -18,23 +20,23 @@ export function PracticeSheetActions() {
     try {
       await navigator.clipboard.writeText(window.location.href)
       setCopied(true)
-      toast.success('Länk kopierad')
+      toast.success(t('toasts.linkCopied'))
     } catch {
-      toast.error('Kunde inte kopiera länken')
+      toast.error(t('toasts.copyLinkFailed'))
     }
   }
 
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
-      <Button type="button" variant="outline" size="sm" onClick={copyLink}>
-        {copied ? <Check className="mr-1.5 h-4 w-4" /> : <Copy className="mr-1.5 h-4 w-4" />}
-        {copied ? 'Kopierad' : 'Kopiera länk'}
-      </Button>
-      <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
-        <Printer className="mr-1.5 h-4 w-4" />
-        Skriv ut
-      </Button>
-    </div>
+        <Button type="button" variant="outline" size="sm" onClick={copyLink}>
+          {copied ? <Check className="mr-1.5 h-4 w-4" /> : <Copy className="mr-1.5 h-4 w-4" />}
+          {copied ? t('actions.copied') : t('actions.copyLink')}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
+          <Printer className="mr-1.5 h-4 w-4" />
+          {t('actions.print')}
+        </Button>
+      </div>
   )
 }
 

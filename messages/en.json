@@ -4532,6 +4532,17 @@
         "unknown": "Something went wrong"
       }
     },
+    "practiceSheetPrintButton": {
+      "actions": {
+        "copyLink": "Copy link",
+        "copied": "Copied",
+        "print": "Print"
+      },
+      "toasts": {
+        "linkCopied": "Link copied",
+        "copyLinkFailed": "Could not copy the link"
+      }
+    },
     "smartTestImportDialog": {
       "title": "Smart Test Import",
       "description": "Import test data from photos, documents, or audio recording",

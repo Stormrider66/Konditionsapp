@@ -4532,6 +4532,17 @@
         "unknown": "Något gick fel"
       }
     },
+    "practiceSheetPrintButton": {
+      "actions": {
+        "copyLink": "Kopiera länk",
+        "copied": "Kopierad",
+        "print": "Skriv ut"
+      },
+      "toasts": {
+        "linkCopied": "Länk kopierad",
+        "copyLinkFailed": "Kunde inte kopiera länken"
+      }
+    },
     "smartTestImportDialog": {
       "title": "Smart testimport",
       "description": "Importera testdata från foto, dokument eller ljudinspelning",
