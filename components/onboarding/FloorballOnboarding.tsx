@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Trophy, Timer, Target, Flame, Shield, Zap, Activity } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 // ==================== TYPES ====================
 
@@ -77,67 +78,79 @@ export const DEFAULT_FLOORBALL_SETTINGS: FloorballSettings = {
 // ==================== CONSTANTS ====================
 
 const POSITIONS = [
-  { value: 'goalkeeper', label: 'Målvakt', description: 'Reaktion, benarbete, positionering' },
-  { value: 'defender', label: 'Back', description: 'Täckning, speluppbyggnad, tacklingar' },
-  { value: 'center', label: 'Center', description: 'Box-to-box, arbetskapacitet, allround' },
-  { value: 'forward', label: 'Forward/Ytter', description: 'Avslut, snabbhet, press' },
+  { value: 'goalkeeper', label: 'positions.goalkeeper.label', description: 'positions.goalkeeper.description' },
+  { value: 'defender', label: 'positions.defender.label', description: 'positions.defender.description' },
+  { value: 'center', label: 'positions.center.label', description: 'positions.center.description' },
+  { value: 'forward', label: 'positions.forward.label', description: 'positions.forward.description' },
 ]
 
 const LEAGUE_LEVELS = [
-  { value: 'recreational', label: 'Korpen/Motion', description: 'Motionsinnebandy' },
-  { value: 'division_3', label: 'Division 3', description: 'Tredje högsta nivån' },
-  { value: 'division_2', label: 'Division 2', description: 'Andra högsta nivån' },
-  { value: 'division_1', label: 'Division 1', description: 'Högsta amatörnivån' },
-  { value: 'allsvenskan', label: 'Allsvenskan', description: 'Näst högsta proffsnivån' },
-  { value: 'ssl', label: 'Svenska Superligan', description: 'Högsta ligan (SSL)' },
+  { value: 'recreational', label: 'leagueLevels.recreational.label', description: 'leagueLevels.recreational.description' },
+  { value: 'division_3', label: 'leagueLevels.division3.label', description: 'leagueLevels.division3.description' },
+  { value: 'division_2', label: 'leagueLevels.division2.label', description: 'leagueLevels.division2.description' },
+  { value: 'division_1', label: 'leagueLevels.division1.label', description: 'leagueLevels.division1.description' },
+  { value: 'allsvenskan', label: 'leagueLevels.allsvenskan.label', description: 'leagueLevels.allsvenskan.description' },
+  { value: 'ssl', label: 'leagueLevels.ssl.label', description: 'leagueLevels.ssl.description' },
 ]
 
 const SEASON_PHASES = [
-  { value: 'off_season', label: 'Off-season', description: 'Maj-augusti, bygga bas' },
-  { value: 'pre_season', label: 'Försäsong', description: 'Augusti-september' },
-  { value: 'in_season', label: 'Säsong', description: 'September-april' },
-  { value: 'playoffs', label: 'Slutspel', description: 'Slutspel eller SM-final' },
+  { value: 'off_season', label: 'seasonPhases.offSeason.label', description: 'seasonPhases.offSeason.description' },
+  { value: 'pre_season', label: 'seasonPhases.preSeason.label', description: 'seasonPhases.preSeason.description' },
+  { value: 'in_season', label: 'seasonPhases.inSeason.label', description: 'seasonPhases.inSeason.description' },
+  { value: 'playoffs', label: 'seasonPhases.playoffs.label', description: 'seasonPhases.playoffs.description' },
 ]
 
 const PLAY_STYLES = [
-  { value: 'offensive', label: 'Offensiv', description: 'Fokus på anfall och målskytte' },
-  { value: 'defensive', label: 'Defensiv', description: 'Fokus på försvar och täckning' },
-  { value: 'playmaker', label: 'Spelmotor', description: 'Skapar spel, passningar' },
-  { value: 'physical', label: 'Fysisk', description: 'Tacklingar, vinna bollar' },
+  { value: 'offensive', label: 'playStyles.offensive.label', description: 'playStyles.offensive.description' },
+  { value: 'defensive', label: 'playStyles.defensive.label', description: 'playStyles.defensive.description' },
+  { value: 'playmaker', label: 'playStyles.playmaker.label', description: 'playStyles.playmaker.description' },
+  { value: 'physical', label: 'playStyles.physical.label', description: 'playStyles.physical.description' },
 ]
 
 const STRENGTH_FOCUS_OPTIONS = [
-  { id: 'sprint_speed', label: 'Sprintsnabbhet' },
-  { id: 'acceleration', label: 'Acceleration' },
-  { id: 'endurance', label: 'Uthållighet' },
-  { id: 'agility', label: 'Kvickhet' },
-  { id: 'shooting_power', label: 'Skottstyrka' },
-  { id: 'core_stability', label: 'Core-stabilitet' },
-  { id: 'leg_strength', label: 'Benstyrka' },
-  { id: 'low_position', label: 'Låg position' },
+  { id: 'sprint_speed', label: 'strengths.sprintSpeed' },
+  { id: 'acceleration', label: 'strengths.acceleration' },
+  { id: 'endurance', label: 'strengths.endurance' },
+  { id: 'agility', label: 'strengths.agility' },
+  { id: 'shooting_power', label: 'strengths.shootingPower' },
+  { id: 'core_stability', label: 'strengths.coreStability' },
+  { id: 'leg_strength', label: 'strengths.legStrength' },
+  { id: 'low_position', label: 'strengths.lowPosition' },
 ]
 
 const WEAKNESS_OPTIONS = [
-  { id: 'weak_hand', label: 'Svaga handen' },
-  { id: 'finishing', label: 'Avslut' },
-  { id: 'defense', label: 'Försvarsspel' },
-  { id: 'positioning', label: 'Positionering' },
-  { id: 'stick_handling', label: 'Teknik' },
-  { id: 'passing', label: 'Passningar' },
-  { id: 'stamina', label: 'Uthållighet' },
-  { id: 'game_reading', label: 'Spelläsning' },
+  { id: 'weak_hand', label: 'weaknesses.weakHand' },
+  { id: 'finishing', label: 'weaknesses.finishing' },
+  { id: 'defense', label: 'weaknesses.defense' },
+  { id: 'positioning', label: 'weaknesses.positioning' },
+  { id: 'stick_handling', label: 'weaknesses.stickHandling' },
+  { id: 'passing', label: 'weaknesses.passing' },
+  { id: 'stamina', label: 'weaknesses.stamina' },
+  { id: 'game_reading', label: 'weaknesses.gameReading' },
 ]
 
 const INJURY_HISTORY_OPTIONS = [
-  { id: 'groin', label: 'Ljumske' },
-  { id: 'hamstring', label: 'Hamstring' },
-  { id: 'knee', label: 'Knä' },
-  { id: 'ankle', label: 'Fotled' },
-  { id: 'hip', label: 'Höft' },
-  { id: 'back', label: 'Rygg' },
-  { id: 'wrist', label: 'Handled' },
-  { id: 'shoulder', label: 'Axel' },
+  { id: 'groin', label: 'injuries.groin' },
+  { id: 'hamstring', label: 'injuries.hamstring' },
+  { id: 'knee', label: 'injuries.knee' },
+  { id: 'ankle', label: 'injuries.ankle' },
+  { id: 'hip', label: 'injuries.hip' },
+  { id: 'back', label: 'injuries.back' },
+  { id: 'wrist', label: 'injuries.wrist' },
+  { id: 'shoulder', label: 'injuries.shoulder' },
 ]
+
+const STICK_HAND = [
+  { value: 'right', label: 'stickHand.right' },
+  { value: 'left', label: 'stickHand.left' },
+]
+
+const POSITION_TIPS = {
+  goalkeeper: ['tips.goalkeeper.1', 'tips.goalkeeper.2', 'tips.goalkeeper.3'],
+  defender: ['tips.defender.1', 'tips.defender.2', 'tips.defender.3'],
+  center: ['tips.center.1', 'tips.center.2', 'tips.center.3'],
+  forward: ['tips.forward.1', 'tips.forward.2', 'tips.forward.3'],
+}
 
 // ==================== COMPONENT ====================
 
@@ -147,6 +160,7 @@ interface FloorballOnboardingProps {
 }
 
 export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingProps) {
+  const t = useTranslations('components.onboarding.floorball')
   const updateField = <K extends keyof FloorballSettings>(field: K, value: FloorballSettings[K]) => {
     onUpdate({ ...settings, [field]: value })
   }
@@ -176,27 +190,27 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-blue-500" />
-            Position & Lag
+            {t('sections.positionAndTeam.title')}
           </CardTitle>
-          <CardDescription>Berätta om din roll i laget och vilken nivå du spelar på</CardDescription>
+          <CardDescription>{t('sections.positionAndTeam.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Position</Label>
+              <Label>{t('labels.position')}</Label>
               <Select
                 value={settings.position}
                 onValueChange={(value) => updateField('position', value as FloorballSettings['position'])}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj position" />
+                  <SelectValue placeholder={t('placeholders.position')} />
                 </SelectTrigger>
                 <SelectContent>
                   {POSITIONS.map((pos) => (
                     <SelectItem key={pos.value} value={pos.value}>
                       <div>
-                        <div className="font-medium">{pos.label}</div>
-                        <div className="text-xs text-muted-foreground">{pos.description}</div>
+                        <div className="font-medium">{t(pos.label)}</div>
+                        <div className="text-xs text-muted-foreground">{t(pos.description)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -205,7 +219,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
             </div>
 
             <div className="space-y-2">
-              <Label>Klubbhand</Label>
+              <Label>{t('labels.stickHand')}</Label>
               <Select
                 value={settings.stickHand}
                 onValueChange={(value) => updateField('stickHand', value as FloorballSettings['stickHand'])}
@@ -214,8 +228,11 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="right">Höger</SelectItem>
-                  <SelectItem value="left">Vänster</SelectItem>
+                  {STICK_HAND.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {t(item.label)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -223,29 +240,29 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Lagnamn</Label>
+              <Label>{t('labels.teamName')}</Label>
               <Input
                 value={settings.teamName}
                 onChange={(e) => updateField('teamName', e.target.value)}
-                placeholder="t.ex. Storvreta IBK"
+                placeholder={t('placeholders.teamName')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Liganivå</Label>
+              <Label>{t('labels.leagueLevel')}</Label>
               <Select
                 value={settings.leagueLevel}
                 onValueChange={(value) => updateField('leagueLevel', value as FloorballSettings['leagueLevel'])}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj liga" />
+                  <SelectValue placeholder={t('placeholders.leagueLevel')} />
                 </SelectTrigger>
                 <SelectContent>
                   {LEAGUE_LEVELS.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
                       <div>
-                        <div className="font-medium">{level.label}</div>
-                        <div className="text-xs text-muted-foreground">{level.description}</div>
+                        <div className="font-medium">{t(level.label)}</div>
+                        <div className="text-xs text-muted-foreground">{t(level.description)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -255,7 +272,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
           </div>
 
           <div className="space-y-2">
-            <Label>År som innebandyspelare</Label>
+            <Label>{t('labels.yearsPlaying')}</Label>
             <Input
               type="number"
               min={0}
@@ -272,36 +289,36 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Timer className="h-5 w-5 text-blue-500" />
-            Säsong & Matchbelastning
+            {t('sections.seasonAndMatchLoad.title')}
           </CardTitle>
-          <CardDescription>Vilken fas av säsongen och hur mycket spelar du?</CardDescription>
+          <CardDescription>{t('sections.seasonAndMatchLoad.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Nuvarande säsongsfas</Label>
+            <Label>{t('labels.currentSeasonPhase')}</Label>
             <Select
               value={settings.seasonPhase}
               onValueChange={(value) => updateField('seasonPhase', value as FloorballSettings['seasonPhase'])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj fas" />
+                <SelectValue placeholder={t('placeholders.seasonPhase')} />
               </SelectTrigger>
               <SelectContent>
                 {SEASON_PHASES.map((phase) => (
                   <SelectItem key={phase.value} value={phase.value}>
                     <div>
-                      <div className="font-medium">{phase.label}</div>
-                      <div className="text-xs text-muted-foreground">{phase.description}</div>
+                      <div className="font-medium">{t(phase.label)}</div>
+                      <div className="text-xs text-muted-foreground">{t(phase.description)}</div>
                     </div>
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
+                </SelectContent>
+              </Select>
+            </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Matcher per vecka</Label>
+              <Label>{t('labels.matchesPerWeek')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -312,19 +329,19 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
             </div>
 
             <div className="space-y-2">
-              <Label>Snitt minuter per match</Label>
+              <Label>{t('labels.averageMinutesPerMatch')}</Label>
               <Input
                 type="number"
                 min={0}
                 max={60}
                 value={settings.avgMinutesPerMatch ?? ''}
                 onChange={(e) => updateField('avgMinutesPerMatch', e.target.value ? parseInt(e.target.value) : null)}
-                placeholder="t.ex. 25"
+                placeholder={t('placeholders.avgMinutesPerMatch')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Träningspass per vecka</Label>
+              <Label>{t('labels.trainingSessionsPerWeek')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -342,26 +359,26 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-orange-500" />
-            Spelstil
+            {t('sections.playStyle.title')}
           </CardTitle>
-          <CardDescription>Vad är din spelstil?</CardDescription>
+          <CardDescription>{t('sections.playStyle.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Din spelstil</Label>
+            <Label>{t('labels.playStyle')}</Label>
             <Select
               value={settings.playStyle}
               onValueChange={(value) => updateField('playStyle', value as FloorballSettings['playStyle'])}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj spelstil" />
+                <SelectValue placeholder={t('placeholders.playStyle')} />
               </SelectTrigger>
               <SelectContent>
                 {PLAY_STYLES.map((style) => (
                   <SelectItem key={style.value} value={style.value}>
                     <div>
-                      <div className="font-medium">{style.label}</div>
-                      <div className="text-xs text-muted-foreground">{style.description}</div>
+                      <div className="font-medium">{t(style.label)}</div>
+                      <div className="text-xs text-muted-foreground">{t(style.description)}</div>
                     </div>
                   </SelectItem>
                 ))}
@@ -376,14 +393,14 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-red-500" />
-            Fysiska tester
+            {t('sections.benchmarks.title')}
           </CardTitle>
-          <CardDescription>Fyll i de tester du har resultat från (frivilligt)</CardDescription>
+          <CardDescription>{t('sections.benchmarks.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Yo-Yo IR1 (nivå)</Label>
+              <Label>{t('fields.yoyoIR1Level')}</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -391,12 +408,12 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                 max={25}
                 value={settings.benchmarks.yoyoIR1Level ?? ''}
                 onChange={(e) => updateBenchmark('yoyoIR1Level', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 19.0"
+                placeholder={t('placeholders.yoyoIR1Level')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Beep-test (nivå)</Label>
+              <Label>{t('fields.beepTestLevel')}</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -404,12 +421,12 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                 max={20}
                 value={settings.benchmarks.beepTestLevel ?? ''}
                 onChange={(e) => updateBenchmark('beepTestLevel', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 12.5"
+                placeholder={t('placeholders.beepTestLevel')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>20m sprint (sek)</Label>
+              <Label>{t('fields.sprint20m')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -417,12 +434,12 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                 max={5}
                 value={settings.benchmarks.sprint20m ?? ''}
                 onChange={(e) => updateBenchmark('sprint20m', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 3.10"
+                placeholder={t('placeholders.sprint20m')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>30m sprint (sek)</Label>
+              <Label>{t('fields.sprint30m')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -430,12 +447,12 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                 max={6}
                 value={settings.benchmarks.sprint30m ?? ''}
                 onChange={(e) => updateBenchmark('sprint30m', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 4.25"
+                placeholder={t('placeholders.sprint30m')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>5-10-5 agility (sek)</Label>
+              <Label>{t('fields.agilityTest')}</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -443,12 +460,12 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                 max={8}
                 value={settings.benchmarks.agilityTest ?? ''}
                 onChange={(e) => updateBenchmark('agilityTest', e.target.value ? parseFloat(e.target.value) : null)}
-                placeholder="t.ex. 4.6"
+                placeholder={t('placeholders.agilityTest')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Stående längdhopp (cm)</Label>
+              <Label>{t('fields.standingLongJump')}</Label>
               <Input
                 type="number"
                 min={150}
@@ -457,7 +474,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                 onChange={(e) =>
                   updateBenchmark('standingLongJump', e.target.value ? parseInt(e.target.value) : null)
                 }
-                placeholder="t.ex. 255"
+                placeholder={t('placeholders.standingLongJump')}
               />
             </div>
           </div>
@@ -469,13 +486,13 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-yellow-500" />
-            Styrkor & Utvecklingsområden
+            {t('sections.strengthAndWeakness.title')}
           </CardTitle>
-          <CardDescription>Vilka fysiska egenskaper vill du utveckla?</CardDescription>
+          <CardDescription>{t('sections.strengthAndWeakness.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Styrkor att bygga vidare på</Label>
+            <Label>{t('labels.strengthFocus')}</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {STRENGTH_FOCUS_OPTIONS.map((option) => (
                 <div
@@ -493,7 +510,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                     onCheckedChange={() => toggleArrayItem('strengthFocus', option.id)}
                   />
                   <Label htmlFor={`strength-${option.id}`} className="text-sm cursor-pointer">
-                    {option.label}
+                    {t(option.label)}
                   </Label>
                 </div>
               ))}
@@ -501,7 +518,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
           </div>
 
           <div className="space-y-2">
-            <Label>Svagheter att förbättra</Label>
+            <Label>{t('labels.weaknesses')}</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {WEAKNESS_OPTIONS.map((option) => (
                 <div
@@ -519,7 +536,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                     onCheckedChange={() => toggleArrayItem('weaknesses', option.id)}
                   />
                   <Label htmlFor={`weakness-${option.id}`} className="text-sm cursor-pointer">
-                    {option.label}
+                    {t(option.label)}
                   </Label>
                 </div>
               ))}
@@ -533,13 +550,13 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-red-500" />
-            Skadehistorik
+            {t('sections.injuryHistory.title')}
           </CardTitle>
-          <CardDescription>Vilka skador har du haft som vi bör ta hänsyn till?</CardDescription>
+          <CardDescription>{t('sections.injuryHistory.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Tidigare skador (välj relevanta)</Label>
+            <Label>{t('labels.previousInjuries')}</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {INJURY_HISTORY_OPTIONS.map((option) => (
                 <div
@@ -557,7 +574,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
                     onCheckedChange={() => toggleArrayItem('injuryHistory', option.id)}
                   />
                   <Label htmlFor={`injury-${option.id}`} className="text-sm cursor-pointer">
-                    {option.label}
+                    {t(option.label)}
                   </Label>
                 </div>
               ))}
@@ -567,7 +584,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
           {settings.injuryHistory.length > 0 && (
             <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
               <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                <strong>Obs:</strong> Vi inkluderar förebyggande övningar baserat på din skadehistorik.
+                <strong>{t('labels.noteLabel')}</strong> {t('notes.injuryFocus')}
               </p>
             </div>
           )}
@@ -579,7 +596,7 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-green-500" />
-            Träningsförutsättningar
+            {t('sections.trainingConditions.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -589,37 +606,41 @@ export function FloorballOnboarding({ settings, onUpdate }: FloorballOnboardingP
               checked={settings.hasAccessToGym}
               onCheckedChange={(checked) => updateField('hasAccessToGym', !!checked)}
             />
-            <Label htmlFor="hasAccessToGym">Tillgång till gym för styrketräning</Label>
+            <Label htmlFor="hasAccessToGym">{t('labels.hasAccessToGym')}</Label>
           </div>
 
           {/* Position-specific tips */}
           <div className="mt-4 p-4 bg-muted rounded-lg space-y-2">
             <h4 className="font-medium text-sm">
-              Tips för {POSITIONS.find((p) => p.value === settings.position)?.label || 'din position'}:
+              {t('tips.positionPrefix')}{' '}
+              {(POSITIONS.find((p) => p.value === settings.position)?.label
+                ? t(POSITIONS.find((p) => p.value === settings.position)?.label as string)
+                : t('positionFallback'))}
+              :
             </h4>
             {settings.position === 'goalkeeper' ? (
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>- Prioritera lateral rörlighet och benarbete</li>
-                <li>- Höftflexibilitet för låga räddningar</li>
-                <li>- Reaktionsträning och splitpositioner</li>
+                <li>- {t(POSITION_TIPS.goalkeeper[0])}</li>
+                <li>- {t(POSITION_TIPS.goalkeeper[1])}</li>
+                <li>- {t(POSITION_TIPS.goalkeeper[2])}</li>
               </ul>
             ) : settings.position === 'defender' ? (
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>- Fokus på låg position och täckningsarbete</li>
-                <li>- Benstyrka för tacklingssituationer</li>
-                <li>- Speluppbyggnad och passningsprecision</li>
+                <li>- {t(POSITION_TIPS.defender[0])}</li>
+                <li>- {t(POSITION_TIPS.defender[1])}</li>
+                <li>- {t(POSITION_TIPS.defender[2])}</li>
               </ul>
             ) : settings.position === 'center' ? (
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>- Högst krav på aerob kapacitet</li>
-                <li>- Arbetskapacitet hela matchen</li>
-                <li>- Snabba omställningar anfall-försvar</li>
+                <li>- {t(POSITION_TIPS.center[0])}</li>
+                <li>- {t(POSITION_TIPS.center[1])}</li>
+                <li>- {t(POSITION_TIPS.center[2])}</li>
               </ul>
             ) : (
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>- Maximal acceleration och sprintförmåga</li>
-                <li>- Skottstyrka och avslutsprecision</li>
-                <li>- Kvickhet i tight space</li>
+                <li>- {t(POSITION_TIPS.forward[0])}</li>
+                <li>- {t(POSITION_TIPS.forward[1])}</li>
+                <li>- {t(POSITION_TIPS.forward[2])}</li>
               </ul>
             )}
           </div>

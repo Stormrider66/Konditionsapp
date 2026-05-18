@@ -5234,6 +5234,218 @@
           }
         },
         "positionFallback": "din position"
+      },
+      "floorball": {
+        "sections": {
+          "positionAndTeam": {
+            "title": "Position & lag",
+            "description": "Berätta om din position, ditt lag och din liganivå."
+          },
+          "seasonAndMatchLoad": {
+            "title": "Säsong & matchbelastning",
+            "description": "Vilken fas är du i och hur ofta spelar du?"
+          },
+          "playStyle": {
+            "title": "Spelstil",
+            "description": "Vilken typ av spelare är du?"
+          },
+          "benchmarks": {
+            "title": "Fysiska tester",
+            "description": "Lägg till senaste testresultat när de finns."
+          },
+          "strengthAndWeakness": {
+            "title": "Styrkor & förbättringsområden",
+            "description": "Vilka fysiska egenskaper är starka och vilka behöver du jobba på?"
+          },
+          "injuryHistory": {
+            "title": "Skador",
+            "description": "Vilka skador ska vi ta hänsyn till i din träning?"
+          },
+          "trainingConditions": {
+            "title": "Träningsförutsättningar",
+            "description": "Vilka träningsförutsättningar och lokaler har du?"
+          }
+        },
+        "labels": {
+          "position": "Position",
+          "stickHand": "Kläpphånd",
+          "teamName": "Lag",
+          "leagueLevel": "Liganivå",
+          "yearsPlaying": "Antal år i innebandy",
+          "currentSeasonPhase": "Nuvarande säsongsfas",
+          "matchesPerWeek": "Matcher per vecka",
+          "averageMinutesPerMatch": "Genomsnittliga minuter per match",
+          "trainingSessionsPerWeek": "Träningspass per vecka",
+          "playStyle": "Din spelstil",
+          "strengthFocus": "Styrkor att bygga vidare på",
+          "weaknesses": "Områden att förbättra",
+          "previousInjuries": "Tidigare skador (välj relevanta)",
+          "noteLabel": "Obs",
+          "hasAccessToGym": "Tillgång till gym"
+        },
+        "fields": {
+          "yoyoIR1Level": "Yo-Yo IR1 nivå",
+          "beepTestLevel": "Beep-test nivå",
+          "sprint20m": "20m sprint (sek)",
+          "sprint30m": "30m sprint (sek)",
+          "agilityTest": "5-10-5 rörlighetstest (sek)",
+          "standingLongJump": "Långhopp i stående (cm)"
+        },
+        "placeholders": {
+          "position": "Välj position",
+          "teamName": "t.ex. IK Sirius",
+          "leagueLevel": "Välj liga",
+          "seasonPhase": "Välj säsongsfas",
+          "avgMinutesPerMatch": "t.ex. 35",
+          "playStyle": "Välj spelstil",
+          "yoyoIR1Level": "t.ex. 17.0",
+          "beepTestLevel": "t.ex. 11.0",
+          "sprint20m": "t.ex. 3.2",
+          "sprint30m": "t.ex. 4.8",
+          "agilityTest": "t.ex. 5.4",
+          "standingLongJump": "t.ex. 225"
+        },
+        "positions": {
+          "goalkeeper": {
+            "label": "Målvakt",
+            "description": "Skotteknik, snabb återställning, kommunikation"
+          },
+          "defender": {
+            "label": "Back",
+            "description": "Spelbredd, passningar och omställningar"
+          },
+          "center": {
+            "label": "Center",
+            "description": "Passning, speluppbyggnad och taktisk rörelse"
+          },
+          "forward": {
+            "label": "Forward",
+            "description": "Anfallsfokus, avslut, hög fart"
+          }
+        },
+        "leagueLevels": {
+          "recreational": {
+            "label": "Rekreation",
+            "description": "Motion och social spelglädje"
+          },
+          "division3": {
+            "label": "Division 3",
+            "description": "Lägre tävlingsnivå"
+          },
+          "division2": {
+            "label": "Division 2",
+            "description": "Medelhög tävlingsnivå"
+          },
+          "division1": {
+            "label": "Division 1",
+            "description": "Hög tävlingsnivå"
+          },
+          "allsvenskan": {
+            "label": "Allsvenskan",
+            "description": "Högsta nationella elitnivån"
+          },
+          "ssl": {
+            "label": "SSL",
+            "description": "Toppen av svensk innebandy"
+          }
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Återhämtning och grundläggande fysik"
+          },
+          "preSeason": {
+            "label": "Försäsong",
+            "description": "Bygga kondition och matchförberedelser"
+          },
+          "inSeason": {
+            "label": "In-season",
+            "description": "Matchperiod och träningsbalans"
+          },
+          "playoffs": {
+            "label": "Playoff",
+            "description": "Högsta intensitet och toppeffektivitet"
+          }
+        },
+        "playStyles": {
+          "offensive": {
+            "label": "Offensiv",
+            "description": "Fokus på anfall och målchanser"
+          },
+          "defensive": {
+            "label": "Defensiv",
+            "description": "Starkt defensivt bakspel och press"
+          },
+          "playmaker": {
+            "label": "Speluppbyggare",
+            "description": "Spelkontroll och passande upplägg"
+          },
+          "physical": {
+            "label": "Fysisk",
+            "description": "Kroppskontakt och högintensiva inslag"
+          }
+        },
+        "strengths": {
+          "sprintSpeed": "Sprintfart",
+          "acceleration": "Acceleration",
+          "endurance": "Uthållighet",
+          "agility": "Rörlighet",
+          "shootingPower": "Skottkraft",
+          "coreStability": "Bålstabilitet",
+          "legStrength": "Benstyrka",
+          "lowPosition": "Lågt kroppsläge"
+        },
+        "weaknesses": {
+          "weakHand": "Svag hand",
+          "finishing": "Avslut",
+          "defense": "Försvar",
+          "positioning": "Positionering",
+          "stickHandling": "Klubbehantering",
+          "passing": "Passning",
+          "stamina": "Uthållighet",
+          "gameReading": "Spelförståelse"
+        },
+        "injuries": {
+          "groin": "Ljumskskada",
+          "hamstring": "Baksida lårskada",
+          "knee": "Knäskada",
+          "ankle": "Ankel",
+          "hip": "Höftskada",
+          "back": "Rygg",
+          "wrist": "Handled",
+          "shoulder": "Axel"
+        },
+        "stickHand": {
+          "right": "Höger",
+          "left": "Vänster"
+        },
+        "tips": {
+          "positionPrefix": "Tips för",
+          "goalkeeper": {
+            "1": "Prioritera reaktionsövningar och snabba räddningar",
+            "2": "Träna kommunikation med backlinjen",
+            "3": "Bygg snabb sidoförflyttning och återhämtning"
+          },
+          "defender": {
+            "1": "Bygg acceleration i korta sprintar",
+            "2": "Utveckla övergångsrörelser i omställning",
+            "3": "Stärk fysiken i matcher med mycket duellmoment"
+          },
+          "center": {
+            "1": "Förbättra spelförståelse i omställning",
+            "2": "Träna tempoväxlingar i anfall",
+            "3": "Bygg återhämtningskapacitet mellan anfallsvågor"
+          },
+          "forward": {
+            "1": "Öka första stegets hastighet och inbromsning",
+            "2": "Träna avslut under press",
+            "3": "Bygg uthållighet i lågt kroppsläge"
+          }
+        },
+        "notes": {
+          "injuryFocus": "Vi tar hänsyn till dessa skador i din planering och prioriterar förebyggande övningar där det är relevant."
+        },
+        "positionFallback": "din position"
       }
     },
     "footballOnboarding": {

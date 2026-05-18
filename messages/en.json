@@ -5234,6 +5234,218 @@
           }
         },
         "positionFallback": "your position"
+      },
+      "floorball": {
+        "sections": {
+          "positionAndTeam": {
+            "title": "Position & Team",
+            "description": "Tell us about your position, team, and league level."
+          },
+          "seasonAndMatchLoad": {
+            "title": "Season & Match Load",
+            "description": "What phase are you in and how much are you playing?"
+          },
+          "playStyle": {
+            "title": "Play Style",
+            "description": "What role do you usually take on the floor?"
+          },
+          "benchmarks": {
+            "title": "Physical Benchmarks",
+            "description": "Add your latest physical test results when available."
+          },
+          "strengthAndWeakness": {
+            "title": "Strengths & Areas to Improve",
+            "description": "Which physical areas are your strengths and weak spots?"
+          },
+          "injuryHistory": {
+            "title": "Injury History",
+            "description": "Which injuries should we keep in mind for your training?"
+          },
+          "trainingConditions": {
+            "title": "Training Conditions",
+            "description": "What training conditions and facilities do you have?"
+          }
+        },
+        "labels": {
+          "position": "Position",
+          "stickHand": "Stick hand",
+          "teamName": "Team",
+          "leagueLevel": "League Level",
+          "yearsPlaying": "Years playing floorball",
+          "currentSeasonPhase": "Current season phase",
+          "matchesPerWeek": "Matches per week",
+          "averageMinutesPerMatch": "Average minutes per match",
+          "trainingSessionsPerWeek": "Training sessions per week",
+          "playStyle": "Your play style",
+          "strengthFocus": "Strengths to build on",
+          "weaknesses": "Areas to improve",
+          "previousInjuries": "Previous injuries (select relevant)",
+          "noteLabel": "Note",
+          "hasAccessToGym": "Access to gym"
+        },
+        "fields": {
+          "yoyoIR1Level": "Yo-Yo IR1 level",
+          "beepTestLevel": "Beep test level",
+          "sprint20m": "20m sprint (sec)",
+          "sprint30m": "30m sprint (sec)",
+          "agilityTest": "5-10-5 agility test (sec)",
+          "standingLongJump": "Standing long jump (cm)"
+        },
+        "placeholders": {
+          "position": "Choose position",
+          "teamName": "e.g. Stockholm IBF",
+          "leagueLevel": "Choose league",
+          "seasonPhase": "Choose season phase",
+          "avgMinutesPerMatch": "e.g. 35",
+          "playStyle": "Choose play style",
+          "yoyoIR1Level": "e.g. 17.0",
+          "beepTestLevel": "e.g. 11.0",
+          "sprint20m": "e.g. 3.20",
+          "sprint30m": "e.g. 4.80",
+          "agilityTest": "e.g. 5.40",
+          "standingLongJump": "e.g. 225"
+        },
+        "positions": {
+          "goalkeeper": {
+            "label": "Goalkeeper",
+            "description": "Shot stopping, quick recovery, communication"
+          },
+          "defender": {
+            "label": "Defender",
+            "description": "Coverage, passing, transitions"
+          },
+          "center": {
+            "label": "Center",
+            "description": "Distribution, playmaking, tactical movement"
+          },
+          "forward": {
+            "label": "Forward",
+            "description": "Pressure attack, scoring, first stride"
+          }
+        },
+        "leagueLevels": {
+          "recreational": {
+            "label": "Recreational",
+            "description": "Recreational play and social training"
+          },
+          "division3": {
+            "label": "Division 3",
+            "description": "Lower competitive division"
+          },
+          "division2": {
+            "label": "Division 2",
+            "description": "Mid competitive division"
+          },
+          "division1": {
+            "label": "Division 1",
+            "description": "Higher competitive level"
+          },
+          "allsvenskan": {
+            "label": "Allsvenskan",
+            "description": "National semi-professional league"
+          },
+          "ssl": {
+            "label": "SSL",
+            "description": "Top national elite league"
+          }
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Recovery and general physical development"
+          },
+          "preSeason": {
+            "label": "Pre-season",
+            "description": "Build fitness and improve match readiness"
+          },
+          "inSeason": {
+            "label": "In season",
+            "description": "Regular matches and training balance"
+          },
+          "playoffs": {
+            "label": "Playoffs",
+            "description": "Peak focus and match intensity"
+          }
+        },
+        "playStyles": {
+          "offensive": {
+            "label": "Offensive",
+            "description": "Focus on attacking and scoring"
+          },
+          "defensive": {
+            "label": "Defensive",
+            "description": "Strong backcourt play and pressure defense"
+          },
+          "playmaker": {
+            "label": "Playmaker",
+            "description": "Game control and setup play"
+          },
+          "physical": {
+            "label": "Physical",
+            "description": "Body contact and high-intensity actions"
+          }
+        },
+        "strengths": {
+          "sprintSpeed": "Sprint speed",
+          "acceleration": "Acceleration",
+          "endurance": "Endurance",
+          "agility": "Agility",
+          "shootingPower": "Shooting power",
+          "coreStability": "Core stability",
+          "legStrength": "Leg strength",
+          "lowPosition": "Low-position play"
+        },
+        "weaknesses": {
+          "weakHand": "Weak hand control",
+          "finishing": "Finishing",
+          "defense": "Defensive consistency",
+          "positioning": "Positioning",
+          "stickHandling": "Stick handling",
+          "passing": "Passing",
+          "stamina": "Stamina",
+          "gameReading": "Game reading"
+        },
+        "injuries": {
+          "groin": "Groin",
+          "hamstring": "Hamstring",
+          "knee": "Knee",
+          "ankle": "Ankle",
+          "hip": "Hip",
+          "back": "Back",
+          "wrist": "Wrist",
+          "shoulder": "Shoulder"
+        },
+        "stickHand": {
+          "right": "Right",
+          "left": "Left"
+        },
+        "tips": {
+          "positionPrefix": "Tips for",
+          "goalkeeper": {
+            "1": "Work on explosive reflexes and shot-blocking drills",
+            "2": "Focus on communication with defenders",
+            "3": "Improve lateral movement and recovery speed"
+          },
+          "defender": {
+            "1": "Strengthen short-direction acceleration",
+            "2": "Develop reliable transition footwork",
+            "3": "Build physical resilience under pressure"
+          },
+          "center": {
+            "1": "Improve reading and distribution in transition",
+            "2": "Work on deceptive change of pace",
+            "3": "Build repeat sprint endurance"
+          },
+          "forward": {
+            "1": "Increase first-step speed and deceleration control",
+            "2": "Practice shooting under defensive pressure",
+            "3": "Improve low-position endurance in attack"
+          }
+        },
+        "notes": {
+          "injuryFocus": "We will include these injuries in your plan and prioritise preventive work where relevant."
+        },
+        "positionFallback": "your position"
       }
     },
     "footballOnboarding": {
