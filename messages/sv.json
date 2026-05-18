@@ -4686,6 +4686,59 @@
         }
       }
     },
+    "changeSportDialog": {
+      "title": "Hantera sporter",
+      "description": "Ändra din huvudsport eller lägg till sekundära sporter för att kunna växla mellan olika träningsvyer.",
+      "tabs": {
+        "primary": "Huvudsport",
+        "secondary": "Sekundära sporter",
+        "changed": "Ändrad"
+      },
+      "primaryDescription": "Din huvudsport avgör vilken dashboard och träningsvy du ser som standard.",
+      "secondaryDescription": "Sekundära sporter låter dig snabbt växla mellan olika träningsvyer utan att byta huvudsport. Du kan välja upp till 2 sekundära sporter.",
+      "selectedSecondaryLabel": "Valda sekundära sporter:",
+      "noSecondarySports": "Inga sekundära sporter valda",
+      "confirmTitle": "Bekräfta ändringar",
+      "confirmDescription": "Granska dina ändringar innan du sparar.",
+      "labels": {
+        "primary": "Huvudsport",
+        "secondary": "Sekundära sporter"
+      },
+      "toasts": {
+        "successTitle": "Sporter uppdaterade!",
+        "primaryAndSecondary": "Huvudsport ändrad till {sport} och sekundära sporter uppdaterade.",
+        "primaryOnlyWithOnboarding": "Du har nu bytt till {sport}. Slutför onboarding för att konfigurera dina nya inställningar.",
+        "primaryOnly": "Du har nu bytt till {sport}.",
+        "secondaryOnly": "Dina sekundära sporter har uppdaterats.",
+        "errorTitle": "Fel",
+        "errorMessage": "Kunde inte uppdatera sporter. Försök igen."
+      },
+      "badges": {
+        "changed": "Ändrad"
+      },
+      "buttons": {
+        "cancel": "Avbryt",
+        "continue": "Fortsätt",
+        "noChanges": "Inga ändringar",
+        "back": "Tillbaka",
+        "save": "Spara ändringar",
+        "saving": "Sparar..."
+      },
+      "messages": {
+        "primaryHeader": "Huvudsport",
+        "secondaryHeader": "Sekundära sporter",
+        "currentChangedDescription": {
+          "title": "Vad händer när du byter huvudsport?",
+          "line1": "Din dashboard och träningsvyer anpassas till den nya sporten",
+          "line2": "Dina tidigare sportinställningar sparas om du vill byta tillbaka",
+          "line3": "Aktiva träningsprogram kan behöva uppdateras"
+        },
+        "reOnboarding": {
+          "label": "Kör onboarding för nya sporten (rekommenderas)",
+          "description": "Konfigurera sportspecifika inställningar som tröskelvärden, mål och utrustning för {sport}."
+        }
+      }
+    },
     "footballOnboarding": {
       "sections": {
         "positionAndTeam": {

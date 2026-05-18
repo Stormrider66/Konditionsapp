@@ -4686,6 +4686,59 @@
         }
       }
     },
+    "changeSportDialog": {
+      "title": "Manage sports",
+      "description": "Change your primary sport or add secondary sports so you can switch between different training views.",
+      "tabs": {
+        "primary": "Primary sport",
+        "secondary": "Secondary sports",
+        "changed": "Changed"
+      },
+      "primaryDescription": "Your primary sport determines which dashboard and training view you see by default.",
+      "secondaryDescription": "Secondary sports let you switch quickly between different training views without changing your primary sport. You can choose up to 2 secondary sports.",
+      "selectedSecondaryLabel": "Selected secondary sports:",
+      "noSecondarySports": "No secondary sports selected",
+      "confirmTitle": "Confirm changes",
+      "confirmDescription": "Review your changes before saving.",
+      "labels": {
+        "primary": "Primary sport",
+        "secondary": "Secondary sports"
+      },
+      "toasts": {
+        "successTitle": "Sports updated!",
+        "primaryAndSecondary": "Primary sport changed to {sport} and secondary sports updated.",
+        "primaryOnlyWithOnboarding": "You have switched to {sport}. Complete onboarding to configure your new settings.",
+        "primaryOnly": "You have switched to {sport}.",
+        "secondaryOnly": "Your secondary sports have been updated.",
+        "errorTitle": "Error",
+        "errorMessage": "Could not update sports. Please try again."
+      },
+      "badges": {
+        "changed": "Changed"
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "noChanges": "No changes",
+        "back": "Back",
+        "save": "Save changes",
+        "saving": "Saving..."
+      },
+      "messages": {
+        "primaryHeader": "Primary sport",
+        "secondaryHeader": "Secondary sports",
+        "currentChangedDescription": {
+          "title": "What happens when you change your primary sport?",
+          "line1": "Your dashboard and training views will adapt to the new sport",
+          "line2": "Your previous sport settings are saved if you want to switch back",
+          "line3": "Active training programs may need to be updated"
+        },
+        "reOnboarding": {
+          "label": "Run onboarding for the new sport (recommended)",
+          "description": "Configure sport-specific settings like thresholds, goals, and equipment for {sport}."
+        }
+      }
+    },
     "footballOnboarding": {
       "sections": {
         "positionAndTeam": {
