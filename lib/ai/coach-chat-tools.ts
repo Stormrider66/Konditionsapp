@@ -21,6 +21,8 @@ import { logger } from '@/lib/logger'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { getAccessibleTeam, getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { buildCoachMessageAction, prepareCoachMessageDraftInputSchema } from '@/lib/ai/coach-message-actions'
+import { buildTeamCalendarBriefing, type TeamCalendarBriefingEvent } from '@/lib/team-calendar/briefing'
+import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import type { StrengthPhase } from '@prisma/client'
 
 type CoachToolClient = {
@@ -218,6 +220,32 @@ function getStaticCoachNavigation(destination: CoachNavigationDestination) {
     analytics: { href: '/coach/analytics', label: 'Öppna analys', description: 'Övergripande analysvyer' },
   }
   return routes[destination] ?? null
+}
+
+function getCoachToolWeekRange(reference = new Date()): { start: Date; end: Date } {
+  const start = new Date(reference)
+  const day = start.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  start.setDate(start.getDate() + diff)
+  start.setHours(0, 0, 0, 0)
+
+  const end = new Date(start)
+  end.setDate(end.getDate() + 6)
+  end.setHours(23, 59, 59, 999)
+
+  return { start, end }
+}
+
+function parseCoachToolDateBoundary(value: string | undefined, fallback: Date, endOfDay = false): Date {
+  if (!value) return fallback
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return fallback
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    parsed.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0)
+  }
+
+  return parsed
 }
 
 /**
@@ -873,6 +901,118 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
         } catch (error) {
           logger.error('Error in getLatestCompletedWorkout tool', { coachUserId, clientId, athleteName }, error)
           return { success: false, error: 'Kunde inte hämta senaste genomförda pass.' }
+        }
+      },
+    }),
+
+    getTeamCalendarBriefing: tool({
+      description: 'Hämta en AI-läsbar brief för ett lags kalender: saknat fysinnehåll, klara pass att tilldela, saknade isplaner, veckobelastning och konkreta nästa steg. Använd när coachen frågar om lagkalendern, hockeyveckan, planeringsläget, fys-pass som behöver innehåll eller belastningsrisker.',
+      inputSchema: z.object({
+        teamId: z.string().optional().describe('Lagets id om känt'),
+        teamName: z.string().optional().describe('Lagets namn om id saknas'),
+        from: z.string().optional().describe('Startdatum som ISO-datum, t.ex. 2026-05-18. Standard är måndag i aktuell vecka.'),
+        to: z.string().optional().describe('Slutdatum som ISO-datum, t.ex. 2026-05-24. Standard är söndag i aktuell vecka.'),
+      }),
+      execute: async ({ teamId, teamName, from, to }) => {
+        try {
+          const { team, candidates } = await findAccessibleCoachTeam(coachUserId, {
+            teamId,
+            teamName,
+            businessSlug,
+          })
+
+          if (!team) {
+            return {
+              success: false,
+              needsClarification: candidates.length > 1,
+              error:
+                candidates.length > 1
+                  ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                  : 'Jag behöver veta vilket lag jag ska läsa kalendern för.',
+              candidates: candidates.map((candidate) => ({
+                id: candidate.id,
+                name: candidate.name,
+                sportType: candidate.sportType,
+              })),
+            }
+          }
+
+          const defaultRange = getCoachToolWeekRange()
+          const rangeStart = parseCoachToolDateBoundary(from, defaultRange.start)
+          const rangeEnd = parseCoachToolDateBoundary(to, defaultRange.end, true)
+
+          const events = await prisma.teamEvent.findMany({
+            where: {
+              teamId: team.id,
+              startDate: { gte: rangeStart, lte: rangeEnd },
+            },
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              location: true,
+              startDate: true,
+              endDate: true,
+              allDay: true,
+              contentStatus: true,
+              contentOwner: true,
+              practicePlan: true,
+              linkedWorkoutId: true,
+              linkedWorkoutName: true,
+              assignedBroadcastId: true,
+            },
+            orderBy: { startDate: 'asc' },
+          })
+
+          const summaries = await getTeamCalendarAssignmentSummaries(events.map((event) => event.assignedBroadcastId))
+          const briefingEvents: TeamCalendarBriefingEvent[] = events.map((event) => {
+            const summary = event.assignedBroadcastId ? summaries.get(event.assignedBroadcastId) : null
+            return {
+              id: event.id,
+              title: event.title,
+              type: event.type,
+              location: event.location,
+              startDate: event.startDate,
+              endDate: event.endDate,
+              allDay: event.allDay,
+              contentStatus: event.contentStatus,
+              contentOwner: event.contentOwner,
+              practicePlan: event.practicePlan,
+              linkedWorkoutId: event.linkedWorkoutId,
+              linkedWorkoutName: event.linkedWorkoutName,
+              assignedBroadcastId: event.assignedBroadcastId,
+              assignmentSummary: summary
+                ? {
+                    totalAssigned: summary.totalAssigned,
+                    totalCompleted: summary.totalCompleted,
+                    completionRate: summary.completionRate,
+                  }
+                : null,
+            }
+          })
+
+          const briefing = buildTeamCalendarBriefing({
+            team,
+            events: briefingEvents,
+            rangeStart,
+            rangeEnd,
+          })
+
+          return {
+            success: true,
+            briefing,
+            message: briefing.summaryText,
+          }
+        } catch (error) {
+          logger.error('Error in getTeamCalendarBriefing tool', {
+            coachUserId,
+            businessSlug,
+            teamId,
+            teamName,
+            from,
+            to,
+          }, error)
+          return { success: false, error: 'Kunde inte läsa lagkalendern just nu.' }
         }
       },
     }),
