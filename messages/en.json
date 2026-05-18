@@ -5647,6 +5647,116 @@
           "advanced": "Advanced"
         }
       },
+      "hyrox": {
+        "sections": {
+          "raceInfo": {
+            "title": "Competition Information",
+            "description": "Select your HYROX category and experience level."
+          },
+          "runningFitness": {
+            "title": "Running Capacity",
+            "description": "Current running performance (8 km run included in HYROX)"
+          },
+          "stationBenchmarks": {
+            "title": "Station Benchmarks",
+            "description": "Add your best times for each station (leave empty if unknown)."
+          },
+          "trainingPreferences": {
+            "title": "Training Structure",
+            "description": "How much time and how often can you train?"
+          },
+          "equipment": {
+            "title": "Equipment",
+            "description": "What HYROX-specific equipment do you have access to?"
+          }
+        },
+        "fields": {
+          "raceCategory": "Race category",
+          "experienceLevel": "Experience level",
+          "targetRaceDate": "Target race date (optional)",
+          "fiveKmBest": "5 km personal best (mm:ss)",
+          "tenKmBest": "10 km personal best (mm:ss)",
+          "weeklyRunKm": "Weekly running kilometers",
+          "strongestStation": "Strongest station",
+          "weakestStation": "Weakest station",
+          "weeklyTrainingHours": "Training hours per week",
+          "runningSessionsPerWeek": "Running sessions per week",
+          "strengthSessionsPerWeek": "Strength sessions per week",
+          "hyroxSpecificSessionsPerWeek": "HYROX-specific sessions per week",
+          "gymAccess": "Gym access",
+          "hasSkiErg": "SkiErg",
+          "hasRower": "Rower",
+          "hasSled": "Sled",
+          "hasWallBall": "Wall Ball",
+          "hasSandbag": "Sandbag",
+          "hasFarmersCarryHandles": "Farmers carry handles"
+        },
+        "placeholders": {
+          "raceCategory": "Choose category",
+          "experienceLevel": "Choose level",
+          "stationSelection": "Choose station",
+          "timeMMSS": "e.g. 4:00"
+        },
+        "raceCategories": {
+          "open": {
+            "label": "HYROX Open",
+            "description": "Standard weights"
+          },
+          "pro": {
+            "label": "HYROX Pro",
+            "description": "Heavier weights"
+          },
+          "doubles": {
+            "label": "HYROX Doubles",
+            "description": "Two athletes"
+          },
+          "relay": {
+            "label": "HYROX Relay",
+            "description": "Team of four"
+          }
+        },
+        "experienceLevels": {
+          "beginner": {
+            "label": "Beginner",
+            "description": "First HYROX or less than 3 months training"
+          },
+          "intermediate": {
+            "label": "Intermediate",
+            "description": "1-2 completed HYROX events or 6+ months training"
+          },
+          "advanced": {
+            "label": "Advanced",
+            "description": "3+ completed HYROX, competing regularly"
+          },
+          "elite": {
+            "label": "Elite",
+            "description": "Top 10% placings, aiming for podium"
+          }
+        },
+        "stations": {
+          "skierg": "SkiErg (1km)",
+          "sledPush": "Sled Push (50m)",
+          "sledPull": "Sled Pull (50m)",
+          "burpeeBroadJump": "Burpee Broad Jump (80m)",
+          "rowing": "Rowing (1km)",
+          "farmersCarry": "Farmers Carry (200m)",
+          "sandbagLunge": "Sandbag Lunge (100m)",
+          "wallBalls": "Wall Balls (75/100)"
+        },
+        "labels": {
+          "skiErgTime": "SkiErg 1km (mm:ss)",
+          "sledPushTime": "Sled Push 50m (mm:ss)",
+          "sledPullTime": "Sled Pull 50m (mm:ss)",
+          "burpeeBroadJumpTime": "Burpee Broad Jump 80m (mm:ss)",
+          "rowingTime": "Rowing 1km (mm:ss)",
+          "farmersCarryTime": "Farmers Carry 200m (mm:ss)",
+          "sandbagLungeTime": "Sandbag Lunge 100m (mm:ss)",
+          "wallBallTime": "Wall Balls (mm:ss)"
+        },
+        "helpers": {
+          "noEquipment": "Don’t worry if you lack specific equipment - we will adjust training with alternative exercises."
+        }
+      },
       "hockey": {
         "sections": {
           "positionAndTeam": {

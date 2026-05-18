@@ -5647,6 +5647,116 @@
           "fodmap": "FODMAP"
         }
       },
+      "hyrox": {
+        "sections": {
+          "raceInfo": {
+            "title": "Tävlingsinformation",
+            "description": "Välj din HYROX-kategori och erfarenhetsnivå."
+          },
+          "runningFitness": {
+            "title": "Löpkapacitet",
+            "description": "Din nuvarande löpform (8 km ingår i HYROX)"
+          },
+          "stationBenchmarks": {
+            "title": "Stationstider",
+            "description": "Lägg in dina bästa tider för varje station (lämna tomt om okänt)."
+          },
+          "trainingPreferences": {
+            "title": "Träningsupplägg",
+            "description": "Hur mycket tid och hur ofta kan du träna?"
+          },
+          "equipment": {
+            "title": "Utrustning",
+            "description": "Vilken HYROX-specifik utrustning har du tillgång till?"
+          }
+        },
+        "fields": {
+          "raceCategory": "Tävlingskategori",
+          "experienceLevel": "Erfarenhetsnivå",
+          "targetRaceDate": "Måltävlingsdatum (valfritt)",
+          "fiveKmBest": "5 km personbästa (mm:ss)",
+          "tenKmBest": "10 km personbästa (mm:ss)",
+          "weeklyRunKm": "Veckokilometer löpning",
+          "strongestStation": "Starkaste station",
+          "weakestStation": "Svagaste station",
+          "weeklyTrainingHours": "Träningstimmar/vecka",
+          "runningSessionsPerWeek": "Löppass/vecka",
+          "strengthSessionsPerWeek": "Styrkepass/vecka",
+          "hyroxSpecificSessionsPerWeek": "HYROX-specifika pass/vecka",
+          "gymAccess": "Gymtillgång",
+          "hasSkiErg": "SkiErg",
+          "hasRower": "Roddmaskin",
+          "hasSled": "Släde",
+          "hasWallBall": "Wall Ball",
+          "hasSandbag": "Sandsäck",
+          "hasFarmersCarryHandles": "Farmers Carry-handtag"
+        },
+        "placeholders": {
+          "raceCategory": "Välj kategori",
+          "experienceLevel": "Välj nivå",
+          "stationSelection": "Välj station",
+          "timeMMSS": "e.g. 4:00"
+        },
+        "raceCategories": {
+          "open": {
+            "label": "HYROX Open",
+            "description": "Standardvikter"
+          },
+          "pro": {
+            "label": "HYROX Pro",
+            "description": "Tyngre vikter"
+          },
+          "doubles": {
+            "label": "HYROX Doubles",
+            "description": "Par (2 personer)"
+          },
+          "relay": {
+            "label": "HYROX Relay",
+            "description": "Lag (4 personer)"
+          }
+        },
+        "experienceLevels": {
+          "beginner": {
+            "label": "Nybörjare",
+            "description": "Första HYROX eller <3 månader träning"
+          },
+          "intermediate": {
+            "label": "Mellan",
+            "description": "1-2 genomförda HYROX eller 6+ månaders träning"
+          },
+          "advanced": {
+            "label": "Avancerad",
+            "description": "3+ genomförda HYROX, tävlar regelbundet"
+          },
+          "elite": {
+            "label": "Elit",
+            "description": "Topp 10% placeringar, siktar på podium"
+          }
+        },
+        "stations": {
+          "skierg": "SkiErg (1km)",
+          "sledPush": "Sled Push (50m)",
+          "sledPull": "Sled Pull (50m)",
+          "burpeeBroadJump": "Burpee Broad Jump (80m)",
+          "rowing": "Rodd (1km)",
+          "farmersCarry": "Farmers Carry (200m)",
+          "sandbagLunge": "Sandbag Lunge (100m)",
+          "wallBalls": "Wall Balls (75/100)"
+        },
+        "labels": {
+          "skiErgTime": "SkiErg 1km (mm:ss)",
+          "sledPushTime": "Sled Push 50m (mm:ss)",
+          "sledPullTime": "Sled Pull 50m (mm:ss)",
+          "burpeeBroadJumpTime": "Burpee Broad Jump 80m (mm:ss)",
+          "rowingTime": "Rodd 1km (mm:ss)",
+          "farmersCarryTime": "Farmers Carry 200m (mm:ss)",
+          "sandbagLungeTime": "Sandbag Lunge 100m (mm:ss)",
+          "wallBallTime": "Wall Balls (mm:ss)"
+        },
+        "helpers": {
+          "noEquipment": "Oroa dig inte om du saknar viss utrustning - vi anpassar träningen med alternativa övningar."
+        }
+      },
       "hockey": {
         "sections": {
           "positionAndTeam": {

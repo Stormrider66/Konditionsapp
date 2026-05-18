@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dumbbell, Timer, Footprints, Target } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 export interface HYROXSettings {
   // Race category
@@ -84,28 +85,40 @@ export const DEFAULT_HYROX_SETTINGS: HYROXSettings = {
 }
 
 const RACE_CATEGORIES = [
-  { value: 'open', label: 'HYROX Open', description: 'Standard vikter' },
-  { value: 'pro', label: 'HYROX Pro', description: 'Tyngre vikter' },
-  { value: 'doubles', label: 'HYROX Doubles', description: 'Par (2 personer)' },
-  { value: 'relay', label: 'HYROX Relay', description: 'Lag (4 personer)' },
+  { value: 'open', label: 'raceCategories.open.label', description: 'raceCategories.open.description' },
+  { value: 'pro', label: 'raceCategories.pro.label', description: 'raceCategories.pro.description' },
+  { value: 'doubles', label: 'raceCategories.doubles.label', description: 'raceCategories.doubles.description' },
+  { value: 'relay', label: 'raceCategories.relay.label', description: 'raceCategories.relay.description' },
 ]
 
 const EXPERIENCE_LEVELS = [
-  { value: 'beginner', label: 'Nybörjare', description: 'Första HYROX eller <3 månader träning' },
-  { value: 'intermediate', label: 'Medel', description: '1-2 genomförda HYROX eller 6+ månaders träning' },
-  { value: 'advanced', label: 'Avancerad', description: '3+ genomförda HYROX, tävlar regelbundet' },
-  { value: 'elite', label: 'Elit', description: 'Topp 10% placeringar, siktar på podium' },
+  {
+    value: 'beginner',
+    label: 'experienceLevels.beginner.label',
+    description: 'experienceLevels.beginner.description',
+  },
+  {
+    value: 'intermediate',
+    label: 'experienceLevels.intermediate.label',
+    description: 'experienceLevels.intermediate.description',
+  },
+  {
+    value: 'advanced',
+    label: 'experienceLevels.advanced.label',
+    description: 'experienceLevels.advanced.description',
+  },
+  { value: 'elite', label: 'experienceLevels.elite.label', description: 'experienceLevels.elite.description' },
 ]
 
 const STATIONS = [
-  { value: 'skierg', label: 'SkiErg (1km)' },
-  { value: 'sled_push', label: 'Sled Push (50m)' },
-  { value: 'sled_pull', label: 'Sled Pull (50m)' },
-  { value: 'burpee_broad_jump', label: 'Burpee Broad Jump (80m)' },
-  { value: 'rowing', label: 'Rodd (1km)' },
-  { value: 'farmers_carry', label: 'Farmers Carry (200m)' },
-  { value: 'sandbag_lunge', label: 'Sandbag Lunge (100m)' },
-  { value: 'wall_balls', label: 'Wall Balls (75/100)' },
+  { value: 'skierg', label: 'stations.skierg' },
+  { value: 'sled_push', label: 'stations.sledPush' },
+  { value: 'sled_pull', label: 'stations.sledPull' },
+  { value: 'burpee_broad_jump', label: 'stations.burpeeBroadJump' },
+  { value: 'rowing', label: 'stations.rowing' },
+  { value: 'farmers_carry', label: 'stations.farmersCarry' },
+  { value: 'sandbag_lunge', label: 'stations.sandbagLunge' },
+  { value: 'wall_balls', label: 'stations.wallBalls' },
 ]
 
 interface HYROXOnboardingProps {
@@ -114,6 +127,8 @@ interface HYROXOnboardingProps {
 }
 
 export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
+  const t = useTranslations('components.onboarding.hyrox')
+
   const updateField = <K extends keyof HYROXSettings>(field: K, value: HYROXSettings[K]) => {
     onUpdate({ ...settings, [field]: value })
   }
@@ -143,29 +158,29 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-orange-500" />
-            Tävlingsinformation
+            {t('sections.raceInfo.title')}
           </CardTitle>
           <CardDescription>
-            Välj din HYROX-kategori och erfarenhetsnivå
+            {t('sections.raceInfo.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Tävlingskategori</Label>
+              <Label>{t('fields.raceCategory')}</Label>
               <Select
                 value={settings.raceCategory}
                 onValueChange={(value) => updateField('raceCategory', value as HYROXSettings['raceCategory'])}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj kategori" />
+                  <SelectValue placeholder={t('placeholders.raceCategory')} />
                 </SelectTrigger>
                 <SelectContent>
                   {RACE_CATEGORIES.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       <div>
-                        <div className="font-medium">{cat.label}</div>
-                        <div className="text-xs text-muted-foreground">{cat.description}</div>
+                        <div className="font-medium">{t(cat.label)}</div>
+                        <div className="text-xs text-muted-foreground">{t(cat.description)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -174,20 +189,20 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Erfarenhetsnivå</Label>
+              <Label>{t('fields.experienceLevel')}</Label>
               <Select
                 value={settings.experienceLevel}
                 onValueChange={(value) => updateField('experienceLevel', value as HYROXSettings['experienceLevel'])}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj nivå" />
+                  <SelectValue placeholder={t('placeholders.experienceLevel')} />
                 </SelectTrigger>
                 <SelectContent>
                   {EXPERIENCE_LEVELS.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
                       <div>
-                        <div className="font-medium">{level.label}</div>
-                        <div className="text-xs text-muted-foreground">{level.description}</div>
+                        <div className="font-medium">{t(level.label)}</div>
+                        <div className="text-xs text-muted-foreground">{t(level.description)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -197,7 +212,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
           </div>
 
           <div className="space-y-2">
-            <Label>Måltävlingsdatum (valfritt)</Label>
+            <Label>{t('fields.targetRaceDate')}</Label>
             <Input
               type="date"
               value={settings.targetRaceDate || ''}
@@ -212,34 +227,34 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Footprints className="h-5 w-5 text-green-500" />
-            Löpkapacitet
+            {t('sections.runningFitness.title')}
           </CardTitle>
           <CardDescription>
-            Din nuvarande löpform (8km löpning ingår i HYROX)
+            {t('sections.runningFitness.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>5 km personbästa (mm:ss)</Label>
+              <Label>{t('labels.fiveKmBest')}</Label>
               <Input
-                placeholder="25:00"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.fiveKmTime)}
                 onChange={(e) => updateField('fiveKmTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>10 km personbästa (mm:ss)</Label>
+              <Label>{t('labels.tenKmBest')}</Label>
               <Input
-                placeholder="52:00"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.tenKmTime)}
                 onChange={(e) => updateField('tenKmTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Veckokilometer löpning</Label>
+              <Label>{t('labels.weeklyRunKm')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -257,81 +272,81 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Timer className="h-5 w-5 text-blue-500" />
-            Stationstider
+            {t('sections.stationBenchmarks.title')}
           </CardTitle>
           <CardDescription>
-            Dina bästa tider på respektive station (lämna tomt om okänt)
+            {t('sections.stationBenchmarks.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label>SkiErg 1km (mm:ss)</Label>
+              <Label>{t('labels.skiErgTime')}</Label>
               <Input
-                placeholder="4:00"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.skiErgTime)}
                 onChange={(e) => updateField('skiErgTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Sled Push 50m (mm:ss)</Label>
+              <Label>{t('labels.sledPushTime')}</Label>
               <Input
-                placeholder="2:30"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.sledPushTime)}
                 onChange={(e) => updateField('sledPushTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Sled Pull 50m (mm:ss)</Label>
+              <Label>{t('labels.sledPullTime')}</Label>
               <Input
-                placeholder="2:00"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.sledPullTime)}
                 onChange={(e) => updateField('sledPullTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Burpee Broad Jump 80m (mm:ss)</Label>
+              <Label>{t('labels.burpeeBroadJumpTime')}</Label>
               <Input
-                placeholder="5:00"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.burpeeBroadJumpTime)}
                 onChange={(e) => updateField('burpeeBroadJumpTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Rodd 1km (mm:ss)</Label>
+              <Label>{t('labels.rowingTime')}</Label>
               <Input
-                placeholder="3:45"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.rowingTime)}
                 onChange={(e) => updateField('rowingTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Farmers Carry 200m (mm:ss)</Label>
+              <Label>{t('labels.farmersCarryTime')}</Label>
               <Input
-                placeholder="2:00"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.farmersCarryTime)}
                 onChange={(e) => updateField('farmersCarryTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Sandbag Lunge 100m (mm:ss)</Label>
+              <Label>{t('labels.sandbagLungeTime')}</Label>
               <Input
-                placeholder="4:30"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.sandbagLungeTime)}
                 onChange={(e) => updateField('sandbagLungeTime', parseTimeInput(e.target.value))}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Wall Balls (mm:ss)</Label>
+              <Label>{t('labels.wallBallTime')}</Label>
               <Input
-                placeholder="4:00"
+                placeholder={t('placeholders.timeMMSS')}
                 value={formatTimeInput(settings.wallBallTime)}
                 onChange={(e) => updateField('wallBallTime', parseTimeInput(e.target.value))}
               />
@@ -340,18 +355,18 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
             <div className="space-y-2">
-              <Label>Starkaste station</Label>
+              <Label>{t('labels.strongestStation')}</Label>
               <Select
                 value={settings.strongestStation}
                 onValueChange={(value) => updateField('strongestStation', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj station" />
+                  <SelectValue placeholder={t('placeholders.stationSelection')} />
                 </SelectTrigger>
                 <SelectContent>
                   {STATIONS.map((station) => (
                     <SelectItem key={station.value} value={station.value}>
-                      {station.label}
+                      {t(station.label)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -359,18 +374,18 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Svagaste station</Label>
+              <Label>{t('labels.weakestStation')}</Label>
               <Select
                 value={settings.weakestStation}
                 onValueChange={(value) => updateField('weakestStation', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj station" />
+                  <SelectValue placeholder={t('placeholders.stationSelection')} />
                 </SelectTrigger>
                 <SelectContent>
                   {STATIONS.map((station) => (
                     <SelectItem key={station.value} value={station.value}>
-                      {station.label}
+                      {t(station.label)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -385,16 +400,16 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Dumbbell className="h-5 w-5 text-purple-500" />
-            Träningsupplägg
+            {t('sections.trainingPreferences.title')}
           </CardTitle>
           <CardDescription>
-            Hur mycket tid och hur ofta du kan träna
+            {t('sections.trainingPreferences.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label>Träningstimmar/vecka</Label>
+              <Label>{t('fields.weeklyTrainingHours')}</Label>
               <Input
                 type="number"
                 min={3}
@@ -405,7 +420,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Löppass/vecka</Label>
+              <Label>{t('fields.runningSessionsPerWeek')}</Label>
               <Input
                 type="number"
                 min={1}
@@ -416,7 +431,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Styrkepass/vecka</Label>
+              <Label>{t('fields.strengthSessionsPerWeek')}</Label>
               <Input
                 type="number"
                 min={1}
@@ -427,7 +442,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>HYROX-specifika pass/vecka</Label>
+              <Label>{t('fields.hyroxSpecificSessionsPerWeek')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -443,9 +458,9 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
       {/* Equipment Access */}
       <Card>
         <CardHeader>
-          <CardTitle>Utrustning</CardTitle>
+          <CardTitle>{t('sections.equipment.title')}</CardTitle>
           <CardDescription>
-            Vilken HYROX-specifik utrustning har du tillgång till?
+            {t('sections.equipment.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -456,7 +471,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
                 checked={settings.gymAccess}
                 onCheckedChange={(checked) => updateField('gymAccess', checked === true)}
               />
-              <Label htmlFor="gym" className="text-sm">Gymtillgång</Label>
+              <Label htmlFor="gym" className="text-sm">{t('fields.gymAccess')}</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -465,7 +480,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
                 checked={settings.hasSkiErg}
                 onCheckedChange={(checked) => updateField('hasSkiErg', checked === true)}
               />
-              <Label htmlFor="skierg" className="text-sm">SkiErg</Label>
+              <Label htmlFor="skierg" className="text-sm">{t('fields.hasSkiErg')}</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -474,7 +489,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
                 checked={settings.hasRower}
                 onCheckedChange={(checked) => updateField('hasRower', checked === true)}
               />
-              <Label htmlFor="rower" className="text-sm">Roddmaskin</Label>
+              <Label htmlFor="rower" className="text-sm">{t('fields.hasRower')}</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -483,7 +498,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
                 checked={settings.hasSled}
                 onCheckedChange={(checked) => updateField('hasSled', checked === true)}
               />
-              <Label htmlFor="sled" className="text-sm">Släde</Label>
+              <Label htmlFor="sled" className="text-sm">{t('fields.hasSled')}</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -492,7 +507,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
                 checked={settings.hasWallBall}
                 onCheckedChange={(checked) => updateField('hasWallBall', checked === true)}
               />
-              <Label htmlFor="wallball" className="text-sm">Wall Ball</Label>
+              <Label htmlFor="wallball" className="text-sm">{t('fields.hasWallBall')}</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -501,7 +516,7 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
                 checked={settings.hasSandbag}
                 onCheckedChange={(checked) => updateField('hasSandbag', checked === true)}
               />
-              <Label htmlFor="sandbag" className="text-sm">Sandsäck</Label>
+              <Label htmlFor="sandbag" className="text-sm">{t('fields.hasSandbag')}</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -510,12 +525,12 @@ export function HYROXOnboarding({ settings, onUpdate }: HYROXOnboardingProps) {
                 checked={settings.hasFarmersCarryHandles}
                 onCheckedChange={(checked) => updateField('hasFarmersCarryHandles', checked === true)}
               />
-              <Label htmlFor="farmers" className="text-sm">Farmers Carry-handtag</Label>
+              <Label htmlFor="farmers" className="text-sm">{t('fields.hasFarmersCarryHandles')}</Label>
             </div>
           </div>
 
           <p className="text-sm text-muted-foreground mt-4">
-            Oroa dig inte om du saknar viss utrustning - vi anpassar träningen med alternativa övningar.
+            {t('helpers.noEquipment')}
           </p>
         </CardContent>
       </Card>
