@@ -4592,8 +4592,13 @@
           "actual": "Actual",
           "status": "Status",
           "feedback": "Feedback",
-          "action": "Action"
-        }
+        "action": "Action"
+      }
+      }
+    },
+    "metricsCharts": {
+      "actions": {
+        "refresh": "Refresh metrics"
       }
     },
     "cyclingDashboard": {

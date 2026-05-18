@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { TrendingUp, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from '@/i18n/client';
 
 interface MetricData {
   timestamp: string;
@@ -35,6 +36,7 @@ interface MetricsResponse {
 }
 
 export function MetricsCharts() {
+  const t = useTranslations('components.metricsCharts')
   const [data, setData] = useState<MetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('24');
@@ -97,7 +99,7 @@ export function MetricsCharts() {
               variant="outline"
               size="icon"
               onClick={fetchMetrics}
-              aria-label="Uppdatera mätvärden"
+              aria-label={t('actions.refresh')}
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>

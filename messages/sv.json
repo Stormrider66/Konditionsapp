@@ -4592,8 +4592,13 @@
           "actual": "Faktiskt",
           "status": "Status",
           "feedback": "Feedback",
-          "action": "Åtgärd"
-        }
+        "action": "Åtgärd"
+      }
+      }
+    },
+    "metricsCharts": {
+      "actions": {
+        "refresh": "Uppdatera mätvärden"
       }
     },
     "cyclingDashboard": {
