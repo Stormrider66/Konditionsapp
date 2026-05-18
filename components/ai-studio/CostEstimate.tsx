@@ -21,6 +21,7 @@ import {
   formatCost,
   estimateTokensFromText,
 } from '@/lib/ai/gemini-config';
+import { useTranslations } from '@/i18n/client';
 
 // Default pricing fallback for unknown models
 const DEFAULT_PRICING = { input: 0.003, output: 0.015 };
@@ -51,7 +52,9 @@ export function CostEstimate({
   sessionTotalTokens,
   className,
 }: CostEstimateProps) {
+  const t = useTranslations('components.costEstimate');
   const pricing = GEMINI_PRICING[model] || DEFAULT_PRICING;
+  const displayModel = model.replace('gemini-', 'Gemini ').replace('-preview', '');
 
   const estimate = useMemo(() => {
     // Use actual tokens if available, otherwise estimate from input text
@@ -101,16 +104,30 @@ export function CostEstimate({
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-xs">
             <div className="space-y-1 text-xs">
-              <p className="font-medium">Kostnadsuppskattning</p>
-              <p>Input: {estimate.inputTokens.toLocaleString()} tokens ({formatCost(estimate.inputCost)})</p>
-              <p>Output: {estimate.outputTokens.toLocaleString()} tokens ({formatCost(estimate.outputCost)})</p>
+              <p className="font-medium">{t('compact.title')}</p>
+              <p>
+                {t('compact.inputLine', {
+                  count: estimate.inputTokens.toLocaleString(),
+                  cost: formatCost(estimate.inputCost),
+                })}
+              </p>
+              <p>
+                {t('compact.outputLine', {
+                  count: estimate.outputTokens.toLocaleString(),
+                  cost: formatCost(estimate.outputCost),
+                })}
+              </p>
               <p className="pt-1 border-t">
-                Totalt: {formatCost(estimate.totalCost)}
-                {estimate.isEstimate && ' (uppskattning)'}
+                {t('compact.totalLine', {
+                  cost: formatCost(estimate.totalCost),
+                  estimatedSuffix: estimate.isEstimate ? t('compact.estimatedSuffix') : '',
+                })}
               </p>
               {estimate.sessionCost !== null && (
                 <p className="text-muted-foreground">
-                  Session: ~{formatCost(estimate.sessionCost)}
+                  {t('compact.sessionLine', {
+                    cost: formatCost(estimate.sessionCost),
+                  })}
                 </p>
               )}
             </div>
@@ -125,7 +142,7 @@ export function CostEstimate({
     <div className={`bg-muted/50 rounded-lg p-3 text-xs space-y-2 ${className}`}>
       <div className="flex items-center gap-2 font-medium">
         <Coins className="h-4 w-4" />
-        <span>Kostnadsuppskattning</span>
+        <span>{t('detailed.title')}</span>
         {estimate.isEstimate && (
           <TooltipProvider>
             <Tooltip>
@@ -133,7 +150,7 @@ export function CostEstimate({
                 <Info className="h-3 w-3 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Baserat på uppskattade tokens (~4 tecken/token)</p>
+                <p>{t('detailed.estimatedTokens')}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -142,26 +159,26 @@ export function CostEstimate({
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <p className="text-muted-foreground">Input tokens</p>
+          <p className="text-muted-foreground">{t('detailed.inputLabel')}</p>
           <p className="font-mono">{estimate.inputTokens.toLocaleString()}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-muted-foreground">Output tokens</p>
+          <p className="text-muted-foreground">{t('detailed.outputLabel')}</p>
           <p className="font-mono">{estimate.outputTokens.toLocaleString()}</p>
         </div>
       </div>
 
       <div className="pt-2 border-t space-y-1">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Input</span>
+          <span className="text-muted-foreground">{t('detailed.inputCostLabel')}</span>
           <span className="font-mono">{formatCost(estimate.inputCost)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Output</span>
+          <span className="text-muted-foreground">{t('detailed.outputCostLabel')}</span>
           <span className="font-mono">{formatCost(estimate.outputCost)}</span>
         </div>
         <div className="flex justify-between font-medium pt-1 border-t">
-          <span>Totalt</span>
+          <span>{t('detailed.totalLabel')}</span>
           <span className="font-mono">{formatCost(estimate.totalCost)}</span>
         </div>
       </div>
@@ -169,12 +186,18 @@ export function CostEstimate({
       {estimate.sessionCost !== null && (
         <div className="flex items-center gap-1 text-muted-foreground pt-1">
           <TrendingUp className="h-3 w-3" />
-          <span>Session totalt: ~{formatCost(estimate.sessionCost)}</span>
+          <span>
+            {t('detailed.sessionTotalLine', {
+              cost: formatCost(estimate.sessionCost),
+            })}
+          </span>
         </div>
       )}
 
       <p className="text-[10px] text-muted-foreground">
-        Priser baserade på {model.replace('gemini-', 'Gemini ').replace('-preview', '')}
+        {t('detailed.pricingLine', {
+          model: displayModel,
+        })}
       </p>
     </div>
   );
@@ -220,12 +243,16 @@ export function SessionCostSummary({
   const pricing = GEMINI_PRICING[model || ''] || DEFAULT_PRICING;
   // Estimate 50/50 split between input and output
   const estimatedCost = (totalTokens / 1000) * ((pricing.input + pricing.output) / 2);
+  const t = useTranslations('components.costEstimate');
 
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground">
       <Coins className="h-3 w-3" />
       <span>
-        {messageCount} meddelanden | {totalTokens.toLocaleString()} tokens | ~{formatCost(estimatedCost)}
+        {t('summary.messageCount', {
+          count: messageCount,
+        })}{' '}
+        | {totalTokens.toLocaleString()} tokens | ~{formatCost(estimatedCost)}
       </span>
     </div>
   );

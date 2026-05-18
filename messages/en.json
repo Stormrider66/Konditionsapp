@@ -4583,6 +4583,30 @@
         "configure": "Configure"
       }
     },
+    "costEstimate": {
+      "compact": {
+        "title": "Cost estimate",
+        "inputLine": "Input: {count} tokens ({cost})",
+        "outputLine": "Output: {count} tokens ({cost})",
+        "totalLine": "Total: {cost}{estimatedSuffix}",
+        "estimatedSuffix": " (estimate)",
+        "sessionLine": "Session: ~{cost}"
+      },
+      "detailed": {
+        "title": "Cost estimate",
+        "estimatedTokens": "Based on estimated tokens (~4 chars/token)",
+        "inputLabel": "Input tokens",
+        "outputLabel": "Output tokens",
+        "inputCostLabel": "Input",
+        "outputCostLabel": "Output",
+        "totalLabel": "Total",
+        "sessionTotalLine": "Session total: ~{cost}",
+        "pricingLine": "Pricing based on {model}"
+      },
+      "summary": {
+        "messageCount": "{count, plural, one {# message} other {# messages}}"
+      }
+    },
     "lactateScan": {
       "buttonText": "Scan lactate",
       "dialogTitle": "Lactate Reading",

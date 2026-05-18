@@ -4583,6 +4583,30 @@
         "configure": "Konfigurera"
       }
     },
+    "costEstimate": {
+      "compact": {
+        "title": "Kostnadsuppskattning",
+        "inputLine": "Inmatning: {count} tokens ({cost})",
+        "outputLine": "Utmatning: {count} tokens ({cost})",
+        "totalLine": "Totalt: {cost}{estimatedSuffix}",
+        "estimatedSuffix": " (uppskattning)",
+        "sessionLine": "Session: ~{cost}"
+      },
+      "detailed": {
+        "title": "Kostnadsuppskattning",
+        "estimatedTokens": "Baserat på uppskattade tokens (~4 tecken/token)",
+        "inputLabel": "Inmatningstokens",
+        "outputLabel": "Utmatningstokens",
+        "inputCostLabel": "Inmatning",
+        "outputCostLabel": "Utmatning",
+        "totalLabel": "Totalt",
+        "sessionTotalLine": "Session totalt: ~{cost}",
+        "pricingLine": "Priser baserade på {model}"
+      },
+      "summary": {
+        "messageCount": "{count, plural, one {# meddelande} other {# meddelanden}}"
+      }
+    },
     "lactateScan": {
       "buttonText": "Skanna laktat",
       "dialogTitle": "Laktatavläsning",
