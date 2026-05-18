@@ -9859,11 +9859,75 @@
         "noTeam": "No team",
         "saveDraft": "Save draft",
         "publish": "Publish",
+      "toasts": {
+        "saveSuccess": "Drill saved!",
+        "publishSuccess": "Drill published!",
+        "saveError": "Could not save the drill"
+      }
+      }
+    },
+    "drills": {
+      "common": {
+        "defaultTitle": "Drill",
+        "labels": {
+          "title": "Title",
+          "description": "Description",
+          "sport": "Sport",
+          "assignToTeam": "Assign to team",
+          "noTeam": "No team"
+        },
+        "placeholders": {
+          "title": "Drill name",
+          "description": "Describe the drill...",
+          "selectTeam": "Select team..."
+        },
+        "actions": {
+          "saveDraft": "Save draft",
+          "publish": "Publish",
+          "edit": "Edit",
+          "preview": "Preview",
+          "showDiagram": "Show diagram",
+          "animate": "Animate"
+        },
         "toasts": {
-          "saveSuccess": "Drill saved!",
-          "publishSuccess": "Drill published!",
+          "analyzed": "Drill analyzed!",
+          "generated": "Drill generated!",
+          "saved": "Drill saved!",
+          "published": "Drill published!",
           "saveError": "Could not save the drill"
+        },
+        "errors": {
+          "analysisFailed": "Analysis failed",
+          "generationFailed": "Generation failed",
+          "imageAnalysisError": "Could not analyze the image",
+          "generateError": "Could not generate the drill",
+          "saveError": "Could not save the drill",
+          "saveFailed": "Could not save the drill",
+          "descriptionTooShort": "Describe the drill with at least a few words",
+          "nothingToSave": "No drill to save",
+          "minContent": "Add at least one player or movement"
         }
+      },
+      "creator": {
+        "photoSectionTitle": "Create drill from photo",
+        "photoDescription": "Take a photo of your tactic board or clipboard. AI analyzes the image and creates a digital drill.",
+        "takePhoto": "Take photo",
+        "chooseImage": "Choose image",
+        "analyzingPhoto": "Analyzing tactic board...",
+        "textSectionTitle": "Describe drill with text",
+        "textDescription": "Describe the drill in free text. AI automatically generates a drill diagram.",
+        "textPlaceholder": "E.g. '5-player breakout drill. Back collects puck behind own goal, passes to center, then to wing...'",
+        "generatingDrill": "Generating drill...",
+        "generateDrill": "Generate drill",
+        "manualSectionTitle": "Draw drill manually",
+        "manualDescription": "Place players, draw movements and passes directly on the rink.",
+        "openEditor": "Open editor",
+        "editorTitle": "Editor",
+        "diagramTitle": "Drill diagram"
+      },
+      "editor": {
+        "drawDrillTitle": "Draw drill",
+        "description": "Place players, draw movements and passes directly on the rink."
       }
     },
     "onboardingWizard": {

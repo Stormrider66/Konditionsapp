@@ -19,6 +19,7 @@ import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import type { DrillStructure } from './IceHockeyRink'
 import { DRILL_SPORT_OPTIONS, type DrillSportType } from '@/remotion/drills/surfaces'
 import { toast } from 'sonner'
+import { useTranslations } from '@/i18n/client'
 
 interface Team {
   id: string
@@ -30,6 +31,7 @@ interface DrillEditorPageProps {
 }
 
 export function DrillEditorPage({ teams }: DrillEditorPageProps) {
+  const t = useTranslations('components.drills')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [teamId, setTeamId] = useState('')
@@ -53,7 +55,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
 
   const handleSave = async (publish: boolean) => {
     if (!hasContent) {
-      toast.error('Lägg till minst en spelare eller rörelse')
+      toast.error(t('common.errors.minContent'))
       return
     }
 
@@ -63,7 +65,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: title || 'Övning',
+          title: title || t('common.defaultTitle'),
           description,
           teamId: teamId && teamId !== 'none' ? teamId : null,
           sportType,
@@ -73,9 +75,9 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
         }),
       })
 
-      if (!res.ok) throw new Error('Failed')
+      if (!res.ok) throw new Error(t('common.errors.saveFailed'))
 
-      toast.success(publish ? 'Övning publicerad!' : 'Övning sparad!')
+      toast.success(publish ? t('common.toasts.published') : t('common.toasts.saved'))
       // Reset
       setTitle('')
       setDescription('')
@@ -83,7 +85,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
       setStructure({ players: [], movements: [], zones: [], annotations: [] })
       setShowAnimation(false)
     } catch {
-      toast.error('Kunde inte spara övningen')
+      toast.error(t('common.errors.saveError'))
     } finally {
       setSaving(false)
     }
@@ -97,7 +99,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Pencil className="h-5 w-5 text-blue-500" />
-              Rita övning
+              {t('editor.drawDrillTitle')}
             </CardTitle>
             {hasContent && structure.movements.length > 0 && (
               <Button
@@ -106,12 +108,12 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
                 onClick={() => setShowAnimation(!showAnimation)}
               >
                 <Play className="h-3.5 w-3.5 mr-1.5" />
-                {showAnimation ? 'Redigera' : 'Förhandsgranska'}
+                {showAnimation ? t('common.actions.edit') : t('common.actions.preview')}
               </Button>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            Placera spelare, rita rörelser och passningar direkt på planen.
+            {t('editor.description')}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -139,7 +141,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
 
           {showAnimation ? (
             <DrillAnimationPlayer
-              title={title || 'Övning'}
+              title={title || t('common.defaultTitle')}
               description={description || undefined}
               structure={structure}
               locale="sv"
@@ -160,33 +162,33 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
         <Card>
           <CardContent className="p-4 space-y-4">
             <div className="space-y-2">
-              <Label>Titel</Label>
+              <Label>{t('common.labels.title')}</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Övningens namn"
+                placeholder={t('common.placeholders.title')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Beskrivning</Label>
+              <Label>{t('common.labels.description')}</Label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Beskriv övningen..."
+                placeholder={t('common.placeholders.description')}
                 rows={3}
               />
             </div>
 
             {teams.length > 0 && (
               <div className="space-y-2">
-                <Label>Tilldela till lag</Label>
+                <Label>{t('common.labels.assignToTeam')}</Label>
                 <Select value={teamId} onValueChange={setTeamId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Välj lag..." />
+                    <SelectValue placeholder={t('common.placeholders.selectTeam')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Inget lag</SelectItem>
+                    <SelectItem value="none">{t('common.labels.noTeam')}</SelectItem>
                     {teams.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.name}
@@ -205,7 +207,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
                 className="flex-1"
               >
                 <Save className="h-4 w-4 mr-1.5" />
-                Spara utkast
+                {t('common.actions.saveDraft')}
               </Button>
               <Button
                 onClick={() => handleSave(true)}
@@ -213,7 +215,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
                 className="flex-1"
               >
                 <Send className="h-4 w-4 mr-1.5" />
-                Publicera
+                {t('common.actions.publish')}
               </Button>
             </div>
           </CardContent>

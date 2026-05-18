@@ -9866,6 +9866,70 @@
         }
       }
     },
+    "drills": {
+      "common": {
+        "defaultTitle": "Övning",
+        "labels": {
+          "title": "Titel",
+          "description": "Beskrivning",
+          "sport": "Sport",
+          "assignToTeam": "Tilldela till lag",
+          "noTeam": "Inget lag"
+        },
+        "placeholders": {
+          "title": "Övningens namn",
+          "description": "Beskriv övningen...",
+          "selectTeam": "Välj lag..."
+        },
+        "actions": {
+          "saveDraft": "Spara utkast",
+          "publish": "Publicera",
+          "edit": "Redigera",
+          "preview": "Förhandsgranska",
+          "showDiagram": "Visa diagram",
+          "animate": "Animera"
+        },
+        "toasts": {
+          "analyzed": "Övningen analyserad!",
+          "generated": "Övning genererad!",
+          "saved": "Övning sparad!",
+          "published": "Övning publicerad!",
+          "saveError": "Kunde inte spara övningen"
+        },
+        "errors": {
+          "analysisFailed": "Analys misslyckades",
+          "generationFailed": "Generering misslyckades",
+          "imageAnalysisError": "Kunde inte analysera bilden",
+          "generateError": "Kunde inte generera övning",
+          "saveError": "Kunde inte spara övningen",
+          "saveFailed": "Kunde inte spara övningen",
+          "descriptionTooShort": "Beskriv övningen med minst några ord",
+          "nothingToSave": "Ingen övning att spara",
+          "minContent": "Lägg till minst en spelare eller rörelse"
+        }
+      },
+      "creator": {
+        "photoSectionTitle": "Skapa övning från foto",
+        "photoDescription": "Ta ett foto av din taktiktavla eller clipboard. AI analyserar bilden och skapar en digital övning.",
+        "takePhoto": "Ta foto",
+        "chooseImage": "Välj bild",
+        "analyzingPhoto": "Analyserar taktiktavla...",
+        "textSectionTitle": "Beskriv övning med text",
+        "textDescription": "Beskriv övningen i fritext. AI genererar ett övningsdiagram automatiskt.",
+        "textPlaceholder": "T.ex. 'Breakout-övning för 5 spelare. Back hämtar puck bakom eget mål, passning till center som skickar vidare till wingen...'",
+        "generatingDrill": "Genererar övning...",
+        "generateDrill": "Generera övning",
+        "manualSectionTitle": "Rita övning manuellt",
+        "manualDescription": "Placera spelare, rita rörelser och passningar direkt på rinken.",
+        "openEditor": "Öppna redigerare",
+        "editorTitle": "Redigerare",
+        "diagramTitle": "Övningsdiagram"
+      },
+      "editor": {
+        "drawDrillTitle": "Rita övning",
+        "description": "Placera spelare, rita rörelser och passningar direkt på planen."
+      }
+    },
     "onboardingWizard": {
       "header": {
         "welcome": "Välkommen, {clientName}!",

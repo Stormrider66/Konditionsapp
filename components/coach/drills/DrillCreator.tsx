@@ -20,6 +20,7 @@ import { InteractiveDrillEditor } from './InteractiveDrillEditor'
 import { toast } from 'sonner'
 import { DRILL_SPORTS } from '@/lib/drills/templates'
 import type { DrillSportType } from '@/remotion/drills/surfaces'
+import { useTranslations } from '@/i18n/client'
 
 interface Team {
   id: string
@@ -32,6 +33,7 @@ interface DrillCreatorProps {
 }
 
 export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreatorProps) {
+  const t = useTranslations('components.drills')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -76,16 +78,16 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Analys misslyckades')
+        throw new Error(err.error || t('common.errors.analysisFailed'))
       }
 
       const result = await res.json()
       setTitle(result.title)
       setDescription(result.description)
       setStructure(result.structure)
-      toast.success('Övningen analyserad!')
+      toast.success(t('common.toasts.analyzed'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kunde inte analysera bilden')
+      toast.error(err instanceof Error ? err.message : t('common.errors.imageAnalysisError'))
     } finally {
       setAnalyzing(false)
     }
@@ -93,7 +95,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
 
   const handleTextGenerate = async () => {
     if (!textPrompt.trim() || textPrompt.trim().length < 5) {
-      toast.error('Beskriv övningen med minst några ord')
+      toast.error(t('common.errors.descriptionTooShort'))
       return
     }
 
@@ -110,16 +112,16 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Generering misslyckades')
+        throw new Error(err.error || t('common.errors.generationFailed'))
       }
 
       const result = await res.json()
       setTitle(result.title)
       setDescription(result.description)
       setStructure(result.structure)
-      toast.success('Övning genererad!')
+      toast.success(t('common.toasts.generated'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kunde inte generera övning')
+      toast.error(err instanceof Error ? err.message : t('common.errors.generateError'))
     } finally {
       setGenerating(false)
     }
@@ -127,7 +129,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
 
   const handleSave = async (publish: boolean) => {
     if (!structure) {
-      toast.error('Ingen övning att spara')
+      toast.error(t('common.errors.nothingToSave'))
       return
     }
 
@@ -137,7 +139,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: title || 'Övning',
+          title: title || t('common.defaultTitle'),
           description,
           teamId: teamId && teamId !== 'none' ? teamId : null,
           sportType,
@@ -150,7 +152,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
 
       if (!res.ok) throw new Error('Failed')
 
-      toast.success(publish ? 'Övning publicerad!' : 'Övning sparad!')
+      toast.success(publish ? t('common.toasts.published') : t('common.toasts.saved'))
       // Reset form
       setTitle('')
       setDescription('')
@@ -162,7 +164,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
       setTextPrompt('')
       setGenerating(false)
     } catch {
-      toast.error('Kunde inte spara övningen')
+      toast.error(t('common.toasts.saveError'))
     } finally {
       setSaving(false)
     }
@@ -175,12 +177,12 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-purple-500" />
-            Skapa övning från foto
+            {t('creator.photoSectionTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Ta ett foto av din taktiktavla eller clipboard. AI analyserar bilden och skapar en digital övning.
+            {t('creator.photoDescription')}
           </p>
 
           <input
@@ -200,7 +202,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
               disabled={analyzing}
             >
               <Camera className="h-4 w-4 mr-2" />
-              Ta foto
+              {t('creator.takePhoto')}
             </Button>
             <Button
               variant="outline"
@@ -215,14 +217,14 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
               disabled={analyzing}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Välj bild
+              {t('creator.chooseImage')}
             </Button>
           </div>
 
           {analyzing && (
             <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Analyserar taktiktavla...</span>
+              <span>{t('creator.analyzingPhoto')}</span>
             </div>
           )}
 
@@ -241,18 +243,18 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <MessageSquare className="h-5 w-5 text-green-500" />
-              Beskriv övning med text
+              {t('creator.textSectionTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Beskriv övningen i fritext. AI genererar ett övningsdiagram automatiskt.
+              {t('creator.textDescription')}
             </p>
 
             <Textarea
               value={textPrompt}
               onChange={(e) => setTextPrompt(e.target.value)}
-              placeholder="T.ex. 'Breakout-övning för 5 spelare. Back hämtar puck bakom eget mål, passning till center som skickar vidare till wingen...'"
+              placeholder={t('creator.textPlaceholder')}
               rows={3}
               disabled={generating}
             />
@@ -265,12 +267,12 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
               {generating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Genererar övning...
+                  {t('creator.generatingDrill')}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Generera övning
+                  {t('creator.generateDrill')}
                 </>
               )}
             </Button>
@@ -284,12 +286,12 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Pencil className="h-5 w-5 text-blue-500" />
-              Rita övning manuellt
+              {t('creator.manualSectionTitle')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Placera spelare, rita rörelser och passningar direkt på rinken.
+              {t('creator.manualDescription')}
             </p>
             <Button
               variant="outline"
@@ -299,7 +301,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
               }}
             >
               <Pencil className="h-4 w-4 mr-2" />
-              Öppna redigerare
+              {t('creator.openEditor')}
             </Button>
           </CardContent>
         </Card>
@@ -310,7 +312,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Redigerare</CardTitle>
+              <CardTitle className="text-lg">{t('creator.editorTitle')}</CardTitle>
               <div className="flex items-center gap-2">
                 {structure.movements?.length > 0 && (
                   <Button
@@ -319,7 +321,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
                     onClick={() => setShowAnimation(!showAnimation)}
                   >
                     <Play className="h-3.5 w-3.5 mr-1.5" />
-                    {showAnimation ? 'Redigera' : 'Förhandsgranska'}
+                    {showAnimation ? t('common.actions.edit') : t('common.actions.preview')}
                   </Button>
                 )}
               </div>
@@ -328,7 +330,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
           <CardContent>
             {showAnimation ? (
               <DrillAnimationPlayer
-                title={title || 'Övning'}
+                title={title || t('common.defaultTitle')}
                 description={description || undefined}
                 structure={structure}
                 locale="sv"
@@ -353,7 +355,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Övningsdiagram</CardTitle>
+                  <CardTitle className="text-lg">{t('creator.diagramTitle')}</CardTitle>
                   {structure.movements?.length > 0 && (
                     <Button
                       variant="outline"
@@ -361,7 +363,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
                       onClick={() => setShowAnimation(!showAnimation)}
                     >
                       <Play className="h-3.5 w-3.5 mr-1.5" />
-                      {showAnimation ? 'Visa diagram' : 'Animera'}
+                      {showAnimation ? t('common.actions.showDiagram') : t('common.actions.animate')}
                     </Button>
                   )}
                 </div>
@@ -369,7 +371,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
               <CardContent>
                 {showAnimation ? (
                   <DrillAnimationPlayer
-                    title={title || 'Övning'}
+                    title={title || t('common.defaultTitle')}
                     description={description || undefined}
                     structure={structure}
                     locale="sv"
@@ -386,17 +388,17 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
           <Card>
             <CardContent className="p-4 space-y-4">
               <div className="space-y-2">
-                <Label>Titel</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Övningens namn" />
+                <Label>{t('common.labels.title')}</Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('common.placeholders.title')} />
               </div>
 
               <div className="space-y-2">
-                <Label>Beskrivning</Label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Beskriv övningen..." rows={3} />
+                <Label>{t('common.labels.description')}</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('common.placeholders.description')} rows={3} />
               </div>
 
               <div className="space-y-2">
-                <Label>Sport</Label>
+                <Label>{t('common.labels.sport')}</Label>
                 <Select value={sportType} onValueChange={setSportType}>
                   <SelectTrigger>
                     <SelectValue />
@@ -411,13 +413,13 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
 
               {teams.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Tilldela till lag</Label>
+                <Label>{t('common.labels.assignToTeam')}</Label>
                   <Select value={teamId} onValueChange={setTeamId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Välj lag..." />
+                      <SelectValue placeholder={t('common.placeholders.selectTeam')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Inget lag</SelectItem>
+                      <SelectItem value="none">{t('common.labels.noTeam')}</SelectItem>
                       {teams.map((t) => (
                         <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                       ))}
@@ -429,11 +431,11 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => handleSave(false)} disabled={saving} className="flex-1">
                   <Save className="h-4 w-4 mr-1.5" />
-                  Spara utkast
+                  {t('common.actions.saveDraft')}
                 </Button>
                 <Button onClick={() => handleSave(true)} disabled={saving} className="flex-1">
                   <Send className="h-4 w-4 mr-1.5" />
-                  Publicera
+                  {t('common.actions.publish')}
                 </Button>
               </div>
             </CardContent>
