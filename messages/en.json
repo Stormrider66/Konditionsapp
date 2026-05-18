@@ -110,6 +110,14 @@
       "concept2": {
         "title": "Concept2 | Trainomics",
         "description": "Concept2 Logbook data and analysis"
+      },
+      "subscription": {
+        "title": "Subscription | Athlete",
+        "description": "Manage your subscription"
+      },
+      "hybrid": {
+        "title": "Hybrid Pass | Trainomics",
+        "description": "Your CrossFit, HYROX, and functional workouts"
       }
     },
     "my": {

@@ -8,10 +8,15 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { SubscriptionClient } from './SubscriptionClient'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Prenumeration | Atlet',
-  description: 'Hantera din prenumeration',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.subscription')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 export default async function SubscriptionPage() {

@@ -110,6 +110,14 @@
       "concept2": {
         "title": "Concept2 | Trainomics",
         "description": "Concept2 Logbook data och analys"
+      },
+      "subscription": {
+        "title": "Prenumeration | Atlet",
+        "description": "Hantera din prenumeration"
+      },
+      "hybrid": {
+        "title": "Hybrid Pass | Trainomics",
+        "description": "Dina CrossFit, HYROX och funktionella pass"
       }
     },
     "my": {

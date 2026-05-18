@@ -12,10 +12,15 @@ import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { AthleteHybridClient } from '@/components/athlete/hybrid/AthleteHybridClient'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Hybrid Pass | Trainomics',
-  description: 'Dina CrossFit, HYROX och funktionella pass',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.hybrid')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 interface BusinessHybridPageProps {

@@ -10,10 +10,15 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { SubscriptionClient } from '@/app/athlete/subscription/SubscriptionClient'
+import { getTranslations } from '@/i18n/server'
 
-export const metadata = {
-  title: 'Prenumeration | Atlet',
-  description: 'Hantera din prenumeration',
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.athlete.subscription')
+
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 interface BusinessSubscriptionPageProps {
