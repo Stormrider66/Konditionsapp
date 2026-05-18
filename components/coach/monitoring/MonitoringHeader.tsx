@@ -29,6 +29,7 @@ export function MonitoringHeader({ clients, selectedAthleteId }: MonitoringHeade
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
 
   const selectedClient = clients.find((c) => c.id === selectedAthleteId)
+  const tMonitoringHeader = useTranslations('components.monitoringHeader')
 
   function handleAthleteChange(athleteId: string) {
     const params = new URLSearchParams(searchParams.toString())
@@ -39,9 +40,9 @@ export function MonitoringHeader({ clients, selectedAthleteId }: MonitoringHeade
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div>
-        <h1 className="text-3xl font-bold">Atletmonitorering</h1>
+        <h1 className="text-3xl font-bold">{tMonitoringHeader('title')}</h1>
         <p className="text-muted-foreground">
-          Följ HRV, vilopuls, välmående och beredskap
+          {tMonitoringHeader('subtitle')}
         </p>
       </div>
 
@@ -50,23 +51,31 @@ export function MonitoringHeader({ clients, selectedAthleteId }: MonitoringHeade
           <AIContextButton
             athleteId={selectedAthleteId || undefined}
             athleteName={selectedClient.name}
-            buttonText="AI-analys"
+            buttonText={tMonitoringHeader('quickActions.buttonText')}
             quickActions={[
               {
-                label: 'Analysera beredskap',
-                prompt: `Analysera ${selectedClient.name}s beredskapstrender och ge rekommendationer`,
+                label: tMonitoringHeader('quickActions.analyzeReadiness.label'),
+                prompt: tMonitoringHeader('quickActions.analyzeReadiness.prompt', {
+                  athleteName: selectedClient.name,
+                }),
               },
               {
-                label: 'Identifiera mönster',
-                prompt: `Identifiera mönster i ${selectedClient.name}s HRV och vilopuls data`,
+                label: tMonitoringHeader('quickActions.identifyPatterns.label'),
+                prompt: tMonitoringHeader('quickActions.identifyPatterns.prompt', {
+                  athleteName: selectedClient.name,
+                }),
               },
               {
-                label: 'Överträningsrisk',
-                prompt: `Bedöm risken för överträning för ${selectedClient.name} baserat på monitoreringsdata`,
+                label: tMonitoringHeader('quickActions.overloadRisk.label'),
+                prompt: tMonitoringHeader('quickActions.overloadRisk.prompt', {
+                  athleteName: selectedClient.name,
+                }),
               },
               {
-                label: 'Optimera återhämtning',
-                prompt: `Ge förslag på hur ${selectedClient.name} kan optimera sin återhämtning`,
+                label: tMonitoringHeader('quickActions.optimizeRecovery.label'),
+                prompt: tMonitoringHeader('quickActions.optimizeRecovery.prompt', {
+                  athleteName: selectedClient.name,
+                }),
               },
             ]}
           />
@@ -74,7 +83,7 @@ export function MonitoringHeader({ clients, selectedAthleteId }: MonitoringHeade
 
         <Select value={selectedAthleteId || undefined} onValueChange={handleAthleteChange}>
           <SelectTrigger className="w-64">
-            <SelectValue placeholder="Välj atlet" />
+            <SelectValue placeholder={tMonitoringHeader('selectAthletePlaceholder')} />
           </SelectTrigger>
           <SelectContent>
             {clients.map((c) => (

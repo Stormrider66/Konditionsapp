@@ -8766,6 +8766,30 @@
         "max": "Max"
       }
     },
+    "monitoringHeader": {
+      "title": "Atletmonitorering",
+      "subtitle": "Följ HRV, vilopuls, välmående och beredskap",
+      "quickActions": {
+        "buttonText": "AI-analys",
+        "analyzeReadiness": {
+          "label": "Analysera beredskap",
+          "prompt": "Analysera {athleteName}s beredskapstrender och ge rekommendationer"
+        },
+        "identifyPatterns": {
+          "label": "Identifiera mönster",
+          "prompt": "Identifiera mönster i {athleteName}s HRV- och vilopulsdata"
+        },
+        "overloadRisk": {
+          "label": "Överträningsrisk",
+          "prompt": "Bedöm risken för överträning för {athleteName} baserat på monitoreringsdata"
+        },
+        "optimizeRecovery": {
+          "label": "Optimera återhämtning",
+          "prompt": "Ge förslag på hur {athleteName} kan optimera sin återhämtning"
+        }
+      },
+      "selectAthletePlaceholder": "Välj atlet"
+    },
     "businessAthleteHeader": {
       "fallbackAthlete": "Atlet",
       "groups": {

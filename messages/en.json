@@ -8766,6 +8766,30 @@
         "max": "Max"
       }
     },
+    "monitoringHeader": {
+      "title": "Athlete monitoring",
+      "subtitle": "Follow HRV, resting heart rate, wellbeing, and readiness",
+      "quickActions": {
+        "buttonText": "AI analysis",
+        "analyzeReadiness": {
+          "label": "Analyze readiness",
+          "prompt": "Analyze {athleteName}'s readiness trends and provide recommendations"
+        },
+        "identifyPatterns": {
+          "label": "Identify patterns",
+          "prompt": "Identify patterns in {athleteName}'s HRV and resting heart rate data"
+        },
+        "overloadRisk": {
+          "label": "Overtraining risk",
+          "prompt": "Assess the overtraining risk for {athleteName} based on monitoring data"
+        },
+        "optimizeRecovery": {
+          "label": "Optimize recovery",
+          "prompt": "Suggest how {athleteName} can optimize recovery"
+        }
+      },
+      "selectAthletePlaceholder": "Select athlete"
+    },
     "businessAthleteHeader": {
       "fallbackAthlete": "Athlete",
       "groups": {
