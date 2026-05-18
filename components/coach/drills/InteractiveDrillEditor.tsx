@@ -21,6 +21,8 @@ import {
   RotateCcw,
   ShieldPlus,
   UsersRound,
+  Copy,
+  Layers3,
 } from 'lucide-react'
 import type { DrillStructure } from './IceHockeyRink'
 import {
@@ -122,6 +124,10 @@ function clonePresetPlayer(player: Player): Player {
   return { ...player, id: nextId(player.id) }
 }
 
+function movementPhaseValue(movement: Movement) {
+  return movement.phase && movement.phase > 0 ? movement.phase : 1
+}
+
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function InteractiveDrillEditor({
@@ -198,8 +204,8 @@ export function InteractiveDrillEditor({
     (kind: 'attack' | 'defense' | 'fiveOnFive') => {
       pushHistory()
       const presetPlayers = kind === 'attack'
-          ? HOCKEY_ATTACK_UNIT
-          : kind === 'defense'
+        ? HOCKEY_ATTACK_UNIT
+        : kind === 'defense'
           ? HOCKEY_DEFENSE_UNIT
           : [...HOCKEY_ATTACK_UNIT, ...HOCKEY_DEFENSE_UNIT]
       const updated = [...players, ...presetPlayers.map(clonePresetPlayer)]
@@ -501,6 +507,88 @@ export function InteractiveDrillEditor({
     },
     [selectedId, pushHistory, players, movements, zones, annotations, emitChange]
   )
+
+  const phaseGroups = useMemo(() => {
+    const grouped = new Map<number, Movement[]>()
+    movements.forEach((movement) => {
+      const phase = movementPhaseValue(movement)
+      grouped.set(phase, [...(grouped.get(phase) || []), movement])
+    })
+
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([phase, phaseMovements]) => {
+        const movingPlayerLabels = phaseMovements
+          .map((movement) => movement.playerId ? players.find((player) => player.id === movement.playerId)?.label : null)
+          .filter(Boolean)
+
+        return {
+          phase,
+          movements: phaseMovements,
+          label: movingPlayerLabels.length > 0
+            ? movingPlayerLabels.join(', ')
+            : phaseMovements.map((movement) => MOVEMENT_STYLES[movement.type]?.label || movement.type).join(', '),
+        }
+      })
+  }, [movements, players, MOVEMENT_STYLES])
+
+  const activePhase = selectedMovement ? movementPhaseValue(selectedMovement) : movementPhase
+  const maxPhase = phaseGroups.at(-1)?.phase ?? 0
+
+  const selectPhase = useCallback((phase: number) => {
+    const firstMovement = movements.find((movement) => movementPhaseValue(movement) === phase)
+    setMovementPhase(phase)
+    setMovementStart(null)
+    setZoneStart(null)
+    setMousePos(null)
+    if (firstMovement) {
+      setActiveTool('select')
+      setSelectedId(firstMovement.id)
+    }
+  }, [movements])
+
+  const createNextPhase = useCallback(() => {
+    setMovementPhase(maxPhase + 1 || 1)
+    setActiveTool('movement')
+    setSelectedId(null)
+    setMovementStart(null)
+    setZoneStart(null)
+    setMousePos(null)
+  }, [maxPhase])
+
+  const duplicatePhase = useCallback((phase: number) => {
+    const phaseMovements = movements.filter((movement) => movementPhaseValue(movement) === phase)
+    if (phaseMovements.length === 0) return
+    const newPhase = maxPhase + 1
+    pushHistory()
+    const duplicated = phaseMovements.map((movement) => ({
+      ...movement,
+      id: nextId('m'),
+      phase: newPhase,
+    }))
+    const updated = [...movements, ...duplicated]
+    setMovements(updated)
+    setMovementPhase(newPhase)
+    setSelectedId(duplicated[0]?.id ?? null)
+    setActiveTool('select')
+    emitChange(players, updated, zones, annotations)
+  }, [maxPhase, pushHistory, movements, players, zones, annotations, emitChange])
+
+  const deletePhase = useCallback((phase: number) => {
+    const hasMovements = movements.some((movement) => movementPhaseValue(movement) === phase)
+    if (!hasMovements) return
+    pushHistory()
+    const updated = movements
+      .filter((movement) => movementPhaseValue(movement) !== phase)
+      .map((movement) => {
+        const currentPhase = movementPhaseValue(movement)
+        return currentPhase > phase ? { ...movement, phase: currentPhase - 1 } : movement
+      })
+    setMovements(updated)
+    setSelectedId(null)
+    setMovementPhase(Math.max(1, Math.min(phase, maxPhase - 1)))
+    emitChange(players, updated, zones, annotations)
+  }, [maxPhase, pushHistory, movements, players, zones, annotations, emitChange])
 
   // ─── Render ───────────────────────────────────────────────────────
 
@@ -862,6 +950,75 @@ export function InteractiveDrillEditor({
                 </select>
               </div>
             )}
+          </div>
+        )}
+
+        {phaseGroups.length > 0 && (
+          <div className="rounded-md border bg-background p-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <div className="mr-1 flex items-center gap-1.5 text-xs font-medium">
+                  <Layers3 className="h-3.5 w-3.5" />
+                  Spelsteg
+                </div>
+                {phaseGroups.map((group) => {
+                  const isActive = group.phase === activePhase
+                  return (
+                    <button
+                      key={group.phase}
+                      type="button"
+                      onClick={() => selectPhase(group.phase)}
+                      className={`flex h-8 max-w-[180px] items-center gap-1.5 rounded-md border px-2 text-left text-xs transition-colors ${
+                        isActive
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'border-border bg-muted/40 hover:bg-muted'
+                      }`}
+                    >
+                      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
+                        isActive ? 'bg-background text-foreground' : 'bg-background text-foreground'
+                      }`}>
+                        {group.phase}
+                      </span>
+                      <span className="truncate">
+                        {group.movements.length} rörelser
+                        {group.label ? ` · ${group.label}` : ''}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={createNextPhase}
+                >
+                  + Nytt steg
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => duplicatePhase(activePhase)}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Kopiera
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs text-destructive"
+                  onClick={() => deletePhase(activePhase)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Radera steg
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
