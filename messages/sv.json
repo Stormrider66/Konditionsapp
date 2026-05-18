@@ -1566,6 +1566,12 @@
     "loginButton": "Logga in",
     "registerButton": "Skapa konto",
     "forgotPassword": "Glömt lösenord?",
+    "forgotPasswordDescription": "Ange din e-postadress så skickar vi en återställningslänk om kontot finns.",
+    "forgotPasswordSent": "Om ett konto finns har en återställningslänk skickats till din e-post.",
+    "forgotPasswordSuccessMessage": "Kontrollera din inkorg och följ instruktionerna för att återställa lösenordet.",
+    "forgotPasswordSending": "Skickar länk...",
+    "forgotPasswordSendLink": "Skicka återställningslänk",
+    "forgotPasswordBackToLogin": "Tillbaka till inloggning",
     "noAccount": "Har du inget konto?",
     "hasAccount": "Har du redan ett konto?",
     "signUpLink": "Registrera dig",
@@ -1596,6 +1602,34 @@
     "female": "Kvinna",
     "minCharacters": "Minst {count} tecken",
     "repeatPassword": "Upprepa lösenord",
+    "joinTeam": {
+      "title": "Gå med i {teamName}",
+      "subtitle": "Skapa ett konto för att ansluta till laget",
+      "status": {
+        "validating": "Validerar inbjudan..."
+      },
+      "errors": {
+        "invalidCode": "Ogiltig inbjudningskod",
+        "validationFailed": "Kunde inte validera koden",
+        "invalidInvite": "Ogiltig inbjudan",
+        "registrationFailed": "Registrering misslyckades",
+        "generic": "Något gick fel"
+      },
+      "success": {
+        "title": "Välkommen till {teamName}!",
+        "description": "Ditt konto har skapats. Kolla din e-post för att verifiera kontot, sedan kan du logga in."
+      },
+      "actions": {
+        "toLogin": "Gå till inloggning",
+        "login": "Logga in",
+        "createAccount": "Skapa konto och gå med"
+      },
+      "nameLabel": "Namn *",
+      "namePlaceholder": "Ditt namn",
+      "emailLabel": "E-post *",
+      "passwordLabel": "Lösenord *",
+      "birthDateLabel": "Födelsedatum"
+    },
     "inviteCodeLabel": "Inbjudningskod (valfritt)",
     "createAthleteAccount": "Skapa atletkonto",
     "getStartedWithTraining": "Kom igång med din träning idag",

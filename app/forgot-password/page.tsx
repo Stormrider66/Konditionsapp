@@ -8,14 +8,14 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, ArrowLeft, Mail } from 'lucide-react'
-
-const forgotPasswordSchema = z.object({
-  email: z.string().email('Ange en giltig e-postadress'),
-})
-
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
+import { useTranslations } from '@/i18n/client'
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations('auth')
+  const forgotPasswordSchema = z.object({
+    email: z.string().email(t('invalidEmail')),
+  })
+  type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
@@ -56,8 +56,8 @@ export default function ForgotPasswordPage() {
           </CardTitle>
           <CardDescription className="text-center">
             {isSubmitted
-              ? 'Kontrollera din e-post'
-              : 'Återställ ditt lösenord'}
+              ? t('forgotPasswordSent')
+              : t('forgotPasswordDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
                 <Mail className="h-8 w-8 text-green-600" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Om det finns ett konto kopplat till den e-postadressen har vi skickat en länk för att återställa ditt lösenord. Kolla din inkorg och skräppost.
+                {t('forgotPasswordSuccessMessage')}
               </p>
             </div>
           ) : (
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
                   htmlFor="email"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  E-post
+                  {t('emailLabel')}
                 </label>
                 <input
                   id="email"
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
                   className={`flex h-10 w-full rounded-md border ${
                     errors.email ? 'border-red-500' : 'border-input'
                   } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                  placeholder="din@email.com"
+                  placeholder={t('emailPlaceholder')}
                   {...register('email')}
                   disabled={isLoading}
                 />
@@ -102,10 +102,10 @@ export default function ForgotPasswordPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Skickar...
+                    {t('forgotPasswordSending')}
                   </>
                 ) : (
-                  'Skicka återställningslänk'
+                  t('forgotPasswordSendLink')
                 )}
               </Button>
             </form>
@@ -117,7 +117,7 @@ export default function ForgotPasswordPage() {
             className="text-sm text-blue-600 hover:underline flex items-center gap-1"
           >
             <ArrowLeft className="h-3 w-3" />
-            Tillbaka till inloggning
+            {t('forgotPasswordBackToLogin')}
           </Link>
         </CardFooter>
       </Card>

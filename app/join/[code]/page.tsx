@@ -15,11 +15,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Users, Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 export default function JoinTeamPage() {
   const params = useParams()
   const router = useRouter()
   const code = (params.code as string) || ''
+  const t = useTranslations('auth')
 
   const [validating, setValidating] = useState(true)
   const [teamName, setTeamName] = useState('')
@@ -43,16 +45,16 @@ export default function JoinTeamPage() {
           setTeamName(data.teamName)
         } else {
           const data = await res.json()
-          setError(data.error || 'Ogiltig inbjudningskod')
+          setError(data.error || t('joinTeam.errors.invalidCode'))
         }
       } catch {
-        setError('Kunde inte validera koden')
+        setError(t('joinTeam.errors.validationFailed'))
       } finally {
         setValidating(false)
       }
     }
     if (code) validate()
-  }, [code])
+  }, [code, t])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,12 +78,12 @@ export default function JoinTeamPage() {
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Registrering misslyckades')
+        throw new Error(data.error || t('joinTeam.errors.registrationFailed'))
       }
 
       setSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : t('joinTeam.errors.generic'))
     } finally {
       setSubmitting(false)
     }
@@ -93,7 +95,7 @@ export default function JoinTeamPage() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
-          Validerar inbjudan...
+          {t('joinTeam.status.validating')}
         </div>
       </div>
     )
@@ -106,10 +108,12 @@ export default function JoinTeamPage() {
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
             <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-lg font-bold mb-2">Ogiltig inbjudan</h2>
+            <h2 className="text-lg font-bold mb-2">
+              {t('joinTeam.errors.invalidInvite')}
+            </h2>
             <p className="text-muted-foreground">{error}</p>
             <Button className="mt-6" onClick={() => router.push('/login')}>
-              Gå till inloggning
+              {t('joinTeam.actions.toLogin')}
             </Button>
           </CardContent>
         </Card>
@@ -124,12 +128,14 @@ export default function JoinTeamPage() {
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-lg font-bold mb-2">Välkommen till {teamName}!</h2>
+            <h2 className="text-lg font-bold mb-2">
+              {t('joinTeam.success.title', { teamName })}
+            </h2>
             <p className="text-muted-foreground mb-6">
-              Ditt konto har skapats. Kolla din e-post för att verifiera kontot, sedan kan du logga in.
+              {t('joinTeam.success.description')}
             </p>
             <Button onClick={() => router.push('/login')}>
-              Logga in
+              {t('joinTeam.actions.login')}
             </Button>
           </CardContent>
         </Card>
@@ -140,46 +146,52 @@ export default function JoinTeamPage() {
   // Signup form
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
             <Users className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle>Gå med i {teamName}</CardTitle>
+          <CardTitle>{t('joinTeam.title', { teamName })}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Skapa ett konto för att ansluta till laget
+            {t('joinTeam.subtitle')}
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Namn *</Label>
+              <Label>
+                {t('joinTeam.nameLabel')}
+              </Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ditt namn"
+                placeholder={t('joinTeam.namePlaceholder')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label>E-post *</Label>
+              <Label>
+                {t('joinTeam.emailLabel')}
+              </Label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="din@email.se"
+                placeholder={t('emailPlaceholder')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Lösenord *</Label>
+              <Label>
+                {t('joinTeam.passwordLabel')}
+              </Label>
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minst 8 tecken"
+                placeholder={t('passwordPlaceholder')}
                 minLength={8}
                 required
               />
@@ -187,7 +199,7 @@ export default function JoinTeamPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Födelsedatum</Label>
+                <Label>{t('joinTeam.birthDateLabel')}</Label>
                 <Input
                   type="date"
                   value={birthDate}
@@ -195,14 +207,14 @@ export default function JoinTeamPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Kön</Label>
+                <Label>{t('genderLabel')}</Label>
                 <Select value={gender} onValueChange={setGender}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Välj..." />
+                    <SelectValue placeholder={t('selectOption')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MALE">Man</SelectItem>
-                    <SelectItem value="FEMALE">Kvinna</SelectItem>
+                    <SelectItem value="MALE">{t('male')}</SelectItem>
+                    <SelectItem value="FEMALE">{t('female')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -216,17 +228,17 @@ export default function JoinTeamPage() {
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Registrerar...
+                  {t('creatingAccount')}
                 </>
               ) : (
-                'Skapa konto och gå med'
+                t('joinTeam.actions.createAccount')
               )}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              Har du redan ett konto?{' '}
+              {t('hasAccount')}{' '}
               <Link href="/login" className="text-primary hover:underline">
-                Logga in
+                {t('signInLink')}
               </Link>
             </p>
           </form>

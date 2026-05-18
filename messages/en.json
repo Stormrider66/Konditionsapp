@@ -1566,6 +1566,12 @@
     "loginButton": "Log in",
     "registerButton": "Create account",
     "forgotPassword": "Forgot password?",
+    "forgotPasswordDescription": "Enter your email and we'll send a reset link if the account exists.",
+    "forgotPasswordSent": "If an account exists, a reset link was sent to your email.",
+    "forgotPasswordSuccessMessage": "Please check your inbox and follow the instructions to reset your password.",
+    "forgotPasswordSending": "Sending link...",
+    "forgotPasswordSendLink": "Send reset link",
+    "forgotPasswordBackToLogin": "Back to login",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "signUpLink": "Sign up",
@@ -1577,6 +1583,10 @@
     "and": "and",
     "invalidEmail": "Enter a valid email address",
     "passwordMinLength": "Password must be at least 6 characters",
+    "genderLabel": "Gender (optional)",
+    "selectOption": "Select...",
+    "male": "Male",
+    "female": "Female",
     "invalidCredentials": "Invalid email or password",
     "loginFailed": "Login failed",
     "accountCreated": "Account created! Check your email to verify.",
@@ -1590,10 +1600,34 @@
     "couldNotLoginLater": "Could not log in. Please try again later.",
     "couldNotCreateAccount": "Could not create account. Please try again later.",
     "creatingAccount": "Creating account...",
-    "genderLabel": "Gender (optional)",
-    "selectOption": "Select...",
-    "male": "Male",
-    "female": "Female",
+    "joinTeam": {
+      "title": "Join {teamName}",
+      "subtitle": "Create an account to join the team",
+      "status": {
+        "validating": "Validating invite..."
+      },
+      "errors": {
+        "invalidCode": "Invalid invite code",
+        "validationFailed": "Could not validate the code",
+        "invalidInvite": "Invalid invite",
+        "registrationFailed": "Registration failed",
+        "generic": "Something went wrong"
+      },
+      "success": {
+        "title": "Welcome to {teamName}!",
+        "description": "Your account has been created. Check your email to verify, then you can log in."
+      },
+      "actions": {
+        "toLogin": "Go to login",
+        "login": "Log in",
+        "createAccount": "Create account and join"
+      },
+      "nameLabel": "Name",
+      "namePlaceholder": "Your name",
+      "emailLabel": "Email *",
+      "passwordLabel": "Password *",
+      "birthDateLabel": "Date of birth"
+    },
     "minCharacters": "At least {count} characters",
     "repeatPassword": "Repeat password",
     "inviteCodeLabel": "Invite code (optional)",
