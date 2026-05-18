@@ -152,7 +152,7 @@ export default function GymSignupPage() {
                 id="businessName"
                 type="text"
                 className={`flex h-10 w-full rounded-md border ${errors.businessName ? 'border-red-500' : 'border-input'} bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-                placeholder="T.ex. Nordic Fitness"
+                placeholder={t('gymSignup.businessNamePlaceholder')}
                 {...register('businessName')}
                 disabled={isLoading}
               />
@@ -201,7 +201,7 @@ export default function GymSignupPage() {
                   id="city"
                   type="text"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  placeholder="Stockholm"
+                  placeholder={t('gymSignup.cityPlaceholder')}
                   {...register('city')}
                   disabled={isLoading}
                 />
@@ -215,7 +215,7 @@ export default function GymSignupPage() {
                   id="phone"
                   type="tel"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  placeholder="070-123 45 67"
+                  placeholder={t('gymSignup.phonePlaceholder')}
                   {...register('phone')}
                   disabled={isLoading}
                 />
