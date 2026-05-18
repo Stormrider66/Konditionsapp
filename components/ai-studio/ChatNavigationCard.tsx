@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowRight, Map, User, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 export interface ChatNavigationResult {
   success?: boolean
@@ -30,6 +31,8 @@ function resolveHref(href: string, basePath?: string) {
 }
 
 export function ChatNavigationCard({ result, basePath }: ChatNavigationCardProps) {
+  const tChatNavigation = useTranslations('components.chatNavigation')
+
   if (!result.success || !result.navigation) return null
 
   const { navigation } = result
@@ -64,7 +67,7 @@ export function ChatNavigationCard({ result, basePath }: ChatNavigationCardProps
             className={cn('mt-3 h-8 bg-blue-600 text-xs text-white hover:bg-blue-700')}
           >
             <Link href={href}>
-              Öppna
+              {tChatNavigation('open')}
               <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </Link>
           </Button>

@@ -8971,6 +8971,9 @@
         "member": "Member"
       }
     },
+    "chatNavigation": {
+      "open": "Open"
+    },
     "sportSwitcher": {
       "switchSport": "Switch sport",
       "primary": "Primary",

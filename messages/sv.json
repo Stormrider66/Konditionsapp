@@ -8971,6 +8971,9 @@
         "member": "Medlem"
       }
     },
+    "chatNavigation": {
+      "open": "Öppna"
+    },
     "sportSwitcher": {
       "switchSport": "Byt sport",
       "primary": "Huvud",
