@@ -4775,6 +4775,153 @@
         "neutral": "Neutral"
       }
     },
+    "onboarding": {
+      "padel": {
+        "stepProgress": "Steg {step} av {totalSteps}",
+        "stepTitles": {
+          "position": "Välj din position",
+          "clubAndLevel": "Klubb och nivå",
+          "partnerAndPhysical": "Partner och fysik",
+          "speedTests": "Snabbhetstester",
+          "powerAndReaction": "Kraft och reaktion",
+          "strengthsAndWeaknesses": "Styrkor och svagheter",
+          "injuryHistory": "Skadehistorik och träning"
+        },
+        "stepDescriptions": {
+          "position": "Vilken sida spelar du främst på?",
+          "clubAndLevel": "Information om din klubb och tävlingsnivå",
+          "partnerAndPhysical": "Din partner och fysiska attribut",
+          "speedTests": "Dina senaste testresultat för snabbhet",
+          "powerAndReaction": "Dina senaste testresultat för kraft och reaktion",
+          "strengthsAndWeaknesses": "Vad är dina styrkor och utvecklingsområden?",
+          "injuryHistory": "Tidigare skador och träningsförutsättningar"
+        },
+        "fields": {
+          "clubName": "Klubbnamn",
+          "level": "Nivå",
+          "seasonPhase": "Säsongsfas",
+          "matchesPerWeek": "Matcher per vecka",
+          "yearsPlaying": "År som spelare",
+          "preferredPartner": "Föredragen partner",
+          "dominantHand": "Dominant hand",
+          "height": "Längd (cm)",
+          "smashSpeed": "Smash-hastighet (km/h)",
+          "sprint5m": "5m sprint (sek)",
+          "sprint10m": "10m sprint (sek)",
+          "agilitySpider": "Spider drill (sek)",
+          "agility505": "5-10-5 shuttle (sek)",
+          "lateralShuffle": "Lateral shuffle 10m (sek)",
+          "verticalJump": "Vertikalhopp (cm)",
+          "medicineBallThrow": "Medicinbollkast (m)",
+          "gripStrength": "Greppstyrka (kg)",
+          "reactionTime": "Reaktionstid (ms)",
+          "yoyoIR1Level": "Yo-Yo IR1 nivå",
+          "weeklyTraining": "Träningspass per vecka (utöver matcher)",
+          "gymAccess": "Jag har tillgång till gym"
+        },
+        "dominantHands": {
+          "right": "Höger",
+          "left": "Vänster"
+        },
+        "sections": {
+          "speedTests": "Snabbhetstester",
+          "powerAndReaction": "Kraft och reaktion",
+          "strengths": "Dina styrkor",
+          "weaknesses": "Utvecklingsområden",
+          "injuries": "Tidigare skador",
+          "trainingConditions": "Träningsförutsättningar"
+        },
+        "placeholders": {
+          "clubName": "T.ex. Stockholm Padel Club",
+          "preferredPartner": "T.ex. Anna Svensson",
+          "height": "T.ex. 175",
+          "smashSpeed": "T.ex. 120",
+          "sprint5m": "T.ex. 1.05",
+          "sprint10m": "T.ex. 1.75",
+          "agilitySpider": "T.ex. 15.5",
+          "agility505": "T.ex. 2.30",
+          "lateralShuffle": "T.ex. 4.0",
+          "verticalJump": "T.ex. 45",
+          "medicineBallThrow": "T.ex. 10.5",
+          "gripStrength": "T.ex. 50",
+          "reactionTime": "T.ex. 200",
+          "yoyoIR1Level": "T.ex. 17.0"
+        },
+        "help": {
+          "preferredPartner": "Namn på din vanligaste dubbelpartner",
+          "lateralShuffle": "Sidledsförflyttning, padelspecifikt",
+          "medicineBallThrow": "3kg boll, rotationskast"
+        },
+        "positions": {
+          "rightSide": {
+            "label": "Högersida (Derechos)",
+            "description": "Offensiv spelare med fokus på smash"
+          },
+          "leftSide": {
+            "label": "Vänstersida (Revés)",
+            "description": "Strategisk spelare med stark backhand"
+          },
+          "allCourt": {
+            "label": "Allroundspelare",
+            "description": "Flexibel, kan spela båda sidorna"
+          }
+        },
+        "leagueLevels": {
+          "recreational": "Motionsspelare",
+          "club": "Klubbspelare",
+          "division4": "Division 4",
+          "division3": "Division 3",
+          "division2": "Division 2",
+          "division1": "Division 1",
+          "padelTour": "Padel Tour",
+          "wpt": "World Padel Tour"
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Fysisk utveckling och vila"
+          },
+          "preSeason": {
+            "label": "Försäsong",
+            "description": "Matchförberedelse"
+          },
+          "inSeason": {
+            "label": "Säsong",
+            "description": "Matcher och underhåll"
+          },
+          "tournament": {
+            "label": "Turnering",
+            "description": "Peak performance"
+          }
+        },
+        "strengths": {
+          "smash": "Smash",
+          "bandeja": "Bandeja",
+          "vibora": "Víbora",
+          "lob": "Lobb",
+          "forehand": "Forehand",
+          "backhand": "Backhand",
+          "volley": "Volley",
+          "movement": "Rörelse/Fotwork",
+          "wallPlay": "Väggspel",
+          "mental": "Mental styrka"
+        },
+        "injuries": {
+          "shoulder": "Axelskada",
+          "elbow": "Tennisarmbåge",
+          "wrist": "Handledsbesvär",
+          "back": "Ryggproblem",
+          "knee": "Knäskada",
+          "ankle": "Fotledsskada",
+          "hip": "Höftproblem",
+          "calf": "Vadbesvär"
+        },
+        "actions": {
+          "back": "Tillbaka",
+          "next": "Nästa"
+        }
+      }
+    },
     "footballOnboarding": {
       "sections": {
         "positionAndTeam": {

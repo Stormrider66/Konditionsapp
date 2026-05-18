@@ -9,10 +9,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { useTranslations } from 'next-intl'
 import {
   ChevronLeft,
   ChevronRight,
-  Check,
   Target,
   Activity,
   Trophy,
@@ -88,51 +88,79 @@ interface PadelOnboardingProps {
 }
 
 const POSITIONS = [
-  { value: 'right_side', label: 'Högersida (Derechos)', description: 'Offensiv spelare med fokus på smash' },
-  { value: 'left_side', label: 'Vänstersida (Revés)', description: 'Strategisk spelare med stark backhand' },
-  { value: 'all_court', label: 'Allroundspelare', description: 'Flexibel, kan spela båda sidorna' },
+  {
+    value: 'right_side',
+    labelKey: 'positions.rightSide.label',
+    descriptionKey: 'positions.rightSide.description',
+  },
+  {
+    value: 'left_side',
+    labelKey: 'positions.leftSide.label',
+    descriptionKey: 'positions.leftSide.description',
+  },
+  {
+    value: 'all_court',
+    labelKey: 'positions.allCourt.label',
+    descriptionKey: 'positions.allCourt.description',
+  },
 ]
 
 const LEAGUE_LEVELS = [
-  { value: 'recreational', label: 'Motionsspelare' },
-  { value: 'club', label: 'Klubbspelare' },
-  { value: 'division_4', label: 'Division 4' },
-  { value: 'division_3', label: 'Division 3' },
-  { value: 'division_2', label: 'Division 2' },
-  { value: 'division_1', label: 'Division 1' },
-  { value: 'padel_tour', label: 'Padel Tour' },
-  { value: 'wpt', label: 'World Padel Tour' },
+  { value: 'recreational', labelKey: 'leagueLevels.recreational' },
+  { value: 'club', labelKey: 'leagueLevels.club' },
+  { value: 'division_4', labelKey: 'leagueLevels.division4' },
+  { value: 'division_3', labelKey: 'leagueLevels.division3' },
+  { value: 'division_2', labelKey: 'leagueLevels.division2' },
+  { value: 'division_1', labelKey: 'leagueLevels.division1' },
+  { value: 'padel_tour', labelKey: 'leagueLevels.padelTour' },
+  { value: 'wpt', labelKey: 'leagueLevels.wpt' },
 ]
 
 const SEASON_PHASES = [
-  { value: 'off_season', label: 'Off-season', description: 'Fysisk utveckling och vila' },
-  { value: 'pre_season', label: 'Försäsong', description: 'Matchförberedelse' },
-  { value: 'in_season', label: 'Säsong', description: 'Matcher och underhåll' },
-  { value: 'tournament', label: 'Turnering', description: 'Peak performance' },
+  {
+    value: 'off_season',
+    labelKey: 'seasonPhases.offSeason.label',
+    descriptionKey: 'seasonPhases.offSeason.description',
+  },
+  {
+    value: 'pre_season',
+    labelKey: 'seasonPhases.preSeason.label',
+    descriptionKey: 'seasonPhases.preSeason.description',
+  },
+  {
+    value: 'in_season',
+    labelKey: 'seasonPhases.inSeason.label',
+    descriptionKey: 'seasonPhases.inSeason.description',
+  },
+  {
+    value: 'tournament',
+    labelKey: 'seasonPhases.tournament.label',
+    descriptionKey: 'seasonPhases.tournament.description',
+  },
 ]
 
 const STRENGTHS = [
-  { id: 'smash', label: 'Smash' },
-  { id: 'bandeja', label: 'Bandeja' },
-  { id: 'vibora', label: 'Víbora' },
-  { id: 'lob', label: 'Lobb' },
-  { id: 'forehand', label: 'Forehand' },
-  { id: 'backhand', label: 'Backhand' },
-  { id: 'volley', label: 'Volley' },
-  { id: 'movement', label: 'Rörelse/Fotwork' },
-  { id: 'wall_play', label: 'Väggspel' },
-  { id: 'mental', label: 'Mental styrka' },
+  { id: 'smash', labelKey: 'strengths.smash' },
+  { id: 'bandeja', labelKey: 'strengths.bandeja' },
+  { id: 'vibora', labelKey: 'strengths.vibora' },
+  { id: 'lob', labelKey: 'strengths.lob' },
+  { id: 'forehand', labelKey: 'strengths.forehand' },
+  { id: 'backhand', labelKey: 'strengths.backhand' },
+  { id: 'volley', labelKey: 'strengths.volley' },
+  { id: 'movement', labelKey: 'strengths.movement' },
+  { id: 'wall_play', labelKey: 'strengths.wallPlay' },
+  { id: 'mental', labelKey: 'strengths.mental' },
 ]
 
 const INJURY_TYPES = [
-  { id: 'shoulder', label: 'Axelskada' },
-  { id: 'elbow', label: 'Tennisarmbåge' },
-  { id: 'wrist', label: 'Handledsbesvär' },
-  { id: 'back', label: 'Ryggproblem' },
-  { id: 'knee', label: 'Knäskada' },
-  { id: 'ankle', label: 'Fotledsskada' },
-  { id: 'hip', label: 'Höftproblem' },
-  { id: 'calf', label: 'Vadbesvär' },
+  { id: 'shoulder', labelKey: 'injuries.shoulder' },
+  { id: 'elbow', labelKey: 'injuries.elbow' },
+  { id: 'wrist', labelKey: 'injuries.wrist' },
+  { id: 'back', labelKey: 'injuries.back' },
+  { id: 'knee', labelKey: 'injuries.knee' },
+  { id: 'ankle', labelKey: 'injuries.ankle' },
+  { id: 'hip', labelKey: 'injuries.hip' },
+  { id: 'calf', labelKey: 'injuries.calf' },
 ]
 
 export function PadelOnboarding({
@@ -144,6 +172,7 @@ export function PadelOnboarding({
 
   const totalSteps = 7
   const progress = (step / totalSteps) * 100
+  const t = useTranslations('components.onboarding.padel')
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -193,27 +222,27 @@ export function PadelOnboarding({
             Padel
           </Badge>
           <span className="text-sm text-muted-foreground">
-            Steg {step} av {totalSteps}
+            {t('stepProgress', { step, totalSteps })}
           </span>
         </div>
         <Progress value={progress} className="h-2" />
         <CardTitle className="mt-4">
-          {step === 1 && 'Välj din position'}
-          {step === 2 && 'Klubb och nivå'}
-          {step === 3 && 'Partner och fysik'}
-          {step === 4 && 'Snabbhetstester'}
-          {step === 5 && 'Kraft och reaktion'}
-          {step === 6 && 'Styrkor och svagheter'}
-          {step === 7 && 'Skadehistorik och träning'}
+          {step === 1 && t('stepTitles.position')}
+          {step === 2 && t('stepTitles.clubAndLevel')}
+          {step === 3 && t('stepTitles.partnerAndPhysical')}
+          {step === 4 && t('stepTitles.speedTests')}
+          {step === 5 && t('stepTitles.powerAndReaction')}
+          {step === 6 && t('stepTitles.strengthsAndWeaknesses')}
+          {step === 7 && t('stepTitles.injuryHistory')}
         </CardTitle>
         <CardDescription>
-          {step === 1 && 'Vilken sida spelar du främst på?'}
-          {step === 2 && 'Information om din klubb och tävlingsnivå'}
-          {step === 3 && 'Din partner och fysiska attribut'}
-          {step === 4 && 'Dina senaste testresultat för snabbhet'}
-          {step === 5 && 'Dina senaste testresultat för kraft och reaktion'}
-          {step === 6 && 'Vad är dina styrkor och utvecklingsområden?'}
-          {step === 7 && 'Tidigare skador och träningsförutsättningar'}
+          {step === 1 && t('stepDescriptions.position')}
+          {step === 2 && t('stepDescriptions.clubAndLevel')}
+          {step === 3 && t('stepDescriptions.partnerAndPhysical')}
+          {step === 4 && t('stepDescriptions.speedTests')}
+          {step === 5 && t('stepDescriptions.powerAndReaction')}
+          {step === 6 && t('stepDescriptions.strengthsAndWeaknesses')}
+          {step === 7 && t('stepDescriptions.injuryHistory')}
         </CardDescription>
       </CardHeader>
 
@@ -231,8 +260,8 @@ export function PadelOnboarding({
               <div key={pos.value} className="flex items-center space-x-3">
                 <RadioGroupItem value={pos.value} id={pos.value} />
                 <Label htmlFor={pos.value} className="flex-1 cursor-pointer">
-                  <div className="font-medium">{pos.label}</div>
-                  <div className="text-sm text-muted-foreground">{pos.description}</div>
+                  <div className="font-medium">{t(pos.labelKey)}</div>
+                  <div className="text-sm text-muted-foreground">{t(pos.descriptionKey)}</div>
                 </Label>
               </div>
             ))}
@@ -243,17 +272,17 @@ export function PadelOnboarding({
         {step === 2 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="clubName">Klubbnamn</Label>
+              <Label htmlFor="clubName">{t('fields.clubName')}</Label>
               <Input
                 id="clubName"
                 value={localSettings.clubName}
                 onChange={(e) => updateLocalSettings({ clubName: e.target.value })}
-                placeholder="T.ex. Stockholm Padel Club"
+                placeholder={t('placeholders.clubName')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Nivå</Label>
+              <Label>{t('fields.level')}</Label>
               <RadioGroup
                 value={localSettings.leagueLevel}
                 onValueChange={(value) =>
@@ -264,14 +293,14 @@ export function PadelOnboarding({
                 {LEAGUE_LEVELS.map((level) => (
                   <div key={level.value} className="flex items-center space-x-3">
                     <RadioGroupItem value={level.value} id={`league-${level.value}`} />
-                    <Label htmlFor={`league-${level.value}`}>{level.label}</Label>
+                    <Label htmlFor={`league-${level.value}`}>{t(level.labelKey)}</Label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
 
             <div className="space-y-2">
-              <Label>Säsongsfas</Label>
+              <Label>{t('fields.seasonPhase')}</Label>
               <RadioGroup
                 value={localSettings.seasonPhase}
                 onValueChange={(value) =>
@@ -283,8 +312,8 @@ export function PadelOnboarding({
                   <div key={phase.value} className="flex items-center space-x-3">
                     <RadioGroupItem value={phase.value} id={`phase-${phase.value}`} />
                     <Label htmlFor={`phase-${phase.value}`} className="cursor-pointer">
-                      <div>{phase.label}</div>
-                      <div className="text-xs text-muted-foreground">{phase.description}</div>
+                      <div>{t(phase.labelKey)}</div>
+                      <div className="text-xs text-muted-foreground">{t(phase.descriptionKey)}</div>
                     </Label>
                   </div>
                 ))}
@@ -293,7 +322,7 @@ export function PadelOnboarding({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="matchesPerWeek">Matcher per vecka</Label>
+                <Label htmlFor="matchesPerWeek">{t('fields.matchesPerWeek')}</Label>
                 <Input
                   id="matchesPerWeek"
                   type="number"
@@ -306,7 +335,7 @@ export function PadelOnboarding({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="yearsPlaying">År som spelare</Label>
+                <Label htmlFor="yearsPlaying">{t('fields.yearsPlaying')}</Label>
                 <Input
                   id="yearsPlaying"
                   type="number"
@@ -325,22 +354,22 @@ export function PadelOnboarding({
         {/* Step 3: Partner and Physical */}
         {step === 3 && (
           <div className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-blue-500" />
-                <Label htmlFor="preferredPartner">Föredragen partner</Label>
-              </div>
-              <Input
-                id="preferredPartner"
-                value={localSettings.preferredPartner}
-                onChange={(e) => updateLocalSettings({ preferredPartner: e.target.value })}
-                placeholder="T.ex. Anna Svensson"
-              />
-              <p className="text-xs text-muted-foreground">Namn på din vanligaste dubbelpartner</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-500" />
+                  <Label htmlFor="preferredPartner">{t('fields.preferredPartner')}</Label>
+                </div>
+                <Input
+                  id="preferredPartner"
+                  value={localSettings.preferredPartner}
+                  onChange={(e) => updateLocalSettings({ preferredPartner: e.target.value })}
+                  placeholder={t('placeholders.preferredPartner')}
+                />
+              <p className="text-xs text-muted-foreground">{t('help.preferredPartner')}</p>
             </div>
 
             <div className="space-y-2">
-              <Label>Dominant hand</Label>
+              <Label>{t('fields.dominantHand')}</Label>
               <RadioGroup
                 value={localSettings.dominantHand}
                 onValueChange={(value) =>
@@ -350,18 +379,18 @@ export function PadelOnboarding({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="right" id="hand-right" />
-                  <Label htmlFor="hand-right">Höger</Label>
+                  <Label htmlFor="hand-right">{t('dominantHands.right')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="left" id="hand-left" />
-                  <Label htmlFor="hand-left">Vänster</Label>
+                  <Label htmlFor="hand-left">{t('dominantHands.left')}</Label>
                 </div>
               </RadioGroup>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="height">Längd (cm)</Label>
+                <Label htmlFor="height">{t('fields.height')}</Label>
                 <Input
                   id="height"
                   type="number"
@@ -373,11 +402,11 @@ export function PadelOnboarding({
                       height: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 175"
+                  placeholder={t('placeholders.height')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="smashSpeed">Smash-hastighet (km/h)</Label>
+                <Label htmlFor="smashSpeed">{t('fields.smashSpeed')}</Label>
                 <Input
                   id="smashSpeed"
                   type="number"
@@ -389,7 +418,7 @@ export function PadelOnboarding({
                       smashSpeed: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 120"
+                  placeholder={t('placeholders.smashSpeed')}
                 />
               </div>
             </div>
@@ -401,12 +430,12 @@ export function PadelOnboarding({
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="h-5 w-5 text-blue-500" />
-              <span className="font-medium">Snabbhetstester</span>
+              <span className="font-medium">{t('sections.speedTests')}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="sprint5m">5m sprint (sek)</Label>
+                <Label htmlFor="sprint5m">{t('fields.sprint5m')}</Label>
                 <Input
                   id="sprint5m"
                   type="number"
@@ -417,11 +446,11 @@ export function PadelOnboarding({
                       sprint5m: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 1.05"
+                  placeholder={t('placeholders.sprint5m')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sprint10m">10m sprint (sek)</Label>
+                <Label htmlFor="sprint10m">{t('fields.sprint10m')}</Label>
                 <Input
                   id="sprint10m"
                   type="number"
@@ -432,14 +461,14 @@ export function PadelOnboarding({
                       sprint10m: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 1.75"
+                  placeholder={t('placeholders.sprint10m')}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="agilitySpider">Spider drill (sek)</Label>
+                <Label htmlFor="agilitySpider">{t('fields.agilitySpider')}</Label>
                 <Input
                   id="agilitySpider"
                   type="number"
@@ -450,11 +479,11 @@ export function PadelOnboarding({
                       agilitySpider: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 15.5"
+                  placeholder={t('placeholders.agilitySpider')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="agility505">5-10-5 shuttle (sek)</Label>
+                <Label htmlFor="agility505">{t('fields.agility505')}</Label>
                 <Input
                   id="agility505"
                   type="number"
@@ -465,13 +494,13 @@ export function PadelOnboarding({
                       agility505: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 2.30"
+                  placeholder={t('placeholders.agility505')}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lateralShuffle">Lateral shuffle 10m (sek)</Label>
+              <Label htmlFor="lateralShuffle">{t('fields.lateralShuffle')}</Label>
               <Input
                 id="lateralShuffle"
                 type="number"
@@ -482,9 +511,9 @@ export function PadelOnboarding({
                     lateralShuffle: e.target.value ? parseFloat(e.target.value) : null,
                   })
                 }
-                placeholder="T.ex. 4.0"
+                placeholder={t('placeholders.lateralShuffle')}
               />
-              <p className="text-xs text-muted-foreground">Sidledsförflyttning, padelspecifikt</p>
+              <p className="text-xs text-muted-foreground">{t('help.lateralShuffle')}</p>
             </div>
           </div>
         )}
@@ -494,12 +523,12 @@ export function PadelOnboarding({
           <div className="space-y-6">
             <div className="flex items-center gap-2 mb-4">
               <Dumbbell className="h-5 w-5 text-blue-500" />
-              <span className="font-medium">Kraft och reaktion</span>
+              <span className="font-medium">{t('sections.powerAndReaction')}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="verticalJump">Vertikalhopp (cm)</Label>
+                <Label htmlFor="verticalJump">{t('fields.verticalJump')}</Label>
                 <Input
                   id="verticalJump"
                   type="number"
@@ -509,11 +538,11 @@ export function PadelOnboarding({
                       verticalJump: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 45"
+                  placeholder={t('placeholders.verticalJump')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="medicineBallThrow">Medicinbollkast (m)</Label>
+                <Label htmlFor="medicineBallThrow">{t('fields.medicineBallThrow')}</Label>
                 <Input
                   id="medicineBallThrow"
                   type="number"
@@ -524,15 +553,15 @@ export function PadelOnboarding({
                       medicineBallThrow: e.target.value ? parseFloat(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 10.5"
+                  placeholder={t('placeholders.medicineBallThrow')}
                 />
-                <p className="text-xs text-muted-foreground">3kg boll, rotationskast</p>
+                <p className="text-xs text-muted-foreground">{t('help.medicineBallThrow')}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="gripStrength">Greppstyrka (kg)</Label>
+                <Label htmlFor="gripStrength">{t('fields.gripStrength')}</Label>
                 <Input
                   id="gripStrength"
                   type="number"
@@ -542,11 +571,11 @@ export function PadelOnboarding({
                       gripStrength: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 50"
+                  placeholder={t('placeholders.gripStrength')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reactionTime">Reaktionstid (ms)</Label>
+                <Label htmlFor="reactionTime">{t('fields.reactionTime')}</Label>
                 <Input
                   id="reactionTime"
                   type="number"
@@ -556,13 +585,13 @@ export function PadelOnboarding({
                       reactionTime: e.target.value ? parseInt(e.target.value) : null,
                     })
                   }
-                  placeholder="T.ex. 200"
+                  placeholder={t('placeholders.reactionTime')}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="yoyoIR1Level">Yo-Yo IR1 nivå</Label>
+              <Label htmlFor="yoyoIR1Level">{t('fields.yoyoIR1Level')}</Label>
               <Input
                 id="yoyoIR1Level"
                 type="number"
@@ -573,7 +602,7 @@ export function PadelOnboarding({
                     yoyoIR1Level: e.target.value ? parseFloat(e.target.value) : null,
                   })
                 }
-                placeholder="T.ex. 17.0"
+                placeholder={t('placeholders.yoyoIR1Level')}
               />
             </div>
           </div>
@@ -585,7 +614,7 @@ export function PadelOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Zap className="h-5 w-5 text-blue-500" />
-                <span className="font-medium">Dina styrkor</span>
+                <span className="font-medium">{t('sections.strengths')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {STRENGTHS.map((strength) => (
@@ -596,7 +625,7 @@ export function PadelOnboarding({
                       onCheckedChange={() => toggleArrayItem('strengthFocus', strength.id)}
                     />
                     <Label htmlFor={`strength-${strength.id}`} className="text-sm cursor-pointer">
-                      {strength.label}
+                      {t(strength.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -606,7 +635,7 @@ export function PadelOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Target className="h-5 w-5 text-orange-500" />
-                <span className="font-medium">Utvecklingsområden</span>
+                <span className="font-medium">{t('sections.weaknesses')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {STRENGTHS.map((strength) => (
@@ -617,7 +646,7 @@ export function PadelOnboarding({
                       onCheckedChange={() => toggleArrayItem('weaknesses', strength.id)}
                     />
                     <Label htmlFor={`weakness-${strength.id}`} className="text-sm cursor-pointer">
-                      {strength.label}
+                      {t(strength.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -632,7 +661,7 @@ export function PadelOnboarding({
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Heart className="h-5 w-5 text-red-500" />
-                <span className="font-medium">Tidigare skador</span>
+                <span className="font-medium">{t('sections.injuries')}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {INJURY_TYPES.map((injury) => (
@@ -643,7 +672,7 @@ export function PadelOnboarding({
                       onCheckedChange={() => toggleArrayItem('injuryHistory', injury.id)}
                     />
                     <Label htmlFor={`injury-${injury.id}`} className="text-sm cursor-pointer">
-                      {injury.label}
+                      {t(injury.labelKey)}
                     </Label>
                   </div>
                 ))}
@@ -653,11 +682,11 @@ export function PadelOnboarding({
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-blue-500" />
-                <span className="font-medium">Träningsförutsättningar</span>
+                <span className="font-medium">{t('sections.trainingConditions')}</span>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weeklyTraining">Träningspass per vecka (utöver matcher)</Label>
+                <Label htmlFor="weeklyTraining">{t('fields.weeklyTraining')}</Label>
                 <Input
                   id="weeklyTraining"
                   type="number"
@@ -679,7 +708,7 @@ export function PadelOnboarding({
                   }
                 />
                 <Label htmlFor="gymAccess" className="cursor-pointer">
-                  Jag har tillgång till gym
+                  {t('fields.gymAccess')}
                 </Label>
               </div>
             </div>
@@ -694,10 +723,10 @@ export function PadelOnboarding({
             disabled={step === 1}
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
-            Tillbaka
+            {t('actions.back')}
           </Button>
           <Button onClick={handleNext}>
-            Nästa
+            {t('actions.next')}
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>

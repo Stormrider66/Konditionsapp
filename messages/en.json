@@ -4775,6 +4775,153 @@
         "neutral": "Neutral"
       }
     },
+    "onboarding": {
+      "padel": {
+        "stepProgress": "Step {step} of {totalSteps}",
+        "stepTitles": {
+          "position": "Choose your side",
+          "clubAndLevel": "Club and level",
+          "partnerAndPhysical": "Partner and physical profile",
+          "speedTests": "Speed tests",
+          "powerAndReaction": "Power and reaction",
+          "strengthsAndWeaknesses": "Strengths and weaknesses",
+          "injuryHistory": "Injury history and training"
+        },
+        "stepDescriptions": {
+          "position": "Which side do you play on most?",
+          "clubAndLevel": "Information about your club and competition level",
+          "partnerAndPhysical": "Your partner and physical attributes",
+          "speedTests": "Your latest speed test results",
+          "powerAndReaction": "Your latest strength and reaction tests",
+          "strengthsAndWeaknesses": "What are your strengths and development areas?",
+          "injuryHistory": "Previous injuries and training conditions"
+        },
+        "fields": {
+          "clubName": "Club name",
+          "level": "Level",
+          "seasonPhase": "Season phase",
+          "matchesPerWeek": "Matches per week",
+          "yearsPlaying": "Years playing",
+          "preferredPartner": "Preferred partner",
+          "dominantHand": "Dominant hand",
+          "height": "Height (cm)",
+          "smashSpeed": "Smash speed (km/h)",
+          "sprint5m": "5m sprint (sec)",
+          "sprint10m": "10m sprint (sec)",
+          "agilitySpider": "Spider drill (sec)",
+          "agility505": "5-10-5 shuttle (sec)",
+          "lateralShuffle": "Lateral shuffle 10m (sec)",
+          "verticalJump": "Vertical jump (cm)",
+          "medicineBallThrow": "Medicine ball throw (m)",
+          "gripStrength": "Grip strength (kg)",
+          "reactionTime": "Reaction time (ms)",
+          "yoyoIR1Level": "Yo-Yo IR1 level",
+          "weeklyTraining": "Training sessions per week (outside matches)",
+          "gymAccess": "I have access to a gym"
+        },
+        "dominantHands": {
+          "right": "Right",
+          "left": "Left"
+        },
+        "sections": {
+          "speedTests": "Speed tests",
+          "powerAndReaction": "Power and reaction",
+          "strengths": "Your strengths",
+          "weaknesses": "Development areas",
+          "injuries": "Previous injuries",
+          "trainingConditions": "Training conditions"
+        },
+        "placeholders": {
+          "clubName": "e.g. Stockholm Padel Club",
+          "preferredPartner": "e.g. Anna Svensson",
+          "height": "e.g. 175",
+          "smashSpeed": "e.g. 120",
+          "sprint5m": "e.g. 1.05",
+          "sprint10m": "e.g. 1.75",
+          "agilitySpider": "e.g. 15.5",
+          "agility505": "e.g. 2.30",
+          "lateralShuffle": "e.g. 4.0",
+          "verticalJump": "e.g. 45",
+          "medicineBallThrow": "e.g. 10.5",
+          "gripStrength": "e.g. 50",
+          "reactionTime": "e.g. 200",
+          "yoyoIR1Level": "e.g. 17.0"
+        },
+        "help": {
+          "preferredPartner": "Name your most common doubles partner",
+          "lateralShuffle": "Lateral movement, padel-specific",
+          "medicineBallThrow": "3kg ball, rotational throw"
+        },
+        "positions": {
+          "rightSide": {
+            "label": "Right side (Derechos)",
+            "description": "Offensive player with a focus on smashing"
+          },
+          "leftSide": {
+            "label": "Left side (Revés)",
+            "description": "Strategic player with a strong backhand"
+          },
+          "allCourt": {
+            "label": "All-court player",
+            "description": "Flexible, can play both sides"
+          }
+        },
+        "leagueLevels": {
+          "recreational": "Recreational",
+          "club": "Club player",
+          "division4": "Division 4",
+          "division3": "Division 3",
+          "division2": "Division 2",
+          "division1": "Division 1",
+          "padelTour": "Padel Tour",
+          "wpt": "World Padel Tour"
+        },
+        "seasonPhases": {
+          "offSeason": {
+            "label": "Off-season",
+            "description": "Physical development and recovery"
+          },
+          "preSeason": {
+            "label": "Pre-season",
+            "description": "Match preparation"
+          },
+          "inSeason": {
+            "label": "In season",
+            "description": "Matches and maintenance"
+          },
+          "tournament": {
+            "label": "Tournament",
+            "description": "Peak performance"
+          }
+        },
+        "strengths": {
+          "smash": "Smash",
+          "bandeja": "Bandeja",
+          "vibora": "Víbora",
+          "lob": "Lob",
+          "forehand": "Forehand",
+          "backhand": "Backhand",
+          "volley": "Volley",
+          "movement": "Movement/Footwork",
+          "wallPlay": "Wall play",
+          "mental": "Mental strength"
+        },
+        "injuries": {
+          "shoulder": "Shoulder injury",
+          "elbow": "Tennis elbow",
+          "wrist": "Wrist issues",
+          "back": "Back problems",
+          "knee": "Knee injury",
+          "ankle": "Ankle injury",
+          "hip": "Hip issues",
+          "calf": "Calf problems"
+        },
+        "actions": {
+          "back": "Back",
+          "next": "Next"
+        }
+      }
+    },
     "footballOnboarding": {
       "sections": {
         "positionAndTeam": {
