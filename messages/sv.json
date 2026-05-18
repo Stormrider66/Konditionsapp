@@ -4543,6 +4543,16 @@
         "copyLinkFailed": "Kunde inte kopiera länken"
       }
     },
+    "businessMembersManager": {
+      "labels": {
+        "addExisting": "Lägg till befintlig",
+        "inviteNew": "Bjud in ny",
+        "sendInvite": "Skicka inbjudan"
+      },
+      "messages": {
+        "inviteSent": "Inbjudan skickad till {email}"
+      }
+    },
     "athleteLogsPage": {
       "actions": {
         "backToClient": "Tillbaka till klient"

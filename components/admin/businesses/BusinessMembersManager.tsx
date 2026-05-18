@@ -46,6 +46,7 @@ import {
   Check,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslations } from '@/i18n/client';
 
 type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH';
 
@@ -87,6 +88,7 @@ export function BusinessMembersManager({
   members,
   onUpdate,
 }: BusinessMembersManagerProps) {
+  const t = useTranslations('components.businessMembersManager')
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addMode, setAddMode] = useState<'existing' | 'invite'>('existing');
   const [addLoading, setAddLoading] = useState(false);
@@ -159,7 +161,7 @@ export function BusinessMembersManager({
         throw new Error(result.error || 'Failed to invite member');
       }
 
-      setAddSuccess(`Inbjudan skickad till ${inviteMember.email}`);
+      setAddSuccess(t('messages.inviteSent', { email: inviteMember.email }));
       setInviteMember({ name: '', email: '', role: 'MEMBER' });
       onUpdate();
     } catch (err) {
@@ -254,7 +256,7 @@ export function BusinessMembersManager({
                   onClick={() => { setAddMode('existing'); setAddError(null); setAddSuccess(null); }}
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Lägg till befintlig
+                  {t('labels.addExisting')}
                 </Button>
                 <Button
                   variant={addMode === 'invite' ? 'default' : 'outline'}
@@ -262,7 +264,7 @@ export function BusinessMembersManager({
                   onClick={() => { setAddMode('invite'); setAddError(null); setAddSuccess(null); }}
                 >
                   <Mail className="h-4 w-4 mr-2" />
-                  Bjud in ny
+                  {t('labels.inviteNew')}
                 </Button>
               </div>
               <div className="space-y-4 py-4">
@@ -373,7 +375,7 @@ export function BusinessMembersManager({
                     disabled={addLoading || !inviteMember.email || !inviteMember.name}
                   >
                     {addLoading && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                    Skicka inbjudan
+                    {t('labels.sendInvite')}
                   </Button>
                 )}
               </DialogFooter>

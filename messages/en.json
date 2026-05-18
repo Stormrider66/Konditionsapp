@@ -4543,6 +4543,16 @@
         "copyLinkFailed": "Could not copy the link"
       }
     },
+    "businessMembersManager": {
+      "labels": {
+        "addExisting": "Add existing",
+        "inviteNew": "Invite new",
+        "sendInvite": "Send invitation"
+      },
+      "messages": {
+        "inviteSent": "Invitation sent to {email}"
+      }
+    },
     "athleteLogsPage": {
       "actions": {
         "backToClient": "Back to athlete"
