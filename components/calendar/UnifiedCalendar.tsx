@@ -209,6 +209,11 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     setSelectedDate(date)
     setSelectedItem(null)
 
+    if (isMobile) {
+      setIsMobileDaySheetOpen(true)
+      return
+    }
+
     // In coach view, clicking the day canvas should always offer creation
     // actions so coaches can add a second workout to an occupied day.
     // Item chips stop propagation separately and still open/select the item.
@@ -217,16 +222,15 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
       return
     }
 
-    // Open mobile sheet on mobile devices
-    if (isMobile) {
-      setIsMobileDaySheetOpen(true)
-    }
   }, [isMobile, isCoachView, dayActionMenu])
 
   const handleItemClick = useCallback((item: UnifiedCalendarItem) => {
     setSelectedItem(item)
     setSelectedDate(new Date(item.date))
-  }, [])
+    if (isMobile) {
+      setIsMobileDaySheetOpen(true)
+    }
+  }, [isMobile])
 
   // Handle adding calendar events
   const handleAddEvent = useCallback((date?: Date) => {
@@ -927,7 +931,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           onItemClick={handleItemClick}
           onAddEvent={() => {
             setIsMobileDaySheetOpen(false)
-            handleAddEvent(selectedDate || undefined)
+            handleSidebarAddEvent()
           }}
           onEditEvent={(item) => {
             setIsMobileDaySheetOpen(false)
@@ -938,6 +942,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           onViewWorkoutDetails={handleViewWorkoutDetails}
           isCoachView={isCoachView}
           variant="glass"
+          clientId={clientId}
         />
 
         <MobileMoveWorkoutSheet
@@ -1280,7 +1285,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         onItemClick={handleItemClick}
         onAddEvent={() => {
           setIsMobileDaySheetOpen(false)
-          handleAddEvent(selectedDate || undefined)
+          handleSidebarAddEvent()
         }}
         onEditEvent={(item) => {
           setIsMobileDaySheetOpen(false)
@@ -1290,6 +1295,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         onMoveWorkout={handleMobileMove}
         onViewWorkoutDetails={handleViewWorkoutDetails}
         isCoachView={isCoachView}
+        clientId={clientId}
       />
 
       {/* Mobile Move Workout Sheet */}

@@ -10,52 +10,26 @@
 import { useRef, useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { toast } from 'sonner'
 import {
   X,
   Plus,
   Clock,
   MapPin,
   Activity,
-  GripHorizontal,
-  ChevronDown,
-  Edit,
-  Trash2,
   Move,
-  Mountain,
-  Thermometer,
 } from 'lucide-react'
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription
-} from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import {
   UnifiedCalendarItem,
-  EVENT_TYPE_CONFIG,
-  IMPACT_CONFIG,
   WORKOUT_TYPE_COLORS,
 } from './types'
 import { PostEventMonitor } from './PostEventMonitor'
 import { cn } from '@/lib/utils'
+import { CalendarEventItem } from './day-sidebar/item-cards'
 
 interface MobileDaySheetProps {
+  clientId?: string
   date: Date | null
   items: UnifiedCalendarItem[]
   selectedItem: UnifiedCalendarItem | null
@@ -72,6 +46,7 @@ interface MobileDaySheetProps {
 }
 
 export function MobileDaySheet({
+  clientId,
   date,
   items,
   selectedItem,
@@ -91,7 +66,6 @@ export function MobileDaySheet({
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const startY = useRef(0)
-  const [isDeleting, setIsDeleting] = useState(false)
 
   // Handle backdrop touch to close
   const handleBackdropClick = useCallback(
@@ -140,35 +114,6 @@ export function MobileDaySheet({
 
     setDragY(0)
   }, [isDragging, dragY, onClose])
-
-  // Handle delete
-  const handleDelete = async (item: UnifiedCalendarItem) => {
-    if (item.type !== 'CALENDAR_EVENT') return
-
-    setIsDeleting(true)
-    try {
-      const response = await fetch(`/api/calendar-events/${item.id}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        toast.success('Händelse borttagen')
-        onEventDeleted()
-        return
-      }
-      const data = await response.json().catch(() => ({}))
-      toast.error('Kunde inte ta bort', {
-        description: data.error || `HTTP ${response.status}`,
-      })
-    } catch (error) {
-      console.error('Delete error:', error)
-      toast.error('Kunde inte ta bort', {
-        description: 'Nätverksfel — försök igen.',
-      })
-    } finally {
-      setIsDeleting(false)
-    }
-  }
 
   // Close on escape key
   useEffect(() => {
@@ -367,14 +312,15 @@ export function MobileDaySheet({
               {events.length > 0 && (
                 <Section title="Händelser" count={events.length} isGlass={isGlass}>
                   {events.map((event) => (
-                    <EventCard
+                    <CalendarEventItem
                       key={event.id}
+                      clientId={clientId}
                       event={event}
                       isSelected={selectedItem?.id === event.id}
                       onClick={() => onItemClick(event)}
-                      onEdit={isCoachView ? () => onEditEvent(event) : undefined}
-                      onDelete={() => handleDelete(event)}
-                      isDeleting={isDeleting}
+                      onEdit={() => onEditEvent(event)}
+                      onDeleted={onEventDeleted}
+                      isCoachView={isCoachView}
                       isGlass={isGlass}
                     />
                   ))}
@@ -609,146 +555,6 @@ function RaceCard({ race, isSelected, onClick, isGlass = false }: RaceCardProps)
         <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3" />
           <span>{race.metadata.location}</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Event card
-interface EventCardProps {
-  event: UnifiedCalendarItem
-  isSelected: boolean
-  onClick: () => void
-  onEdit?: () => void
-  onDelete: () => void
-  isDeleting: boolean
-  isGlass?: boolean
-}
-
-function EventCard({
-  event,
-  isSelected,
-  onClick,
-  onEdit,
-  onDelete,
-  isDeleting,
-  isGlass = false,
-}: EventCardProps) {
-  const eventType = event.metadata.eventType as string
-  const config = EVENT_TYPE_CONFIG[eventType as keyof typeof EVENT_TYPE_CONFIG] || {
-    label: 'Händelse',
-    labelSv: 'Händelse',
-    color: 'text-gray-700',
-    bgColor: 'bg-gray-100',
-    icon: '📅',
-  }
-  const impact = event.metadata.trainingImpact as string
-  const impactConfig = IMPACT_CONFIG[impact as keyof typeof IMPACT_CONFIG]
-
-  return (
-    <div
-      className={cn(
-        'p-4 rounded-2xl border transition-all duration-300',
-        isGlass
-          ? "bg-white/5 border-white/10"
-          : config.bgColor,
-        isSelected && (isGlass ? 'ring-1 ring-purple-500/50 bg-purple-500/5' : 'ring-2 ring-primary')
-      )}
-      onClick={onClick}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-base shrink-0">{config.icon}</span>
-            <h4 className="font-medium text-sm truncate">{event.title}</h4>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5 ml-6">
-            {config.labelSv}
-          </p>
-        </div>
-        {impactConfig && (
-          <Badge variant="outline" className={cn('text-xs shrink-0 ml-2', impactConfig.color)}>
-            {impactConfig.label}
-          </Badge>
-        )}
-      </div>
-
-      {/* Altitude/Illness info */}
-      {typeof event.metadata.altitude === 'number' && event.metadata.altitude > 0 && (
-        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground ml-6">
-          <Mountain className="h-3 w-3" />
-          <span>{event.metadata.altitude}m höjd</span>
-        </div>
-      )}
-
-      {typeof event.metadata.illnessType === 'string' && event.metadata.illnessType && (
-        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground ml-6">
-          <Thermometer className="h-3 w-3" />
-          <span>{event.metadata.illnessType}</span>
-        </div>
-      )}
-
-      {event.description && (
-        <p className="text-xs text-muted-foreground mt-2 ml-6 line-clamp-2">
-          {event.description}
-        </p>
-      )}
-
-      {/* Actions */}
-      {(onEdit || !event.metadata.isReadOnly) && (
-        <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t">
-          {onEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8"
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit()
-              }}
-            >
-              <Edit className="h-3 w-3 mr-1" />
-              Redigera
-            </Button>
-          )}
-          {!event.metadata.isReadOnly && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-destructive hover:text-destructive"
-                  onClick={(e) => e.stopPropagation()}
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Ta bort
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Ta bort händelse?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Detta kommer att permanent ta bort &quot;{event.title}&quot;.
-                    Denna åtgärd kan inte ångras.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDelete()
-                    }}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Ta bort
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
         </div>
       )}
     </div>

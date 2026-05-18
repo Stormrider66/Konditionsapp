@@ -303,7 +303,7 @@ export default async function AthleteLogsPage({
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {formatWorkoutType(log.workout.type)}
+                          {formatWorkoutType(t, log.workout.type)}
                         </Badge>
                       </TableCell>
                       <TableCell>
