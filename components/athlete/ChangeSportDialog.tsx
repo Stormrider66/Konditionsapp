@@ -198,7 +198,6 @@ export function ChangeSportDialog({
                 <SportSelector
                   value={selectedPrimarySport}
                   onChange={setSelectedPrimarySport}
-                  locale="sv"
                   showFeatures={false}
                 />
               </TabsContent>
@@ -240,7 +239,6 @@ export function ChangeSportDialog({
                 <MultiSportSelector
                   value={filteredSecondarySports}
                   onChange={handleSecondaryChange}
-                  locale="sv"
                   maxSelections={2}
                   excludeSports={[selectedPrimarySport]}
                 />

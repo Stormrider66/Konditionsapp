@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { SportType } from '@prisma/client'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface SportOption {
   value: SportType
@@ -195,7 +195,6 @@ const SPORT_OPTIONS: SportOption[] = [
 interface SportSelectorProps {
   value?: SportType
   onChange: (sport: SportType) => void
-  locale?: 'en' | 'sv'
   showFeatures?: boolean
   className?: string
 }
@@ -203,13 +202,13 @@ interface SportSelectorProps {
 export function SportSelector({
   value,
   onChange,
-  locale = 'sv',
   showFeatures = true,
   className,
 }: SportSelectorProps) {
   const [selected, setSelected] = useState<SportType | undefined>(value)
   const t = useTranslations('components.sportSelector')
-  const localeKey = locale === 'sv' ? 'sv' : 'en'
+  const locale = useLocale()
+  const localeKey = locale === 'en' ? 'en' : 'sv'
 
   const handleSelect = (sport: SportType) => {
     setSelected(sport)
@@ -264,7 +263,6 @@ export function SportSelector({
 interface MultiSportSelectorProps {
   value?: SportType[]
   onChange: (sports: SportType[]) => void
-  locale?: 'en' | 'sv'
   maxSelections?: number
   excludeSports?: SportType[]
   className?: string
@@ -273,14 +271,14 @@ interface MultiSportSelectorProps {
 export function MultiSportSelector({
   value = [],
   onChange,
-  locale = 'sv',
   maxSelections = 3,
   excludeSports = [],
   className,
 }: MultiSportSelectorProps) {
   const [selected, setSelected] = useState<SportType[]>(value)
   const t = useTranslations('components.sportSelector')
-  const localeKey = locale === 'sv' ? 'sv' : 'en'
+  const locale = useLocale()
+  const localeKey = locale === 'en' ? 'en' : 'sv'
 
   const handleToggle = (sport: SportType) => {
     let newSelection: SportType[]

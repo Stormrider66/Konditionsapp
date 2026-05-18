@@ -807,7 +807,6 @@ export function OnboardingWizard({
                     updateData({ padelSettings: DEFAULT_PADEL_SETTINGS })
                   }
                 }}
-                locale={locale}
               />
               {data.primarySport && (
                 <div className="pt-4 border-t">
@@ -819,7 +818,6 @@ export function OnboardingWizard({
                     onChange={(sports) => updateData({
                       secondarySports: sports.filter(s => s !== data.primarySport)
                     })}
-                    locale={locale}
                     maxSelections={2}
                   />
                 </div>
