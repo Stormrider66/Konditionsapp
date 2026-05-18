@@ -500,6 +500,154 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     [data, items, mutate, toast]
   )
 
+  const updateMovedCalendarItem = useCallback((
+    itemId: string,
+    targetDate: Date,
+    result: { event?: { date?: string; endDate?: string; status?: string } }
+  ) => {
+    mutate((currentData: typeof data) => {
+      if (!currentData || !Array.isArray(currentData.items)) return currentData
+
+      return {
+        ...currentData,
+        items: sortCalendarItems(
+          currentData.items.map((item: UnifiedCalendarItem) =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  date: result.event?.date || targetDate.toISOString(),
+                  endDate: result.event?.endDate || targetDate.toISOString(),
+                  status: result.event?.status || item.status,
+                }
+              : item
+          )
+        ),
+      }
+    }, { revalidate: false })
+  }, [data, mutate])
+
+  const handleMoveScheduledWorkout = useCallback(
+    async (item: UnifiedCalendarItem, targetDate: Date) => {
+      setIsRescheduling(true)
+
+      try {
+        const response = await fetch('/api/calendar/scheduled-workouts/drag', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            calendarEventId: item.id,
+            targetDate: targetDate.toISOString(),
+            action: 'move',
+          }),
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          toast({
+            title: 'Fel',
+            description: result.error || 'Kunde inte flytta passet',
+            variant: 'destructive',
+          })
+          return
+        }
+
+        updateMovedCalendarItem(item.id, targetDate, result)
+
+        toast({
+          title: 'Pass flyttat',
+          description: result.message,
+        })
+      } catch (err) {
+        console.error('Error moving scheduled workout:', err)
+        toast({
+          title: 'Fel',
+          description: 'Kunde inte flytta passet',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsRescheduling(false)
+      }
+    },
+    [toast, updateMovedCalendarItem]
+  )
+
+  const handleCopyScheduledWorkout = useCallback(
+    async (item: UnifiedCalendarItem, targetDate: Date) => {
+      setIsCopyingWorkout(true)
+
+      try {
+        const response = await fetch('/api/calendar/scheduled-workouts/drag', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            calendarEventId: item.id,
+            targetDate: targetDate.toISOString(),
+            action: 'copy',
+          }),
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          toast({
+            title: 'Fel',
+            description: result.error || 'Kunde inte kopiera passet',
+            variant: 'destructive',
+          })
+          return
+        }
+
+        const copiedItem: UnifiedCalendarItem = {
+          ...item,
+          id: result.event.id,
+          title: result.event.title || item.title,
+          date: result.event.date || targetDate.toISOString(),
+          endDate: result.event.endDate || targetDate.toISOString(),
+          status: result.event.status || 'SCHEDULED',
+          metadata: {
+            ...item.metadata,
+            scheduledWorkoutSource: {
+              ...(item.metadata.scheduledWorkoutSource as Record<string, unknown> | null | undefined),
+              ...result.scheduledWorkoutSource,
+            },
+          },
+        }
+
+        mutate((currentData: typeof data) => {
+          if (!currentData || !Array.isArray(currentData.items)) return currentData
+
+          return {
+            ...currentData,
+            items: sortCalendarItems([...currentData.items, copiedItem]),
+            counts: currentData.counts
+              ? {
+                  ...currentData.counts,
+                  total: (currentData.counts.total || 0) + 1,
+                  calendarEvents: (currentData.counts.calendarEvents || 0) + 1,
+                }
+              : currentData.counts,
+          }
+        }, { revalidate: false })
+
+        toast({
+          title: 'Pass kopierat',
+          description: result.message,
+        })
+      } catch (err) {
+        console.error('Error copying scheduled workout:', err)
+        toast({
+          title: 'Fel',
+          description: 'Kunde inte kopiera passet',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsCopyingWorkout(false)
+      }
+    },
+    [data, mutate, toast]
+  )
+
   // Execute reschedule
   const executeReschedule = useCallback(
     async (reason?: string, skipConflictCheck = false) => {
@@ -736,6 +884,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                   selectedDate={selectedDate}
                   onReschedule={handleReschedule}
                   onCopyWorkout={handleCopyWorkout}
+                  onMoveScheduledWorkout={handleMoveScheduledWorkout}
+                  onCopyScheduledWorkout={handleCopyScheduledWorkout}
                   isRescheduling={isCheckingConflicts || isRescheduling}
                   isCopying={isCopyingWorkout}
                   isGlass={true}
@@ -1090,6 +1240,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 selectedDate={selectedDate}
                 onReschedule={handleReschedule}
                 onCopyWorkout={handleCopyWorkout}
+                onMoveScheduledWorkout={handleMoveScheduledWorkout}
+                onCopyScheduledWorkout={handleCopyScheduledWorkout}
                 isRescheduling={isCheckingConflicts || isRescheduling}
                 isCopying={isCopyingWorkout}
               />

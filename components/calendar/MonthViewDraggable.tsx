@@ -46,6 +46,8 @@ interface MonthViewDraggableProps {
   selectedDate: Date | null
   onReschedule: (workoutId: string, newDate: Date, originalDate: Date) => void
   onCopyWorkout?: (workoutId: string, newDate: Date, originalDate: Date) => void
+  onMoveScheduledWorkout?: (item: UnifiedCalendarItem, newDate: Date, originalDate: Date) => void
+  onCopyScheduledWorkout?: (item: UnifiedCalendarItem, newDate: Date, originalDate: Date) => void
   isRescheduling?: boolean
   isCopying?: boolean
   isGlass?: boolean
@@ -61,6 +63,8 @@ export function MonthViewDraggable({
   selectedDate,
   onReschedule,
   onCopyWorkout,
+  onMoveScheduledWorkout,
+  onCopyScheduledWorkout,
   isRescheduling = false,
   isCopying = false,
   isGlass = false,
@@ -100,7 +104,7 @@ export function MonthViewDraggable({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Start dragging after 8px movement
+        distance: 3, // Trackpad-friendly: start dragging after a tiny movement
       },
     }),
     useSensor(KeyboardSensor)
@@ -205,8 +209,7 @@ export function MonthViewDraggable({
 
       if (!item || !targetDateKey) return
 
-      // Only workouts can be rescheduled
-      if (item.type !== 'WORKOUT') return
+      if (!isMovableCalendarItem(item)) return
 
       const originalDate = new Date(item.date)
       const newDate = new Date(targetDateKey)
@@ -220,13 +223,27 @@ export function MonthViewDraggable({
           : 'move'
 
       if (dragAction === 'copy') {
-        onCopyWorkout?.(item.id, newDate, originalDate)
+        if (item.type === 'WORKOUT') {
+          onCopyWorkout?.(item.id, newDate, originalDate)
+        } else {
+          onCopyScheduledWorkout?.(item, newDate, originalDate)
+        }
         return
       }
 
-      onReschedule(item.id, newDate, originalDate)
+      if (item.type === 'WORKOUT') {
+        onReschedule(item.id, newDate, originalDate)
+      } else {
+        onMoveScheduledWorkout?.(item, newDate, originalDate)
+      }
     },
-    [activeDragAction, onCopyWorkout, onReschedule]
+    [
+      activeDragAction,
+      onCopyScheduledWorkout,
+      onCopyWorkout,
+      onMoveScheduledWorkout,
+      onReschedule,
+    ]
   )
 
   // Weekday headers
@@ -338,6 +355,19 @@ export function MonthViewDraggable({
 
 function hasShiftKey(event: Event | null | undefined): boolean {
   return Boolean(event && 'shiftKey' in event && (event as KeyboardEvent).shiftKey)
+}
+
+function isScheduledWorkoutEvent(item: UnifiedCalendarItem): boolean {
+  return (
+    item.type === 'CALENDAR_EVENT' &&
+    item.metadata.eventType === 'SCHEDULED_WORKOUT' &&
+    item.metadata.isReadOnly !== true &&
+    !isCompletedCalendarItem(item)
+  )
+}
+
+function isMovableCalendarItem(item: UnifiedCalendarItem): boolean {
+  return item.type === 'WORKOUT' || isScheduledWorkoutEvent(item)
 }
 
 interface DroppableDayCellProps {
@@ -529,8 +559,7 @@ interface DraggableItemProps {
 }
 
 function DraggableItem({ item, onItemClick }: DraggableItemProps) {
-  // Only workouts are draggable
-  const isDraggable = item.type === 'WORKOUT'
+  const isDraggable = isMovableCalendarItem(item)
   const isCompleted = isCompletedCalendarItem(item)
   const preview = getMonthPreview(item)
 
@@ -559,9 +588,15 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
           'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200',
         isCompleted ? 'border-emerald-400/40' : 'border-transparent',
         isDragging && 'opacity-30',
-        isDraggable && 'cursor-grab active:cursor-grabbing'
+        isDraggable &&
+          'cursor-grab select-none touch-none shadow-sm ring-1 ring-transparent transition-all duration-150 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:ring-blue-200 active:translate-y-0 active:scale-[0.98] active:cursor-grabbing active:border-blue-500 active:bg-blue-50 active:shadow-lg active:ring-2 active:ring-blue-400 dark:hover:border-blue-500 dark:hover:ring-blue-500/40 dark:active:bg-blue-950/50'
       )}
       style={isDraggable ? { touchAction: 'none' } : undefined}
+      title={
+        isDraggable
+          ? 'Dra för att flytta. Håll Shift medan du drar för att kopiera.'
+          : undefined
+      }
       {...(isDraggable ? { ...attributes, ...listeners } : {})}
       onClick={(e) => {
         e.stopPropagation()
