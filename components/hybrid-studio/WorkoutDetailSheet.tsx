@@ -48,6 +48,7 @@ import { HybridWorkoutExportButton } from './HybridWorkoutExportButton';
 import { WorkoutVersionHistory } from './WorkoutVersionHistory';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { ExerciseIcon } from '@/components/themed';
+import { useLocale } from '@/i18n/client';
 
 interface WorkoutDetailSheetProps {
   workout: HybridWorkoutWithSections | null;
@@ -59,16 +60,70 @@ interface WorkoutDetailSheetProps {
   onTeamAssign?: () => void;
 }
 
-const formatLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-  AMRAP: { label: 'AMRAP', icon: <Repeat className="h-4 w-4" /> },
-  FOR_TIME: { label: 'For Time', icon: <Timer className="h-4 w-4" /> },
-  EMOM: { label: 'EMOM', icon: <Clock className="h-4 w-4" /> },
-  TABATA: { label: 'Tabata', icon: <Zap className="h-4 w-4" /> },
-  CHIPPER: { label: 'Chipper', icon: <Target className="h-4 w-4" /> },
-  LADDER: { label: 'Ladder', icon: <Dumbbell className="h-4 w-4" /> },
-  INTERVALS: { label: 'Intervaller', icon: <Zap className="h-4 w-4" /> },
-  HYROX_SIM: { label: 'HYROX', icon: <Trophy className="h-4 w-4" /> },
-  CUSTOM: { label: 'Anpassad', icon: <Dumbbell className="h-4 w-4" /> },
+type AppLocale = 'en' | 'sv';
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en');
+
+const copy = {
+  en: {
+    edit: 'Edit',
+    delete: 'Delete',
+    assign: 'Assign',
+    assignTeam: 'Assign team',
+    rounds: 'rounds',
+    repsPerExercise: 'reps per exercise',
+    rest: 'rest',
+    warmup: 'Warm-up',
+    strength: 'Strength',
+    cooldown: 'Cool-down',
+    noMovements: 'No movements added',
+    results: 'Results',
+    loadingResults: 'Loading results...',
+    noResults: 'No results logged yet',
+    unknown: 'Unknown',
+  },
+  sv: {
+    edit: 'Redigera',
+    delete: 'Ta bort',
+    assign: 'Tilldela',
+    assignTeam: 'Tilldela lag',
+    rounds: 'rundor',
+    repsPerExercise: 'reps per övning',
+    rest: 'vila',
+    warmup: 'Uppvärmning',
+    strength: 'Styrka',
+    cooldown: 'Nedvarvning',
+    noMovements: 'Inga rörelser tillagda',
+    results: 'Resultat',
+    loadingResults: 'Laddar resultat...',
+    noResults: 'Inga resultat loggade än',
+    unknown: 'Okänd',
+  },
+};
+
+const formatLabels: Record<AppLocale, Record<string, { label: string; icon: React.ReactNode }>> = {
+  en: {
+    AMRAP: { label: 'AMRAP', icon: <Repeat className="h-4 w-4" /> },
+    FOR_TIME: { label: 'For Time', icon: <Timer className="h-4 w-4" /> },
+    EMOM: { label: 'EMOM', icon: <Clock className="h-4 w-4" /> },
+    TABATA: { label: 'Tabata', icon: <Zap className="h-4 w-4" /> },
+    CHIPPER: { label: 'Chipper', icon: <Target className="h-4 w-4" /> },
+    LADDER: { label: 'Ladder', icon: <Dumbbell className="h-4 w-4" /> },
+    INTERVALS: { label: 'Intervals', icon: <Zap className="h-4 w-4" /> },
+    HYROX_SIM: { label: 'HYROX', icon: <Trophy className="h-4 w-4" /> },
+    CUSTOM: { label: 'Custom', icon: <Dumbbell className="h-4 w-4" /> },
+  },
+  sv: {
+    AMRAP: { label: 'AMRAP', icon: <Repeat className="h-4 w-4" /> },
+    FOR_TIME: { label: 'For Time', icon: <Timer className="h-4 w-4" /> },
+    EMOM: { label: 'EMOM', icon: <Clock className="h-4 w-4" /> },
+    TABATA: { label: 'Tabata', icon: <Zap className="h-4 w-4" /> },
+    CHIPPER: { label: 'Chipper', icon: <Target className="h-4 w-4" /> },
+    LADDER: { label: 'Ladder', icon: <Dumbbell className="h-4 w-4" /> },
+    INTERVALS: { label: 'Intervaller', icon: <Zap className="h-4 w-4" /> },
+    HYROX_SIM: { label: 'HYROX', icon: <Trophy className="h-4 w-4" /> },
+    CUSTOM: { label: 'Anpassad', icon: <Dumbbell className="h-4 w-4" /> },
+  },
 };
 
 const scalingLabels: Record<string, { label: string; color: string }> = {
@@ -90,16 +145,19 @@ function formatInterval(seconds: number): string {
   return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${seconds}s`;
 }
 
-function formatBlockTiming(block: NonNullable<HybridWorkoutWithSections['metconData']>['blocks'][number]) {
+function formatBlockTiming(
+  block: NonNullable<HybridWorkoutWithSections['metconData']>['blocks'][number],
+  locale: AppLocale
+) {
   const parts: string[] = [];
   if (block.format === 'EMOM' && block.intervalSeconds && block.rounds) {
     parts.push(`E${formatInterval(block.intervalSeconds)} x ${block.rounds}`);
     parts.push(`${Math.ceil((block.intervalSeconds * block.rounds) / 60)} min`);
   } else {
     parts.push(block.format);
-    if (block.rounds) parts.push(`${block.rounds} rundor`);
+    if (block.rounds) parts.push(`${block.rounds} ${copy[locale].rounds}`);
   }
-  if (block.restAfterSeconds) parts.push(`vila ${formatTime(block.restAfterSeconds)}`);
+  if (block.restAfterSeconds) parts.push(`${copy[locale].rest} ${formatTime(block.restAfterSeconds)}`);
   return parts.join(' • ');
 }
 
@@ -114,7 +172,17 @@ function formatScore(result: HybridWorkoutResult): string {
   }
 }
 
-function SectionDisplay({ title, icon, data }: { title: string; icon: React.ReactNode; data?: HybridSectionData }) {
+function SectionDisplay({
+  title,
+  icon,
+  data,
+  restLabel,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  data?: HybridSectionData;
+  restLabel: string;
+}) {
   const [isOpen, setIsOpen] = useState(true);
 
   if (!data || (!data.notes && (!data.movements || data.movements.length === 0))) {
@@ -154,7 +222,7 @@ function SectionDisplay({ title, icon, data }: { title: string; icon: React.Reac
                     {m.duration && ` ${m.duration}s`}
                     {m.distance && ` ${m.distance}m`}
                     {(m.weightMale || m.weightFemale) && ` (${m.weightMale || '-'}/${m.weightFemale || '-'}kg)`}
-                    {m.restSeconds && ` vila ${m.restSeconds}s`}
+                    {m.restSeconds && ` ${restLabel} ${m.restSeconds}s`}
                   </span>
                 </div>
               </li>
@@ -178,43 +246,46 @@ export function WorkoutDetailSheet({
   const [results, setResults] = useState<HybridWorkoutResult[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
+  const appLocale = getAppLocale(useLocale());
+  const ui = copy[appLocale];
 
   // Theme support
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+  const workoutId = workout?.id;
 
   const fetchResults = useCallback(async () => {
-    if (!workout?.id) return;
+    if (!workoutId) return;
 
     setLoadingResults(true);
     try {
-      const response = await fetch(`/api/hybrid-workouts/${workout.id}/results?limit=10`);
+      const response = await fetch(`/api/hybrid-workouts/${workoutId}/results?limit=10`);
       if (response.ok) {
         const data = await response.json();
         setResults(data.results || []);
       }
     } catch (error) {
-      logger.error('Failed to fetch workout results', { workoutId: workout?.id }, error);
+      logger.error('Failed to fetch workout results', { workoutId }, error);
     } finally {
       setLoadingResults(false);
     }
-  }, [workout?.id]);
+  }, [workoutId]);
 
   useEffect(() => {
-    if (open && workout?.id) {
-      fetchResults();
+    if (open && workoutId) {
+      void Promise.resolve().then(fetchResults);
     }
-  }, [open, workout?.id, fetchResults]);
+  }, [open, workoutId, fetchResults]);
 
   if (!workout) return null;
 
-  const formatInfo = formatLabels[workout.format] || { label: workout.format, icon: <Dumbbell className="h-4 w-4" /> };
+  const formatInfo = formatLabels[appLocale][workout.format] || { label: workout.format, icon: <Dumbbell className="h-4 w-4" /> };
   const scalingInfo = scalingLabels[workout.scalingLevel] || { label: workout.scalingLevel, color: 'bg-gray-500' };
 
   // Build workout description
   const workoutMeta: string[] = [];
   if (workout.totalMinutes) workoutMeta.push(`${workout.totalMinutes} min`);
-  if (workout.totalRounds) workoutMeta.push(`${workout.totalRounds} rundor`);
+  if (workout.totalRounds) workoutMeta.push(`${workout.totalRounds} ${ui.rounds}`);
   if (workout.timeCap) workoutMeta.push(`${Math.floor(workout.timeCap / 60)} min cap`);
   if (workout.repScheme) workoutMeta.push(workout.repScheme);
 
@@ -258,22 +329,22 @@ export function WorkoutDetailSheet({
             <>
               <Button variant="outline" size="sm" onClick={onEdit}>
                 <Edit className="h-4 w-4 mr-1" />
-                Redigera
+                {ui.edit}
               </Button>
               <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive hover:text-destructive">
                 <Trash2 className="h-4 w-4 mr-1" />
-                Ta bort
+                {ui.delete}
               </Button>
             </>
           )}
           <Button variant="outline" size="sm" onClick={onAssign}>
             <Users className="h-4 w-4 mr-1" />
-            Tilldela
+            {ui.assign}
           </Button>
           {onTeamAssign && (
             <Button variant="outline" size="sm" onClick={onTeamAssign}>
               <Users className="h-4 w-4 mr-1" />
-              Tilldela lag
+              {ui.assignTeam}
             </Button>
           )}
           <HybridWorkoutExportButton workout={workout} />
@@ -294,16 +365,18 @@ export function WorkoutDetailSheet({
         <div className="space-y-2">
           {/* Warmup Section */}
           <SectionDisplay
-            title="Uppvärmning"
+            title={ui.warmup}
             icon={<Activity className="h-4 w-4 text-orange-500" />}
             data={workout.warmupData}
+            restLabel={ui.rest}
           />
 
           {/* Strength Section */}
           <SectionDisplay
-            title="Styrka"
+            title={ui.strength}
             icon={<Dumbbell className="h-4 w-4 text-red-500" />}
             data={workout.strengthData}
+            restLabel={ui.rest}
           />
 
           {/* Metcon Section (Main Workout) */}
@@ -334,7 +407,7 @@ export function WorkoutDetailSheet({
                     backgroundColor: theme.colors.background,
                   }}
                 >
-                  {workout.repScheme.split('-').length} rundor: {workout.repScheme.split('-').join(' → ')} reps per övning
+                  {workout.repScheme.split('-').length} {ui.rounds}: {workout.repScheme.split('-').join(' → ')} {ui.repsPerExercise}
                 </p>
               )}
               {workout.metconData?.blocks?.length ? (
@@ -346,7 +419,7 @@ export function WorkoutDetailSheet({
                         <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
                           {block.title}
                         </span>
-                        <Badge variant="outline">{formatBlockTiming(block)}</Badge>
+                        <Badge variant="outline">{formatBlockTiming(block, appLocale)}</Badge>
                       </div>
                       {block.notes && (
                         <p className="text-sm mb-2 whitespace-pre-wrap" style={{ color: theme.colors.textSecondary }}>
@@ -406,7 +479,7 @@ export function WorkoutDetailSheet({
                       />
                       <div>
                         <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
-                          {m.exercise.nameSv || m.exercise.name}
+                          {appLocale === 'sv' ? m.exercise.nameSv || m.exercise.name : m.exercise.name || m.exercise.nameSv}
                         </span>
                         <span className="ml-2" style={{ color: theme.colors.textMuted }}>
                           {/* Show scheme reps if workout has a descending/ascending scheme */}
@@ -425,16 +498,17 @@ export function WorkoutDetailSheet({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga rörelser tillagda</p>
+                <p className="text-sm" style={{ color: theme.colors.textMuted }}>{ui.noMovements}</p>
               )}
             </CardContent>
           </Card>
 
           {/* Cooldown Section */}
           <SectionDisplay
-            title="Nedvarvning"
+            title={ui.cooldown}
             icon={<Activity className="h-4 w-4 text-blue-500" />}
             data={workout.cooldownData}
+            restLabel={ui.rest}
           />
         </div>
 
@@ -459,7 +533,7 @@ export function WorkoutDetailSheet({
             <Button variant="ghost" className="w-full justify-between p-3 h-auto">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                <span className="font-semibold" style={{ color: theme.colors.textPrimary }}>Resultat</span>
+                <span className="font-semibold" style={{ color: theme.colors.textPrimary }}>{ui.results}</span>
                 <Badge variant="secondary">{workout._count?.results || results.length}</Badge>
               </div>
               {resultsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -467,16 +541,16 @@ export function WorkoutDetailSheet({
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 pb-3">
             {loadingResults ? (
-              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Laddar resultat...</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>{ui.loadingResults}</p>
             ) : results.length === 0 ? (
-              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga resultat loggade än</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>{ui.noResults}</p>
             ) : (
               <ul className="space-y-2">
                 {results.map((result) => (
                   <li key={result.id} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       {result.isPR && <Trophy className="h-3 w-3 text-yellow-500" />}
-                      <span style={{ color: theme.colors.textPrimary }}>{result.athlete?.name || 'Okänd'}</span>
+                      <span style={{ color: theme.colors.textPrimary }}>{result.athlete?.name || ui.unknown}</span>
                       <Badge variant="outline" className="text-xs">
                         {scalingLabels[result.scalingLevel]?.label || result.scalingLevel}
                       </Badge>
@@ -484,7 +558,7 @@ export function WorkoutDetailSheet({
                     <div className="flex items-center gap-2">
                       <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{formatScore(result)}</span>
                       <span className="text-xs" style={{ color: theme.colors.textMuted }}>
-                        {new Date(result.completedAt).toLocaleDateString('sv-SE')}
+                        {new Intl.DateTimeFormat(appLocale === 'sv' ? 'sv-SE' : 'en-US').format(new Date(result.completedAt))}
                       </span>
                     </div>
                   </li>
