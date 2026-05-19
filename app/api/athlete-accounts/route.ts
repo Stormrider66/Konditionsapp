@@ -16,6 +16,8 @@ function shouldSendEmail(value: unknown): boolean {
   return value !== 'sms' && value !== 'whatsapp' && value !== 'link'
 }
 
+type AppLocale = 'en' | 'sv'
+
 /**
  * POST /api/athlete-accounts
  * Create a new athlete account for a client
@@ -25,6 +27,7 @@ export async function POST(request: NextRequest) {
   try {
     // Require coach authentication
     const coach = await requireCoach()
+    const locale = getUserLocale(coach.language)
 
     // Business members are exempt — their limit is managed at the business level
     const businessMembership = await prisma.businessMember.findFirst({
@@ -92,7 +95,7 @@ export async function POST(request: NextRequest) {
     const profileEmail = email?.trim().toLowerCase() || client.email?.trim().toLowerCase()
     if (!profileEmail) {
       return NextResponse.json(
-        { error: 'Klienten måste ha en e-postadress i profilen' },
+        { error: t(locale, 'The client must have an email address in the profile', 'Klienten måste ha en e-postadress i profilen') },
         { status: 400 }
       )
     }
@@ -124,7 +127,7 @@ export async function POST(request: NextRequest) {
 
     if (!created.success || !created.athleteAccount) {
       return NextResponse.json(
-        { error: created.error || 'Kunde inte skapa atletkonto' },
+        { error: created.error || t(locale, 'Could not create athlete account', 'Kunde inte skapa atletkonto') },
         { status: 400 }
       )
     }
@@ -143,12 +146,28 @@ export async function POST(request: NextRequest) {
         inviteText: inviteResult.inviteText,
         businessName: inviteResult.businessName,
         message: inviteResult.emailPaused
-          ? `Atletkonto skapat, men utgående e-post är pausad. Skicka inloggningslänk manuellt till ${profileEmail}.`
+          ? t(
+              locale,
+              `Athlete account created, but outbound email is paused. Send the login link manually to ${profileEmail}.`,
+              `Atletkonto skapat, men utgående e-post är pausad. Skicka inloggningslänk manuellt till ${profileEmail}.`
+            )
           : inviteResult.success
             ? inviteResult.emailSent
-              ? `Atletkonto skapat och inbjudan skickad till ${profileEmail}.`
-              : 'Atletkonto skapat. Dela inbjudningslänken via SMS eller WhatsApp.'
-            : `Atletkonto skapat, men inbjudan kunde inte skickas: ${inviteResult.error}`,
+              ? t(
+                  locale,
+                  `Athlete account created and invite sent to ${profileEmail}.`,
+                  `Atletkonto skapat och inbjudan skickad till ${profileEmail}.`
+                )
+              : t(
+                  locale,
+                  'Athlete account created. Share the invite link via SMS or WhatsApp.',
+                  'Atletkonto skapat. Dela inbjudningslänken via SMS eller WhatsApp.'
+                )
+            : t(
+                locale,
+                `Athlete account created, but the invite could not be sent: ${inviteResult.error}`,
+                `Atletkonto skapat, men inbjudan kunde inte skickas: ${inviteResult.error}`
+              ),
       },
       { status: 201 }
     )
@@ -159,6 +178,14 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**

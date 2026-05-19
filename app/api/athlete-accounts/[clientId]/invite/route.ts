@@ -7,6 +7,8 @@ type RouteParams = {
   params: Promise<{ clientId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
 // POST /api/athlete-accounts/[clientId]/invite
 // Resend access for an existing athlete account. The client profile email is
 // the source of truth and is synced to Prisma User + Supabase Auth first.
@@ -17,6 +19,7 @@ function shouldSendEmail(value: unknown): boolean {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const coach = await requireCoach()
+    const locale = getUserLocale(coach.language)
     const { clientId } = await params
 
     const hasAccess = await canAccessClient(coach.id, clientId)
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: result.error || 'Kunde inte skicka inbjudan' },
+        { success: false, error: result.error || t(locale, 'Could not send invite', 'Kunde inte skicka inbjudan') },
         { status: 400 }
       )
     }
@@ -49,12 +52,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       syncedEmail: result.syncedEmail,
       syncedName: result.syncedName,
       message: result.emailPaused
-        ? `Utgående e-post är pausad. Skicka inloggningslänk manuellt till ${result.email}.`
+        ? t(
+            locale,
+            `Outbound email is paused. Send the login link manually to ${result.email}.`,
+            `Utgående e-post är pausad. Skicka inloggningslänk manuellt till ${result.email}.`
+          )
         : result.emailSent
-          ? `Inbjudan skickad till ${result.email}`
-          : 'Dela inbjudningslänken via SMS eller WhatsApp.',
+          ? t(locale, `Invite sent to ${result.email}`, `Inbjudan skickad till ${result.email}`)
+          : t(locale, 'Share the invite link via SMS or WhatsApp.', 'Dela inbjudningslänken via SMS eller WhatsApp.'),
     })
   } catch (error) {
     return handleApiError(error, 'POST /api/athlete-accounts/[clientId]/invite')
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
