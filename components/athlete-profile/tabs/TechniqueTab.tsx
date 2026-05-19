@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { Video, Play, AlertCircle, CheckCircle, Activity, Footprints, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress'
 import { TechniqueProgressionChart } from '@/components/coach/video-analysis/TechniqueProgressionChart'
 import { VideoComparisonView } from '@/components/coach/video-analysis/VideoComparisonView'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
+import { useLocale } from '@/i18n/client'
 
 interface TechniqueTabProps {
   data: AthleteProfileData
@@ -20,6 +21,9 @@ interface TechniqueTabProps {
 }
 
 export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '' }: TechniqueTabProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const { videoAnalyses, gaitAnalyses } = data.technique
 
   const hasData = videoAnalyses.length > 0 || gaitAnalyses.length > 0
@@ -35,20 +39,20 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
       <Card>
         <CardContent className="py-12 text-center">
           <Video className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Ingen teknikdata</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('Ingen teknikdata', 'No technique data')}</h3>
           <p className="text-gray-500 mb-4">
-            Ladda upp videoanalyser för att se teknikdata här.
+            {t('Ladda upp videoanalyser för att se teknikdata här.', 'Upload video analyses to see technique data here.')}
           </p>
           {viewMode === 'coach' && (
             <Link href={`/coach/video-analysis`}>
-              <Button>Analysera video</Button>
+              <Button>{t('Analysera video', 'Analyze video')}</Button>
             </Link>
           )}
           {viewMode === 'athlete' && (
             <Link href={`${basePath}/athlete/video-analysis`}>
               <Button>
                 <Video className="h-4 w-4 mr-2" />
-                Ladda upp video
+                {t('Ladda upp video', 'Upload video')}
               </Button>
             </Link>
           )}
@@ -66,7 +70,7 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Genomsnittlig formpoäng</p>
+                  <p className="text-sm text-gray-500">{t('Genomsnittlig formpoäng', 'Average form score')}</p>
                   <div className="flex items-baseline gap-2 mt-1">
                     <span className={`text-3xl font-bold ${getScoreColor(avgFormScore)}`}>
                       {avgFormScore.toFixed(0)}
@@ -82,7 +86,7 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
           <Card>
             <CardContent className="p-4">
               <div>
-                <p className="text-sm text-gray-500">Antal analyser</p>
+                <p className="text-sm text-gray-500">{t('Antal analyser', 'Analysis count')}</p>
                 <p className="text-3xl font-bold mt-1">{videoAnalyses.length}</p>
               </div>
             </CardContent>
@@ -91,10 +95,10 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
           <Card>
             <CardContent className="p-4">
               <div>
-                <p className="text-sm text-gray-500">Senaste analys</p>
+                <p className="text-sm text-gray-500">{t('Senaste analys', 'Latest analysis')}</p>
                 <p className="text-lg font-medium mt-1">
                   {videoAnalyses[0]
-                    ? format(new Date(videoAnalyses[0].createdAt), 'd MMM yyyy', { locale: sv })
+                    ? format(new Date(videoAnalyses[0].createdAt), 'd MMM yyyy', { locale: dateLocale })
                     : '-'}
                 </p>
               </div>
@@ -113,7 +117,7 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
             videoType: v.videoType,
             exercise: v.exercise,
           }))}
-          title="Teknikutveckling"
+          title={t('Teknikutveckling', 'Technique progression')}
           showGoal={true}
           goalScore={80}
         />
@@ -132,7 +136,7 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
             issuesDetected: v.issuesDetected as Array<{ issue: string; severity: string }> | null,
             recommendations: v.recommendations as Array<{ recommendation: string }> | null,
           }))}
-          title="Jamfor videor"
+          title={t('Jämför videor', 'Compare videos')}
         />
       )}
 
@@ -142,35 +146,35 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Footprints className="h-5 w-5 text-green-500" />
-              Löpteknikanalys
+              {t('Löpteknikanalys', 'Running gait analysis')}
             </CardTitle>
             <CardDescription>
-              Senaste gånganalys:{' '}
-              {format(new Date(gaitAnalyses[0].createdAt), 'd MMMM yyyy', { locale: sv })}
+              {t('Senaste gånganalys', 'Latest gait analysis')}:{' '}
+              {format(new Date(gaitAnalyses[0].createdAt), 'd MMMM yyyy', { locale: dateLocale })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               <GaitMetric
-                label="Kadans"
+                label={t('Kadans', 'Cadence')}
                 value={gaitAnalyses[0].cadence}
-                unit="steg/min"
+                unit={t('steg/min', 'steps/min')}
                 optimal="180"
               />
               <GaitMetric
-                label="Markkontakttid"
+                label={t('Markkontakttid', 'Ground contact time')}
                 value={gaitAnalyses[0].groundContactTime}
                 unit="ms"
                 optimal="<250"
               />
               <GaitMetric
-                label="Vertikal oscillation"
+                label={t('Vertikal oscillation', 'Vertical oscillation')}
                 value={gaitAnalyses[0].verticalOscillation}
                 unit="cm"
                 optimal="<8"
               />
               <GaitMetric
-                label="Steglängd"
+                label={t('Steglängd', 'Stride length')}
                 value={gaitAnalyses[0].strideLength}
                 unit="m"
               />
@@ -180,7 +184,7 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
               {gaitAnalyses[0].asymmetryPercent !== null && (
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500 mb-2">Asymmetri</p>
+                  <p className="text-sm text-gray-500 mb-2">{t('Asymmetri', 'Asymmetry')}</p>
                   <div className="flex items-center gap-3">
                     <Progress
                       value={100 - Math.min(gaitAnalyses[0].asymmetryPercent * 10, 100)}
@@ -190,16 +194,16 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
                       {gaitAnalyses[0].asymmetryPercent.toFixed(1)}%
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Optimal: &lt;5%</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('Optimal', 'Optimal')}: &lt;5%</p>
                 </div>
               )}
 
               {gaitAnalyses[0].injuryRiskLevel && (
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500 mb-2">Skaderisk</p>
+                  <p className="text-sm text-gray-500 mb-2">{t('Skaderisk', 'Injury risk')}</p>
                   <div className="flex items-center gap-2">
                     <Badge variant={getInjuryRiskVariant(gaitAnalyses[0].injuryRiskLevel)}>
-                      {getInjuryRiskLabel(gaitAnalyses[0].injuryRiskLevel)}
+                      {getInjuryRiskLabel(gaitAnalyses[0].injuryRiskLevel, locale)}
                     </Badge>
                     {gaitAnalyses[0].injuryRiskScore && (
                       <span className="text-sm text-gray-500">
@@ -214,7 +218,7 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
             {/* Coaching Cues */}
             {gaitAnalyses[0].coachingCues && gaitAnalyses[0].coachingCues.length > 0 && (
               <div className="mt-4 pt-4 border-t">
-                <p className="text-sm font-medium mb-2">Coachingpunkter</p>
+                <p className="text-sm font-medium mb-2">{t('Coachingpunkter', 'Coaching cues')}</p>
                 <ul className="space-y-1">
                   {gaitAnalyses[0].coachingCues.map((cueItem, idx) => {
                     const cueText = typeof cueItem === 'string' ? cueItem : (cueItem as any).cue
@@ -239,20 +243,20 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Video className="h-5 w-5" />
-                Videoanalyser
+                {t('Videoanalyser', 'Video analyses')}
               </CardTitle>
-              <CardDescription>{videoAnalyses.length} analyser genomförda</CardDescription>
+              <CardDescription>{videoAnalyses.length} {t('analyser genomförda', 'analyses completed')}</CardDescription>
             </div>
             {viewMode === 'coach' && (
               <Link href={`/coach/video-analysis`}>
-                <Button size="sm">+ Ny analys</Button>
+                <Button size="sm">+ {t('Ny analys', 'New analysis')}</Button>
               </Link>
             )}
             {viewMode === 'athlete' && (
               <Link href={`${basePath}/athlete/video-analysis`}>
                 <Button size="sm">
                   <Video className="h-4 w-4 mr-2" />
-                  Ladda upp video
+                  {t('Ladda upp video', 'Upload video')}
                 </Button>
               </Link>
             )}
@@ -260,18 +264,18 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
         </CardHeader>
         <CardContent>
           {videoAnalyses.length === 0 ? (
-            <p className="text-center text-gray-500 py-6">Inga videoanalyser ännu</p>
+            <p className="text-center text-gray-500 py-6">{t('Inga videoanalyser ännu', 'No video analyses yet')}</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {videoAnalyses.slice(0, 6).map((analysis) => (
-                <VideoAnalysisCard key={analysis.id} analysis={analysis} />
+                <VideoAnalysisCard key={analysis.id} analysis={analysis} locale={locale} />
               ))}
             </div>
           )}
 
           {videoAnalyses.length > 6 && (
             <p className="text-center text-sm text-gray-500 mt-4">
-              +{videoAnalyses.length - 6} fler analyser
+              +{videoAnalyses.length - 6} {t('fler analyser', 'more analyses')}
             </p>
           )}
         </CardContent>
@@ -283,9 +287,13 @@ export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '
 // Helper components
 function VideoAnalysisCard({
   analysis,
+  locale,
 }: {
   analysis: AthleteProfileData['technique']['videoAnalyses'][0]
+  locale: 'en' | 'sv'
 }) {
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const issueCount = analysis.issuesDetected?.length || 0
 
   return (
@@ -297,10 +305,10 @@ function VideoAnalysisCard({
           </div>
           <div>
             <p className="font-medium">
-              {analysis.exercise?.nameSv || analysis.exercise?.name || getVideoTypeLabel(analysis.videoType)}
+              {(locale === 'sv' ? analysis.exercise?.nameSv : analysis.exercise?.name) || analysis.exercise?.name || analysis.exercise?.nameSv || getVideoTypeLabel(analysis.videoType, locale)}
             </p>
             <p className="text-sm text-gray-500">
-              {format(new Date(analysis.createdAt), 'd MMM yyyy', { locale: sv })}
+              {format(new Date(analysis.createdAt), 'd MMM yyyy', { locale: dateLocale })}
             </p>
           </div>
         </div>
@@ -314,24 +322,24 @@ function VideoAnalysisCard({
         {issueCount > 0 ? (
           <span className="flex items-center gap-1 text-orange-600">
             <AlertCircle className="h-4 w-4" />
-            {issueCount} problem
+            {issueCount} {t('problem', issueCount === 1 ? 'issue' : 'issues')}
           </span>
         ) : (
           <span className="flex items-center gap-1 text-green-600">
             <CheckCircle className="h-4 w-4" />
-            Inga problem
+            {t('Inga problem', 'No issues')}
           </span>
         )}
 
-        <Badge variant="outline">{getVideoTypeLabel(analysis.videoType)}</Badge>
+        <Badge variant="outline">{getVideoTypeLabel(analysis.videoType, locale)}</Badge>
       </div>
 
       {/* Top Recommendations */}
       {analysis.recommendations && analysis.recommendations.length > 0 && (
         <div className="mt-3 pt-3 border-t">
-          <p className="text-xs text-gray-500 mb-1">Rekommendationer</p>
+          <p className="text-xs text-gray-500 mb-1">{t('Rekommendationer', 'Recommendations')}</p>
           <p className="text-sm text-gray-700 line-clamp-2">
-            {(analysis.recommendations[0] as any)?.recommendation || 'Ingen rekommendation'}
+            {(analysis.recommendations[0] as any)?.recommendation || t('Ingen rekommendation', 'No recommendation')}
           </p>
         </div>
       )}
@@ -415,23 +423,38 @@ function getScoreColor(score: number): string {
   return 'text-red-600'
 }
 
-function getVideoTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    STRENGTH: 'Styrka',
-    RUNNING_GAIT: 'Löpteknik',
-    SPORT_SPECIFIC: 'Sportspecifik',
+function getVideoTypeLabel(type: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      STRENGTH: 'Strength',
+      RUNNING_GAIT: 'Running gait',
+      SPORT_SPECIFIC: 'Sport specific',
+    },
+    sv: {
+      STRENGTH: 'Styrka',
+      RUNNING_GAIT: 'Löpteknik',
+      SPORT_SPECIFIC: 'Sportspecifik',
+    },
   }
-  return labels[type] || type
+  return labels[locale][type] || type
 }
 
-function getInjuryRiskLabel(level: string): string {
-  const labels: Record<string, string> = {
-    LOW: 'Låg',
-    MODERATE: 'Måttlig',
-    HIGH: 'Hög',
-    VERY_HIGH: 'Mycket hög',
+function getInjuryRiskLabel(level: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      LOW: 'Low',
+      MODERATE: 'Moderate',
+      HIGH: 'High',
+      VERY_HIGH: 'Very high',
+    },
+    sv: {
+      LOW: 'Låg',
+      MODERATE: 'Måttlig',
+      HIGH: 'Hög',
+      VERY_HIGH: 'Mycket hög',
+    },
   }
-  return labels[level] || level
+  return labels[locale][level] || level
 }
 
 function getInjuryRiskVariant(level: string): 'default' | 'secondary' | 'outline' | 'destructive' {
