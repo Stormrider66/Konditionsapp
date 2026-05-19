@@ -26,6 +26,7 @@ const VALID_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'imag
 interface RouteContext {
   params: Promise<{ teamId: string; clientId: string }>
 }
+type AppLocale = 'en' | 'sv'
 
 let bucketEnsured = false
 async function ensureBucket() {
@@ -57,6 +58,7 @@ function extensionFor(type: string, filename: string): string {
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId, clientId } = await context.params
 
     const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
@@ -72,14 +74,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
     if (photo.size > MAX_BYTES) {
       return NextResponse.json(
-        { error: `För stor bild. Max ${MAX_BYTES / (1024 * 1024)} MB.` },
+        { error: t(locale, `Image is too large. Max ${MAX_BYTES / (1024 * 1024)} MB.`, `För stor bild. Max ${MAX_BYTES / (1024 * 1024)} MB.`) },
         { status: 413 }
       )
     }
     const type = (photo.type || '').toLowerCase()
     if (!VALID_TYPES.includes(type)) {
       return NextResponse.json(
-        { error: 'Ogiltigt format. JPG, PNG, WebP eller HEIC.' },
+        { error: t(locale, 'Invalid format. Use JPG, PNG, WebP, or HEIC.', 'Ogiltigt format. JPG, PNG, WebP eller HEIC.') },
         { status: 400 }
       )
     }
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     if (upErr) {
       logger.error('Client photo upload failed', { clientId }, upErr)
       return NextResponse.json(
-        { error: `Uppladdning misslyckades: ${upErr.message}` },
+        { error: t(locale, `Upload failed: ${upErr.message}`, `Uppladdning misslyckades: ${upErr.message}`) },
         { status: 500 }
       )
     }
@@ -119,6 +121,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
     logger.error('POST client photo failed', {}, error)
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 export async function DELETE(_req: NextRequest, context: RouteContext) {

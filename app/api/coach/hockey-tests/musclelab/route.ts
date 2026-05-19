@@ -5,15 +5,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { parseMuscleLabRawText, parseMuscleLabWorkbook } from '@/lib/hockey/musclelab'
 
+type AppLocale = 'en' | 'sv'
+
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
-    await requireCoach()
+    const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 
     if (!file) {
-      return NextResponse.json({ error: 'Ingen MuscleLab-fil uppladdad' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No MuscleLab file uploaded', 'Ingen MuscleLab-fil uppladdad') }, { status: 400 })
     }
 
     const isWorkbook =
@@ -31,8 +35,12 @@ export async function POST(req: NextRequest) {
     }
     console.error('MuscleLab import error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Kunde inte läsa MuscleLab-filen' },
+      { error: error instanceof Error ? error.message : t(locale, 'Could not read the MuscleLab file', 'Kunde inte läsa MuscleLab-filen') },
       { status: 500 },
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
