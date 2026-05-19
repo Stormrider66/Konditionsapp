@@ -4,7 +4,7 @@
  * GET /api/athlete/injury-prevention - Get injury prevention dashboard data
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 
@@ -12,6 +12,7 @@ type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH'
 type LoadTrend = 'RISING' | 'FALLING' | 'STABLE'
 type RecommendationType = 'WARNING' | 'SUGGESTION' | 'POSITIVE'
+type AppLocale = 'en' | 'sv'
 
 interface Recommendation {
   type: RecommendationType
@@ -50,8 +51,9 @@ interface InjuryPreventionResponse {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const locale = getRequestLocale(request)
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
@@ -120,7 +122,8 @@ export async function GET() {
       latestLoad?.acwrZone as ACWRZone | null,
       trend,
       activeInjuries,
-      loadHistory
+      loadHistory,
+      locale
     )
 
     const response: InjuryPreventionResponse = {
@@ -160,6 +163,15 @@ export async function GET() {
   }
 }
 
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? ''
+  return acceptLanguage.startsWith('sv') || acceptLanguage.includes('sv-') ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Calculate ACWR trend from recent values
  */
@@ -189,7 +201,8 @@ function generateRecommendations(
   acwrZone: ACWRZone | null,
   trend: LoadTrend,
   activeInjuries: Array<{ painLevel: number; phase: string | null; painLocation: string | null }>,
-  loadHistory: Array<{ acwr: number | null; acwrZone?: string | null }>
+  loadHistory: Array<{ acwr: number | null; acwrZone?: string | null }>,
+  locale: AppLocale
 ): Recommendation[] {
   const recommendations: Recommendation[] = []
 
@@ -199,18 +212,24 @@ function generateRecommendations(
       case 'CRITICAL':
         recommendations.push({
           type: 'WARNING',
-          title: 'Kritiskt hög belastning',
-          message:
-            'Din träningsbelastning är kritiskt hög. Minska intensiteten med 30-40% denna vecka för att undvika skada.',
+          title: t(locale, 'Critically high load', 'Kritiskt hög belastning'),
+          message: t(
+            locale,
+            'Your training load is critically high. Reduce intensity by 30-40% this week to avoid injury.',
+            'Din träningsbelastning är kritiskt hög. Minska intensiteten med 30-40% denna vecka för att undvika skada.'
+          ),
           priority: 1,
         })
         break
       case 'DANGER':
         recommendations.push({
           type: 'WARNING',
-          title: 'Hög skaderisk',
-          message:
-            'Din belastning är i farozonen. Överväg att minska träningsvolymen med 20-30% de kommande dagarna.',
+          title: t(locale, 'High injury risk', 'Hög skaderisk'),
+          message: t(
+            locale,
+            'Your load is in the danger zone. Consider reducing training volume by 20-30% over the next few days.',
+            'Din belastning är i farozonen. Överväg att minska träningsvolymen med 20-30% de kommande dagarna.'
+          ),
           priority: 2,
         })
         break
@@ -218,16 +237,23 @@ function generateRecommendations(
         if (currentACWR && currentACWR > 1.3) {
           recommendations.push({
             type: 'SUGGESTION',
-            title: 'Belastning ökar',
-            message: 'Din belastning närmar sig den övre gränsen. Håll koll på återhämtningen.',
+            title: t(locale, 'Load is increasing', 'Belastning ökar'),
+            message: t(
+              locale,
+              'Your load is approaching the upper limit. Keep a close eye on recovery.',
+              'Din belastning närmar sig den övre gränsen. Håll koll på återhämtningen.'
+            ),
             priority: 3,
           })
         } else if (currentACWR && currentACWR < 0.8) {
           recommendations.push({
             type: 'SUGGESTION',
-            title: 'Låg belastning',
-            message:
-              'Din träningsbelastning är något låg. Öka gradvis för att bygga upp din kapacitet.',
+            title: t(locale, 'Low load', 'Låg belastning'),
+            message: t(
+              locale,
+              'Your training load is slightly low. Increase gradually to build capacity.',
+              'Din träningsbelastning är något låg. Öka gradvis för att bygga upp din kapacitet.'
+            ),
             priority: 4,
           })
         }
@@ -235,18 +261,24 @@ function generateRecommendations(
       case 'OPTIMAL':
         recommendations.push({
           type: 'POSITIVE',
-          title: 'Optimal belastning',
-          message:
-            'Din träningsbelastning är väl balanserad. Fortsätt med nuvarande upplägg.',
+          title: t(locale, 'Optimal load', 'Optimal belastning'),
+          message: t(
+            locale,
+            'Your training load is well balanced. Continue with the current plan.',
+            'Din träningsbelastning är väl balanserad. Fortsätt med nuvarande upplägg.'
+          ),
           priority: 5,
         })
         break
       case 'DETRAINING':
         recommendations.push({
           type: 'WARNING',
-          title: 'Risk för avträning',
-          message:
-            'Din belastning är för låg. Öka träningen gradvis för att undvika konditionsförlust.',
+          title: t(locale, 'Detraining risk', 'Risk för avträning'),
+          message: t(
+            locale,
+            'Your load is too low. Increase training gradually to avoid fitness loss.',
+            'Din belastning är för låg. Öka träningen gradvis för att undvika konditionsförlust.'
+          ),
           priority: 3,
         })
         break
@@ -257,9 +289,12 @@ function generateRecommendations(
   if (trend === 'RISING' && acwrZone && ['CAUTION', 'DANGER', 'CRITICAL'].includes(acwrZone)) {
     recommendations.push({
       type: 'WARNING',
-      title: 'Snabb belastningsökning',
-      message:
-        'Din belastning ökar snabbt. Undvik att öka mer än 10% per vecka för att minska skaderisken.',
+      title: t(locale, 'Rapid load increase', 'Snabb belastningsökning'),
+      message: t(
+        locale,
+        'Your load is increasing quickly. Avoid increasing by more than 10% per week to reduce injury risk.',
+        'Din belastning ökar snabbt. Undvik att öka mer än 10% per vecka för att minska skaderisken.'
+      ),
       priority: 2,
     })
   }
@@ -272,8 +307,12 @@ function generateRecommendations(
   if (highLoadDays >= 3) {
     recommendations.push({
       type: 'WARNING',
-      title: 'Utdragen hög belastning',
-      message: `Du har haft hög belastning i ${highLoadDays} dagar. Planera in en återhämtningsvecka.`,
+      title: t(locale, 'Prolonged high load', 'Utdragen hög belastning'),
+      message: t(
+        locale,
+        `You have had high load for ${highLoadDays} days. Plan a recovery week.`,
+        `Du har haft hög belastning i ${highLoadDays} dagar. Planera in en återhämtningsvecka.`
+      ),
       priority: 2,
     })
   }
@@ -283,8 +322,12 @@ function generateRecommendations(
     if (injury.painLevel >= 5) {
       recommendations.push({
         type: 'WARNING',
-        title: 'Hög smärtnivå',
-        message: `Smärtnivå ${injury.painLevel}/10${injury.painLocation ? ` i ${formatBodyPart(injury.painLocation)}` : ''}. Överväg vila eller modifierad träning.`,
+        title: t(locale, 'High pain level', 'Hög smärtnivå'),
+        message: t(
+          locale,
+          `Pain level ${injury.painLevel}/10${injury.painLocation ? ` in ${formatBodyPart(injury.painLocation, locale)}` : ''}. Consider rest or modified training.`,
+          `Smärtnivå ${injury.painLevel}/10${injury.painLocation ? ` i ${formatBodyPart(injury.painLocation, locale)}` : ''}. Överväg vila eller modifierad träning.`
+        ),
         priority: 1,
       })
     }
@@ -292,9 +335,12 @@ function generateRecommendations(
     if (injury.phase === 'ACUTE') {
       recommendations.push({
         type: 'WARNING',
-        title: 'Akut skada',
-        message:
-          'Du har en akut skada. Följ rehabiliteringsprotokollet och undvik belastning av skadad kroppsdel.',
+        title: t(locale, 'Acute injury', 'Akut skada'),
+        message: t(
+          locale,
+          'You have an acute injury. Follow the rehabilitation protocol and avoid loading the injured body part.',
+          'Du har en akut skada. Följ rehabiliteringsprotokollet och undvik belastning av skadad kroppsdel.'
+        ),
         priority: 1,
       })
     }
@@ -308,23 +354,39 @@ function generateRecommendations(
 }
 
 /**
- * Format body part name to Swedish
+ * Format body part name for recommendation copy.
  */
-function formatBodyPart(bodyPart: string): string {
-  const translations: Record<string, string> = {
-    PLANTAR_FASCIA: 'fotsulefascian',
-    ACHILLES: 'hälsenan',
-    IT_BAND: 'IT-bandet',
-    KNEE: 'knäet',
-    HIP: 'höften',
-    LOWER_BACK: 'ländryggen',
-    CALF: 'vaden',
-    HAMSTRING: 'bakre låret',
-    QUADRICEPS: 'framsida lår',
-    SHIN: 'smalbenet',
-    ANKLE: 'fotleden',
-    FOOT: 'foten',
+function formatBodyPart(bodyPart: string, locale: AppLocale): string {
+  const translations: Record<AppLocale, Record<string, string>> = {
+    en: {
+      PLANTAR_FASCIA: 'the plantar fascia',
+      ACHILLES: 'the Achilles tendon',
+      IT_BAND: 'the IT band',
+      KNEE: 'the knee',
+      HIP: 'the hip',
+      LOWER_BACK: 'the lower back',
+      CALF: 'the calf',
+      HAMSTRING: 'the hamstring',
+      QUADRICEPS: 'the quadriceps',
+      SHIN: 'the shin',
+      ANKLE: 'the ankle',
+      FOOT: 'the foot',
+    },
+    sv: {
+      PLANTAR_FASCIA: 'fotsulefascian',
+      ACHILLES: 'hälsenan',
+      IT_BAND: 'IT-bandet',
+      KNEE: 'knäet',
+      HIP: 'höften',
+      LOWER_BACK: 'ländryggen',
+      CALF: 'vaden',
+      HAMSTRING: 'bakre låret',
+      QUADRICEPS: 'framsida lår',
+      SHIN: 'smalbenet',
+      ANKLE: 'fotleden',
+      FOOT: 'foten',
+    },
   }
 
-  return translations[bodyPart] || bodyPart.toLowerCase().replace(/_/g, ' ')
+  return translations[locale][bodyPart] || bodyPart.toLowerCase().replace(/_/g, ' ')
 }
