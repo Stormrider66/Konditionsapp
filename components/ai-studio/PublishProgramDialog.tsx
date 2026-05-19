@@ -22,12 +22,98 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { CalendarIcon, Loader2, Send, AlertCircle } from 'lucide-react'
 import { format, addDays, nextMonday } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 export type ProgramType = 'MAIN' | 'COMPLEMENTARY'
 export type ExistingProgramAction = 'KEEP' | 'DEACTIVATE' | 'REPLACE'
+
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const copy = {
+  en: {
+    publishedTitle: 'Program published',
+    publishedWithNotification: (programName: string, athleteName: string) =>
+      `${programName} has been published to ${athleteName} and a message has been sent.`,
+    publishedWithoutNotification: (programName: string, athleteName: string) =>
+      `${programName} has been published to ${athleteName}.`,
+    unknownError: 'Unknown error',
+    validationError:
+      'The program is missing required fields (weeks, phases). The AI did not generate the correct JSON format.',
+    publishErrorTitle: 'Could not publish program',
+    title: 'Publish program',
+    description: (programName: string, athleteName: string) =>
+      `Publish "${programName}" to ${athleteName}`,
+    programType: 'Program type',
+    mainProgram: 'Main program',
+    mainProgramDescription: 'The athlete’s primary training plan',
+    complementary: 'Complementary',
+    complementaryDescription: 'Rehab, strength, or add-on work',
+    existingProgram: 'Existing program',
+    activeProgramExists: 'Active program exists',
+    keepActive: 'Keep active',
+    keepActiveDescription: 'Both programs remain available',
+    deactivateExisting: 'Deactivate existing',
+    deactivateExistingDescription: 'Hide the old program',
+    replaceCompletely: 'Replace completely',
+    replaceDescription: 'Delete the old program',
+    replaceWarning:
+      'This will permanently delete the existing program and all of its history.',
+    startDate: 'Start date',
+    selectDate: 'Select date',
+    today: 'Today',
+    nextMonday: 'Next Monday',
+    inTwoWeeks: 'In 2 weeks',
+    notify: (athleteName: string) => `Notify ${athleteName}`,
+    notifyDescription: 'Send a notification about the new program',
+    cancel: 'Cancel',
+    publishing: 'Publishing...',
+    publishTo: (athleteName: string) => `Publish to ${athleteName}`,
+  },
+  sv: {
+    publishedTitle: 'Program publicerat!',
+    publishedWithNotification: (programName: string, athleteName: string) =>
+      `${programName} har publicerats till ${athleteName} och ett meddelande har skickats.`,
+    publishedWithoutNotification: (programName: string, athleteName: string) =>
+      `${programName} har publicerats till ${athleteName}.`,
+    unknownError: 'Okänt fel',
+    validationError:
+      'Programmet saknar obligatoriska fält (veckor, faser). AI:n genererade inte korrekt JSON-format.',
+    publishErrorTitle: 'Kunde inte publicera program',
+    title: 'Publicera program',
+    description: (programName: string, athleteName: string) =>
+      `Publicera "${programName}" till ${athleteName}`,
+    programType: 'Programtyp',
+    mainProgram: 'Huvudprogram',
+    mainProgramDescription: 'Atletens primära träningsplan',
+    complementary: 'Kompletterande',
+    complementaryDescription: 'Rehab, styrka eller tillägg',
+    existingProgram: 'Befintligt program',
+    activeProgramExists: 'Aktivt program finns',
+    keepActive: 'Behåll aktivt',
+    keepActiveDescription: 'Båda programmen blir tillgängliga',
+    deactivateExisting: 'Inaktivera befintligt',
+    deactivateExistingDescription: 'Dölj det gamla programmet',
+    replaceCompletely: 'Ersätt helt',
+    replaceDescription: 'Ta bort det gamla programmet',
+    replaceWarning:
+      'Detta kommer permanent ta bort det befintliga programmet och all dess historik.',
+    startDate: 'Startdatum',
+    selectDate: 'Välj datum',
+    today: 'Idag',
+    nextMonday: 'Nästa måndag',
+    inTwoWeeks: 'Om 2 veckor',
+    notify: (athleteName: string) => `Meddela ${athleteName}`,
+    notifyDescription: 'Skicka notifikation om det nya programmet',
+    cancel: 'Avbryt',
+    publishing: 'Publicerar...',
+    publishTo: (athleteName: string) => `Publicera till ${athleteName}`,
+  },
+}
 
 interface PublishProgramDialogProps {
   open: boolean
@@ -55,6 +141,9 @@ export function PublishProgramDialog({
   onSuccess,
 }: PublishProgramDialogProps) {
   const { toast } = useToast()
+  const appLocale = getAppLocale(useLocale())
+  const ui = copy[appLocale]
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const [publishing, setPublishing] = useState(false)
   const [programType, setProgramType] = useState<ProgramType>('MAIN')
   const [existingAction, setExistingAction] = useState<ExistingProgramAction>(
@@ -95,10 +184,10 @@ export function PublishProgramDialog({
       }
 
       toast({
-        title: 'Program publicerat!',
-        description: `${programName} har publicerats till ${athleteName}${
-          notifyAthlete ? ' och ett meddelande har skickats.' : '.'
-        }`,
+        title: ui.publishedTitle,
+        description: notifyAthlete
+          ? ui.publishedWithNotification(programName, athleteName)
+          : ui.publishedWithoutNotification(programName, athleteName),
       })
 
       onOpenChange(false)
@@ -107,14 +196,14 @@ export function PublishProgramDialog({
         onSuccess(data.program.id)
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Okänt fel'
+      const errorMessage = error instanceof Error ? error.message : ui.unknownError
       // Try to parse detailed errors from the response
       let detailedMessage = errorMessage
       if (errorMessage.includes('validation failed')) {
-        detailedMessage = 'Programmet saknar obligatoriska fält (veckor, faser). AI:n genererade inte korrekt JSON-format.'
+        detailedMessage = ui.validationError
       }
       toast({
-        title: 'Kunde inte publicera program',
+        title: ui.publishErrorTitle,
         description: detailedMessage,
         variant: 'destructive',
       })
@@ -128,16 +217,16 @@ export function PublishProgramDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Publicera program</DialogTitle>
+          <DialogTitle>{ui.title}</DialogTitle>
           <DialogDescription>
-            Publicera &quot;{programName}&quot; till {athleteName}
+            {ui.description(programName, athleteName)}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Program Type */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Programtyp</Label>
+            <Label className="text-sm font-medium">{ui.programType}</Label>
             <RadioGroup
               value={programType}
               onValueChange={(v) => setProgramType(v as ProgramType)}
@@ -156,9 +245,9 @@ export function PublishProgramDialog({
                     "peer-data-[state=checked]:border-blue-500 [&:has([data-state=checked])]:border-blue-500"
                   )}
                 >
-                  <span className="font-medium">Huvudprogram</span>
+                  <span className="font-medium">{ui.mainProgram}</span>
                   <span className="text-xs text-muted-foreground text-center mt-1">
-                    Atletens primära träningsplan
+                    {ui.mainProgramDescription}
                   </span>
                 </Label>
               </div>
@@ -175,9 +264,9 @@ export function PublishProgramDialog({
                     "peer-data-[state=checked]:border-blue-500 [&:has([data-state=checked])]:border-blue-500"
                   )}
                 >
-                  <span className="font-medium">Kompletterande</span>
+                  <span className="font-medium">{ui.complementary}</span>
                   <span className="text-xs text-muted-foreground text-center mt-1">
-                    Rehab, styrka eller tillägg
+                    {ui.complementaryDescription}
                   </span>
                 </Label>
               </div>
@@ -188,9 +277,9 @@ export function PublishProgramDialog({
           {hasExistingProgram && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Label className="text-sm font-medium">Befintligt program</Label>
+                <Label className="text-sm font-medium">{ui.existingProgram}</Label>
                 <Badge variant="outline" className="text-xs">
-                  {existingProgramName || 'Aktivt program finns'}
+                  {existingProgramName || ui.activeProgramExists}
                 </Badge>
               </div>
               <RadioGroup
@@ -201,27 +290,27 @@ export function PublishProgramDialog({
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="KEEP" id="action-keep" />
                   <Label htmlFor="action-keep" className="cursor-pointer">
-                    <span>Behåll aktivt</span>
+                    <span>{ui.keepActive}</span>
                     <span className="text-xs text-muted-foreground ml-2">
-                      Båda programmen blir tillgängliga
+                      {ui.keepActiveDescription}
                     </span>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="DEACTIVATE" id="action-deactivate" />
                   <Label htmlFor="action-deactivate" className="cursor-pointer">
-                    <span>Inaktivera befintligt</span>
+                    <span>{ui.deactivateExisting}</span>
                     <span className="text-xs text-muted-foreground ml-2">
-                      Dölj det gamla programmet
+                      {ui.deactivateExistingDescription}
                     </span>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="REPLACE" id="action-replace" />
                   <Label htmlFor="action-replace" className="cursor-pointer">
-                    <span className="text-red-600">Ersätt helt</span>
+                    <span className="text-red-600">{ui.replaceCompletely}</span>
                     <span className="text-xs text-muted-foreground ml-2">
-                      Ta bort det gamla programmet
+                      {ui.replaceDescription}
                     </span>
                   </Label>
                 </div>
@@ -230,7 +319,7 @@ export function PublishProgramDialog({
                 <div className="flex items-start gap-2 p-2 bg-red-50 rounded-md border border-red-200">
                   <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
                   <p className="text-xs text-red-700">
-                    Detta kommer permanent ta bort det befintliga programmet och all dess historik.
+                    {ui.replaceWarning}
                   </p>
                 </div>
               )}
@@ -239,7 +328,7 @@ export function PublishProgramDialog({
 
           {/* Start Date */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Startdatum</Label>
+            <Label className="text-sm font-medium">{ui.startDate}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -251,9 +340,9 @@ export function PublishProgramDialog({
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {startDate ? (
-                    format(startDate, "EEEE d MMMM yyyy", { locale: sv })
+                    format(startDate, "EEEE d MMMM yyyy", { locale: dateLocale })
                   ) : (
-                    "Välj datum"
+                    ui.selectDate
                   )}
                 </Button>
               </PopoverTrigger>
@@ -262,7 +351,7 @@ export function PublishProgramDialog({
                   mode="single"
                   selected={startDate}
                   onSelect={(date) => date && setStartDate(date)}
-                  locale={sv}
+                  locale={dateLocale}
                   disabled={(date) => date < new Date()}
                   initialFocus
                 />
@@ -275,7 +364,7 @@ export function PublishProgramDialog({
                 className="text-xs"
                 onClick={() => setStartDate(new Date())}
               >
-                Idag
+                {ui.today}
               </Button>
               <Button
                 variant="outline"
@@ -283,7 +372,7 @@ export function PublishProgramDialog({
                 className="text-xs"
                 onClick={() => setStartDate(nextMonday(new Date()))}
               >
-                Nästa måndag
+                {ui.nextMonday}
               </Button>
               <Button
                 variant="outline"
@@ -291,7 +380,7 @@ export function PublishProgramDialog({
                 className="text-xs"
                 onClick={() => setStartDate(addDays(nextMonday(new Date()), 7))}
               >
-                Om 2 veckor
+                {ui.inTwoWeeks}
               </Button>
             </div>
           </div>
@@ -304,9 +393,9 @@ export function PublishProgramDialog({
               onCheckedChange={(checked) => setNotifyAthlete(checked as boolean)}
             />
             <Label htmlFor="notify" className="cursor-pointer">
-              <span>Meddela {athleteName}</span>
+              <span>{ui.notify(athleteName)}</span>
               <span className="text-xs text-muted-foreground ml-2">
-                Skicka notifikation om det nya programmet
+                {ui.notifyDescription}
               </span>
             </Label>
           </div>
@@ -314,7 +403,7 @@ export function PublishProgramDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
+            {ui.cancel}
           </Button>
           <Button
             onClick={handlePublish}
@@ -324,12 +413,12 @@ export function PublishProgramDialog({
             {publishing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Publicerar...
+                {ui.publishing}
               </>
             ) : (
               <>
                 <Send className="h-4 w-4 mr-2" />
-                Publicera till {athleteName}
+                {ui.publishTo(athleteName)}
               </>
             )}
           </Button>
