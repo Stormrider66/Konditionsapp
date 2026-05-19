@@ -3111,7 +3111,7 @@
       },
       "clients": {
         "title": "Klientregister",
-        "description": "Hantera klienter och deras testhistorik",
+        "description": "Hantera atleter, coachstatus, planering och utveckling",
         "allClients": "Alla klienter",
         "showingFiltered": "Visar {filtered} av {total} klienter",
         "searchPlaceholder": "Sök namn, e-post eller telefon...",
@@ -3163,7 +3163,7 @@
         },
         "tips": {
           "prefix": "Tips:",
-          "text": "Klicka på en klient för att se deras testhistorik och skapa nya tester."
+          "text": "Klicka på en klient för att öppna coachvyn med beslut, planering, utveckling och profil."
         },
         "deleteDialog": {
           "title": "Är du säker?",

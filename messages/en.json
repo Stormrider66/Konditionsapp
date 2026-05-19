@@ -3111,7 +3111,7 @@
       },
       "clients": {
         "title": "Client registry",
-        "description": "Manage clients and their test history",
+        "description": "Manage athletes, coach status, planning, and development",
         "allClients": "All clients",
         "showingFiltered": "Showing {filtered} of {total} clients",
         "searchPlaceholder": "Search name, email, or phone...",
@@ -3163,7 +3163,7 @@
         },
         "tips": {
           "prefix": "Tip:",
-          "text": "Click a client to view their test history and create new tests."
+          "text": "Click a client to open the coach view for decisions, planning, development, and profile setup."
         },
         "deleteDialog": {
           "title": "Are you sure?",
