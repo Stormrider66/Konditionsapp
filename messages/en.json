@@ -14017,6 +14017,75 @@
         "anaerobicThreshold": "Anaerobic threshold"
       }
     },
+    "fieldTestProgressionChart": {
+      "title": "Field test progression",
+      "initial": {
+        "description": "Select an athlete to show test progression over time",
+        "selectAthletePlaceholder": "Select athlete...",
+        "loading": "Loading progression...",
+        "error": "Could not load test progression."
+      },
+      "header": {
+        "subtitle": "LT2 pace progression over time (faster = lower seconds/km)"
+      },
+      "summary": {
+        "labels": {
+          "improvement": "Change (s/km)",
+          "testCount": "Test count",
+          "averageInterval": "Average interval between tests",
+          "consistency": "Consistency"
+        },
+        "testType": {
+          "field": "field tests",
+          "lab": "lab tests"
+        }
+      },
+      "quality": {
+        "excellent": "Excellent",
+        "good": "Good",
+        "fair": "Fair",
+        "poor": "Poor"
+      },
+      "chart": {
+        "title": "LT2 pace over time",
+        "axes": {
+          "date": "Date",
+          "lt2Pace": "LT2 pace (seconds/km)"
+        },
+        "series": {
+          "field": {
+            "label": "Field test",
+            "name": "Field test LT2"
+          },
+          "lab": {
+            "label": "Lab test",
+            "name": "Lab test LT2"
+          }
+        },
+        "legend": {
+          "highReliability": "High reliability",
+          "mediumReliability": "Medium reliability",
+          "lowReliability": "Low reliability"
+        },
+        "divergenceTitle": "Field test vs lab test comparison"
+      },
+      "analysis": {
+        "averageDifference": "Average difference",
+        "percentDifference": "Percent difference"
+      },
+      "alignment": {
+        "excellent": "Excellent alignment",
+        "good": "Good alignment",
+        "fair": "Fair alignment",
+        "poor": "Poor alignment"
+      },
+      "recommendations": {
+        "title": "Recommendations"
+      },
+      "emptyState": {
+        "noTests": "No field tests or lab tests yet. Create a field test to start tracking progression."
+      }
+    },
     "coachCalendar": {
       "title": "Calendar",
       "subtitle": "Overview of all athletes' schedules and events",

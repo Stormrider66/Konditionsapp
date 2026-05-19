@@ -32,7 +32,7 @@ import {
   Scatter,
 } from 'recharts'
 import { format, parseISO } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Info } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -52,6 +53,9 @@ interface ProgressionChartProps {
 }
 
 export default function ProgressionChart({ initialClientId }: ProgressionChartProps) {
+  const locale = useLocale()
+  const t = useTranslations('components.fieldTestProgressionChart')
+  const chartLocale = locale === 'en' ? enUS : sv
   const [selectedClient, setSelectedClient] = useState<string>(initialClientId || '')
 
   // Fetch clients
@@ -73,13 +77,13 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Fälttest Progression</CardTitle>
-          <CardDescription>Välj en atlet för att visa testprogression över tid</CardDescription>
+          <CardTitle>{t('title')}</CardTitle>
+          <CardDescription>{t('initial.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Select onValueChange={handleClientChange}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Välj atlet..." />
+              <SelectValue placeholder={t('initial.selectAthletePlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {clients?.map((client) => (
@@ -95,14 +99,14 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
   }
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Laddar progression...</div>
+    return <div className="text-muted-foreground">{t('initial.loading')}</div>
   }
 
   if (error || !data) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Kunde inte ladda testprogression.</AlertDescription>
+        <AlertDescription>{t('initial.error')}</AlertDescription>
       </Alert>
     )
   }
@@ -158,9 +162,9 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Fälttest Progression</h2>
+          <h2 className="text-2xl font-bold">{t('title')}</h2>
           <p className="text-sm text-muted-foreground">
-            Utveckling av LT2-tempo över tid (snabbare = lägre sekunder/km)
+            {t('header.subtitle')}
           </p>
         </div>
 
@@ -190,7 +194,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
                       ? `${Math.abs(trendAnalysis.improvement)}s`
                       : `+${trendAnalysis.improvement}s`}
                   </div>
-                  <div className="text-xs text-muted-foreground">Förändring (sek/km)</div>
+                  <div className="text-xs text-muted-foreground">{t('summary.labels.improvement')}</div>
                 </div>
                 {trendAnalysis.improvement < 0 ? (
                   <TrendingUp className="h-8 w-8 text-green-500" />
@@ -204,14 +208,14 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
           <Card>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold">{trendAnalysis.testCount}</div>
-              <div className="text-xs text-muted-foreground">Antal tester</div>
+              <div className="text-xs text-muted-foreground">{t('summary.labels.testCount')}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold">{trendAnalysis.averageInterval} d</div>
-              <div className="text-xs text-muted-foreground">Genomsnitt mellan tester</div>
+              <div className="text-xs text-muted-foreground">{t('summary.labels.averageInterval')}</div>
             </CardContent>
           </Card>
 
@@ -220,7 +224,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-2xl font-bold">{trendAnalysis.consistency.score}%</div>
-                  <div className="text-xs text-muted-foreground">Konsistens</div>
+                  <div className="text-xs text-muted-foreground">{t('summary.labels.consistency')}</div>
                 </div>
                 <Badge
                   variant={
@@ -231,12 +235,12 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
                   }
                 >
                   {trendAnalysis.consistency.quality === 'EXCELLENT'
-                    ? 'Utmärkt'
+                    ? t('quality.excellent')
                     : trendAnalysis.consistency.quality === 'GOOD'
-                    ? 'Bra'
+                    ? t('quality.good')
                     : trendAnalysis.consistency.quality === 'FAIR'
-                    ? 'Okej'
-                    : 'Dålig'}
+                    ? t('quality.fair')
+                    : t('quality.poor')}
                 </Badge>
               </div>
             </CardContent>
@@ -247,9 +251,10 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
       {/* Progression Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>LT2-Tempo över tid</CardTitle>
+          <CardTitle>{t('chart.title')}</CardTitle>
           <CardDescription>
-            {summary.totalFieldTests} fälttester • {summary.totalLabTests} labbtester
+            {summary.totalFieldTests} {t('summary.testType.field')} • {summary.totalLabTests}{' '}
+            {t('summary.testType.lab')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -259,13 +264,13 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
               <XAxis
                 dataKey="date"
                 tickFormatter={(date) =>
-                  format(parseISO(date), 'd MMM yy', { locale: sv })
+                  format(parseISO(date), 'd MMM yy', { locale: chartLocale })
                 }
-                label={{ value: 'Datum', position: 'insideBottom', offset: -5 }}
+                label={{ value: t('chart.axes.date'), position: 'insideBottom', offset: -5 }}
               />
               <YAxis
                 label={{
-                  value: 'LT2-tempo (sekunder/km)',
+                  value: t('chart.axes.lt2Pace'),
                   angle: -90,
                   position: 'insideLeft',
                 }}
@@ -289,11 +294,11 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
                   return (
                     <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
                       <div className="font-semibold mb-2">
-                        {format(parseISO(data.date), 'd MMMM yyyy', { locale: sv })}
+                        {format(parseISO(data.date), 'd MMMM yyyy', { locale: chartLocale })}
                       </div>
                       {data.fieldTestPace && (
                         <div className="text-sm">
-                          <span className="text-blue-600">Fälttest:</span>{' '}
+                          <span className="text-blue-600">{t('chart.series.field.label')}:</span>{' '}
                           {formatPace(data.fieldTestPace)}
                           <br />
                           <span className="text-xs text-muted-foreground">
@@ -303,7 +308,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
                       )}
                       {data.labTestPace && (
                         <div className="text-sm mt-1">
-                          <span className="text-orange-600">Labbtest:</span>{' '}
+                          <span className="text-orange-600">{t('chart.series.lab.label')}:</span>{' '}
                           {formatPace(data.labTestPace)}
                         </div>
                       )}
@@ -315,7 +320,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
               <Line
                 type="monotone"
                 dataKey="fieldTestPace"
-                name="Fälttest LT2"
+                name={t('chart.series.field.name')}
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={(props: any) => {
@@ -344,7 +349,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
               <Line
                 type="monotone"
                 dataKey="labTestPace"
-                name="Labbtest LT2"
+                name={t('chart.series.lab.name')}
                 stroke="#f97316"
                 strokeWidth={2}
                 dot={{ r: 6, fill: '#f97316', stroke: '#fff', strokeWidth: 2 }}
@@ -357,15 +362,15 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
           <div className="flex items-center gap-4 mt-4 text-sm">
             <div className="flex items-center gap-1">
               <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white" />
-              <span>Hög tillförlitlighet</span>
+              <span>{t('chart.legend.highReliability')}</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded-full bg-yellow-500 border-2 border-white" />
-              <span>Medel tillförlitlighet</span>
+              <span>{t('chart.legend.mediumReliability')}</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
-              <span>Låg tillförlitlighet</span>
+              <span>{t('chart.legend.lowReliability')}</span>
             </div>
           </div>
         </CardContent>
@@ -375,7 +380,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
       {divergenceAnalysis && (
         <Card>
           <CardHeader>
-            <CardTitle>Fälttest vs Labbtest Jämförelse</CardTitle>
+            <CardTitle>{t('chart.divergenceTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-6">
@@ -384,13 +389,13 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
                   {divergenceAnalysis.averageDifference > 0 ? '+' : ''}
                   {divergenceAnalysis.averageDifference}s
                 </div>
-                <div className="text-sm text-muted-foreground">Genomsnittlig skillnad</div>
+                <div className="text-sm text-muted-foreground">{t('analysis.averageDifference')}</div>
               </div>
               <div>
                 <div className="text-2xl font-bold">
                   {divergenceAnalysis.percentDifference.toFixed(1)}%
                 </div>
-                <div className="text-sm text-muted-foreground">Procentuell skillnad</div>
+                <div className="text-sm text-muted-foreground">{t('analysis.percentDifference')}</div>
               </div>
               <div>
                 <Badge
@@ -403,12 +408,12 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
                   className="text-lg px-4 py-2"
                 >
                   {divergenceAnalysis.alignment === 'EXCELLENT'
-                    ? 'Utmärkt överensstämmelse'
+                    ? t('alignment.excellent')
                     : divergenceAnalysis.alignment === 'GOOD'
-                    ? 'Bra överensstämmelse'
+                    ? t('alignment.good')
                     : divergenceAnalysis.alignment === 'FAIR'
-                    ? 'Okej överensstämmelse'
-                    : 'Dålig överensstämmelse'}
+                    ? t('alignment.fair')
+                    : t('alignment.poor')}
                 </Badge>
               </div>
             </div>
@@ -420,7 +425,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
       {recommendations && recommendations.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Rekommendationer</CardTitle>
+            <CardTitle>{t('recommendations.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {recommendations.map((rec: string, index: number) => {
@@ -452,7 +457,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Inga fälttester eller labbtester ännu. Skapa ett fälttest för att börja spåra progression.
+            {t('emptyState.noTests')}
           </AlertDescription>
         </Alert>
       )}

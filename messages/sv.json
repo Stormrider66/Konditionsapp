@@ -14363,6 +14363,75 @@
         "anaerobicThreshold": "Anaerob tröskel"
       }
     },
+    "fieldTestProgressionChart": {
+      "title": "Fälttest progression",
+      "initial": {
+        "description": "Välj en atlet för att visa testprogression över tid",
+        "selectAthletePlaceholder": "Välj atlet...",
+        "loading": "Laddar progression...",
+        "error": "Kunde inte ladda testprogression."
+      },
+      "header": {
+        "subtitle": "Utveckling av LT2-tempo över tid (snabbare = lägre sekunder/km)"
+      },
+      "summary": {
+        "labels": {
+          "improvement": "Förändring (sek/km)",
+          "testCount": "Antal tester",
+          "averageInterval": "Genomsnitt mellan tester",
+          "consistency": "Konsistens"
+        },
+        "testType": {
+          "field": "fälttester",
+          "lab": "labbtester"
+        }
+      },
+      "quality": {
+        "excellent": "Utmärkt",
+        "good": "Bra",
+        "fair": "Okej",
+        "poor": "Dålig"
+      },
+      "chart": {
+        "title": "LT2-tempo över tid",
+        "axes": {
+          "date": "Datum",
+          "lt2Pace": "LT2-tempo (sekunder/km)"
+        },
+        "series": {
+          "field": {
+            "label": "Fälttest",
+            "name": "Fälttest LT2"
+          },
+          "lab": {
+            "label": "Labbtest",
+            "name": "Labbtest LT2"
+          }
+        },
+        "legend": {
+          "highReliability": "Hög tillförlitlighet",
+          "mediumReliability": "Medel tillförlitlighet",
+          "lowReliability": "Låg tillförlitlighet"
+        },
+        "divergenceTitle": "Fälttest vs labbtest jämförelse"
+      },
+      "analysis": {
+        "averageDifference": "Genomsnittlig skillnad",
+        "percentDifference": "Procentuell skillnad"
+      },
+      "alignment": {
+        "excellent": "Utmärkt överensstämmelse",
+        "good": "Bra överensstämmelse",
+        "fair": "Okej överensstämmelse",
+        "poor": "Dålig överensstämmelse"
+      },
+      "recommendations": {
+        "title": "Rekommendationer"
+      },
+      "emptyState": {
+        "noTests": "Inga fälttester eller labbtester ännu. Skapa ett fälttest för att börja spåra progression."
+      }
+    },
     "coachCalendar": {
       "title": "Kalender",
       "subtitle": "Överblick av alla atleters schema och händelser",
