@@ -9,12 +9,13 @@ import 'server-only'
 import { Resend } from 'resend'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { logger } from '@/lib/logger'
 import { PLATFORM_NAME } from '@/lib/branding/types'
 import { resolveEmailBranding } from '@/lib/email/branding'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+type AppLocale = 'en' | 'sv'
 
 export type NotificationType =
   | 'EVENT_CREATED'
@@ -39,6 +40,7 @@ export interface CalendarNotificationData {
 interface NotificationRecipient {
   email: string
   name: string
+  locale: AppLocale
   role: 'COACH' | 'ATHLETE'
 }
 
@@ -76,12 +78,12 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
           select: { slug: true },
         },
         user: {
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, language: true },
         },
         athleteAccount: {
           include: {
             user: {
-              select: { id: true, email: true, name: true },
+              select: { id: true, email: true, name: true, language: true },
             },
           },
         },
@@ -104,6 +106,7 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
       recipients.push({
         email: client.user.email,
         name: client.user.name || 'Coach',
+        locale: resolveLocale(client.user.language),
         role: 'COACH',
       })
     }
@@ -117,6 +120,7 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
       recipients.push({
         email: client.athleteAccount.user.email,
         name: client.athleteAccount.user.name || 'Athlete',
+        locale: resolveLocale(client.athleteAccount.user.language),
         role: 'ATHLETE',
       })
     }
@@ -149,6 +153,8 @@ export async function sendCalendarNotification(data: CalendarNotificationData): 
  * Determine if this notification should trigger an email
  */
 function shouldSendEmail(data: CalendarNotificationData): boolean {
+  if (!EMAIL_WORTHY_TYPES.includes(data.type)) return false
+
   // Always email for conflicts
   if (data.type === 'CONFLICT_DETECTED') {
     return true
@@ -188,8 +194,8 @@ async function sendNotificationEmail(
 ): Promise<void> {
   if (!resend) return
 
-  const subject = getEmailSubject(data, clientName)
-  const html = getEmailHtml(data, clientName, recipient, businessSlug)
+  const subject = getEmailSubject(data, clientName, recipient.locale)
+  const html = getEmailHtml(data, clientName, recipient, businessSlug, recipient.locale)
 
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
@@ -216,20 +222,41 @@ async function sendNotificationEmail(
 /**
  * Generate email subject
  */
-function getEmailSubject(data: CalendarNotificationData, clientName: string): string {
+function resolveLocale(language?: string | null): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function getEmailSubject(data: CalendarNotificationData, clientName: string, locale: AppLocale): string {
+  if (locale === 'sv') {
+    switch (data.type) {
+      case 'EVENT_CREATED':
+        return `Ny händelse i ${clientName}s kalender`
+      case 'EVENT_UPDATED':
+        return `Uppdaterad händelse i ${clientName}s kalender`
+      case 'EVENT_DELETED':
+        return `Borttagen händelse i ${clientName}s kalender`
+      case 'WORKOUT_RESCHEDULED':
+        return `Träningspass flyttat för ${clientName}`
+      case 'CONFLICT_DETECTED':
+        return `Konflikt upptäckt i ${clientName}s schema`
+      default:
+        return `Kalenderändring för ${clientName}`
+    }
+  }
+
   switch (data.type) {
     case 'EVENT_CREATED':
-      return `Ny händelse i ${clientName}s kalender`
+      return `New event in ${clientName}'s calendar`
     case 'EVENT_UPDATED':
-      return `Uppdaterad händelse i ${clientName}s kalender`
+      return `Updated event in ${clientName}'s calendar`
     case 'EVENT_DELETED':
-      return `Borttagen händelse i ${clientName}s kalender`
+      return `Deleted event in ${clientName}'s calendar`
     case 'WORKOUT_RESCHEDULED':
-      return `Träningspass flyttat för ${clientName}`
+      return `Workout rescheduled for ${clientName}`
     case 'CONFLICT_DETECTED':
-      return `Konflikt upptäckt i ${clientName}s schema`
+      return `Conflict detected in ${clientName}'s schedule`
     default:
-      return `Kalenderändring för ${clientName}`
+      return `Calendar change for ${clientName}`
   }
 }
 
@@ -240,11 +267,13 @@ function getEmailHtml(
   data: CalendarNotificationData,
   clientName: string,
   recipient: NotificationRecipient,
-  businessSlug: string | null
+  businessSlug: string | null,
+  locale: AppLocale
 ): string {
-  const typeLabel = getTypeLabel(data.type)
-  const dateInfo = getDateInfo(data)
-  const impactBadge = getImpactBadge(data.trainingImpact)
+  const typeLabel = getTypeLabel(data.type, locale)
+  const dateInfo = getDateInfo(data, locale)
+  const impactBadge = getImpactBadge(data.trainingImpact, locale)
+  const copy = getEmailCopy(locale)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
   const actionPath = recipient.role === 'COACH'
     ? businessSlug ? `/${businessSlug}/coach/clients` : '/login'
@@ -257,16 +286,16 @@ function getEmailHtml(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kalendernotifikation</title>
+  <title>${copy.title}</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
     <h1 style="margin: 0; font-size: 24px;">${PLATFORM_NAME}</h1>
-    <p style="margin: 5px 0 0; opacity: 0.9;">Kalendernotifikation</p>
+    <p style="margin: 5px 0 0; opacity: 0.9;">${copy.title}</p>
   </div>
 
   <div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
-    <p style="margin: 0 0 15px;">Hej ${recipient.name},</p>
+    <p style="margin: 0 0 15px;">${copy.greeting} ${recipient.name},</p>
 
     <div style="background: white; border-radius: 8px; padding: 20px; border: 1px solid #e5e7eb;">
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -277,7 +306,7 @@ function getEmailHtml(
       </div>
 
       <h2 style="margin: 0 0 10px; font-size: 18px; color: #111827;">
-        ${data.eventTitle || 'Kalenderändring'}
+        ${data.eventTitle || copy.fallbackEventTitle}
       </h2>
 
       <p style="margin: 0 0 15px; color: #6b7280;">
@@ -287,23 +316,23 @@ function getEmailHtml(
       ${dateInfo}
 
       <p style="margin: 15px 0 0; font-size: 14px; color: #6b7280;">
-        Atlet: <strong>${clientName}</strong>
+        ${copy.athleteLabel}: <strong>${clientName}</strong>
       </p>
     </div>
 
     <div style="margin-top: 20px; text-align: center;">
       <a href="${actionUrl}"
          style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
-        Visa i Kalendern
+        ${copy.actionLabel}
       </a>
     </div>
   </div>
 
   <div style="padding: 15px 20px; text-align: center; color: #9ca3af; font-size: 12px;">
     <p style="margin: 0;">
-      Detta är ett automatiskt meddelande från ${PLATFORM_NAME}.
+      ${copy.footerLine1}
       <br>
-      Du får detta mail för att det finns ändringar i en kalender du har tillgång till.
+      ${copy.footerLine2}
     </p>
   </div>
 </body>
@@ -311,20 +340,61 @@ function getEmailHtml(
   `
 }
 
-function getTypeLabel(type: NotificationType): string {
+function getEmailCopy(locale: AppLocale) {
+  if (locale === 'sv') {
+    return {
+      title: 'Kalendernotifikation',
+      greeting: 'Hej',
+      fallbackEventTitle: 'Kalenderändring',
+      athleteLabel: 'Atlet',
+      actionLabel: 'Visa i Kalendern',
+      footerLine1: `Detta är ett automatiskt meddelande från ${PLATFORM_NAME}.`,
+      footerLine2: 'Du får detta mail för att det finns ändringar i en kalender du har tillgång till.',
+    }
+  }
+
+  return {
+    title: 'Calendar notification',
+    greeting: 'Hi',
+    fallbackEventTitle: 'Calendar change',
+    athleteLabel: 'Athlete',
+    actionLabel: 'View in calendar',
+    footerLine1: `This is an automated message from ${PLATFORM_NAME}.`,
+    footerLine2: 'You are receiving this email because there are changes in a calendar you have access to.',
+  }
+}
+
+function getTypeLabel(type: NotificationType, locale: AppLocale): string {
+  if (locale === 'sv') {
+    switch (type) {
+      case 'EVENT_CREATED':
+        return 'Ny händelse'
+      case 'EVENT_UPDATED':
+        return 'Uppdaterad'
+      case 'EVENT_DELETED':
+        return 'Borttagen'
+      case 'WORKOUT_RESCHEDULED':
+        return 'Pass flyttat'
+      case 'CONFLICT_DETECTED':
+        return 'Konflikt'
+      default:
+        return 'Ändring'
+    }
+  }
+
   switch (type) {
     case 'EVENT_CREATED':
-      return 'Ny händelse'
+      return 'New event'
     case 'EVENT_UPDATED':
-      return 'Uppdaterad'
+      return 'Updated'
     case 'EVENT_DELETED':
-      return 'Borttagen'
+      return 'Deleted'
     case 'WORKOUT_RESCHEDULED':
-      return 'Pass flyttat'
+      return 'Workout moved'
     case 'CONFLICT_DETECTED':
-      return 'Konflikt'
+      return 'Conflict'
     default:
-      return 'Ändring'
+      return 'Change'
   }
 }
 
@@ -345,7 +415,7 @@ function getTypeColor(type: NotificationType): string {
   }
 }
 
-function getImpactBadge(trainingImpact?: string): string {
+function getImpactBadge(trainingImpact: string | undefined, locale: AppLocale): string {
   if (!trainingImpact) return ''
 
   const colors: Record<string, { bg: string; text: string }> = {
@@ -355,36 +425,50 @@ function getImpactBadge(trainingImpact?: string): string {
     NORMAL: { bg: '#f0fdf4', text: '#16a34a' },
   }
 
-  const labels: Record<string, string> = {
-    NO_TRAINING: 'Ingen träning',
-    REDUCED: 'Reducerad',
-    MODIFIED: 'Modifierad',
-    NORMAL: 'Normal',
+  const labels: Record<AppLocale, Record<string, string>> = {
+    en: {
+      NO_TRAINING: 'No training',
+      REDUCED: 'Reduced',
+      MODIFIED: 'Modified',
+      NORMAL: 'Normal',
+    },
+    sv: {
+      NO_TRAINING: 'Ingen träning',
+      REDUCED: 'Reducerad',
+      MODIFIED: 'Modifierad',
+      NORMAL: 'Normal',
+    },
   }
 
   const color = colors[trainingImpact] || colors.NORMAL
-  const label = labels[trainingImpact] || trainingImpact
+  const label = labels[locale][trainingImpact] || trainingImpact
 
   return `<span style="background: ${color.bg}; color: ${color.text}; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 500; margin-left: 8px;">${label}</span>`
 }
 
-function getDateInfo(data: CalendarNotificationData): string {
+function getDateInfo(data: CalendarNotificationData, locale: AppLocale): string {
   if (!data.previousDate && !data.newDate) return ''
 
   const formatDate = (date: Date) =>
-    format(date, 'EEEE d MMMM yyyy', { locale: sv })
+    format(date, locale === 'sv' ? 'EEEE d MMMM yyyy' : 'EEEE, MMMM d, yyyy', {
+      locale: locale === 'sv' ? sv : enUS,
+    })
+
+  const labels = locale === 'sv'
+    ? { from: 'Från', to: 'Till', date: 'Datum' }
+    : { from: 'From', to: 'To', date: 'Date' }
 
   if (data.previousDate && data.newDate) {
     return `
       <div style="background: #f3f4f6; padding: 12px; border-radius: 6px; margin: 15px 0;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div>
-            <span style="color: #9ca3af; font-size: 12px; text-transform: uppercase;">Från</span>
+            <span style="color: #9ca3af; font-size: 12px; text-transform: uppercase;">${labels.from}</span>
             <p style="margin: 2px 0 0; font-weight: 500;">${formatDate(data.previousDate)}</p>
           </div>
           <span style="color: #9ca3af;">→</span>
           <div>
-            <span style="color: #9ca3af; font-size: 12px; text-transform: uppercase;">Till</span>
+            <span style="color: #9ca3af; font-size: 12px; text-transform: uppercase;">${labels.to}</span>
             <p style="margin: 2px 0 0; font-weight: 500; color: #667eea;">${formatDate(data.newDate)}</p>
           </div>
         </div>
@@ -395,7 +479,7 @@ function getDateInfo(data: CalendarNotificationData): string {
   if (data.newDate) {
     return `
       <div style="background: #f3f4f6; padding: 12px; border-radius: 6px; margin: 15px 0;">
-        <span style="color: #9ca3af; font-size: 12px; text-transform: uppercase;">Datum</span>
+        <span style="color: #9ca3af; font-size: 12px; text-transform: uppercase;">${labels.date}</span>
         <p style="margin: 2px 0 0; font-weight: 500;">${formatDate(data.newDate)}</p>
       </div>
     `
