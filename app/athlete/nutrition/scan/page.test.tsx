@@ -3,7 +3,9 @@
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 import NutritionScanPage from './page'
+import messages from '@/messages/sv.json'
 
 const useSearchParamsMock = vi.fn()
 
@@ -27,6 +29,14 @@ vi.mock('@/components/nutrition/FoodPhotoScanner', () => ({
   ),
 }))
 
+function renderNutritionScanPage() {
+  return render(
+    <NextIntlClientProvider locale="sv" messages={messages}>
+      <NutritionScanPage />
+    </NextIntlClientProvider>
+  )
+}
+
 describe('NutritionScanPage', () => {
   beforeEach(() => {
     useSearchParamsMock.mockReturnValue({
@@ -35,7 +45,7 @@ describe('NutritionScanPage', () => {
   })
 
   it('defaults to the dashboard return path', () => {
-    render(<NutritionScanPage />)
+    renderNutritionScanPage()
 
     const backLink = screen.getByRole('link', { name: /tillbaka till dashboard/i })
     const scanner = screen.getByTestId('food-photo-scanner')
@@ -49,7 +59,7 @@ describe('NutritionScanPage', () => {
       get: (key: string) => key === 'returnTo' ? 'nutrition' : null,
     })
 
-    render(<NutritionScanPage />)
+    renderNutritionScanPage()
 
     const backLink = screen.getByRole('link', { name: /tillbaka till kost/i })
     const scanner = screen.getByTestId('food-photo-scanner')
