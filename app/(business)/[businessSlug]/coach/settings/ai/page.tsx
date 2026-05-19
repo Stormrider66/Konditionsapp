@@ -50,7 +50,7 @@ export default async function BusinessAISettingsPage({ params }: PageProps) {
 
       {/* Athlete Model Restrictions */}
       <div className="space-y-3">
-        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 px-1">Restriktioner för atleter</h2>
+        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 px-1">{t('athleteRestrictions')}</h2>
         <AthleteModelSettings />
       </div>
 

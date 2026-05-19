@@ -677,16 +677,16 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
                 teamName={team.name}
                 businessSlug={businessSlug}
                 initialPlan={activeTeamPlan}
-                trigger={<Button variant="outline" size="sm">Redigera</Button>}
+                trigger={<Button variant="outline" size="sm">{t('teamPlan.edit')}</Button>}
               />
             }
           />
         ) : (
           <Card className="dark:bg-slate-900/50 dark:border-white/10">
             <CardHeader>
-              <CardTitle className="dark:text-white">Lagets blockplan</CardTitle>
+              <CardTitle className="dark:text-white">{t('teamPlan.title')}</CardTitle>
               <CardDescription>
-                Skapa planens faser först, fyll sedan kalendern med is, fys och matcher.
+                {t('teamPlan.description')}
               </CardDescription>
             </CardHeader>
             <CardContent>

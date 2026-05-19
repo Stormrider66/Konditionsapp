@@ -2706,6 +2706,7 @@
         "title": "AI-inställningar",
         "description": "Konfigurera AI-modeller och API-nycklar för AI-funktionerna.",
         "defaultModel": "Standardmodell",
+        "athleteRestrictions": "Restriktioner för atleter",
         "apiKeys": "API-nycklar",
         "byok": {
           "title": "Om BYOK (Bring Your Own Key)",
@@ -3666,6 +3667,11 @@
           "accountCount": "{active}/{total} konton",
           "hockeyTests": "{count} hockeytester",
           "runFirstHockeyTest": "Kör första hockeytestet"
+        },
+        "teamPlan": {
+          "edit": "Redigera",
+          "title": "Lagets blockplan",
+          "description": "Skapa planens faser först, fyll sedan kalendern med is, fys och matcher."
         },
         "roster": {
           "title": "Spelare ({count})",

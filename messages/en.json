@@ -2706,6 +2706,7 @@
         "title": "AI settings",
         "description": "Configure AI models and API keys for AI features.",
         "defaultModel": "Default model",
+        "athleteRestrictions": "Athlete restrictions",
         "apiKeys": "API keys",
         "byok": {
           "title": "About BYOK (Bring Your Own Key)",
@@ -3666,6 +3667,11 @@
           "accountCount": "{active}/{total} accounts",
           "hockeyTests": "{count} hockey tests",
           "runFirstHockeyTest": "Run the first hockey test"
+        },
+        "teamPlan": {
+          "edit": "Edit",
+          "title": "Team block plan",
+          "description": "Create the plan phases first, then fill the calendar with ice, gym, and matches."
         },
         "roster": {
           "title": "Players ({count})",
