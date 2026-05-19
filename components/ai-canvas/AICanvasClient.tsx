@@ -2124,6 +2124,7 @@ export function AICanvasClient({
                 <CanvasBlockView
                   key={block.id}
                   block={block}
+                  locale={locale}
                   onRegenerate={() => { void handleRegenerateBlock(block) }}
                   onCreateTask={(task) => { void handleCreateFollowUpTask(task) }}
                   onScheduleTest={handleScheduleTestAction}
@@ -2311,6 +2312,7 @@ export function AICanvasClient({
 
 function CanvasBlockView({
   block,
+  locale,
   onRegenerate,
   onCreateTask,
   onScheduleTest,
@@ -2318,16 +2320,19 @@ function CanvasBlockView({
   isRegenerating,
 }: {
   block: CanvasBlock
+  locale: 'en' | 'sv'
   onRegenerate: () => void
   onCreateTask: (task: { title: string; description?: string; priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT' }) => void
   onScheduleTest: (sourceLabel?: string) => void
   isCreatingTask: boolean
   isRegenerating: boolean
 }) {
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en
+
   if (block.type === 'chart') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={BarChart3} title={block.title ?? 'Diagram'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+        <BlockHeader icon={BarChart3} title={block.title ?? t('Diagram', 'Chart')} locale={locale} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         {block.content && <p className="mt-2 text-sm leading-6 text-slate-600">{block.content}</p>}
         <div className="mt-4 h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -2336,7 +2341,7 @@ function CanvasBlockView({
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} width={42} />
-                <Tooltip formatter={(value) => [`${value}${block.unit ? ` ${block.unit}` : ''}`, 'Värde']} />
+                <Tooltip formatter={(value) => [`${value}${block.unit ? ` ${block.unit}` : ''}`, t('Värde', 'Value')]} />
                 <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             ) : (
@@ -2344,7 +2349,7 @@ function CanvasBlockView({
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} width={42} />
-                <Tooltip formatter={(value) => [`${value}${block.unit ? ` ${block.unit}` : ''}`, 'Värde']} />
+                <Tooltip formatter={(value) => [`${value}${block.unit ? ` ${block.unit}` : ''}`, t('Värde', 'Value')]} />
                 <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} />
               </RechartsBarChart>
             )}
@@ -2357,7 +2362,7 @@ function CanvasBlockView({
   if (block.type === 'metric-row') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={BarChart3} title={block.title ?? 'Mätvärden'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+        <BlockHeader icon={BarChart3} title={block.title ?? t('Mätvärden', 'Metrics')} locale={locale} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {block.metrics?.map((metric) => (
             <div key={`${metric.label}-${metric.value}`} className={cn(
@@ -2380,7 +2385,7 @@ function CanvasBlockView({
   if (block.type === 'risk-list') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={AlertCircle} title={block.title ?? 'Risker'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+        <BlockHeader icon={AlertCircle} title={block.title ?? t('Risker', 'Risks')} locale={locale} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <div className="mt-3 space-y-2">
           {block.risks?.map((risk) => (
             <div key={`${risk.title}-${risk.description}`} className="rounded-md border border-slate-200 p-3">
@@ -2406,7 +2411,7 @@ function CanvasBlockView({
                   variant="outline"
                   size="sm"
                   onClick={() => onCreateTask({
-                    title: `Följ upp: ${risk.title}`.slice(0, 160),
+                    title: `${t('Följ upp', 'Follow up')}: ${risk.title}`.slice(0, 160),
                     description: `${risk.description}${risk.meta ? `\n\n${risk.meta}` : ''}`,
                     priority: risk.priority === 'high' ? 'HIGH' : risk.priority === 'medium' ? 'NORMAL' : 'LOW',
                   })}
@@ -2414,12 +2419,12 @@ function CanvasBlockView({
                   className="gap-2"
                 >
                   <ClipboardList className="h-4 w-4" />
-                  Skapa uppgift
+                  {t('Skapa uppgift', 'Create task')}
                 </Button>
                 {looksLikeTestAction(`${risk.title} ${risk.description} ${risk.meta || ''}`) && (
                   <Button variant="outline" size="sm" onClick={() => onScheduleTest(risk.title)} className="gap-2">
                     <CalendarPlus className="h-4 w-4" />
-                    Boka test
+                    {t('Boka test', 'Book test')}
                   </Button>
                 )}
               </div>
@@ -2433,7 +2438,7 @@ function CanvasBlockView({
   if (block.type === 'trend-summary') {
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={TrendingUp} title={block.title ?? 'Trend'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+        <BlockHeader icon={TrendingUp} title={block.title ?? t('Trend', 'Trend')} locale={locale} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <div className="mt-3 space-y-2">
           {block.trends?.map((trend) => {
             const TrendIcon = trend.direction === 'down' ? TrendingDown : trend.direction === 'up' ? TrendingUp : BarChart3
@@ -2469,7 +2474,7 @@ function CanvasBlockView({
             disabled={isRegenerating}
             className="shrink-0 border-slate-700 bg-slate-900 text-white hover:bg-slate-800"
           >
-            {isRegenerating ? 'Förbättrar...' : 'Förbättra'}
+            {isRegenerating ? t('Förbättrar...', 'Improving...') : t('Förbättra', 'Improve')}
           </Button>
         </div>
         {block.content && <p className="mt-2 text-sm leading-6 text-slate-300">{block.content}</p>}
@@ -2480,7 +2485,7 @@ function CanvasBlockView({
   if (block.type === 'table') {
     return (
       <article className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <BlockHeader icon={Table2} title={block.title ?? 'Tabell'} onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+        <BlockHeader icon={Table2} title={block.title ?? t('Tabell', 'Table')} locale={locale} onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -2513,7 +2518,7 @@ function CanvasBlockView({
     const Icon = block.type === 'actions' ? ClipboardList : ListChecks
     return (
       <article className="rounded-lg border border-slate-200 bg-white p-4">
-        <BlockHeader icon={Icon} title={block.title ?? 'Lista'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+        <BlockHeader icon={Icon} title={block.title ?? t('Lista', 'List')} locale={locale} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         <ul className="mt-3 space-y-2">
           {block.items?.map((item) => (
             <li key={item} className="rounded-md border border-slate-200 p-3">
@@ -2527,18 +2532,18 @@ function CanvasBlockView({
                   size="sm"
                   onClick={() => onCreateTask({
                     title: item.slice(0, 160),
-                    description: block.title ? `Från canvasblocket "${block.title}".` : 'Från AI Canvas.',
+                    description: block.title ? `${t('Från canvasblocket', 'From the canvas block')} "${block.title}".` : t('Från AI Canvas.', 'From AI Canvas.'),
                   })}
                   disabled={isCreatingTask}
                   className="gap-2"
                 >
                   <ClipboardList className="h-4 w-4" />
-                  Skapa uppgift
+                  {t('Skapa uppgift', 'Create task')}
                 </Button>
                 {looksLikeTestAction(item) && (
                   <Button variant="outline" size="sm" onClick={() => onScheduleTest(item)} className="gap-2">
                     <CalendarPlus className="h-4 w-4" />
-                    Boka test
+                    {t('Boka test', 'Book test')}
                   </Button>
                 )}
               </div>
@@ -2559,7 +2564,7 @@ function CanvasBlockView({
 
     return (
       <article className={cn('rounded-lg border p-4', toneClass)}>
-        <BlockHeader icon={Lightbulb} title={block.title ?? 'Insikt'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+        <BlockHeader icon={Lightbulb} title={block.title ?? t('Insikt', 'Insight')} locale={locale} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
         {block.content && <p className="mt-2 text-sm leading-6">{block.content}</p>}
       </article>
     )
@@ -2567,7 +2572,7 @@ function CanvasBlockView({
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4">
-      <BlockHeader icon={FileText} title={block.title ?? 'Text'} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
+      <BlockHeader icon={FileText} title={block.title ?? t('Text', 'Text')} locale={locale} compact onRegenerate={onRegenerate} isRegenerating={isRegenerating} />
       {block.content && <p className="mt-2 text-sm leading-6 text-slate-700">{block.content}</p>}
     </article>
   )
@@ -2576,12 +2581,14 @@ function CanvasBlockView({
 function BlockHeader({
   icon: Icon,
   title,
+  locale,
   compact = false,
   onRegenerate,
   isRegenerating = false,
 }: {
   icon: typeof FileText
   title: string
+  locale: 'en' | 'sv'
   compact?: boolean
   onRegenerate?: () => void
   isRegenerating?: boolean
@@ -2594,7 +2601,9 @@ function BlockHeader({
       </div>
       {onRegenerate && (
         <Button variant="outline" size="sm" onClick={onRegenerate} disabled={isRegenerating} className="shrink-0">
-          {isRegenerating ? 'Förbättrar...' : 'Förbättra'}
+          {isRegenerating
+            ? locale === 'sv' ? 'Förbättrar...' : 'Improving...'
+            : locale === 'sv' ? 'Förbättra' : 'Improve'}
         </Button>
       )}
     </div>
