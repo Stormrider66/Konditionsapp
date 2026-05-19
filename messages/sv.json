@@ -3349,6 +3349,34 @@
           "completeSportContextDescription": "Koppla utvecklingen till idrott, roll och nivå."
         },
         "profile": {
+          "statusTitle": "Profilstatus",
+          "status": {
+            "good": "Setup klar",
+            "caution": "Nästan klar",
+            "setup": "Setup saknas"
+          },
+          "statusSummary": {
+            "good": "Konto, kontakt, kroppsvärden och sportkontext är på plats.",
+            "caution": "Profilen går att använda, men några uppgifter bör kompletteras.",
+            "setup": "Fyll i grunden först så coachningen och atleten får rätt kontext."
+          },
+          "statusItems": {
+            "portal": "Portal",
+            "contact": "Kontakt",
+            "body": "Kroppsdata",
+            "sport": "Sport"
+          },
+          "missing": "Saknas",
+          "actions": {
+            "createAccount": "Skapa konto",
+            "createAccountDescription": "Ge atleten åtkomst till portal och loggar.",
+            "sendInvite": "Skicka inbjudan",
+            "sendInviteDescription": "Hjälp atleten komma igång med kontot.",
+            "editDetails": "Redigera uppgifter",
+            "editDetailsDescription": "Uppdatera kontakt, kroppsvärden och anteckningar.",
+            "sportProfile": "Gå till sportprofil",
+            "sportProfileDescription": "Komplettera idrott, nivå och roll."
+          },
           "portalTitle": "Atletportal",
           "portalDescription": "Konto, inloggning och inbjudningsstatus.",
           "accountCreated": "Konto skapat",

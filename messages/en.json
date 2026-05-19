@@ -3349,6 +3349,34 @@
           "completeSportContextDescription": "Connect development to sport, role, and level."
         },
         "profile": {
+          "statusTitle": "Profile status",
+          "status": {
+            "good": "Setup complete",
+            "caution": "Almost complete",
+            "setup": "Setup missing"
+          },
+          "statusSummary": {
+            "good": "Account, contact, body data, and sport context are in place.",
+            "caution": "The profile is usable, but a few details should be completed.",
+            "setup": "Fill in the foundation first so coaching and athlete access have the right context."
+          },
+          "statusItems": {
+            "portal": "Portal",
+            "contact": "Contact",
+            "body": "Body data",
+            "sport": "Sport"
+          },
+          "missing": "Missing",
+          "actions": {
+            "createAccount": "Create account",
+            "createAccountDescription": "Give the athlete access to portal and logs.",
+            "sendInvite": "Send invite",
+            "sendInviteDescription": "Help the athlete get started with the account.",
+            "editDetails": "Edit details",
+            "editDetailsDescription": "Update contact, body data, and notes.",
+            "sportProfile": "Go to sport profile",
+            "sportProfileDescription": "Complete sport, level, and role."
+          },
           "portalTitle": "Athlete portal",
           "portalDescription": "Account, sign-in, and invitation status.",
           "accountCreated": "Account created",

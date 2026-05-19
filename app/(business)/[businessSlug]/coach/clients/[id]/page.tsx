@@ -675,6 +675,38 @@ export default function BusinessClientDetailPage() {
   const developmentPrimarySportLabel = sportProfile?.primarySport
     ? sportProfile.primarySport.replace(/_/g, ' ')
     : t('development.noSportProfile')
+  const profileSetupItems = [
+    {
+      id: 'portal',
+      complete: !!client.athleteAccount,
+      label: t('profile.statusItems.portal'),
+      value: client.athleteAccount ? portalMetricLabel : t('overview.snapshotMetrics.noPortal'),
+    },
+    {
+      id: 'contact',
+      complete: !!client.email || !!client.phone,
+      label: t('profile.statusItems.contact'),
+      value: client.email || client.phone || t('profile.missing'),
+    },
+    {
+      id: 'body',
+      complete: !!client.height && !!client.weight,
+      label: t('profile.statusItems.body'),
+      value: client.height && client.weight ? `${client.height} cm / ${client.weight} kg` : t('profile.missing'),
+    },
+    {
+      id: 'sport',
+      complete: !!sportProfile,
+      label: t('profile.statusItems.sport'),
+      value: developmentPrimarySportLabel,
+    },
+  ]
+  const completedProfileSetupItems = profileSetupItems.filter((item) => item.complete).length
+  const profileSetupTone: CoachSnapshotTone = completedProfileSetupItems === profileSetupItems.length
+    ? 'good'
+    : completedProfileSetupItems >= 2
+      ? 'caution'
+      : 'setup'
 
   const noAthleteAccountContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
@@ -1294,6 +1326,108 @@ export default function BusinessClientDetailPage() {
 
   const profileContent = (
     <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('profile.statusTitle')}</h2>
+              <Badge
+                variant="outline"
+                className={cn(
+                  'border font-medium',
+                  profileSetupTone === 'good' && 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+                  profileSetupTone === 'caution' && 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+                  profileSetupTone === 'setup' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
+                )}
+              >
+                {profileSetupTone === 'good' ? <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> : <CircleAlert className="mr-1 h-3.5 w-3.5" />}
+                {t(`profile.status.${profileSetupTone}`)}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t(`profile.statusSummary.${profileSetupTone}`)}
+            </p>
+          </div>
+          <Link href={`${basePath}/clients/${id}/edit`}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
+              <Edit2 className="w-4 h-4 mr-2" />
+              {t('actions.edit')}
+            </Button>
+          </Link>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-4 mt-5">
+          {profileSetupItems.map((item) => (
+            <div key={item.id} className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+              <div className="flex items-center gap-2">
+                {item.complete ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                ) : (
+                  <CircleAlert className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+                )}
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{item.label}</p>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mt-2 truncate">{item.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3 mt-5">
+          {!client.athleteAccount ? (
+            <CreateAthleteAccountDialog
+              clientId={id}
+              clientName={client.name}
+              clientEmail={client.email}
+              clientPhone={client.phone}
+              hasExistingAccount={false}
+              onAccountCreated={fetchClient}
+              trigger={
+                <Button variant="outline" className="h-auto w-full justify-start p-3">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('profile.actions.createAccount')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('profile.actions.createAccountDescription')}</p>
+                  </div>
+                </Button>
+              }
+            />
+          ) : (
+            <CreateAthleteAccountDialog
+              clientId={id}
+              clientName={client.name}
+              clientEmail={client.email}
+              clientPhone={client.phone}
+              hasExistingAccount
+              onAccountCreated={fetchClient}
+              trigger={
+                <Button variant="outline" className="h-auto w-full justify-start p-3">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('profile.actions.sendInvite')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('profile.actions.sendInviteDescription')}</p>
+                  </div>
+                </Button>
+              }
+            />
+          )}
+
+          <Link href={`${basePath}/clients/${id}/edit`}>
+            <Button variant="outline" className="h-auto w-full justify-start p-3">
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('profile.actions.editDetails')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('profile.actions.editDetailsDescription')}</p>
+              </div>
+            </Button>
+          </Link>
+
+          <Link href={`${basePath}/clients/${id}?tab=profile`}>
+            <Button variant="outline" className="h-auto w-full justify-start p-3">
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('profile.actions.sportProfile')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('profile.actions.sportProfileDescription')}</p>
+              </div>
+            </Button>
+          </Link>
+        </div>
+      </div>
       {profileOverviewContent}
       {sportProfileContent}
     </div>
