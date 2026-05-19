@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Play, Sparkles } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface VariableInfo {
   id: string
@@ -26,17 +27,31 @@ interface VariableSelectorProps {
   loading: boolean
 }
 
-const CATEGORY_NAMES: Record<string, string> = {
-  PHYSIOLOGICAL: 'Fysiologiska',
-  BODY_COMPOSITION: 'Kroppssammansättning',
-  TRAINING_LOAD: 'Träningsbelastning',
-  DAILY_MONITORING: 'Daglig uppföljning',
-  PERFORMANCE: 'Prestation',
-  STRENGTH: 'Styrka',
-  RECOVERY: 'Återhämtning',
-  GAIT: 'Löpteknik',
-  INTEGRATION: 'Integrationer',
-  TEMPORAL: 'Trender',
+const CATEGORY_NAMES: Record<'en' | 'sv', Record<string, string>> = {
+  en: {
+    PHYSIOLOGICAL: 'Physiological',
+    BODY_COMPOSITION: 'Body composition',
+    TRAINING_LOAD: 'Training load',
+    DAILY_MONITORING: 'Daily monitoring',
+    PERFORMANCE: 'Performance',
+    STRENGTH: 'Strength',
+    RECOVERY: 'Recovery',
+    GAIT: 'Gait',
+    INTEGRATION: 'Integrations',
+    TEMPORAL: 'Trends',
+  },
+  sv: {
+    PHYSIOLOGICAL: 'Fysiologiska',
+    BODY_COMPOSITION: 'Kroppssammansättning',
+    TRAINING_LOAD: 'Träningsbelastning',
+    DAILY_MONITORING: 'Daglig uppföljning',
+    PERFORMANCE: 'Prestation',
+    STRENGTH: 'Styrka',
+    RECOVERY: 'Återhämtning',
+    GAIT: 'Löpteknik',
+    INTEGRATION: 'Integrationer',
+    TEMPORAL: 'Trender',
+  },
 }
 
 const CATEGORY_ORDER = [
@@ -151,6 +166,8 @@ export function VariableSelector({
   onRunAnalysis,
   loading,
 }: VariableSelectorProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
     // Default: all variables with coverage > 0
     return new Set(variables.filter((v) => v.coverage > 0).map((v) => v.id))
@@ -221,9 +238,12 @@ export function VariableSelector({
   return (
     <Card className="dark:bg-slate-900/50 dark:border-white/10">
       <CardHeader>
-        <CardTitle className="dark:text-white">Välj variabler för analys</CardTitle>
+        <CardTitle className="dark:text-white">{t('Välj variabler för analys', 'Select variables for analysis')}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Välj vilka variabler som ska inkluderas i PCA-analysen. Variabler med låg datatäckning kan exkluderas automatiskt.
+          {t(
+            'Välj vilka variabler som ska inkluderas i PCA-analysen. Variabler med låg datatäckning kan exkluderas automatiskt.',
+            'Choose which variables to include in the PCA analysis. Variables with low data coverage may be excluded automatically.'
+          )}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -234,7 +254,7 @@ export function VariableSelector({
             size="sm"
             onClick={() => setActiveCategory(null)}
           >
-            Alla ({variables.length})
+            {t('Alla', 'All')} ({variables.length})
           </Button>
           {categoriesToShow.map((cat) => {
             const count = grouped.get(cat)?.length ?? 0
@@ -246,7 +266,7 @@ export function VariableSelector({
                 size="sm"
                 onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
               >
-                {CATEGORY_NAMES[cat] ?? cat} ({selectedInCat}/{count})
+                {CATEGORY_NAMES[locale][cat] ?? cat} ({selectedInCat}/{count})
               </Button>
             )
           })}
@@ -259,7 +279,10 @@ export function VariableSelector({
               <div>
                 <p className="text-sm font-medium dark:text-white">Hockey/SIMCA presets</p>
                 <p className="text-xs text-muted-foreground">
-                  Snabbval för PCA/PLS. Target-gap preset speglar standardnormer i appen och sparade normer i CSV-exporten.
+                  {t(
+                    'Snabbval för PCA/PLS. Target-gap preset speglar standardnormer i appen och sparade normer i CSV-exporten.',
+                    'Quick selections for PCA/PLS. The target-gap preset reflects standard app norms and saved norms in the CSV export.'
+                  )}
                 </p>
               </div>
             </div>
@@ -297,14 +320,14 @@ export function VariableSelector({
               size="sm"
               onClick={() => selectAllInCategory(activeCategory)}
             >
-              Markera alla
+              {t('Markera alla', 'Select all')}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => deselectAllInCategory(activeCategory)}
             >
-              Avmarkera alla
+              {t('Avmarkera alla', 'Deselect all')}
             </Button>
           </div>
         )}
@@ -322,7 +345,7 @@ export function VariableSelector({
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm dark:text-slate-200 truncate">{v.nameSv}</span>
+                  <span className="text-sm dark:text-slate-200 truncate">{locale === 'sv' ? v.nameSv : v.name}</span>
                   {isSportRelevant(v) && (
                     <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0">
                       {teamSportType}
@@ -349,7 +372,7 @@ export function VariableSelector({
         {/* Footer */}
         <div className="flex items-center justify-between pt-4 border-t dark:border-white/10">
           <p className="text-sm text-muted-foreground">
-            {selectedCount} variabler valda
+            {selectedCount} {selectedCount === 1 ? t('variabel vald', 'variable selected') : t('variabler valda', 'variables selected')}
           </p>
           <Button
             onClick={() => onRunAnalysis(Array.from(selectedIds))}
@@ -357,7 +380,7 @@ export function VariableSelector({
             size="lg"
           >
             <Play className="mr-2 h-4 w-4" />
-            Kör analys
+            {t('Kör analys', 'Run analysis')}
           </Button>
         </div>
       </CardContent>
