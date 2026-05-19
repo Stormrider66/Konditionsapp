@@ -106,6 +106,14 @@ interface ThresholdSummary {
 
 type SortField = 'date' | 'type' | 'vo2max' | 'status'
 type SortDirection = 'asc' | 'desc'
+type CoachSnapshotTone = 'good' | 'caution' | 'setup'
+type CoachSnapshotAction = {
+  id: string
+  title: string
+  description: string
+  href?: string
+  dialog?: 'createAccount' | 'sendInvite'
+}
 
 const DEFAULT_PLAYER_HOCKEY_SETTINGS: HockeySettings = {
   position: 'center',
@@ -538,6 +546,95 @@ export default function BusinessClientDetailPage() {
   const formatProfileDate = (value?: string | Date | null) => value
     ? format(new Date(value), 'PPP', { locale: dateFnsLocale })
     : t('profile.notAvailable')
+  const now = new Date()
+  const completedTests = (client.tests ?? [])
+    .filter((test) => test.status === 'COMPLETED')
+    .sort((a, b) => new Date(b.testDate).getTime() - new Date(a.testDate).getTime())
+  const latestCompletedTest = completedTests[0] ?? null
+  const latestTestAgeDays = latestCompletedTest
+    ? Math.max(0, Math.floor((now.getTime() - new Date(latestCompletedTest.testDate).getTime()) / 86_400_000))
+    : null
+  const activeProgram = programs.find((program) => {
+    const startDate = new Date(program.startDate)
+    const endDate = new Date(program.endDate)
+    return startDate <= now && endDate >= now
+  }) ?? null
+  const hasRecentTest = latestTestAgeDays !== null && latestTestAgeDays <= 90
+  const hasPortalLogin = athletePortalStatus?.hasLoggedIn === true
+  const coachSnapshotTone: CoachSnapshotTone = !client.athleteAccount || !latestCompletedTest || !activeProgram
+    ? 'setup'
+    : !hasRecentTest || !sportProfile || !hasPortalLogin
+      ? 'caution'
+      : 'good'
+  const coachSnapshotActions: CoachSnapshotAction[] = []
+
+  if (!client.athleteAccount) {
+    coachSnapshotActions.push({
+      id: 'create-account',
+      title: t('overview.snapshotActions.createAccount.title'),
+      description: t('overview.snapshotActions.createAccount.description'),
+      dialog: 'createAccount',
+    })
+  } else if (!hasPortalLogin) {
+    coachSnapshotActions.push({
+      id: 'send-invite',
+      title: t('overview.snapshotActions.sendInvite.title'),
+      description: t('overview.snapshotActions.sendInvite.description'),
+      dialog: 'sendInvite',
+    })
+  }
+
+  if (!sportProfile) {
+    coachSnapshotActions.push({
+      id: 'complete-profile',
+      title: t('overview.snapshotActions.completeProfile.title'),
+      description: t('overview.snapshotActions.completeProfile.description'),
+      href: `${basePath}/clients/${id}?tab=profile`,
+    })
+  }
+
+  if (!latestCompletedTest || !hasRecentTest) {
+    coachSnapshotActions.push({
+      id: 'schedule-test',
+      title: latestCompletedTest
+        ? t('overview.snapshotActions.retest.title')
+        : t('overview.snapshotActions.firstTest.title'),
+      description: latestCompletedTest
+        ? t('overview.snapshotActions.retest.description')
+        : t('overview.snapshotActions.firstTest.description'),
+      href: `${basePath}/test`,
+    })
+  }
+
+  if (!activeProgram) {
+    coachSnapshotActions.push({
+      id: 'create-program',
+      title: t('overview.snapshotActions.createProgram.title'),
+      description: t('overview.snapshotActions.createProgram.description'),
+      href: `${basePath}/programs/new`,
+    })
+  }
+
+  if (coachSnapshotActions.length === 0) {
+    coachSnapshotActions.push({
+      id: 'review-development',
+      title: t('overview.snapshotActions.reviewDevelopment.title'),
+      description: t('overview.snapshotActions.reviewDevelopment.description'),
+      href: `${basePath}/clients/${id}?tab=development`,
+    })
+  }
+
+  const visibleCoachSnapshotActions = coachSnapshotActions.slice(0, 3)
+  const latestTestLabel = latestCompletedTest
+    ? latestTestAgeDays !== null && latestTestAgeDays > 90
+      ? t('overview.snapshotMetrics.staleTest', { days: latestTestAgeDays })
+      : format(new Date(latestCompletedTest.testDate), 'PPP', { locale: dateFnsLocale })
+    : t('overview.snapshotMetrics.noTests')
+  const portalMetricLabel = client.athleteAccount
+    ? athletePortalStatus?.hasLoggedIn
+      ? portalStatusLabels.active
+      : portalStatusLabels.notLoggedIn
+    : t('overview.snapshotMetrics.noPortal')
 
   const noAthleteAccountContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
@@ -680,10 +777,26 @@ export default function BusinessClientDetailPage() {
   const overviewContent = (
     <div className="space-y-4 sm:space-y-6">
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('overview.coachSnapshot')}</h2>
-            <p className="text-sm text-muted-foreground mt-1">{t('overview.coachSnapshotDescription')}</p>
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('overview.coachSnapshot')}</h2>
+              <Badge
+                variant="outline"
+                className={cn(
+                  'border font-medium',
+                  coachSnapshotTone === 'good' && 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+                  coachSnapshotTone === 'caution' && 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+                  coachSnapshotTone === 'setup' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
+                )}
+              >
+                {coachSnapshotTone === 'good' ? <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> : <CircleAlert className="mr-1 h-3.5 w-3.5" />}
+                {t(`overview.snapshotStatus.${coachSnapshotTone}`)}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t(`overview.snapshotSummary.${coachSnapshotTone}`)}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <AIContextButton athleteId={id} athleteName={client.name} />
@@ -693,6 +806,64 @@ export default function BusinessClientDetailPage() {
                 <span className="hidden sm:inline">{t('actions.edit')}</span>
               </Button>
             </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3 mt-5">
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('overview.snapshotMetrics.nextFocus')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">
+              {activeProgram?.name ?? t('overview.snapshotMetrics.noActiveProgram')}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('overview.snapshotMetrics.latestTest')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">{latestTestLabel}</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('overview.snapshotMetrics.portal')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">{portalMetricLabel}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 border-t border-gray-200 dark:border-white/10 pt-4">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">{t('overview.nextActions')}</h3>
+          <div className="grid gap-3 lg:grid-cols-3">
+            {visibleCoachSnapshotActions.map((action) => {
+              const actionBody = (
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{action.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
+                </div>
+              )
+
+              if (action.dialog) {
+                return (
+                  <CreateAthleteAccountDialog
+                    key={action.id}
+                    clientId={id}
+                    clientName={client.name}
+                    clientEmail={client.email}
+                    clientPhone={client.phone}
+                    hasExistingAccount={action.dialog === 'sendInvite'}
+                    onAccountCreated={fetchClient}
+                    trigger={
+                      <Button variant="outline" className="h-auto w-full justify-start p-3">
+                        {actionBody}
+                      </Button>
+                    }
+                  />
+                )
+              }
+
+              return (
+                <Link key={action.id} href={action.href ?? `${basePath}/clients/${id}`}>
+                  <Button variant="outline" className="h-auto w-full justify-start p-3">
+                    {actionBody}
+                  </Button>
+                </Link>
+              )
+            })}
           </div>
         </div>
       </div>

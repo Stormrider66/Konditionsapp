@@ -3238,7 +3238,57 @@
           "sportSpecificData": "Sport-specific data",
           "heartRateZoneAnalysis": "Heart rate zone analysis",
           "coachSnapshot": "Coach overview",
-          "coachSnapshotDescription": "The key daily signals for load, readiness, nutrition, and recent development."
+          "coachSnapshotDescription": "The key daily signals for load, readiness, nutrition, and recent development.",
+          "snapshotStatus": {
+            "good": "Ready to coach",
+            "caution": "Needs follow-up",
+            "setup": "Setup missing"
+          },
+          "snapshotSummary": {
+            "good": "Profile, testing, and programming are in place. Next step is to monitor progress and adjust load.",
+            "caution": "The foundation is there, but one or more signals should be refreshed before coaching decisions feel complete.",
+            "setup": "Start here: get the account, test history, and planning in place so the overview becomes useful."
+          },
+          "snapshotMetrics": {
+            "nextFocus": "Next focus",
+            "latestTest": "Latest test",
+            "portal": "Portal",
+            "noActiveProgram": "No active program",
+            "noTests": "No tests",
+            "staleTest": "{days} days ago",
+            "noPortal": "No account"
+          },
+          "nextActions": "Next steps",
+          "snapshotActions": {
+            "createAccount": {
+              "title": "Create athlete account",
+              "description": "Open the portal so the athlete can log sessions and receive feedback."
+            },
+            "sendInvite": {
+              "title": "Send invite again",
+              "description": "The athlete has an account but does not seem to have started yet."
+            },
+            "completeProfile": {
+              "title": "Complete sport profile",
+              "description": "Make coaching more relevant with sport, level, and context."
+            },
+            "firstTest": {
+              "title": "Add first test",
+              "description": "Create a physiological baseline before steering the program harder."
+            },
+            "retest": {
+              "title": "Plan retest",
+              "description": "Test data is getting old and should be refreshed for better zones and decisions."
+            },
+            "createProgram": {
+              "title": "Create active program",
+              "description": "Give the athlete a clear plan for the next training block."
+            },
+            "reviewDevelopment": {
+              "title": "Review development",
+              "description": "Check tests, strength, and training patterns before the next decision."
+            }
+          }
         },
         "profile": {
           "portalTitle": "Athlete portal",

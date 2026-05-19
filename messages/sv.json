@@ -3238,7 +3238,57 @@
           "sportSpecificData": "Sportspecifik Data",
           "heartRateZoneAnalysis": "Pulszonanalys",
           "coachSnapshot": "Coachöversikt",
-          "coachSnapshotDescription": "Dagens viktigaste signaler för belastning, beredskap, nutrition och senaste utveckling."
+          "coachSnapshotDescription": "Dagens viktigaste signaler för belastning, beredskap, nutrition och senaste utveckling.",
+          "snapshotStatus": {
+            "good": "Redo för coachning",
+            "caution": "Behöver uppföljning",
+            "setup": "Setup saknas"
+          },
+          "snapshotSummary": {
+            "good": "Profil, tester och program är på plats. Nästa steg är att följa utvecklingen och justera belastningen.",
+            "caution": "Grunden finns, men en eller flera signaler behöver uppdateras innan coachningen känns helt trygg.",
+            "setup": "Börja här: få kontot, testhistoriken och planeringen på plats så översikten blir användbar."
+          },
+          "snapshotMetrics": {
+            "nextFocus": "Nästa fokus",
+            "latestTest": "Senaste test",
+            "portal": "Portal",
+            "noActiveProgram": "Inget aktivt program",
+            "noTests": "Inga tester",
+            "staleTest": "{days} dagar sedan",
+            "noPortal": "Inget konto"
+          },
+          "nextActions": "Nästa steg",
+          "snapshotActions": {
+            "createAccount": {
+              "title": "Skapa atletkonto",
+              "description": "Öppna portalen så atleten kan logga pass och få återkoppling."
+            },
+            "sendInvite": {
+              "title": "Skicka inbjudan igen",
+              "description": "Atleten har konto men verkar inte ha kommit igång ännu."
+            },
+            "completeProfile": {
+              "title": "Fyll i sportprofil",
+              "description": "Gör coachningen mer relevant med sport, nivå och kontext."
+            },
+            "firstTest": {
+              "title": "Lägg in första testet",
+              "description": "Skapa en fysiologisk baslinje innan programmet styrs hårdare."
+            },
+            "retest": {
+              "title": "Planera omtest",
+              "description": "Testdata är äldre och bör uppdateras för rätt zoner och beslut."
+            },
+            "createProgram": {
+              "title": "Skapa aktivt program",
+              "description": "Ge atleten en tydlig plan för nästa träningsblock."
+            },
+            "reviewDevelopment": {
+              "title": "Granska utveckling",
+              "description": "Titta på tester, styrka och träningsmönster inför nästa beslut."
+            }
+          }
         },
         "profile": {
           "portalTitle": "Atletportal",
