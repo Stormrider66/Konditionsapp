@@ -47,9 +47,10 @@ export function ProgramSelector({
   clientId,
   value,
   onValueChange,
-  placeholder = 'Välj program...',
+  placeholder,
 }: ProgramSelectorProps) {
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
   const [programs, setPrograms] = useState<Program[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -69,7 +70,7 @@ export function ProgramSelector({
         const result = await response.json()
 
         if (!response.ok) {
-          throw new Error(result.error || 'Kunde inte hämta program')
+          throw new Error(result.error || (appLocale === 'sv' ? 'Kunde inte hämta program' : 'Could not load programs'))
         }
 
         const programList = result.data || result.programs || []
@@ -82,20 +83,22 @@ export function ProgramSelector({
         }
       } catch (err) {
         console.error('Error fetching programs:', err)
-        setError(err instanceof Error ? err.message : 'Kunde inte hämta program')
+        setError(err instanceof Error ? err.message : (appLocale === 'sv' ? 'Kunde inte hämta program' : 'Could not load programs'))
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchPrograms()
-  }, [clientId, value, onValueChange])
+  }, [appLocale, clientId, value, onValueChange])
 
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted/50">
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Laddar program...</span>
+        <span className="text-sm text-muted-foreground">
+          {appLocale === 'sv' ? 'Laddar program...' : 'Loading programs...'}
+        </span>
       </div>
     )
   }
@@ -114,12 +117,14 @@ export function ProgramSelector({
       <div className="space-y-2">
         <div className="flex items-center gap-2 h-10 px-3 border border-amber-200 rounded-md bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-500" />
-          <span className="text-sm text-amber-700">Inga program hittades</span>
+          <span className="text-sm text-amber-700">
+            {appLocale === 'sv' ? 'Inga program hittades' : 'No programs found'}
+          </span>
         </div>
         <Link href={`${basePath}/coach/programs/new`}>
           <Button variant="outline" size="sm" className="w-full">
             <Plus className="h-4 w-4 mr-2" />
-            Skapa nytt program
+            {appLocale === 'sv' ? 'Skapa nytt program' : 'Create new program'}
           </Button>
         </Link>
       </div>
@@ -136,14 +141,17 @@ export function ProgramSelector({
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder ?? (appLocale === 'sv' ? 'Välj program...' : 'Choose program...')} />
       </SelectTrigger>
       <SelectContent>
         {sortedPrograms.map((program) => (
           <SelectItem key={program.id} value={program.id}>
             <div className="flex items-center gap-2">
               {program.isActive && (
-                <span className="w-2 h-2 rounded-full bg-green-500" title="Aktivt" />
+                <span
+                  className="w-2 h-2 rounded-full bg-green-500"
+                  title={appLocale === 'sv' ? 'Aktivt' : 'Active'}
+                />
               )}
               <div className="flex flex-col">
                 <span className="font-medium">{program.name}</span>

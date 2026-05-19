@@ -28,7 +28,10 @@ import { useLocale } from '@/i18n/client'
 
 interface QuickAction {
   id: string
-  label: string
+  label: {
+    en: string
+    sv: string
+  }
   icon: React.ComponentType<{ className?: string }>
   eventType?: CalendarEventType
   color: string
@@ -37,41 +40,41 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   {
     id: 'event',
-    label: 'Ny händelse',
+    label: { en: 'New event', sv: 'Ny händelse' },
     icon: CalendarPlus,
     color: 'bg-purple-500 text-white',
   },
   {
     id: 'vacation',
-    label: 'Semester',
+    label: { en: 'Vacation', sv: 'Semester' },
     icon: Umbrella,
     eventType: 'VACATION',
     color: 'bg-yellow-500 text-white',
   },
   {
     id: 'travel',
-    label: 'Resa',
+    label: { en: 'Travel', sv: 'Resa' },
     icon: Plane,
     eventType: 'TRAVEL',
     color: 'bg-blue-500 text-white',
   },
   {
     id: 'illness',
-    label: 'Sjukdom',
+    label: { en: 'Illness', sv: 'Sjukdom' },
     icon: Heart,
     eventType: 'ILLNESS',
     color: 'bg-red-500 text-white',
   },
   {
     id: 'altitude',
-    label: 'Höghöjdsläger',
+    label: { en: 'Altitude camp', sv: 'Höghöjdsläger' },
     icon: Mountain,
     eventType: 'ALTITUDE_CAMP',
     color: 'bg-emerald-500 text-white',
   },
   {
     id: 'work',
-    label: 'Arbete',
+    label: { en: 'Work', sv: 'Arbete' },
     icon: Briefcase,
     eventType: 'WORK_BLOCKER',
     color: 'bg-gray-600 text-white',
@@ -96,6 +99,7 @@ export function MobileCalendarFAB({
   variant = 'default',
 }: MobileCalendarFABProps) {
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -186,7 +190,7 @@ export function MobileCalendarFAB({
           >
             <action.icon className="h-5 w-5" />
             <span className="text-sm font-medium whitespace-nowrap">
-              {action.label}
+              {action.label[appLocale]}
             </span>
           </button>
         ))}
@@ -223,7 +227,11 @@ export function MobileCalendarFAB({
             ? 'bg-muted text-muted-foreground rotate-45'
             : 'bg-primary text-primary-foreground rotate-0'
         )}
-        aria-label={isExpanded ? 'Stäng meny' : 'Snabbåtgärder'}
+        aria-label={
+          isExpanded
+            ? appLocale === 'sv' ? 'Stäng meny' : 'Close menu'
+            : appLocale === 'sv' ? 'Snabbåtgärder' : 'Quick actions'
+        }
         aria-expanded={isExpanded}
       >
         {isExpanded ? (

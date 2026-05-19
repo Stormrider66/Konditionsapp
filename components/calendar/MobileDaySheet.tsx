@@ -63,6 +63,7 @@ export function MobileDaySheet({
   variant = 'default',
 }: MobileDaySheetProps) {
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
   const isGlass = variant === 'glass'
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -151,7 +152,7 @@ export function MobileDaySheet({
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-label={`${locale === 'sv' ? 'Detaljer för' : 'Details for'} ${format(date, 'd MMMM', { locale: dateLocale })}`}
+      aria-label={`${appLocale === 'sv' ? 'Detaljer för' : 'Details for'} ${format(date, 'd MMMM', { locale: dateLocale })}`}
     >
       {/* Backdrop */}
       <div
@@ -221,7 +222,7 @@ export function MobileDaySheet({
               )}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Lägg till
+              {appLocale === 'sv' ? 'Lägg till' : 'Add'}
             </Button>
             <Button
               variant="ghost"
@@ -245,8 +246,12 @@ export function MobileDaySheet({
                 <Clock className={cn("h-8 w-8 opacity-20", isGlass ? "text-slate-400" : "")} />
               </div>
               <div className="space-y-1">
-                <p className={cn("font-black text-lg", isGlass ? "text-white" : "")}>Inga händelser</p>
-                <p className="text-sm text-muted-foreground">Välförtjänt vila eller dags att planera?</p>
+                <p className={cn("font-black text-lg", isGlass ? "text-white" : "")}>
+                  {appLocale === 'sv' ? 'Inga händelser' : 'No events'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {appLocale === 'sv' ? 'Välförtjänt vila eller dags att planera?' : 'Well-earned rest or time to plan?'}
+                </p>
               </div>
               <Button
                 variant="outline"
@@ -257,14 +262,14 @@ export function MobileDaySheet({
                 onClick={onAddEvent}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Planera dagen
+                {appLocale === 'sv' ? 'Planera dagen' : 'Plan the day'}
               </Button>
             </div>
           ) : (
             <>
               {/* Workouts */}
               {workouts.length > 0 && (
-                <Section title="Träningspass" count={workouts.length} isGlass={isGlass}>
+                <Section title={appLocale === 'sv' ? 'Träningspass' : 'Workouts'} count={workouts.length} isGlass={isGlass}>
                   {workouts.map((workout) => (
                     <WorkoutCard
                       key={workout.id}
@@ -277,6 +282,7 @@ export function MobileDaySheet({
                         onViewWorkoutDetails(workout.metadata.workoutId as string || workout.id)
                       } : undefined}
                       isGlass={isGlass}
+                      locale={appLocale}
                     />
                   ))}
                 </Section>
@@ -291,6 +297,7 @@ export function MobileDaySheet({
                       isSelected={selectedItem?.id === workout.id}
                       onClick={() => onItemClick(workout)}
                       isGlass={isGlass}
+                      locale={appLocale}
                     />
                   ))}
                 </Section>
@@ -298,7 +305,7 @@ export function MobileDaySheet({
 
               {/* Races */}
               {races.length > 0 && (
-                <Section title="Tävlingar" count={races.length} isGlass={isGlass}>
+                <Section title={appLocale === 'sv' ? 'Tävlingar' : 'Races'} count={races.length} isGlass={isGlass}>
                   {races.map((race) => (
                     <RaceCard
                       key={race.id}
@@ -306,6 +313,7 @@ export function MobileDaySheet({
                       isSelected={selectedItem?.id === race.id}
                       onClick={() => onItemClick(race)}
                       isGlass={isGlass}
+                      locale={appLocale}
                     />
                   ))}
                 </Section>
@@ -313,7 +321,7 @@ export function MobileDaySheet({
 
               {/* Calendar Events */}
               {events.length > 0 && (
-                <Section title="Händelser" count={events.length} isGlass={isGlass}>
+                <Section title={appLocale === 'sv' ? 'Händelser' : 'Events'} count={events.length} isGlass={isGlass}>
                   {events.map((event) => (
                     <CalendarEventItem
                       key={event.id}
@@ -332,7 +340,7 @@ export function MobileDaySheet({
 
               {/* Field Tests */}
               {fieldTests.length > 0 && (
-                <Section title="Fälttester" count={fieldTests.length} isGlass={isGlass}>
+                <Section title={appLocale === 'sv' ? 'Fälttester' : 'Field tests'} count={fieldTests.length} isGlass={isGlass}>
                   {fieldTests.map((test) => (
                     <FieldTestCard
                       key={test.id}
@@ -419,9 +427,18 @@ interface WorkoutCardProps {
   onMove?: () => void
   onViewDetails?: () => void
   isGlass?: boolean
+  locale?: 'en' | 'sv'
 }
 
-function WorkoutCard({ workout, isSelected, onClick, onMove, onViewDetails, isGlass = false }: WorkoutCardProps) {
+function WorkoutCard({
+  workout,
+  isSelected,
+  onClick,
+  onMove,
+  onViewDetails,
+  isGlass = false,
+  locale = 'en',
+}: WorkoutCardProps) {
   const workoutType = workout.metadata.workoutType as string
   const isCompleted = workout.metadata.isCompleted as boolean
   const colorClass =
@@ -452,7 +469,7 @@ function WorkoutCard({ workout, isSelected, onClick, onMove, onViewDetails, isGl
             )}>{workout.title}</h4>
             {isCompleted && (
               <Badge variant="secondary" className="text-[10px] bg-green-500/20 text-green-500 border-none px-1.5 shrink-0">
-                Klar
+                {locale === 'sv' ? 'Klar' : 'Done'}
               </Badge>
             )}
           </div>
@@ -504,7 +521,7 @@ function WorkoutCard({ workout, isSelected, onClick, onMove, onViewDetails, isGl
             onViewDetails()
           }}
         >
-          Visa detaljer
+          {locale === 'sv' ? 'Visa detaljer' : 'View details'}
         </Button>
       )}
     </div>
@@ -517,9 +534,10 @@ interface RaceCardProps {
   isSelected: boolean
   onClick: () => void
   isGlass?: boolean
+  locale?: 'en' | 'sv'
 }
 
-function RaceCard({ race, isSelected, onClick, isGlass = false }: RaceCardProps) {
+function RaceCard({ race, isSelected, onClick, isGlass = false, locale = 'en' }: RaceCardProps) {
   return (
     <div
       className={cn(
@@ -550,7 +568,9 @@ function RaceCard({ race, isSelected, onClick, isGlass = false }: RaceCardProps)
           "text-[10px] uppercase font-bold tracking-tight rounded-md px-2",
           isGlass ? "bg-red-500/20 text-red-400 border-none" : ""
         )}>
-          {typeof race.metadata.classification === 'string' ? race.metadata.classification : 'Tävling'}
+          {typeof race.metadata.classification === 'string'
+            ? race.metadata.classification
+            : locale === 'sv' ? 'Tävling' : 'Race'}
         </Badge>
       </div>
 

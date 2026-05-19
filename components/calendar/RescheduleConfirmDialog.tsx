@@ -52,6 +52,7 @@ export function RescheduleConfirmDialog({
   warnings = [],
 }: RescheduleConfirmDialogProps) {
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
   const [reason, setReason] = useState('')
 
@@ -69,7 +70,14 @@ export function RescheduleConfirmDialog({
   const daysDiff = Math.round(
     (targetDate.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24)
   )
-  const direction = daysDiff > 0 ? 'framåt' : 'bakåt'
+  const direction =
+    appLocale === 'sv'
+      ? daysDiff > 0 ? 'framåt' : 'bakåt'
+      : daysDiff > 0 ? 'later' : 'earlier'
+  const dayWord =
+    appLocale === 'sv'
+      ? `dag${Math.abs(daysDiff) !== 1 ? 'ar' : ''}`
+      : `day${Math.abs(daysDiff) !== 1 ? 's' : ''}`
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -77,12 +85,12 @@ export function RescheduleConfirmDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            Flytta träningspass
+            {appLocale === 'sv' ? 'Flytta träningspass' : 'Move workout'}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
               <div>
-                Vill du flytta <strong>{workoutName}</strong>
+                {appLocale === 'sv' ? 'Vill du flytta' : 'Do you want to move'} <strong>{workoutName}</strong>
                 {workoutType && (
                   <Badge variant="secondary" className="ml-2 text-xs">
                     {workoutType}
@@ -94,7 +102,7 @@ export function RescheduleConfirmDialog({
               <div className="flex items-center gap-3 py-3 px-4 bg-muted rounded-lg">
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase tracking-wider">
-                    Från
+                    {appLocale === 'sv' ? 'Från' : 'From'}
                   </div>
                   <div className="font-semibold">
                     {format(originalDate, 'd MMM', { locale: dateLocale })}
@@ -107,13 +115,13 @@ export function RescheduleConfirmDialog({
                 <div className="flex flex-col items-center gap-1">
                   <ArrowRight className="h-5 w-5 text-primary" />
                   <span className="text-xs text-muted-foreground">
-                    {Math.abs(daysDiff)} dag{Math.abs(daysDiff) !== 1 ? 'ar' : ''} {direction}
+                    {Math.abs(daysDiff)} {dayWord} {direction}
                   </span>
                 </div>
 
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase tracking-wider">
-                    Till
+                    {appLocale === 'sv' ? 'Till' : 'To'}
                   </div>
                   <div className="font-semibold text-primary">
                     {format(targetDate, 'd MMM', { locale: dateLocale })}
@@ -136,11 +144,11 @@ export function RescheduleConfirmDialog({
               {/* Optional reason */}
               <div className="space-y-2">
                 <Label htmlFor="reason" className="text-sm">
-                  Anledning (valfritt)
+                  {appLocale === 'sv' ? 'Anledning (valfritt)' : 'Reason (optional)'}
                 </Label>
                 <Input
                   id="reason"
-                  placeholder="T.ex. 'Jobbrelaterad'"
+                  placeholder={appLocale === 'sv' ? "T.ex. 'Jobbrelaterad'" : "E.g. 'Work-related'"}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   disabled={isLoading}
@@ -151,16 +159,16 @@ export function RescheduleConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleCancel} disabled={isLoading}>
-            Avbryt
+            {appLocale === 'sv' ? 'Avbryt' : 'Cancel'}
           </AlertDialogCancel>
           <AlertDialogAction onClick={handleConfirm} disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Flyttar...
+                {appLocale === 'sv' ? 'Flyttar...' : 'Moving...'}
               </>
             ) : (
-              'Flytta pass'
+              appLocale === 'sv' ? 'Flytta pass' : 'Move workout'
             )}
           </AlertDialogAction>
         </AlertDialogFooter>
