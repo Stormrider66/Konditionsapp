@@ -139,8 +139,41 @@ function buildBlocksFromTemplate(template: PlanTemplate, startDate: Date): Block
 function blockWeeks(block: BlockDraft) {
   const start = new Date(block.startDate)
   const end = new Date(block.endDate)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return '?'
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 1
   return Math.max(1, Math.ceil((differenceInCalendarDays(end, start) + 1) / 7))
+}
+
+function dateFromInput(value: string | undefined, fallback = new Date()) {
+  if (!value) return fallback
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return fallback
+  return date
+}
+
+function blockEndFromWeeks(startDate: Date, weeks: number) {
+  return addDays(addWeeks(startDate, weeks), -1)
+}
+
+function normalizedWeeks(value: number) {
+  return Math.max(1, Math.min(52, Math.round(value)))
+}
+
+function recalculateFromBlock(blocks: BlockDraft[], startIndex: number, startDate?: Date) {
+  if (startIndex >= blocks.length) return blocks
+  let cursor = startDate ?? dateFromInput(blocks[startIndex]?.startDate)
+
+  return blocks.map((block, index) => {
+    if (index < startIndex) return block
+
+    const weeks = normalizedWeeks(Number(blockWeeks(block)) || 1)
+    const nextBlock = {
+      ...block,
+      startDate: dateInput(cursor),
+      endDate: dateInput(blockEndFromWeeks(cursor, weeks)),
+    }
+    cursor = addDays(dateFromInput(nextBlock.endDate, cursor), 1)
+    return nextBlock
+  })
 }
 
 export function CreateBlockPlanDialog({
@@ -176,8 +209,38 @@ export function CreateBlockPlanDialog({
     setBlocks(buildBlocksFromTemplate(template, startDate))
   }
 
+  function updatePlanStartDate(value: string) {
+    setBlocks((current) => recalculateFromBlock(current, 0, dateFromInput(value, today)))
+  }
+
   function updateBlock(index: number, patch: Partial<BlockDraft>) {
     setBlocks((current) => current.map((block, i) => i === index ? { ...block, ...patch } : block))
+  }
+
+  function updateBlockStartDate(index: number, value: string) {
+    setBlocks((current) => recalculateFromBlock(current, index, dateFromInput(value, today)))
+  }
+
+  function updateBlockEndDate(index: number, value: string) {
+    setBlocks((current) => {
+      const updated = current.map((block, i) => i === index ? { ...block, endDate: value } : block)
+      return recalculateFromBlock(updated, index + 1)
+    })
+  }
+
+  function updateBlockWeeks(index: number, value: string) {
+    const weeks = normalizedWeeks(Number(value) || 1)
+    setBlocks((current) => {
+      const updated = current.map((block, i) => {
+        if (i !== index) return block
+        const startDate = dateFromInput(block.startDate, today)
+        return {
+          ...block,
+          endDate: dateInput(blockEndFromWeeks(startDate, weeks)),
+        }
+      })
+      return recalculateFromBlock(updated, index + 1)
+    })
   }
 
   function addBlock() {
@@ -199,7 +262,10 @@ export function CreateBlockPlanDialog({
   }
 
   function removeBlock(index: number) {
-    setBlocks((current) => current.filter((_, i) => i !== index))
+    setBlocks((current) => {
+      const next = current.filter((_, i) => i !== index)
+      return next.length > 0 ? recalculateFromBlock(next, Math.max(0, index - 1)) : next
+    })
   }
 
   async function handleSubmit() {
@@ -278,7 +344,7 @@ export function CreateBlockPlanDialog({
                 id="block-plan-start"
                 type="date"
                 value={planStartDate}
-                onChange={(event) => applyTemplate(templateKey, new Date(event.target.value))}
+                onChange={(event) => updatePlanStartDate(event.target.value)}
               />
             </div>
           </div>
@@ -325,24 +391,36 @@ export function CreateBlockPlanDialog({
 
             {blocks.map((block, index) => (
               <div key={index} className="rounded-lg border p-3">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold">
-                    Block {index + 1}
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      {blockWeeks(block)} veckor
-                    </span>
-                  </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeBlock(index)}
-                    disabled={blocks.length <= 1}
-                    aria-label={`Ta bort block ${index + 1}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Block {index + 1}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {block.startDate} - {block.endDate}
+                    </p>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <div className="grid w-28 gap-1">
+                      <Label className="text-xs">Veckor</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={52}
+                        value={blockWeeks(block)}
+                        onChange={(event) => updateBlockWeeks(index, event.target.value)}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-11 px-3 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeBlock(index)}
+                      disabled={blocks.length <= 1}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Ta bort
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="grid gap-1.5">
@@ -355,11 +433,11 @@ export function CreateBlockPlanDialog({
                   </div>
                   <div className="grid gap-1.5">
                     <Label>Start</Label>
-                    <Input type="date" value={block.startDate} onChange={(event) => updateBlock(index, { startDate: event.target.value })} />
+                    <Input type="date" value={block.startDate} onChange={(event) => updateBlockStartDate(index, event.target.value)} />
                   </div>
                   <div className="grid gap-1.5">
                     <Label>Slut</Label>
-                    <Input type="date" value={block.endDate} onChange={(event) => updateBlock(index, { endDate: event.target.value })} />
+                    <Input type="date" value={block.endDate} onChange={(event) => updateBlockEndDate(index, event.target.value)} />
                   </div>
                   <div className="grid gap-1.5 md:col-span-2">
                     <Label>Kommentar</Label>
