@@ -2,9 +2,8 @@
 // AI-powered personalized nutrition plan generation
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { canAccessClient } from '@/lib/auth-utils'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -16,11 +15,27 @@ import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import {
   buildNutritionContext,
-  generateNutritionPlan,
   type ActivityLevel,
   type CaloricGoal,
-  type MacroProfile,
 } from '@/lib/ai/nutrition-calculator'
+
+type AppLocale = 'en' | 'sv'
+type NutritionBasePlan = {
+  targetCalories?: number
+  macros?: {
+    protein?: { grams?: number }
+    carbs?: { grams?: number }
+    fat?: { grams?: number }
+  }
+}
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * POST /api/ai/nutrition-plan
@@ -28,12 +43,12 @@ import {
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:nutrition-plan', user.id, {
       limit: 5,
@@ -48,7 +63,6 @@ export async function POST(req: NextRequest) {
       clientData,
       activityLevel,
       goal,
-      macroProfile,
       targetWeight,
       nutritionPlan: basePlan,
       preferences, // dietary preferences/restrictions
@@ -80,7 +94,13 @@ export async function POST(req: NextRequest) {
 
     if (!resolved) {
       return NextResponse.json(
-        { error: 'API-nyckel saknas. Konfigurera minst en AI API-nyckel i inställningarna.' },
+        {
+          error: t(
+            locale,
+            'API key is missing. Configure at least one AI API key in settings.',
+            'API-nyckel saknas. Konfigurera minst en AI API-nyckel i inställningarna.',
+          ),
+        },
         { status: 400 }
       )
     }
@@ -142,7 +162,8 @@ export async function POST(req: NextRequest) {
         muscleMassKg: latestBodyComp.muscleMassKg || undefined,
       } : undefined,
       goal as CaloricGoal,
-      clientData.sport
+      clientData.sport,
+      locale,
     )
 
     // Build prompt for AI
@@ -156,6 +177,7 @@ export async function POST(req: NextRequest) {
       activityLevel,
       sport: clientData.sport,
       wellnessData, // Gap 6: Include wellness data
+      locale,
     })
 
     // Call AI
@@ -171,7 +193,7 @@ export async function POST(req: NextRequest) {
     const aiContent = aiResponse.text || ''
 
     // Parse AI response into structured plan
-    const nutritionPlanResult = parseAINutritionPlan(aiContent)
+    const nutritionPlanResult = parseAINutritionPlan(aiContent, locale)
 
     // Save to database (optional - for history)
     // Could save to a NutritionPlan model if needed
@@ -211,7 +233,7 @@ function buildNutritionPrompt(params: {
   context: string
   goal: string
   targetWeight?: number
-  basePlan: any
+  basePlan?: NutritionBasePlan
   preferences?: {
     vegetarian?: boolean
     vegan?: boolean
@@ -223,17 +245,19 @@ function buildNutritionPrompt(params: {
   activityLevel: string
   sport?: string
   wellnessData?: WellnessAverages // Gap 6: Wellness data integration
+  locale: AppLocale
 }): string {
-  const { clientName, context, goal, targetWeight, basePlan, preferences, activityLevel, sport, wellnessData } = params
+  const { clientName, context, goal, targetWeight, basePlan, preferences, activityLevel, sport, wellnessData, locale } = params
 
-  let prompt = `Du är en erfaren näringsfysiolog och kostrådgivare som arbetar med idrottare och motionärer i Sverige.
+  let prompt = locale === 'sv'
+    ? `Du är en erfaren näringsfysiolog och kostrådgivare som arbetar med idrottare och motionärer i Sverige.
 
 ## Klient: ${clientName}
 
 ${context}
 
 ## Mål
-- Primärt mål: ${getGoalDescription(goal)}
+- Primärt mål: ${getGoalDescription(goal, locale)}
 ${targetWeight ? `- Målvikt: ${targetWeight} kg` : ''}
 - Aktivitetsnivå: ${activityLevel}
 ${sport ? `- Sport/Aktivitet: ${sport}` : ''}
@@ -243,46 +267,78 @@ ${sport ? `- Sport/Aktivitet: ${sport}` : ''}
 - Protein: ${basePlan?.macros?.protein?.grams}g
 - Kolhydrater: ${basePlan?.macros?.carbs?.grams}g
 - Fett: ${basePlan?.macros?.fat?.grams}g`
+    : `You are an experienced sports nutritionist and nutrition coach working with athletes and active people.
+
+## Client: ${clientName}
+
+${context}
+
+## Goal
+- Primary goal: ${getGoalDescription(goal, locale)}
+${targetWeight ? `- Target weight: ${targetWeight} kg` : ''}
+- Activity level: ${activityLevel}
+${sport ? `- Sport/Activity: ${sport}` : ''}
+
+## System-calculated values
+- Target calories: ${basePlan?.targetCalories} kcal/day
+- Protein: ${basePlan?.macros?.protein?.grams}g
+- Carbohydrates: ${basePlan?.macros?.carbs?.grams}g
+- Fat: ${basePlan?.macros?.fat?.grams}g`
 
   if (preferences) {
-    prompt += '\n\n## Kostpreferenser/restriktioner'
-    if (preferences.vegetarian) prompt += '\n- Vegetarian'
-    if (preferences.vegan) prompt += '\n- Vegan'
-    if (preferences.glutenFree) prompt += '\n- Glutenfri'
-    if (preferences.dairyFree) prompt += '\n- Laktosfri'
-    if (preferences.allergies?.length) prompt += `\n- Allergier: ${preferences.allergies.join(', ')}`
-    if (preferences.dislikes?.length) prompt += `\n- Ogillar: ${preferences.dislikes.join(', ')}`
+    prompt += locale === 'sv' ? '\n\n## Kostpreferenser/restriktioner' : '\n\n## Dietary preferences/restrictions'
+    if (preferences.vegetarian) prompt += locale === 'sv' ? '\n- Vegetarian' : '\n- Vegetarian'
+    if (preferences.vegan) prompt += locale === 'sv' ? '\n- Vegan' : '\n- Vegan'
+    if (preferences.glutenFree) prompt += locale === 'sv' ? '\n- Glutenfri' : '\n- Gluten-free'
+    if (preferences.dairyFree) prompt += locale === 'sv' ? '\n- Laktosfri' : '\n- Dairy-free'
+    if (preferences.allergies?.length) prompt += locale === 'sv' ? `\n- Allergier: ${preferences.allergies.join(', ')}` : `\n- Allergies: ${preferences.allergies.join(', ')}`
+    if (preferences.dislikes?.length) prompt += locale === 'sv' ? `\n- Ogillar: ${preferences.dislikes.join(', ')}` : `\n- Dislikes: ${preferences.dislikes.join(', ')}`
   }
 
   // Gap 6: Add wellness data to prompt if available
   if (wellnessData && wellnessData.daysOfData > 0) {
-    prompt += '\n\n## Återhämtningsstatus (senaste 7 dagarna)'
-    prompt += `\n- Sömntimmar (genomsnitt): ${wellnessData.avgSleepHours.toFixed(1)}h`
-    prompt += `\n- Sömnkvalitet: ${wellnessData.avgSleepQuality.toFixed(1)}/10`
-    prompt += `\n- Stressnivå: ${wellnessData.avgStress.toFixed(1)}/10`
+    prompt += locale === 'sv' ? '\n\n## Återhämtningsstatus (senaste 7 dagarna)' : '\n\n## Recovery status (last 7 days)'
+    prompt += locale === 'sv'
+      ? `\n- Sömntimmar (genomsnitt): ${wellnessData.avgSleepHours.toFixed(1)}h`
+      : `\n- Sleep hours (average): ${wellnessData.avgSleepHours.toFixed(1)}h`
+    prompt += locale === 'sv'
+      ? `\n- Sömnkvalitet: ${wellnessData.avgSleepQuality.toFixed(1)}/10`
+      : `\n- Sleep quality: ${wellnessData.avgSleepQuality.toFixed(1)}/10`
+    prompt += locale === 'sv'
+      ? `\n- Stressnivå: ${wellnessData.avgStress.toFixed(1)}/10`
+      : `\n- Stress level: ${wellnessData.avgStress.toFixed(1)}/10`
     if (wellnessData.avgReadiness > 0) {
-      prompt += `\n- Beredskap: ${wellnessData.avgReadiness.toFixed(0)}/100`
+      prompt += locale === 'sv' ? `\n- Beredskap: ${wellnessData.avgReadiness.toFixed(0)}/100` : `\n- Readiness: ${wellnessData.avgReadiness.toFixed(0)}/100`
     }
     if (wellnessData.avgEnergy > 0) {
-      prompt += `\n- Energinivå: ${wellnessData.avgEnergy.toFixed(1)}/10`
+      prompt += locale === 'sv' ? `\n- Energinivå: ${wellnessData.avgEnergy.toFixed(1)}/10` : `\n- Energy level: ${wellnessData.avgEnergy.toFixed(1)}/10`
     }
 
     // Add wellness-aware recommendations
     if (wellnessData.avgSleepHours < 7) {
-      prompt += '\n\n⚠️ **OBS: Låg sömntid** - Inkludera kostråd som stödjer bättre sömn (magnesiumrika livsmedel, trypsofanrika kolhydrater på kvällen, undvika koffein sent)'
+      prompt += locale === 'sv'
+        ? '\n\n⚠️ **OBS: Låg sömntid** - Inkludera kostråd som stödjer bättre sömn (magnesiumrika livsmedel, trypsofanrika kolhydrater på kvällen, undvika koffein sent)'
+        : '\n\n⚠️ **NOTE: Low sleep duration** - Include nutrition advice that supports better sleep, such as magnesium-rich foods, tryptophan-rich evening carbohydrates, and avoiding late caffeine.'
     }
     if (wellnessData.avgStress > 7) {
-      prompt += '\n\n⚠️ **OBS: Hög stressnivå** - Inkludera antioxidantrika livsmedel, adaptogena örter (ashwagandha-te), omega-3-rika livsmedel för att stödja återhämtning'
+      prompt += locale === 'sv'
+        ? '\n\n⚠️ **OBS: Hög stressnivå** - Inkludera antioxidantrika livsmedel, adaptogena örter (ashwagandha-te), omega-3-rika livsmedel för att stödja återhämtning'
+        : '\n\n⚠️ **NOTE: High stress level** - Include antioxidant-rich foods, recovery-supportive routines, and omega-3-rich foods.'
     }
     if (wellnessData.avgSleepQuality < 5) {
-      prompt += '\n\n⚠️ **OBS: Låg sömnkvalitet** - Undvik tunga måltider sent, rekommendera kamomillte och melatoninfrämjande livsmedel (körsbär, nötter)'
+      prompt += locale === 'sv'
+        ? '\n\n⚠️ **OBS: Låg sömnkvalitet** - Undvik tunga måltider sent, rekommendera kamomillte och melatoninfrämjande livsmedel (körsbär, nötter)'
+        : '\n\n⚠️ **NOTE: Low sleep quality** - Avoid heavy late meals and recommend sleep-supportive evening options.'
     }
     if (wellnessData.avgEnergy > 0 && wellnessData.avgEnergy < 5) {
-      prompt += '\n\n⚠️ **OBS: Låg energi** - Fokusera på stabilt blodsockersvar, komplexa kolhydrater, järnrika livsmedel och regelbundna måltider'
+      prompt += locale === 'sv'
+        ? '\n\n⚠️ **OBS: Låg energi** - Fokusera på stabilt blodsockersvar, komplexa kolhydrater, järnrika livsmedel och regelbundna måltider'
+        : '\n\n⚠️ **NOTE: Low energy** - Focus on stable blood glucose, complex carbohydrates, iron-rich foods, and regular meals.'
     }
   }
 
-  prompt += `
+  prompt += locale === 'sv'
+    ? `
 
 ## Din uppgift
 Skapa en detaljerad och personlig näringsplan på svenska som inkluderar:
@@ -315,7 +371,7 @@ Skapa en detaljerad och personlig näringsplan på svenska som inkluderar:
    - Proteinrika mellanmål
    - Vätskeintag
 
-5. **Specifika rekommendationer** baserat på målet "${getGoalDescription(goal)}"
+5. **Specifika rekommendationer** baserat på målet "${getGoalDescription(goal, locale)}"
 
 6. **Kosttillskott** (om relevanta)
    - Endast evidensbaserade rekommendationer
@@ -323,30 +379,72 @@ Skapa en detaljerad och personlig näringsplan på svenska som inkluderar:
 
 Formatera svaret tydligt med rubriker och punktlistor. Skriv på svenska och använd svenska mått (dl, msk, tsk).
 Var konkret och praktisk - ge specifika livsmedel och portionsstorlekar som fungerar i en svensk matkultur.`
+    : `
+
+## Your task
+Create a detailed, personalized nutrition plan in English that includes:
+
+1. **Daily overview**
+   - Clear split of calories and macros per meal
+   - Recommended meal timing
+
+2. **Meal suggestions** (5-6 meals per day)
+   - Breakfast
+   - Morning snack
+   - Lunch
+   - Afternoon snack
+   - Dinner
+   - Evening snack, if relevant
+
+   For each meal, provide 2-3 concrete examples with:
+   - Portion sizes in grams/ml or common household measures
+   - Approximate macros (protein, carbohydrates, fat)
+   - Simple, accessible ingredients
+
+3. **Training timing**
+   - What and when to eat before training
+   - Recovery nutrition after training
+   - Specific recommendations for ${sport || 'training'}
+
+4. **Practical tips**
+   - Meal prep for a week
+   - Quick options for stressful days
+   - High-protein snacks
+   - Fluid intake
+
+5. **Specific recommendations** based on the goal "${getGoalDescription(goal, locale)}"
+
+6. **Supplements** (if relevant)
+   - Evidence-based recommendations only
+   - Dosage and timing
+
+Format the response clearly with headings and bullet lists. Write in English and use metric units. Be concrete and practical with specific foods and portion sizes.`
 
   return prompt
 }
 
 /**
- * Get goal description in Swedish
+ * Get goal description
  */
-function getGoalDescription(goal: string): string {
-  const descriptions: Record<string, string> = {
-    AGGRESSIVE_LOSS: 'Snabb viktnedgång (ca 0.75 kg/vecka)',
-    MODERATE_LOSS: 'Viktnedgång (ca 0.5 kg/vecka)',
-    MILD_LOSS: 'Lätt viktnedgång (ca 0.25 kg/vecka)',
-    MAINTAIN: 'Bibehålla nuvarande vikt',
-    MILD_GAIN: 'Lätt viktökning (ca 0.25 kg/vecka)',
-    MODERATE_GAIN: 'Viktökning/muskelbyggande (ca 0.5 kg/vecka)',
-    AGGRESSIVE_GAIN: 'Snabb viktökning/bulking (ca 0.75 kg/vecka)',
+function getGoalDescription(goal: string, locale: AppLocale): string {
+  const descriptions: Record<string, { en: string; sv: string }> = {
+    AGGRESSIVE_LOSS: { en: 'Fast weight loss (about 0.75 kg/week)', sv: 'Snabb viktnedgång (ca 0.75 kg/vecka)' },
+    MODERATE_LOSS: { en: 'Weight loss (about 0.5 kg/week)', sv: 'Viktnedgång (ca 0.5 kg/vecka)' },
+    MILD_LOSS: { en: 'Mild weight loss (about 0.25 kg/week)', sv: 'Lätt viktnedgång (ca 0.25 kg/vecka)' },
+    MAINTAIN: { en: 'Maintain current weight', sv: 'Bibehålla nuvarande vikt' },
+    MILD_GAIN: { en: 'Mild weight gain (about 0.25 kg/week)', sv: 'Lätt viktökning (ca 0.25 kg/vecka)' },
+    MODERATE_GAIN: { en: 'Weight gain/muscle building (about 0.5 kg/week)', sv: 'Viktökning/muskelbyggande (ca 0.5 kg/vecka)' },
+    AGGRESSIVE_GAIN: { en: 'Fast weight gain/bulking (about 0.75 kg/week)', sv: 'Snabb viktökning/bulking (ca 0.75 kg/vecka)' },
   }
-  return descriptions[goal] || goal
+  const description = descriptions[goal]
+  if (description) return description[locale]
+  return goal
 }
 
 /**
  * Parse AI response into structured format
  */
-function parseAINutritionPlan(aiContent: string): {
+function parseAINutritionPlan(aiContent: string, locale: AppLocale): {
   rawText: string
   sections: { title: string; content: string }[]
   mealPlan?: {
@@ -387,7 +485,7 @@ function parseAINutritionPlan(aiContent: string): {
 
   return {
     rawText: aiContent,
-    sections: sections.length > 0 ? sections : [{ title: 'Näringsplan', content: aiContent }],
+    sections: sections.length > 0 ? sections : [{ title: t(locale, 'Nutrition plan', 'Näringsplan'), content: aiContent }],
   }
 }
 

@@ -55,6 +55,7 @@ export const MACRO_PROFILES = {
 } as const;
 
 export type MacroProfile = keyof typeof MACRO_PROFILES;
+type AppLocale = 'en' | 'sv';
 
 // Protein requirements by goal (g per kg body weight)
 export const PROTEIN_REQUIREMENTS = {
@@ -277,7 +278,8 @@ export function generateNutritionPlan(
   basicInput: TDEEInput,
   goal: CaloricGoal,
   profile: MacroProfile,
-  customProteinPerKg?: number
+  customProteinPerKg?: number,
+  locale: AppLocale = 'en'
 ): NutritionPlan {
   const bmr = calculateBMR(basicInput);
   const tdee = calculateTDEE(basicInput);
@@ -297,42 +299,46 @@ export function generateNutritionPlan(
   // Safety checks
   const minCalories = basicInput.gender === 'MALE' ? 1500 : 1200;
   if (targetCalories < minCalories) {
-    warnings.push(`Varning: Målkalorier (${targetCalories}) är under rekommenderat minimum (${minCalories} kcal). Överväg en långsammare viktnedgång.`);
+    warnings.push(locale === 'sv'
+      ? `Varning: Målkalorier (${targetCalories}) är under rekommenderat minimum (${minCalories} kcal). Överväg en långsammare viktnedgång.`
+      : `Warning: Target calories (${targetCalories}) are below the recommended minimum (${minCalories} kcal). Consider slower weight loss.`);
   }
 
   // Protein recommendations
   if (macros.protein.grams < basicInput.weightKg * 0.8) {
-    warnings.push('Proteinintaget kan vara för lågt. Överväg att öka till minst 0.8g per kg kroppsvikt.');
+    warnings.push(locale === 'sv'
+      ? 'Proteinintaget kan vara för lågt. Överväg att öka till minst 0.8g per kg kroppsvikt.'
+      : 'Protein intake may be too low. Consider increasing to at least 0.8g per kg body weight.');
   }
 
   // Goal-specific recommendations
   if (goal.includes('LOSS')) {
-    recommendations.push('Prioritera protein för att bevara muskelmassa under viktnedgång.');
-    recommendations.push('Fördela kalorierna jämnt över dagen med 4-5 måltider.');
-    recommendations.push('Ät proteinrika livsmedel först på tallriken.');
+    recommendations.push(locale === 'sv' ? 'Prioritera protein för att bevara muskelmassa under viktnedgång.' : 'Prioritize protein to preserve muscle mass during weight loss.');
+    recommendations.push(locale === 'sv' ? 'Fördela kalorierna jämnt över dagen med 4-5 måltider.' : 'Distribute calories evenly across the day with 4-5 meals.');
+    recommendations.push(locale === 'sv' ? 'Ät proteinrika livsmedel först på tallriken.' : 'Eat protein-rich foods first on the plate.');
   }
 
   if (goal.includes('GAIN')) {
-    recommendations.push('Fokusera på kaloritäta, näringsrika livsmedel.');
-    recommendations.push('Timing: Ät inom 2 timmar efter träning för optimal muskeluppbyggnad.');
-    recommendations.push('Överväg kaseinprotein före sänggåendet för nattlig muskelsyntes.');
+    recommendations.push(locale === 'sv' ? 'Fokusera på kaloritäta, näringsrika livsmedel.' : 'Focus on calorie-dense, nutrient-rich foods.');
+    recommendations.push(locale === 'sv' ? 'Timing: Ät inom 2 timmar efter träning för optimal muskeluppbyggnad.' : 'Timing: Eat within 2 hours after training to support muscle building.');
+    recommendations.push(locale === 'sv' ? 'Överväg kaseinprotein före sänggåendet för nattlig muskelsyntes.' : 'Consider casein protein before bed to support overnight muscle protein synthesis.');
   }
 
   // Activity-specific recommendations
   if (basicInput.activityLevel === 'ATHLETE' || basicInput.activityLevel === 'VERY_ACTIVE') {
-    recommendations.push('Som aktiv atlet, fokusera på kolhydrater runt träningspass.');
-    recommendations.push('Rehydrera med elektrolyter efter intensiv träning.');
+    recommendations.push(locale === 'sv' ? 'Som aktiv atlet, fokusera på kolhydrater runt träningspass.' : 'As an active athlete, focus carbohydrates around training sessions.');
+    recommendations.push(locale === 'sv' ? 'Rehydrera med elektrolyter efter intensiv träning.' : 'Rehydrate with electrolytes after intense training.');
   }
 
   // Profile-specific recommendations
   if (profile === 'ENDURANCE') {
-    recommendations.push('Ladda med kolhydrater (7-10g/kg) innan långa pass eller tävling.');
-    recommendations.push('Under pass >60 min: 30-60g kolhydrater per timme.');
+    recommendations.push(locale === 'sv' ? 'Ladda med kolhydrater (7-10g/kg) innan långa pass eller tävling.' : 'Carbohydrate-load (7-10g/kg) before long sessions or races.');
+    recommendations.push(locale === 'sv' ? 'Under pass >60 min: 30-60g kolhydrater per timme.' : 'During sessions over 60 minutes: 30-60g carbohydrates per hour.');
   }
 
   if (profile === 'STRENGTH') {
-    recommendations.push('20-40g protein inom 2 timmar efter styrketräning.');
-    recommendations.push('Kreatin (3-5g dagligen) kan stödja styrkeökningar.');
+    recommendations.push(locale === 'sv' ? '20-40g protein inom 2 timmar efter styrketräning.' : '20-40g protein within 2 hours after strength training.');
+    recommendations.push(locale === 'sv' ? 'Kreatin (3-5g dagligen) kan stödja styrkeökningar.' : 'Creatine (3-5g daily) can support strength gains.');
   }
 
   return {
@@ -349,23 +355,23 @@ export function generateNutritionPlan(
 /**
  * Calculate BMI and categorize
  */
-export function calculateBMI(weightKg: number, heightCm: number): { bmi: number; category: string } {
+export function calculateBMI(weightKg: number, heightCm: number, locale: AppLocale = 'en'): { bmi: number; category: string } {
   const heightM = heightCm / 100;
   const bmi = weightKg / (heightM * heightM);
 
   let category: string;
   if (bmi < 18.5) {
-    category = 'Undervikt';
+    category = locale === 'sv' ? 'Undervikt' : 'Underweight';
   } else if (bmi < 25) {
-    category = 'Normalvikt';
+    category = locale === 'sv' ? 'Normalvikt' : 'Normal weight';
   } else if (bmi < 30) {
-    category = 'Övervikt';
+    category = locale === 'sv' ? 'Övervikt' : 'Overweight';
   } else if (bmi < 35) {
-    category = 'Fetma grad I';
+    category = locale === 'sv' ? 'Fetma grad I' : 'Obesity class I';
   } else if (bmi < 40) {
-    category = 'Fetma grad II';
+    category = locale === 'sv' ? 'Fetma grad II' : 'Obesity class II';
   } else {
-    category = 'Fetma grad III';
+    category = locale === 'sv' ? 'Fetma grad III' : 'Obesity class III';
   }
 
   return { bmi: Math.round(bmi * 10) / 10, category };
@@ -377,28 +383,29 @@ export function calculateBMI(weightKg: number, heightCm: number): { bmi: number;
 export function categorizeBodyFat(
   bodyFatPercent: number,
   gender: 'MALE' | 'FEMALE',
-  ageYears: number
+  ageYears: number,
+  locale: AppLocale = 'en'
 ): string {
   // Essential fat levels
   const essentialFat = gender === 'MALE' ? 3 : 12;
 
   if (bodyFatPercent < essentialFat) {
-    return 'Under essentiell nivå (ohälsosamt)';
+    return locale === 'sv' ? 'Under essentiell nivå (ohälsosamt)' : 'Below essential level (unhealthy)';
   }
 
   // Categories vary by gender
   if (gender === 'MALE') {
-    if (bodyFatPercent < 6) return 'Tävlingsform';
-    if (bodyFatPercent < 14) return 'Atletisk';
-    if (bodyFatPercent < 18) return 'Fitness';
-    if (bodyFatPercent < 25) return 'Acceptabel';
-    return 'Överskott';
+    if (bodyFatPercent < 6) return locale === 'sv' ? 'Tävlingsform' : 'Essential fat / Athletes';
+    if (bodyFatPercent < 14) return locale === 'sv' ? 'Atletisk' : 'Athletic';
+    if (bodyFatPercent < 18) return locale === 'sv' ? 'Fitness' : 'Fitness';
+    if (bodyFatPercent < 25) return locale === 'sv' ? 'Acceptabel' : 'Acceptable';
+    return locale === 'sv' ? 'Överskott' : 'Excess fat';
   } else {
-    if (bodyFatPercent < 14) return 'Tävlingsform';
-    if (bodyFatPercent < 21) return 'Atletisk';
-    if (bodyFatPercent < 25) return 'Fitness';
-    if (bodyFatPercent < 32) return 'Acceptabel';
-    return 'Överskott';
+    if (bodyFatPercent < 14) return locale === 'sv' ? 'Tävlingsform' : 'Essential fat / Athletes';
+    if (bodyFatPercent < 21) return locale === 'sv' ? 'Atletisk' : 'Athletic';
+    if (bodyFatPercent < 25) return locale === 'sv' ? 'Fitness' : 'Fitness';
+    if (bodyFatPercent < 32) return locale === 'sv' ? 'Acceptabel' : 'Acceptable';
+    return locale === 'sv' ? 'Överskott' : 'Excess fat';
   }
 }
 
@@ -407,11 +414,12 @@ export function categorizeBodyFat(
  */
 export function analyzeBodyComposition(
   input: BodyCompositionInput,
-  heightCm: number
+  heightCm: number,
+  locale: AppLocale = 'en'
 ): BodyCompositionAnalysis {
-  const { weightKg, bodyFatPercent, muscleMassKg, gender, ageYears } = input;
+  const { weightKg, bodyFatPercent, gender, ageYears } = input;
 
-  const { bmi, category: bmiCategory } = calculateBMI(weightKg, heightCm);
+  const { bmi, category: bmiCategory } = calculateBMI(weightKg, heightCm, locale);
 
   const analysis: BodyCompositionAnalysis = {
     bmi,
@@ -424,23 +432,23 @@ export function analyzeBodyComposition(
   if (bodyFatPercent !== undefined) {
     analysis.fatMass = Math.round((weightKg * bodyFatPercent / 100) * 10) / 10;
     analysis.leanBodyMass = Math.round((weightKg - analysis.fatMass) * 10) / 10;
-    analysis.bodyFatCategory = categorizeBodyFat(bodyFatPercent, gender, ageYears);
+    analysis.bodyFatCategory = categorizeBodyFat(bodyFatPercent, gender, ageYears, locale);
 
     // Recommendations based on body fat
     if (bodyFatPercent > (gender === 'MALE' ? 25 : 32)) {
-      analysis.recommendations.push('Fokusera på fettförbränning genom kaloriunderskott och konditionsträning.');
-      analysis.recommendations.push('Styrketräning hjälper att bevara muskelmassa under viktnedgång.');
+      analysis.recommendations.push(locale === 'sv' ? 'Fokusera på fettförbränning genom kaloriunderskott och konditionsträning.' : 'Focus on fat loss through a calorie deficit and endurance training.');
+      analysis.recommendations.push(locale === 'sv' ? 'Styrketräning hjälper att bevara muskelmassa under viktnedgång.' : 'Strength training helps preserve muscle mass during weight loss.');
     } else if (bodyFatPercent < (gender === 'MALE' ? 8 : 16)) {
-      analysis.recommendations.push('Låg kroppsfett kan påverka hormonbalans och prestation.');
-      analysis.recommendations.push('Överväg en försiktig ökning av kaloriintaget.');
+      analysis.recommendations.push(locale === 'sv' ? 'Låg kroppsfett kan påverka hormonbalans och prestation.' : 'Low body fat can affect hormonal balance and performance.');
+      analysis.recommendations.push(locale === 'sv' ? 'Överväg en försiktig ökning av kaloriintaget.' : 'Consider a cautious increase in calorie intake.');
     }
   }
 
   // BMI-based recommendations
   if (bmi < 18.5) {
-    analysis.recommendations.push('Fokusera på kaloriöverskott och styrketräning för hälsosam viktökning.');
+    analysis.recommendations.push(locale === 'sv' ? 'Fokusera på kaloriöverskott och styrketräning för hälsosam viktökning.' : 'Focus on a calorie surplus and strength training for healthy weight gain.');
   } else if (bmi > 30) {
-    analysis.recommendations.push('Överväg konsultation med dietist för långsiktig viktkontroll.');
+    analysis.recommendations.push(locale === 'sv' ? 'Överväg konsultation med dietist för långsiktig viktkontroll.' : 'Consider consulting a dietitian for long-term weight management.');
   }
 
   return analysis;
@@ -560,14 +568,16 @@ export function buildNutritionContext(
     muscleMassKg?: number;
   },
   goal?: CaloricGoal,
-  sport?: string
+  sport?: string,
+  locale: AppLocale = 'en'
 ): string {
   const bmr = calculateBMR(input);
   const tdee = calculateTDEE(input);
-  const { bmi, category: bmiCategory } = calculateBMI(input.weightKg, input.heightCm);
+  const { bmi, category: bmiCategory } = calculateBMI(input.weightKg, input.heightCm, locale);
   const idealWeight = calculateIdealWeightRange(input.heightCm, input.gender);
 
-  let context = `## NÄRINGSINFORMATION
+  let context = locale === 'sv'
+    ? `## NÄRINGSINFORMATION
 
 ### Metabolism
 - **BMR (Basal metabolic rate)**: ${bmr} kcal/dag
@@ -578,38 +588,72 @@ export function buildNutritionContext(
 - **Vikt**: ${input.weightKg} kg
 - **Längd**: ${input.heightCm} cm
 - **BMI**: ${bmi} (${bmiCategory})
-- **Idealvikt**: ${idealWeight.min}-${idealWeight.max} kg`;
+- **Idealvikt**: ${idealWeight.min}-${idealWeight.max} kg`
+    : `## NUTRITION INFORMATION
+
+### Metabolism
+- **BMR (Basal metabolic rate)**: ${bmr} kcal/day
+- **TDEE (Total daily energy expenditure)**: ${tdee} kcal/day
+- **Activity level**: ${input.activityLevel}
+
+### Body composition
+- **Weight**: ${input.weightKg} kg
+- **Height**: ${input.heightCm} cm
+- **BMI**: ${bmi} (${bmiCategory})
+- **Ideal weight**: ${idealWeight.min}-${idealWeight.max} kg`;
 
   if (bodyComposition?.bodyFatPercent) {
-    const fatCategory = categorizeBodyFat(bodyComposition.bodyFatPercent, input.gender, input.ageYears);
+    const fatCategory = categorizeBodyFat(bodyComposition.bodyFatPercent, input.gender, input.ageYears, locale);
     const fatMass = Math.round((input.weightKg * bodyComposition.bodyFatPercent / 100) * 10) / 10;
     const leanMass = Math.round((input.weightKg - fatMass) * 10) / 10;
 
-    context += `
+    context += locale === 'sv'
+      ? `
 - **Kroppsfett**: ${bodyComposition.bodyFatPercent}% (${fatCategory})
 - **Fettmassa**: ${fatMass} kg
-- **Fettfri massa**: ${leanMass} kg`;
+- **Fettfri massa**: ${leanMass} kg`
+      : `
+- **Body fat**: ${bodyComposition.bodyFatPercent}% (${fatCategory})
+- **Fat mass**: ${fatMass} kg
+- **Lean mass**: ${leanMass} kg`;
   }
 
   if (bodyComposition?.muscleMassKg) {
-    context += `
-- **Muskelmassa**: ${bodyComposition.muscleMassKg} kg`;
+    context += locale === 'sv'
+      ? `
+- **Muskelmassa**: ${bodyComposition.muscleMassKg} kg`
+      : `
+- **Muscle mass**: ${bodyComposition.muscleMassKg} kg`;
   }
 
   if (goal) {
-    const plan = generateNutritionPlan(input, goal, sport === 'RUNNING' ? 'ENDURANCE' : 'BALANCED');
+    const plan = generateNutritionPlan(input, goal, sport === 'RUNNING' ? 'ENDURANCE' : 'BALANCED', undefined, locale);
 
-    context += `
+    context += locale === 'sv'
+      ? `
 
 ### Näringsrekommendation
 - **Målkalorier**: ${plan.targetCalories} kcal/dag
 - **Kaloribalans**: ${plan.deficit > 0 ? '+' : ''}${plan.deficit} kcal/dag
 - **Protein**: ${plan.macros.protein.grams}g (${plan.macros.protein.percentage}%)
 - **Kolhydrater**: ${plan.macros.carbs.grams}g (${plan.macros.carbs.percentage}%)
+- **Fett**: ${plan.macros.fat.grams}g (${plan.macros.fat.percentage}%)`
+      : `
+
+### Nutrition recommendation
+- **Target calories**: ${plan.targetCalories} kcal/day
+- **Calorie balance**: ${plan.deficit > 0 ? '+' : ''}${plan.deficit} kcal/day
+- **Protein**: ${plan.macros.protein.grams}g (${plan.macros.protein.percentage}%)
+- **Carbohydrates**: ${plan.macros.carbs.grams}g (${plan.macros.carbs.percentage}%)
 - **Fett**: ${plan.macros.fat.grams}g (${plan.macros.fat.percentage}%)`;
 
     if (plan.recommendations.length > 0) {
-      context += `
+      context += locale === 'sv'
+        ? `
+
+### Tips
+${plan.recommendations.map(r => `- ${r}`).join('\n')}`
+        : `
 
 ### Tips
 ${plan.recommendations.map(r => `- ${r}`).join('\n')}`;
@@ -617,10 +661,15 @@ ${plan.recommendations.map(r => `- ${r}`).join('\n')}`;
   }
 
   const hydration = calculateHydration(input.weightKg, input.activityLevel);
-  context += `
+  context += locale === 'sv'
+    ? `
 
 ### Hydrering
-- **Dagligt vätskebehov**: ${Math.round(hydration.withActivityML / 100) / 10} liter`;
+- **Dagligt vätskebehov**: ${Math.round(hydration.withActivityML / 100) / 10} liter`
+    : `
+
+### Hydration
+- **Daily fluid need**: ${Math.round(hydration.withActivityML / 100) / 10} liters`;
 
   return context;
 }
