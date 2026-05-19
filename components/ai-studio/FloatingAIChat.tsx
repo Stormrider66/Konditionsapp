@@ -43,6 +43,7 @@ import { getInfoEntriesByKeys } from '@/lib/info-content'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
+import { useLocale } from '@/i18n/client'
 import { useFloatingChatDrag } from './useFloatingChatDrag'
 import {
   COACH_FLOATING_CHAT_EVENT,
@@ -141,7 +142,62 @@ function isToolStatusOutput(output: unknown): output is ToolStatusOutput {
   return typeof output === 'object' && output !== null
 }
 
-function getFallbackActionMessage(toolName: string, output: ToolStatusOutput): string {
+function getFallbackActionMessage(toolName: string, output: ToolStatusOutput, locale: 'en' | 'sv'): string {
+  if (locale !== 'sv') {
+    if (output.success === false) {
+      const error = output.error || output.message || 'I did not get a clear error message from the system.'
+      if (output.needsClarification) {
+        return `${error} Choose the right option or give me a little more information and I will continue.`
+      }
+      return `I could not complete that: ${error}`
+    }
+
+    if (output.success === true) {
+      if (output.message) return output.message
+
+      switch (toolName) {
+        case 'createTodayWorkout':
+          return output.title
+            ? `Done, I created the workout "${output.title}".`
+            : 'Done, I created the workout.'
+        case 'logMeal':
+          return 'Done, I logged the meal.'
+        case 'updateMeal':
+          return 'Done, I updated the meal.'
+        case 'deleteMeal':
+          return 'Done, I deleted the meal.'
+        case 'logDailyCheckIn':
+          return 'Done, I saved the check-in.'
+        case 'reportInjury':
+          return 'Done, I registered the injury report.'
+        case 'updateAthleteProfile':
+          return 'Done, I updated the profile.'
+        case 'createCalendarEvent':
+          return 'Done, I created the calendar event.'
+        case 'generateTrainingProgram':
+          return output.athleteName
+            ? `Done, I started program generation for ${output.athleteName}.`
+            : 'Done, I started program generation.'
+        case 'generateStrengthSession':
+        case 'createCardioSession':
+        case 'createHybridWorkout':
+        case 'createSportWorkout':
+        case 'modifyStrengthSession':
+          return output.name
+            ? `Done, I saved "${output.name}".`
+            : 'Done, I saved the action.'
+        case 'prepareCoachMessageDraft':
+          return 'I prepared a message. It will not be sent until you confirm it in the card below.'
+        case 'suggestCoachNavigation':
+          return 'I prepared a shortcut. Click the button below to open it.'
+        default:
+          return 'Done, I completed the action.'
+      }
+    }
+
+    return output.error || output.message || 'I tried to perform the action, but did not get a clear response from the system.'
+  }
+
   if (output.success === false) {
     const error = output.error || output.message || 'Jag fick inget tydligt felmeddelande från systemet.'
     if (output.needsClarification) {
@@ -196,7 +252,7 @@ function getFallbackActionMessage(toolName: string, output: ToolStatusOutput): s
   return output.error || output.message || 'Jag försökte utföra åtgärden, men fick inget tydligt svar från systemet.'
 }
 
-function getToolOnlyStatusMessage(role: string, parts?: unknown[]): string | null {
+function getToolOnlyStatusMessage(role: string, parts: unknown[] | undefined, locale: 'en' | 'sv'): string | null {
   if (role !== 'assistant') return null
 
   const toolOutputs = (parts as ToolOutputPart[] | undefined)?.filter(
@@ -208,12 +264,15 @@ function getToolOnlyStatusMessage(role: string, parts?: unknown[]): string | nul
     .reverse()
     .find(part => isToolStatusOutput(part.output))
   if (!latestOutput || !isToolStatusOutput(latestOutput.output)) {
-    return 'Jag försökte utföra åtgärden, men fick inget tydligt svar från systemet.'
+    return locale === 'sv'
+      ? 'Jag försökte utföra åtgärden, men fick inget tydligt svar från systemet.'
+      : 'I tried to perform the action, but did not get a clear response from the system.'
   }
 
   return getFallbackActionMessage(
     latestOutput.type.replace(/^tool-/, ''),
-    latestOutput.output
+    latestOutput.output,
+    locale
   )
 }
 
@@ -259,6 +318,7 @@ export function FloatingAIChat({
   visibleConcepts,
 }: FloatingAIChatProps) {
   const { toast } = useToast()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
@@ -1205,12 +1265,12 @@ export function FloatingAIChat({
     const textContent = getMessageTextContent(lastMessage.parts)
     const toolOnlyStatusMessage = textContent
       ? null
-      : getToolOnlyStatusMessage(lastMessage.role, lastMessage.parts)
+      : getToolOnlyStatusMessage(lastMessage.role, lastMessage.parts, locale)
     const replyText = textContent || toolOnlyStatusMessage || ''
 
     spokenAssistantMessageIdsRef.current.add(lastMessage.id)
     void speakAssistantReply(replyText)
-  }, [isLoading, messages, speakAssistantReply])
+  }, [isLoading, locale, messages, speakAssistantReply])
 
   useEffect(() => {
     if (!assistantNotices.length) return
@@ -2054,7 +2114,7 @@ export function FloatingAIChat({
               const textContent = getMessageTextContent(message.parts)
               const toolOnlyStatusMessage = textContent || isLoading
                 ? null
-                : getToolOnlyStatusMessage(message.role, message.parts)
+                : getToolOnlyStatusMessage(message.role, message.parts, locale)
               const navigationToolPart = (message.parts as ToolOutputPart[] | undefined)?.find(
                 part => part.type === 'tool-suggestCoachNavigation' && part.state === 'output-available'
               )
