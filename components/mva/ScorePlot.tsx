@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import {
   ScatterChart,
   Scatter,
@@ -25,16 +26,6 @@ interface ScorePlotProps {
   t2Limit95: number
 }
 
-const POSITION_COLORS: Record<string, string> = {
-  TEAM_FOOTBALL: '#2563eb',
-  TEAM_ICE_HOCKEY: '#7c3aed',
-  TEAM_HANDBALL: '#db2777',
-  TEAM_FLOORBALL: '#ea580c',
-  TEAM_BASKETBALL: '#d97706',
-  TEAM_VOLLEYBALL: '#059669',
-  default: '#6b7280',
-}
-
 function getColor(isOutlier: boolean): string {
   return isOutlier ? '#ef4444' : '#2563eb'
 }
@@ -42,9 +33,10 @@ function getColor(isOutlier: boolean): string {
 interface CustomTooltipProps {
   active?: boolean
   payload?: { payload: { name: string; pc1: number; pc2: number; t2: number; outlier: boolean } }[]
+  locale: string
 }
 
-function CustomTooltip({ active, payload }: CustomTooltipProps) {
+function CustomTooltip({ active, payload, locale }: CustomTooltipProps) {
   if (!active || !payload?.[0]) return null
   const d = payload[0].payload
   return (
@@ -53,12 +45,17 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
       <p className="text-muted-foreground">PC1: {d.pc1.toFixed(2)}</p>
       <p className="text-muted-foreground">PC2: {d.pc2.toFixed(2)}</p>
       <p className="text-muted-foreground">T²: {d.t2.toFixed(2)}</p>
-      {d.outlier && <p className="text-red-500 font-medium">Avvikande (T²)</p>}
+      {d.outlier && (
+        <p className="text-red-500 font-medium">
+          {locale === 'sv' ? 'Avvikande' : 'Outlier'} (T²)
+        </p>
+      )}
     </div>
   )
 }
 
 export function ScorePlot({ athleteScores, explainedVariance }: ScorePlotProps) {
+  const locale = useLocale()
   const data = athleteScores.map((a) => ({
     name: a.clientName,
     pc1: a.scores[0] ?? 0,
@@ -74,7 +71,7 @@ export function ScorePlot({ athleteScores, explainedVariance }: ScorePlotProps) 
   return (
     <div className="w-full">
       <h3 className="text-lg font-semibold mb-4 dark:text-white">
-        Poängdiagram (Score Plot)
+        {locale === 'sv' ? 'Poängdiagram (Score Plot)' : 'Score plot'}
       </h3>
       <ResponsiveContainer width="100%" height={450}>
         <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
@@ -102,7 +99,7 @@ export function ScorePlot({ athleteScores, explainedVariance }: ScorePlotProps) 
             }}
             tick={{ fill: 'currentColor' }}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip locale={locale} />} />
           <Scatter data={data} fill="#2563eb">
             <LabelList
               dataKey="name"
@@ -120,7 +117,7 @@ export function ScorePlot({ athleteScores, explainedVariance }: ScorePlotProps) 
         </span>
         <span className="flex items-center gap-1">
           <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-          Avvikande (T²)
+          {locale === 'sv' ? 'Avvikande' : 'Outlier'} (T²)
         </span>
       </div>
     </div>
