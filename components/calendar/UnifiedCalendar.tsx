@@ -16,7 +16,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import useSWR from 'swr'
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -56,6 +56,7 @@ import {
   GlassCardContent,
   GlassCardDescription
 } from '@/components/ui/GlassCard'
+import { useLocale } from '@/i18n/client'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -90,6 +91,9 @@ function sortCalendarItems(calendarItems: UnifiedCalendarItem[]): UnifiedCalenda
 
 export function UnifiedCalendar({ clientId, clientName, isCoachView = false, variant = 'default', businessSlug }: UnifiedCalendarProps) {
   const { toast } = useToast()
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const isGlass = variant === 'glass'
 
   // Deep-link support: `?date=YYYY-MM-DD` opens the calendar on that month
@@ -312,15 +316,15 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
 
       if (!response.ok) {
         toast({
-          title: 'Fel',
-          description: result.error || 'Kunde inte flytta passet',
+          title: appLocale === 'sv' ? 'Fel' : 'Error',
+          description: result.error || (appLocale === 'sv' ? 'Kunde inte flytta passet' : 'Could not move the workout'),
           variant: 'destructive',
         })
         return
       }
 
       toast({
-        title: 'Pass flyttat',
+        title: appLocale === 'sv' ? 'Pass flyttat' : 'Workout moved',
         description: result.message,
       })
 
@@ -330,12 +334,12 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     } catch (error) {
       console.error('Move error:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte flytta passet',
+        title: appLocale === 'sv' ? 'Fel' : 'Error',
+        description: appLocale === 'sv' ? 'Kunde inte flytta passet' : 'Could not move the workout',
         variant: 'destructive',
       })
     }
-  }, [workoutToMove, mutate, toast])
+  }, [appLocale, workoutToMove, mutate, toast])
 
   // Mobile: Handle FAB action
   const handleFABAction = useCallback((action: { type: 'new-event'; eventType?: CalendarEventType }) => {
@@ -385,8 +389,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
 
         if (!response.ok) {
           toast({
-            title: 'Fel',
-            description: result.error || 'Kunde inte kontrollera konflikter',
+            title: appLocale === 'sv' ? 'Fel' : 'Error',
+            description: result.error || (appLocale === 'sv' ? 'Kunde inte kontrollera konflikter' : 'Could not check conflicts'),
             variant: 'destructive',
           })
           return
@@ -412,15 +416,15 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
       } catch (err) {
         console.error('Error checking conflicts:', err)
         toast({
-          title: 'Fel',
-          description: 'Kunde inte kontrollera konflikter',
+          title: appLocale === 'sv' ? 'Fel' : 'Error',
+          description: appLocale === 'sv' ? 'Kunde inte kontrollera konflikter' : 'Could not check conflicts',
           variant: 'destructive',
         })
       } finally {
         setIsCheckingConflicts(false)
       }
     },
-    [items, toast]
+    [appLocale, items, toast]
   )
 
   // Handle shift-drag workout copy
@@ -446,8 +450,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
 
         if (!response.ok) {
           toast({
-            title: 'Fel',
-            description: result.error || 'Kunde inte kopiera passet',
+            title: appLocale === 'sv' ? 'Fel' : 'Error',
+            description: result.error || (appLocale === 'sv' ? 'Kunde inte kopiera passet' : 'Could not copy the workout'),
             variant: 'destructive',
           })
           return
@@ -485,21 +489,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         }, { revalidate: false })
 
         toast({
-          title: 'Pass kopierat',
+          title: appLocale === 'sv' ? 'Pass kopierat' : 'Workout copied',
           description: result.message,
         })
       } catch (err) {
         console.error('Error copying workout:', err)
         toast({
-          title: 'Fel',
-          description: 'Kunde inte kopiera passet',
+          title: appLocale === 'sv' ? 'Fel' : 'Error',
+          description: appLocale === 'sv' ? 'Kunde inte kopiera passet' : 'Could not copy the workout',
           variant: 'destructive',
         })
       } finally {
         setIsCopyingWorkout(false)
       }
     },
-    [data, items, mutate, toast]
+    [appLocale, data, items, mutate, toast]
   )
 
   const updateMovedCalendarItem = useCallback((
@@ -547,8 +551,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
 
         if (!response.ok) {
           toast({
-            title: 'Fel',
-            description: result.error || 'Kunde inte flytta passet',
+            title: appLocale === 'sv' ? 'Fel' : 'Error',
+            description: result.error || (appLocale === 'sv' ? 'Kunde inte flytta passet' : 'Could not move the workout'),
             variant: 'destructive',
           })
           return
@@ -557,21 +561,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         updateMovedCalendarItem(item.id, targetDate, result)
 
         toast({
-          title: 'Pass flyttat',
+          title: appLocale === 'sv' ? 'Pass flyttat' : 'Workout moved',
           description: result.message,
         })
       } catch (err) {
         console.error('Error moving scheduled workout:', err)
         toast({
-          title: 'Fel',
-          description: 'Kunde inte flytta passet',
+          title: appLocale === 'sv' ? 'Fel' : 'Error',
+          description: appLocale === 'sv' ? 'Kunde inte flytta passet' : 'Could not move the workout',
           variant: 'destructive',
         })
       } finally {
         setIsRescheduling(false)
       }
     },
-    [toast, updateMovedCalendarItem]
+    [appLocale, toast, updateMovedCalendarItem]
   )
 
   const handleCopyScheduledWorkout = useCallback(
@@ -593,8 +597,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
 
         if (!response.ok) {
           toast({
-            title: 'Fel',
-            description: result.error || 'Kunde inte kopiera passet',
+            title: appLocale === 'sv' ? 'Fel' : 'Error',
+            description: result.error || (appLocale === 'sv' ? 'Kunde inte kopiera passet' : 'Could not copy the workout'),
             variant: 'destructive',
           })
           return
@@ -633,21 +637,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         }, { revalidate: false })
 
         toast({
-          title: 'Pass kopierat',
+          title: appLocale === 'sv' ? 'Pass kopierat' : 'Workout copied',
           description: result.message,
         })
       } catch (err) {
         console.error('Error copying scheduled workout:', err)
         toast({
-          title: 'Fel',
-          description: 'Kunde inte kopiera passet',
+          title: appLocale === 'sv' ? 'Fel' : 'Error',
+          description: appLocale === 'sv' ? 'Kunde inte kopiera passet' : 'Could not copy the workout',
           variant: 'destructive',
         })
       } finally {
         setIsCopyingWorkout(false)
       }
     },
-    [data, mutate, toast]
+    [appLocale, data, mutate, toast]
   )
 
   // Execute reschedule
@@ -673,8 +677,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
 
         if (!response.ok) {
           toast({
-            title: 'Fel',
-            description: result.error || 'Kunde inte flytta passet',
+            title: appLocale === 'sv' ? 'Fel' : 'Error',
+            description: result.error || (appLocale === 'sv' ? 'Kunde inte flytta passet' : 'Could not move the workout'),
             variant: 'destructive',
           })
           return
@@ -682,7 +686,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
 
         // Success
         toast({
-          title: 'Pass flyttat',
+          title: appLocale === 'sv' ? 'Pass flyttat' : 'Workout moved',
           description: result.message,
         })
 
@@ -716,15 +720,15 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
       } catch (err) {
         console.error('Error rescheduling:', err)
         toast({
-          title: 'Fel',
-          description: 'Kunde inte flytta passet',
+          title: appLocale === 'sv' ? 'Fel' : 'Error',
+          description: appLocale === 'sv' ? 'Kunde inte flytta passet' : 'Could not move the workout',
           variant: 'destructive',
         })
       } finally {
         setIsRescheduling(false)
       }
     },
-    [data, rescheduleState, mutate, toast]
+    [appLocale, data, rescheduleState, mutate, toast]
   )
 
   // Handle conflict resolution
@@ -746,8 +750,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         setShowConflictDialog(false)
         setRescheduleState(null)
         toast({
-          title: 'Avbrutet',
-          description: 'Flytten avbröts',
+          title: appLocale === 'sv' ? 'Avbrutet' : 'Cancelled',
+          description: appLocale === 'sv' ? 'Flytten avbröts' : 'The move was cancelled',
         })
       } else if (resolution?.type === 'IGNORE' || resolution === null) {
         // Proceed with original reschedule
@@ -761,7 +765,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         executeReschedule(undefined, true)
       }
     },
-    [rescheduleState, executeReschedule, toast]
+    [appLocale, rescheduleState, executeReschedule, toast]
   )
 
   const handleCancelReschedule = useCallback(() => {
@@ -780,7 +784,9 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
               <div className="flex items-center gap-2">
                 <CalendarIcon className="h-5 w-5 text-orange-500" />
                 <GlassCardTitle className="text-lg">
-                  {clientName ? `${clientName}s kalender` : 'Kalender'}
+                  {clientName
+                    ? appLocale === 'sv' ? `${clientName}s kalender` : `${clientName}'s calendar`
+                    : appLocale === 'sv' ? 'Kalender' : 'Calendar'}
                 </GlassCardTitle>
               </div>
               <Button
@@ -790,7 +796,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 className="hidden md:flex bg-orange-600 hover:bg-orange-700 text-white border-none"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Ny händelse
+                {appLocale === 'sv' ? 'Ny händelse' : 'New event'}
               </Button>
             </div>
 
@@ -804,21 +810,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                   <ChevronRight className="h-5 w-5" />
                 </Button>
                 <Button variant="ghost" size="sm" onClick={handleToday} className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-white hover:bg-white/10">
-                  Idag
+                  {appLocale === 'sv' ? 'Idag' : 'Today'}
                 </Button>
               </div>
 
               <h2 className="text-xl font-black capitalize text-white tracking-tight">
-                {format(currentMonth, 'MMMM yyyy', { locale: sv })}
+                {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
               </h2>
 
               <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'month' | 'agenda')} className="hidden sm:block">
                 <TabsList className="h-8 bg-white/5 border border-white/10">
                   <TabsTrigger value="month" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white/10 data-[state=active]:text-white">
-                    Månad
+                    {appLocale === 'sv' ? 'Månad' : 'Month'}
                   </TabsTrigger>
                   <TabsTrigger value="agenda" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white/10 data-[state=active]:text-white">
-                    Lista
+                    {appLocale === 'sv' ? 'Lista' : 'List'}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -830,19 +836,19 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 {data.counts.workouts > 0 && (
                   <span className="flex items-center gap-1.5 text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                    {data.counts.workouts} pass
+                    {data.counts.workouts} {appLocale === 'sv' ? 'pass' : 'workouts'}
                   </span>
                 )}
                 {data.counts.races > 0 && (
                   <span className="flex items-center gap-1.5 text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                    {data.counts.races} tävlingar
+                    {data.counts.races} {appLocale === 'sv' ? 'tävlingar' : 'races'}
                   </span>
                 )}
                 {data.counts.calendarEvents > 0 && (
                   <span className="flex items-center gap-1.5 text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                    {data.counts.calendarEvents} händelser
+                    {data.counts.calendarEvents} {appLocale === 'sv' ? 'händelser' : 'events'}
                   </span>
                 )}
                 {data.counts.adHoc > 0 && (
@@ -899,6 +905,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 onItemClick={handleItemClick}
                 selectedItem={selectedItem}
                 isGlass={true}
+                locale={appLocale}
               />
             )}
           </GlassCardContent>
@@ -1008,20 +1015,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         <Dialog open={showIntensityDialog} onOpenChange={setShowIntensityDialog}>
           <DialogContent className="sm:max-w-[360px]">
             <DialogHeader>
-              <DialogTitle>Justera intensitet</DialogTitle>
+              <DialogTitle>{appLocale === 'sv' ? 'Justera intensitet' : 'Adjust intensity'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <p className="text-sm text-muted-foreground">
-                Välj ny intensitet för{' '}
-                <span className="font-medium">{rescheduleState?.workoutName}</span> innan flytt.
+                {appLocale === 'sv' ? 'Välj ny intensitet för' : 'Choose a new intensity for'}{' '}
+                <span className="font-medium">{rescheduleState?.workoutName}</span>{' '}
+                {appLocale === 'sv' ? 'innan flytt.' : 'before moving.'}
               </p>
               <div className="space-y-2">
-                <Label>Intensitet</Label>
+                <Label>{appLocale === 'sv' ? 'Intensitet' : 'Intensity'}</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { value: 'easy', label: 'Lätt', color: 'bg-green-100 border-green-400 text-green-800' },
-                    { value: 'moderate', label: 'Måttlig', color: 'bg-yellow-100 border-yellow-400 text-yellow-800' },
-                    { value: 'hard', label: 'Hård', color: 'bg-red-100 border-red-400 text-red-800' },
+                    { value: 'easy', label: appLocale === 'sv' ? 'Lätt' : 'Easy', color: 'bg-green-100 border-green-400 text-green-800' },
+                    { value: 'moderate', label: appLocale === 'sv' ? 'Måttlig' : 'Moderate', color: 'bg-yellow-100 border-yellow-400 text-yellow-800' },
+                    { value: 'hard', label: appLocale === 'sv' ? 'Hård' : 'Hard', color: 'bg-red-100 border-red-400 text-red-800' },
                   ].map((opt) => (
                     <button
                       key={opt.value}
@@ -1047,19 +1055,24 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                   setRescheduleState(null)
                 }}
               >
-                Avbryt
+                {appLocale === 'sv' ? 'Avbryt' : 'Cancel'}
               </Button>
               <Button
                 onClick={() => {
                   setShowIntensityDialog(false)
-                  executeReschedule(`Intensitet justerad till ${selectedIntensity}`, true)
+                  executeReschedule(
+                    appLocale === 'sv'
+                      ? `Intensitet justerad till ${selectedIntensity}`
+                      : `Intensity adjusted to ${selectedIntensity}`,
+                    true
+                  )
                 }}
                 disabled={isRescheduling}
               >
                 {isRescheduling ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : null}
-                Flytta med ny intensitet
+                {appLocale === 'sv' ? 'Flytta med ny intensitet' : 'Move with new intensity'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1136,7 +1149,9 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             <div className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 text-muted-foreground" />
               <CardTitle className="text-lg">
-                {clientName ? `${clientName}s kalender` : 'Kalender'}
+                {clientName
+                  ? appLocale === 'sv' ? `${clientName}s kalender` : `${clientName}'s calendar`
+                  : appLocale === 'sv' ? 'Kalender' : 'Calendar'}
               </CardTitle>
             </div>
             {/* Hide add button on mobile - use FAB instead */}
@@ -1147,7 +1162,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
               className="hidden md:flex"
             >
               <Plus className="h-4 w-4 mr-1" />
-              Ny händelse
+              {appLocale === 'sv' ? 'Ny händelse' : 'New event'}
             </Button>
           </div>
 
@@ -1161,21 +1176,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={handleToday}>
-                Idag
+                {appLocale === 'sv' ? 'Idag' : 'Today'}
               </Button>
             </div>
 
             <h2 className="text-xl font-semibold capitalize">
-              {format(currentMonth, 'MMMM yyyy', { locale: sv })}
+              {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
             </h2>
 
             <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'month' | 'agenda')}>
               <TabsList className="h-8">
                 <TabsTrigger value="month" className="text-xs px-3">
-                  Månad
+                  {appLocale === 'sv' ? 'Månad' : 'Month'}
                 </TabsTrigger>
                 <TabsTrigger value="agenda" className="text-xs px-3">
-                  Lista
+                  {appLocale === 'sv' ? 'Lista' : 'List'}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -1187,19 +1202,19 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
               {data.counts.workouts > 0 && (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-blue-500" />
-                  {data.counts.workouts} pass
+                  {data.counts.workouts} {appLocale === 'sv' ? 'pass' : 'workouts'}
                 </span>
               )}
               {data.counts.races > 0 && (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-red-500" />
-                  {data.counts.races} tävlingar
+                  {data.counts.races} {appLocale === 'sv' ? 'tävlingar' : 'races'}
                 </span>
               )}
               {data.counts.calendarEvents > 0 && (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-purple-500" />
-                  {data.counts.calendarEvents} händelser
+                  {data.counts.calendarEvents} {appLocale === 'sv' ? 'händelser' : 'events'}
                 </span>
               )}
               {data.counts.adHoc > 0 && (
@@ -1254,6 +1269,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
               items={items}
               onItemClick={handleItemClick}
               selectedItem={selectedItem}
+              locale={appLocale}
             />
           )}
         </CardContent>
@@ -1424,20 +1440,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
       <Dialog open={showIntensityDialog} onOpenChange={setShowIntensityDialog}>
         <DialogContent className="sm:max-w-[360px]">
           <DialogHeader>
-            <DialogTitle>Justera intensitet</DialogTitle>
+            <DialogTitle>{appLocale === 'sv' ? 'Justera intensitet' : 'Adjust intensity'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Välj ny intensitet för{' '}
-              <span className="font-medium">{rescheduleState?.workoutName}</span> innan flytt.
+              {appLocale === 'sv' ? 'Välj ny intensitet för' : 'Choose a new intensity for'}{' '}
+              <span className="font-medium">{rescheduleState?.workoutName}</span>{' '}
+              {appLocale === 'sv' ? 'innan flytt.' : 'before moving.'}
             </p>
             <div className="space-y-2">
-              <Label>Intensitet</Label>
+              <Label>{appLocale === 'sv' ? 'Intensitet' : 'Intensity'}</Label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 'easy', label: 'Lätt', color: 'bg-green-100 border-green-400 text-green-800' },
-                  { value: 'moderate', label: 'Måttlig', color: 'bg-yellow-100 border-yellow-400 text-yellow-800' },
-                  { value: 'hard', label: 'Hård', color: 'bg-red-100 border-red-400 text-red-800' },
+                  { value: 'easy', label: appLocale === 'sv' ? 'Lätt' : 'Easy', color: 'bg-green-100 border-green-400 text-green-800' },
+                  { value: 'moderate', label: appLocale === 'sv' ? 'Måttlig' : 'Moderate', color: 'bg-yellow-100 border-yellow-400 text-yellow-800' },
+                  { value: 'hard', label: appLocale === 'sv' ? 'Hård' : 'Hard', color: 'bg-red-100 border-red-400 text-red-800' },
                 ].map((opt) => (
                   <button
                     key={opt.value}
@@ -1463,19 +1480,24 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 setRescheduleState(null)
               }}
             >
-              Avbryt
+              {appLocale === 'sv' ? 'Avbryt' : 'Cancel'}
             </Button>
             <Button
               onClick={() => {
                 setShowIntensityDialog(false)
-                executeReschedule(`Intensitet justerad till ${selectedIntensity}`, true)
+                executeReschedule(
+                  appLocale === 'sv'
+                    ? `Intensitet justerad till ${selectedIntensity}`
+                    : `Intensity adjusted to ${selectedIntensity}`,
+                  true
+                )
               }}
               disabled={isRescheduling}
             >
               {isRescheduling ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : null}
-              Flytta med ny intensitet
+              {appLocale === 'sv' ? 'Flytta med ny intensitet' : 'Move with new intensity'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1492,9 +1514,11 @@ interface AgendaViewProps {
   onItemClick: (item: UnifiedCalendarItem) => void
   selectedItem: UnifiedCalendarItem | null
   isGlass?: boolean
+  locale: 'en' | 'sv'
 }
 
-function AgendaView({ items, onItemClick, selectedItem, isGlass = false }: AgendaViewProps) {
+function AgendaView({ items, onItemClick, selectedItem, isGlass = false, locale }: AgendaViewProps) {
+  const dateLocale = locale === 'sv' ? sv : enUS
   // Group items by date
   const groupedItems: Record<string, UnifiedCalendarItem[]> = {}
   for (const item of items) {
@@ -1510,7 +1534,7 @@ function AgendaView({ items, onItemClick, selectedItem, isGlass = false }: Agend
   if (sortedDates.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-12">
-        Inga händelser denna månad
+        {locale === 'sv' ? 'Inga händelser denna månad' : 'No events this month'}
       </div>
     )
   }
@@ -1520,7 +1544,7 @@ function AgendaView({ items, onItemClick, selectedItem, isGlass = false }: Agend
       {sortedDates.map((dateKey) => (
         <div key={dateKey}>
           <h3 className="text-sm font-medium text-muted-foreground mb-2 capitalize">
-            {format(new Date(dateKey), 'EEEE d MMMM', { locale: sv })}
+            {format(new Date(dateKey), 'EEEE d MMMM', { locale: dateLocale })}
           </h3>
           <div className="space-y-2">
             {groupedItems[dateKey].map((item) => (
