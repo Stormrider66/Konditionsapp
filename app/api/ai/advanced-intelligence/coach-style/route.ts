@@ -9,6 +9,16 @@ import { requireCoachFeatureAccess } from '@/lib/subscription/require-feature-ac
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/ai/advanced-intelligence/coach-style
  * Extract coaching style from documents and program history
@@ -90,6 +100,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = resolveLocale(user.language)
 
     // Subscription gate (coach-level, no clientId needed)
     const deniedPost = await requireCoachFeatureAccess(user.id, 'advanced_intelligence')
@@ -161,7 +172,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Ogiltig action. Använd "extract" eller "apply".' },
+      { error: t(locale, 'Invalid action. Use "extract" or "apply".', 'Ogiltig action. Använd "extract" eller "apply".') },
       { status: 400 }
     )
   } catch (error) {

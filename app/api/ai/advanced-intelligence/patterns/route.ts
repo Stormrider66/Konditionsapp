@@ -8,6 +8,12 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
 /**
  * GET /api/ai/advanced-intelligence/patterns
  * Analyze training history patterns for an athlete
@@ -19,6 +25,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:patterns', user.id, {
       limit: 10,
@@ -32,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId är obligatoriskt' },
+        { error: locale === 'sv' ? 'clientId är obligatoriskt' : 'clientId is required' },
         { status: 400 }
       )
     }

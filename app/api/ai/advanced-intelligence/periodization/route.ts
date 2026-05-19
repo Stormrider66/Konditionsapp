@@ -12,6 +12,16 @@ import { prisma } from '@/lib/prisma'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withAiContext } from '@/lib/ai/usage-logger'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/ai/advanced-intelligence/periodization
  * Analyze current periodization and get adjustment recommendations
@@ -29,6 +39,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:periodization', user.id, {
       limit: 10,
@@ -44,7 +55,7 @@ export async function GET(req: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId är obligatoriskt' },
+        { error: t(locale, 'clientId is required', 'clientId är obligatoriskt') },
         { status: 400 }
       )
     }
@@ -140,6 +151,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:periodization:post', user.id, {
       limit: 10,
@@ -152,7 +164,7 @@ export async function POST(req: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId är obligatoriskt' },
+        { error: t(locale, 'clientId is required', 'clientId är obligatoriskt') },
         { status: 400 }
       )
     }

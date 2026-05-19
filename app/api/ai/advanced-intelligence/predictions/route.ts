@@ -9,6 +9,16 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logPrediction, logPredictionBatch, createRaceTimeInputSnapshot } from '@/lib/data-moat/prediction-logger'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/ai/advanced-intelligence/predictions
  * Get goal predictions and race time estimates
@@ -20,6 +30,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:predictions:get', user.id, {
       limit: 10,
@@ -36,7 +47,7 @@ export async function GET(req: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId är obligatoriskt' },
+        { error: t(locale, 'clientId is required', 'clientId är obligatoriskt') },
         { status: 400 }
       )
     }
@@ -141,6 +152,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:predictions:post', user.id, {
       limit: 10,
@@ -153,7 +165,7 @@ export async function POST(req: NextRequest) {
 
     if (!clientId || !targetDistance) {
       return NextResponse.json(
-        { error: 'clientId och targetDistance är obligatoriska' },
+        { error: t(locale, 'clientId and targetDistance are required', 'clientId och targetDistance är obligatoriska') },
         { status: 400 }
       )
     }
@@ -171,7 +183,13 @@ export async function POST(req: NextRequest) {
     const validDistances = ['5K', '10K', 'HALF', 'MARATHON']
     if (!validDistances.includes(targetDistance)) {
       return NextResponse.json(
-        { error: `targetDistance måste vara en av: ${validDistances.join(', ')}` },
+        {
+          error: t(
+            locale,
+            `targetDistance must be one of: ${validDistances.join(', ')}`,
+            `targetDistance måste vara en av: ${validDistances.join(', ')}`,
+          ),
+        },
         { status: 400 }
       )
     }
