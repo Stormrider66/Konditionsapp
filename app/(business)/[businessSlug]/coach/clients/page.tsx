@@ -49,7 +49,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { LoadingTable } from '@/components/ui/loading'
 import { useToast } from '@/hooks/use-toast'
-import { MoreVertical, UserPlus, Eye, Trash2, Phone, Mail, Download, UserCircle, Check } from 'lucide-react'
+import { MoreVertical, UserPlus, Eye, Trash2, Phone, Mail, Download, UserCircle, Check, CircleAlert } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientsToCSV } from '@/lib/utils/csv-export'
 import { useLocale, useTranslations } from '@/i18n/client'
@@ -57,6 +57,8 @@ import { useLocale, useTranslations } from '@/i18n/client'
 type RegistryClient = Client & {
   athleteAccount?: unknown
 }
+
+type ClientReadiness = 'ready' | 'missingAccount' | 'missingContact'
 
 export default function BusinessClientsPage() {
   const params = useParams()
@@ -194,6 +196,24 @@ export default function BusinessClientsPage() {
       .join('')
       .toUpperCase()
       .slice(0, 2)
+  }
+
+  const getClientReadiness = (client: RegistryClient): ClientReadiness => {
+    if (!client.athleteAccount) return 'missingAccount'
+    if (!client.email && !client.phone) return 'missingContact'
+    return 'ready'
+  }
+
+  const getClientReadinessLabel = (status: ClientReadiness) => {
+    if (status === 'ready') return t('readiness.ready')
+    if (status === 'missingAccount') return t('readiness.missingAccount')
+    return t('readiness.missingContact')
+  }
+
+  const getClientReadinessDescription = (status: ClientReadiness) => {
+    if (status === 'ready') return t('readiness.readyDescription')
+    if (status === 'missingAccount') return t('readiness.missingAccountDescription')
+    return t('readiness.missingContactDescription')
   }
 
   const handleExportCSV = () => {
@@ -335,90 +355,104 @@ export default function BusinessClientsPage() {
             <>
               {/* Mobile Card View */}
               <div className="lg:hidden space-y-4">
-                {filteredClients.map((client) => (
-                  <GlassCard key={client.id} className="hover:shadow-md transition">
-                    <GlassCardContent className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3 flex-1">
-                          <Avatar className="w-12 h-12">
-                            <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg truncate dark:text-slate-100">{client.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {t('ageYears', { age: calculateAge(client.birthDate) })}
-                            </p>
+                {filteredClients.map((client) => {
+                  const readiness = getClientReadiness(client)
+
+                  return (
+                    <GlassCard key={client.id} className="hover:shadow-md transition">
+                      <GlassCardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3 flex-1">
+                            <Avatar className="w-12 h-12">
+                              <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-lg truncate dark:text-slate-100">{client.name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {t('ageYears', { age: calculateAge(client.birthDate) })}
+                              </p>
+                            </div>
                           </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                                <MoreVertical className="w-5 h-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`${basePath}/${client.id}`} className="cursor-pointer">
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  {t('actions.view')}
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`${basePath}/${client.id}?tab=profile`} className="cursor-pointer">
+                                  <UserCircle className="w-4 h-4 mr-2" />
+                                  {t('actions.fullProfile')}
+                                </Link>
+                              </DropdownMenuItem>
+                              {client.athleteAccount ? (
+                                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                                  <CreateAthleteAccountDialog
+                                    clientId={client.id}
+                                    clientName={client.name}
+                                    clientEmail={client.email}
+                                    clientPhone={client.phone}
+                                    hasExistingAccount
+                                    onAccountCreated={() => {
+                                      void fetchClients()
+                                    }}
+                                    trigger={
+                                      <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
+                                        <Mail className="w-4 h-4 mr-2" />
+                                        {t('actions.sendInvite')}
+                                      </button>
+                                    }
+                                  />
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                                  <CreateAthleteAccountDialog
+                                    clientId={client.id}
+                                    clientName={client.name}
+                                    clientEmail={client.email}
+                                    clientPhone={client.phone}
+                                    hasExistingAccount={false}
+                                    onAccountCreated={() => {
+                                      void fetchClients()
+                                    }}
+                                    trigger={
+                                      <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        {t('actions.createAthleteAccount')}
+                                      </button>
+                                    }
+                                  />
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteClick(client)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                {t('actions.delete')}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-                              <MoreVertical className="w-5 h-5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`${basePath}/${client.id}`} className="cursor-pointer">
-                                <Eye className="w-4 h-4 mr-2" />
-                                {t('actions.view')}
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`${basePath}/${client.id}?tab=profile`} className="cursor-pointer">
-                                <UserCircle className="w-4 h-4 mr-2" />
-                                {t('actions.fullProfile')}
-                              </Link>
-                            </DropdownMenuItem>
-                            {client.athleteAccount ? (
-                              <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
-                                <CreateAthleteAccountDialog
-                                  clientId={client.id}
-                                  clientName={client.name}
-                                  clientEmail={client.email}
-                                  clientPhone={client.phone}
-                                  hasExistingAccount
-                                  onAccountCreated={() => {
-                                    void fetchClients()
-                                  }}
-                                  trigger={
-                                    <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
-                                      <Mail className="w-4 h-4 mr-2" />
-                                      {t('actions.sendInvite')}
-                                    </button>
-                                  }
-                                />
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
-                                <CreateAthleteAccountDialog
-                                  clientId={client.id}
-                                  clientName={client.name}
-                                  clientEmail={client.email}
-                                  clientPhone={client.phone}
-                                  hasExistingAccount={false}
-                                  onAccountCreated={() => {
-                                    void fetchClients()
-                                  }}
-                                  trigger={
-                                    <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
-                                      <UserPlus className="w-4 h-4 mr-2" />
-                                      {t('actions.createAthleteAccount')}
-                                    </button>
-                                  }
-                                />
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteClick(client)}
-                              className="text-red-600 focus:text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              {t('actions.delete')}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      <div className="space-y-2 text-sm">
+                        <Badge
+                          variant="outline"
+                          className={
+                            readiness === 'ready'
+                              ? 'mb-3 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                              : 'mb-3 border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200'
+                          }
+                        >
+                          {readiness === 'ready' ? <Check className="w-3 h-3 mr-1" /> : <CircleAlert className="w-3 h-3 mr-1" />}
+                          {getClientReadinessLabel(readiness)}
+                        </Badge>
+                        <div className="space-y-2 text-sm">
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">{t('fields.gender')}:</span>
                           <Badge variant={client.gender === 'MALE' ? 'default' : 'secondary'}>
@@ -462,7 +496,8 @@ export default function BusinessClientsPage() {
                       </div>
                     </GlassCardContent>
                   </GlassCard>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Desktop Table View */}
@@ -471,6 +506,7 @@ export default function BusinessClientsPage() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/10">
                       <TableHead>{t('table.client')}</TableHead>
+                      <TableHead>{t('table.coachStatus')}</TableHead>
                       <TableHead>{t('table.age')}</TableHead>
                       <TableHead>{t('table.gender')}</TableHead>
                       <TableHead>{t('table.team')}</TableHead>
@@ -481,14 +517,33 @@ export default function BusinessClientsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredClients.map((client) => (
-                      <TableRow key={client.id} className="hover:bg-slate-100/50 dark:hover:bg-white/5 border-slate-200 dark:border-white/10">
+                    {filteredClients.map((client) => {
+                      const readiness = getClientReadiness(client)
+
+                      return (
+                        <TableRow key={client.id} className="hover:bg-slate-100/50 dark:hover:bg-white/5 border-slate-200 dark:border-white/10">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium dark:text-slate-100">{client.name}</span>
+                            </div>
+                          </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium dark:text-slate-100">{client.name}</span>
+                          <div className="flex flex-col gap-1">
+                            <Badge
+                              variant="outline"
+                              className={
+                                readiness === 'ready'
+                                  ? 'w-fit border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                                  : 'w-fit border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200'
+                              }
+                            >
+                              {readiness === 'ready' ? <Check className="w-3 h-3 mr-1" /> : <CircleAlert className="w-3 h-3 mr-1" />}
+                              {getClientReadinessLabel(readiness)}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{getClientReadinessDescription(readiness)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="dark:text-slate-300">{t('ageYears', { age: calculateAge(client.birthDate) })}</TableCell>
@@ -629,7 +684,8 @@ export default function BusinessClientsPage() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>

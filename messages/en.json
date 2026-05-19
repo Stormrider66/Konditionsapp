@@ -3161,8 +3161,17 @@
           "active": "Active",
           "missing": "Missing"
         },
+        "readiness": {
+          "ready": "Ready",
+          "readyDescription": "Portal and contact ready",
+          "missingAccount": "Setup needed",
+          "missingAccountDescription": "Create athlete account",
+          "missingContact": "Contact needed",
+          "missingContactDescription": "Add email or phone"
+        },
         "table": {
           "client": "Client",
+          "coachStatus": "Coach status",
           "age": "Age",
           "gender": "Gender",
           "team": "Team",

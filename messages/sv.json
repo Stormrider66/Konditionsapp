@@ -3161,8 +3161,17 @@
           "active": "Aktivt",
           "missing": "Saknas"
         },
+        "readiness": {
+          "ready": "Redo",
+          "readyDescription": "Portal och kontakt redo",
+          "missingAccount": "Setup behövs",
+          "missingAccountDescription": "Skapa atletkonto",
+          "missingContact": "Kontakt behövs",
+          "missingContactDescription": "Lägg till e-post eller telefon"
+        },
         "table": {
           "client": "Klient",
+          "coachStatus": "Coachstatus",
           "age": "Ålder",
           "gender": "Kön",
           "team": "Lag",
