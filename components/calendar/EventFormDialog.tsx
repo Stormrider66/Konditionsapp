@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { CalendarIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -43,6 +43,7 @@ import { IllnessProtocolPreview } from './IllnessProtocolPreview'
 import { AltitudeCampPreview } from './AltitudeCampPreview'
 import { TrainingCampPreview } from './TrainingCampPreview'
 import type { CampType, CampFocus } from '@/lib/calendar/training-camp'
+import { useLocale } from '@/i18n/client'
 
 interface EventFormDialogProps {
   clientId: string
@@ -61,6 +62,9 @@ export function EventFormDialog({
   event,
   onSaved,
 }: EventFormDialogProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -165,12 +169,12 @@ export function EventFormDialog({
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      setError('Titel krävs')
+      setError(appLocale === 'sv' ? 'Titel krävs' : 'Title is required')
       return
     }
 
     if (endDate < startDate) {
-      setError('Slutdatum kan inte vara före startdatum')
+      setError(appLocale === 'sv' ? 'Slutdatum kan inte vara före startdatum' : 'End date cannot be before start date')
       return
     }
 
@@ -209,12 +213,12 @@ export function EventFormDialog({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte spara händelsen')
+        throw new Error(data.error || (appLocale === 'sv' ? 'Kunde inte spara händelsen' : 'Could not save the event'))
       }
 
       onSaved()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : appLocale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setIsSubmitting(false)
     }
@@ -227,29 +231,31 @@ export function EventFormDialog({
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Redigera händelse' : 'Ny kalenderhändelse'}
+            {isEditing
+              ? appLocale === 'sv' ? 'Redigera händelse' : 'Edit event'
+              : appLocale === 'sv' ? 'Ny kalenderhändelse' : 'New calendar event'}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? 'Uppdatera information om händelsen'
-              : 'Lägg till en händelse som påverkar träningen (resa, semester, sjukdom, etc.)'}
+              ? appLocale === 'sv' ? 'Uppdatera information om händelsen' : 'Update event information'
+              : appLocale === 'sv' ? 'Lägg till en händelse som påverkar träningen (resa, semester, sjukdom, etc.)' : 'Add an event that affects training (travel, vacation, illness, etc.)'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           {/* Event Type */}
           <div className="grid gap-2">
-            <Label htmlFor="type">Typ av händelse</Label>
+            <Label htmlFor="type">{appLocale === 'sv' ? 'Typ av händelse' : 'Event type'}</Label>
             <Select value={type} onValueChange={(v) => setType(v as CalendarEventType)}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj typ" />
+                <SelectValue placeholder={appLocale === 'sv' ? 'Välj typ' : 'Choose type'} />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(EVENT_TYPE_CONFIG).map(([key, config]) => (
                   <SelectItem key={key} value={key}>
                     <span className="flex items-center gap-2">
                       <span>{config.icon}</span>
-                      <span>{config.labelSv}</span>
+                      <span>{appLocale === 'sv' ? config.labelSv : config.label}</span>
                     </span>
                   </SelectItem>
                 ))}
@@ -259,19 +265,19 @@ export function EventFormDialog({
 
           {/* Title */}
           <div className="grid gap-2">
-            <Label htmlFor="title">Titel</Label>
+            <Label htmlFor="title">{appLocale === 'sv' ? 'Titel' : 'Title'}</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="t.ex. Semester i Spanien"
+              placeholder={appLocale === 'sv' ? 't.ex. Semester i Spanien' : 'e.g. Vacation in Spain'}
             />
           </div>
 
           {/* Date Range */}
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Startdatum</Label>
+              <Label>{appLocale === 'sv' ? 'Startdatum' : 'Start date'}</Label>
               <Popover modal={false}>
                 <PopoverTrigger asChild>
                   <Button
@@ -282,7 +288,7 @@ export function EventFormDialog({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'd MMM yyyy', { locale: sv }) : 'Välj datum'}
+                    {startDate ? format(startDate, 'd MMM yyyy', { locale: dateLocale }) : appLocale === 'sv' ? 'Välj datum' : 'Choose date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 z-[100]" align="start">
@@ -302,7 +308,7 @@ export function EventFormDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label>Slutdatum</Label>
+              <Label>{appLocale === 'sv' ? 'Slutdatum' : 'End date'}</Label>
               <Popover modal={false}>
                 <PopoverTrigger asChild>
                   <Button
@@ -313,7 +319,7 @@ export function EventFormDialog({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, 'd MMM yyyy', { locale: sv }) : 'Välj datum'}
+                    {endDate ? format(endDate, 'd MMM yyyy', { locale: dateLocale }) : appLocale === 'sv' ? 'Välj datum' : 'Choose date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 z-[100]" align="start">
@@ -331,18 +337,18 @@ export function EventFormDialog({
 
           {/* Training Impact */}
           <div className="grid gap-2">
-            <Label htmlFor="impact">Träningspåverkan</Label>
+            <Label htmlFor="impact">{appLocale === 'sv' ? 'Träningspåverkan' : 'Training impact'}</Label>
             <Select
               value={trainingImpact}
               onValueChange={(v) => setTrainingImpact(v as EventImpact)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj påverkan" />
+                <SelectValue placeholder={appLocale === 'sv' ? 'Välj påverkan' : 'Choose impact'} />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(IMPACT_CONFIG).map(([key, config]) => (
                   <SelectItem key={key} value={key}>
-                    <span className={config.color}>{config.labelSv}</span>
+                    <span className={config.color}>{appLocale === 'sv' ? config.labelSv : config.label}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -352,12 +358,12 @@ export function EventFormDialog({
           {/* Impact Notes */}
           {trainingImpact !== 'NORMAL' && trainingImpact !== 'NO_TRAINING' && (
             <div className="grid gap-2">
-              <Label htmlFor="impactNotes">Anpassningsdetaljer</Label>
+              <Label htmlFor="impactNotes">{appLocale === 'sv' ? 'Anpassningsdetaljer' : 'Adjustment details'}</Label>
               <Input
                 id="impactNotes"
                 value={impactNotes}
                 onChange={(e) => setImpactNotes(e.target.value)}
-                placeholder="t.ex. Endast morgonpass möjliga"
+                placeholder={appLocale === 'sv' ? 't.ex. Endast morgonpass möjliga' : 'e.g. Morning sessions only'}
               />
             </div>
           )}
@@ -366,18 +372,20 @@ export function EventFormDialog({
           {type === 'ALTITUDE_CAMP' && (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="altitude">Höjd (meter)</Label>
+                <Label htmlFor="altitude">{appLocale === 'sv' ? 'Höjd (meter)' : 'Altitude (meters)'}</Label>
                 <Input
                   id="altitude"
                   type="number"
                   value={altitude}
                   onChange={(e) => setAltitude(e.target.value ? Number(e.target.value) : '')}
-                  placeholder="t.ex. 2000"
+                  placeholder={appLocale === 'sv' ? 't.ex. 2000' : 'e.g. 2000'}
                   min={0}
                   max={5000}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Intensitet anpassas automatiskt baserat på höjd och anpassningsfas
+                  {appLocale === 'sv'
+                    ? 'Intensitet anpassas automatiskt baserat på höjd och anpassningsfas'
+                    : 'Intensity is adjusted automatically based on altitude and adaptation phase'}
                 </p>
               </div>
 
@@ -397,49 +405,49 @@ export function EventFormDialog({
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="campType">Lägertyp</Label>
+                  <Label htmlFor="campType">{appLocale === 'sv' ? 'Lägertyp' : 'Camp type'}</Label>
                   <Select value={campType} onValueChange={(v) => setCampType(v as CampType)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Välj typ" />
+                      <SelectValue placeholder={appLocale === 'sv' ? 'Välj typ' : 'Choose type'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ENDURANCE">Distansläger</SelectItem>
-                      <SelectItem value="SPEED">Fartläger</SelectItem>
-                      <SelectItem value="MIXED">Blandläger</SelectItem>
-                      <SelectItem value="RECOVERY">Återhämtningsläger</SelectItem>
+                      <SelectItem value="ENDURANCE">{appLocale === 'sv' ? 'Distansläger' : 'Endurance camp'}</SelectItem>
+                      <SelectItem value="SPEED">{appLocale === 'sv' ? 'Fartläger' : 'Speed camp'}</SelectItem>
+                      <SelectItem value="MIXED">{appLocale === 'sv' ? 'Blandläger' : 'Mixed camp'}</SelectItem>
+                      <SelectItem value="RECOVERY">{appLocale === 'sv' ? 'Återhämtningsläger' : 'Recovery camp'}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="campFocus">Fokus</Label>
+                  <Label htmlFor="campFocus">{appLocale === 'sv' ? 'Fokus' : 'Focus'}</Label>
                   <Select value={campFocus} onValueChange={(v) => setCampFocus(v as CampFocus)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Välj fokus" />
+                      <SelectValue placeholder={appLocale === 'sv' ? 'Välj fokus' : 'Choose focus'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="VOLUME">Volym</SelectItem>
-                      <SelectItem value="INTENSITY">Intensitet</SelectItem>
-                      <SelectItem value="TECHNIQUE">Teknik</SelectItem>
-                      <SelectItem value="MIXED">Blandat</SelectItem>
+                      <SelectItem value="VOLUME">{appLocale === 'sv' ? 'Volym' : 'Volume'}</SelectItem>
+                      <SelectItem value="INTENSITY">{appLocale === 'sv' ? 'Intensitet' : 'Intensity'}</SelectItem>
+                      <SelectItem value="TECHNIQUE">{appLocale === 'sv' ? 'Teknik' : 'Technique'}</SelectItem>
+                      <SelectItem value="MIXED">{appLocale === 'sv' ? 'Blandat' : 'Mixed'}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="sessionsPerDay">Pass per dag</Label>
+                <Label htmlFor="sessionsPerDay">{appLocale === 'sv' ? 'Pass per dag' : 'Sessions per day'}</Label>
                 <Select
                   value={String(sessionsPerDay)}
                   onValueChange={(v) => setSessionsPerDay(Number(v))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Välj antal" />
+                    <SelectValue placeholder={appLocale === 'sv' ? 'Välj antal' : 'Choose number'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 pass</SelectItem>
-                    <SelectItem value="2">2 pass</SelectItem>
-                    <SelectItem value="3">3 pass</SelectItem>
+                    <SelectItem value="1">{appLocale === 'sv' ? '1 pass' : '1 session'}</SelectItem>
+                    <SelectItem value="2">{appLocale === 'sv' ? '2 pass' : '2 sessions'}</SelectItem>
+                    <SelectItem value="3">{appLocale === 'sv' ? '3 pass' : '3 sessions'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -459,17 +467,17 @@ export function EventFormDialog({
           {type === 'ILLNESS' && (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="illnessType">Typ av sjukdom</Label>
+                <Label htmlFor="illnessType">{appLocale === 'sv' ? 'Typ av sjukdom' : 'Illness type'}</Label>
                 <Select value={illnessType} onValueChange={setIllnessType}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Välj typ" />
+                    <SelectValue placeholder={appLocale === 'sv' ? 'Välj typ' : 'Choose type'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="RESPIRATORY">Luftvägar (förkylning, hosta)</SelectItem>
-                    <SelectItem value="GI">Magbesvär</SelectItem>
-                    <SelectItem value="FEVER">Feber</SelectItem>
-                    <SelectItem value="GENERAL">Allmän sjukdom</SelectItem>
-                    <SelectItem value="OTHER">Annat</SelectItem>
+                    <SelectItem value="RESPIRATORY">{appLocale === 'sv' ? 'Luftvägar (förkylning, hosta)' : 'Respiratory (cold, cough)'}</SelectItem>
+                    <SelectItem value="GI">{appLocale === 'sv' ? 'Magbesvär' : 'GI symptoms'}</SelectItem>
+                    <SelectItem value="FEVER">{appLocale === 'sv' ? 'Feber' : 'Fever'}</SelectItem>
+                    <SelectItem value="GENERAL">{appLocale === 'sv' ? 'Allmän sjukdom' : 'General illness'}</SelectItem>
+                    <SelectItem value="OTHER">{appLocale === 'sv' ? 'Annat' : 'Other'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -477,7 +485,7 @@ export function EventFormDialog({
               {/* Fever tracking */}
               <div className="flex items-center justify-between">
                 <Label htmlFor="hadFever" className="flex-1">
-                  Har/hade feber (&gt;38°C)
+                  {appLocale === 'sv' ? 'Har/hade feber (>38°C)' : 'Has/had fever (>38°C)'}
                 </Label>
                 <Switch
                   id="hadFever"
@@ -488,13 +496,13 @@ export function EventFormDialog({
 
               {hadFever && (
                 <div className="grid gap-2">
-                  <Label htmlFor="feverDays">Antal dagar med feber</Label>
+                  <Label htmlFor="feverDays">{appLocale === 'sv' ? 'Antal dagar med feber' : 'Days with fever'}</Label>
                   <Input
                     id="feverDays"
                     type="number"
                     value={feverDays || ''}
                     onChange={(e) => setFeverDays(e.target.value ? Number(e.target.value) : 0)}
-                    placeholder="t.ex. 2"
+                    placeholder={appLocale === 'sv' ? 't.ex. 2' : 'e.g. 2'}
                     min={1}
                     max={14}
                   />
@@ -504,9 +512,11 @@ export function EventFormDialog({
               {/* Symptoms location */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <Label htmlFor="symptomsBelowNeck">Symtom under halsen</Label>
+                  <Label htmlFor="symptomsBelowNeck">{appLocale === 'sv' ? 'Symtom under halsen' : 'Symptoms below the neck'}</Label>
                   <p className="text-xs text-muted-foreground">
-                    Bröstträngsel, andningsbesvär, muskel-/ledvärk
+                    {appLocale === 'sv'
+                      ? 'Bröstträngsel, andningsbesvär, muskel-/ledvärk'
+                      : 'Chest congestion, breathing difficulty, muscle/joint pain'}
                   </p>
                 </div>
                 <Switch
@@ -517,7 +527,7 @@ export function EventFormDialog({
               </div>
 
               <div className="grid gap-2">
-                <Label>Beräknad återgång till träning</Label>
+                <Label>{appLocale === 'sv' ? 'Beräknad återgång till träning' : 'Estimated return to training'}</Label>
                 <Popover modal={false}>
                   <PopoverTrigger asChild>
                     <Button
@@ -529,8 +539,8 @@ export function EventFormDialog({
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {returnToTrainingDate
-                        ? format(returnToTrainingDate, 'd MMM yyyy', { locale: sv })
-                        : 'Välj datum'}
+                        ? format(returnToTrainingDate, 'd MMM yyyy', { locale: dateLocale })
+                        : appLocale === 'sv' ? 'Välj datum' : 'Choose date'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 z-[100]" align="start">
@@ -547,7 +557,7 @@ export function EventFormDialog({
 
               <div className="flex items-center justify-between">
                 <Label htmlFor="medicalClearance" className="flex-1">
-                  Läkargodkännande för återgång
+                  {appLocale === 'sv' ? 'Läkargodkännande för återgång' : 'Medical clearance to return'}
                 </Label>
                 <Switch
                   id="medicalClearance"
@@ -572,12 +582,12 @@ export function EventFormDialog({
 
           {/* Description */}
           <div className="grid gap-2">
-            <Label htmlFor="description">Beskrivning (valfritt)</Label>
+            <Label htmlFor="description">{appLocale === 'sv' ? 'Beskrivning (valfritt)' : 'Description (optional)'}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ytterligare information..."
+              placeholder={appLocale === 'sv' ? 'Ytterligare information...' : 'Additional information...'}
               rows={3}
             />
           </div>
@@ -592,11 +602,13 @@ export function EventFormDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
+            {appLocale === 'sv' ? 'Avbryt' : 'Cancel'}
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? 'Spara ändringar' : 'Skapa händelse'}
+            {isEditing
+              ? appLocale === 'sv' ? 'Spara ändringar' : 'Save changes'
+              : appLocale === 'sv' ? 'Skapa händelse' : 'Create event'}
           </Button>
         </DialogFooter>
       </DialogContent>
