@@ -8,8 +8,8 @@
  */
 
 import { useMemo, useState } from 'react'
-import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { format, type Locale } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Mountain,
   ChevronDown,
@@ -43,9 +43,10 @@ import {
   getPhaseColor,
   calculateVO2maxReduction,
   type AltitudeCampInfo,
-  type AltitudeCampPlan,
   type DailyAdaptation,
+  type AdaptationPhase,
 } from '@/lib/calendar/altitude-calculator'
+import { useLocale } from '@/i18n/client'
 
 interface AltitudeCampPreviewProps {
   altitude: number
@@ -60,6 +61,9 @@ export function AltitudeCampPreview({
   endDate,
   showDetails = true,
 }: AltitudeCampPreviewProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const [isExpanded, setIsExpanded] = useState(false)
 
   const plan = useMemo(() => {
@@ -80,7 +84,7 @@ export function AltitudeCampPreview({
   const initialPaceAdjustment = plan.adaptationTimeline[0]?.paceAdjustment || 0
 
   // Get altitude category
-  const altitudeCategory = getAltitudeCategory(altitude)
+  const altitudeCategory = getAltitudeCategory(altitude, appLocale)
 
   return (
     <div className="mt-4 rounded-lg border bg-muted/30 p-4">
@@ -90,13 +94,13 @@ export function AltitudeCampPreview({
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h4 className="font-medium">Höjdlägerplan</h4>
+            <h4 className="font-medium">{appLocale === 'sv' ? 'Höjdlägerplan' : 'Altitude camp plan'}</h4>
             <Badge variant="outline" className={altitudeCategory.color}>
               {altitudeCategory.label}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            {plan.totalDays} dagar på {altitude}m
+            {plan.totalDays} {appLocale === 'sv' ? 'dagar på' : 'days at'} {altitude}m
           </p>
         </div>
       </div>
@@ -115,7 +119,7 @@ export function AltitudeCampPreview({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Förväntad initial VO2max-reduktion</p>
+              <p>{appLocale === 'sv' ? 'Förväntad initial VO2max-reduktion' : 'Expected initial VO2max reduction'}</p>
             </TooltipContent>
           </Tooltip>
 
@@ -124,13 +128,13 @@ export function AltitudeCampPreview({
               <div className="rounded-md bg-background p-2 cursor-help">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  Tempo
+                  {appLocale === 'sv' ? 'Tempo' : 'Pace'}
                 </div>
                 <p className="font-medium text-sm text-amber-600">+{initialPaceAdjustment}s/km</p>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Initial tempojustering dag 1</p>
+              <p>{appLocale === 'sv' ? 'Initial tempojustering dag 1' : 'Initial pace adjustment on day 1'}</p>
             </TooltipContent>
           </Tooltip>
 
@@ -139,7 +143,7 @@ export function AltitudeCampPreview({
               <div className="rounded-md bg-background p-2 cursor-help">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Heart className="h-3 w-3" />
-                  Puls
+                  {appLocale === 'sv' ? 'Puls' : 'Heart rate'}
                 </div>
                 <p className="font-medium text-sm text-orange-600">
                   +{plan.adaptationTimeline[0]?.hrAdjustment || 0}bpm
@@ -147,7 +151,11 @@ export function AltitudeCampPreview({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Förväntad pulsökning för samma ansträngning</p>
+              <p>
+                {appLocale === 'sv'
+                  ? 'Förväntad pulsökning för samma ansträngning'
+                  : 'Expected heart-rate increase at the same effort'}
+              </p>
             </TooltipContent>
           </Tooltip>
 
@@ -156,17 +164,17 @@ export function AltitudeCampPreview({
               <div className="rounded-md bg-background p-2 cursor-help">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <TrendingUp className="h-3 w-3" />
-                  Optimal
+                  {appLocale === 'sv' ? 'Optimal' : 'Optimal'}
                 </div>
                 <p className="font-medium text-sm text-green-600">
                   {plan.phaseBreakdown.optimal.start > 0
-                    ? `Dag ${plan.phaseBreakdown.optimal.start}+`
+                    ? `${appLocale === 'sv' ? 'Dag' : 'Day'} ${plan.phaseBreakdown.optimal.start}+`
                     : 'N/A'}
                 </p>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>När full träningseffekt kan förväntas</p>
+              <p>{appLocale === 'sv' ? 'När full träningseffekt kan förväntas' : 'When full training effect can be expected'}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -201,9 +209,9 @@ export function AltitudeCampPreview({
           )}
         </div>
         <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-          <span>🔴 Akut (1-5)</span>
-          <span>🟡 Anpassning (6-14)</span>
-          <span>🟢 Optimal (15+)</span>
+          <span>🔴 {appLocale === 'sv' ? 'Akut' : 'Acute'} (1-5)</span>
+          <span>🟡 {appLocale === 'sv' ? 'Anpassning' : 'Adaptation'} (6-14)</span>
+          <span>🟢 {appLocale === 'sv' ? 'Optimal' : 'Optimal'} (15+)</span>
         </div>
       </div>
 
@@ -211,9 +219,11 @@ export function AltitudeCampPreview({
       <div className="mt-3 flex items-start gap-2 rounded-md bg-blue-50 dark:bg-blue-950/30 p-3 text-blue-800 dark:text-blue-200">
         <Info className="h-5 w-5 shrink-0 mt-0.5" />
         <div className="text-sm">
-          <p className="font-medium">Uppföljningsperiod efter lägret</p>
+          <p className="font-medium">{appLocale === 'sv' ? 'Uppföljningsperiod efter lägret' : 'Post-camp follow-up period'}</p>
           <p className="text-xs mt-0.5">
-            14 dagar efter hemkomst för optimal tävlingsperiod och återhämtning
+            {appLocale === 'sv'
+              ? '14 dagar efter hemkomst för optimal tävlingsperiod och återhämtning'
+              : '14 days after returning for the optimal competition window and recovery'}
           </p>
         </div>
       </div>
@@ -223,7 +233,7 @@ export function AltitudeCampPreview({
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="mt-4">
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="w-full justify-between">
-              <span>Visa daglig plan</span>
+              <span>{appLocale === 'sv' ? 'Visa daglig plan' : 'Show daily plan'}</span>
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4" />
               ) : (
@@ -237,7 +247,7 @@ export function AltitudeCampPreview({
                 {/* Show first few days, middle summary, and last few days */}
                 {plan.totalDays <= 10 ? (
                   plan.adaptationTimeline.map((day) => (
-                    <AdaptationDayCard key={day.day} adaptation={day} />
+                    <AdaptationDayCard key={day.day} adaptation={day} locale={appLocale} dateLocale={dateLocale} />
                   ))
                 ) : (
                   <>
@@ -249,13 +259,14 @@ export function AltitudeCampPreview({
                     {/* Middle summary */}
                     {plan.totalDays > 10 && (
                       <div className="rounded-md border bg-muted/50 p-3 text-center text-sm text-muted-foreground">
-                        ... {plan.totalDays - 7} dagar av gradvis anpassning ...
+                        ... {plan.totalDays - 7}{' '}
+                        {appLocale === 'sv' ? 'dagar av gradvis anpassning' : 'days of gradual adaptation'} ...
                       </div>
                     )}
 
                     {/* Last 2 days */}
                     {plan.adaptationTimeline.slice(-2).map((day) => (
-                      <AdaptationDayCard key={day.day} adaptation={day} />
+                      <AdaptationDayCard key={day.day} adaptation={day} locale={appLocale} dateLocale={dateLocale} />
                     ))}
                   </>
                 )}
@@ -266,7 +277,7 @@ export function AltitudeCampPreview({
             <div className="mt-4 rounded-md border p-3">
               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <span>Varningssignaler för höjdsjuka</span>
+                <span>{appLocale === 'sv' ? 'Varningssignaler för höjdsjuka' : 'Altitude sickness warning signs'}</span>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1">
                 {plan.warningSignsToWatch.slice(0, 4).map((sign, i) => (
@@ -282,7 +293,7 @@ export function AltitudeCampPreview({
             <div className="mt-3 rounded-md border p-3">
               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                 <Mountain className="h-4 w-4 text-purple-500" />
-                <span>Allmänna riktlinjer</span>
+                <span>{appLocale === 'sv' ? 'Allmänna riktlinjer' : 'General guidelines'}</span>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1">
                 {plan.generalGuidelines.slice(0, 4).map((guideline, i) => (
@@ -300,18 +311,26 @@ export function AltitudeCampPreview({
   )
 }
 
-function AdaptationDayCard({ adaptation }: { adaptation: DailyAdaptation }) {
+function AdaptationDayCard({
+  adaptation,
+  locale,
+  dateLocale,
+}: {
+  adaptation: DailyAdaptation
+  locale: 'en' | 'sv'
+  dateLocale: Locale
+}) {
   return (
     <div className="rounded-md border bg-background p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Dag {adaptation.day}</span>
+          <span className="text-sm font-medium">{locale === 'sv' ? 'Dag' : 'Day'} {adaptation.day}</span>
           <span className="text-xs text-muted-foreground">
-            {format(adaptation.date, 'EEE d MMM', { locale: sv })}
+            {format(adaptation.date, 'EEE d MMM', { locale: dateLocale })}
           </span>
         </div>
         <Badge className={getPhaseColor(adaptation.phase)}>
-          {getPhaseLabel(adaptation.phase)}
+          {getAltitudePhaseLabel(adaptation.phase, locale)}
         </Badge>
       </div>
 
@@ -333,7 +352,7 @@ function AdaptationDayCard({ adaptation }: { adaptation: DailyAdaptation }) {
 
       {/* Intensity Progress */}
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs text-muted-foreground w-20">Intensitet</span>
+        <span className="text-xs text-muted-foreground w-20">{locale === 'sv' ? 'Intensitet' : 'Intensity'}</span>
         <Progress value={adaptation.maxIntensity} className="h-2 flex-1" />
         <span className="text-xs text-muted-foreground w-10">
           {adaptation.maxIntensity}%
@@ -354,15 +373,34 @@ function AdaptationDayCard({ adaptation }: { adaptation: DailyAdaptation }) {
   )
 }
 
-function getAltitudeCategory(altitude: number): { label: string; color: string } {
+function getAltitudeCategory(altitude: number, locale: 'en' | 'sv' = 'en'): { label: string; color: string } {
   if (altitude >= 3000) {
-    return { label: 'Hög höjd', color: 'text-red-600 bg-red-50 dark:bg-red-950/30' }
+    return { label: locale === 'sv' ? 'Hög höjd' : 'High altitude', color: 'text-red-600 bg-red-50 dark:bg-red-950/30' }
   }
   if (altitude >= 2000) {
-    return { label: 'Moderat höjd', color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/30' }
+    return { label: locale === 'sv' ? 'Moderat höjd' : 'Moderate altitude', color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/30' }
   }
   if (altitude >= 1500) {
-    return { label: 'Låg höjd', color: 'text-green-600 bg-green-50 dark:bg-green-950/30' }
+    return { label: locale === 'sv' ? 'Låg höjd' : 'Low altitude', color: 'text-green-600 bg-green-50 dark:bg-green-950/30' }
   }
   return { label: 'Under 1500m', color: 'text-gray-600 bg-gray-50 dark:bg-gray-950/30' }
+}
+
+function getAltitudePhaseLabel(phase: AdaptationPhase, locale: 'en' | 'sv'): string {
+  if (locale === 'sv') {
+    return getPhaseLabel(phase)
+  }
+
+  switch (phase) {
+    case 'PRE_CAMP':
+      return 'Before camp'
+    case 'ACUTE':
+      return 'Acute phase'
+    case 'ADAPTATION':
+      return 'Adaptation phase'
+    case 'OPTIMAL':
+      return 'Optimal phase'
+    case 'POST_CAMP':
+      return 'After camp'
+  }
 }
