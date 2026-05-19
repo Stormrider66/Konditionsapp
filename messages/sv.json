@@ -3252,6 +3252,22 @@
           "active": "Aktiv",
           "notLoggedIn": "Inte inloggad än"
         },
+        "cockpit": {
+          "subtitle": "Coachvy för beslut: plan, testläge, närmaste vecka och nästa åtgärd.",
+          "openAiStudio": "AI Studio",
+          "readiness": {
+            "good": "Redo",
+            "caution": "Följ upp",
+            "setup": "Setup"
+          },
+          "cards": {
+            "currentPlan": "Plan",
+            "latestTest": "Testläge",
+            "nextSevenDays": "Nästa 7 dagar",
+            "nextAction": "Nästa åtgärd",
+            "noTestDetail": "Baslinje saknas"
+          }
+        },
         "overview": {
           "personalInfo": "Personuppgifter",
           "sportSpecificData": "Sportspecifik Data",
@@ -3327,6 +3343,20 @@
           "programLibrary": "Programbibliotek",
           "programCount": "{count} program",
           "programLibraryDescription": "Historik och aktiva block på samma plats.",
+          "nextSevenDaysCovered": "{count} block täcker veckan",
+          "nextSevenDaysCoveredDescription": "Det finns planerat innehåll att coacha mot.",
+          "nextSevenDaysEmpty": "Ingen plan syns",
+          "nextSevenDaysEmptyDescription": "Lägg in ett block eller kontrollera kalendern.",
+          "weekDecisionTitle": "Beslut inför nästa vecka",
+          "weekDecisionDescription": "Kontrollera att plan, feedback och testunderlag hänger ihop innan du ändrar belastningen.",
+          "weekChecklist": {
+            "plan": "Plan",
+            "feedback": "Feedback",
+            "test": "Test",
+            "noPlan": "Saknas",
+            "testFresh": "Färskt nog",
+            "testNeedsUpdate": "Bör uppdateras"
+          },
           "viewActiveProgram": "Öppna aktivt program",
           "viewUpcomingProgram": "Öppna kommande program",
           "createProgramAction": "Skapa träningsblock",
@@ -3336,7 +3366,9 @@
           "enableLogs": "Aktivera loggar",
           "enableLogsDescription": "Skapa konto så atleten kan rapportera träning.",
           "reviewFueling": "Granska fueling",
-          "reviewFuelingDescription": "Säkerställ energi och vätska inför nyckelpass."
+          "reviewFuelingDescription": "Säkerställ energi och vätska inför nyckelpass.",
+          "askAi": "Be AI föreslå vecka",
+          "askAiDescription": "Öppna AI Studio med atleten som kontext."
         },
         "development": {
           "title": "Utvecklingsläge",
@@ -3365,7 +3397,28 @@
           "updateTest": "Uppdatera testdata",
           "updateTestDescription": "Skapa ett färskt test för bättre zoner och beslut.",
           "completeSportContext": "Säkra sportkontext",
-          "completeSportContextDescription": "Koppla utvecklingen till idrott, roll och nivå."
+          "completeSportContextDescription": "Koppla utvecklingen till idrott, roll och nivå.",
+          "change": {
+            "label": "Vad har ändrats?",
+            "positiveTitle": "VO2max rör sig uppåt",
+            "positiveDescription": "Senaste testet är {value} högre än föregående. Kontrollera att belastningen matchar återhämtningen innan nästa progression.",
+            "negativeTitle": "VO2max rör sig nedåt",
+            "negativeDescription": "Senaste testet är {value} lägre än föregående. Granska belastning, sjukdom, sömn och testförhållanden innan slutsats.",
+            "stableTitle": "VO2max är stabilt",
+            "stableDescription": "Senaste testet ligger i linje med föregående. Leta efter förändringar i trösklar, zoner eller träningskvalitet.",
+            "needsComparisonTitle": "En datapunkt finns",
+            "needsComparisonDescription": "Lägg in ett nytt test när blocket är klart för att få en riktig trend.",
+            "noBaselineTitle": "Ingen baslinje ännu",
+            "noBaselineDescription": "Skapa första testet så utvecklingsvyn kan visa förändring över tid."
+          },
+          "coachPrompt": {
+            "label": "Coachfråga",
+            "good": "Vilken liten justering ger mest effekt utan att störa kontinuiteten?",
+            "caution": "Vilken signal behöver uppdateras innan nästa stora programbeslut?",
+            "setup": "Vilken baslinje saknas för att kunna coacha tryggt?"
+          },
+          "askAi": "Be AI tolka trenden",
+          "askAiDescription": "Öppna AI Studio med test- och profilkontext."
         },
         "profile": {
           "statusTitle": "Profilstatus",

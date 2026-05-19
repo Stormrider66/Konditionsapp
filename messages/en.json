@@ -3252,6 +3252,22 @@
           "active": "Active",
           "notLoggedIn": "Not logged in yet"
         },
+        "cockpit": {
+          "subtitle": "Coach view for decisions: plan, test state, next week, and next action.",
+          "openAiStudio": "AI Studio",
+          "readiness": {
+            "good": "Ready",
+            "caution": "Follow up",
+            "setup": "Setup"
+          },
+          "cards": {
+            "currentPlan": "Plan",
+            "latestTest": "Test state",
+            "nextSevenDays": "Next 7 days",
+            "nextAction": "Next action",
+            "noTestDetail": "Baseline missing"
+          }
+        },
         "overview": {
           "personalInfo": "Personal information",
           "sportSpecificData": "Sport-specific data",
@@ -3327,6 +3343,20 @@
           "programLibrary": "Program library",
           "programCount": "{count} programs",
           "programLibraryDescription": "History and active blocks in one place.",
+          "nextSevenDaysCovered": "{count} planned blocks",
+          "nextSevenDaysCoveredDescription": "There is planned work to coach against.",
+          "nextSevenDaysEmpty": "No plan visible",
+          "nextSevenDaysEmptyDescription": "Add a block or check the calendar.",
+          "weekDecisionTitle": "Decision for next week",
+          "weekDecisionDescription": "Check that plan, feedback, and test context line up before changing load.",
+          "weekChecklist": {
+            "plan": "Plan",
+            "feedback": "Feedback",
+            "test": "Test",
+            "noPlan": "Missing",
+            "testFresh": "Fresh enough",
+            "testNeedsUpdate": "Should be updated"
+          },
           "viewActiveProgram": "Open active program",
           "viewUpcomingProgram": "Open upcoming program",
           "createProgramAction": "Create training block",
@@ -3336,7 +3366,9 @@
           "enableLogs": "Enable logs",
           "enableLogsDescription": "Create an account so the athlete can report training.",
           "reviewFueling": "Review fueling",
-          "reviewFuelingDescription": "Check energy and hydration before key sessions."
+          "reviewFuelingDescription": "Check energy and hydration before key sessions.",
+          "askAi": "Ask AI for the week",
+          "askAiDescription": "Open AI Studio with this athlete as context."
         },
         "development": {
           "title": "Development mode",
@@ -3365,7 +3397,28 @@
           "updateTest": "Update test data",
           "updateTestDescription": "Create a fresh test for better zones and decisions.",
           "completeSportContext": "Secure sport context",
-          "completeSportContextDescription": "Connect development to sport, role, and level."
+          "completeSportContextDescription": "Connect development to sport, role, and level.",
+          "change": {
+            "label": "What changed?",
+            "positiveTitle": "VO2max is moving up",
+            "positiveDescription": "The latest test is {value} higher than the previous one. Check that load still matches recovery before the next progression.",
+            "negativeTitle": "VO2max is moving down",
+            "negativeDescription": "The latest test is {value} lower than the previous one. Review load, illness, sleep, and test conditions before drawing a conclusion.",
+            "stableTitle": "VO2max is stable",
+            "stableDescription": "The latest test is in line with the previous one. Look for changes in thresholds, zones, or training quality.",
+            "needsComparisonTitle": "One data point exists",
+            "needsComparisonDescription": "Add a new test when the block is complete to get a real trend.",
+            "noBaselineTitle": "No baseline yet",
+            "noBaselineDescription": "Create the first test so the development view can show change over time."
+          },
+          "coachPrompt": {
+            "label": "Coach question",
+            "good": "Which small adjustment creates the most effect without disrupting consistency?",
+            "caution": "Which signal needs refreshing before the next major program decision?",
+            "setup": "Which baseline is missing before this can be coached confidently?"
+          },
+          "askAi": "Ask AI to interpret trend",
+          "askAiDescription": "Open AI Studio with test and profile context."
         },
         "profile": {
           "statusTitle": "Profile status",

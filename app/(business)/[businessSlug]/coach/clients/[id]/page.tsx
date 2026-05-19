@@ -33,7 +33,7 @@ import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert, CalendarDays } from 'lucide-react'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert, CalendarDays, Sparkles, Target } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import { cn } from '@/lib/utils'
@@ -658,6 +658,21 @@ export default function BusinessClientDetailPage() {
       ? t('planning.logsReady')
       : t('planning.logsNeedInvite')
     : t('planning.logsNeedAccount')
+  const sevenDaysFromNow = new Date(now)
+  sevenDaysFromNow.setDate(now.getDate() + 7)
+  const programsInNextSevenDays = programs.filter((program) => {
+    const startDate = new Date(program.startDate)
+    const endDate = new Date(program.endDate)
+    return startDate <= sevenDaysFromNow && endDate >= now
+  })
+  const planningWeekLabel = programsLoading
+    ? t('planning.loading')
+    : programsInNextSevenDays.length > 0
+      ? t('planning.nextSevenDaysCovered', { count: programsInNextSevenDays.length })
+      : t('planning.nextSevenDaysEmpty')
+  const planningWeekDescription = programsInNextSevenDays.length > 0
+    ? t('planning.nextSevenDaysCoveredDescription')
+    : t('planning.nextSevenDaysEmptyDescription')
   const previousCompletedTest = completedTests[1] ?? null
   const latestVo2max = latestCompletedTest?.vo2max ?? null
   const previousVo2max = previousCompletedTest?.vo2max ?? null
@@ -675,6 +690,27 @@ export default function BusinessClientDetailPage() {
   const developmentPrimarySportLabel = sportProfile?.primarySport
     ? sportProfile.primarySport.replace(/_/g, ' ')
     : t('development.noSportProfile')
+  const latestCompletedTestTypeLabel = latestCompletedTest
+    ? testTypeLabels[latestCompletedTest.testType]
+    : t('overview.snapshotMetrics.noTests')
+  const developmentChangeTitle = vo2Trend !== null
+    ? vo2Trend > 0
+      ? t('development.change.positiveTitle')
+      : vo2Trend < 0
+        ? t('development.change.negativeTitle')
+        : t('development.change.stableTitle')
+    : completedTests.length >= 1
+      ? t('development.change.needsComparisonTitle')
+      : t('development.change.noBaselineTitle')
+  const developmentChangeDescription = vo2Trend !== null
+    ? vo2Trend > 0
+      ? t('development.change.positiveDescription', { value: vo2Trend.toFixed(1) })
+      : vo2Trend < 0
+        ? t('development.change.negativeDescription', { value: Math.abs(vo2Trend).toFixed(1) })
+        : t('development.change.stableDescription')
+    : completedTests.length >= 1
+      ? t('development.change.needsComparisonDescription')
+      : t('development.change.noBaselineDescription')
   const profileSetupItems = [
     {
       id: 'portal',
@@ -707,6 +743,12 @@ export default function BusinessClientDetailPage() {
     : completedProfileSetupItems >= 2
       ? 'caution'
       : 'setup'
+  const coachCockpitNextAction = visibleCoachSnapshotActions[0]
+  const coachCockpitReadinessLabel = coachSnapshotTone === 'good'
+    ? t('cockpit.readiness.good')
+    : coachSnapshotTone === 'caution'
+      ? t('cockpit.readiness.caution')
+      : t('cockpit.readiness.setup')
 
   const noAthleteAccountContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
@@ -835,7 +877,7 @@ export default function BusinessClientDetailPage() {
   )
 
   const sportProfileContent = !sportProfileLoading ? (
-    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+    <div id="sport-profile" className="scroll-mt-24 bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
       <h2 className="text-xl font-semibold mb-4 dark:text-white">{t('overview.sportSpecificData')}</h2>
       <SportProfileEditor
         key={sportProfile?.id ?? id}
@@ -1008,6 +1050,46 @@ export default function BusinessClientDetailPage() {
           </div>
         </div>
 
+        <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.weekDecisionTitle')}</h3>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{t('planning.weekDecisionDescription')}</p>
+            </div>
+            <Badge
+              variant="outline"
+              className={cn(
+                'w-fit border font-medium',
+                programsInNextSevenDays.length > 0
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                  : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+              )}
+            >
+              {planningWeekLabel}
+            </Badge>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('planning.weekChecklist.plan')}</p>
+              <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                {referenceProgram ? referenceProgram.name : t('planning.weekChecklist.noPlan')}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('planning.weekChecklist.feedback')}</p>
+              <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{planningLogStatus}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('planning.weekChecklist.test')}</p>
+              <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{hasRecentTest ? t('planning.weekChecklist.testFresh') : t('planning.weekChecklist.testNeedsUpdate')}</p>
+            </div>
+          </div>
+        </div>
+
         <div className="grid gap-3 md:grid-cols-3 mt-5">
           {referenceProgram ? (
             <Link href={`${basePath}/programs/${referenceProgram.id}`}>
@@ -1062,6 +1144,15 @@ export default function BusinessClientDetailPage() {
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.reviewFueling')}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t('planning.reviewFuelingDescription')}</p>
+              </div>
+            </Button>
+          </Link>
+
+          <Link href={`${basePath}/ai-studio?athleteId=${id}&prompt=Planera+n%C3%A4sta+7+dagar`}>
+            <Button variant="outline" className="h-auto w-full justify-start p-3">
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.askAi')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('planning.askAiDescription')}</p>
               </div>
             </Button>
           </Link>
@@ -1235,6 +1326,24 @@ export default function BusinessClientDetailPage() {
           </div>
         </div>
 
+        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('development.change.label')}</p>
+            <h3 className="mt-1 text-base font-semibold text-gray-900 dark:text-white">{developmentChangeTitle}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{developmentChangeDescription}</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('development.coachPrompt.label')}</p>
+            <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+              {developmentStatusTone === 'good'
+                ? t('development.coachPrompt.good')
+                : developmentStatusTone === 'caution'
+                  ? t('development.coachPrompt.caution')
+                  : t('development.coachPrompt.setup')}
+            </p>
+          </div>
+        </div>
+
         <div className="grid gap-3 md:grid-cols-3 mt-5">
           <Link href={`${basePath}/clients/${id}?tab=development`}>
             <Button variant="outline" className="h-auto w-full justify-start p-3">
@@ -1252,11 +1361,19 @@ export default function BusinessClientDetailPage() {
               </div>
             </Button>
           </Link>
-          <Link href={`${basePath}/clients/${id}?tab=profile`}>
+          <Link href={`${basePath}/clients/${id}?tab=profile#sport-profile`}>
             <Button variant="outline" className="h-auto w-full justify-start p-3">
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('development.completeSportContext')}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t('development.completeSportContextDescription')}</p>
+              </div>
+            </Button>
+          </Link>
+          <Link href={`${basePath}/ai-studio?athleteId=${id}&prompt=Analysera+utvecklingen`}>
+            <Button variant="outline" className="h-auto w-full justify-start p-3">
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('development.askAi')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('development.askAiDescription')}</p>
               </div>
             </Button>
           </Link>
@@ -1789,9 +1906,59 @@ export default function BusinessClientDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-12">
-      <div className="mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{client.name}</h2>
-        <p className="text-gray-600 dark:text-slate-400 mt-1 text-xs sm:text-sm lg:text-base">{t('subtitle')}</p>
+      <div className="mb-4 sm:mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/50 sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{client.name}</h2>
+              <Badge
+                variant="outline"
+                className={cn(
+                  'border font-medium',
+                  coachSnapshotTone === 'good' && 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+                  coachSnapshotTone === 'caution' && 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+                  coachSnapshotTone === 'setup' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
+                )}
+              >
+                {coachSnapshotTone === 'good' ? <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> : <CircleAlert className="mr-1 h-3.5 w-3.5" />}
+                {coachCockpitReadinessLabel}
+              </Badge>
+            </div>
+            <p className="text-gray-600 dark:text-slate-400 mt-1 text-xs sm:text-sm lg:text-base">{t('cockpit.subtitle')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AIContextButton athleteId={id} athleteName={client.name} />
+            <Link href={`${basePath}/ai-studio?athleteId=${id}`}>
+              <Button variant="outline" size="sm">
+                <Sparkles className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('cockpit.openAiStudio')}</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <CoachCockpitCard
+            label={t('cockpit.cards.currentPlan')}
+            value={planningProgramLabel}
+            detail={planningProgramMeta}
+          />
+          <CoachCockpitCard
+            label={t('cockpit.cards.latestTest')}
+            value={latestTestLabel}
+            detail={latestCompletedTest ? latestCompletedTestTypeLabel : t('cockpit.cards.noTestDetail')}
+          />
+          <CoachCockpitCard
+            label={t('cockpit.cards.nextSevenDays')}
+            value={planningWeekLabel}
+            detail={planningWeekDescription}
+          />
+          <CoachCockpitCard
+            label={t('cockpit.cards.nextAction')}
+            value={coachCockpitNextAction.title}
+            detail={coachCockpitNextAction.description}
+          />
+        </div>
       </div>
 
       <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>}>
@@ -1865,6 +2032,24 @@ function ProfileField({
       )}>
         {value}
       </p>
+    </div>
+  )
+}
+
+function CoachCockpitCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string
+  value: string
+  detail: string
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-white/5">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-gray-900 dark:text-white">{value}</p>
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{detail}</p>
     </div>
   )
 }
