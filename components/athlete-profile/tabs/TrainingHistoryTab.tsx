@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Calendar, TrendingUp, AlertTriangle, CheckCircle, Activity, Timer } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,13 +11,12 @@ import {
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Legend,
 } from 'recharts'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
+import { useLocale } from '@/i18n/client'
 
 interface TrainingHistoryTabProps {
   data: AthleteProfileData
@@ -27,14 +26,13 @@ interface TrainingHistoryTabProps {
 
 import {
   GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 
-export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: TrainingHistoryTabProps) {
+export function TrainingHistoryTab({ data, viewMode: _viewMode, variant = 'default' }: TrainingHistoryTabProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const isGlass = variant === 'glass'
   const { programs, trainingLoads, workoutLogs } = data.training
   const athleteProfile = data.identity.athleteProfile
@@ -49,7 +47,7 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
     .reverse()
     .slice(-28) // Last 28 days
     .map((load) => ({
-      date: format(new Date(load.date), 'd MMM', { locale: sv }),
+      date: format(new Date(load.date), 'd MMM', { locale: dateLocale }),
       acwr: load.acwr,
       acute: load.acuteLoad,
       chronic: load.chronicLoad,
@@ -68,10 +66,10 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
         <CardContent className="py-20 text-center">
           <Calendar className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
           <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
-            Ingen träningshistorik
+            {t('Ingen träningshistorik', 'No training history')}
           </h3>
           <p className={cn("font-medium max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
-            Logga träningspass för att se historik och belastningsdata här.
+            {t('Logga träningspass för att se historik och belastningsdata här.', 'Log training sessions to see history and load data here.')}
           </p>
         </CardContent>
       </CardWrapper>
@@ -85,16 +83,16 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
         <StatCard
           icon={CheckCircle}
           accentColor="emerald"
-          label="Slutförda pass"
+          label={t('Slutförda pass', 'Completed sessions')}
           value={completedWorkouts.toString()}
-          subtext="senaste 90 dagarna"
+          subtext={t('senaste 90 dagarna', 'last 90 days')}
           isGlass={isGlass}
         />
 
         <StatCard
           icon={Activity}
           accentColor="blue"
-          label="Total distans"
+          label={t('Total distans', 'Total distance')}
           value={`${(totalDistance / 1000).toFixed(1)}`}
           unit="km"
           isGlass={isGlass}
@@ -103,7 +101,7 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
         <StatCard
           icon={Timer}
           accentColor="purple"
-          label="Total tid"
+          label={t('Total tid', 'Total time')}
           value={formatDuration(totalDuration)}
           isGlass={isGlass}
         />
@@ -113,7 +111,7 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
           accentColor={latestAcwr && latestAcwr > 1.5 ? 'red' : 'emerald'}
           label="ACWR"
           value={latestAcwr ? latestAcwr.toFixed(2) : '-'}
-          subtext={getAcwrLabel(latestAcwr || 0)}
+          subtext={getAcwrLabel(latestAcwr || 0, locale)}
           isGlass={isGlass}
         />
       </div>
@@ -122,30 +120,30 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
       {athleteProfile && (
         <CardWrapper>
           <CardHeader>
-            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Träningsbakgrund</CardTitle>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>{t('Träningsbakgrund', 'Training background')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {athleteProfile.yearsRunning && (
                 <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Erfarenhet</p>
-                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{athleteProfile.yearsRunning} år</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{t('Erfarenhet', 'Experience')}</p>
+                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{athleteProfile.yearsRunning} {t('år', 'years')}</p>
                 </div>
               )}
               {athleteProfile.typicalWeeklyKm && (
                 <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Veckovolym</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{t('Veckovolym', 'Weekly volume')}</p>
                   <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{athleteProfile.typicalWeeklyKm} km</p>
                 </div>
               )}
               {athleteProfile.longestLongRun && (
                 <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Längsta pass</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{t('Längsta pass', 'Longest session')}</p>
                   <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{athleteProfile.longestLongRun} km</p>
                 </div>
               )}
               <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5" : "bg-gray-50")}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Utrustning</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">{t('Utrustning', 'Equipment')}</p>
                 <div className="flex gap-2 flex-wrap">
                   {athleteProfile.hasLactateMeter && (
                     <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-white" : "bg-slate-200 text-slate-700")}>Laktat</Badge>
@@ -167,9 +165,9 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
       {acwrData.length > 7 && (
         <CardWrapper>
           <CardHeader>
-            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Akut:Kronisk belastning (ACWR)</CardTitle>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>{t('Akut:Kronisk belastning (ACWR)', 'Acute:Chronic Workload Ratio (ACWR)')}</CardTitle>
             <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-              OPTIMAL ZON: 0.8 - 1.3 • SKADERISK ÖKAR VID {'>'} 1.5
+              {t('OPTIMAL ZON', 'OPTIMAL ZONE')}: 0.8 - 1.3 • {t('SKADERISK ÖKAR VID', 'INJURY RISK RISES ABOVE')} {'>'} 1.5
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -220,11 +218,11 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
             <div className="flex items-center justify-center gap-6 mt-6">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500/50"></div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Optimal zon (0.8-1.3)</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('Optimal zon', 'Optimal zone')} (0.8-1.3)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Varning ({'>'} 1.5)</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('Varning', 'Warning')} ({'>'} 1.5)</span>
               </div>
             </div>
           </CardContent>
@@ -235,14 +233,14 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <CardWrapper>
           <CardHeader>
-            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Träningsprogram</CardTitle>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>{t('Träningsprogram', 'Training programs')}</CardTitle>
             <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-              {programs.length} program registrerade
+              {programs.length} {t('program registrerade', 'programs registered')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {programs.length === 0 ? (
-              <p className={cn("text-center py-10 font-bold uppercase tracking-widest text-[10px]", isGlass ? "text-slate-600" : "text-gray-400")}>Inga program tilldelade</p>
+              <p className={cn("text-center py-10 font-bold uppercase tracking-widest text-[10px]", isGlass ? "text-slate-600" : "text-gray-400")}>{t('Inga program tilldelade', 'No programs assigned')}</p>
             ) : (
               <div className="space-y-3">
                 {programs.slice(0, 5).map((program) => {
@@ -261,21 +259,21 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
                         <div>
                           <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{program.name}</p>
                           <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                            {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
-                            {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+                            {format(new Date(program.startDate), 'd MMM', { locale: dateLocale })} -{' '}
+                            {format(new Date(program.endDate), 'd MMM yyyy', { locale: dateLocale })}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
                           {program.goalType && (
-                            <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-slate-400" : "bg-slate-100 text-slate-600")}>{getGoalTypeLabel(program.goalType)}</Badge>
+                            <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-slate-400" : "bg-slate-100 text-slate-600")}>{getGoalTypeLabel(program.goalType, locale)}</Badge>
                           )}
-                          {isActive && <Badge className="font-black uppercase tracking-widest text-[8px] h-4 rounded-md bg-emerald-500 text-white border-0">Aktiv</Badge>}
+                          {isActive && <Badge className="font-black uppercase tracking-widest text-[8px] h-4 rounded-md bg-emerald-500 text-white border-0">{t('Aktiv', 'Active')}</Badge>}
                         </div>
                       </div>
                       {isActive && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            <span>Framsteg</span>
+                            <span>{t('Framsteg', 'Progress')}</span>
                             <span>{Math.round(progress)}%</span>
                           </div>
                           <Progress value={progress} className={cn("h-1.5", isGlass ? "bg-white/5" : "")} indicatorClassName="bg-emerald-500" />
@@ -291,9 +289,9 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
 
         <CardWrapper>
           <CardHeader>
-            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Daglig belastning</CardTitle>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>{t('Daglig belastning', 'Daily load')}</CardTitle>
             <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-              SENASTE 14 DAGARNA
+              {t('SENASTE 14 DAGARNA', 'LAST 14 DAYS')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -308,7 +306,7 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
                 >
                   <div className="flex items-center gap-3">
                     <span className={cn("text-[10px] font-black uppercase tracking-tighter w-16", isGlass ? "text-slate-400" : "text-gray-600")}>
-                      {format(new Date(load.date), 'EEE d MMM', { locale: sv })}
+                      {format(new Date(load.date), 'EEE d MMM', { locale: dateLocale })}
                     </span>
                     {load.workoutType && (
                       <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 px-1 rounded-md border-0", isGlass ? "bg-white/5 text-slate-500" : "bg-white border")}>
@@ -329,7 +327,7 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
                               : (isGlass ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-700')
                         )}
                       >
-                        {getAcwrZoneLabel(load.acwrZone)}
+                        {getAcwrZoneLabel(load.acwrZone, locale)}
                       </Badge>
                     )}
                   </div>
@@ -405,42 +403,55 @@ function formatDuration(minutes: number): string {
   return `${hours}h ${mins}m`
 }
 
-function getAcwrColor(acwr: number): string {
-  if (acwr < 0.8) return 'text-yellow-500'
-  if (acwr <= 1.3) return 'text-green-500'
-  if (acwr <= 1.5) return 'text-orange-500'
-  return 'text-red-500'
-}
-
-function getAcwrLabel(acwr: number): string {
+function getAcwrLabel(acwr: number, locale: 'en' | 'sv'): string {
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   if (acwr === 0) return ''
-  if (acwr < 0.8) return 'Underträning'
+  if (acwr < 0.8) return t('Underträning', 'Undertraining')
   if (acwr <= 1.3) return 'Optimal'
-  if (acwr <= 1.5) return 'Varning'
-  return 'Hög risk'
+  if (acwr <= 1.5) return t('Varning', 'Warning')
+  return t('Hög risk', 'High risk')
 }
 
-function getAcwrZoneLabel(zone: string): string {
-  const labels: Record<string, string> = {
-    SWEET_SPOT: 'Optimal',
-    LOW: 'Låg',
-    HIGH: 'Hög',
-    HIGH_RISK: 'Risk',
+function getAcwrZoneLabel(zone: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      SWEET_SPOT: 'Optimal',
+      LOW: 'Low',
+      HIGH: 'High',
+      HIGH_RISK: 'Risk',
+    },
+    sv: {
+      SWEET_SPOT: 'Optimal',
+      LOW: 'Låg',
+      HIGH: 'Hög',
+      HIGH_RISK: 'Risk',
+    },
   }
-  return labels[zone] || zone
+  return labels[locale][zone] || zone
 }
 
-function getGoalTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    marathon: 'Marathon',
-    half_marathon: 'Halvmaraton',
-    '10k': '10K',
-    '5k': '5K',
-    fitness: 'Kondition',
-    cycling: 'Cykling',
-    triathlon: 'Triathlon',
+function getGoalTypeLabel(type: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      marathon: 'Marathon',
+      half_marathon: 'Half marathon',
+      '10k': '10K',
+      '5k': '5K',
+      fitness: 'Fitness',
+      cycling: 'Cycling',
+      triathlon: 'Triathlon',
+    },
+    sv: {
+      marathon: 'Marathon',
+      half_marathon: 'Halvmaraton',
+      '10k': '10K',
+      '5k': '5K',
+      fitness: 'Kondition',
+      cycling: 'Cykling',
+      triathlon: 'Triathlon',
+    },
   }
-  return labels[type] || type
+  return labels[locale][type] || type
 }
 
 function calculateProgramProgress(startDate: Date, endDate: Date): number {
