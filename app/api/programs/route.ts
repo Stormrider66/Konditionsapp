@@ -30,8 +30,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
-    // Check if user is in athlete mode (athlete or coach-in-athlete-mode)
-    const athleteResolved = await resolveAthleteClientId()
+    const coachPlatformAccess = await canAccessCoachPlatform(user.id)
+    // Coach athlete pages pass an explicit clientId. That should take
+    // precedence over the coach's own athlete-mode profile.
+    const athleteResolved = clientId && coachPlatformAccess ? null : await resolveAthleteClientId()
 
     // Get programs based on user role
     let programs
@@ -76,7 +78,7 @@ export async function GET(request: NextRequest) {
           startDate: 'desc',
         },
       })
-    } else if (await canAccessCoachPlatform(user.id)) {
+    } else if (coachPlatformAccess) {
       if (clientId) {
         const hasClientAccess = await canAccessClient(user.id, clientId)
         if (!hasClientAccess) {
