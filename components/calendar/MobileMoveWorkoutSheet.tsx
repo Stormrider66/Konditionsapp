@@ -9,7 +9,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   X,
   ChevronLeft,
@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { UnifiedCalendarItem } from './types'
+import { useLocale } from '@/i18n/client'
 
 interface MobileMoveWorkoutSheetProps {
   isOpen: boolean
@@ -45,20 +46,23 @@ export function MobileMoveWorkoutSheet({
   reducedDates = [],
   variant = 'default',
 }: MobileMoveWorkoutSheetProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const isGlass = variant === 'glass'
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     if (workout) {
-      return startOfWeek(new Date(workout.date), { locale: sv, weekStartsOn: 1 })
+      return startOfWeek(new Date(workout.date), { locale: dateLocale, weekStartsOn: 1 })
     }
-    return startOfWeek(new Date(), { locale: sv, weekStartsOn: 1 })
+    return startOfWeek(new Date(), { locale: dateLocale, weekStartsOn: 1 })
   })
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
   // Generate week days
   const weekDays = useMemo(() => {
-    const weekEnd = endOfWeek(currentWeekStart, { locale: sv, weekStartsOn: 1 })
+    const weekEnd = endOfWeek(currentWeekStart, { locale: dateLocale, weekStartsOn: 1 })
     return eachDayOfInterval({ start: currentWeekStart, end: weekEnd })
-  }, [currentWeekStart])
+  }, [currentWeekStart, dateLocale])
 
   const handlePreviousWeek = useCallback(() => {
     setCurrentWeekStart((prev) => subDays(prev, 7))
@@ -111,7 +115,7 @@ export function MobileMoveWorkoutSheet({
       className="fixed inset-0 z-50 md:hidden"
       role="dialog"
       aria-modal="true"
-      aria-label="Flytta träningspass"
+      aria-label={appLocale === 'sv' ? 'Flytta träningspass' : 'Move workout'}
     >
       {/* Backdrop */}
       <div
@@ -146,7 +150,7 @@ export function MobileMoveWorkoutSheet({
             <h2 className={cn(
               "text-lg font-black tracking-tight",
               isGlass ? "text-white" : ""
-            )}>Flytta pass</h2>
+            )}>{appLocale === 'sv' ? 'Flytta pass' : 'Move workout'}</h2>
             <p className={cn(
               "text-sm font-medium opacity-50 truncate max-w-[200px]",
               isGlass ? "text-slate-400" : "text-muted-foreground"
@@ -169,9 +173,11 @@ export function MobileMoveWorkoutSheet({
         )}>
           <div className="flex items-center gap-3 text-xs">
             <Calendar className={cn("h-4 w-4", isGlass ? "text-blue-400" : "text-muted-foreground")} />
-            <span className={cn(isGlass ? "text-slate-400 font-bold uppercase tracking-widest text-[10px]" : "")}>Nuvarande datum:</span>
+            <span className={cn(isGlass ? "text-slate-400 font-bold uppercase tracking-widest text-[10px]" : "")}>
+              {appLocale === 'sv' ? 'Nuvarande datum:' : 'Current date:'}
+            </span>
             <span className={cn("font-black", isGlass ? "text-white" : "")}>
-              {format(originalDate, 'd MMMM yyyy', { locale: sv })}
+              {format(originalDate, 'd MMMM yyyy', { locale: dateLocale })}
             </span>
           </div>
         </div>
@@ -194,8 +200,8 @@ export function MobileMoveWorkoutSheet({
             "text-xs font-black uppercase tracking-widest",
             isGlass ? "text-white" : ""
           )}>
-            {format(currentWeekStart, 'd MMM', { locale: sv })} -{' '}
-            {format(endOfWeek(currentWeekStart, { locale: sv, weekStartsOn: 1 }), 'd MMM', { locale: sv })}
+            {format(currentWeekStart, 'd MMM', { locale: dateLocale })} -{' '}
+            {format(endOfWeek(currentWeekStart, { locale: dateLocale, weekStartsOn: 1 }), 'd MMM', { locale: dateLocale })}
           </span>
 
           <Button
@@ -211,7 +217,7 @@ export function MobileMoveWorkoutSheet({
         {/* Week Grid */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-7 gap-2 mb-4">
-            {['M', 'T', 'O', 'T', 'F', 'L', 'S'].map((day, i) => (
+            {(appLocale === 'sv' ? ['M', 'T', 'O', 'T', 'F', 'L', 'S'] : ['M', 'T', 'W', 'T', 'F', 'S', 'S']).map((day, i) => (
               <div
                 key={day + i}
                 className={cn(
@@ -262,7 +268,9 @@ export function MobileMoveWorkoutSheet({
                 >
                   <span className="font-medium">{format(date, 'd')}</span>
                   {isOriginal && (
-                    <span className="text-[10px] leading-none mt-0.5">nuvarande</span>
+                    <span className="text-[10px] leading-none mt-0.5">
+                      {appLocale === 'sv' ? 'nuvarande' : 'current'}
+                    </span>
                   )}
                   {blocked && !isOriginal && (
                     <AlertTriangle className="h-3 w-3 absolute top-1.5 right-1.5 text-red-500 opacity-50" />
@@ -279,15 +287,15 @@ export function MobileMoveWorkoutSheet({
           <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-blue-100 border border-blue-300" />
-              <span>Nuvarande</span>
+              <span>{appLocale === 'sv' ? 'Nuvarande' : 'Current'}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-red-100 border border-red-200" />
-              <span>Blockerad</span>
+              <span>{appLocale === 'sv' ? 'Blockerad' : 'Blocked'}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-amber-50 border border-amber-200" />
-              <span>Reducerad</span>
+              <span>{appLocale === 'sv' ? 'Reducerad' : 'Reduced'}</span>
             </div>
           </div>
         </div>
@@ -300,9 +308,9 @@ export function MobileMoveWorkoutSheet({
           {selectedDate && (
             <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-widest text-emerald-400">
               <Check className="h-4 w-4" />
-              <span>Flytta till: </span>
+              <span>{appLocale === 'sv' ? 'Flytta till:' : 'Move to:'}</span>
               <span className="text-white ml-1">
-                {format(selectedDate, 'EEEE d MMMM', { locale: sv })}
+                {format(selectedDate, 'EEEE d MMMM', { locale: dateLocale })}
               </span>
             </div>
           )}
@@ -317,7 +325,7 @@ export function MobileMoveWorkoutSheet({
               onClick={onClose}
               disabled={isLoading}
             >
-              Avbryt
+              {appLocale === 'sv' ? 'Avbryt' : 'Cancel'}
             </Button>
             <Button
               variant="default"
@@ -331,10 +339,10 @@ export function MobileMoveWorkoutSheet({
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Flyttar...
+                  {appLocale === 'sv' ? 'Flyttar...' : 'Moving...'}
                 </>
               ) : (
-                'Bekräfta flytt'
+                appLocale === 'sv' ? 'Bekräfta flytt' : 'Confirm move'
               )}
             </Button>
           </div>
