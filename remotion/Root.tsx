@@ -31,7 +31,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 4.5,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -46,7 +46,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 9.5,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -61,7 +61,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 15.2,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -76,7 +76,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 8.0,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -91,7 +91,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 7.0,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -107,7 +107,7 @@ export const RemotionRoot: React.FC = () => {
           distance: 10 as const,
           athleteTime: 1.8,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -123,7 +123,7 @@ export const RemotionRoot: React.FC = () => {
           distance: 20 as const,
           athleteTime: 3.0,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -139,7 +139,7 @@ export const RemotionRoot: React.FC = () => {
           distance: 40 as const,
           athleteTime: 5.2,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -154,7 +154,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 8.5,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -169,7 +169,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 7.5,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -184,7 +184,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 12.0,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -199,7 +199,7 @@ export const RemotionRoot: React.FC = () => {
         defaultProps={{
           athleteTime: 8.0,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -215,7 +215,7 @@ export const RemotionRoot: React.FC = () => {
           drillType: "icky-shuffle" as const,
           athleteTime: 5.0,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -231,7 +231,7 @@ export const RemotionRoot: React.FC = () => {
           drillType: "lateral-shuffle" as const,
           athleteTime: 6.0,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -247,7 +247,7 @@ export const RemotionRoot: React.FC = () => {
           drillType: "high-knees" as const,
           athleteTime: 4.5,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -263,7 +263,7 @@ export const RemotionRoot: React.FC = () => {
           drillType: "in-out" as const,
           athleteTime: 5.5,
           benchmarkTier: "average" as const,
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 
@@ -298,7 +298,7 @@ export const RemotionRoot: React.FC = () => {
             ],
             annotations: [],
           },
-          locale: "sv" as const,
+          locale: "en" as const,
         }}
       />
 

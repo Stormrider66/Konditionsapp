@@ -195,7 +195,7 @@ export const getCurrentUser = requestCache(async (): Promise<User | null> => {
       email,
       name: nameFromMetadata,
       role: 'ATHLETE',
-      language: 'sv',
+      language: 'en',
     },
     select: {
       id: true,

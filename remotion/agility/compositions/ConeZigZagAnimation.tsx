@@ -57,7 +57,7 @@ const translations = {
 export const ConeZigZagAnimation: React.FC<ConeZigZagAnimationProps> = ({
   athleteTime,
   benchmarkTier,
-  locale = "sv",
+  locale = "en",
 }) => {
   const frame = useCurrentFrame();
   const t = translations[locale];

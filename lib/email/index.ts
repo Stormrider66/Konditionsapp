@@ -157,7 +157,7 @@ async function sendEmailInternal(
 export async function sendWelcomeEmail(
   to: string,
   recipientName: string,
-  locale: EmailLocale = 'sv',
+  locale: EmailLocale = 'en',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
@@ -179,7 +179,7 @@ export async function sendReferralRewardEmail(
   referredUserName: string,
   rewardType: 'FREE_MONTH' | 'DISCOUNT_PERCENT' | 'EXTENDED_TRIAL' | 'ATHLETE_SLOTS',
   rewardValue: number,
-  locale: EmailLocale = 'sv',
+  locale: EmailLocale = 'en',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
@@ -204,7 +204,7 @@ export async function sendSubscriptionConfirmationEmail(
   planName: string,
   amount: string,
   nextBillingDate: string,
-  locale: EmailLocale = 'sv',
+  locale: EmailLocale = 'en',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
@@ -228,7 +228,7 @@ export async function sendSubscriptionCancelledEmail(
   recipientName: string,
   planName: string,
   endDate: string,
-  locale: EmailLocale = 'sv',
+  locale: EmailLocale = 'en',
   options?: {
     reactivateUrl?: string
     reactivatePath?: string
@@ -258,7 +258,7 @@ export async function sendPaymentFailedEmail(
   recipientName: string,
   amount: string,
   retryDate: string,
-  locale: EmailLocale = 'sv',
+  locale: EmailLocale = 'en',
   options?: {
     updatePaymentUrl?: string
     updatePaymentPath?: string
@@ -289,7 +289,7 @@ export async function sendReferralInviteEmail(
   referralCode: string,
   benefit: string,
   recipientName?: string,
-  locale: EmailLocale = 'sv',
+  locale: EmailLocale = 'en',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
@@ -314,7 +314,7 @@ export async function sendApplicationReceivedEmail(
   contactName: string,
   organizationName: string,
   branding?: EmailBranding,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'en'
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
@@ -353,7 +353,7 @@ export async function sendApplicationApprovedEmail(
   organizationName: string,
   claimUrl: string,
   branding?: EmailBranding,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'en'
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
@@ -400,7 +400,7 @@ export async function sendJoinRequestNotification(
   requesterName: string,
   businessName: string,
   branding?: EmailBranding,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'en'
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const br = branding;
@@ -446,7 +446,7 @@ export async function sendNewApplicationNotification(
   adminEmail: string,
   organizationName: string,
   type: string,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'en'
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const typeLabel = type === 'GYM'
@@ -496,7 +496,7 @@ export async function sendCoachInviteEmail(
   setPasswordUrl: string,
   branding?: EmailBranding,
   metadata?: SendEmailMetadata,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'en'
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
@@ -557,7 +557,7 @@ export async function sendPasswordResetEmail(
   resetUrl: string,
   recipientName?: string,
   branding?: EmailBranding,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'en'
 ): Promise<SendEmailResult> {
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;

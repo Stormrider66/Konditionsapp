@@ -52,7 +52,7 @@ export const TimingOverlay: React.FC<TimingOverlayProps> = ({
   endFrame,
   finalTime,
   benchmarkTier,
-  locale = "sv",
+  locale = "en",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();

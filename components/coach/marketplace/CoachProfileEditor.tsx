@@ -78,7 +78,7 @@ interface Props {
   locale?: 'en' | 'sv'
 }
 
-export function CoachProfileEditor({ locale = 'sv' }: Props) {
+export function CoachProfileEditor({ locale = 'en' }: Props) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)

@@ -51,7 +51,7 @@ const translations = {
 export const WDrillAnimation: React.FC<WDrillAnimationProps> = ({
   athleteTime,
   benchmarkTier,
-  locale = "sv",
+  locale = "en",
 }) => {
   const frame = useCurrentFrame();
   const t = translations[locale];

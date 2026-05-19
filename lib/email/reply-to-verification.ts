@@ -28,7 +28,7 @@ export async function sendReplyToVerificationEmail(opts: SendOptions): Promise<{
   success: boolean
   error?: string
 }> {
-  const locale = opts.locale ?? 'sv'
+  const locale = opts.locale ?? 'en'
   const token = randomUUID()
   const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000)
 

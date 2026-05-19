@@ -63,7 +63,7 @@ const translations = {
 export const IllinoisAgilityAnimation: React.FC<IllinoisAgilityAnimationProps> = ({
   athleteTime,
   benchmarkTier,
-  locale = "sv",
+  locale = "en",
 }) => {
   const frame = useCurrentFrame();
   const t = translations[locale];

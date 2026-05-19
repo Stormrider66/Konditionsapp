@@ -66,7 +66,7 @@ interface Props {
   locale?: 'en' | 'sv'
 }
 
-export function CoachRequestsPanel({ locale = 'sv' }: Props) {
+export function CoachRequestsPanel({ locale = 'en' }: Props) {
   const { toast } = useToast()
   const [requests, setRequests] = useState<CoachRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)

@@ -19,7 +19,7 @@ export function TrialBadge({
   daysRemaining,
   upgradeUrl = '/subscription',
   className,
-  locale = 'sv',
+  locale = 'en',
 }: TrialBadgeProps) {
   const warningLevel = getTrialWarningLevel(daysRemaining)
 

@@ -114,7 +114,7 @@ export async function inviteUserToBusiness({
             email,
             name,
             role: 'COACH',
-            language: 'sv',
+            language: 'en',
           },
         })
 

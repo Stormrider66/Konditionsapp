@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
           email: supabaseUser.email!,
           name,
           role: 'ATHLETE',
-          language: 'sv',
+          language: 'en',
         },
       })
 
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     })
 
     sendEmailAfter(
-      () => sendWelcomeEmail(supabaseUser.email!, name, 'sv'),
+      () => sendWelcomeEmail(supabaseUser.email!, name, 'en'),
       { route: 'users', emailKind: 'welcome' },
     )
 

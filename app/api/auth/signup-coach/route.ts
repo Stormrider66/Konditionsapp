@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
           data: {
             name,
             role: 'COACH',
-            language: 'sv',
+            language: 'en',
           },
         })
 
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
             email: supabaseEmail,
             name,
             role: 'COACH',
-            language: 'sv',
+            language: 'en',
           },
         })
 
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     })
 
     sendEmailAfter(
-      () => sendWelcomeEmail(supabaseEmail, name, 'sv'),
+      () => sendWelcomeEmail(supabaseEmail, name, 'en'),
       { route: 'auth/signup-coach', emailKind: 'welcome' },
     )
 

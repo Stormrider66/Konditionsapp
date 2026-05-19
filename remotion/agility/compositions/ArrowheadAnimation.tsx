@@ -53,7 +53,7 @@ const translations = {
 export const ArrowheadAnimation: React.FC<ArrowheadAnimationProps> = ({
   athleteTime,
   benchmarkTier,
-  locale = "sv",
+  locale = "en",
 }) => {
   const frame = useCurrentFrame();
   const t = translations[locale];

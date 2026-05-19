@@ -127,7 +127,7 @@ export const LadderDrillAnimation: React.FC<LadderDrillAnimationProps> = ({
   drillType,
   athleteTime,
   benchmarkTier,
-  locale = "sv",
+  locale = "en",
 }) => {
   const frame = useCurrentFrame();
   const t = translations[locale][drillType];

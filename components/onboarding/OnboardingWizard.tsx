@@ -269,7 +269,7 @@ const COMMON_STEPS: StepDefinition[] = [
 export function OnboardingWizard({
   clientId,
   clientName,
-  locale = 'sv',
+  locale = 'en',
   onComplete,
   basePath = '',
   initialSport,

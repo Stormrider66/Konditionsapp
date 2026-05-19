@@ -35,7 +35,7 @@ export function FitnessSummary({
   experienceLevel,
   age,
   gender,
-  locale: _locale = 'sv',
+  locale: _locale = 'en',
   onContinue,
   onScheduleFieldTest,
 }: FitnessSummaryProps) {

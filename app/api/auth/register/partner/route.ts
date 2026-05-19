@@ -9,7 +9,7 @@ const registerSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   email: z.string().email('Invalid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  language: z.enum(['sv', 'en']).default('sv'),
+  language: z.enum(['sv', 'en']).default('en'),
   businessSlug: z.string().min(1, 'Business slug is required'),
   referralSource: z.enum(['link', 'code', 'api', 'manual']).default('link'),
   referralCode: z.string().optional(),

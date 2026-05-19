@@ -22,7 +22,7 @@ export const PhaseOverlay: React.FC<PhaseOverlayProps> = ({
   title,
   phases,
   description,
-  locale = "sv",
+  locale = "en",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();

@@ -65,7 +65,7 @@ function formatCurrency(amountInOre: number): string {
   }).format(amountInOre / 100)
 }
 
-export function CoachEarningsDashboard({ locale = 'sv' }: Props) {
+export function CoachEarningsDashboard({ locale = 'en' }: Props) {
   const [summary, setSummary] = useState<EarningsSummary | null>(null)
   const [earnings, setEarnings] = useState<Earning[]>([])
   const [isLoading, setIsLoading] = useState(true)

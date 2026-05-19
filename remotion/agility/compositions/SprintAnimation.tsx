@@ -36,7 +36,7 @@ export const SprintAnimation: React.FC<SprintAnimationProps> = ({
   distance,
   athleteTime,
   benchmarkTier,
-  locale = "sv",
+  locale = "en",
 }) => {
   const frame = useCurrentFrame();
   const t = translations[locale];

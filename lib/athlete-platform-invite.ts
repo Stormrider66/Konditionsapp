@@ -159,7 +159,7 @@ export async function sendAthletePlatformInvite(
   clientId: string,
   coachUserId: string,
   options?: { sendEmail?: boolean },
-  locale: EmailLocale = 'sv',
+  locale: EmailLocale = 'en',
 ): Promise<SendAthletePlatformInviteResult> {
   const syncResult = await syncAthleteAccountIdentityFromProfile(clientId)
   if (!syncResult.success) return syncResult

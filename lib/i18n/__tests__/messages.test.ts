@@ -9,9 +9,9 @@ import {
 
 describe('i18n Messages', () => {
   describe('getMessage', () => {
-    it('should return Swedish message by default', () => {
+    it('should return English message by default', () => {
       const message = getMessage(ERROR_KEYS.UNAUTHORIZED)
-      expect(message).toBe('Du måste vara inloggad för att utföra denna åtgärd')
+      expect(message).toBe('You must be logged in to perform this action')
     })
 
     it('should return English message when specified', () => {
@@ -39,9 +39,9 @@ describe('i18n Messages', () => {
   })
 
   describe('getSuccessMessage', () => {
-    it('should return Swedish success message by default', () => {
+    it('should return English success message by default', () => {
       const message = getSuccessMessage(SUCCESS_KEYS.SAVED)
-      expect(message).toBe('Sparad')
+      expect(message).toBe('Saved')
     })
 
     it('should return English success message when specified', () => {

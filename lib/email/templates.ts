@@ -27,7 +27,7 @@ interface WelcomeEmailData extends BaseTemplateData {
 }
 
 export function getWelcomeEmailTemplate(data: WelcomeEmailData) {
-  const { recipientName, loginUrl, locale = 'sv' } = data
+  const { recipientName, loginUrl, locale = 'en' } = data
   const br = b(data)
   const safeRecipientName = escapeHtml(recipientName)
   const safeLoginUrl = sanitizeAttribute(sanitizeUrl(loginUrl))
@@ -94,7 +94,7 @@ interface ReferralRewardEmailData extends BaseTemplateData {
 }
 
 export function getReferralRewardEmailTemplate(data: ReferralRewardEmailData) {
-  const { recipientName, referredUserName, rewardType, rewardValue, dashboardUrl, locale = 'sv' } = data
+  const { recipientName, referredUserName, rewardType, rewardValue, dashboardUrl, locale = 'en' } = data
   const br = b(data)
   const safeRecipientName = escapeHtml(recipientName)
   const safeReferredUserName = escapeHtml(referredUserName)
@@ -174,7 +174,7 @@ interface SubscriptionEmailData extends BaseTemplateData {
 }
 
 export function getSubscriptionConfirmationEmailTemplate(data: SubscriptionEmailData) {
-  const { recipientName, planName, amount, nextBillingDate, dashboardUrl, locale = 'sv' } = data
+  const { recipientName, planName, amount, nextBillingDate, dashboardUrl, locale = 'en' } = data
   const br = b(data)
   const safeRecipientName = escapeHtml(recipientName)
   const safePlanName = escapeHtml(planName)
@@ -250,7 +250,7 @@ interface SubscriptionCancelledEmailData extends BaseTemplateData {
 }
 
 export function getSubscriptionCancelledEmailTemplate(data: SubscriptionCancelledEmailData) {
-  const { recipientName, planName, endDate, reactivateUrl, locale = 'sv' } = data
+  const { recipientName, planName, endDate, reactivateUrl, locale = 'en' } = data
   const br = b(data)
   const safeRecipientName = escapeHtml(recipientName)
   const safePlanName = escapeHtml(planName)
@@ -308,7 +308,7 @@ interface PaymentFailedEmailData extends BaseTemplateData {
 }
 
 export function getPaymentFailedEmailTemplate(data: PaymentFailedEmailData) {
-  const { recipientName, amount, retryDate, updatePaymentUrl, locale = 'sv' } = data
+  const { recipientName, amount, retryDate, updatePaymentUrl, locale = 'en' } = data
   const br = b(data)
   const safeRecipientName = escapeHtml(recipientName)
   const safeAmount = escapeHtml(amount)
@@ -365,7 +365,7 @@ interface TrialWarningEmailData extends BaseTemplateData {
 }
 
 export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
-  const { recipientName, daysRemaining, upgradeUrl, locale = 'sv' } = data
+  const { recipientName, daysRemaining, upgradeUrl, locale = 'en' } = data
   const br = b(data)
   const safeRecipientName = escapeHtml(recipientName)
   const safeUpgradeUrl = sanitizeAttribute(sanitizeUrl(upgradeUrl))
@@ -447,7 +447,7 @@ interface TrialExpiredEmailData extends BaseTemplateData {
 }
 
 export function getTrialExpiredEmailTemplate(data: TrialExpiredEmailData) {
-  const { recipientName, upgradeUrl, locale = 'sv' } = data
+  const { recipientName, upgradeUrl, locale = 'en' } = data
   const br = b(data)
   const safeRecipientName = escapeHtml(recipientName)
   const safeUpgradeUrl = sanitizeAttribute(sanitizeUrl(upgradeUrl))
@@ -521,7 +521,7 @@ interface ReferralInviteEmailData extends BaseTemplateData {
 }
 
 export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
-  const { recipientName, referrerName, signupUrl, benefit, locale = 'sv' } = data
+  const { recipientName, referrerName, signupUrl, benefit, locale = 'en' } = data
   const br = b(data)
   const safeRecipientName = escapeHtml(recipientName)
   const safeReferrerName = escapeHtml(referrerName)

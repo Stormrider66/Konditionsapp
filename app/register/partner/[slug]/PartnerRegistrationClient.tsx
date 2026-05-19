@@ -44,7 +44,7 @@ export function PartnerRegistrationClient({ business }: PartnerRegistrationClien
     email: '',
     password: '',
     confirmPassword: '',
-    language: 'sv',
+    language: 'en',
     acceptTerms: false,
   })
 

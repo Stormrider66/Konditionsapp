@@ -151,7 +151,7 @@ export async function sendTestResultInvite(
   const businessSlug = test.client.business.slug
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
   const testPath = `/${businessSlug}/athlete/tests/${test.id}`
-  const locale = opts.locale || 'sv'
+  const locale = opts.locale || 'en'
   const copy = getCopy(locale)
 
   // 2. Ensure the athlete has an AthleteAccount. Create on-demand if not.

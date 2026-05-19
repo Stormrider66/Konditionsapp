@@ -1,14 +1,14 @@
 /**
  * Internationalized Error Messages
  *
- * Provides consistent error messages in Swedish and English.
- * Default language is Swedish (sv) as this is a Swedish application.
+ * Provides consistent error messages in English and Swedish.
+ * Default language is English (en).
  */
 
 export type Language = 'sv' | 'en'
 
 // Default language
-export const DEFAULT_LANGUAGE: Language = 'sv'
+export const DEFAULT_LANGUAGE: Language = 'en'
 
 /**
  * Error message keys
@@ -163,7 +163,7 @@ const MESSAGES: Record<ErrorKey, Record<Language, string>> = {
  * Get an error message by key
  *
  * @param key - Error message key
- * @param lang - Language code (defaults to Swedish)
+ * @param lang - Language code (defaults to English)
  * @param params - Optional parameters to interpolate into the message
  */
 export function getMessage(
@@ -171,7 +171,7 @@ export function getMessage(
   lang: Language = DEFAULT_LANGUAGE,
   params?: Record<string, string | number>
 ): string {
-  let message = MESSAGES[key]?.[lang] || MESSAGES[key]?.sv || key
+  let message = MESSAGES[key]?.[lang] || MESSAGES[key]?.en || key
 
   // Interpolate parameters
   if (params) {
@@ -239,7 +239,7 @@ export function getSuccessMessage(
   key: SuccessKey,
   lang: Language = DEFAULT_LANGUAGE
 ): string {
-  return SUCCESS_MESSAGES[key]?.[lang] || SUCCESS_MESSAGES[key]?.sv || key
+  return SUCCESS_MESSAGES[key]?.[lang] || SUCCESS_MESSAGES[key]?.en || key
 }
 
 const messages = { getMessage, getSuccessMessage, ERROR_KEYS, SUCCESS_KEYS }

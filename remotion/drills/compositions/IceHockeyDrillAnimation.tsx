@@ -224,7 +224,7 @@ export const IceHockeyDrillAnimation: React.FC<IceHockeyDrillAnimationProps> = (
   title,
   description,
   structure,
-  locale = "sv",
+  locale = "en",
   sportType = "ICE_HOCKEY",
 }) => {
   const sportSurface = SPORT_SURFACE_MAP[sportType] || SPORT_SURFACE_MAP.ICE_HOCKEY;

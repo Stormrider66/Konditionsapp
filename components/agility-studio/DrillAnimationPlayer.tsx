@@ -224,7 +224,7 @@ export function DrillAnimationPlayer({
   drillName,
   athleteTime,
   benchmarkTier = "average",
-  locale = "sv",
+  locale = "en",
 }: DrillAnimationPlayerProps) {
   const playerRef = React.useRef<PlayerRef>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
