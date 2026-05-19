@@ -28,6 +28,7 @@ import { z } from 'zod'
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
+type AppLocale = 'en' | 'sv'
 
 const rowSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -65,6 +66,7 @@ type RosterRowResult =
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
@@ -108,7 +110,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         if (!membership) {
           const limitReached = await hasReachedAthleteLimit(user.id)
           if (limitReached) {
-            results.push({ status: 'skipped', name: row.name, reason: 'Atletgränsen är nådd' })
+            results.push({ status: 'skipped', name: row.name, reason: t(locale, 'athleteLimitReached') })
             continue
           }
         }
@@ -117,7 +119,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
           results.push({
             status: 'skipped',
             name: row.name,
-            reason: `E-post används redan: ${row.email}`,
+            reason: t(locale, 'emailAlreadyUsed', row.email),
           })
           continue
         }
@@ -176,11 +178,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
         const msg =
           err instanceof Prisma.PrismaClientKnownRequestError
             ? err.code === 'P2002'
-              ? 'Dubblett (e-post används redan)'
-              : `DB-fel (${err.code})`
+              ? t(locale, 'duplicateEmail')
+              : t(locale, 'databaseError', err.code)
             : err instanceof Error
               ? err.message
-              : 'Okänt fel'
+              : t(locale, 'unknownError')
         results.push({ status: 'error', name: row.name, reason: msg })
         logger.error('bulk: failed to create roster row', { teamId, name: row.name }, err)
       }
@@ -199,5 +201,35 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
     logger.error('Bulk create team members failed', {}, error)
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}
+
+function t(locale: AppLocale, key: 'athleteLimitReached' | 'emailAlreadyUsed' | 'duplicateEmail' | 'databaseError' | 'unknownError', value?: string): string {
+  if (locale === 'sv') {
+    switch (key) {
+      case 'athleteLimitReached':
+        return 'Atletgränsen är nådd'
+      case 'emailAlreadyUsed':
+        return `E-post används redan: ${value ?? ''}`
+      case 'duplicateEmail':
+        return 'Dubblett (e-post används redan)'
+      case 'databaseError':
+        return `DB-fel (${value ?? 'okänt'})`
+      case 'unknownError':
+        return 'Okänt fel'
+    }
+  }
+
+  switch (key) {
+    case 'athleteLimitReached':
+      return 'Athlete limit reached'
+    case 'emailAlreadyUsed':
+      return `Email already used: ${value ?? ''}`
+    case 'duplicateEmail':
+      return 'Duplicate (email already used)'
+    case 'databaseError':
+      return `Database error (${value ?? 'unknown'})`
+    case 'unknownError':
+      return 'Unknown error'
   }
 }

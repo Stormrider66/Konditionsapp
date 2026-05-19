@@ -16,6 +16,7 @@ import { z } from 'zod'
 interface RouteContext {
   params: Promise<{ teamId: string; clientId: string }>
 }
+type AppLocale = 'en' | 'sv'
 
 const emailSchema = z
   .string()
@@ -27,6 +28,7 @@ const emailSchema = z
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId, clientId } = await context.params
 
     const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
@@ -68,7 +70,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       } else if (typeof e === 'string') {
         const parsedEmail = emailSchema.safeParse(e)
         if (!parsedEmail.success) {
-          return NextResponse.json({ error: 'Ogiltig e-postadress' }, { status: 400 })
+          return NextResponse.json({ error: t(locale, 'invalidEmail') }, { status: 400 })
         }
         data.email = parsedEmail.data
       } else {
@@ -102,7 +104,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
       if (!data.email && currentClient.athleteAccount) {
         return NextResponse.json(
-          { error: 'Spelaren har ett aktivt atletkonto och måste ha en e-postadress' },
+          { error: t(locale, 'activeAccountNeedsEmail') },
           { status: 400 }
         )
       }
@@ -111,7 +113,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         const athleteAccountEmail = currentClient.athleteAccount?.user.email.toLowerCase()
         if (athleteAccountEmail && athleteAccountEmail !== data.email) {
           return NextResponse.json(
-            { error: 'Uppdatera e-post via spelarprofilen för spelare med aktivt atletkonto' },
+            { error: t(locale, 'updateEmailViaProfile') },
             { status: 400 }
           )
         }
@@ -129,7 +131,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
         if (duplicateClient) {
           return NextResponse.json(
-            { error: 'En spelare med denna e-postadress finns redan' },
+            { error: t(locale, 'duplicatePlayerEmail') },
             { status: 409 }
           )
         }
@@ -146,7 +148,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
         if (duplicateUser) {
           return NextResponse.json(
-            { error: 'E-postadressen används redan av en annan användare' },
+            { error: t(locale, 'emailUsedByOtherUser') },
             { status: 409 }
           )
         }
@@ -174,6 +176,24 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     logger.error('PATCH team member failed', {}, error)
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
+}
+
+function t(locale: AppLocale, key: 'invalidEmail' | 'activeAccountNeedsEmail' | 'updateEmailViaProfile' | 'duplicatePlayerEmail' | 'emailUsedByOtherUser'): string {
+  const sv = {
+    invalidEmail: 'Ogiltig e-postadress',
+    activeAccountNeedsEmail: 'Spelaren har ett aktivt atletkonto och måste ha en e-postadress',
+    updateEmailViaProfile: 'Uppdatera e-post via spelarprofilen för spelare med aktivt atletkonto',
+    duplicatePlayerEmail: 'En spelare med denna e-postadress finns redan',
+    emailUsedByOtherUser: 'E-postadressen används redan av en annan användare',
+  }
+  const en = {
+    invalidEmail: 'Invalid email address',
+    activeAccountNeedsEmail: 'The player has an active athlete account and must have an email address',
+    updateEmailViaProfile: 'Update email through the player profile for players with an active athlete account',
+    duplicatePlayerEmail: 'A player with this email address already exists',
+    emailUsedByOtherUser: 'The email address is already used by another user',
+  }
+  return locale === 'sv' ? sv[key] : en[key]
 }
 
 export async function DELETE(_req: NextRequest, context: RouteContext) {
