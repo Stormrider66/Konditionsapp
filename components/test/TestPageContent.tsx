@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { TestDataForm } from '@/components/forms/TestDataForm'
 import { BioimpedanceForm } from '@/components/forms/BioimpedanceForm'
@@ -25,7 +25,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
-import { User as SupabaseUser } from '@supabase/supabase-js'
+import { useLocale } from '@/i18n/client'
 
 // Sport test form imports
 import { PowerTestForm } from '@/components/tests/power'
@@ -48,16 +48,16 @@ type TestPageClient = Client & {
 const HOCKEY_SPORT = 'TEAM_ICE_HOCKEY'
 
 const TEST_CATEGORIES = [
-  { value: 'lactate', label: 'Laktattest', icon: Droplet, available: true },
-  { value: 'body-composition', label: 'Kroppssammansättning', icon: Scale, available: true },
-  { value: 'power', label: 'Krafttest', icon: Zap, available: true },
-  { value: 'speed', label: 'Hastighet', icon: Timer, available: true },
-  { value: 'agility', label: 'Agility', icon: Shuffle, available: true },
-  { value: 'strength', label: 'Styrka', icon: Dumbbell, available: true },
-  { value: 'swimming', label: 'Simning', icon: Waves, available: true },
-  { value: 'endurance', label: 'Uthållighet', icon: Activity, available: true },
-  { value: 'hyrox', label: 'HYROX', icon: Flame, available: true },
-  { value: 'hockey', label: 'Hockey', icon: Shield, available: true },
+  { value: 'lactate', labelSv: 'Laktattest', labelEn: 'Lactate test', icon: Droplet, available: true },
+  { value: 'body-composition', labelSv: 'Kroppssammansättning', labelEn: 'Body composition', icon: Scale, available: true },
+  { value: 'power', labelSv: 'Krafttest', labelEn: 'Power test', icon: Zap, available: true },
+  { value: 'speed', labelSv: 'Hastighet', labelEn: 'Speed', icon: Timer, available: true },
+  { value: 'agility', labelSv: 'Agility', labelEn: 'Agility', icon: Shuffle, available: true },
+  { value: 'strength', labelSv: 'Styrka', labelEn: 'Strength', icon: Dumbbell, available: true },
+  { value: 'swimming', labelSv: 'Simning', labelEn: 'Swimming', icon: Waves, available: true },
+  { value: 'endurance', labelSv: 'Uthållighet', labelEn: 'Endurance', icon: Activity, available: true },
+  { value: 'hyrox', labelSv: 'HYROX', labelEn: 'HYROX', icon: Flame, available: true },
+  { value: 'hockey', labelSv: 'Hockey', labelEn: 'Hockey', icon: Shield, available: true },
 ] as const
 
 interface TestPageContentProps {
@@ -74,6 +74,8 @@ function isTestCategory(value: string): value is TestCategory {
 export function TestPageContent({ businessSlug, organizationName, initialClientId = '', initialCategory = '' }: TestPageContentProps) {
   const basePath = `/${businessSlug}/coach`
   const orgName = organizationName || PLATFORM_NAME
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const t = useCallback((svText: string, enText: string) => locale === 'sv' ? svText : enText, [locale])
 
   const [testCategory, setTestCategory] = useState<TestCategory>(isTestCategory(initialCategory) ? initialCategory : 'lactate')
   const [showReport, setShowReport] = useState(false)
@@ -86,8 +88,6 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [testType, setTestType] = useState<TestType>('RUNNING')
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<SupabaseUser | null>(null)
-  const [userRole, setUserRole] = useState<'COACH' | 'ATHLETE' | 'ADMIN' | null>(null)
   const [userName, setUserName] = useState<string>('')
   const { toast } = useToast()
 
@@ -109,8 +109,8 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
         if (controller.signal.aborted) return
         console.error('Error fetching clients:', error)
         toast({
-          title: 'Fel',
-          description: 'Kunde inte hämta klienter',
+          title: t('Fel', 'Error'),
+          description: t('Kunde inte hämta klienter', 'Could not fetch clients'),
           variant: 'destructive',
         })
         setLoading(false)
@@ -120,13 +120,11 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
     const fetchUserRole = async () => {
       const supabase = createSupabaseClient()
       const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
       if (user) {
         try {
           const response = await fetch('/api/users/me', { signal: controller.signal })
           const result = await response.json()
           if (result.success) {
-            setUserRole(result.data.role)
             if (result.data.name) setUserName(result.data.name)
           }
         } catch (error) {
@@ -136,11 +134,11 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
       }
     }
 
-    fetchClients()
-    fetchUserRole()
+    void fetchClients()
+    void fetchUserRole()
 
     return () => controller.abort()
-  }, [initialClientId, toast])
+  }, [initialClientId, toast, t])
 
   const selectedClient = clients.find((c) => c.id === selectedClientId)
   const isHockeyClient = (client: TestPageClient | undefined) => {
@@ -156,7 +154,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
     ? [...clients].sort((a, b) => {
         if (a.id === selectedClientId) return -1
         if (b.id === selectedClientId) return 1
-        return a.name.localeCompare(b.name, 'sv')
+        return a.name.localeCompare(b.name, locale === 'sv' ? 'sv' : 'en')
       })
     : clients
   const sportFormClients = orderedClients.map(c => ({
@@ -178,8 +176,8 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
   const handleSubmit = async (data: CreateTestFormData) => {
     if (!selectedClient) {
       toast({
-        title: 'Fel',
-        description: 'Ingen klient vald',
+        title: t('Fel', 'Error'),
+        description: t('Ingen klient vald', 'No client selected'),
         variant: 'destructive',
       })
       return
@@ -220,7 +218,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
       const saveResult = await saveResponse.json()
 
       if (!saveResult.success) {
-        throw new Error(saveResult.error || 'Kunde inte spara test')
+        throw new Error(saveResult.error || t('Kunde inte spara test', 'Could not save test'))
       }
 
       const savedTest = saveResult.data
@@ -284,43 +282,43 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
       })
       setShowReport(true)
       toast({
-        title: lactateWarnings.length > 0 ? 'Test sparat med varning' : 'Test sparat!',
+        title: lactateWarnings.length > 0 ? t('Test sparat med varning', 'Test saved with warning') : t('Test sparat!', 'Test saved!'),
         description: lactateWarnings.length > 0
-          ? lactateWarnings[0].message || 'Rapporten är klar, men kontrollera laktatkurvan.'
-          : 'Testet har sparats och rapporten är klar.',
+          ? lactateWarnings[0].message || t('Rapporten är klar, men kontrollera laktatkurvan.', 'The report is ready, but check the lactate curve.')
+          : t('Testet har sparats och rapporten är klar.', 'The test has been saved and the report is ready.'),
       })
     } catch (error) {
-      console.error('Fel vid beräkning:', error)
+      console.error('Error during calculation:', error)
       toast({
-        title: 'Fel',
-        description: `Kunde inte generera rapport: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+        title: t('Fel', 'Error'),
+        description: `${t('Kunde inte generera rapport', 'Could not generate report')}: ${error instanceof Error ? error.message : t('Okänt fel', 'Unknown error')}`,
         variant: 'destructive',
       })
     }
   }
 
-  const ClientSelector = () => (
+  const renderClientSelector = () => (
     <GlassCard glow="blue">
       <GlassCardHeader>
-        <GlassCardTitle>Välj klient</GlassCardTitle>
+        <GlassCardTitle>{t('Välj klient', 'Select client')}</GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
         <div className="space-y-2">
-          <Label htmlFor="client-select" className="text-slate-900 dark:text-white">Klient</Label>
+          <Label htmlFor="client-select" className="text-slate-900 dark:text-white">{t('Klient', 'Client')}</Label>
           {loading ? (
             <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
           ) : clients.length === 0 ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Inga klienter tillgängliga. Gå till{' '}
+              {t('Inga klienter tillgängliga. Gå till', 'No clients available. Go to')}{' '}
               <Link href={`${basePath}/clients`} className="text-blue-600 hover:underline">
-                Klientregister
+                {t('Klientregister', 'Client registry')}
               </Link>{' '}
-              för att lägga till en klient.
+              {t('för att lägga till en klient.', 'to add a client.')}
             </p>
           ) : (
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
               <SelectTrigger id="client-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
-                <SelectValue placeholder="Välj en klient" />
+                <SelectValue placeholder={t('Välj en klient', 'Select a client')} />
               </SelectTrigger>
               <SelectContent>
                 {clients.map((client) => (
@@ -343,12 +341,12 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
           {/* Test Category Tabs */}
           <div>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Nytt Test</h1>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Nytt Test', 'New Test')}</h1>
               {hasProfileContext && profileHref && (
                 <Link href={profileHref}>
                   <Button variant="outline" className="w-full sm:w-auto">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Tillbaka till profil
+                    {t('Tillbaka till profil', 'Back to profile')}
                   </Button>
                 </Link>
               )}
@@ -365,8 +363,8 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                       className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-300 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5 data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm dark:data-[state=active]:shadow-[0_0_15px_rgba(59,130,246,0.15)]"
                     >
                       <Icon className="w-4 h-4" />
-                      <span className="hidden lg:inline">{category.label}</span>
-                      <span className="lg:hidden text-[10px] sm:text-xs">{category.label.split(' ')[0].slice(0, 6)}</span>
+                      <span className="hidden lg:inline">{locale === 'sv' ? category.labelSv : category.labelEn}</span>
+                      <span className="lg:hidden text-[10px] sm:text-xs">{(locale === 'sv' ? category.labelSv : category.labelEn).split(' ')[0].slice(0, 6)}</span>
                     </TabsTrigger>
                   )
                 })}
@@ -376,25 +374,25 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
               <TabsContent value="lactate" className="space-y-6 mt-6">
                 <GlassCard glow="blue">
                   <GlassCardHeader>
-                    <GlassCardTitle>Laktattestinställningar</GlassCardTitle>
+                    <GlassCardTitle>{t('Laktattestinställningar', 'Lactate test settings')}</GlassCardTitle>
                   </GlassCardHeader>
                   <GlassCardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="client-select" className="text-slate-900 dark:text-white">Klient</Label>
+                      <Label htmlFor="client-select" className="text-slate-900 dark:text-white">{t('Klient', 'Client')}</Label>
                       {loading ? (
                         <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
                       ) : clients.length === 0 ? (
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Inga klienter tillgängliga. Gå till{' '}
+                          {t('Inga klienter tillgängliga. Gå till', 'No clients available. Go to')}{' '}
                           <Link href={`${basePath}/clients`} className="text-blue-600 hover:underline">
-                            Klientregister
+                            {t('Klientregister', 'Client registry')}
                           </Link>{' '}
-                          för att lägga till en klient.
+                          {t('för att lägga till en klient.', 'to add a client.')}
                         </p>
                       ) : (
                         <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                           <SelectTrigger id="client-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
-                            <SelectValue placeholder="Välj en klient" />
+                            <SelectValue placeholder={t('Välj en klient', 'Select a client')} />
                           </SelectTrigger>
                           <SelectContent>
                             {clients.map((client) => (
@@ -408,12 +406,12 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-slate-900 dark:text-white">Testtyp</Label>
+                      <Label className="text-slate-900 dark:text-white">{t('Testtyp', 'Test type')}</Label>
                       <Tabs value={testType} onValueChange={(value) => setTestType(value as TestType)}>
                         <TabsList className="grid w-full grid-cols-3 bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-lg">
-                          <TabsTrigger value="RUNNING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Löpning</TabsTrigger>
-                          <TabsTrigger value="CYCLING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Cykling</TabsTrigger>
-                          <TabsTrigger value="SKIING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Skidåkning</TabsTrigger>
+                          <TabsTrigger value="RUNNING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{t('Löpning', 'Running')}</TabsTrigger>
+                          <TabsTrigger value="CYCLING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{t('Cykling', 'Cycling')}</TabsTrigger>
+                          <TabsTrigger value="SKIING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{t('Skidåkning', 'Skiing')}</TabsTrigger>
                         </TabsList>
                       </Tabs>
                     </div>
@@ -424,7 +422,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                 {selectedClient && (
                   <GlassCard glow="emerald">
                     <GlassCardHeader>
-                      <GlassCardTitle>Mata in testdata</GlassCardTitle>
+                      <GlassCardTitle>{t('Mata in testdata', 'Enter test data')}</GlassCardTitle>
                     </GlassCardHeader>
                     <GlassCardContent>
                       <TestDataForm
@@ -440,12 +438,12 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
 
               {/* Body Composition Content */}
               <TabsContent value="body-composition" className="space-y-6 mt-6">
-                <ClientSelector />
+                {renderClientSelector()}
 
                 {selectedClient && (
                   <GlassCard glow="purple">
                     <GlassCardHeader>
-                      <GlassCardTitle>Bioimpedansmätning</GlassCardTitle>
+                      <GlassCardTitle>{t('Bioimpedansmätning', 'Bioimpedance measurement')}</GlassCardTitle>
                     </GlassCardHeader>
                     <GlassCardContent>
                       <BioimpedanceForm
@@ -503,7 +501,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
               <TabsContent value="hyrox" className="mt-6">
                 <Tabs defaultValue="station" className="space-y-4">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="station">Stationstest</TabsTrigger>
+                    <TabsTrigger value="station">{t('Stationstest', 'Station test')}</TabsTrigger>
                     <TabsTrigger value="simulation">Race Simulation</TabsTrigger>
                   </TabsList>
 
@@ -545,24 +543,24 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
             <Link href={basePath ? `${basePath}/dashboard` : '/'} className="w-full sm:w-auto">
               <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">
                 <Home className="w-4 h-4 mr-2" />
-                Hem
+                {t('Hem', 'Home')}
               </Button>
             </Link>
             <Button variant="outline" onClick={() => setShowReport(false)} className="w-full sm:w-auto min-h-[44px]">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Tillbaka till formulär
+              {t('Tillbaka till formulär', 'Back to form')}
             </Button>
             {reportData && (
               <Link href={`${basePath}/clients/${reportData.client.id}`} className="w-full sm:w-auto">
                 <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">
                   <User className="w-4 h-4 mr-2" />
-                  Testhistorik
+                  {t('Testhistorik', 'Test history')}
                 </Button>
               </Link>
             )}
             <Button variant="secondary" onClick={() => window.print()} className="w-full sm:w-auto min-h-[44px]">
               <Printer className="w-4 h-4 mr-2" />
-              Skriv ut
+              {t('Skriv ut', 'Print')}
             </Button>
             {reportData && (
               <>
@@ -572,7 +570,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                       client: reportData.client,
                       test: reportData.test,
                       calculations: reportData.calculations,
-                      testLeader: userName || 'Testledare',
+                      testLeader: userName || t('Testledare', 'Test leader'),
                       organization: orgName,
                       reportDate: new Date(),
                     }}
@@ -586,7 +584,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                       client: reportData.client,
                       test: reportData.test,
                       calculations: reportData.calculations,
-                      testLeader: userName || 'Testledare',
+                      testLeader: userName || t('Testledare', 'Test leader'),
                       organization: orgName,
                       reportDate: new Date(),
                     }}
@@ -602,7 +600,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
               client={reportData.client}
               test={reportData.test}
               calculations={reportData.calculations}
-              testLeader={userName || 'Testledare'}
+              testLeader={userName || t('Testledare', 'Test leader')}
               organization={orgName}
             />
           )}
