@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import {
   BarChart,
   Bar,
@@ -12,6 +13,7 @@ import {
 } from 'recharts'
 import {
   CANONICAL_MUSCLE_GROUPS,
+  getMuscleGroupLabel,
   MUSCLE_GROUP_COLORS,
   type CanonicalMuscleGroup,
 } from '@/lib/muscle-group-normalizer'
@@ -26,6 +28,8 @@ interface MuscleGroupStackedBarChartProps {
 }
 
 export function MuscleGroupStackedBarChart({ periods }: MuscleGroupStackedBarChartProps) {
+  const locale = useLocale()
+  const numberLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   // Transform data for Recharts: each period becomes a row with keys per muscle group
   const chartData = periods.map((p) => {
     const row: Record<string, string | number> = { period: p.label }
@@ -54,7 +58,7 @@ export function MuscleGroupStackedBarChart({ periods }: MuscleGroupStackedBarCha
             v >= 1000 ? `${(v / 1000).toFixed(0)}t` : `${v}`
           }
           label={{
-            value: 'Volym (kg)',
+            value: locale === 'sv' ? 'Volym (kg)' : 'Volume (kg)',
             angle: -90,
             position: 'insideLeft',
             style: { fontSize: 11, fill: 'hsl(var(--muted-foreground))' },
@@ -75,7 +79,7 @@ export function MuscleGroupStackedBarChart({ periods }: MuscleGroupStackedBarCha
                     />
                     <span className="text-muted-foreground">{item.name}</span>
                     <span className="font-medium ml-auto">
-                      {(item.value as number).toLocaleString('sv-SE')} kg
+                      {(item.value as number).toLocaleString(numberLocale)} kg
                     </span>
                   </div>
                 ))}
@@ -93,7 +97,7 @@ export function MuscleGroupStackedBarChart({ periods }: MuscleGroupStackedBarCha
             dataKey={group}
             stackId="muscles"
             fill={MUSCLE_GROUP_COLORS[group]}
-            name={group}
+            name={getMuscleGroupLabel(group, locale)}
             radius={i === activeGroups.length - 1 ? [4, 4, 0, 0] : undefined}
           />
         ))}

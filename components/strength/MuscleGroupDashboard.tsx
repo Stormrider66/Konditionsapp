@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -8,7 +9,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Activity } from 'lucide-react'
 import { MuscleGroupRadarChart } from './MuscleGroupRadarChart'
 import { MuscleGroupStackedBarChart } from './MuscleGroupStackedBarChart'
-import { CANONICAL_MUSCLE_GROUPS, type CanonicalMuscleGroup } from '@/lib/muscle-group-normalizer'
+import {
+  CANONICAL_MUSCLE_GROUPS,
+  getMuscleGroupLabel,
+  type CanonicalMuscleGroup,
+} from '@/lib/muscle-group-normalizer'
 
 interface MuscleGroupDashboardProps {
   businessId?: string
@@ -17,6 +22,11 @@ interface MuscleGroupDashboardProps {
 interface ClientOption {
   id: string
   name: string
+}
+
+interface FetchedClient {
+  id: string
+  name?: string | null
 }
 
 interface PeriodData {
@@ -34,6 +44,9 @@ interface MuscleGroupResponse {
 }
 
 export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [clients, setClients] = useState<ClientOption[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [period, setPeriod] = useState<'week' | 'month'>('week')
@@ -50,10 +63,11 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
           : '/api/coach/clients'
         const res = await fetch(url)
         if (res.ok) {
-          const result = await res.json()
-          const list = (result.clients || result || []).map((c: any) => ({
+          const result = (await res.json()) as { clients?: FetchedClient[] } | FetchedClient[]
+          const rawList = Array.isArray(result) ? result : result.clients ?? []
+          const list = rawList.map((c) => ({
             id: c.id,
-            name: c.name || 'Okänd atlet',
+            name: c.name || (locale === 'sv' ? 'Okänd atlet' : 'Unknown athlete'),
           }))
           setClients(list)
           if (list.length > 0) setSelectedClientId(list[0].id)
@@ -64,8 +78,8 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
         setClientsLoading(false)
       }
     }
-    fetchClients()
-  }, [businessId])
+    void fetchClients()
+  }, [businessId, locale])
 
   // Fetch muscle group data when client or period changes
   useEffect(() => {
@@ -89,7 +103,7 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
         setIsLoading(false)
       }
     }
-    fetchData()
+    void fetchData()
   }, [selectedClientId, period, businessId])
 
   // Compute balance score: 100 - coefficient of variation (capped 0-100)
@@ -122,6 +136,9 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
     }
   })()
 
+  const mostTrainedLabel =
+    topGroups.most === '-' ? '-' : getMuscleGroupLabel(topGroups.most as CanonicalMuscleGroup, locale)
+
   if (clientsLoading) {
     return (
       <Card>
@@ -139,16 +156,18 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
           <div>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Muskelgruppsfördelning
+              {t('Muskelgruppsfördelning', 'Muscle group distribution')}
             </CardTitle>
-            <CardDescription>Volymbalans och trender per muskelgrupp</CardDescription>
+            <CardDescription>
+              {t('Volymbalans och trender per muskelgrupp', 'Volume balance and trends by muscle group')}
+            </CardDescription>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Client selector */}
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Välj atlet" />
+                <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
               </SelectTrigger>
               <SelectContent>
                 {clients.map((c) => (
@@ -162,8 +181,8 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
             {/* Period toggle */}
             <Tabs value={period} onValueChange={(v) => setPeriod(v as 'week' | 'month')}>
               <TabsList>
-                <TabsTrigger value="week">Vecka</TabsTrigger>
-                <TabsTrigger value="month">Månad</TabsTrigger>
+                <TabsTrigger value="week">{t('Vecka', 'Week')}</TabsTrigger>
+                <TabsTrigger value="month">{t('Månad', 'Month')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -176,19 +195,28 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
         ) : !data || data.summary.totalSets === 0 ? (
           <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground border-dashed border-2 rounded-lg">
             <Activity className="h-10 w-10 mb-3 opacity-40" />
-            <p className="font-medium">Ingen styrkedata</p>
-            <p className="text-sm">Vald atlet har inga loggade set under denna period</p>
+            <p className="font-medium">{t('Ingen styrkedata', 'No strength data')}</p>
+            <p className="text-sm">
+              {t(
+                'Vald atlet har inga loggade set under denna period',
+                'The selected athlete has no logged sets in this period'
+              )}
+            </p>
           </div>
         ) : (
           <div className="space-y-6">
             {/* Charts in 2-column layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground">Balans</h4>
+                <h4 className="text-sm font-medium mb-3 text-muted-foreground">
+                  {t('Balans', 'Balance')}
+                </h4>
                 <MuscleGroupRadarChart summary={data.summary} />
               </div>
               <div>
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground">Trender</h4>
+                <h4 className="text-sm font-medium mb-3 text-muted-foreground">
+                  {t('Trender', 'Trends')}
+                </h4>
                 <MuscleGroupStackedBarChart periods={data.periods} />
               </div>
             </div>
@@ -196,24 +224,24 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
             {/* Summary stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t">
               <div>
-                <p className="text-xs text-muted-foreground">Total volym</p>
+                <p className="text-xs text-muted-foreground">{t('Total volym', 'Total volume')}</p>
                 <p className="text-lg font-bold">
                   {data.summary.totalVolume >= 1000
                     ? `${(data.summary.totalVolume / 1000).toFixed(1)}t`
-                    : data.summary.totalVolume.toLocaleString('sv-SE')}{' '}
+                    : data.summary.totalVolume.toLocaleString(dateLocale)}{' '}
                   kg
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Totalt set</p>
+                <p className="text-xs text-muted-foreground">{t('Totalt set', 'Total sets')}</p>
                 <p className="text-lg font-bold">{data.summary.totalSets}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Mest tränad</p>
-                <p className="text-lg font-bold">{topGroups.most}</p>
+                <p className="text-xs text-muted-foreground">{t('Mest tränad', 'Most trained')}</p>
+                <p className="text-lg font-bold">{mostTrainedLabel}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Balanspoäng</p>
+                <p className="text-xs text-muted-foreground">{t('Balanspoäng', 'Balance score')}</p>
                 <p className="text-lg font-bold">
                   {balanceScore != null ? `${balanceScore}/100` : '-'}
                 </p>

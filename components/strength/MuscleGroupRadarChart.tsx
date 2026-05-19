@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import {
   RadarChart,
   Radar,
@@ -9,7 +10,11 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import { CANONICAL_MUSCLE_GROUPS, type CanonicalMuscleGroup } from '@/lib/muscle-group-normalizer'
+import {
+  CANONICAL_MUSCLE_GROUPS,
+  getMuscleGroupLabel,
+  type CanonicalMuscleGroup,
+} from '@/lib/muscle-group-normalizer'
 
 interface MuscleGroupSummary {
   muscleGroups: Record<CanonicalMuscleGroup, { volume: number; sets: number }>
@@ -22,11 +27,15 @@ interface MuscleGroupRadarChartProps {
 }
 
 export function MuscleGroupRadarChart({ summary }: MuscleGroupRadarChartProps) {
+  const locale = useLocale()
+  const numberLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const setLabel = locale === 'sv' ? 'set' : 'sets'
   const data = CANONICAL_MUSCLE_GROUPS.filter((g) => g !== 'Helkropp').map((group) => {
     const groupData = summary.muscleGroups[group]
     const pct = summary.totalVolume > 0 ? (groupData.volume / summary.totalVolume) * 100 : 0
     return {
       group,
+      groupLabel: getMuscleGroupLabel(group, locale),
       volume: Math.round(pct * 10) / 10,
       rawVolume: Math.round(groupData.volume),
       sets: groupData.sets,
@@ -39,7 +48,7 @@ export function MuscleGroupRadarChart({ summary }: MuscleGroupRadarChartProps) {
         <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
           <PolarGrid stroke="hsl(var(--border))" />
           <PolarAngleAxis
-            dataKey="group"
+            dataKey="groupLabel"
             tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
           />
           <PolarRadiusAxis
@@ -53,11 +62,11 @@ export function MuscleGroupRadarChart({ summary }: MuscleGroupRadarChartProps) {
               const d = payload[0].payload
               return (
                 <div className="bg-popover border rounded-lg p-2 shadow-md text-sm">
-                  <p className="font-medium">{d.group}</p>
+                  <p className="font-medium">{d.groupLabel}</p>
                   <p className="text-muted-foreground">
-                    {d.rawVolume.toLocaleString('sv-SE')} kg ({d.volume}%)
+                    {d.rawVolume.toLocaleString(numberLocale)} kg ({d.volume}%)
                   </p>
-                  <p className="text-muted-foreground">{d.sets} set</p>
+                  <p className="text-muted-foreground">{d.sets} {setLabel}</p>
                 </div>
               )
             }}
@@ -78,8 +87,8 @@ export function MuscleGroupRadarChart({ summary }: MuscleGroupRadarChartProps) {
           .sort((a, b) => b.rawVolume - a.rawVolume)
           .map((d) => (
             <div key={d.group} className="flex justify-between">
-              <span className="text-muted-foreground">{d.group}</span>
-              <span className="font-medium">{d.rawVolume.toLocaleString('sv-SE')} kg</span>
+              <span className="text-muted-foreground">{d.groupLabel}</span>
+              <span className="font-medium">{d.rawVolume.toLocaleString(numberLocale)} kg</span>
             </div>
           ))}
       </div>

@@ -30,6 +30,41 @@ export const MUSCLE_GROUP_COLORS: Record<CanonicalMuscleGroup, string> = {
   Helkropp: '#6b7280',   // gray-500
 }
 
+const MUSCLE_GROUP_LABELS: Record<'en' | 'sv', Record<CanonicalMuscleGroup, string>> = {
+  en: {
+    Bröst: 'Chest',
+    Rygg: 'Back',
+    Axlar: 'Shoulders',
+    Biceps: 'Biceps',
+    Triceps: 'Triceps',
+    Core: 'Core',
+    Quadriceps: 'Quadriceps',
+    Hamstrings: 'Hamstrings',
+    Gluteus: 'Glutes',
+    Vader: 'Calves',
+    Underarmar: 'Forearms',
+    Helkropp: 'Full body',
+  },
+  sv: {
+    Bröst: 'Bröst',
+    Rygg: 'Rygg',
+    Axlar: 'Axlar',
+    Biceps: 'Biceps',
+    Triceps: 'Triceps',
+    Core: 'Core',
+    Quadriceps: 'Quadriceps',
+    Hamstrings: 'Hamstrings',
+    Gluteus: 'Gluteus',
+    Vader: 'Vader',
+    Underarmar: 'Underarmar',
+    Helkropp: 'Helkropp',
+  },
+}
+
+export function getMuscleGroupLabel(group: CanonicalMuscleGroup, locale: string): string {
+  return MUSCLE_GROUP_LABELS[locale === 'sv' ? 'sv' : 'en'][group]
+}
+
 const NORMALIZATION_MAP: Record<string, CanonicalMuscleGroup> = {
   // Bröst (Chest)
   'bröst': 'Bröst',
