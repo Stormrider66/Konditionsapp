@@ -23,6 +23,7 @@ import { DefaultChatTransport } from 'ai'
 import { useToast } from '@/hooks/use-toast'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useLocale } from '@/i18n/client'
 import { ChatMessage } from './ChatMessage'
 import { resolveModelForClient } from '@/types/ai-models'
 
@@ -48,18 +49,66 @@ interface AIContextButtonProps {
   buttonText?: string
 }
 
-const DEFAULT_ATHLETE_ACTIONS: QuickAction[] = [
-  { label: 'Analysera träningshistorik', prompt: 'Analysera denna atletes träningshistorik och ge rekommendationer' },
-  { label: 'Skapa träningsprogram', prompt: 'Skapa ett anpassat träningsprogram för denna atlet baserat på deras profil' },
-  { label: 'Utvärdera testresultat', prompt: 'Analysera de senaste testresultaten och förklara vad de betyder' },
-  { label: 'Föreslå förbättringar', prompt: 'Föreslå specifika förbättringsområden baserat på atletens data' },
-]
+type AppLocale = 'en' | 'sv'
 
-const DEFAULT_TEST_ACTIONS: QuickAction[] = [
-  { label: 'Förklara testresultat', prompt: 'Förklara dessa testresultat och vad de betyder för träningen' },
-  { label: 'Jämför med tidigare', prompt: 'Jämför dessa resultat med tidigare tester och identifiera trender' },
-  { label: 'Rekommendera träningszoner', prompt: 'Baserat på testresultaten, rekommendera optimala träningszoner' },
-]
+const COPY = {
+  en: {
+    sendErrorTitle: 'Could not send message',
+    askAi: 'Ask AI',
+    askAiAbout: (name: string) => `Ask AI about ${name}`,
+    assistantTitle: 'AI assistant',
+    assistantDescription: 'Ask questions or get AI-assisted analysis',
+    emptyState: 'Write a message to begin',
+    inputPlaceholder: 'Write a message...',
+    quickActions: 'Quick actions',
+    freeform: 'Ask your own question...',
+    athleteActions: [
+      { label: 'Analyze training history', prompt: 'Analyze this athlete\'s training history and give recommendations' },
+      { label: 'Create training program', prompt: 'Create a personalized training program for this athlete based on their profile' },
+      { label: 'Evaluate test results', prompt: 'Analyze the latest test results and explain what they mean' },
+      { label: 'Suggest improvements', prompt: 'Suggest specific improvement areas based on the athlete\'s data' },
+    ],
+    testActions: [
+      { label: 'Explain test results', prompt: 'Explain these test results and what they mean for training' },
+      { label: 'Compare with previous', prompt: 'Compare these results with previous tests and identify trends' },
+      { label: 'Recommend training zones', prompt: 'Based on the test results, recommend optimal training zones' },
+    ],
+  },
+  sv: {
+    sendErrorTitle: 'Kunde inte skicka meddelande',
+    askAi: 'Fråga AI',
+    askAiAbout: (name: string) => `Fråga AI om ${name}`,
+    assistantTitle: 'AI-assistent',
+    assistantDescription: 'Ställ frågor eller få AI-assisterade analyser',
+    emptyState: 'Skriv ett meddelande för att börja',
+    inputPlaceholder: 'Skriv ett meddelande...',
+    quickActions: 'Snabbåtgärder',
+    freeform: 'Ställ egen fråga...',
+    athleteActions: [
+      { label: 'Analysera träningshistorik', prompt: 'Analysera denna atletes träningshistorik och ge rekommendationer' },
+      { label: 'Skapa träningsprogram', prompt: 'Skapa ett anpassat träningsprogram för denna atlet baserat på deras profil' },
+      { label: 'Utvärdera testresultat', prompt: 'Analysera de senaste testresultaten och förklara vad de betyder' },
+      { label: 'Föreslå förbättringar', prompt: 'Föreslå specifika förbättringsområden baserat på atletens data' },
+    ],
+    testActions: [
+      { label: 'Förklara testresultat', prompt: 'Förklara dessa testresultat och vad de betyder för träningen' },
+      { label: 'Jämför med tidigare', prompt: 'Jämför dessa resultat med tidigare tester och identifiera trender' },
+      { label: 'Rekommendera träningszoner', prompt: 'Baserat på testresultaten, rekommendera optimala träningszoner' },
+    ],
+  },
+} satisfies Record<AppLocale, {
+  sendErrorTitle: string
+  askAi: string
+  askAiAbout: (name: string) => string
+  assistantTitle: string
+  assistantDescription: string
+  emptyState: string
+  inputPlaceholder: string
+  quickActions: string
+  freeform: string
+  athleteActions: QuickAction[]
+  testActions: QuickAction[]
+}>
 
 export function AIContextButton({
   athleteId,
@@ -71,6 +120,8 @@ export function AIContextButton({
   buttonText,
 }: AIContextButtonProps) {
   const { toast } = useToast()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [dialogOpen, setDialogOpen] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -98,7 +149,7 @@ export function AIContextButton({
   const MODEL = modelConfig?.model || 'gemini-3.5-flash'
   const PROVIDER = modelConfig?.provider || 'GOOGLE'
 
-  const actions = quickActions || (athleteId ? DEFAULT_ATHLETE_ACTIONS : DEFAULT_TEST_ACTIONS)
+  const actions = quickActions || (athleteId ? copy.athleteActions : copy.testActions)
 
   // Manual input state (AI SDK 5 no longer manages input state)
   const [input, setInput] = useState('')
@@ -116,7 +167,7 @@ export function AIContextButton({
     }),
     onError: (error) => {
       toast({
-        title: 'Kunde inte skicka meddelande',
+        title: copy.sendErrorTitle,
         description: error.message,
         variant: 'destructive',
       })
@@ -155,7 +206,7 @@ export function AIContextButton({
     }
 
     // Send immediately with fresh conversation ID (don't wait for React state)
-    sendMessage(
+    void sendMessage(
       { text: prompt },
       {
         body: {
@@ -211,7 +262,7 @@ export function AIContextButton({
 
     const messageContent = input.trim()
     setInput('') // Clear input
-    sendMessage(
+    void sendMessage(
       { text: messageContent },
       {
         body: {
@@ -229,11 +280,11 @@ export function AIContextButton({
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e)
+      void handleSubmit(e)
     }
   }
 
-  const displayText = buttonText || (athleteName ? `Fråga AI om ${athleteName}` : 'Fråga AI')
+  const displayText = buttonText || (athleteName ? copy.askAiAbout(athleteName) : copy.askAi)
 
   if (!showDropdown) {
     return (
@@ -254,7 +305,7 @@ export function AIContextButton({
           <DialogHeader className="p-6 pb-0">
             <DialogTitle className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
-              AI-assistent
+              {copy.assistantTitle}
               {athleteName && (
                 <span className="text-sm font-normal text-muted-foreground">
                   · {athleteName}
@@ -262,7 +313,7 @@ export function AIContextButton({
               )}
             </DialogTitle>
             <DialogDescription>
-              Ställ frågor eller få AI-assisterade analyser
+              {copy.assistantDescription}
             </DialogDescription>
           </DialogHeader>
 
@@ -272,7 +323,7 @@ export function AIContextButton({
               <div className="flex flex-col items-center justify-center h-full py-8 text-center">
                 <Sparkles className="h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground">
-                  Skriv ett meddelande för att börja
+                  {copy.emptyState}
                 </p>
               </div>
             ) : (
@@ -321,7 +372,7 @@ export function AIContextButton({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Skriv ett meddelande..."
+                placeholder={copy.inputPlaceholder}
                 className="min-h-[44px] max-h-[120px] resize-none"
                 rows={1}
               />
@@ -350,7 +401,7 @@ export function AIContextButton({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
-          <DropdownMenuLabel>Snabbåtgärder</DropdownMenuLabel>
+          <DropdownMenuLabel>{copy.quickActions}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {actions.map((action, index) => (
             <DropdownMenuItem
@@ -364,7 +415,7 @@ export function AIContextButton({
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleOpenFreeform} className="cursor-pointer">
             <Sparkles className="h-4 w-4 mr-2" />
-            Ställ egen fråga...
+            {copy.freeform}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
