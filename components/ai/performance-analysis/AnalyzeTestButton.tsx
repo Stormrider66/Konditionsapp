@@ -7,6 +7,7 @@
  */
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -59,6 +60,8 @@ export function AnalyzeTestButton({
   previousTestId,
   className,
 }: AnalyzeTestButtonProps) {
+  const locale = useLocale()
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [isLoading, setIsLoading] = useState(false)
   const [analysisType, setAnalysisType] = useState<'single' | 'compare' | 'trends' | null>(null)
   const [result, setResult] = useState<PerformanceAnalysisResult | TestComparisonResult | null>(null)
@@ -119,7 +122,7 @@ export function AnalyzeTestButton({
       const data = await response.json()
       setResult(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Ett fel uppstod'
+      const message = err instanceof Error ? err.message : t('Ett fel uppstod', 'Something went wrong')
       if (isAiAllowanceExhaustedError(err)) {
         showAiAllowanceError(err)
       } else {
@@ -137,25 +140,25 @@ export function AnalyzeTestButton({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className={className}>
             <Brain className="h-4 w-4 mr-2" />
-            AI-analys
+            {t('AI-analys', 'AI analysis')}
             <ChevronDown className="h-4 w-4 ml-2" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => handleAnalyze('single')}>
             <Sparkles className="h-4 w-4 mr-2" />
-            Analysera detta test
+            {t('Analysera detta test', 'Analyze this test')}
           </DropdownMenuItem>
           {previousTestId && (
             <DropdownMenuItem onClick={() => handleAnalyze('compare')}>
               <GitCompare className="h-4 w-4 mr-2" />
-              Jämför med föregående test
+              {t('Jämför med föregående test', 'Compare with previous test')}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => handleAnalyze('trends')}>
             <TrendingUp className="h-4 w-4 mr-2" />
-            Långsiktig trendanalys
+            {t('Långsiktig trendanalys', 'Long-term trend analysis')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -164,12 +167,15 @@ export function AnalyzeTestButton({
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {analysisType === 'single' && 'Testanalys'}
-              {analysisType === 'compare' && 'Testjämförelse'}
-              {analysisType === 'trends' && 'Trendanalys'}
+              {analysisType === 'single' && t('Testanalys', 'Test analysis')}
+              {analysisType === 'compare' && t('Testjämförelse', 'Test comparison')}
+              {analysisType === 'trends' && t('Trendanalys', 'Trend analysis')}
             </DialogTitle>
             <DialogDescription>
-              AI-genererad analys baserad på testdata och träningshistorik
+              {t(
+                'AI-genererad analys baserad på testdata och träningshistorik',
+                'AI-generated analysis based on test data and training history'
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -177,9 +183,9 @@ export function AnalyzeTestButton({
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               <div className="text-center">
-                <p className="font-medium">Analyserar data...</p>
+                <p className="font-medium">{t('Analyserar data...', 'Analyzing data...')}</p>
                 <p className="text-sm text-muted-foreground">
-                  Detta kan ta upp till 30 sekunder
+                  {t('Detta kan ta upp till 30 sekunder', 'This can take up to 30 seconds')}
                 </p>
               </div>
             </div>
@@ -188,7 +194,7 @@ export function AnalyzeTestButton({
           {error && !isLoading && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Analysfel</AlertTitle>
+              <AlertTitle>{t('Analysfel', 'Analysis error')}</AlertTitle>
               <AlertDescription className="space-y-3">
                 <p>{error}</p>
                 <AiAllowanceBlockedAction action={aiAllowanceAction} tone="red" />
