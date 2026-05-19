@@ -76,7 +76,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
 
   if (programs.length === 0) {
     return (
-      <GlassCard className="text-center py-12">
+      <GlassCard className="text-center py-12" glow="blue">
         <GlassCardContent>
           <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2 dark:text-white">Inga program än</h3>
@@ -147,7 +147,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
       </div>
 
       {filteredPrograms.length === 0 && (
-        <GlassCard className="text-center py-12">
+        <GlassCard className="text-center py-12" glow="blue">
           <GlassCardContent>
             <Filter className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2 dark:text-white">Inga matchande program</h3>
@@ -213,7 +213,7 @@ function ProgramCard({
   }
 
   return (
-    <GlassCard className="hover:shadow-lg transition-shadow h-full relative group">
+    <GlassCard className="hover:shadow-lg transition-shadow h-full relative group" glow={isActive ? "emerald" : "blue"}>
       {/* Delete button - positioned at top-right, left of "Aktiv" badge */}
       <div className="absolute top-3 right-20 z-20">
         <AlertDialog>

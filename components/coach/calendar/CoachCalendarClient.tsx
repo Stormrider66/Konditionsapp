@@ -274,7 +274,7 @@ export function CoachCalendarClient({
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard>
+        <GlassCard glow="blue">
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -286,7 +286,7 @@ export function CoachCalendarClient({
           </GlassCardContent>
         </GlassCard>
 
-        <GlassCard>
+        <GlassCard glow="emerald">
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -300,7 +300,7 @@ export function CoachCalendarClient({
           </GlassCardContent>
         </GlassCard>
 
-        <GlassCard>
+        <GlassCard glow="purple">
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -312,7 +312,7 @@ export function CoachCalendarClient({
           </GlassCardContent>
         </GlassCard>
 
-        <GlassCard>
+        <GlassCard glow="amber">
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -327,7 +327,7 @@ export function CoachCalendarClient({
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Today's Workouts */}
-        <GlassCard className="lg:col-span-1">
+        <GlassCard className="lg:col-span-1" glow="amber">
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-500" />
@@ -348,7 +348,7 @@ export function CoachCalendarClient({
                     className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div className={cn(
-                      'w-8 h-8 rounded-lg flex items-center justify-center',
+                       'w-8 h-8 rounded-lg flex items-center justify-center',
                       workout.completed
                         ? 'bg-green-500/20 text-green-500'
                         : 'bg-muted text-muted-foreground'
@@ -378,7 +378,7 @@ export function CoachCalendarClient({
         </GlassCard>
 
         {/* Upcoming Events */}
-        <GlassCard className="lg:col-span-2">
+        <GlassCard className="lg:col-span-2" glow="blue">
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-blue-500" />
@@ -436,7 +436,7 @@ export function CoachCalendarClient({
       </div>
 
       {/* Athlete Quick Access */}
-      <GlassCard>
+      <GlassCard glow="purple">
         <GlassCardHeader>
           <div className="flex items-center justify-between">
             <GlassCardTitle className="flex items-center gap-2">

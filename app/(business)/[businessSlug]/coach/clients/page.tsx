@@ -258,28 +258,28 @@ export default function BusinessClientsPage() {
 
       {!loading && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-          <GlassCard>
+          <GlassCard glow="blue">
             <GlassCardContent className="p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('summary.visible')}</p>
               <p className="text-2xl font-semibold text-slate-900 dark:text-white mt-1">{filteredClients.length}</p>
               <p className="text-xs text-muted-foreground mt-1">{t('summary.visibleDescription')}</p>
             </GlassCardContent>
           </GlassCard>
-          <GlassCard>
+          <GlassCard glow="emerald">
             <GlassCardContent className="p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('summary.ready')}</p>
               <p className="text-2xl font-semibold text-emerald-700 dark:text-emerald-300 mt-1">{visibleReadyClients}</p>
               <p className="text-xs text-muted-foreground mt-1">{t('summary.readyDescription')}</p>
             </GlassCardContent>
           </GlassCard>
-          <GlassCard>
+          <GlassCard glow="amber">
             <GlassCardContent className="p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('summary.missingAccount')}</p>
               <p className="text-2xl font-semibold text-amber-700 dark:text-amber-300 mt-1">{visibleMissingAccountClients}</p>
               <p className="text-xs text-muted-foreground mt-1">{t('summary.missingAccountDescription')}</p>
             </GlassCardContent>
           </GlassCard>
-          <GlassCard>
+          <GlassCard glow="blue">
             <GlassCardContent className="p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('summary.missingContact')}</p>
               <p className="text-2xl font-semibold text-blue-700 dark:text-blue-300 mt-1">{visibleMissingContactClients}</p>
@@ -289,7 +289,7 @@ export default function BusinessClientsPage() {
         </div>
       )}
 
-      <GlassCard>
+      <GlassCard glow="blue">
         <GlassCardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -694,7 +694,7 @@ export default function BusinessClientsPage() {
         </GlassCardContent>
       </GlassCard>
 
-      <GlassCard className="mt-6 bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30">
+      <GlassCard className="mt-6 bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30" glow="blue">
         <GlassCardContent className="p-4">
           <p className="text-sm text-blue-800 dark:text-blue-300">
             <strong>{t('tips.prefix')}</strong> {t('tips.text')}
