@@ -17,6 +17,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
 type AcwrZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL' | 'UNKNOWN'
+type AppLocale = 'en' | 'sv'
 
 interface MemberSummary {
   clientId: string
@@ -65,6 +66,7 @@ export async function GET(
 ) {
   try {
     const user = await requireCoach()
+    const locale = getUserLocale(user.language)
     const { id: teamId } = await params
 
     const team = await prisma.team.findFirst({
@@ -205,22 +207,22 @@ export async function GET(
     for (const m of members) {
       const reasons: string[] = []
       if (m.acwr?.zone === 'DANGER') {
-        reasons.push(`Hög skaderisk (ACWR ${m.acwr.value})`)
+        reasons.push(t(locale, `High injury risk (ACWR ${m.acwr.value})`, `Hög skaderisk (ACWR ${m.acwr.value})`))
       }
       if (m.acwr?.zone === 'CRITICAL') {
-        reasons.push(`Kritisk belastning (ACWR ${m.acwr.value})`)
+        reasons.push(t(locale, `Critical load (ACWR ${m.acwr.value})`, `Kritisk belastning (ACWR ${m.acwr.value})`))
       }
       if (m.acwr?.zone === 'DETRAINING') {
-        reasons.push('Detraining – lite belastning på sista veckorna')
+        reasons.push(t(locale, 'Detraining: low load over recent weeks', 'Detraining – lite belastning på sista veckorna'))
       }
       if (m.daysSinceLastActivity != null && m.daysSinceLastActivity >= STALE_ACTIVITY_DAYS) {
-        reasons.push(`${m.daysSinceLastActivity} dagar sedan senaste aktivitet`)
+        reasons.push(t(locale, `${m.daysSinceLastActivity} days since last activity`, `${m.daysSinceLastActivity} dagar sedan senaste aktivitet`))
       }
       if (m.daysSinceLastActivity == null) {
-        reasons.push('Ingen aktivitet senaste 30 dagarna')
+        reasons.push(t(locale, 'No activity in the last 30 days', 'Ingen aktivitet senaste 30 dagarna'))
       }
       if (m.totalPRs === 0) {
-        reasons.push('Saknar 1RM PR – % av 1RM-pass kan inte upplösas')
+        reasons.push(t(locale, 'Missing 1RM PR: % of 1RM workouts cannot be resolved', 'Saknar 1RM PR – % av 1RM-pass kan inte upplösas'))
       }
       if (reasons.length > 0) {
         needsAttention.push({ clientId: m.clientId, name: m.name, reasons })
@@ -296,6 +298,14 @@ export async function GET(
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 function emptyAggregates() {
