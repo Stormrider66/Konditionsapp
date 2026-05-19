@@ -108,8 +108,8 @@ function uniqueTextValues(values: Array<string | undefined | null>) {
 function getMappedLabel<T extends Record<string, string>>(
   value: string | null | undefined,
   map: T,
-  fallback: keyof T
-) {
+  fallback: string
+): string {
   if (!value) return fallback
   return map[value] ?? fallback
 }
@@ -153,18 +153,21 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
   }
 
   const blocks = parsePracticePlan(event.practicePlan)
-  const practiceBlocks = blocks.length
+  const fallbackPracticeBlock: PracticeBlock | null = event.description
+    ? {
+      id: 'fallback-plan',
+      type: 'tactical',
+      title: t('fallback.title'),
+      duration: 0,
+      focus: '',
+      description: event.description,
+      coachingPoints: '',
+    }
+    : null
+  const practiceBlocks: PracticeBlock[] = blocks.length
     ? blocks
-    : event.description
-      ? [{
-        id: 'fallback-plan',
-        type: 'tactical',
-        title: t('fallback.title'),
-        duration: 0,
-        focus: '',
-        description: event.description,
-        coachingPoints: '',
-      }]
+    : fallbackPracticeBlock
+      ? [fallbackPracticeBlock]
       : []
   const totalMinutes = practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
   const startTime = event.allDay ? null : formatTime(event.startDate)
