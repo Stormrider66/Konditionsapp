@@ -8,8 +8,7 @@
  */
 
 import { useMemo } from 'react'
-import { format, differenceInDays, addDays, isWithinInterval, isAfter, isBefore } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { differenceInDays, isWithinInterval, isAfter, isBefore } from 'date-fns'
 import {
   AlertCircle,
   Activity,
@@ -26,17 +25,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import {
   generateReturnProtocol,
-  getIntensityColor,
-  getIntensityLabel,
   type IllnessInfo,
   type ReturnPhase,
 } from '@/lib/calendar/illness-protocol'
 import {
   generateAltitudeCampPlan,
-  getPhaseLabel,
-  getPhaseColor,
   type AltitudeCampInfo,
+  type AdaptationPhase,
 } from '@/lib/calendar/altitude-calculator'
+import { useLocale } from '@/i18n/client'
 
 interface PostEventMonitorProps {
   eventType: 'ILLNESS' | 'ALTITUDE_CAMP'
@@ -63,15 +60,18 @@ export function PostEventMonitor({
   currentDate = new Date(),
   variant = 'default',
 }: PostEventMonitorProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+
   const monitoringData = useMemo(() => {
     if (eventType === 'ILLNESS' && eventData.illnessType) {
-      return getIllnessMonitoringData(eventData, currentDate)
+      return getIllnessMonitoringData(eventData, currentDate, appLocale)
     }
     if (eventType === 'ALTITUDE_CAMP' && eventData.altitude) {
-      return getAltitudeMonitoringData(eventData, currentDate)
+      return getAltitudeMonitoringData(eventData, currentDate, appLocale)
     }
     return null
-  }, [eventType, eventData, currentDate])
+  }, [appLocale, eventType, eventData, currentDate])
 
   if (!monitoringData) return null
 
@@ -88,7 +88,9 @@ export function PostEventMonitor({
             <div>
               <CardTitle className="text-base">{title}</CardTitle>
               <CardDescription className="text-xs">
-                {isComplete ? 'Avslutad' : `${phase.label} - Dag ${phase.day} av ${phase.total}`}
+                {isComplete
+                  ? appLocale === 'sv' ? 'Avslutad' : 'Complete'
+                  : `${phase.label} - ${appLocale === 'sv' ? 'Dag' : 'Day'} ${phase.day} ${appLocale === 'sv' ? 'av' : 'of'} ${phase.total}`}
               </CardDescription>
             </div>
           </div>
@@ -96,7 +98,7 @@ export function PostEventMonitor({
             {isComplete ? (
               <>
                 <Check className="h-3 w-3 mr-1" />
-                Klar
+                {appLocale === 'sv' ? 'Klar' : 'Done'}
               </>
             ) : (
               `${Math.round(progress)}%`
@@ -111,7 +113,9 @@ export function PostEventMonitor({
             <Progress value={progress} className="h-2" />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{phase.label}</span>
-              <span>{phase.remaining} dagar kvar</span>
+              <span>
+                {phase.remaining} {appLocale === 'sv' ? 'dagar kvar' : 'days left'}
+              </span>
             </div>
           </div>
         )}
@@ -132,7 +136,7 @@ export function PostEventMonitor({
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              Idag rekommenderas
+              {appLocale === 'sv' ? 'Idag rekommenderas' : 'Recommended today'}
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
               {recommendations.slice(0, 3).map((rec, i) => (
@@ -149,7 +153,11 @@ export function PostEventMonitor({
         {eventType === 'ILLNESS' && eventData.medicalClearance === false && !isComplete && (
           <div className="flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 p-3 text-amber-800 dark:text-amber-200">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <p className="text-xs">Läkargodkännande saknas - rådgör med läkare innan full träning</p>
+            <p className="text-xs">
+              {appLocale === 'sv'
+                ? 'Läkargodkännande saknas - rådgör med läkare innan full träning'
+                : 'Medical clearance is missing - consult a doctor before full training'}
+            </p>
           </div>
         )}
       </CardContent>
@@ -179,7 +187,8 @@ interface MonitoringData {
 
 function getIllnessMonitoringData(
   eventData: PostEventMonitorProps['eventData'],
-  currentDate: Date
+  currentDate: Date,
+  locale: 'en' | 'sv'
 ): MonitoringData | null {
   const info: IllnessInfo = {
     type: (eventData.illnessType as IllnessInfo['type']) || 'GENERAL',
@@ -208,7 +217,7 @@ function getIllnessMonitoringData(
 
   return {
     phase: {
-      label: getIntensityLabel(currentPhase.intensity),
+      label: getReturnIntensityLabel(currentPhase.intensity, locale),
       day: isComplete ? protocol.totalDays : dayOfProtocol,
       total: protocol.totalDays,
       remaining: isComplete ? 0 : protocol.totalDays - dayOfProtocol,
@@ -218,22 +227,22 @@ function getIllnessMonitoringData(
     stats: [
       {
         icon: Activity,
-        label: 'Intensitet',
+        label: locale === 'sv' ? 'Intensitet' : 'Intensity',
         value: `${currentPhase.intensityPercent}%`,
       },
       {
         icon: Clock,
         label: 'Duration',
-        value: currentPhase.durationMinutes > 0 ? `${currentPhase.durationMinutes} min` : 'Vila',
+        value: currentPhase.durationMinutes > 0 ? `${currentPhase.durationMinutes} min` : locale === 'sv' ? 'Vila' : 'Rest',
       },
       {
         icon: TrendingUp,
-        label: 'Dag',
+        label: locale === 'sv' ? 'Dag' : 'Day',
         value: `${isComplete ? protocol.totalDays : dayOfProtocol}/${protocol.totalDays}`,
       },
     ],
     isComplete,
-    title: 'Återgång efter sjukdom',
+    title: locale === 'sv' ? 'Återgång efter sjukdom' : 'Return after illness',
     icon: ThermometerSnowflake,
     color: 'border-l-red-500',
   }
@@ -241,7 +250,8 @@ function getIllnessMonitoringData(
 
 function getAltitudeMonitoringData(
   eventData: PostEventMonitorProps['eventData'],
-  currentDate: Date
+  currentDate: Date,
+  locale: 'en' | 'sv'
 ): MonitoringData | null {
   const info: AltitudeCampInfo = {
     startDate: eventData.startDate,
@@ -276,7 +286,7 @@ function getAltitudeMonitoringData(
   if (isDuringCamp) {
     const campDay = differenceInDays(currentDate, plan.camp.startDate) + 1
     const adaptation = plan.adaptationTimeline.find((a) => a.day === campDay)
-    phaseLabel = adaptation ? getPhaseLabel(adaptation.phase) : 'På läger'
+    phaseLabel = adaptation ? getAltitudePhaseLabel(adaptation.phase, locale) : locale === 'sv' ? 'På läger' : 'At camp'
     day = campDay
     total = plan.totalDays
     remaining = plan.totalDays - campDay
@@ -285,7 +295,7 @@ function getAltitudeMonitoringData(
     isComplete = false
   } else if (isInPostCamp) {
     const postDay = differenceInDays(currentDate, plan.postCampMonitoring.startDate) + 1
-    phaseLabel = 'Uppföljning'
+    phaseLabel = locale === 'sv' ? 'Uppföljning' : 'Follow-up'
     day = postDay
     total = plan.postCampMonitoring.days
     remaining = plan.postCampMonitoring.days - postDay
@@ -293,7 +303,7 @@ function getAltitudeMonitoringData(
     recommendations = plan.postCampMonitoring.recommendations.slice(0, 3)
     isComplete = false
   } else {
-    phaseLabel = 'Avslutad'
+    phaseLabel = locale === 'sv' ? 'Avslutad' : 'Complete'
     day = plan.totalDays + plan.postCampMonitoring.days
     total = day
     remaining = 0
@@ -320,12 +330,12 @@ function getAltitudeMonitoringData(
     stats: [
       {
         icon: Mountain,
-        label: 'Höjd',
+        label: locale === 'sv' ? 'Höjd' : 'Altitude',
         value: `${plan.camp.altitude}m`,
       },
       {
         icon: Activity,
-        label: 'Max intensitet',
+        label: locale === 'sv' ? 'Max intensitet' : 'Max intensity',
         value: `${adaptation.maxIntensity}%`,
       },
       {
@@ -335,7 +345,9 @@ function getAltitudeMonitoringData(
       },
     ],
     isComplete,
-    title: isDuringCamp ? 'Höjdläger' : 'Efter höjdläger',
+    title: isDuringCamp
+      ? locale === 'sv' ? 'Höjdläger' : 'Altitude camp'
+      : locale === 'sv' ? 'Efter höjdläger' : 'After altitude camp',
     icon: Mountain,
     color: 'border-l-purple-500',
   }
@@ -349,15 +361,18 @@ export function PostEventMonitorBadge({
   eventData,
   currentDate = new Date(),
 }: PostEventMonitorProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+
   const monitoringData = useMemo(() => {
     if (eventType === 'ILLNESS' && eventData.illnessType) {
-      return getIllnessMonitoringData(eventData, currentDate)
+      return getIllnessMonitoringData(eventData, currentDate, appLocale)
     }
     if (eventType === 'ALTITUDE_CAMP' && eventData.altitude) {
-      return getAltitudeMonitoringData(eventData, currentDate)
+      return getAltitudeMonitoringData(eventData, currentDate, appLocale)
     }
     return null
-  }, [eventType, eventData, currentDate])
+  }, [appLocale, eventType, eventData, currentDate])
 
   if (!monitoringData || monitoringData.isComplete) return null
 
@@ -367,11 +382,41 @@ export function PostEventMonitorBadge({
     <Badge variant="outline" className="gap-1">
       <Icon className="h-3 w-3" />
       <span>
-        Dag {monitoringData.phase.day}/{monitoringData.phase.total}
+        {appLocale === 'sv' ? 'Dag' : 'Day'} {monitoringData.phase.day}/{monitoringData.phase.total}
       </span>
       <span className="text-muted-foreground">
         ({Math.round(monitoringData.progress)}%)
       </span>
     </Badge>
   )
+}
+
+function getReturnIntensityLabel(intensity: ReturnPhase['intensity'], locale: 'en' | 'sv'): string {
+  switch (intensity) {
+    case 'NONE':
+      return locale === 'sv' ? 'Vila' : 'Rest'
+    case 'VERY_LIGHT':
+      return locale === 'sv' ? 'Mycket lätt' : 'Very light'
+    case 'LIGHT':
+      return locale === 'sv' ? 'Lätt' : 'Light'
+    case 'MODERATE':
+      return locale === 'sv' ? 'Moderat' : 'Moderate'
+    case 'NORMAL':
+      return locale === 'sv' ? 'Normal' : 'Normal'
+  }
+}
+
+function getAltitudePhaseLabel(phase: AdaptationPhase, locale: 'en' | 'sv'): string {
+  switch (phase) {
+    case 'PRE_CAMP':
+      return locale === 'sv' ? 'Före läger' : 'Before camp'
+    case 'ACUTE':
+      return locale === 'sv' ? 'Akutfas' : 'Acute phase'
+    case 'ADAPTATION':
+      return locale === 'sv' ? 'Anpassningsfas' : 'Adaptation phase'
+    case 'OPTIMAL':
+      return locale === 'sv' ? 'Optimalfas' : 'Optimal phase'
+    case 'POST_CAMP':
+      return locale === 'sv' ? 'Efter läger' : 'After camp'
+  }
 }
