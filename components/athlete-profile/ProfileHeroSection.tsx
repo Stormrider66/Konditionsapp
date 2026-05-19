@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Edit2, Activity, Zap, Heart, Timer, Trophy, RefreshCw, Pencil } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,14 +28,14 @@ interface ProfileHeroSectionProps {
 
 import {
   GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 
 export function ProfileHeroSection({ data, viewMode, variant = 'default', basePath = '' }: ProfileHeroSectionProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const isGlass = variant === 'glass'
   const isAthlete = viewMode === 'athlete'
   const client = data.identity.client!
@@ -69,13 +69,13 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
       })
       const json = await res.json()
       if (!json.success) {
-        setBirthDateError(json.error || 'Kunde inte spara')
+        setBirthDateError(json.error || t('Kunde inte spara', 'Could not save'))
         return
       }
       setShowBirthDateDialog(false)
       router.refresh()
     } catch {
-      setBirthDateError('Något gick fel')
+      setBirthDateError(t('Något gick fel', 'Something went wrong'))
     } finally {
       setBirthDateSaving(false)
     }
@@ -102,13 +102,13 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
       )
       const json = await res.json()
       if (!json.success) {
-        setBodyError(json.error || 'Kunde inte spara')
+        setBodyError(json.error || t('Kunde inte spara', 'Could not save'))
         return
       }
       setShowBodyDialog(false)
       router.refresh()
     } catch {
-      setBodyError('Något gick fel')
+      setBodyError(t('Något gick fel', 'Something went wrong'))
     } finally {
       setBodySaving(false)
     }
@@ -138,13 +138,13 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
       )
       const json = await res.json()
       if (!json.success) {
-        setPhysioError(json.error || 'Kunde inte spara')
+        setPhysioError(json.error || t('Kunde inte spara', 'Could not save'))
         return
       }
       setShowPhysioDialog(false)
       router.refresh()
     } catch {
-      setPhysioError('Något gick fel')
+      setPhysioError(t('Något gick fel', 'Something went wrong'))
     } finally {
       setPhysioSaving(false)
     }
@@ -240,7 +240,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                       )}
                     >
                       <RefreshCw className="h-3 w-3" />
-                      Byt
+                      {t('Byt', 'Change')}
                     </Button>
                   )}
                 </div>
@@ -253,7 +253,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
               isGlass ? "text-slate-600 dark:text-slate-500" : "text-gray-600"
             )}>
               <span className="inline-flex items-center gap-1">
-                <span className={cn(isGlass ? "text-blue-600 dark:text-blue-500" : "font-medium")}>{age}</span> år
+                <span className={cn(isGlass ? "text-blue-600 dark:text-blue-500" : "font-medium")}>{age}</span> {t('år', 'years')}
                 {isAthlete && (
                   <button
                     onClick={() => {
@@ -293,7 +293,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                 )}
               </span>
               <span className="opacity-20">•</span>
-              <span>{client.gender === 'MALE' ? 'Man' : 'Kvinna'}</span>
+              <span>{client.gender === 'MALE' ? t('Man', 'Male') : t('Kvinna', 'Female')}</span>
               {client.team && (
                 <>
                   <span className="opacity-20">•</span>
@@ -309,7 +309,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                   "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg transition-colors",
                   isGlass ? "bg-slate-100 border-slate-200 text-slate-500 dark:bg-white/5 dark:border-white/5 dark:text-slate-400" : ""
                 )}>
-                  {getCategoryLabel(athleteProfile.category)}
+                  {getCategoryLabel(athleteProfile.category, locale)}
                 </Badge>
               )}
               {athleteProfile?.yearsRunning && (
@@ -317,7 +317,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                   "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg transition-colors",
                   isGlass ? "bg-slate-100 border-slate-200 text-slate-500 dark:bg-white/5 dark:border-white/5 dark:text-slate-400" : ""
                 )}>
-                  {athleteProfile.yearsRunning} års erfarenhet
+                  {athleteProfile.yearsRunning} {t('års erfarenhet', 'years experience')}
                 </Badge>
               )}
             </div>
@@ -334,7 +334,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                 <Link href={`${basePath}/coach/clients/${client.id}/edit`}>
                   <Button variant="outline" size="sm">
                     <Edit2 className="w-4 h-4 mr-2" />
-                    Redigera
+                    {t('Redigera', 'Edit')}
                   </Button>
                 </Link>
               </>
@@ -352,7 +352,9 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             label="VO2max"
             value={vo2max ? `${vo2max.toFixed(1)}` : '-'}
             unit="ml/kg/min"
-            subtext={vo2maxSource === 'test' && latestTest ? `${format(new Date(latestTest.testDate), 'd MMM yyyy', { locale: sv })}` : vo2maxSource === 'manual' ? 'Manuellt' : undefined}
+            subtext={vo2maxSource === 'test' && latestTest ? `${format(new Date(latestTest.testDate), 'd MMM yyyy', { locale: dateLocale })}` : vo2maxSource === 'manual' ? t('Manuellt', 'Manual') : undefined}
+            sourceLabel={t('Källa', 'Source')}
+            statusLabel={t('Aktiv', 'Active')}
             isGlass={isGlass}
             accentColor="emerald"
             widget={<Sparkline data={vo2maxChartData} color="emerald" />}
@@ -368,18 +370,22 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             icon={Zap}
             label="VDOT"
             value={vdot ? `${vdot.toFixed(1)}` : '-'}
-            subtext={vdot ? getVdotLevel(vdot) : undefined}
+            subtext={vdot ? getVdotLevel(vdot, locale) : undefined}
+            sourceLabel={t('Källa', 'Source')}
+            statusLabel={t('Aktiv', 'Active')}
             isGlass={isGlass}
             accentColor="blue"
-            widget={<VdotProgress vdot={vdot || 0} />}
+            widget={<VdotProgress vdot={vdot || 0} locale={locale} />}
           />
 
           <MetricCard
             icon={Heart}
-            label="Max puls"
+            label={t('Max puls', 'Max HR')}
             value={maxHR ? `${maxHR}` : '-'}
             unit="bpm"
-            subtext={maxHRSource === 'manual' ? 'Manuellt' : undefined}
+            subtext={maxHRSource === 'manual' ? t('Manuellt', 'Manual') : undefined}
+            sourceLabel={t('Källa', 'Source')}
+            statusLabel={t('Aktiv', 'Active')}
             isGlass={isGlass}
             accentColor="red"
             widget={<PulseWave />}
@@ -393,9 +399,10 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
 
           <MetricCard
             icon={Timer}
-            label="Träning/v"
+            label={t('Träning/v', 'Training/w')}
             value={athleteProfile?.typicalWeeklyKm ? `${athleteProfile.typicalWeeklyKm}` : '-'}
             unit="km"
+            statusLabel={t('Aktiv', 'Active')}
             isGlass={isGlass}
             accentColor="purple"
             widget={<MiniBarChart data={loadHistory} />}
@@ -411,13 +418,13 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             {latestTest && (
               <span className="flex items-center gap-2">
                 <Activity className="h-3 w-3 text-blue-600 dark:text-blue-500" />
-                Senaste konditionstest: {format(new Date(latestTest.testDate), 'd MMMM yyyy', { locale: sv })}
+                {t('Senaste konditionstest', 'Latest fitness test')}: {format(new Date(latestTest.testDate), 'd MMMM yyyy', { locale: dateLocale })}
               </span>
             )}
             {latestRace && (
               <span className="flex items-center gap-2">
                 <Trophy className="h-3 w-3 text-yellow-600 dark:text-yellow-500" />
-                Senaste Tävling: {latestRace.raceName || latestRace.distance} ({format(new Date(latestRace.raceDate), 'd MMM yyyy', { locale: sv })})
+                {t('Senaste Tävling', 'Latest race')}: {latestRace.raceName || latestRace.distance} ({format(new Date(latestRace.raceDate), 'd MMM yyyy', { locale: dateLocale })})
               </span>
             )}
           </div>
@@ -440,11 +447,11 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
         <Dialog open={showBodyDialog} onOpenChange={setShowBodyDialog}>
           <DialogContent className="sm:max-w-[360px] text-foreground">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Uppdatera mått</DialogTitle>
+              <DialogTitle className="text-foreground">{t('Uppdatera mått', 'Update measurements')}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="height" className="text-foreground">Längd (cm)</Label>
+                <Label htmlFor="height" className="text-foreground">{t('Längd', 'Height')} (cm)</Label>
                 <Input
                   id="height"
                   type="number"
@@ -457,7 +464,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="weight" className="text-foreground">Vikt (kg)</Label>
+                <Label htmlFor="weight" className="text-foreground">{t('Vikt', 'Weight')} (kg)</Label>
                 <Input
                   id="weight"
                   type="number"
@@ -475,10 +482,10 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowBodyDialog(false)} className="text-foreground">
-                Avbryt
+                {t('Avbryt', 'Cancel')}
               </Button>
               <Button onClick={handleBodySave} disabled={bodySaving}>
-                {bodySaving ? 'Sparar...' : 'Spara'}
+                {bodySaving ? t('Sparar...', 'Saving...') : t('Spara', 'Save')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -489,11 +496,11 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
         <Dialog open={showBirthDateDialog} onOpenChange={setShowBirthDateDialog}>
           <DialogContent className="sm:max-w-[360px] text-foreground">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Uppdatera födelsedatum</DialogTitle>
+              <DialogTitle className="text-foreground">{t('Uppdatera födelsedatum', 'Update birth date')}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="birthdate" className="text-foreground">Födelsedatum</Label>
+                <Label htmlFor="birthdate" className="text-foreground">{t('Födelsedatum', 'Birth date')}</Label>
                 <Input
                   id="birthdate"
                   type="date"
@@ -508,10 +515,10 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowBirthDateDialog(false)} className="text-foreground">
-                Avbryt
+                {t('Avbryt', 'Cancel')}
               </Button>
               <Button onClick={handleBirthDateSave} disabled={birthDateSaving || !birthDateValue}>
-                {birthDateSaving ? 'Sparar...' : 'Spara'}
+                {birthDateSaving ? t('Sparar...', 'Saving...') : t('Spara', 'Save')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -522,10 +529,10 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
         <Dialog open={showPhysioDialog} onOpenChange={setShowPhysioDialog}>
           <DialogContent className="sm:max-w-[360px] text-foreground">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Uppdatera fysiologiska värden</DialogTitle>
+              <DialogTitle className="text-foreground">{t('Uppdatera fysiologiska värden', 'Update physiology values')}</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              Fyll i aktuella manuella värden när de ändras mellan konditionstester.
+              {t('Fyll i aktuella manuella värden när de ändras mellan konditionstester.', 'Enter current manual values when they change between fitness tests.')}
             </p>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -536,21 +543,21 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                   min={10}
                   max={100}
                   step={0.1}
-                  placeholder="t.ex. 52.3"
+                  placeholder={t('t.ex. 52.3', 'e.g. 52.3')}
                   value={physioVo2max ?? ''}
                   onChange={(e) => setPhysioVo2max(e.target.value ? parseFloat(e.target.value) : null)}
                   className="text-foreground"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="maxhr" className="text-foreground">Max puls (bpm)</Label>
+                <Label htmlFor="maxhr" className="text-foreground">{t('Max puls', 'Max HR')} (bpm)</Label>
                 <Input
                   id="maxhr"
                   type="number"
                   min={100}
                   max={250}
                   step={1}
-                  placeholder="t.ex. 195"
+                  placeholder={t('t.ex. 195', 'e.g. 195')}
                   value={physioMaxHR ?? ''}
                   onChange={(e) => setPhysioMaxHR(e.target.value ? parseInt(e.target.value) : null)}
                   className="text-foreground"
@@ -562,10 +569,10 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowPhysioDialog(false)} className="text-foreground">
-                Avbryt
+                {t('Avbryt', 'Cancel')}
               </Button>
               <Button onClick={handlePhysioSave} disabled={physioSaving}>
-                {physioSaving ? 'Sparar...' : 'Spara'}
+                {physioSaving ? t('Sparar...', 'Saving...') : t('Spara', 'Save')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -582,6 +589,8 @@ function MetricCard({
   value,
   unit,
   subtext,
+  sourceLabel = 'Source',
+  statusLabel = 'Active',
   isGlass = false,
   accentColor = 'blue',
   onEdit,
@@ -592,6 +601,8 @@ function MetricCard({
   value: string
   unit?: string
   subtext?: string
+  sourceLabel?: string
+  statusLabel?: string
   isGlass?: boolean
   accentColor?: 'blue' | 'emerald' | 'red' | 'purple'
   onEdit?: () => void
@@ -627,7 +638,7 @@ function MetricCard({
             accentColor === 'red' && 'bg-red-400/80 shadow-[0_0_8px_rgba(239,68,68,0.6)]',
             accentColor === 'purple' && 'bg-purple-400/80 shadow-[0_0_8px_rgba(168,85,247,0.6)]'
           )} />
-          <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Aktiv</span>
+          <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{statusLabel}</span>
         </div>
 
         {/* Right Side: Icon Badge */}
@@ -676,7 +687,7 @@ function MetricCard({
       {/* Bottom Subtext */}
       {subtext && (
         <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-auto pt-2 border-t border-slate-100/30 dark:border-white/5 w-full flex items-center justify-between">
-          <span>Källa</span>
+          <span>{sourceLabel}</span>
           <span className="text-slate-700 dark:text-slate-400 normal-case font-medium">{subtext}</span>
         </div>
       )}
@@ -713,33 +724,32 @@ function getSportBadgeColor(sport: string, isGlass: boolean = false): string {
   return colors[sport] || 'bg-gray-100 text-gray-800'
 }
 
-function getCategoryLabel(category: string): string {
-  const labels: Record<string, string> = {
-    BEGINNER: 'Nybörjare',
-    RECREATIONAL: 'Motionär',
-    ADVANCED: 'Avancerad',
-    ELITE: 'Elit',
+function getCategoryLabel(category: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      BEGINNER: 'Beginner',
+      RECREATIONAL: 'Recreational',
+      ADVANCED: 'Advanced',
+      ELITE: 'Elite',
+    },
+    sv: {
+      BEGINNER: 'Nybörjare',
+      RECREATIONAL: 'Motionär',
+      ADVANCED: 'Avancerad',
+      ELITE: 'Elit',
+    },
   }
-  return labels[category] || category
+  return labels[locale][category] || category
 }
 
-function getExperienceLabel(experience: string): string {
-  const labels: Record<string, string> = {
-    BEGINNER: 'Nybörjare',
-    INTERMEDIATE: 'Mellanstadie',
-    ADVANCED: 'Avancerad',
-    ELITE: 'Elit',
-  }
-  return labels[experience] || experience
-}
-
-function getVdotLevel(vdot: number): string {
-  if (vdot >= 70) return 'Världsklass'
-  if (vdot >= 60) return 'Elit'
-  if (vdot >= 50) return 'Avancerad'
-  if (vdot >= 40) return 'Mellanstadie'
-  if (vdot >= 30) return 'Motionär'
-  return 'Nybörjare'
+function getVdotLevel(vdot: number, locale: 'en' | 'sv'): string {
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
+  if (vdot >= 70) return t('Världsklass', 'World class')
+  if (vdot >= 60) return t('Elit', 'Elite')
+  if (vdot >= 50) return t('Avancerad', 'Advanced')
+  if (vdot >= 40) return t('Mellanstadie', 'Intermediate')
+  if (vdot >= 30) return t('Motionär', 'Recreational')
+  return t('Nybörjare', 'Beginner')
 }
 
 // Sparkline visualization for VO2max
@@ -810,13 +820,14 @@ function Sparkline({ data, color = 'emerald' }: { data: number[]; color?: string
 }
 
 // VDOT progress bar mapped relative to target bounds
-function VdotProgress({ vdot }: { vdot: number }) {
+function VdotProgress({ vdot, locale }: { vdot: number; locale: 'en' | 'sv' }) {
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const percentage = Math.min(Math.max(((vdot - 30) / (70 - 30)) * 100, 0), 100)
   return (
     <div className="w-full px-1 mt-2">
       <div className="flex justify-between text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
-        <span>Nybörjare</span>
-        <span>Elit</span>
+        <span>{t('Nybörjare', 'Beginner')}</span>
+        <span>{t('Elit', 'Elite')}</span>
       </div>
       <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden p-[1px]">
         <div 
