@@ -8,6 +8,8 @@ import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
 import { updateAthleteProfileFromRace } from '@/lib/training-engine/update-athlete-profile'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
 /** Map program goalType to VDOT distance format. Returns 'CUSTOM' for non-running. */
 function mapGoalTypeToVDOTDistance(
   goalType: string | null | undefined
@@ -29,18 +31,20 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
     const { user, clientId } = resolved
+    locale = getUserLocale(user.language)
 
     const { id } = await params
 
@@ -49,7 +53,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig åtkomst till detta träningspass',
+          error: t(locale, 'Unauthorized access to this workout', 'Obehörig åtkomst till detta träningspass'),
         },
         { status: 403 }
       )
@@ -70,6 +74,7 @@ export async function POST(
                     id: true,
                     name: true,
                     clientId: true,
+                    coachId: true,
                     weeks: {
                       select: {
                         days: {
@@ -101,7 +106,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          error: 'Träningspass hittades inte',
+          error: t(locale, 'Workout not found', 'Träningspass hittades inte'),
         },
         { status: 404 }
       )
@@ -271,8 +276,12 @@ export async function POST(
               clientId: program.clientId,
               notificationType: 'PROGRAM_COMPLETION',
               priority: 'HIGH',
-              title: `Program slutfört: ${program.name}`,
-              message: `Atleten har genomfört ${completedTotal} av ${allWorkouts.length} träningspass i programmet.${raceResultId ? ' Ett tävlingsresultat har registrerats.' : ''}`,
+              title: t(locale, `Program completed: ${program.name}`, `Program slutfört: ${program.name}`),
+              message: t(
+                locale,
+                `The athlete has completed ${completedTotal} of ${allWorkouts.length} workouts in the program.${raceResultId ? ' A race result has been registered.' : ''}`,
+                `Atleten har genomfört ${completedTotal} av ${allWorkouts.length} träningspass i programmet.${raceResultId ? ' Ett tävlingsresultat har registrerats.' : ''}`
+              ),
               icon: 'trophy',
               contextData: {
                 programId: program.id,
@@ -386,7 +395,7 @@ export async function POST(
       {
         success: true,
         data: log,
-        message: 'Träningslogg sparad',
+        message: t(locale, 'Workout log saved', 'Träningslogg sparad'),
         isProgramCompletion,
         raceResultId,
         vdotData,
@@ -398,7 +407,7 @@ export async function POST(
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att spara träningslogg',
+        error: t(locale, 'Failed to save workout log', 'Misslyckades med att spara träningslogg'),
       },
       { status: 500 }
     )
@@ -413,14 +422,16 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = getUserLocale(user?.language)
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -433,7 +444,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig åtkomst till detta träningspass',
+          error: t(locale, 'Unauthorized access to this workout', 'Obehörig åtkomst till detta träningspass'),
         },
         { status: 403 }
       )
@@ -466,11 +477,19 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att hämta träningsloggar',
+        error: t(locale, 'Failed to fetch workout logs', 'Misslyckades med att hämta träningsloggar'),
       },
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 function hasFuelingFeedback(fuelingLog: unknown): fuelingLog is {

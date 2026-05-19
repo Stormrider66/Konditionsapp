@@ -6,6 +6,8 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
+type AppLocale = 'en' | 'sv'
+
 /**
  * PUT /api/workouts/[id]/logs/[logId]
  * Update a workout log
@@ -14,20 +16,22 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = getUserLocale(user?.language)
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
 
-    const { id, logId } = await params
+    const { logId } = await params
     const hasCoachAccess = await canAccessCoachPlatform(user.id)
 
     // Verify log belongs to user
@@ -39,7 +43,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Träningslogg hittades inte',
+          error: t(locale, 'Workout log not found', 'Träningslogg hittades inte'),
         },
         { status: 404 }
       )
@@ -49,7 +53,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig åtkomst till denna träningslogg',
+          error: t(locale, 'Unauthorized access to this workout log', 'Obehörig åtkomst till denna träningslogg'),
         },
         { status: 403 }
       )
@@ -127,14 +131,14 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: log,
-      message: 'Träningslogg uppdaterad',
+      message: t(locale, 'Workout log updated', 'Träningslogg uppdaterad'),
     })
   } catch (error) {
     logger.error('Error updating workout log', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att uppdatera träningslogg',
+        error: t(locale, 'Failed to update workout log', 'Misslyckades med att uppdatera träningslogg'),
       },
       { status: 500 }
     )
@@ -173,14 +177,16 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = getUserLocale(user?.language)
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -192,13 +198,13 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Endast coaches kan lägga till feedback',
+          error: t(locale, 'Only coaches can add feedback', 'Endast coaches kan lägga till feedback'),
         },
         { status: 403 }
       )
     }
 
-    const { id, logId } = await params
+    const { logId } = await params
 
     // Verify log exists
     const existingLog = await prisma.workoutLog.findUnique({
@@ -228,7 +234,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Träningslogg hittades inte',
+          error: t(locale, 'Workout log not found', 'Träningslogg hittades inte'),
         },
         { status: 404 }
       )
@@ -240,7 +246,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Du har inte behörighet att ge feedback på denna atlets träningspass',
+          error: t(locale, "You do not have permission to give feedback on this athlete's workout", 'Du har inte behörighet att ge feedback på denna atlets träningspass'),
         },
         { status: 403 }
       )
@@ -253,7 +259,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Feedback saknas eller är ogiltig',
+          error: t(locale, 'Feedback is missing or invalid', 'Feedback saknas eller är ogiltig'),
         },
         { status: 400 }
       )
@@ -263,7 +269,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Feedback får max vara 500 tecken',
+          error: t(locale, 'Feedback can be at most 500 characters', 'Feedback får max vara 500 tecken'),
         },
         { status: 400 }
       )
@@ -281,14 +287,14 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: log,
-      message: 'Feedback sparad',
+      message: t(locale, 'Feedback saved', 'Feedback sparad'),
     })
   } catch (error) {
     logger.error('Error adding coach feedback', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att spara feedback',
+        error: t(locale, 'Failed to save feedback', 'Misslyckades med att spara feedback'),
       },
       { status: 500 }
     )
@@ -303,20 +309,22 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = getUserLocale(user?.language)
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
 
-    const { id, logId } = await params
+    const { logId } = await params
 
     // Verify log belongs to user
     const existingLog = await prisma.workoutLog.findUnique({
@@ -327,7 +335,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Träningslogg hittades inte',
+          error: t(locale, 'Workout log not found', 'Träningslogg hittades inte'),
         },
         { status: 404 }
       )
@@ -337,7 +345,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig åtkomst till denna träningslogg',
+          error: t(locale, 'Unauthorized access to this workout log', 'Obehörig åtkomst till denna träningslogg'),
         },
         { status: 403 }
       )
@@ -349,16 +357,24 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Träningslogg raderad',
+      message: t(locale, 'Workout log deleted', 'Träningslogg raderad'),
     })
   } catch (error) {
     logger.error('Error deleting workout log', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att radera träningslogg',
+        error: t(locale, 'Failed to delete workout log', 'Misslyckades med att radera träningslogg'),
       },
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
