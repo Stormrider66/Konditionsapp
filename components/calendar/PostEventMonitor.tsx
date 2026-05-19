@@ -58,7 +58,7 @@ export function PostEventMonitor({
   eventType,
   eventData,
   currentDate = new Date(),
-  variant = 'default',
+  variant: _variant = 'default',
 }: PostEventMonitorProps) {
   const locale = useLocale()
   const appLocale = locale === 'sv' ? 'sv' : 'en'
@@ -199,7 +199,7 @@ function getIllnessMonitoringData(
     symptomsBelowNeck: eventData.symptomsBelowNeck || false,
   }
 
-  const protocol = generateReturnProtocol(info)
+  const protocol = generateReturnProtocol(info, locale)
 
   // Check if we're in the monitoring period
   const isBeforeProtocol = isBefore(currentDate, protocol.startDate)
@@ -271,8 +271,6 @@ function getAltitudeMonitoringData(
     start: plan.postCampMonitoring.startDate,
     end: plan.postCampMonitoring.endDate,
   })
-  const isAfterAll = isAfter(currentDate, plan.postCampMonitoring.endDate)
-
   if (isBeforeCamp) return null
 
   let phaseLabel: string

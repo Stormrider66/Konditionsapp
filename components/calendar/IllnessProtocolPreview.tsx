@@ -33,7 +33,6 @@ import {
   generateReturnProtocol,
   getIntensityColor,
   type IllnessInfo,
-  type ReturnProtocol,
   type ReturnPhase,
 } from '@/lib/calendar/illness-protocol'
 import { useLocale } from '@/i18n/client'
@@ -74,8 +73,8 @@ export function IllnessProtocolPreview({
       symptomsBelowNeck,
     }
 
-    return generateReturnProtocol(info)
-  }, [illnessType, startDate, endDate, hadFever, feverDays, symptomsBelowNeck])
+    return generateReturnProtocol(info, appLocale)
+  }, [appLocale, illnessType, startDate, endDate, hadFever, feverDays, symptomsBelowNeck])
 
   if (!protocol) return null
 

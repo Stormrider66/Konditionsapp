@@ -12,7 +12,7 @@
  */
 
 import { addDays, differenceInDays, format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 
 export type IllnessType = 'RESPIRATORY' | 'GI' | 'FEVER' | 'GENERAL' | 'OTHER'
 export type IllnessSeverity = 'MILD' | 'MODERATE' | 'SEVERE'
@@ -48,6 +48,12 @@ export interface ReturnProtocol {
   medicalClearanceReason?: string
   generalGuidelines: string[]
   warningSignsToWatch: string[]
+}
+
+type ProtocolLocale = 'en' | 'sv'
+
+function text(locale: ProtocolLocale, en: string, svText: string): string {
+  return locale === 'sv' ? svText : en
 }
 
 /**
@@ -101,7 +107,7 @@ function getProtocolDays(info: IllnessInfo, severity: IllnessSeverity): number {
 /**
  * Generate return-to-training protocol
  */
-export function generateReturnProtocol(info: IllnessInfo): ReturnProtocol {
+export function generateReturnProtocol(info: IllnessInfo, locale: ProtocolLocale = 'en'): ReturnProtocol {
   const severity = info.severity || calculateSeverity(info)
   const protocolDays = getProtocolDays(info, severity)
 
@@ -118,16 +124,28 @@ export function generateReturnProtocol(info: IllnessInfo): ReturnProtocol {
   let medicalClearanceReason: string | undefined
   if (requiresMedicalClearance) {
     if (info.hadFever && (info.feverDays || 0) > 3) {
-      medicalClearanceReason = 'Feber i mer än 3 dagar kräver läkargodkännande innan återgång till träning'
+      medicalClearanceReason = text(
+        locale,
+        'Fever for more than 3 days requires medical clearance before returning to training',
+        'Feber i mer än 3 dagar kräver läkargodkännande innan återgång till träning'
+      )
     } else if (info.symptomsBelowNeck) {
-      medicalClearanceReason = 'Symtom under halsen (bröst, kropp) kräver läkarkontroll för att utesluta komplikationer'
+      medicalClearanceReason = text(
+        locale,
+        'Symptoms below the neck (chest, body) require medical review to rule out complications',
+        'Symtom under halsen (bröst, kropp) kräver läkarkontroll för att utesluta komplikationer'
+      )
     } else {
-      medicalClearanceReason = 'Sjukdomens svårighetsgrad kräver läkargodkännande'
+      medicalClearanceReason = text(
+        locale,
+        'The illness severity requires medical clearance',
+        'Sjukdomens svårighetsgrad kräver läkargodkännande'
+      )
     }
   }
 
   // Generate phases based on severity
-  const progressionCurve = getProgressionCurve(severity, protocolDays)
+  const progressionCurve = getProgressionCurve(severity, protocolDays, locale)
 
   for (let day = 1; day <= protocolDays; day++) {
     const phaseDate = addDays(startDate, day - 1)
@@ -140,9 +158,9 @@ export function generateReturnProtocol(info: IllnessInfo): ReturnProtocol {
       intensityPercent: progress.percent,
       durationMinutes: progress.duration,
       description: progress.description,
-      activities: getActivitiesForPhase(progress.intensity, info.type),
-      warnings: getWarningsForPhase(day, info),
-      readinessCheck: getReadinessCheck(day, severity),
+      activities: getActivitiesForPhase(progress.intensity, info.type, locale),
+      warnings: getWarningsForPhase(day, info, locale),
+      readinessCheck: getReadinessCheck(day, severity, locale),
     })
   }
 
@@ -153,8 +171,8 @@ export function generateReturnProtocol(info: IllnessInfo): ReturnProtocol {
     phases,
     requiresMedicalClearance,
     medicalClearanceReason,
-    generalGuidelines: getGeneralGuidelines(info.type),
-    warningSignsToWatch: getWarningSignsToWatch(info.type),
+    generalGuidelines: getGeneralGuidelines(info.type, locale),
+    warningSignsToWatch: getWarningSignsToWatch(info.type, locale),
   }
 }
 
@@ -168,45 +186,45 @@ interface ProgressionStep {
 /**
  * Get progression curve based on severity
  */
-function getProgressionCurve(severity: IllnessSeverity, totalDays: number): ProgressionStep[] {
+function getProgressionCurve(severity: IllnessSeverity, totalDays: number, locale: ProtocolLocale): ProgressionStep[] {
   const steps: ProgressionStep[] = []
 
   switch (severity) {
     case 'MILD':
       // 4-day progression: 25% → 50% → 75% → 100%
       steps.push(
-        { intensity: 'VERY_LIGHT', percent: 25, duration: 20, description: 'Mycket lätt aktivitet - promenad' },
-        { intensity: 'LIGHT', percent: 50, duration: 30, description: 'Lätt aerob träning' },
-        { intensity: 'MODERATE', percent: 75, duration: 40, description: 'Moderat träning' },
-        { intensity: 'NORMAL', percent: 100, duration: 60, description: 'Normal träning' }
+        { intensity: 'VERY_LIGHT', percent: 25, duration: 20, description: text(locale, 'Very light activity - walking', 'Mycket lätt aktivitet - promenad') },
+        { intensity: 'LIGHT', percent: 50, duration: 30, description: text(locale, 'Light aerobic training', 'Lätt aerob träning') },
+        { intensity: 'MODERATE', percent: 75, duration: 40, description: text(locale, 'Moderate training', 'Moderat träning') },
+        { intensity: 'NORMAL', percent: 100, duration: 60, description: text(locale, 'Normal training', 'Normal träning') }
       )
       break
 
     case 'MODERATE':
       // 6-day progression with slower start
       steps.push(
-        { intensity: 'NONE', percent: 0, duration: 0, description: 'Fullständig vila' },
-        { intensity: 'VERY_LIGHT', percent: 20, duration: 15, description: 'Mycket lätt promenad' },
-        { intensity: 'VERY_LIGHT', percent: 30, duration: 20, description: 'Lätt promenad' },
-        { intensity: 'LIGHT', percent: 50, duration: 30, description: 'Lätt aerob aktivitet' },
-        { intensity: 'MODERATE', percent: 70, duration: 45, description: 'Moderat träning' },
-        { intensity: 'NORMAL', percent: 100, duration: 60, description: 'Normal träning' }
+        { intensity: 'NONE', percent: 0, duration: 0, description: text(locale, 'Complete rest', 'Fullständig vila') },
+        { intensity: 'VERY_LIGHT', percent: 20, duration: 15, description: text(locale, 'Very light walk', 'Mycket lätt promenad') },
+        { intensity: 'VERY_LIGHT', percent: 30, duration: 20, description: text(locale, 'Light walk', 'Lätt promenad') },
+        { intensity: 'LIGHT', percent: 50, duration: 30, description: text(locale, 'Light aerobic activity', 'Lätt aerob aktivitet') },
+        { intensity: 'MODERATE', percent: 70, duration: 45, description: text(locale, 'Moderate training', 'Moderat träning') },
+        { intensity: 'NORMAL', percent: 100, duration: 60, description: text(locale, 'Normal training', 'Normal träning') }
       )
       break
 
     case 'SEVERE':
       // 10-day progression with extended rest
       steps.push(
-        { intensity: 'NONE', percent: 0, duration: 0, description: 'Fullständig vila - endast daglig aktivitet' },
-        { intensity: 'NONE', percent: 0, duration: 0, description: 'Fortsatt vila' },
-        { intensity: 'VERY_LIGHT', percent: 10, duration: 10, description: 'Mycket kort promenad' },
-        { intensity: 'VERY_LIGHT', percent: 20, duration: 15, description: 'Lätt promenad' },
-        { intensity: 'VERY_LIGHT', percent: 30, duration: 20, description: 'Längre promenad' },
-        { intensity: 'LIGHT', percent: 40, duration: 25, description: 'Lätt aerob aktivitet' },
-        { intensity: 'LIGHT', percent: 50, duration: 30, description: 'Moderat promenad/cykling' },
-        { intensity: 'MODERATE', percent: 60, duration: 40, description: 'Lätt löpning/cykling' },
-        { intensity: 'MODERATE', percent: 75, duration: 50, description: 'Moderat träning' },
-        { intensity: 'NORMAL', percent: 100, duration: 60, description: 'Normal träning' }
+        { intensity: 'NONE', percent: 0, duration: 0, description: text(locale, 'Complete rest - daily activity only', 'Fullständig vila - endast daglig aktivitet') },
+        { intensity: 'NONE', percent: 0, duration: 0, description: text(locale, 'Continued rest', 'Fortsatt vila') },
+        { intensity: 'VERY_LIGHT', percent: 10, duration: 10, description: text(locale, 'Very short walk', 'Mycket kort promenad') },
+        { intensity: 'VERY_LIGHT', percent: 20, duration: 15, description: text(locale, 'Light walk', 'Lätt promenad') },
+        { intensity: 'VERY_LIGHT', percent: 30, duration: 20, description: text(locale, 'Longer walk', 'Längre promenad') },
+        { intensity: 'LIGHT', percent: 40, duration: 25, description: text(locale, 'Light aerobic activity', 'Lätt aerob aktivitet') },
+        { intensity: 'LIGHT', percent: 50, duration: 30, description: text(locale, 'Moderate walking/cycling', 'Moderat promenad/cykling') },
+        { intensity: 'MODERATE', percent: 60, duration: 40, description: text(locale, 'Light running/cycling', 'Lätt löpning/cykling') },
+        { intensity: 'MODERATE', percent: 75, duration: 50, description: text(locale, 'Moderate training', 'Moderat träning') },
+        { intensity: 'NORMAL', percent: 100, duration: 60, description: text(locale, 'Normal training', 'Normal träning') }
       )
       break
   }
@@ -214,7 +232,7 @@ function getProgressionCurve(severity: IllnessSeverity, totalDays: number): Prog
   // Pad or trim to match totalDays
   while (steps.length < totalDays) {
     // Add rest days at the beginning for longer protocols
-    steps.unshift({ intensity: 'NONE', percent: 0, duration: 0, description: 'Vila' })
+    steps.unshift({ intensity: 'NONE', percent: 0, duration: 0, description: text(locale, 'Rest', 'Vila') })
   }
   while (steps.length > totalDays) {
     steps.shift()
@@ -226,40 +244,46 @@ function getProgressionCurve(severity: IllnessSeverity, totalDays: number): Prog
 /**
  * Get appropriate activities for each phase
  */
-function getActivitiesForPhase(intensity: ReturnPhase['intensity'], illnessType: IllnessType): string[] {
+function getActivitiesForPhase(intensity: ReturnPhase['intensity'], illnessType: IllnessType, locale: ProtocolLocale): string[] {
   switch (intensity) {
     case 'NONE':
-      return ['Vila', 'Lätt stretching om det känns bra', 'Dagliga aktiviteter']
+      return [
+        text(locale, 'Rest', 'Vila'),
+        text(locale, 'Light stretching if it feels good', 'Lätt stretching om det känns bra'),
+        text(locale, 'Daily activities', 'Dagliga aktiviteter'),
+      ]
 
     case 'VERY_LIGHT':
       return [
-        'Promenad i lugnt tempo',
-        'Lätt cykling (stationär)',
+        text(locale, 'Easy-paced walk', 'Promenad i lugnt tempo'),
+        text(locale, 'Light cycling (stationary)', 'Lätt cykling (stationär)'),
         'Yoga/stretching',
-        illnessType === 'GI' ? 'Se till att dricka ordentligt' : 'Lätt rörlighet',
+        illnessType === 'GI'
+          ? text(locale, 'Make sure to hydrate well', 'Se till att dricka ordentligt')
+          : text(locale, 'Light mobility', 'Lätt rörlighet'),
       ].filter(Boolean)
 
     case 'LIGHT':
       return [
-        'Lätt jogging 10-15 min',
-        'Cykling i låg puls',
-        'Simning i lugnt tempo',
-        'Lätt styrketräning (50% av normal belastning)',
+        text(locale, 'Light jogging 10-15 min', 'Lätt jogging 10-15 min'),
+        text(locale, 'Low heart-rate cycling', 'Cykling i låg puls'),
+        text(locale, 'Easy-paced swimming', 'Simning i lugnt tempo'),
+        text(locale, 'Light strength training (50% of normal load)', 'Lätt styrketräning (50% av normal belastning)'),
       ]
 
     case 'MODERATE':
       return [
-        'Moderat löpning',
-        'Intervalliknande pass med låg intensitet',
-        'Normal styrketräning med reducerad volym',
-        'Sport-specifik träning i lugnt tempo',
+        text(locale, 'Moderate running', 'Moderat löpning'),
+        text(locale, 'Interval-like session at low intensity', 'Intervalliknande pass med låg intensitet'),
+        text(locale, 'Normal strength training with reduced volume', 'Normal styrketräning med reducerad volym'),
+        text(locale, 'Sport-specific training at an easy pace', 'Sport-specifik träning i lugnt tempo'),
       ]
 
     case 'NORMAL':
       return [
-        'Normal träning enligt program',
-        'Lyssna på kroppen',
-        'Var beredd att backa om tröttheten ökar',
+        text(locale, 'Normal training according to plan', 'Normal träning enligt program'),
+        text(locale, 'Listen to your body', 'Lyssna på kroppen'),
+        text(locale, 'Be ready to step back if fatigue increases', 'Var beredd att backa om tröttheten ökar'),
       ]
   }
 }
@@ -267,27 +291,27 @@ function getActivitiesForPhase(intensity: ReturnPhase['intensity'], illnessType:
 /**
  * Get warnings for specific phase
  */
-function getWarningsForPhase(day: number, info: IllnessInfo): string[] {
+function getWarningsForPhase(day: number, info: IllnessInfo, locale: ProtocolLocale): string[] {
   const warnings: string[] = []
 
   if (day <= 2) {
-    warnings.push('Avbryt omedelbart vid yrsel, illamående eller andningsbesvär')
+    warnings.push(text(locale, 'Stop immediately if you feel dizzy, nauseous, or short of breath', 'Avbryt omedelbart vid yrsel, illamående eller andningsbesvär'))
     if (info.hadFever) {
-      warnings.push('Kontrollera temperatur före aktivitet')
+      warnings.push(text(locale, 'Check temperature before activity', 'Kontrollera temperatur före aktivitet'))
     }
   }
 
   if (day <= 4) {
-    warnings.push('Håll intensiteten lägre än planerat om du känner dig trött')
+    warnings.push(text(locale, 'Keep intensity lower than planned if you feel tired', 'Håll intensiteten lägre än planerat om du känner dig trött'))
   }
 
   if (info.type === 'RESPIRATORY') {
-    warnings.push('Undvik träning i kall luft de första dagarna')
+    warnings.push(text(locale, 'Avoid training in cold air for the first few days', 'Undvik träning i kall luft de första dagarna'))
   }
 
   if (info.type === 'GI') {
     if (day <= 3) {
-      warnings.push('Prioritera vätskeintag - minst 2-3 liter per dag')
+      warnings.push(text(locale, 'Prioritize fluid intake - at least 2-3 liters per day', 'Prioritera vätskeintag - minst 2-3 liter per dag'))
     }
   }
 
@@ -297,55 +321,55 @@ function getWarningsForPhase(day: number, info: IllnessInfo): string[] {
 /**
  * Get readiness check question for the day
  */
-function getReadinessCheck(day: number, severity: IllnessSeverity): string {
+function getReadinessCheck(day: number, severity: IllnessSeverity, locale: ProtocolLocale): string {
   if (day === 1) {
-    return 'Har du varit feberfri i minst 24 timmar utan febernedsättande medicin?'
+    return text(locale, 'Have you been fever-free for at least 24 hours without fever-reducing medication?', 'Har du varit feberfri i minst 24 timmar utan febernedsättande medicin?')
   }
 
   if (day <= 3) {
-    return 'Känner du dig utvilad efter gårdagens aktivitet?'
+    return text(locale, 'Do you feel recovered after yesterday’s activity?', 'Känner du dig utvilad efter gårdagens aktivitet?')
   }
 
   if (severity === 'SEVERE' && day <= 5) {
-    return 'Har du kunnat sova normalt och vaknat utvilad?'
+    return text(locale, 'Have you been able to sleep normally and wake up rested?', 'Har du kunnat sova normalt och vaknat utvilad?')
   }
 
-  return 'Hur känns energinivån idag? (Fortsätt bara om >70%)'
+  return text(locale, 'How is your energy level today? (Only continue if >70%)', 'Hur känns energinivån idag? (Fortsätt bara om >70%)')
 }
 
 /**
  * Get general guidelines based on illness type
  */
-function getGeneralGuidelines(illnessType: IllnessType): string[] {
+function getGeneralGuidelines(illnessType: IllnessType, locale: ProtocolLocale): string[] {
   const common = [
-    'Vila är en del av träningen - underskatta inte återhämtning',
-    'Det är bättre att komma tillbaka för sent än för tidigt',
-    'Öka belastningen stegvis - max 10% per dag',
-    'Sov minst 8 timmar per natt under återhämtningen',
+    text(locale, 'Rest is part of training - do not underestimate recovery', 'Vila är en del av träningen - underskatta inte återhämtning'),
+    text(locale, 'It is better to return too late than too early', 'Det är bättre att komma tillbaka för sent än för tidigt'),
+    text(locale, 'Increase load gradually - max 10% per day', 'Öka belastningen stegvis - max 10% per dag'),
+    text(locale, 'Sleep at least 8 hours per night during recovery', 'Sov minst 8 timmar per natt under återhämtningen'),
   ]
 
   switch (illnessType) {
     case 'RESPIRATORY':
       return [
         ...common,
-        'Undvik hård andning i kall/torr luft de första dagarna',
-        'Hostretning under träning är vanligt - minska intensiteten om det händer',
+        text(locale, 'Avoid hard breathing in cold/dry air for the first few days', 'Undvik hård andning i kall/torr luft de första dagarna'),
+        text(locale, 'Cough irritation during training is common - reduce intensity if it happens', 'Hostretning under träning är vanligt - minska intensiteten om det händer'),
       ]
 
     case 'GI':
       return [
         ...common,
-        'Återställ vätskebalansen innan du börjar träna',
-        'Ät lättsmält mat och undvik tungt intag före träning',
-        'Elektrolyter kan behövas om du haft diarré/kräkningar',
+        text(locale, 'Restore fluid balance before training', 'Återställ vätskebalansen innan du börjar träna'),
+        text(locale, 'Eat easily digestible food and avoid heavy intake before training', 'Ät lättsmält mat och undvik tungt intag före träning'),
+        text(locale, 'Electrolytes may be needed if you had diarrhea/vomiting', 'Elektrolyter kan behövas om du haft diarré/kräkningar'),
       ]
 
     case 'FEVER':
       return [
         ...common,
-        'Feber tyder på att kroppen kämpar - ge den tid att återhämta sig',
-        'Vänta minst 24-48 timmar efter att febern gått ner',
-        'Kontakta läkare om febern återkommer under återhämtningen',
+        text(locale, 'Fever shows the body is fighting - give it time to recover', 'Feber tyder på att kroppen kämpar - ge den tid att återhämta sig'),
+        text(locale, 'Wait at least 24-48 hours after the fever has gone down', 'Vänta minst 24-48 timmar efter att febern gått ner'),
+        text(locale, 'Contact a doctor if fever returns during recovery', 'Kontakta läkare om febern återkommer under återhämtningen'),
       ]
 
     default:
@@ -356,35 +380,35 @@ function getGeneralGuidelines(illnessType: IllnessType): string[] {
 /**
  * Get warning signs to watch for
  */
-function getWarningSignsToWatch(illnessType: IllnessType): string[] {
+function getWarningSignsToWatch(illnessType: IllnessType, locale: ProtocolLocale): string[] {
   const common = [
-    'Feber som återkommer (>38°C)',
-    'Onormal trötthet efter lätt aktivitet',
-    'Hjärtklappning eller oregelbunden puls',
-    'Yrsel eller svimningskänsla',
-    'Bröstsmärta eller andningsbesvär',
+    text(locale, 'Fever returning (>38°C)', 'Feber som återkommer (>38°C)'),
+    text(locale, 'Abnormal fatigue after light activity', 'Onormal trötthet efter lätt aktivitet'),
+    text(locale, 'Palpitations or irregular pulse', 'Hjärtklappning eller oregelbunden puls'),
+    text(locale, 'Dizziness or feeling faint', 'Yrsel eller svimningskänsla'),
+    text(locale, 'Chest pain or breathing difficulty', 'Bröstsmärta eller andningsbesvär'),
   ]
 
   switch (illnessType) {
     case 'RESPIRATORY':
       return [
         ...common,
-        'Ihållande hosta som förvärras av aktivitet',
-        'Pipande andning eller andnöd',
+        text(locale, 'Persistent cough that worsens with activity', 'Ihållande hosta som förvärras av aktivitet'),
+        text(locale, 'Wheezing or shortness of breath', 'Pipande andning eller andnöd'),
       ]
 
     case 'GI':
       return [
         ...common,
-        'Fortsatta magproblem',
-        'Tecken på uttorkning (mörkare urin, yrsel)',
+        text(locale, 'Continued stomach problems', 'Fortsatta magproblem'),
+        text(locale, 'Signs of dehydration (darker urine, dizziness)', 'Tecken på uttorkning (mörkare urin, yrsel)'),
       ]
 
     case 'FEVER':
       return [
         ...common,
-        'Muskelsmärta eller ledvärk',
-        'Svullna lymfkörtlar',
+        text(locale, 'Muscle pain or joint pain', 'Muskelsmärta eller ledvärk'),
+        text(locale, 'Swollen lymph nodes', 'Svullna lymfkörtlar'),
       ]
 
     default:
@@ -395,21 +419,22 @@ function getWarningSignsToWatch(illnessType: IllnessType): string[] {
 /**
  * Format protocol for display
  */
-export function formatProtocolSummary(protocol: ReturnProtocol): string {
+export function formatProtocolSummary(protocol: ReturnProtocol, locale: ProtocolLocale = 'en'): string {
+  const dateLocale = locale === 'sv' ? sv : enUS
   const lines = [
-    `📅 Återgångsprotokoll: ${protocol.totalDays} dagar`,
-    `Startdatum: ${format(protocol.startDate, 'd MMMM', { locale: sv })}`,
-    `Slutdatum: ${format(protocol.endDate, 'd MMMM', { locale: sv })}`,
+    `📅 ${text(locale, 'Return protocol', 'Återgångsprotokoll')}: ${protocol.totalDays} ${text(locale, 'days', 'dagar')}`,
+    `${text(locale, 'Start date', 'Startdatum')}: ${format(protocol.startDate, 'd MMMM', { locale: dateLocale })}`,
+    `${text(locale, 'End date', 'Slutdatum')}: ${format(protocol.endDate, 'd MMMM', { locale: dateLocale })}`,
     '',
   ]
 
   if (protocol.requiresMedicalClearance) {
-    lines.push('⚠️ LÄKARGODKÄNNANDE KRÄVS')
+    lines.push(`⚠️ ${text(locale, 'MEDICAL CLEARANCE REQUIRED', 'LÄKARGODKÄNNANDE KRÄVS')}`)
     lines.push(protocol.medicalClearanceReason || '')
     lines.push('')
   }
 
-  lines.push('Faser:')
+  lines.push(`${text(locale, 'Phases', 'Faser')}:`)
   protocol.phases.forEach((phase) => {
     const intensityEmoji = {
       NONE: '🔴',
@@ -419,7 +444,7 @@ export function formatProtocolSummary(protocol: ReturnProtocol): string {
       NORMAL: '✅',
     }
     lines.push(
-      `  ${intensityEmoji[phase.intensity]} Dag ${phase.day}: ${phase.description} (${phase.intensityPercent}%, ${phase.durationMinutes} min)`
+      `  ${intensityEmoji[phase.intensity]} ${text(locale, 'Day', 'Dag')} ${phase.day}: ${phase.description} (${phase.intensityPercent}%, ${phase.durationMinutes} min)`
     )
   })
 
