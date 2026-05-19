@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       const hasAccess = await canAccessClient(user.id, clientId)
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'Client not found or access denied' },
+          { error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') },
           { status: 404 }
         )
       }
