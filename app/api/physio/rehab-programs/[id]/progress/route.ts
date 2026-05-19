@@ -15,6 +15,16 @@ const logProgressSchema = z.object({
   wantsPhysioContact: z.boolean().default(false),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/physio/rehab-programs/[id]/progress
  * Get progress logs for a rehab program
@@ -163,20 +173,45 @@ export async function POST(
 
     if (painExceeded || validatedData.wantsPhysioContact) {
       try {
-        // Get client info for notification
-        const client = await prisma.client.findUnique({
-          where: { id: program.clientId },
-          select: { name: true },
-        })
+        // Get recipient/client info for notification copy
+        const [client, physioUser] = await Promise.all([
+          prisma.client.findUnique({
+            where: { id: program.clientId },
+            select: { name: true },
+          }),
+          program.physioUserId
+            ? prisma.user.findUnique({
+              where: { id: program.physioUserId },
+              select: { language: true },
+            })
+            : null,
+        ])
+        const notificationLocale = getUserLocale(physioUser?.language ?? user.language)
+        const athleteName = client?.name || t(notificationLocale, 'Athlete', 'Atlet')
+
+        const title = painExceeded
+          ? t(
+            notificationLocale,
+            `Pain exceeded threshold - ${athleteName}`,
+            `Smärta överskred gränsvärde - ${athleteName}`
+          )
+          : t(
+            notificationLocale,
+            `${athleteName} wants to contact you`,
+            `${athleteName} vill kontakta dig`
+          )
+        const message = t(
+          notificationLocale,
+          `Rehab program: ${program.name}. Pain during: ${validatedData.painDuring ?? '-'}/10, after: ${validatedData.painAfter ?? '-'}/10.`,
+          `Rehabprogram: ${program.name}. Smärta under: ${validatedData.painDuring ?? '-'}/10, efter: ${validatedData.painAfter ?? '-'}/10.`
+        )
 
         await prisma.aINotification.create({
           data: {
             clientId: program.clientId,
             notificationType: 'REHAB_PROGRESS_ALERT',
-            title: painExceeded
-              ? `Smärta överskred gränsvärde - ${client?.name || 'Atlet'}`
-              : `${client?.name || 'Atlet'} vill kontakta dig`,
-            message: `Rehabprogram: ${program.name}. Smärta under: ${validatedData.painDuring ?? '-'}/10, efter: ${validatedData.painAfter ?? '-'}/10.`,
+            title,
+            message,
             priority: painExceeded ? 'HIGH' : 'MEDIUM',
             contextData: {
               programId: program.id,
