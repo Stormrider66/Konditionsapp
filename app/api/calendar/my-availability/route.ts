@@ -15,7 +15,7 @@ import {
   getAltitudeAdjustment,
 } from '@/lib/calendar/availability-calculator'
 import { addDays, format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { logError } from '@/lib/logger-console'
 
 /**
@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
     const { clientId } = resolved
 
     const { searchParams } = new URL(request.url)
+    const locale = request.headers.get('accept-language')?.startsWith('sv') ? sv : enUS
 
     // Check for specific date query
     const specificDate = searchParams.get('date')
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       .slice(0, 10)
       .map((day) => ({
         date: format(day.date, 'yyyy-MM-dd'),
-        displayDate: format(day.date, 'd MMMM', { locale: sv }),
+        displayDate: format(day.date, 'd MMMM', { locale }),
         reason: day.reason,
         type: day.eventType,
       }))
@@ -72,8 +73,8 @@ export async function GET(request: NextRequest) {
     const altitudePeriods = availability.altitudePeriods.map((period) => ({
       start: format(period.startDate, 'yyyy-MM-dd'),
       end: format(period.endDate, 'yyyy-MM-dd'),
-      displayStart: format(period.startDate, 'd MMMM', { locale: sv }),
-      displayEnd: format(period.endDate, 'd MMMM', { locale: sv }),
+      displayStart: format(period.startDate, 'd MMMM', { locale }),
+      displayEnd: format(period.endDate, 'd MMMM', { locale }),
       altitude: period.altitude,
       phase: period.adaptationPhase,
     }))
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
       .slice(0, 10)
       .map((day) => ({
         date: format(day.date, 'yyyy-MM-dd'),
-        displayDate: format(day.date, 'd MMMM', { locale: sv }),
+        displayDate: format(day.date, 'd MMMM', { locale }),
         reason: day.reason,
         impact: day.impact,
       }))

@@ -18,6 +18,7 @@ import { VIPChart } from './VIPChart'
 import { ObservedVsPredicted } from './ObservedVsPredicted'
 import { PLSQualityMetrics } from './PLSQualityMetrics'
 import { PLSInsightCard } from './PLSInsightCard'
+import { useLocale } from '@/i18n/client'
 
 interface AthleteScore {
   clientId: string
@@ -382,6 +383,9 @@ function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }
 }
 
 export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initialPLSModel }: MVAAnalysisClientProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+
   // Mode toggle
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>(initialModel ? 'PCA' : initialPLSModel ? 'PLS' : 'PCA')
 
@@ -745,7 +749,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                     </div>
                   </div>
                   <div className="mt-1 text-muted-foreground">
-                    {new Date(item.createdAt).toLocaleDateString('sv-SE')}
+                    {new Date(item.createdAt).toLocaleDateString(dateLocale)}
                     {' · '}
                     {item.rowCount > 0 ? `${item.rowCount} rader` : 'JSON'}
                     {item.columnCount > 0 && ` · ${item.columnCount} kolumner`}
@@ -754,7 +758,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                   {item.exportVersion && (
                     <div className="mt-1 text-[10px] text-muted-foreground">
                       {item.exportVersion}
-                      {item.exportedAt && ` · exporterad ${new Date(item.exportedAt).toLocaleDateString('sv-SE')}`}
+                      {item.exportedAt && ` · exporterad ${new Date(item.exportedAt).toLocaleDateString(dateLocale)}`}
                     </div>
                   )}
                 </div>
@@ -776,7 +780,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                   <SelectContent>
                     {simcaImports.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
-                        {item.fileName} · {new Date(item.createdAt).toLocaleDateString('sv-SE')}
+                        {item.fileName} · {new Date(item.createdAt).toLocaleDateString(dateLocale)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -791,7 +795,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                   <SelectContent>
                     {simcaImports.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
-                        {item.fileName} · {new Date(item.createdAt).toLocaleDateString('sv-SE')}
+                        {item.fileName} · {new Date(item.createdAt).toLocaleDateString(dateLocale)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1020,7 +1024,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Senast beräknad: {new Date(displayData.createdAt).toLocaleString('sv-SE')}
+              Senast beräknad: {new Date(displayData.createdAt).toLocaleString(dateLocale)}
               {' | '}{displayData.nObservations} spelare, {displayData.nVariables} variabler
             </div>
             <div className="flex gap-2">
@@ -1277,7 +1281,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Senast beräknad: {new Date(plsDisplay.createdAt).toLocaleString('sv-SE')}
+            Senast beräknad: {new Date(plsDisplay.createdAt).toLocaleString(dateLocale)}
             {' | '}{plsDisplay.nObservations} spelare, {plsDisplay.nXVariables} X-variabler
             {' | '}Y: {plsDisplay.yVariableName}
           </div>

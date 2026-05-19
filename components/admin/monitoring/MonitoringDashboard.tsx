@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Activity, AlertTriangle, Users, Clock, TrendingUp, Wifi, WifiOff } from 'lucide-react';
 import { LiveErrorStream } from './LiveErrorStream';
 import { MetricsCharts } from './MetricsCharts';
+import { useLocale } from '@/i18n/client';
 
 interface RealtimeMetrics {
   timestamp: string;
@@ -28,6 +29,8 @@ interface RealtimeMetrics {
 }
 
 export function MonitoringDashboard() {
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US';
   const [metrics, setMetrics] = useState<RealtimeMetrics | null>(null);
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -156,7 +159,7 @@ export function MonitoringDashboard() {
             </div>
             <p className="text-2xl font-bold">
               {lastUpdate
-                ? lastUpdate.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+                ? lastUpdate.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })
                 : '-'}
             </p>
             <p className="text-xs text-muted-foreground">Last Update</p>

@@ -15,7 +15,9 @@ import {
 } from '@/components/ui/dialog';
 import { AlertTriangle, Check, ExternalLink, RefreshCw, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { enUS, sv } from 'date-fns/locale';
 import { SystemError } from '@/types';
+import { useLocale } from '@/i18n/client';
 
 interface LiveErrorStreamProps {
   errors: Array<{
@@ -35,6 +37,9 @@ const levelColors: Record<string, string> = {
 };
 
 export function LiveErrorStream({ errors: liveErrors }: LiveErrorStreamProps) {
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US';
+  const dateFnsLocale = locale === 'sv' ? sv : enUS;
   const [allErrors, setAllErrors] = useState<SystemError[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedError, setSelectedError] = useState<SystemError | null>(null);
@@ -136,7 +141,7 @@ export function LiveErrorStream({ errors: liveErrors }: LiveErrorStreamProps) {
                           <p className="text-sm truncate">{error.message}</p>
                         </div>
                         <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {formatDistanceToNow(new Date(error.createdAt), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(error.createdAt), { addSuffix: true, locale: dateFnsLocale })}
                         </span>
                       </div>
                     </div>
@@ -183,7 +188,7 @@ export function LiveErrorStream({ errors: liveErrors }: LiveErrorStreamProps) {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Time:</span>{' '}
-                          {new Date(error.createdAt).toLocaleString('sv-SE')}
+                          {new Date(error.createdAt).toLocaleString(dateLocale)}
                         </div>
                       </div>
 

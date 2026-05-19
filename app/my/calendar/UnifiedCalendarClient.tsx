@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 import {
   format,
   startOfWeek,
@@ -47,7 +47,7 @@ import {
   isToday,
   parseISO,
 } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 
 interface CrossOrgEvent {
   id: string
@@ -114,6 +114,8 @@ type ViewMode = 'week' | 'month'
 
 export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
   const t = useTranslations('components.unifiedCalendar')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [events, setEvents] = useState<CrossOrgEvent[]>([])
   const [conflicts, setConflicts] = useState<Conflict[]>([])
   const [businesses, setBusinesses] = useState<BusinessInfo[]>([])
@@ -141,8 +143,8 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
   const dateRange = useMemo(() => {
     if (viewMode === 'week') {
       return {
-        start: startOfWeek(currentDate, { locale: sv }),
-        end: endOfWeek(currentDate, { locale: sv }),
+        start: startOfWeek(currentDate, { locale: dateLocale }),
+        end: endOfWeek(currentDate, { locale: dateLocale }),
       }
     }
     return {
@@ -505,8 +507,8 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
               </div>
               <h2 className="text-lg font-semibold capitalize">
                 {viewMode === 'week'
-                  ? `${format(dateRange.start, 'd MMM', { locale: sv })} — ${format(dateRange.end, 'd MMM yyyy', { locale: sv })}`
-                  : format(currentDate, 'MMMM yyyy', { locale: sv })}
+                  ? `${format(dateRange.start, 'd MMM', { locale: dateLocale })} — ${format(dateRange.end, 'd MMM yyyy', { locale: dateLocale })}`
+                  : format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
               </h2>
             </div>
 
@@ -546,7 +548,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                                   today ? 'text-blue-400' : 'text-slate-300'
                                 )}
                               >
-                                {format(day, 'EEEE d MMMM', { locale: sv })}
+                                {format(day, 'EEEE d MMMM', { locale: dateLocale })}
                               </span>
                               {today && (
                                 <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400">
@@ -559,7 +561,7 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                                 variant="ghost"
                                 size="sm"
                                 className="text-slate-500 hover:text-white h-7 text-xs"
-                                aria-label={t('a11y.createEvent', { date: format(day, 'd MMMM', { locale: sv }) })}
+                                aria-label={t('a11y.createEvent', { date: format(day, 'd MMMM', { locale: dateLocale }) })}
                                 onClick={() => {
                                   setNewEventDate(format(day, 'yyyy-MM-dd'))
                                   setNewEventTitle('')
@@ -772,8 +774,8 @@ export function UnifiedCalendarClient({ userEmail }: { userEmail: string }) {
                   <Clock className="w-4 h-4" />
                   <span>
                     {selectedEvent.allDay
-                      ? format(parseISO(selectedEvent.startDate), 'd MMMM yyyy', { locale: sv })
-                      : `${format(parseISO(selectedEvent.startDate), 'd MMM HH:mm', { locale: sv })}${
+                      ? format(parseISO(selectedEvent.startDate), 'd MMMM yyyy', { locale: dateLocale })
+                      : `${format(parseISO(selectedEvent.startDate), 'd MMM HH:mm', { locale: dateLocale })}${
                           selectedEvent.endDate
                             ? ` — ${format(parseISO(selectedEvent.endDate), 'HH:mm')}`
                             : ''

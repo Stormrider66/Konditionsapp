@@ -22,7 +22,7 @@ import {
 } from 'recharts';
 import { TrendingUp, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTranslations } from '@/i18n/client';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 interface MetricData {
   timestamp: string;
@@ -37,6 +37,8 @@ interface MetricsResponse {
 
 export function MetricsCharts() {
   const t = useTranslations('components.metricsCharts')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [data, setData] = useState<MetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('24');
@@ -62,7 +64,7 @@ export function MetricsCharts() {
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' });
   };
 
   // Transform data for chart

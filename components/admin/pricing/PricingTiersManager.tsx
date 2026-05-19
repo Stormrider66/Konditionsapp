@@ -9,8 +9,11 @@ import { RefreshCw, CreditCard, AlertCircle } from 'lucide-react';
 import { PricingTier } from '@/types';
 import { PricingTierCard } from './PricingTierCard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { useLocale } from '@/i18n/client';
 
 export function PricingTiersManager() {
+  const locale = useLocale();
+  const numberLocale = locale === 'sv' ? 'sv-SE' : 'en-US';
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -84,7 +87,7 @@ export function PricingTiersManager() {
   const athleteTiers = tiers.filter((t) => t.tierType === 'ATHLETE');
 
   const formatPrice = (cents: number, currency: string) => {
-    return new Intl.NumberFormat('sv-SE', {
+    return new Intl.NumberFormat(numberLocale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,
