@@ -33,37 +33,36 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useLocale } from '@/i18n/client'
 
-// Field test types with Swedish labels
 const FIELD_TEST_TYPES = [
   {
     value: '30MIN_TT',
-    label: '30-min tidstrial',
-    description: 'Genomsnittlig fart/effekt över 30 min',
+    label: { en: '30-min time trial', sv: '30-min tidstrial' },
+    description: { en: 'Average pace/power over 30 min', sv: 'Genomsnittlig fart/effekt över 30 min' },
   },
   {
     value: '20MIN_TT',
-    label: '20-min tidstrial',
-    description: 'Genomsnittlig fart/effekt över 20 min',
+    label: { en: '20-min time trial', sv: '20-min tidstrial' },
+    description: { en: 'Average pace/power over 20 min', sv: 'Genomsnittlig fart/effekt över 20 min' },
   },
   {
     value: 'HR_DRIFT',
-    label: 'HR-drift test',
-    description: 'Mät pulsdrift vid konstant tempo',
+    label: { en: 'HR drift test', sv: 'HR-drift test' },
+    description: { en: 'Measure heart-rate drift at a steady pace', sv: 'Mät pulsdrift vid konstant tempo' },
   },
   {
     value: 'CRITICAL_VELOCITY',
-    label: 'Critical Velocity',
-    description: '3-min + 9-min test för CV',
+    label: { en: 'Critical Velocity', sv: 'Critical Velocity' },
+    description: { en: '3-min + 9-min test for CV', sv: '3-min + 9-min test för CV' },
   },
   {
     value: 'TALK_TEST',
-    label: 'Talk Test',
-    description: 'Ventilatorisk tröskel via prat',
+    label: { en: 'Talk Test', sv: 'Talk Test' },
+    description: { en: 'Ventilatory threshold via speech', sv: 'Ventilatorisk tröskel via prat' },
   },
   {
     value: 'RACE_BASED',
-    label: 'Tävlingsbaserat',
-    description: 'Beräkna zoner från tävlingsresultat',
+    label: { en: 'Race-based', sv: 'Tävlingsbaserat' },
+    description: { en: 'Calculate zones from race results', sv: 'Beräkna zoner från tävlingsresultat' },
   },
 ] as const
 
@@ -91,6 +90,7 @@ export function ScheduleTestDialog({
 }: ScheduleTestDialogProps) {
   const { toast } = useToast()
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -127,13 +127,15 @@ export function ScheduleTestDialog({
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Kunde inte schemalägga testet')
+        throw new Error(result.error || (appLocale === 'sv' ? 'Kunde inte schemalägga testet' : 'Could not schedule the test'))
       }
 
       const selectedTest = FIELD_TEST_TYPES.find(t => t.value === testType)
       toast({
-        title: 'Test schemalagt',
-        description: `${selectedTest?.label} schemalagt för ${format(date, 'd MMMM', { locale: dateLocale })}`,
+        title: appLocale === 'sv' ? 'Test schemalagt' : 'Test scheduled',
+        description: appLocale === 'sv'
+          ? `${selectedTest?.label.sv} schemalagt för ${format(date, 'd MMMM', { locale: dateLocale })}`
+          : `${selectedTest?.label.en} scheduled for ${format(date, 'd MMMM', { locale: dateLocale })}`,
       })
 
       onScheduled()
@@ -141,8 +143,8 @@ export function ScheduleTestDialog({
     } catch (error) {
       console.error('Error scheduling test:', error)
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte schemalägga testet',
+        title: appLocale === 'sv' ? 'Fel' : 'Error',
+        description: error instanceof Error ? error.message : appLocale === 'sv' ? 'Kunde inte schemalägga testet' : 'Could not schedule the test',
         variant: 'destructive',
       })
     } finally {
@@ -157,7 +159,7 @@ export function ScheduleTestDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Schemalägg fälttest</DialogTitle>
+          <DialogTitle>{appLocale === 'sv' ? 'Schemalägg fälttest' : 'Schedule field test'}</DialogTitle>
           <DialogDescription className="capitalize">
             {formattedDate}
           </DialogDescription>
@@ -166,17 +168,17 @@ export function ScheduleTestDialog({
         <div className="grid gap-4 py-4">
           {/* Test Type */}
           <div className="space-y-2">
-            <Label htmlFor="testType">Testtyp</Label>
+            <Label htmlFor="testType">{appLocale === 'sv' ? 'Testtyp' : 'Test type'}</Label>
             <Select value={testType} onValueChange={(v) => setTestType(v as FieldTestType)}>
               <SelectTrigger id="testType">
-                <SelectValue placeholder="Välj testtyp" />
+                <SelectValue placeholder={appLocale === 'sv' ? 'Välj testtyp' : 'Choose test type'} />
               </SelectTrigger>
               <SelectContent>
                 {FIELD_TEST_TYPES.map((test) => (
                   <SelectItem key={test.value} value={test.value}>
                     <div className="flex flex-col">
-                      <span className="font-medium">{test.label}</span>
-                      <span className="text-xs text-muted-foreground">{test.description}</span>
+                      <span className="font-medium">{test.label[appLocale]}</span>
+                      <span className="text-xs text-muted-foreground">{test.description[appLocale]}</span>
                     </div>
                   </SelectItem>
                 ))}
@@ -184,7 +186,7 @@ export function ScheduleTestDialog({
             </Select>
             {selectedTest && (
               <p className="text-xs text-muted-foreground">
-                {selectedTest.description}
+                {selectedTest.description[appLocale]}
               </p>
             )}
           </div>
@@ -193,10 +195,10 @@ export function ScheduleTestDialog({
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="space-y-0.5">
               <Label htmlFor="required" className="text-base">
-                Obligatoriskt
+                {appLocale === 'sv' ? 'Obligatoriskt' : 'Required'}
               </Label>
               <p className="text-sm text-muted-foreground">
-                Markera om testet måste genomföras
+                {appLocale === 'sv' ? 'Markera om testet måste genomföras' : 'Mark if the test must be completed'}
               </p>
             </div>
             <Switch
@@ -208,12 +210,12 @@ export function ScheduleTestDialog({
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+            <Label htmlFor="notes">{appLocale === 'sv' ? 'Anteckningar (valfritt)' : 'Notes (optional)'}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Instruktioner eller förberedelser..."
+              placeholder={appLocale === 'sv' ? 'Instruktioner eller förberedelser...' : 'Instructions or preparation...'}
               rows={3}
             />
           </div>
@@ -222,7 +224,9 @@ export function ScheduleTestDialog({
           <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg">
             <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
             <p className="text-sm text-blue-700">
-              Atleten får en påminnelse inför testet och kan logga resultaten efteråt.
+              {appLocale === 'sv'
+                ? 'Atleten får en påminnelse inför testet och kan logga resultaten efteråt.'
+                : 'The athlete gets a reminder before the test and can log the results afterward.'}
             </p>
           </div>
         </div>
@@ -233,16 +237,16 @@ export function ScheduleTestDialog({
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
           >
-            Avbryt
+            {appLocale === 'sv' ? 'Avbryt' : 'Cancel'}
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Schemalägger...
+                {appLocale === 'sv' ? 'Schemalägger...' : 'Scheduling...'}
               </>
             ) : (
-              'Schemalägg test'
+              appLocale === 'sv' ? 'Schemalägg test' : 'Schedule test'
             )}
           </Button>
         </DialogFooter>

@@ -35,27 +35,25 @@ import { useToast } from '@/hooks/use-toast'
 import { ProgramSelector } from './ProgramSelector'
 import { useLocale } from '@/i18n/client'
 
-// Workout types with Swedish labels
 const WORKOUT_TYPES = [
-  { value: 'RUNNING', label: 'Löpning' },
-  { value: 'STRENGTH', label: 'Styrka' },
-  { value: 'CYCLING', label: 'Cykling' },
-  { value: 'SWIMMING', label: 'Simning' },
-  { value: 'SKIING', label: 'Skidåkning' },
-  { value: 'CORE', label: 'Core' },
-  { value: 'PLYOMETRIC', label: 'Plyometri' },
-  { value: 'RECOVERY', label: 'Återhämtning' },
-  { value: 'OTHER', label: 'Övrigt' },
+  { value: 'RUNNING', label: { en: 'Running', sv: 'Löpning' } },
+  { value: 'STRENGTH', label: { en: 'Strength', sv: 'Styrka' } },
+  { value: 'CYCLING', label: { en: 'Cycling', sv: 'Cykling' } },
+  { value: 'SWIMMING', label: { en: 'Swimming', sv: 'Simning' } },
+  { value: 'SKIING', label: { en: 'Skiing', sv: 'Skidåkning' } },
+  { value: 'CORE', label: { en: 'Core', sv: 'Core' } },
+  { value: 'PLYOMETRIC', label: { en: 'Plyometrics', sv: 'Plyometri' } },
+  { value: 'RECOVERY', label: { en: 'Recovery', sv: 'Återhämtning' } },
+  { value: 'OTHER', label: { en: 'Other', sv: 'Övrigt' } },
 ] as const
 
-// Intensity levels with Swedish labels
 const INTENSITY_LEVELS = [
-  { value: 'RECOVERY', label: 'Återhämtning', color: 'bg-green-100 text-green-800' },
-  { value: 'EASY', label: 'Lätt', color: 'bg-green-200 text-green-800' },
-  { value: 'MODERATE', label: 'Måttlig', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'THRESHOLD', label: 'Tröskel', color: 'bg-orange-100 text-orange-800' },
-  { value: 'INTERVAL', label: 'Intervall', color: 'bg-red-100 text-red-800' },
-  { value: 'MAX', label: 'Maximal', color: 'bg-red-200 text-red-800' },
+  { value: 'RECOVERY', label: { en: 'Recovery', sv: 'Återhämtning' }, color: 'bg-green-100 text-green-800' },
+  { value: 'EASY', label: { en: 'Easy', sv: 'Lätt' }, color: 'bg-green-200 text-green-800' },
+  { value: 'MODERATE', label: { en: 'Moderate', sv: 'Måttlig' }, color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'THRESHOLD', label: { en: 'Threshold', sv: 'Tröskel' }, color: 'bg-orange-100 text-orange-800' },
+  { value: 'INTERVAL', label: { en: 'Interval', sv: 'Intervall' }, color: 'bg-red-100 text-red-800' },
+  { value: 'MAX', label: { en: 'Maximal', sv: 'Maximal' }, color: 'bg-red-200 text-red-800' },
 ] as const
 
 type WorkoutType = typeof WORKOUT_TYPES[number]['value']
@@ -83,6 +81,7 @@ export function QuickWorkoutDialog({
 }: QuickWorkoutDialogProps) {
   const { toast } = useToast()
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -96,9 +95,9 @@ export function QuickWorkoutDialog({
 
   // Generate default name based on type
   const generateDefaultName = useCallback((type: WorkoutType) => {
-    const typeLabel = WORKOUT_TYPES.find(t => t.value === type)?.label || type
+    const typeLabel = WORKOUT_TYPES.find(t => t.value === type)?.label[appLocale] || type
     return `${typeLabel} - ${format(date, 'd MMM', { locale: dateLocale })}`
-  }, [date, dateLocale])
+  }, [appLocale, date, dateLocale])
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -114,7 +113,7 @@ export function QuickWorkoutDialog({
 
   // Update name when type changes (if name is empty or was auto-generated)
   useEffect(() => {
-    if (!name || WORKOUT_TYPES.some(t => name.startsWith(t.label))) {
+    if (!name || WORKOUT_TYPES.some(t => Object.values(t.label).some((label) => name.startsWith(label)))) {
       setName(generateDefaultName(workoutType))
     }
   }, [workoutType, name, generateDefaultName])
@@ -122,8 +121,8 @@ export function QuickWorkoutDialog({
   const handleSubmit = async () => {
     if (!programId) {
       toast({
-        title: 'Välj program',
-        description: 'Du måste välja ett program för att skapa passet',
+        title: appLocale === 'sv' ? 'Välj program' : 'Choose a program',
+        description: appLocale === 'sv' ? 'Du måste välja ett program för att skapa passet' : 'You need to choose a program before creating the workout',
         variant: 'destructive',
       })
       return
@@ -198,15 +197,15 @@ export function QuickWorkoutDialog({
 
           {/* Workout Type */}
           <div className="space-y-2">
-            <Label htmlFor="type">Passtyp</Label>
+            <Label htmlFor="type">{appLocale === 'sv' ? 'Passtyp' : 'Workout type'}</Label>
             <Select value={workoutType} onValueChange={(v) => setWorkoutType(v as WorkoutType)}>
               <SelectTrigger id="type">
-                <SelectValue placeholder="Välj typ" />
+                <SelectValue placeholder={appLocale === 'sv' ? 'Välj typ' : 'Choose type'} />
               </SelectTrigger>
               <SelectContent>
                 {WORKOUT_TYPES.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                    {type.label[appLocale]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -215,7 +214,7 @@ export function QuickWorkoutDialog({
 
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="name">Namn</Label>
+            <Label htmlFor="name">{appLocale === 'sv' ? 'Namn' : 'Name'}</Label>
             <Input
               id="name"
               value={name}
@@ -227,7 +226,7 @@ export function QuickWorkoutDialog({
           {/* Duration and Intensity in a row */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="duration">Varaktighet (min)</Label>
+              <Label htmlFor="duration">{appLocale === 'sv' ? 'Varaktighet (min)' : 'Duration (min)'}</Label>
               <Input
                 id="duration"
                 type="number"
@@ -239,16 +238,16 @@ export function QuickWorkoutDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="intensity">Intensitet</Label>
+              <Label htmlFor="intensity">{appLocale === 'sv' ? 'Intensitet' : 'Intensity'}</Label>
               <Select value={intensity} onValueChange={(v) => setIntensity(v as IntensityLevel)}>
                 <SelectTrigger id="intensity">
-                  <SelectValue placeholder="Välj intensitet" />
+                  <SelectValue placeholder={appLocale === 'sv' ? 'Välj intensitet' : 'Choose intensity'} />
                 </SelectTrigger>
                 <SelectContent>
                   {INTENSITY_LEVELS.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
                       <span className={`px-2 py-0.5 rounded text-xs ${level.color}`}>
-                        {level.label}
+                        {level.label[appLocale]}
                       </span>
                     </SelectItem>
                   ))}
@@ -259,12 +258,12 @@ export function QuickWorkoutDialog({
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+            <Label htmlFor="notes">{appLocale === 'sv' ? 'Anteckningar (valfritt)' : 'Notes (optional)'}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Lägg till instruktioner eller anteckningar..."
+              placeholder={appLocale === 'sv' ? 'Lägg till instruktioner eller anteckningar...' : 'Add instructions or notes...'}
               rows={2}
             />
           </div>
@@ -276,16 +275,16 @@ export function QuickWorkoutDialog({
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
           >
-            Avbryt
+            {appLocale === 'sv' ? 'Avbryt' : 'Cancel'}
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Skapar...
+                {appLocale === 'sv' ? 'Skapar...' : 'Creating...'}
               </>
             ) : (
-              'Skapa pass'
+              appLocale === 'sv' ? 'Skapa pass' : 'Create workout'
             )}
           </Button>
         </DialogFooter>

@@ -35,8 +35,8 @@ import { useLocale } from '@/i18n/client'
 
 interface StudioOption {
   id: 'strength' | 'cardio' | 'hybrid' | 'agility' | 'free-text'
-  label: string
-  description: string
+  label: { en: string; sv: string }
+  description: { en: string; sv: string }
   icon: React.ComponentType<{ className?: string }>
   color: string
   bgColor: string
@@ -46,8 +46,8 @@ interface StudioOption {
 const STUDIO_OPTIONS: StudioOption[] = [
   {
     id: 'strength',
-    label: 'Styrka',
-    description: 'Skapa styrkepass med övningar och set',
+    label: { en: 'Strength', sv: 'Styrka' },
+    description: { en: 'Create strength workouts with exercises and sets', sv: 'Skapa styrkepass med övningar och set' },
     icon: Dumbbell,
     color: 'text-orange-600',
     bgColor: 'bg-orange-50 hover:bg-orange-100',
@@ -55,8 +55,8 @@ const STUDIO_OPTIONS: StudioOption[] = [
   },
   {
     id: 'cardio',
-    label: 'Kondition',
-    description: 'Bygg konditionspass med intervaller och zoner',
+    label: { en: 'Cardio', sv: 'Kondition' },
+    description: { en: 'Build cardio workouts with intervals and zones', sv: 'Bygg konditionspass med intervaller och zoner' },
     icon: HeartPulse,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 hover:bg-blue-100',
@@ -64,8 +64,8 @@ const STUDIO_OPTIONS: StudioOption[] = [
   },
   {
     id: 'hybrid',
-    label: 'Hybrid',
-    description: 'Kombinera styrka och kondition',
+    label: { en: 'Hybrid', sv: 'Hybrid' },
+    description: { en: 'Combine strength and cardio', sv: 'Kombinera styrka och kondition' },
     icon: Layers,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50 hover:bg-purple-100',
@@ -73,8 +73,8 @@ const STUDIO_OPTIONS: StudioOption[] = [
   },
   {
     id: 'agility',
-    label: 'Agility',
-    description: 'Snabbhet, smidighet och koordination',
+    label: { en: 'Agility', sv: 'Agility' },
+    description: { en: 'Speed, agility, and coordination', sv: 'Snabbhet, smidighet och koordination' },
     icon: Zap,
     color: 'text-green-600',
     bgColor: 'bg-green-50 hover:bg-green-100',
@@ -82,8 +82,8 @@ const STUDIO_OPTIONS: StudioOption[] = [
   },
   {
     id: 'free-text',
-    label: 'Fritext',
-    description: 'Lägg till anteckning',
+    label: { en: 'Free text', sv: 'Fritext' },
+    description: { en: 'Add a note', sv: 'Lägg till anteckning' },
     icon: FileText,
     color: 'text-gray-600',
     bgColor: 'bg-gray-50 hover:bg-gray-100',
@@ -112,6 +112,7 @@ export function FullWorkoutDialog({
 }: FullWorkoutDialogProps) {
   const router = useRouter()
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
 
   const handleStudioSelect = useCallback(
@@ -144,12 +145,12 @@ export function FullWorkoutDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Skapa pass</DialogTitle>
+          <DialogTitle>{appLocale === 'sv' ? 'Skapa pass' : 'Create workout'}</DialogTitle>
           <DialogDescription>
             <span className="capitalize">{formattedDate}</span>
             {clientName && (
               <span className="block text-xs mt-1 text-muted-foreground">
-                för {clientName}
+                {appLocale === 'sv' ? 'för' : 'for'} {clientName}
               </span>
             )}
           </DialogDescription>
@@ -169,8 +170,8 @@ export function FullWorkoutDialog({
                 <option.icon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">{option.label}</p>
-                <p className="text-sm text-gray-500">{option.description}</p>
+                <p className="font-medium text-gray-900">{option.label[appLocale]}</p>
+                <p className="text-sm text-gray-500">{option.description[appLocale]}</p>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400 shrink-0" />
             </button>

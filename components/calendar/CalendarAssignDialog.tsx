@@ -64,6 +64,7 @@ export function CalendarAssignDialog({
 }: CalendarAssignDialogProps) {
   const router = useRouter()
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
   const [athleteName, setAthleteName] = useState<string>('')
   const [startTime, setStartTime] = useState('')
@@ -242,21 +243,25 @@ export function CalendarAssignDialog({
       const total = targetDates.length
 
       if (successCount === 0) {
-        toast.error('Kunde inte tilldela', { description: 'Ett fel uppstod.' })
+        toast.error(appLocale === 'sv' ? 'Kunde inte tilldela' : 'Could not assign', {
+          description: appLocale === 'sv' ? 'Ett fel uppstod.' : 'An error occurred.',
+        })
         return
       }
 
       if (successCount < total) {
-        toast.warning(`${successCount} av ${total} pass tilldelade`, {
-          description: `${total - successCount} pass misslyckades.`,
+        toast.warning(appLocale === 'sv' ? `${successCount} av ${total} pass tilldelade` : `${successCount} of ${total} workouts assigned`, {
+          description: appLocale === 'sv' ? `${total - successCount} pass misslyckades.` : `${total - successCount} workouts failed.`,
         })
       } else {
         toast.success(
-          total === 1 ? 'Pass tilldelat!' : `${total} pass tilldelade!`,
+          appLocale === 'sv'
+            ? total === 1 ? 'Pass tilldelat!' : `${total} pass tilldelade!`
+            : total === 1 ? 'Workout assigned!' : `${total} workouts assigned!`,
           {
             description: total === 1
-              ? `Tilldelat till ${athleteName} den ${formattedDate}.`
-              : `Tilldelat till ${athleteName} med start ${formattedDate}.`,
+              ? appLocale === 'sv' ? `Tilldelat till ${athleteName} den ${formattedDate}.` : `Assigned to ${athleteName} on ${formattedDate}.`
+              : appLocale === 'sv' ? `Tilldelat till ${athleteName} med start ${formattedDate}.` : `Assigned to ${athleteName} starting ${formattedDate}.`,
           }
         )
       }
@@ -266,8 +271,8 @@ export function CalendarAssignDialog({
       redirectToCalendar()
     } catch (error) {
       console.error('Failed to assign:', error)
-      toast.error('Kunde inte tilldela', {
-        description: 'Ett oväntat fel uppstod.',
+      toast.error(appLocale === 'sv' ? 'Kunde inte tilldela' : 'Could not assign', {
+        description: appLocale === 'sv' ? 'Ett oväntat fel uppstod.' : 'An unexpected error occurred.',
       })
     } finally {
       setAssigning(false)
@@ -285,10 +290,10 @@ export function CalendarAssignDialog({
       <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
-            Tilldela pass{athleteName ? ` till ${athleteName}` : ''}
+            {appLocale === 'sv' ? 'Tilldela pass' : 'Assign workout'}{athleteName ? ` ${appLocale === 'sv' ? 'till' : 'to'} ${athleteName}` : ''}
           </DialogTitle>
           <DialogDescription>
-            Tilldela till <strong>{athleteName || '...'}</strong> den{' '}
+            {appLocale === 'sv' ? 'Tilldela till' : 'Assign to'} <strong>{athleteName || '...'}</strong> {appLocale === 'sv' ? 'den' : 'on'}{' '}
             <strong>{formattedDate}</strong>
           </DialogDescription>
         </DialogHeader>
@@ -307,7 +312,7 @@ export function CalendarAssignDialog({
             <div className="space-y-2">
               <Label htmlFor="startTime" className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                Starttid
+                {appLocale === 'sv' ? 'Starttid' : 'Start time'}
               </Label>
               <Input
                 id="startTime"
@@ -320,7 +325,7 @@ export function CalendarAssignDialog({
             <div className="space-y-2">
               <Label htmlFor="endTime" className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                Sluttid
+                {appLocale === 'sv' ? 'Sluttid' : 'End time'}
               </Label>
               <Input
                 id="endTime"
@@ -336,13 +341,13 @@ export function CalendarAssignDialog({
           <div className="space-y-2">
             <Label htmlFor="location" className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5" />
-              Plats
+              {appLocale === 'sv' ? 'Plats' : 'Location'}
             </Label>
             <Input
               id="location"
               value={locationName}
               onChange={(e) => setLocationName(e.target.value)}
-              placeholder="t.ex. Gymmet, Utomhus..."
+              placeholder={appLocale === 'sv' ? 't.ex. Gymmet, Utomhus...' : 'e.g. Gym, outdoors...'}
             />
           </div>
 
@@ -351,17 +356,17 @@ export function CalendarAssignDialog({
             <div className="space-y-2">
               <Label htmlFor="coach" className="flex items-center gap-1.5">
                 <UserCircle className="h-3.5 w-3.5" />
-                Ansvarig coach
+                {appLocale === 'sv' ? 'Ansvarig coach' : 'Responsible coach'}
               </Label>
               <Select
                 value={selectedCoach || 'none'}
                 onValueChange={(v) => setSelectedCoach(v === 'none' ? '' : v)}
               >
                 <SelectTrigger id="coach">
-                  <SelectValue placeholder="Välj coach..." />
+                  <SelectValue placeholder={appLocale === 'sv' ? 'Välj coach...' : 'Choose coach...'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Ingen vald</SelectItem>
+                  <SelectItem value="none">{appLocale === 'sv' ? 'Ingen vald' : 'None selected'}</SelectItem>
                   {coaches.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}
@@ -384,18 +389,18 @@ export function CalendarAssignDialog({
 
         <DialogFooter className="flex gap-2 sm:gap-0">
           <Button variant="outline" onClick={handleSkip} disabled={assigning}>
-            Hoppa över
+            {appLocale === 'sv' ? 'Hoppa över' : 'Skip'}
           </Button>
           <Button onClick={handleAssign} disabled={assigning}>
             {assigning ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Tilldelar...
+                {appLocale === 'sv' ? 'Tilldelar...' : 'Assigning...'}
               </>
             ) : repeatEnabled ? (
-              `Tilldela ${occurrences} pass`
+              appLocale === 'sv' ? `Tilldela ${occurrences} pass` : `Assign ${occurrences} workouts`
             ) : (
-              'Tilldela'
+              appLocale === 'sv' ? 'Tilldela' : 'Assign'
             )}
           </Button>
         </DialogFooter>
