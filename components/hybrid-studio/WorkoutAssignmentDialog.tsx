@@ -12,7 +12,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -47,8 +46,9 @@ import {
   DEFAULT_OCCURRENCES,
 } from '@/components/coach/scheduling/RepeatWeeklyFields';
 import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { useLocale } from '@/i18n/client';
 
 interface Athlete {
   id: string;
@@ -75,6 +75,8 @@ export function WorkoutAssignmentDialog({
   onOpenChange,
   onAssigned,
 }: WorkoutAssignmentDialogProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
@@ -102,12 +104,6 @@ export function WorkoutAssignmentDialog({
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES);
 
-  useEffect(() => {
-    if (open) {
-      fetchAthletes();
-    }
-  }, [open]);
-
   async function fetchAthletes() {
     try {
       const response = await fetch('/api/clients?limit=100');
@@ -120,6 +116,12 @@ export function WorkoutAssignmentDialog({
       console.error('Failed to fetch athletes:', error);
     }
   }
+
+  useEffect(() => {
+    if (open) {
+      void fetchAthletes();
+    }
+  }, [open]);
 
   function toggleAthlete(athleteId: string) {
     setSelectedAthletes((prev) =>
@@ -139,7 +141,7 @@ export function WorkoutAssignmentDialog({
 
   async function handleAssign() {
     if (selectedAthletes.length === 0) {
-      toast.error('Välj minst en atlet');
+      toast.error(t(locale, 'Select at least one athlete', 'Välj minst en atlet'));
       return;
     }
 
@@ -188,15 +190,32 @@ export function WorkoutAssignmentDialog({
         const total = successCount * selectedAthletes.length;
         const msg =
           dates.length > 1
-            ? `${selectedAthletes.length} atlet(er) × ${successCount} datum = ${total} tilldelningar.`
-            : `Passet tilldelat ${selectedAthletes.length} atlet(er).`;
+            ? t(
+                locale,
+                `${selectedAthletes.length} athlete(s) × ${successCount} dates = ${total} assignments.`,
+                `${selectedAthletes.length} atlet(er) × ${successCount} datum = ${total} tilldelningar.`
+              )
+            : t(
+                locale,
+                `Workout assigned to ${selectedAthletes.length} athlete(s).`,
+                `Passet tilldelat ${selectedAthletes.length} atlet(er).`
+              );
 
         if (failCount > 0) {
-          toast.warning('Delvis tilldelat', {
-            description: `${msg} ${failCount} datum kunde inte tilldelas.`,
+          toast.warning(t(locale, 'Partially assigned', 'Delvis tilldelat'), {
+            description: t(
+              locale,
+              `${msg} ${failCount} date(s) could not be assigned.`,
+              `${msg} ${failCount} datum kunde inte tilldelas.`
+            ),
           });
         } else {
-          toast.success(dates.length > 1 ? 'Pass tilldelade!' : 'Pass tilldelat!', { description: msg });
+          toast.success(
+            dates.length > 1
+              ? t(locale, 'Workouts assigned', 'Pass tilldelade!')
+              : t(locale, 'Workout assigned', 'Pass tilldelat!'),
+            { description: msg }
+          );
         }
 
         setOpen(false);
@@ -215,11 +234,11 @@ export function WorkoutAssignmentDialog({
         onAssigned?.();
       } else {
         const firstError = (responses[0]?.body as { error?: string })?.error;
-        toast.error(firstError || 'Kunde inte tilldela passet');
+        toast.error(firstError || t(locale, 'Could not assign the workout', 'Kunde inte tilldela passet'));
       }
     } catch (error) {
       console.error('Failed to assign workout:', error);
-      toast.error('Något gick fel');
+      toast.error(t(locale, 'Something went wrong', 'Något gick fel'));
     } finally {
       setLoading(false);
     }
@@ -231,7 +250,7 @@ export function WorkoutAssignmentDialog({
         {trigger || (
           <Button variant="outline" size="sm" className="gap-2">
             <Send className="h-4 w-4" />
-            Tilldela
+            {t(locale, 'Assign', 'Tilldela')}
           </Button>
         )}
       </DialogTrigger>
@@ -239,22 +258,23 @@ export function WorkoutAssignmentDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Dumbbell className="h-5 w-5" />
-            Tilldela Pass
+            {t(locale, 'Assign Workout', 'Tilldela Pass')}
           </DialogTitle>
           <DialogDescription>
-            Tilldela <strong>{workoutName}</strong> till atleter för ett specifikt datum.
+            {t(locale, 'Assign', 'Tilldela')} <strong>{workoutName}</strong>{' '}
+            {t(locale, 'to athletes for a specific date.', 'till atleter för ett specifikt datum.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Date Selection */}
           <div className="space-y-2">
-            <Label>Datum</Label>
+            <Label>{t(locale, 'Date', 'Datum')}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(assignedDate, 'PPP', { locale: sv })}
+                  {format(assignedDate, 'PPP', { locale: dateLocale })}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -262,7 +282,7 @@ export function WorkoutAssignmentDialog({
                   mode="single"
                   selected={assignedDate}
                   onSelect={(date) => date && setAssignedDate(date)}
-                  locale={sv}
+                  locale={dateLocale}
                   initialFocus
                 />
               </PopoverContent>
@@ -282,21 +302,21 @@ export function WorkoutAssignmentDialog({
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Atleter ({selectedAthletes.length} valda)
+                {t(locale, 'Athletes', 'Atleter')} ({selectedAthletes.length} {t(locale, 'selected', 'valda')})
               </Label>
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={selectAll}>
-                  Alla
+                  {t(locale, 'All', 'Alla')}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={selectNone}>
-                  Ingen
+                  {t(locale, 'None', 'Ingen')}
                 </Button>
               </div>
             </div>
             <div className="border rounded-md max-h-48 overflow-y-auto">
               {athletes.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  Laddar atleter...
+                  {t(locale, 'Loading athletes...', 'Laddar atleter...')}
                 </div>
               ) : (
                 <div className="p-2 space-y-1">
@@ -329,7 +349,7 @@ export function WorkoutAssignmentDialog({
 
           {/* Scaling Suggestion */}
           <div className="space-y-2">
-            <Label>Föreslå Scaling (valfritt)</Label>
+            <Label>{t(locale, 'Suggest scaling (optional)', 'Föreslå Scaling (valfritt)')}</Label>
             <Select value={customScaling || 'RX'} onValueChange={(val) => setCustomScaling(val === 'RX' ? '' : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Standard (Rx)" />
@@ -338,7 +358,7 @@ export function WorkoutAssignmentDialog({
                 <SelectItem value="RX">Standard (Rx)</SelectItem>
                 <SelectItem value="SCALED">Scaled</SelectItem>
                 <SelectItem value="FOUNDATIONS">Foundations</SelectItem>
-                <SelectItem value="CUSTOM">Anpassad</SelectItem>
+                <SelectItem value="CUSTOM">{t(locale, 'Custom', 'Anpassad')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -346,12 +366,12 @@ export function WorkoutAssignmentDialog({
           {/* Scaling Notes */}
           {customScaling && (
             <div className="space-y-2">
-              <Label htmlFor="scalingNotes">Skalningsnoteringar</Label>
+              <Label htmlFor="scalingNotes">{t(locale, 'Scaling notes', 'Skalningsnoteringar')}</Label>
               <Textarea
                 id="scalingNotes"
                 value={scalingNotes}
                 onChange={(e) => setScalingNotes(e.target.value)}
-                placeholder="t.ex. 'Använd 30kg istället för 43kg på thrusters'"
+                placeholder={t(locale, "e.g. 'Use 30kg instead of 43kg on thrusters'", "t.ex. 'Använd 30kg istället för 43kg på thrusters'")}
                 rows={2}
               />
             </div>
@@ -367,7 +387,7 @@ export function WorkoutAssignmentDialog({
               >
                 <span className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Schemalägg tid (valfritt)
+                  {t(locale, 'Schedule time (optional)', 'Schemalägg tid (valfritt)')}
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
               </Button>
@@ -392,12 +412,12 @@ export function WorkoutAssignmentDialog({
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Anteckningar till atleten (valfritt)</Label>
+            <Label htmlFor="notes">{t(locale, 'Notes to the athlete (optional)', 'Anteckningar till atleten (valfritt)')}</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Meddelande eller instruktioner..."
+              placeholder={t(locale, 'Message or instructions...', 'Meddelande eller instruktioner...')}
               rows={3}
             />
           </div>
@@ -405,15 +425,15 @@ export function WorkoutAssignmentDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Avbryt
+            {t(locale, 'Cancel', 'Avbryt')}
           </Button>
           <Button onClick={handleAssign} disabled={loading || selectedAthletes.length === 0}>
             {loading ? (
-              'Tilldelar...'
+              t(locale, 'Assigning...', 'Tilldelar...')
             ) : (
               <>
                 <Send className="mr-2 h-4 w-4" />
-                Tilldela ({repeatEnabled ? `${selectedAthletes.length}×${occurrences}` : selectedAthletes.length})
+                {t(locale, 'Assign', 'Tilldela')} ({repeatEnabled ? `${selectedAthletes.length}×${occurrences}` : selectedAthletes.length})
               </>
             )}
           </Button>
@@ -421,4 +441,8 @@ export function WorkoutAssignmentDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function t(locale: 'en' | 'sv', en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
