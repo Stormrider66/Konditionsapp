@@ -5011,7 +5011,7 @@
         },
         "balanced": {
           "label": "Balanced (recommended)",
-          "hint": "Gemini 3 Flash / Sonnet / GPT-5 Mini. Best cost/quality balance."
+          "hint": "Gemini 3.5 Flash / Sonnet / GPT-5 Mini. Best cost/quality balance."
         },
         "powerful": {
           "label": "Powerful (best quality)",

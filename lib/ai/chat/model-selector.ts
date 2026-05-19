@@ -73,7 +73,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
       apiKey: healthyKeys.googleKey,
       fetch: wrapAiFetch('google'),
     })
-    const geminiModel = model || 'gemini-3-flash-preview'
+    const geminiModel = model || 'gemini-3.5-flash'
     if (deepThinkEnabled) {
       logger.info('Using Gemini Deep Think mode', { model: geminiModel })
     }

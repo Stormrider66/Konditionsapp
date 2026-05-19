@@ -32,7 +32,7 @@ All AI features use **ModelIntent** — a provider-agnostic tier that maps to co
 | Intent | Anthropic | Google | OpenAI | Use Case |
 |--------|-----------|--------|--------|----------|
 | `fast` | Claude Haiku 4.5 | Gemini 3.1 Flash Lite | GPT-5.3 Instant | Quick tasks, nudges, memory extraction |
-| `balanced` | Claude Sonnet 4.6 | Gemini 3 Flash | GPT-5 Mini | Chat, WOD, nutrition, most features |
+| `balanced` | Claude Sonnet 4.6 | Gemini 3.5 Flash | GPT-5 Mini | Chat, WOD, nutrition, most features |
 | `powerful` | Claude Opus 4.6 | Gemini 3.1 Pro | GPT-5.4 | Program generation, deep analysis |
 
 **Defined in:** `types/ai-models.ts` → `MODEL_TIERS`
@@ -43,7 +43,7 @@ All AI features use **ModelIntent** — a provider-agnostic tier that maps to co
 
 | Constant | Model ID | Used For |
 |----------|----------|----------|
-| `GEMINI_MODELS.VIDEO_ANALYSIS` | `gemini-3-flash-preview` | Video analysis, lactate OCR |
+| `GEMINI_MODELS.VIDEO_ANALYSIS` | `gemini-3.5-flash` | Video analysis, lactate OCR |
 | `GEMINI_MODELS.IMAGE_GENERATION` | `gemini-2.5-flash-image` | Chart/image generation |
 | `GEMINI_MODELS.PRO` | `gemini-2.5-pro` | Deep Think periodization |
 | OpenAI `text-embedding-ada-002` | — | All embeddings (RAG) |

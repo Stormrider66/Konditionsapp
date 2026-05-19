@@ -14,7 +14,7 @@
  * - PDF      → pdf-parse → text
  * - text     → forwarded as-is
  *
- * Model routing: `resolveModel(keys, 'balanced')` — Gemini 3 Flash first
+ * Model routing: `resolveModel(keys, 'balanced')` — Gemini 3.5 Flash first
  * (cheap, fast, good JSON extraction), falls back to Claude Sonnet / GPT mini
  * based on available BYOK. Users with only an Anthropic key still work.
  */

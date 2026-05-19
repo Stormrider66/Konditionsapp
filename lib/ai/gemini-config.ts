@@ -13,16 +13,16 @@
  */
 export const GEMINI_MODELS = {
   /** Best for video/audio analysis - fast, stable */
-  VIDEO_ANALYSIS: 'gemini-3-flash-preview',
+  VIDEO_ANALYSIS: 'gemini-3.5-flash',
 
   /** Best for audio transcription and extraction */
-  AUDIO_TRANSCRIPTION: 'gemini-3-flash-preview',
+  AUDIO_TRANSCRIPTION: 'gemini-3.5-flash',
 
   /** Best for chat conversations with long context */
-  CHAT: 'gemini-3-flash-preview',
+  CHAT: 'gemini-3.5-flash',
 
   /** Best for quick responses where latency matters */
-  FLASH: 'gemini-3-flash-preview',
+  FLASH: 'gemini-3.5-flash',
 
   /** Advanced reasoning */
   PRO: 'gemini-2.5-pro',
@@ -53,8 +53,8 @@ export const GEMINI_CAPABILITIES = {
   /** Maximum audio length in seconds */
   maxAudioLengthSeconds: 60,
 
-  /** Context window in tokens (2 million for Gemini 2.5 Pro) */
-  contextWindowTokens: 2_000_000,
+  /** Context window in tokens (1 million for Gemini 3.5 Flash) */
+  contextWindowTokens: 1_048_576,
 
   /** Whether structured output (generateObject) is supported */
   structuredOutput: true,
@@ -101,6 +101,11 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number; ima
     input: 0.00025, // $0.25 per 1M input tokens
     output: 0.0015, // $1.50 per 1M output tokens
   },
+  'gemini-3.5-flash': {
+    input: 0.0015, // $1.50 per 1M input tokens
+    output: 0.009, // $9.00 per 1M output tokens
+  },
+  // Kept for historical logs and any in-flight conversations pinned to preview.
   'gemini-3-flash-preview': {
     input: 0.0005, // $0.50 per 1M input tokens
     output: 0.003, // $3.00 per 1M output tokens

@@ -374,7 +374,7 @@ async function callGoogle(
   const { generateText } = await import('ai')
 
   const google = createGoogleGenerativeAI({ apiKey })
-  const model = modelId || 'gemini-3-flash-preview'
+  const model = modelId || 'gemini-3.5-flash'
 
   const result = await generateText({
     model: google(model),

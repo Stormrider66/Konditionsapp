@@ -57,11 +57,11 @@ export const AI_MODELS: AIModelConfig[] = [
   },
   {
     id: 'gemini-3-flash',
-    name: 'Gemini 3 Flash',
+    name: 'Gemini 3.5 Flash',
     provider: 'google',
-    modelId: 'gemini-3-flash-preview',
-    description: 'Snabb och kostnadseffektiv. Bra för chatt och interaktiva uppgifter.',
-    costTier: 'low',
+    modelId: 'gemini-3.5-flash',
+    description: 'Stabil Flash-modell med stark agentisk kapacitet. Bra för chatt och interaktiva uppgifter.',
+    costTier: 'medium',
     capabilities: {
       reasoning: 'good',
       speed: 'fast',
@@ -69,8 +69,8 @@ export const AI_MODELS: AIModelConfig[] = [
       maxOutputTokens: 65536,
     },
     pricing: {
-      input: 0.5,   // $0.50 per 1M tokens
-      output: 3.0,  // $3.00 per 1M tokens
+      input: 1.5,   // $1.50 per 1M tokens
+      output: 9.0,  // $9.00 per 1M tokens
     },
     recommended: true,
   },
@@ -228,7 +228,7 @@ export function getAvailableModels(keys: {
  * Get model by ID
  */
 export function getModelById(id: string): AIModelConfig | undefined {
-  return AI_MODELS.find(m => m.id === id)
+  return AI_MODELS.find(m => m.id === id || m.modelId === id)
 }
 
 /**
@@ -369,7 +369,7 @@ export const MODEL_TIERS: Record<ModelIntent, {
     openai:    { modelId: 'gpt-5.4-nano',                  displayName: 'GPT-5.4 Nano',         supportsVision: true },
   },
   balanced: {
-    google:    { modelId: 'gemini-3-flash-preview',     displayName: 'Gemini 3 Flash',    supportsVision: true },
+    google:    { modelId: 'gemini-3.5-flash',          displayName: 'Gemini 3.5 Flash', supportsVision: true },
     anthropic: { modelId: 'claude-sonnet-4-6',          displayName: 'Claude Sonnet 4.6', supportsVision: true },
     openai:    { modelId: 'gpt-5.4-mini',               displayName: 'GPT-5.4 Mini',      supportsVision: true },
   },
@@ -392,8 +392,9 @@ export const MODEL_TIERS: Record<ModelIntent, {
  *
  * For extraction we deliberately prefer the BALANCED tier's models even
  * when the caller asked for 'powerful'. Reasons:
- *   - Sonnet 4.6 / Gemini 3 Flash / GPT-5 Mini all support `temperature`,
- *     which we set to 0.1 for run-to-run consistency.
+ *   - Sonnet 4.6 / Gemini 3.5 Flash / GPT-5 Mini are fast, capable, and
+ *     predictable for structured extraction. Sampling params are stripped
+ *     where a provider discourages or rejects them.
  *   - They don't spend output tokens on extended thinking (Opus 4.7's
  *     failure mode on our Excel imports: thinking ate the budget and the
  *     JSON truncated past exercise names).
@@ -571,7 +572,7 @@ export function legacyModelIdToIntent(id: string): ModelIntent {
 
   // Also match the short IDs used in the AI_MODELS array
   const fastIds = ['gemini-3.1-flash-lite', 'claude-haiku', 'gpt-5.3-instant', 'gpt-5.4-nano']
-  const balancedIds = ['gemini-3-flash', 'claude-sonnet', 'gpt-5-mini', 'gpt-5.4-mini']
+  const balancedIds = ['gemini-3-flash', 'gemini-3.5-flash', 'gemini-3-flash-preview', 'claude-sonnet', 'gpt-5-mini', 'gpt-5.4-mini']
   const powerfulIds = ['gemini-3-pro', 'claude-opus', 'gpt-5.5']
 
   if (fastIds.includes(id)) return 'fast'

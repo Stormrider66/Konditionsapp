@@ -162,14 +162,14 @@ For athletes registered directly (not via coach):
 - All heavy AI features debit the same allowance: food scanner, video analysis, voice coach, program generation, WOD generation, document import, research, and chat.
 - Top-up credits can be bought separately, are spent after included monthly credits, and expire after 180 days.
 - Average lightweight text interaction: ~1,000 input tokens + 500 output tokens
-- **Default model: Gemini 3.1 Flash Lite** ($0.25/$1.50 per M tokens) for background, **Gemini 3 Flash** ($0.50/$3.00) for interactive
+- **Default model: Gemini 3.1 Flash Lite** ($0.25/$1.50 per M tokens) for background, **Gemini 3.5 Flash** ($1.50/$9.00) for interactive
 - Food photo and video analysis are expected to dominate direct athlete AI spend, so allowance and admin margin monitoring are based on actual logged provider cost rather than message volume.
 
 **Smart Model Routing:**
 | Task | Model | Why |
 |------|-------|-----|
-| Daily chat, quick questions | Gemini 3 Flash | Ultra-low cost, fast |
-| Workout adjustments | Gemini 3 Flash | Simple logic |
+| Daily chat, quick questions | Gemini 3.5 Flash | Fast, stable |
+| Workout adjustments | Gemini 3.5 Flash | Simple logic |
 | Program generation | Claude Sonnet 4.5 | Complex reasoning needed |
 | Deep research, analysis | Claude Opus 4.5 | Maximum capability |
 | Video analysis | Claude Sonnet/Opus | Multimodal understanding |
@@ -209,7 +209,7 @@ This routing strategy keeps costs minimal for 90%+ of interactions while reservi
 |-------|----------------------|------------------------|
 | Gemini 3 Pro | $1.25 | $5.00 |
 | Gemini 3.1 Flash Lite | $0.25 | $1.50 |
-| Gemini 3 Flash | $0.50 | $3.00 |
+| Gemini 3.5 Flash | $1.50 | $9.00 |
 
 ### 4.4 AI Budget Management System
 

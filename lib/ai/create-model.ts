@@ -48,13 +48,12 @@ export function createModelInstance(resolved: ResolvedModel) {
 }
 
 /**
- * Models that no longer accept the `temperature` request parameter.
+ * Models where we intentionally omit sampling parameters.
  *
  * Claude Opus 4.7 ships extended thinking on by default and the API rejects
  * `temperature` outright ("`temperature` is deprecated for this model"); the
- * AI SDK then bubbles that up as a 400. OpenAI's o-series reasoning models
- * have the same constraint. Keep this list explicit so a future thinking-
- * mode model doesn't silently break callers the same way.
+ * AI SDK then bubbles that up as a 400. Gemini 3.x docs recommend default
+ * sampling parameters, so we also omit temperature/topP/topK for those models.
  */
 const NO_TEMPERATURE_MODELS = new Set<string>([
   'claude-opus-4-7',
@@ -65,6 +64,7 @@ export function modelDeprecatesTemperature(modelId: string): boolean {
   // Anything matching the OpenAI o-series naming convention also rejects
   // temperature in the current API surface.
   if (/^o[1-9]/i.test(modelId)) return true
+  if (/^gemini-3(?:[.-]|$)/i.test(modelId)) return true
   return false
 }
 

@@ -29,7 +29,7 @@ export interface AiCallMeta {
  * Create a Google GenAI client instance.
  *
  * `apiVersion: 'v1beta'` is pinned because we depend on preview models
- * (gemini-3-flash-preview, gemini-3.1-pro-preview) that only exist on
+ * (for example gemini-3.1-pro-preview) that only exist on
  * the v1beta channel. The @google/genai SDK default flips to v1 in
  * its next major (Feb 2027); without this pin, those models will 404.
  */
@@ -86,6 +86,10 @@ const GENAI_THINKING_LEVEL: Record<NonNullable<GenerateContentConfig['thinkingLe
   high: ThinkingLevel.HIGH,
 };
 
+function shouldUseDefaultSampling(model: string): boolean {
+  return /^gemini-3(?:[.-]|$)/i.test(model);
+}
+
 /**
  * Generate content with video/audio analysis.
  *
@@ -107,7 +111,7 @@ export async function generateContent(
     contents: [{ role: 'user', parts }],
     config: config ? {
       maxOutputTokens: config.maxOutputTokens,
-      temperature: config.temperature,
+      temperature: shouldUseDefaultSampling(model) ? undefined : config.temperature,
       thinkingConfig: config.thinkingLevel
         ? { thinkingLevel: GENAI_THINKING_LEVEL[config.thinkingLevel] }
         : undefined,
@@ -525,8 +529,8 @@ export async function fetchAsBase64(
  * Get the recommended model for video/audio tasks.
  * Maps our config to actual model IDs.
  *
- * Available models (March 2026):
- * - gemini-3-flash-preview: Fast, stable, video support (newest flash model)
+ * Available models (May 2026):
+ * - gemini-3.5-flash: GA Flash model with video/audio support
  * - gemini-2.5-pro: Advanced reasoning
  * - gemini-3.1-pro-preview: Newest capability
  *
@@ -536,15 +540,15 @@ export async function fetchAsBase64(
 export function getGeminiModelId(task: 'video' | 'audio' | 'chat'): string {
   switch (task) {
     case 'video':
-      // Gemini 3 Flash - fast, excellent for video/gait analysis
-      return 'gemini-3-flash-preview';
+      // Gemini 3.5 Flash - fast, excellent for video/gait analysis
+      return 'gemini-3.5-flash';
     case 'audio':
-      // Gemini 3 Flash - fast for audio analysis
-      return 'gemini-3-flash-preview';
+      // Gemini 3.5 Flash - fast for audio analysis
+      return 'gemini-3.5-flash';
     case 'chat':
-      return 'gemini-3-flash-preview';
+      return 'gemini-3.5-flash';
     default:
-      return 'gemini-3-flash-preview';
+      return 'gemini-3.5-flash';
   }
 }
 

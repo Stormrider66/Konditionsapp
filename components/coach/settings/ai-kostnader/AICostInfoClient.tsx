@@ -158,7 +158,7 @@ export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Månadskostnad per atlet</h3>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 px-2">
-            Uppskattad kostnad med Gemini 3 Flash (billigaste modellen). Faktisk kostnad beror på modellval.
+            Uppskattad kostnad med Gemini 3.5 Flash (rekommenderad balanserad modell). Faktisk kostnad beror på modellval.
           </p>
           <div className="grid gap-4 sm:grid-cols-3">
             {USAGE_PROFILES.map((profile) => {

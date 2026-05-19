@@ -126,14 +126,14 @@ export async function PUT(request: NextRequest) {
       });
 
       if (!model) {
-        // Try by exact modelId (e.g., "gemini-3-flash-preview")
+        // Try by exact modelId (e.g., "gemini-3.5-flash")
         model = await prisma.aIModel.findUnique({
           where: { modelId: modelId },
         });
       }
 
       if (!model) {
-        // Try by modelId starting with the input (e.g., "gemini-3-flash" matches "gemini-3-flash-preview")
+        // Try by modelId starting with the input (e.g., "gemini-3.5" matches "gemini-3.5-flash")
         model = await prisma.aIModel.findFirst({
           where: {
             modelId: { startsWith: modelId },

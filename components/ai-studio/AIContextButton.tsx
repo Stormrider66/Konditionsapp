@@ -95,7 +95,7 @@ export function AIContextButton({
       .catch(() => {})
   }, [])
 
-  const MODEL = modelConfig?.model || 'gemini-3-flash-preview'
+  const MODEL = modelConfig?.model || 'gemini-3.5-flash'
   const PROVIDER = modelConfig?.provider || 'GOOGLE'
 
   const actions = quickActions || (athleteId ? DEFAULT_ATHLETE_ACTIONS : DEFAULT_TEST_ACTIONS)

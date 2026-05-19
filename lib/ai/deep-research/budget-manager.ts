@@ -403,6 +403,7 @@ export function estimateCost(
     // Gemini
     'deep-research-pro-preview-12-2025': { input: 0, output: 0 }, // Free until Jan 2026
     'gemini-3.1-pro-preview': { input: 2.0, output: 12.0 },
+    'gemini-3.5-flash': { input: 1.5, output: 9.0 },
     'gemini-3-flash-preview': { input: 0.075, output: 0.30 },
 
     // OpenAI

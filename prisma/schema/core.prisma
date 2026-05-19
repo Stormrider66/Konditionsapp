@@ -1472,7 +1472,7 @@ model SportProfile {
   hasCustomProgram      Boolean @default(false)
 
   // AI preferences
-  preferredAIModelId String? // Preferred AI model for WOD and assistant (e.g., 'gemini-3-flash')
+  preferredAIModelId String? // Preferred AI model for WOD and assistant (e.g., 'gemini-3.5-flash')
 
   // Lifestyle / NEAT activity level — applied to nutrition baseline before
   // workout kcal are added. Defaults to SEDENTARY so behavior matches the

@@ -156,8 +156,8 @@ export async function POST(
     }
 
     // Determine which model to use
-    let modelId = 'gemini-3-flash-preview'
-    let modelDisplayName = 'Gemini 3 Flash'
+    let modelId = 'gemini-3.5-flash'
+    let modelDisplayName = 'Gemini 3.5 Flash'
 
     // Priority 1: Athlete's preferred model (if Google)
     const athletePreferredModelId = client.sportProfile?.preferredAIModelId

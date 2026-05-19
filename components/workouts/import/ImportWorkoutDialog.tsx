@@ -96,7 +96,7 @@ export type ImportedWorkoutPayload = {
   mappings: Record<string, string>
   /** Resolutions surfaced server-side (full panel data, for debug / audit). */
   resolutions: Resolution[]
-  /** AI tier label, e.g. "Gemini 3 Flash". */
+  /** AI tier label, e.g. "Gemini 3.5 Flash". */
   modelUsed: string
 }
 

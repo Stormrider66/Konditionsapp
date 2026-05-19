@@ -5011,7 +5011,7 @@
         },
         "balanced": {
           "label": "Balanserad (rekommenderas)",
-          "hint": "Gemini 3 Flash / Sonnet / GPT-5 Mini. Bäst kostnad/kvalitet."
+          "hint": "Gemini 3.5 Flash / Sonnet / GPT-5 Mini. Bäst kostnad/kvalitet."
         },
         "powerful": {
           "label": "Kraftfull (bäst kvalitet)",

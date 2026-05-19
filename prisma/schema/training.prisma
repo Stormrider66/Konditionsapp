@@ -1742,7 +1742,7 @@ model AdHocWorkout {
   // AI parsing results
   parsedType        WorkoutType?
   parsedStructure   Json? // Full workout structure (ParsedWorkout JSON)
-  parsingModel      String? // "gemini-3-flash", "gemini-3-pro", etc.
+  parsingModel      String? // "gemini-3.5-flash", "gemini-3-pro", etc.
   parsingConfidence Float?
   parsingError      String?      @db.Text // If parsing failed
 

@@ -101,7 +101,7 @@ Route protection in `middleware.ts` (includes custom domain white-label support,
 
 **Providers (BYOK - encrypted user API keys):**
 - Anthropic: Haiku 4.5, Sonnet 4.6, Opus 4.7
-- Google: Gemini 3.1 Flash Lite, Gemini 3 Flash, Gemini 3.1 Pro
+- Google: Gemini 3.1 Flash Lite, Gemini 3.5 Flash, Gemini 3.1 Pro
 - OpenAI: GPT-5.3 Instant, GPT-5 Mini, GPT-5.4
 
 **ModelIntent:** `fast` | `balanced` | `powerful` — provider-agnostic model selection

@@ -85,7 +85,7 @@ export async function analyzeTest(
     }
 
     const client = createGoogleGenAIClient(apiKey)
-    const model = GEMINI_MODELS.FLASH // Use Gemini 3 Flash for fast analysis
+    const model = GEMINI_MODELS.FLASH // Use Gemini 3.5 Flash for fast analysis
 
     const startTime = Date.now()
     const fullPrompt = `${PERFORMANCE_ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`

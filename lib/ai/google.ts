@@ -4,7 +4,7 @@
  *
  * Use as:
  *   import { google } from '@/lib/ai/google'
- *   const model = google('gemini-3-flash-preview')
+ *   const model = google('gemini-3.5-flash')
  *
  * Combine with `withAiContext({ userId, category: 'chat' }, async () => { ... })`
  * around the `generateText`/`streamText` call so the resulting AIUsageLog row
