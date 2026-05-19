@@ -33,7 +33,7 @@ import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert } from 'lucide-react'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert, CalendarDays } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import { cn } from '@/lib/utils'
@@ -559,6 +559,16 @@ export default function BusinessClientDetailPage() {
     const endDate = new Date(program.endDate)
     return startDate <= now && endDate >= now
   }) ?? null
+  const upcomingProgram = programs
+    .filter((program) => new Date(program.startDate) > now)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0] ?? null
+  const referenceProgram = activeProgram ?? upcomingProgram
+  const daysUntilUpcomingProgram = upcomingProgram
+    ? Math.max(0, Math.ceil((new Date(upcomingProgram.startDate).getTime() - now.getTime()) / 86_400_000))
+    : null
+  const daysRemainingInActiveProgram = activeProgram
+    ? Math.max(0, Math.ceil((new Date(activeProgram.endDate).getTime() - now.getTime()) / 86_400_000))
+    : null
   const hasRecentTest = latestTestAgeDays !== null && latestTestAgeDays <= 90
   const hasPortalLogin = athletePortalStatus?.hasLoggedIn === true
   const coachSnapshotTone: CoachSnapshotTone = !client.athleteAccount || !latestCompletedTest || !activeProgram
@@ -635,6 +645,19 @@ export default function BusinessClientDetailPage() {
       ? portalStatusLabels.active
       : portalStatusLabels.notLoggedIn
     : t('overview.snapshotMetrics.noPortal')
+  const planningProgramLabel = programsLoading
+    ? t('planning.loading')
+    : activeProgram?.name ?? upcomingProgram?.name ?? t('planning.noProgram')
+  const planningProgramMeta = activeProgram
+    ? t('planning.daysRemaining', { days: daysRemainingInActiveProgram ?? 0 })
+    : upcomingProgram
+      ? t('planning.startsIn', { days: daysUntilUpcomingProgram ?? 0 })
+      : t('planning.noProgramDescription')
+  const planningLogStatus = client.athleteAccount
+    ? hasPortalLogin
+      ? t('planning.logsReady')
+      : t('planning.logsNeedInvite')
+    : t('planning.logsNeedAccount')
 
   const noAthleteAccountContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
@@ -897,6 +920,105 @@ export default function BusinessClientDetailPage() {
 
   const planningContent = (
     <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('planning.title')}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t('planning.description')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`${basePath}/calendar`}>
+              <Button variant="outline" size="sm">
+                <CalendarDays className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('planning.openCalendar')}</span>
+              </Button>
+            </Link>
+            <Link href={`${basePath}/programs/new`}>
+              <Button size="sm">{t('programs.newProgram')}</Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3 mt-5">
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('planning.currentBlock')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">{planningProgramLabel}</p>
+            <p className="text-xs text-muted-foreground mt-1">{planningProgramMeta}</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('planning.workoutLogging')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">{planningLogStatus}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('planning.workoutLoggingDescription')}</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('planning.programLibrary')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1">
+              {programsLoading ? t('planning.loading') : t('planning.programCount', { count: programs.length })}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">{t('planning.programLibraryDescription')}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3 mt-5">
+          {referenceProgram ? (
+            <Link href={`${basePath}/programs/${referenceProgram.id}`}>
+              <Button variant="outline" className="h-auto w-full justify-start p-3">
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{activeProgram ? t('planning.viewActiveProgram') : t('planning.viewUpcomingProgram')}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{referenceProgram.name}</p>
+                </div>
+              </Button>
+            </Link>
+          ) : (
+            <Link href={`${basePath}/programs/new`}>
+              <Button variant="outline" className="h-auto w-full justify-start p-3">
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.createProgramAction')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('planning.createProgramActionDescription')}</p>
+                </div>
+              </Button>
+            </Link>
+          )}
+
+          {client.athleteAccount ? (
+            <Link href={`${basePath}/athletes/${id}/logs`}>
+              <Button variant="outline" className="h-auto w-full justify-start p-3">
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.reviewLogs')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('planning.reviewLogsDescription')}</p>
+                </div>
+              </Button>
+            </Link>
+          ) : (
+            <CreateAthleteAccountDialog
+              clientId={id}
+              clientName={client.name}
+              clientEmail={client.email}
+              clientPhone={client.phone}
+              hasExistingAccount={false}
+              onAccountCreated={fetchClient}
+              trigger={
+                <Button variant="outline" className="h-auto w-full justify-start p-3">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.enableLogs')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('planning.enableLogsDescription')}</p>
+                  </div>
+                </Button>
+              }
+            />
+          )}
+
+          <Link href={`${basePath}/clients/${id}/fueling`}>
+            <Button variant="outline" className="h-auto w-full justify-start p-3">
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.reviewFueling')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('planning.reviewFuelingDescription')}</p>
+              </div>
+            </Button>
+          </Link>
+        </div>
+      </div>
+
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 lg:p-6">
         <UnifiedCalendar
           clientId={id}
