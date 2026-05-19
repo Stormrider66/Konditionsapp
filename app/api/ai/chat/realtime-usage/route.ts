@@ -23,6 +23,7 @@ export const maxDuration = 30
 export const dynamic = 'force-dynamic'
 
 const REALTIME_MODEL = 'gpt-realtime'
+type AppLocale = 'en' | 'sv'
 
 const requestSchema = z.object({
   durationSeconds: z.number().min(0).max(7200),
@@ -38,7 +39,7 @@ const requestSchema = z.object({
   endReason: z.enum(['user_stopped', 'disconnected', 'error', 'close', 'new_chat']).optional().default('user_stopped'),
 })
 
-async function resolveClientIdForUsage(isAthleteChat: boolean): Promise<{
+async function resolveClientIdForUsage(isAthleteChat: boolean, locale: AppLocale): Promise<{
   userId: string
   clientId: string | null
 }> {
@@ -53,7 +54,7 @@ async function resolveClientIdForUsage(isAthleteChat: boolean): Promise<{
   if (!isAthleteChat) {
     const hasCoachAccess = await canAccessCoachPlatform(currentUser.id)
     if (!hasCoachAccess) {
-      throw new Response(JSON.stringify({ error: 'Coachbehörighet krävs' }), {
+      throw new Response(JSON.stringify({ error: t(locale, 'Coach access required', 'Coachbehörighet krävs') }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -86,7 +87,11 @@ async function resolveClientIdForUsage(isAthleteChat: boolean): Promise<{
   const consent = await getConsentStatus(resolved.clientId)
   if (!consent.hasRequiredConsent) {
     throw new Response(JSON.stringify({
-      error: 'Du måste godkänna databehandling innan live voice-kostnad kan loggas.',
+      error: t(
+        locale,
+        'You must approve data processing before live voice cost can be logged.',
+        'Du måste godkänna databehandling innan live voice-kostnad kan loggas.'
+      ),
       code: 'CONSENT_REQUIRED',
     }), {
       status: 403,
@@ -98,12 +103,13 @@ async function resolveClientIdForUsage(isAthleteChat: boolean): Promise<{
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const body = await request.json().catch(() => null)
     const parsed = requestSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Skicka giltig live voice-användning.' },
+        { error: t(locale, 'Send valid live voice usage.', 'Skicka giltig live voice-användning.') },
         { status: 400 }
       )
     }
@@ -112,6 +118,7 @@ export async function POST(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    locale = currentUser.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-realtime-usage', currentUser.id, {
       limit: 20,
@@ -119,7 +126,7 @@ export async function POST(request: NextRequest) {
     })
     if (rateLimited) return rateLimited
 
-    const { userId, clientId } = await resolveClientIdForUsage(parsed.data.isAthleteChat)
+    const { userId, clientId } = await resolveClientIdForUsage(parsed.data.isAthleteChat, locale)
     const estimate = estimateRealtimeVoiceCost(parsed.data)
 
     await prisma.aIUsageLog.create({
@@ -164,7 +171,7 @@ export async function POST(request: NextRequest) {
     logger.error('Chat realtime usage logging error', {}, error)
     return NextResponse.json(
       {
-        error: 'Kunde inte logga live voice-användning.',
+        error: t(locale, 'Could not log live voice usage.', 'Kunde inte logga live voice-användning.'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -173,4 +180,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
