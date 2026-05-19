@@ -11,6 +11,7 @@ import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
 import { ActivePrograms } from '@/components/athlete/ActivePrograms'
+import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { AISuggestionsBanner } from '@/components/athlete/ai/AISuggestionsBanner'
 import { AICreditStatusCard } from '@/components/athlete/ai/AICreditStatusCard'
 import { CyclingDashboard } from '@/components/athlete/CyclingDashboard'
@@ -272,6 +273,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   // Parallel data fetching for better performance
   const [
     activePrograms,
+    activeAthletePlans,
     latestMetrics,
     recentLogsWithSetLogs,
     weeklyTSS,
@@ -302,6 +304,36 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           orderBy: { weekNumber: 'asc' }
         }
       },
+    }),
+
+    prisma.athletePlan.findMany({
+      where: {
+        clientId,
+        status: 'ACTIVE',
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        blocks: {
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            title: true,
+            focus: true,
+            description: true,
+            order: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+      },
+      orderBy: { startDate: 'desc' },
     }),
 
     // 2. Latest DailyMetrics for readiness score + Garmin health data
@@ -623,6 +655,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
   // Current Phase / Week - calculate based on actual date
   const currentProgram = activePrograms[0]
+  const currentAthletePlan = activeAthletePlans[0] ?? null
   const currentWeekIndex = currentProgram
     ? Math.max(0, Math.min(differenceInWeeks(now, currentProgram.startDate), (currentProgram.weeks?.length ?? 1) - 1))
     : -1
@@ -673,7 +706,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
   // Get next item for rest day card
   const nextItem: DashboardItem | null = upcomingItems.length > 0 ? upcomingItems[0] : null
-  const restDayMode = currentProgram ? 'rest-day' : 'open-day'
+  const restDayMode = currentProgram || currentAthletePlan ? 'rest-day' : 'open-day'
 
   // Calculate WOD stats
   const startOfWeek = startOfDay(addDays(now, -now.getDay() + 1)) // Monday
@@ -843,6 +876,15 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
             Active restrictions stay pinned at top: it's a required, safety-critical widget. */}
         <div className="space-y-6">
           <ActiveRestrictionsCard clientId={clientId} />
+
+          {currentAthletePlan && (
+            <AthletePlanSummaryCard
+              plan={currentAthletePlan}
+              now={now}
+              variant="athlete"
+              className="bg-white/80 dark:bg-slate-900/80"
+            />
+          )}
 
           {sortByOrder([
             { key: 'accountability-streak', node: <AccountabilityStreakWidget basePath={basePath} /> },

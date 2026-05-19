@@ -191,6 +191,7 @@ model User {
 
   // New relations for training programs
   coachPrograms    TrainingProgram[] @relation("CoachPrograms")
+  coachAthletePlans AthletePlan[]    @relation("CoachAthletePlans")
   createdRaceFuelingPlans RaceFuelingPlan[] @relation("RaceFuelingPlanCreator")
   exercises        Exercise[]
   workoutLogs      WorkoutLog[]
@@ -480,6 +481,7 @@ model Client {
   team             Team?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
   tests            Test[]
   trainingPrograms TrainingProgram[]
+  athletePlans     AthletePlan[]
   athleteAccount   AthleteAccount?
 
   // Training Engine relationships

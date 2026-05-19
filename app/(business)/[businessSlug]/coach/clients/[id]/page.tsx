@@ -30,9 +30,11 @@ import { ProgressionDashboard } from '@/components/coach/progression/Progression
 import { ClientLoadSummary } from '@/components/coach/clients/ClientLoadSummary'
 import { ClientFuelingSummary } from '@/components/coach/clients/ClientFuelingSummary'
 import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
+import { CreateAthletePlanDialog } from '@/components/coach/clients/CreateAthletePlanDialog'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
+import { AthletePlanSummaryCard, type AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert, CalendarDays, Sparkles, Target } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
@@ -126,7 +128,7 @@ type CoachSnapshotAction = {
   title: string
   description: string
   href?: string
-  dialog?: 'createAccount' | 'sendInvite'
+  dialog?: 'createAccount' | 'sendInvite' | 'createPlan'
 }
 
 const DEFAULT_PLAYER_HOCKEY_SETTINGS: HockeySettings = {
@@ -230,6 +232,8 @@ export default function BusinessClientDetailPage() {
   const [sportProfileLoading, setSportProfileLoading] = useState(true)
   const [recentTests, setRecentTests] = useState<RecentTestEntry[]>([])
   const [recentTestCounts, setRecentTestCounts] = useState<RecentTestCounts>({ test: 0, hockey: 0, custom: 0 })
+  const [athletePlans, setAthletePlans] = useState<AthletePlanSummary[]>([])
+  const [athletePlansLoading, setAthletePlansLoading] = useState(true)
 
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -365,16 +369,36 @@ export default function BusinessClientDetailPage() {
     }
   }, [id])
 
+  const fetchAthletePlans = useCallback(async () => {
+    try {
+      setAthletePlansLoading(true)
+      const response = await fetch(`/api/clients/${id}/athlete-plans?active=true`)
+      const result = await response.json()
+
+      if (result.success) {
+        setAthletePlans(result.data || [])
+      } else {
+        setAthletePlans([])
+      }
+    } catch (err) {
+      console.error('Error fetching athlete plans:', err)
+      setAthletePlans([])
+    } finally {
+      setAthletePlansLoading(false)
+    }
+  }, [id])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void fetchClient()
       void fetchPrograms()
       void fetchSportProfile()
       void fetchRecentTests()
+      void fetchAthletePlans()
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [fetchClient, fetchPrograms, fetchSportProfile, fetchRecentTests])
+  }, [fetchClient, fetchPrograms, fetchSportProfile, fetchRecentTests, fetchAthletePlans])
 
   const calculateAge = (birthDate: Date) => {
     const today = new Date()
@@ -618,6 +642,17 @@ export default function BusinessClientDetailPage() {
     const endDate = new Date(program.endDate)
     return startDate <= now && endDate >= now
   }) ?? null
+  const activeAthletePlan = athletePlans.find((plan) => {
+    const startDate = new Date(plan.startDate)
+    const endDate = new Date(plan.endDate)
+    return plan.status === 'ACTIVE' && startDate <= now && endDate >= now
+  }) ?? null
+  const currentAthletePlanBlock = activeAthletePlan?.blocks.find((block) => {
+    const startDate = new Date(block.startDate)
+    const endDate = new Date(block.endDate)
+    return startDate <= now && endDate >= now
+  }) ?? activeAthletePlan?.blocks[0] ?? null
+  const hasPlanContext = !!activeProgram || !!activeAthletePlan
   const upcomingProgram = programs
     .filter((program) => new Date(program.startDate) > now)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0] ?? null
@@ -628,9 +663,12 @@ export default function BusinessClientDetailPage() {
   const daysRemainingInActiveProgram = activeProgram
     ? Math.max(0, Math.ceil((new Date(activeProgram.endDate).getTime() - now.getTime()) / 86_400_000))
     : null
+  const daysRemainingInActiveAthletePlan = activeAthletePlan
+    ? Math.max(0, Math.ceil((new Date(activeAthletePlan.endDate).getTime() - now.getTime()) / 86_400_000))
+    : null
   const hasRecentTest = latestTestAgeDays !== null && latestTestAgeDays <= 90
   const hasPortalLogin = athletePortalStatus?.hasLoggedIn === true
-  const coachSnapshotTone: CoachSnapshotTone = !client.athleteAccount || !latestRecentTest || !activeProgram
+  const coachSnapshotTone: CoachSnapshotTone = !client.athleteAccount || !latestRecentTest || !hasPlanContext
     ? 'setup'
     : !hasRecentTest || !sportProfile || !hasPortalLogin
       ? 'caution'
@@ -675,12 +713,12 @@ export default function BusinessClientDetailPage() {
     })
   }
 
-  if (!activeProgram) {
+  if (!hasPlanContext) {
     coachSnapshotActions.push({
       id: 'create-program',
-      title: t('overview.snapshotActions.createProgram.title'),
-      description: t('overview.snapshotActions.createProgram.description'),
-      href: newProgramHref,
+      title: 'Skapa blockplan',
+      description: 'Sätt blocken först, fyll sedan på pass i kalendern.',
+      dialog: 'createPlan',
     })
   }
 
@@ -704,11 +742,13 @@ export default function BusinessClientDetailPage() {
       ? portalStatusLabels.active
       : portalStatusLabels.notLoggedIn
     : t('overview.snapshotMetrics.noPortal')
-  const planningProgramLabel = programsLoading
+  const planningProgramLabel = programsLoading || athletePlansLoading
     ? t('planning.loading')
-    : activeProgram?.name ?? upcomingProgram?.name ?? t('planning.noProgram')
+    : activeProgram?.name ?? activeAthletePlan?.name ?? upcomingProgram?.name ?? t('planning.noProgram')
   const planningProgramMeta = activeProgram
     ? t('planning.daysRemaining', { days: daysRemainingInActiveProgram ?? 0 })
+    : activeAthletePlan
+      ? `${currentAthletePlanBlock?.title ?? 'Blockplan'} · ${daysRemainingInActiveAthletePlan ?? 0} dagar kvar`
     : upcomingProgram
       ? t('planning.startsIn', { days: daysUntilUpcomingProgram ?? 0 })
       : t('planning.noProgramDescription')
@@ -728,9 +768,13 @@ export default function BusinessClientDetailPage() {
     ? t('planning.loading')
     : programsInNextSevenDays.length > 0
       ? t('planning.nextSevenDaysCovered', { count: programsInNextSevenDays.length })
+      : activeAthletePlan
+        ? `${currentAthletePlanBlock?.title ?? 'Blockplan'} är aktiv`
       : t('planning.nextSevenDaysEmpty')
   const planningWeekDescription = programsInNextSevenDays.length > 0
     ? t('planning.nextSevenDaysCoveredDescription')
+    : activeAthletePlan
+      ? 'Blocket syns för coach och atlet även innan alla pass är inlagda.'
     : t('planning.nextSevenDaysEmptyDescription')
   const previousCompletedTest = completedTests[1] ?? null
   const latestVo2max = latestCompletedTest?.vo2max ?? null
@@ -995,7 +1039,7 @@ export default function BusinessClientDetailPage() {
           <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('overview.snapshotMetrics.nextFocus')}</p>
             <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">
-              {activeProgram?.name ?? t('overview.snapshotMetrics.noActiveProgram')}
+              {activeProgram?.name ?? currentAthletePlanBlock?.title ?? activeAthletePlan?.name ?? t('overview.snapshotMetrics.noActiveProgram')}
             </p>
           </div>
           <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
@@ -1018,6 +1062,22 @@ export default function BusinessClientDetailPage() {
                   <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
                 </div>
               )
+
+              if (action.dialog === 'createPlan') {
+                return (
+                  <CreateAthletePlanDialog
+                    key={action.id}
+                    clientId={id}
+                    clientName={client.name}
+                    onCreated={(plan) => setAthletePlans((current) => [plan, ...current])}
+                    trigger={
+                      <Button variant="outline" className="h-auto w-full justify-start p-3">
+                        {actionBody}
+                      </Button>
+                    }
+                  />
+                )
+              }
 
               if (action.dialog) {
                 return (
@@ -1092,8 +1152,13 @@ export default function BusinessClientDetailPage() {
                 <span className="hidden sm:inline">{t('planning.openCalendar')}</span>
               </Button>
             </Link>
+            <CreateAthletePlanDialog
+              clientId={id}
+              clientName={client.name}
+              onCreated={(plan) => setAthletePlans((current) => [plan, ...current])}
+            />
             <Link href={newProgramHref}>
-              <Button size="sm">{t('programs.newProgram')}</Button>
+              <Button variant="outline" size="sm">{t('programs.newProgram')}</Button>
             </Link>
           </div>
         </div>
@@ -1117,6 +1182,12 @@ export default function BusinessClientDetailPage() {
             <p className="text-xs text-muted-foreground mt-1">{t('planning.programLibraryDescription')}</p>
           </div>
         </div>
+
+        {activeAthletePlan && (
+          <div className="mt-5">
+            <AthletePlanSummaryCard plan={activeAthletePlan} now={now} />
+          </div>
+        )}
 
         <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1144,7 +1215,7 @@ export default function BusinessClientDetailPage() {
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('planning.weekChecklist.plan')}</p>
               <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                {referenceProgram ? referenceProgram.name : t('planning.weekChecklist.noPlan')}
+                {referenceProgram?.name ?? currentAthletePlanBlock?.title ?? activeAthletePlan?.name ?? t('planning.weekChecklist.noPlan')}
               </p>
             </div>
             <div>
@@ -1168,15 +1239,29 @@ export default function BusinessClientDetailPage() {
                 </div>
               </Button>
             </Link>
-          ) : (
+          ) : activeAthletePlan ? (
             <Link href={newProgramHref}>
               <Button variant="outline" className="h-auto w-full justify-start p-3">
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.createProgramAction')}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t('planning.createProgramActionDescription')}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Fyll på pass</p>
+                  <p className="text-xs text-muted-foreground mt-1">Skapa detaljerade workouts utifrån blockplanen.</p>
                 </div>
               </Button>
             </Link>
+          ) : (
+            <CreateAthletePlanDialog
+              clientId={id}
+              clientName={client.name}
+              onCreated={(plan) => setAthletePlans((current) => [plan, ...current])}
+              trigger={
+                <Button variant="outline" className="h-auto w-full justify-start p-3">
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">Skapa blockplan</p>
+                    <p className="text-xs text-muted-foreground mt-1">Sätt planens faser innan passen fylls i.</p>
+                  </div>
+                </Button>
+              }
+            />
           )}
 
           {client.athleteAccount ? (
