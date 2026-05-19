@@ -22,6 +22,7 @@ type DetailSection = {
   title: string
   rows: DetailRow[]
 }
+type AppLocale = 'en' | 'sv'
 
 function formatSecondsToMinutes(seconds?: number | null) {
   if (!seconds || seconds <= 0) return null
@@ -76,18 +77,30 @@ function formatPace(seconds?: number | null) {
   return `${minutes}:${String(rest).padStart(2, '0')}/km`
 }
 
-function formatSegmentType(type?: string | null) {
-  const labels: Record<string, string> = {
-    WARMUP: 'Uppvärmning',
-    COOLDOWN: 'Nedvarvning',
-    INTERVAL: 'Intervall',
-    STEADY: 'Jämn fart',
-    RECOVERY: 'Återhämtning',
-    HILL: 'Backe',
-    DRILLS: 'Övningar',
-    REST: 'Vila',
+function formatSegmentType(type: string | null | undefined, locale: AppLocale) {
+  const labels: Record<AppLocale, Record<string, string>> = {
+    en: {
+      WARMUP: 'Warm-up',
+      COOLDOWN: 'Cool-down',
+      INTERVAL: 'Interval',
+      STEADY: 'Steady',
+      RECOVERY: 'Recovery',
+      HILL: 'Hill',
+      DRILLS: 'Drills',
+      REST: 'Rest',
+    },
+    sv: {
+      WARMUP: 'Uppvärmning',
+      COOLDOWN: 'Nedvarvning',
+      INTERVAL: 'Intervall',
+      STEADY: 'Jämn fart',
+      RECOVERY: 'Återhämtning',
+      HILL: 'Backe',
+      DRILLS: 'Övningar',
+      REST: 'Vila',
+    },
   }
-  return type ? labels[type] || type : 'Del'
+  return type ? labels[locale][type] || type : t(locale, 'Part', 'Del')
 }
 
 function buildCardioDetails(segmentLogs?: Array<{
@@ -105,22 +118,22 @@ function buildCardioDetails(segmentLogs?: Array<{
   completed: boolean
   skipped: boolean
   notes: string | null
-}> | null): DetailSection[] {
+}> | null, locale: AppLocale = 'en'): DetailSection[] {
   if (!segmentLogs?.length) return []
   const rows = compactRows(segmentLogs.map((segment) => row(
-    `${segment.segmentIndex + 1}. ${formatSegmentType(segment.segmentType)}`,
+    `${segment.segmentIndex + 1}. ${formatSegmentType(segment.segmentType, locale)}`,
     [
-      metric('Status', segment.skipped ? 'Hoppad över' : segment.completed ? 'Klar' : 'Ej klar'),
-      metric('Tid', formatSecondsToMinutes(segment.actualDuration ?? segment.plannedDuration)),
-      metric('Distans', formatDistanceKm(segment.actualDistance ?? segment.plannedDistance)),
-      metric('Tempo', formatPace(segment.actualPace ?? segment.plannedPace)),
-      metric('Zon', segment.plannedZone ? `Zon ${segment.plannedZone}` : null),
-      metric('Snittpuls', segment.actualAvgHR),
-      metric('Maxpuls', segment.actualMaxHR),
-      metric('Notering', segment.notes),
+      metric('Status', segment.skipped ? t(locale, 'Skipped', 'Hoppad över') : segment.completed ? t(locale, 'Done', 'Klar') : t(locale, 'Not done', 'Ej klar')),
+      metric(t(locale, 'Time', 'Tid'), formatSecondsToMinutes(segment.actualDuration ?? segment.plannedDuration)),
+      metric(t(locale, 'Distance', 'Distans'), formatDistanceKm(segment.actualDistance ?? segment.plannedDistance)),
+      metric(t(locale, 'Pace', 'Tempo'), formatPace(segment.actualPace ?? segment.plannedPace)),
+      metric(t(locale, 'Zone', 'Zon'), segment.plannedZone ? `${t(locale, 'Zone', 'Zon')} ${segment.plannedZone}` : null),
+      metric(t(locale, 'Avg HR', 'Snittpuls'), segment.actualAvgHR),
+      metric(t(locale, 'Max HR', 'Maxpuls'), segment.actualMaxHR),
+      metric(t(locale, 'Note', 'Notering'), segment.notes),
     ]
   )))
-  return rows.length > 0 ? [{ title: 'Delar', rows }] : []
+  return rows.length > 0 ? [{ title: t(locale, 'Parts', 'Delar'), rows }] : []
 }
 
 function buildStrengthDetails(setLogs: Array<{
@@ -139,23 +152,23 @@ function buildStrengthDetails(setLogs: Array<{
   velocityZone: string | null
   notes: string | null
   exercise: { name: string; nameSv: string | null }
-}>): DetailSection[] {
+}>, locale: AppLocale = 'en'): DetailSection[] {
   if (setLogs.length === 0) return []
   const rows = compactRows(setLogs.map((setLog) => row(
-    `${setLog.exercise.nameSv || setLog.exercise.name} · set ${setLog.setNumber}`,
+    `${locale === 'sv' ? setLog.exercise.nameSv || setLog.exercise.name : setLog.exercise.name} · set ${setLog.setNumber}`,
     [
-      metric('Vikt', `${setLog.weight} kg`),
+      metric(t(locale, 'Load', 'Vikt'), `${setLog.weight} kg`),
       metric('Reps', setLog.repsTarget ? `${setLog.repsCompleted}/${setLog.repsTarget}` : setLog.repsCompleted),
       metric('RPE', setLog.rpe ? `${setLog.rpe}/10` : null),
       metric('e1RM', formatNumber(setLog.estimated1RM, 1) ? `${formatNumber(setLog.estimated1RM, 1)} kg` : null),
-      metric('Zon', setLog.velocityZone),
-      metric('Medelhastighet', formatNumber(setLog.meanVelocity, 2) ? `${formatNumber(setLog.meanVelocity, 2)} m/s` : null),
-      metric('Topphastighet', formatNumber(setLog.peakVelocity, 2) ? `${formatNumber(setLog.peakVelocity, 2)} m/s` : null),
-      metric('Medeleffekt', formatNumber(setLog.meanPower, 0) ? `${formatNumber(setLog.meanPower, 0)} W` : null),
-      metric('Toppeffekt', formatNumber(setLog.peakPower, 0) ? `${formatNumber(setLog.peakPower, 0)} W` : null),
-      metric('Medeltid', formatNumber(setLog.meanTime, 2) ? `${formatNumber(setLog.meanTime, 2)} s` : null),
-      metric('Topptid', formatNumber(setLog.peakTime, 2) ? `${formatNumber(setLog.peakTime, 2)} s` : null),
-      metric('Notering', setLog.notes),
+      metric(t(locale, 'Zone', 'Zon'), setLog.velocityZone),
+      metric(t(locale, 'Mean velocity', 'Medelhastighet'), formatNumber(setLog.meanVelocity, 2) ? `${formatNumber(setLog.meanVelocity, 2)} m/s` : null),
+      metric(t(locale, 'Peak velocity', 'Topphastighet'), formatNumber(setLog.peakVelocity, 2) ? `${formatNumber(setLog.peakVelocity, 2)} m/s` : null),
+      metric(t(locale, 'Mean power', 'Medeleffekt'), formatNumber(setLog.meanPower, 0) ? `${formatNumber(setLog.meanPower, 0)} W` : null),
+      metric(t(locale, 'Peak power', 'Toppeffekt'), formatNumber(setLog.peakPower, 0) ? `${formatNumber(setLog.peakPower, 0)} W` : null),
+      metric(t(locale, 'Mean time', 'Medeltid'), formatNumber(setLog.meanTime, 2) ? `${formatNumber(setLog.meanTime, 2)} s` : null),
+      metric(t(locale, 'Peak time', 'Topptid'), formatNumber(setLog.peakTime, 2) ? `${formatNumber(setLog.peakTime, 2)} s` : null),
+      metric(t(locale, 'Note', 'Notering'), setLog.notes),
     ]
   )))
   return rows.length > 0 ? [{ title: 'Set', rows }] : []
@@ -174,6 +187,7 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const locale = getUserLocale(user.language)
 
   const parsed = querySchema.safeParse({
     kind: request.nextUrl.searchParams.get('kind'),
@@ -207,10 +221,10 @@ export async function GET(request: NextRequest) {
 
     const completedAt = log?.completedAt ?? assignment.completedAt
     const metrics = compactMetrics([
-      metric('Tid', formatSecondsToMinutes(log?.actualDuration ?? assignment.actualDuration)),
-      metric('Distans', formatDistanceKm(log?.actualDistance) ?? formatDistanceMeters(assignment.actualDistance)),
-      metric('Snittpuls', log?.avgHeartRate ?? assignment.avgHeartRate),
-      metric('Maxpuls', log?.maxHeartRate),
+      metric(t(locale, 'Time', 'Tid'), formatSecondsToMinutes(log?.actualDuration ?? assignment.actualDuration)),
+      metric(t(locale, 'Distance', 'Distans'), formatDistanceKm(log?.actualDistance) ?? formatDistanceMeters(assignment.actualDistance)),
+      metric(t(locale, 'Avg HR', 'Snittpuls'), log?.avgHeartRate ?? assignment.avgHeartRate),
+      metric(t(locale, 'Max HR', 'Maxpuls'), log?.maxHeartRate),
       metric('RPE', log?.sessionRPE ? `${log.sessionRPE}/10` : null),
     ])
 
@@ -222,7 +236,7 @@ export async function GET(request: NextRequest) {
       completedAt,
       metrics,
       notes: log?.notes ?? null,
-      details: buildCardioDetails(log?.segmentLogs),
+      details: buildCardioDetails(log?.segmentLogs, locale),
       original: log ?? assignment,
     })
   }
@@ -249,12 +263,12 @@ export async function GET(request: NextRequest) {
     const bestMeanVelocity = maxNumber(assignment.setLogs.map((setLog) => setLog.meanVelocity))
 
     const metrics = compactMetrics([
-      metric('Tid', assignment.duration ? `${assignment.duration} min` : null),
+      metric(t(locale, 'Time', 'Tid'), assignment.duration ? `${assignment.duration} min` : null),
       metric('RPE', assignment.rpe ? `${assignment.rpe}/10` : null),
-      metric('Set loggade', assignment.setLogs.length || null),
-      metric('Bästa e1RM', formatNumber(bestEstimated1RM, 1) ? `${formatNumber(bestEstimated1RM, 1)} kg` : null),
-      metric('Toppeffekt', formatNumber(bestPeakPower, 0) ? `${formatNumber(bestPeakPower, 0)} W` : null),
-      metric('Bästa hastighet', formatNumber(bestMeanVelocity, 2) ? `${formatNumber(bestMeanVelocity, 2)} m/s` : null),
+      metric(t(locale, 'Sets logged', 'Set loggade'), assignment.setLogs.length || null),
+      metric(t(locale, 'Best e1RM', 'Bästa e1RM'), formatNumber(bestEstimated1RM, 1) ? `${formatNumber(bestEstimated1RM, 1)} kg` : null),
+      metric(t(locale, 'Peak power', 'Toppeffekt'), formatNumber(bestPeakPower, 0) ? `${formatNumber(bestPeakPower, 0)} W` : null),
+      metric(t(locale, 'Best velocity', 'Bästa hastighet'), formatNumber(bestMeanVelocity, 2) ? `${formatNumber(bestMeanVelocity, 2)} m/s` : null),
     ])
 
     return NextResponse.json({
@@ -265,7 +279,7 @@ export async function GET(request: NextRequest) {
       completedAt: assignment.completedAt,
       metrics,
       notes: assignment.notes,
-      details: buildStrengthDetails(assignment.setLogs),
+      details: buildStrengthDetails(assignment.setLogs, locale),
       original: assignment,
     })
   }
@@ -296,12 +310,12 @@ export async function GET(request: NextRequest) {
     ])
 
     const metrics = compactMetrics([
-      metric('Tid', formatSecondsToMinutes(result?.timeScore ?? log?.totalTime)),
-      metric('Varv', result?.roundsCompleted ?? log?.totalRounds),
+      metric(t(locale, 'Time', 'Tid'), formatSecondsToMinutes(result?.timeScore ?? log?.totalTime)),
+      metric(t(locale, 'Rounds', 'Varv'), result?.roundsCompleted ?? log?.totalRounds),
       metric('Reps', result?.repsCompleted ?? log?.extraReps),
-      metric('Belastning', result?.loadUsed ? `${result.loadUsed} kg` : null),
+      metric(t(locale, 'Load', 'Belastning'), result?.loadUsed ? `${result.loadUsed} kg` : null),
       metric('RPE', result?.perceivedEffort ? `${result.perceivedEffort}/10` : log?.sessionRPE ? `${log.sessionRPE}/10` : null),
-      metric('Skalning', result?.scalingLevel ?? log?.scalingLevel),
+      metric(t(locale, 'Scaling', 'Skalning'), result?.scalingLevel ?? log?.scalingLevel),
     ])
 
     return NextResponse.json({
@@ -335,7 +349,7 @@ export async function GET(request: NextRequest) {
   })
 
   const metrics = compactMetrics([
-    metric('Tid', formatSecondsToMinutes(result?.totalDuration)),
+    metric(t(locale, 'Time', 'Tid'), formatSecondsToMinutes(result?.totalDuration)),
     metric('RPE', result?.perceivedEffort ? `${result.perceivedEffort}/10` : null),
   ])
 
@@ -350,4 +364,12 @@ export async function GET(request: NextRequest) {
     details: [],
     original: result ?? assignment,
   })
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
