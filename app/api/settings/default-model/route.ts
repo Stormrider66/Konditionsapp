@@ -16,6 +16,16 @@ import {
   normalizeAIModelPricing,
 } from '@/lib/ai/model-compat'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 // Transform database model to match the expected interface in DefaultModelSelector
 function transformModel(dbModel: PrismaAIModel) {
   const modelId = normalizeAIModelId(dbModel.modelId)
@@ -128,6 +138,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const locale = resolveLocale(user.language)
     const body = await request.json();
     const { modelId } = body;
 
@@ -211,7 +222,13 @@ export async function PUT(request: NextRequest) {
 
       if (!hasValidKey) {
         return NextResponse.json(
-          { error: `Du har ingen giltig API-nyckel för ${model.provider}` },
+          {
+            error: t(
+              locale,
+              `You do not have a valid API key for ${model.provider}`,
+              `Du har ingen giltig API-nyckel för ${model.provider}`,
+            ),
+          },
           { status: 400 }
         );
       }
@@ -253,8 +270,8 @@ export async function PUT(request: NextRequest) {
       success: true,
       defaultModel: updatedSettings?.defaultModel ? transformModel(updatedSettings.defaultModel) : null,
       message: modelId
-        ? 'Standardmodell sparad'
-        : 'Standardmodell återställd',
+        ? t(locale, 'Default model saved', 'Standardmodell sparad')
+        : t(locale, 'Default model reset', 'Standardmodell återställd'),
     });
   } catch (error) {
     logError('Set default model error:', error);
