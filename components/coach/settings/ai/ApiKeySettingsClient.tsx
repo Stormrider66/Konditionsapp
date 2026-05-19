@@ -4,7 +4,13 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Check, X, Eye, EyeOff, ExternalLink, Trash2, Info } from 'lucide-react';
 
@@ -190,44 +196,54 @@ export function ApiKeySettingsClient() {
     <div className="space-y-6">
       {/* Key source banner */}
       {keySource && keySource.source === 'business' && (
-        <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-          <p className="text-sm text-blue-800 dark:text-blue-300">
-            Du använder <strong>{keySource.businessName}</strong>s AI-nycklar. Lägg till egna nedan för att använda dem istället.
-          </p>
-        </div>
+        <GlassCard glow="blue">
+          <GlassCardContent className="p-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+            <p className="text-sm text-blue-800 dark:text-blue-300">
+              Du använder <strong>{keySource.businessName}</strong>s AI-nycklar. Lägg till egna nedan för att använda dem istället.
+            </p>
+          </GlassCardContent>
+        </GlassCard>
       )}
       {keySource && keySource.source === 'user' && (
-        <div className="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <Info className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
-          <p className="text-sm text-green-800 dark:text-green-300">
-            Du använder egna AI-nycklar. Ta bort dem för att använda verksamhetens nycklar.
-          </p>
-        </div>
+        <GlassCard glow="emerald">
+          <GlassCardContent className="p-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+            <p className="text-sm text-green-800 dark:text-green-300">
+              Du använder egna AI-nycklar. Ta bort dem för att använda verksamhetens nycklar.
+            </p>
+          </GlassCardContent>
+        </GlassCard>
       )}
       {keySource && keySource.source === 'none' && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-          <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-          <p className="text-sm text-amber-800 dark:text-amber-300">
-            Inga AI-nycklar konfigurerade. Lägg till nycklar nedan för att aktivera AI-funktioner.
-          </p>
-        </div>
+        <GlassCard glow="amber">
+          <GlassCardContent className="p-4 flex items-start gap-3">
+            <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              Inga AI-nycklar konfigurerade. Lägg till nycklar nedan för att aktivera AI-funktioner.
+            </p>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {PROVIDERS.map((provider) => {
         const status = getStatusForProvider(provider.id);
         const isConfigured = status?.configured ?? false;
         const isValid = status?.valid ?? false;
+        const glowColor =
+          provider.id === 'anthropic' ? 'purple' :
+          provider.id === 'google' ? 'emerald' :
+          provider.id === 'openai' ? 'blue' : 'slate';
 
         return (
-          <Card key={provider.id}>
-            <CardHeader>
+          <GlassCard key={provider.id} glow={glowColor}>
+            <GlassCardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{provider.icon}</span>
                   <div>
-                    <CardTitle className="text-lg">{provider.name}</CardTitle>
-                    <CardDescription>{provider.description}</CardDescription>
+                    <GlassCardTitle className="text-lg">{provider.name}</GlassCardTitle>
+                    <GlassCardDescription>{provider.description}</GlassCardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -248,8 +264,8 @@ export function ApiKeySettingsClient() {
                   )}
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
+            </GlassCardHeader>
+            <GlassCardContent>
               <div className="space-y-4">
                 {/* Input for new/update key */}
                 <div className="space-y-2">
@@ -333,8 +349,8 @@ export function ApiKeySettingsClient() {
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         );
       })}
     </div>

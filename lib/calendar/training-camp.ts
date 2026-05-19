@@ -400,9 +400,22 @@ function getNutritionTips(campType: CampType): string[] {
 }
 
 /**
- * Get camp type label in Swedish
+ * Get camp type label.
  */
-export function getCampTypeLabel(campType: CampType): string {
+export function getCampTypeLabel(campType: CampType, locale: 'en' | 'sv' = 'sv'): string {
+  if (locale === 'en') {
+    switch (campType) {
+      case 'ENDURANCE':
+        return 'Endurance camp'
+      case 'SPEED':
+        return 'Speed camp'
+      case 'MIXED':
+        return 'Mixed camp'
+      case 'RECOVERY':
+        return 'Recovery camp'
+    }
+  }
+
   switch (campType) {
     case 'ENDURANCE':
       return 'Distansläger'
@@ -416,9 +429,22 @@ export function getCampTypeLabel(campType: CampType): string {
 }
 
 /**
- * Get camp focus label in Swedish
+ * Get camp focus label.
  */
-export function getCampFocusLabel(campFocus: CampFocus): string {
+export function getCampFocusLabel(campFocus: CampFocus, locale: 'en' | 'sv' = 'sv'): string {
+  if (locale === 'en') {
+    switch (campFocus) {
+      case 'VOLUME':
+        return 'Volume'
+      case 'INTENSITY':
+        return 'Intensity'
+      case 'TECHNIQUE':
+        return 'Technique'
+      case 'MIXED':
+        return 'Mixed'
+    }
+  }
+
   switch (campFocus) {
     case 'VOLUME':
       return 'Volym'

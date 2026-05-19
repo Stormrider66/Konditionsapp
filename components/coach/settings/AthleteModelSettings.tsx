@@ -1,7 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -109,44 +115,44 @@ export function AthleteModelSettings() {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
+      <GlassCard glow="purple">
+        <GlassCardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     )
   }
 
   if (!hasKeys) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+      <GlassCard glow="purple">
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5" />
             {t('athleteModels.title')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>
           <p className="text-sm text-muted-foreground">
             {t('athleteModels.noKeys')}
           </p>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
+    <GlassCard glow="purple">
+      <GlassCardHeader>
+        <GlassCardTitle className="flex items-center gap-2 text-lg">
           <Users className="h-5 w-5" />
           {t('athleteModels.title')}
-        </CardTitle>
-        <CardDescription>
+        </GlassCardTitle>
+        <GlassCardDescription>
           {t('athleteModels.description')}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+        </GlassCardDescription>
+      </GlassCardHeader>
+      <GlassCardContent className="space-y-6">
         {/* Tier checklist */}
         <div className="space-y-3">
           {ALL_TIERS.map((tier) => {
@@ -154,7 +160,7 @@ export function AthleteModelSettings() {
             return (
               <label
                 key={tier}
-                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                className="flex items-start gap-3 p-3 rounded-xl border border-slate-200/50 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 cursor-pointer transition-colors"
               >
                 <Checkbox
                   className="mt-0.5"
@@ -218,7 +224,7 @@ export function AthleteModelSettings() {
           )}
           {t('athleteModels.save')}
         </Button>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

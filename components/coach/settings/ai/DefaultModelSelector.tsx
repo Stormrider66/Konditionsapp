@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -154,27 +160,27 @@ export function DefaultModelSelector() {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="py-8">
+      <GlassCard glow="blue">
+        <GlassCardContent className="py-8">
           <div className="flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <GlassCard glow="blue">
+      <GlassCardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🤖</span>
             <div>
-              <CardTitle className="text-lg">Standard AI-modell</CardTitle>
-              <CardDescription>
+              <GlassCardTitle className="text-lg">Standard AI-modell</GlassCardTitle>
+              <GlassCardDescription>
                 Välj vilken AI-modell som ska användas som standard i alla AI-funktioner
-              </CardDescription>
+              </GlassCardDescription>
             </div>
           </div>
           {defaultModel && (
@@ -184,8 +190,8 @@ export function DefaultModelSelector() {
             </Badge>
           )}
         </div>
-      </CardHeader>
-      <CardContent>
+      </GlassCardHeader>
+      <GlassCardContent>
         <div className="space-y-4">
           <Select
             value={defaultModel?.id || ''}
@@ -342,7 +348,7 @@ export function DefaultModelSelector() {
             <p className="text-xs text-blue-800 dark:text-blue-200 mb-2">
               För att generera 6-9 månaders program, välj en modell med hög output-kapacitet:
             </p>
-            <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+            <ul className="text-xs text-blue-750 dark:text-blue-350 space-y-1">
               <li>• <strong>GPT-5.4</strong> - 128K output (~32 veckor) - Bäst för längre program</li>
               <li>• <strong>Gemini 3.1 Pro / Claude Sonnet 4.6</strong> - 64K output (~16 veckor) - Bra balans</li>
               <li>• <strong>Haiku / Nano</strong> - 8-16K output (~2-4 veckor) - Snabbt för korta program</li>
@@ -354,7 +360,7 @@ export function DefaultModelSelector() {
             om du inte väljer en annan modell specifikt.
           </p>
         </div>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }

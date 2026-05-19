@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -804,32 +810,32 @@ ${messageContent}`
   if (!hasApiKeys) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <GlassCard className="max-w-2xl mx-auto" glow="amber">
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
               <AlertCircle className="h-6 w-6 text-amber-500" />
               Konfigurera API-nycklar
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               För att använda AI Studio behöver du konfigurera dina API-nycklar för minst en AI-leverantör.
             </p>
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span>Anthropic (Claude)</span>
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                <span className="text-sm font-medium">Anthropic (Claude)</span>
                 <Badge variant={apiKeyStatus.anthropic ? 'default' : 'secondary'}>
                   {apiKeyStatus.anthropic ? 'Konfigurerad' : 'Ej konfigurerad'}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span>Google (Gemini)</span>
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                <span className="text-sm font-medium">Google (Gemini)</span>
                 <Badge variant={apiKeyStatus.google ? 'default' : 'secondary'}>
                   {apiKeyStatus.google ? 'Konfigurerad' : 'Ej konfigurerad'}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span>OpenAI (Embeddings)</span>
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
+                <span className="text-sm font-medium">OpenAI (Embeddings)</span>
                 <Badge variant={apiKeyStatus.openai ? 'default' : 'secondary'}>
                   {apiKeyStatus.openai ? 'Konfigurerad' : 'Ej konfigurerad'}
                 </Badge>
@@ -841,8 +847,8 @@ ${messageContent}`
                 Gå till Inställningar
               </Link>
             </Button>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     )
   }

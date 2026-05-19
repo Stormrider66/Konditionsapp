@@ -28,6 +28,7 @@ import { sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { GlassCard } from '@/components/ui/GlassCard'
 
 interface CoachAlert {
   id: string
@@ -163,12 +164,15 @@ export function AthleteAttentionCard({
     contextDetails.push({ label: 'Risk', value: `${context.injuryRisk}` })
   }
 
+  const alertGlow = alert.severity === 'CRITICAL' ? 'red' : alert.severity === 'HIGH' ? 'amber' : alert.severity === 'MEDIUM' ? 'amber' : 'blue'
+
   return (
-    <div
+    <GlassCard
       className={cn(
-        'border rounded-lg bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm overflow-hidden border-l-4 transition-all border-slate-200/50 dark:border-white/5',
+        'border-l-4 overflow-hidden rounded-xl border border-slate-200/50 dark:border-white/5',
         severity.border
       )}
+      glow={alertGlow}
     >
       {/* Header */}
       <div className="p-3">
@@ -179,7 +183,7 @@ export function AthleteAttentionCard({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium text-sm truncate">{alert.client.name}</span>
+                <span className="font-medium text-sm truncate text-slate-900 dark:text-white">{alert.client.name}</span>
                 <Badge variant="secondary" className={cn('text-xs', severity.badge)}>
                   {severity.label}
                 </Badge>
@@ -220,14 +224,14 @@ export function AthleteAttentionCard({
 
       {/* Expanded details */}
       {isExpanded && (
-        <div className="px-3 pb-3 pt-0 border-t">
+        <div className="px-3 pb-3 pt-2 border-t border-slate-200/50 dark:border-white/5">
           {/* Context details */}
           {contextDetails.length > 0 && (
             <div className="flex flex-wrap gap-3 py-2">
               {contextDetails.map((detail, i) => (
                 <div key={i} className="text-xs">
                   <span className="text-muted-foreground">{detail.label}:</span>{' '}
-                  <span className="font-medium">{detail.value}</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{detail.value}</span>
                 </div>
               ))}
             </div>
@@ -235,7 +239,7 @@ export function AthleteAttentionCard({
 
           {/* Pain mention quote */}
           {alert.alertType === 'PAIN_MENTION' && typeof context.memoryContent === 'string' && (
-            <div className="bg-muted/50 rounded p-2 my-2 text-xs italic">
+            <div className="bg-slate-100/50 dark:bg-white/5 rounded p-2 my-2 text-xs italic text-slate-700 dark:text-slate-300">
               &ldquo;{context.memoryContent}&rdquo;
             </div>
           )}
@@ -293,6 +297,6 @@ export function AthleteAttentionCard({
           </div>
         </div>
       )}
-    </div>
+    </GlassCard>
   )
 }
