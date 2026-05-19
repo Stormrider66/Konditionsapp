@@ -3117,6 +3117,16 @@
         "searchPlaceholder": "Sök namn, e-post eller telefon...",
         "ageYears": "{age} år",
         "updatedAt": "Uppdaterad: {date}",
+        "summary": {
+          "visible": "Synliga atleter",
+          "visibleDescription": "Efter sök och lagfilter",
+          "ready": "Redo profiler",
+          "readyDescription": "Portal plus kontaktinfo",
+          "missingAccount": "Saknar portal",
+          "missingAccountDescription": "Behöver atletkonto",
+          "missingContact": "Saknar kontakt",
+          "missingContactDescription": "Ingen e-post eller telefon sparad"
+        },
         "teamFilter": {
           "placeholder": "Filtrera lag",
           "all": "Alla lag",

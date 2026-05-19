@@ -172,6 +172,9 @@ export default function BusinessClientsPage() {
 
     return matchesSearch && matchesTeam
   })
+  const visibleReadyClients = filteredClients.filter((client) => client.athleteAccount && (client.email || client.phone)).length
+  const visibleMissingAccountClients = filteredClients.filter((client) => !client.athleteAccount).length
+  const visibleMissingContactClients = filteredClients.filter((client) => !client.email && !client.phone).length
 
   const calculateAge = (birthDate: Date) => {
     const today = new Date()
@@ -231,6 +234,39 @@ export default function BusinessClientsPage() {
         <Alert variant="destructive" className="mb-6">
           <AlertDescription>{t('errors.inlinePrefix')} {error}</AlertDescription>
         </Alert>
+      )}
+
+      {!loading && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          <GlassCard>
+            <GlassCardContent className="p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('summary.visible')}</p>
+              <p className="text-2xl font-semibold text-slate-900 dark:text-white mt-1">{filteredClients.length}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('summary.visibleDescription')}</p>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard>
+            <GlassCardContent className="p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('summary.ready')}</p>
+              <p className="text-2xl font-semibold text-emerald-700 dark:text-emerald-300 mt-1">{visibleReadyClients}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('summary.readyDescription')}</p>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard>
+            <GlassCardContent className="p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('summary.missingAccount')}</p>
+              <p className="text-2xl font-semibold text-amber-700 dark:text-amber-300 mt-1">{visibleMissingAccountClients}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('summary.missingAccountDescription')}</p>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard>
+            <GlassCardContent className="p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('summary.missingContact')}</p>
+              <p className="text-2xl font-semibold text-blue-700 dark:text-blue-300 mt-1">{visibleMissingContactClients}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('summary.missingContactDescription')}</p>
+            </GlassCardContent>
+          </GlassCard>
+        </div>
       )}
 
       <GlassCard>

@@ -3117,6 +3117,16 @@
         "searchPlaceholder": "Search name, email, or phone...",
         "ageYears": "{age} years",
         "updatedAt": "Updated: {date}",
+        "summary": {
+          "visible": "Visible athletes",
+          "visibleDescription": "After search and team filter",
+          "ready": "Ready profiles",
+          "readyDescription": "Portal plus contact info",
+          "missingAccount": "Missing portal",
+          "missingAccountDescription": "Need athlete account setup",
+          "missingContact": "Missing contact",
+          "missingContactDescription": "No email or phone saved"
+        },
         "teamFilter": {
           "placeholder": "Filter team",
           "all": "All teams",
