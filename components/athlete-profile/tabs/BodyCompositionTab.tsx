@@ -1,23 +1,21 @@
 'use client'
 
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { Scale, TrendingUp, TrendingDown, Droplets, Flame, Activity, Plus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
+import { useLocale } from '@/i18n/client'
 
 interface BodyCompositionTabProps {
   data: AthleteProfileData
@@ -28,14 +26,13 @@ interface BodyCompositionTabProps {
 
 import {
   GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 
 export function BodyCompositionTab({ data, viewMode, variant = 'default', basePath = '' }: BodyCompositionTabProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const isGlass = variant === 'glass'
   const { measurements } = data.bodyComposition
   const client = data.identity.client!
@@ -50,16 +47,16 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
         <CardContent className="py-20 text-center">
           <Scale className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
           <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
-            Ingen kroppssammansättningsdata
+            {t('Ingen kroppssammansättningsdata', 'No body composition data')}
           </h3>
           <p className={cn("font-medium mb-8 max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
-            Registrera bioimpedansmätningar för att se data här.
+            {t('Registrera bioimpedansmätningar för att se data här.', 'Register bioimpedance measurements to see data here.')}
           </p>
           {viewMode === 'athlete' && (
             <Link href={`${basePath}/athlete/body-composition`}>
               <Button className={isGlass ? "bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-xs h-12 px-8 rounded-xl" : ""}>
                 <Plus className="h-4 w-4 mr-2" />
-                Lägg till mätning
+                {t('Lägg till mätning', 'Add measurement')}
               </Button>
             </Link>
           )}
@@ -72,7 +69,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
   const chartData = [...measurements]
     .reverse()
     .map((m) => ({
-      date: format(new Date(m.measurementDate), 'd MMM', { locale: sv }),
+      date: format(new Date(m.measurementDate), 'd MMM', { locale: dateLocale }),
       weight: m.weightKg,
       bodyFat: m.bodyFatPercent,
       muscle: m.muscleMassKg,
@@ -84,7 +81,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
   const muscleTrend = calculateTrend(measurements.map((m) => m.muscleMassKg).filter(Boolean) as number[])
 
   // Calculate progress over time periods
-  const progressSummary = calculateProgressSummary(measurements)
+  const progressSummary = calculateProgressSummary(measurements, locale)
 
   return (
     <div className="space-y-8">
@@ -97,7 +94,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
               isGlass ? "bg-blue-600 hover:bg-blue-700 text-white" : ""
             )}>
               <Plus className="h-4 w-4 mr-2" />
-              Ny mätning
+              {t('Ny mätning', 'New measurement')}
             </Button>
           </Link>
         </div>
@@ -108,7 +105,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
         <MetricCard
           icon={Scale}
           accentColor="blue"
-          label="Vikt"
+          label={t('Vikt', 'Weight')}
           value={latestMeasurement.weightKg ? `${latestMeasurement.weightKg.toFixed(1)}` : client.weight.toString()}
           unit="kg"
           trend={weightTrend}
@@ -118,7 +115,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
         <MetricCard
           icon={Activity}
           accentColor="purple"
-          label="Kroppsfett"
+          label={t('Kroppsfett', 'Body fat')}
           value={latestMeasurement.bodyFatPercent ? `${latestMeasurement.bodyFatPercent.toFixed(1)}` : '-'}
           unit="%"
           trend={fatTrend}
@@ -128,7 +125,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
         <MetricCard
           icon={Flame}
           accentColor="orange"
-          label="Muskelmassa"
+          label={t('Muskelmassa', 'Muscle mass')}
           value={latestMeasurement.muscleMassKg ? `${latestMeasurement.muscleMassKg.toFixed(1)}` : '-'}
           unit="kg"
           trend={muscleTrend}
@@ -139,7 +136,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
         <MetricCard
           icon={Droplets}
           accentColor="cyan"
-          label="Vätska"
+          label={t('Vätska', 'Water')}
           value={latestMeasurement.waterPercent ? `${latestMeasurement.waterPercent.toFixed(1)}` : '-'}
           unit="%"
           isGlass={isGlass}
@@ -150,9 +147,9 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
       {measurements.length >= 2 && (
         <CardWrapper>
           <CardHeader>
-            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Vikttrend</CardTitle>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>{t('Vikttrend', 'Weight trend')}</CardTitle>
             <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-              Vikt och kroppsfett över tid ({measurements.length} mätningar)
+              {t('Vikt och kroppsfett över tid', 'Weight and body fat over time')} ({measurements.length} {t('mätningar', 'measurements')})
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -200,7 +197,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
                     yAxisId="weight"
                     type="monotone"
                     dataKey="weight"
-                    name="Vikt (kg)"
+                    name={`${t('Vikt', 'Weight')} (kg)`}
                     stroke="#3b82f6"
                     strokeWidth={3}
                     dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: isGlass ? '#0f172a' : '#fff' }}
@@ -210,7 +207,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
                     yAxisId="fat"
                     type="monotone"
                     dataKey="bodyFat"
-                    name="Fett (%)"
+                    name={`${t('Fett', 'Fat')} (%)`}
                     stroke="#8b5cf6"
                     strokeWidth={3}
                     dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2, stroke: isGlass ? '#0f172a' : '#fff' }}
@@ -227,9 +224,9 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
       {progressSummary.length > 0 && (
         <CardWrapper>
           <CardHeader>
-            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Förändring över tid</CardTitle>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>{t('Förändring över tid', 'Change over time')}</CardTitle>
             <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-              Jämförelse mot tidigare mätningar
+              {t('Jämförelse mot tidigare mätningar', 'Comparison with previous measurements')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -237,10 +234,10 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
               <table className="w-full text-xs">
                 <thead>
                   <tr className={cn("border-b", isGlass ? "border-white/5" : "border-gray-100")}>
-                    <th className={cn("text-left py-3 font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>Period</th>
-                    <th className={cn("text-right py-3 font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>Vikt</th>
-                    <th className={cn("text-right py-3 font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>Kroppsfett</th>
-                    <th className={cn("text-right py-3 font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>Muskelmassa</th>
+                    <th className={cn("text-left py-3 font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>{t('Period', 'Period')}</th>
+                    <th className={cn("text-right py-3 font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>{t('Vikt', 'Weight')}</th>
+                    <th className={cn("text-right py-3 font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>{t('Kroppsfett', 'Body fat')}</th>
+                    <th className={cn("text-right py-3 font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>{t('Muskelmassa', 'Muscle mass')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -282,19 +279,19 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
         {latestMeasurement && (
           <CardWrapper>
             <CardHeader>
-              <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Senaste mätning</CardTitle>
+              <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>{t('Senaste mätning', 'Latest measurement')}</CardTitle>
               <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-                {format(new Date(latestMeasurement.measurementDate), 'd MMMM yyyy', { locale: sv })}
+                {format(new Date(latestMeasurement.measurementDate), 'd MMMM yyyy', { locale: dateLocale })}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
-                <DetailItem label="Visceralt fett" value={latestMeasurement.visceralFat} isGlass={isGlass} />
-                <DetailItem label="Benmassa" value={latestMeasurement.boneMassKg} unit="kg" isGlass={isGlass} />
+                <DetailItem label={t('Visceralt fett', 'Visceral fat')} value={latestMeasurement.visceralFat} isGlass={isGlass} />
+                <DetailItem label={t('Benmassa', 'Bone mass')} value={latestMeasurement.boneMassKg} unit="kg" isGlass={isGlass} />
                 <DetailItem label="BMR" value={latestMeasurement.bmrKcal} unit="kcal" isGlass={isGlass} />
                 <DetailItem label="BMI" value={latestMeasurement.bmi} isGlass={isGlass} />
                 <DetailItem label="FFMI" value={latestMeasurement.ffmi} isGlass={isGlass} />
-                <DetailItem label="Ålder (metab)" value={latestMeasurement.metabolicAge} unit="år" isGlass={isGlass} />
+                <DetailItem label={t('Ålder (metab)', 'Age (metabolic)')} value={latestMeasurement.metabolicAge} unit={t('år', 'years')} isGlass={isGlass} />
               </div>
             </CardContent>
           </CardWrapper>
@@ -303,9 +300,9 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
         {/* History */}
         <CardWrapper>
           <CardHeader>
-            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Historik</CardTitle>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>{t('Historik', 'History')}</CardTitle>
             <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-              {measurements.length} mätningar registrerade
+              {measurements.length} {t('mätningar registrerade', 'measurements registered')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -320,7 +317,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
                 >
                   <div>
                     <p className={cn("font-black uppercase italic text-xs tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
-                      {format(new Date(m.measurementDate), 'd MMM yyyy', { locale: sv })}
+                      {format(new Date(m.measurementDate), 'd MMM yyyy', { locale: dateLocale })}
                     </p>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                       {m.deviceBrand || 'BIOIMPEDANS'}
@@ -472,17 +469,6 @@ function calculateTrend(values: number[]): { direction: 'up' | 'down' | 'stable'
   }
 }
 
-function getMeasurementTimeLabel(time: string): string {
-  const labels: Record<string, string> = {
-    MORNING_FASTED: 'Morgon (fastande)',
-    MORNING: 'Morgon',
-    AFTERNOON: 'Eftermiddag',
-    EVENING: 'Kväll',
-    POST_WORKOUT: 'Efter träning',
-  }
-  return labels[time] || time
-}
-
 interface ProgressPeriod {
   label: string
   weight: number | null
@@ -495,16 +481,16 @@ function calculateProgressSummary(measurements: Array<{
   weightKg: number | null
   bodyFatPercent: number | null
   muscleMassKg: number | null
-}>): ProgressPeriod[] {
+}>, locale: 'en' | 'sv' = 'en'): ProgressPeriod[] {
   if (measurements.length < 2) return []
 
   const now = new Date()
   const latest = measurements[0]
 
   const periods = [
-    { label: '1 vecka', days: 7 },
-    { label: '1 månad', days: 30 },
-    { label: '3 månader', days: 90 },
+    { label: locale === 'sv' ? '1 vecka' : '1 week', days: 7 },
+    { label: locale === 'sv' ? '1 månad' : '1 month', days: 30 },
+    { label: locale === 'sv' ? '3 månader' : '3 months', days: 90 },
   ]
 
   return periods.map((period) => {
