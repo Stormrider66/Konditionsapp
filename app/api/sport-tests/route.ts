@@ -20,6 +20,7 @@ import {
   classifyStationPerformance,
   type HYROXStation,
 } from '@/lib/calculations/sport-tests'
+import { syncStrengthSportTestToPrHistory } from '@/lib/strength/sport-test-pr-sync'
 
 // GET /api/sport-tests - Get all sport tests for logged in user (with optional clientId filter)
 export async function GET(request: NextRequest) {
@@ -213,10 +214,19 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    const strengthPrSync = await syncStrengthSportTestToPrHistory({
+      clientId,
+      protocol,
+      testDate: new Date(testDate),
+      rawData,
+      primaryResult: derivedMetrics.primaryResult,
+    })
+
     return NextResponse.json({
       success: true,
       data: sportTest,
       derivedMetrics,
+      strengthPrSync,
     })
   } catch (error) {
     logger.error('Error creating sport test', {}, error)

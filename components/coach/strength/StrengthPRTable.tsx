@@ -206,7 +206,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
             Styrke-PR
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            1RM per övning. Används för att räkna ut vikt när pass har % av 1RM.
+            1RM per övning. Lägg till här eller via Nytt test → Styrka. Värdena används för pass med % av 1RM.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -232,8 +232,12 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
           <Trophy className="h-10 w-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm">Inga PR loggade ännu.</p>
           <p className="text-xs mt-1">
-            Lägg till en PR för att aktivera %-baserade pass för {clientName}.
+            Lägg till första 1RM här, eller registrera ett fullständigt styrketest under Nytt test → Styrka.
           </p>
+          <Button size="sm" className="mt-4" onClick={() => setFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Lägg till första PR
+          </Button>
         </div>
       ) : (
         <div className="rounded-md border divide-y">

@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
+import { asRecord, isStrengthPrSyncProtocol, syncStrengthSportTestToPrHistory } from '@/lib/strength/sport-test-pr-sync'
 
 interface OneRepMaxEntry {
   id: string
@@ -45,6 +46,32 @@ export async function GET(
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const strengthTests = await prisma.sportTest.findMany({
+      where: {
+        clientId,
+        category: 'STRENGTH',
+      },
+      select: {
+        protocol: true,
+        testDate: true,
+        rawData: true,
+        primaryResult: true,
+      },
+      orderBy: { testDate: 'asc' },
+    })
+
+    for (const test of strengthTests) {
+      if (!isStrengthPrSyncProtocol(test.protocol)) continue
+      await syncStrengthSportTestToPrHistory({
+        clientId,
+        protocol: test.protocol,
+        testDate: test.testDate,
+        rawData: asRecord(test.rawData),
+        primaryResult: test.primaryResult,
+        updateExistingSameDay: false,
+      })
     }
 
     const rows = await prisma.oneRepMaxHistory.findMany({

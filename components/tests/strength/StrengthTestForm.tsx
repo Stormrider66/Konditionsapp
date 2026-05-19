@@ -194,6 +194,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
 
       setResult({
         ...resultData.data,
+        strengthPrSync: resultData.strengthPrSync,
         tier,
         oneRepMax: oneRM,
         relativeStrength: relStr,
@@ -515,6 +516,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
             <CardDescription>
               {result.client?.name} - {result.exerciseLabel} 1RM -{' '}
               {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {result.strengthPrSync?.success && ' · Styrke-PR uppdaterad'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
