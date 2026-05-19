@@ -38,6 +38,8 @@ AthleteAccount
 AthleteCoachPermission
 AthleteCohort
 AthletePatternMatch
+AthletePlan
+AthletePlanBlock
 AthleteProfile
 AthleteSubscription
 AudioJournal
@@ -225,6 +227,8 @@ Team
 TeamCoachAssignment
 TeamDrill
 TeamEvent
+TeamPlan
+TeamPlanBlock
 TeamWorkoutBroadcast
 Test
 TestPredictiveValidation
