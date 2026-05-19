@@ -13,6 +13,23 @@ import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptation
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
 import { logError } from '@/lib/logger-console'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function actorLabel(role: string, locale: AppLocale) {
+  if (role === 'ATHLETE') return locale === 'sv' ? 'Atlet' : 'Athlete'
+  return locale === 'sv' ? 'Tränare' : 'Coach'
+}
+
+function eventCreatedDescription(role: string, title: string, locale: AppLocale) {
+  return locale === 'sv'
+    ? `${actorLabel(role, locale)} skapade händelse: ${title}`
+    : `${actorLabel(role, locale)} created event: ${title}`
+}
+
 /**
  * POST /api/calendar-events
  * Create a new calendar event
@@ -35,6 +52,7 @@ export async function POST(request: NextRequest) {
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    const locale = resolveLocale(dbUser.language)
 
     const body = await request.json()
     const {
@@ -128,6 +146,7 @@ export async function POST(request: NextRequest) {
         color,
       },
     })
+    const changeDescription = eventCreatedDescription(dbUser.role, title, locale)
 
     // Create change record for notifications
     await prisma.calendarEventChange.create({
@@ -136,7 +155,7 @@ export async function POST(request: NextRequest) {
         clientId,
         changeType: 'EVENT_CREATED',
         changedById: dbUser.id,
-        description: `${dbUser.role === 'ATHLETE' ? 'Atlet' : 'Tränare'} skapade händelse: ${title}`,
+        description: changeDescription,
         newData: {
           type,
           title,
@@ -154,7 +173,7 @@ export async function POST(request: NextRequest) {
       changedById: dbUser.id,
       eventTitle: title,
       eventType: type,
-      description: `${dbUser.role === 'ATHLETE' ? 'Atlet' : 'Tränare'} skapade händelse: ${title}`,
+      description: changeDescription,
       newDate: new Date(startDate),
       trainingImpact,
     })

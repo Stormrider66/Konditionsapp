@@ -14,8 +14,42 @@ import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptation
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
 import { logError } from '@/lib/logger-console'
 
+type AppLocale = 'en' | 'sv'
+
 interface RouteParams {
   params: Promise<{ id: string }>
+}
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function actorLabel(role: string, locale: AppLocale) {
+  if (role === 'ATHLETE') return locale === 'sv' ? 'Atlet' : 'Athlete'
+  return locale === 'sv' ? 'Tränare' : 'Coach'
+}
+
+function changedFieldLabel(field: 'title' | 'startDate' | 'endDate' | 'trainingImpact' | 'status', locale: AppLocale) {
+  const labels: Record<typeof field, { en: string; sv: string }> = {
+    title: { en: 'title', sv: 'titel' },
+    startDate: { en: 'start date', sv: 'startdatum' },
+    endDate: { en: 'end date', sv: 'slutdatum' },
+    trainingImpact: { en: 'training impact', sv: 'träningspåverkan' },
+    status: { en: 'status', sv: 'status' },
+  }
+  return labels[field][locale]
+}
+
+function eventUpdatedDescription(role: string, changes: string[], locale: AppLocale) {
+  return changes.length > 0
+    ? `${actorLabel(role, locale)} ${locale === 'sv' ? 'uppdaterade' : 'updated'}: ${changes.join(', ')}`
+    : `${actorLabel(role, locale)} ${locale === 'sv' ? 'uppdaterade händelsen' : 'updated the event'}`
+}
+
+function eventDeletedDescription(role: string, title: string, locale: AppLocale) {
+  return locale === 'sv'
+    ? `${actorLabel(role, locale)} raderade händelse: ${title}`
+    : `${actorLabel(role, locale)} deleted event: ${title}`
 }
 
 /**
@@ -110,6 +144,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    const locale = resolveLocale(dbUser.language)
 
     // Get existing event
     const existingEvent = await prisma.calendarEvent.findUnique({
@@ -222,15 +257,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Build change description
     const changes: string[] = []
-    if (title && title !== existingEvent.title) changes.push('titel')
-    if (startDate && new Date(startDate).getTime() !== existingEvent.startDate.getTime()) changes.push('startdatum')
-    if (endDate && new Date(endDate).getTime() !== existingEvent.endDate.getTime()) changes.push('slutdatum')
-    if (trainingImpact && trainingImpact !== existingEvent.trainingImpact) changes.push('träningspåverkan')
-    if (status && status !== existingEvent.status) changes.push('status')
+    if (title && title !== existingEvent.title) changes.push(changedFieldLabel('title', locale))
+    if (startDate && new Date(startDate).getTime() !== existingEvent.startDate.getTime()) changes.push(changedFieldLabel('startDate', locale))
+    if (endDate && new Date(endDate).getTime() !== existingEvent.endDate.getTime()) changes.push(changedFieldLabel('endDate', locale))
+    if (trainingImpact && trainingImpact !== existingEvent.trainingImpact) changes.push(changedFieldLabel('trainingImpact', locale))
+    if (status && status !== existingEvent.status) changes.push(changedFieldLabel('status', locale))
 
-    const changeDescription = changes.length > 0
-      ? `${dbUser.role === 'ATHLETE' ? 'Atlet' : 'Tränare'} uppdaterade: ${changes.join(', ')}`
-      : `${dbUser.role === 'ATHLETE' ? 'Atlet' : 'Tränare'} uppdaterade händelsen`
+    const changeDescription = eventUpdatedDescription(dbUser.role, changes, locale)
 
     // Create change record
     await prisma.calendarEventChange.create({
@@ -306,6 +339,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    const locale = resolveLocale(dbUser.language)
 
     // Get existing event
     const existingEvent = await prisma.calendarEvent.findUnique({
@@ -325,6 +359,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+    const changeDescription = eventDeletedDescription(dbUser.role, existingEvent.title, locale)
 
     // Create change record before deletion
     await prisma.calendarEventChange.create({
@@ -333,7 +368,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         clientId: existingEvent.clientId,
         changeType: 'EVENT_DELETED',
         changedById: dbUser.id,
-        description: `${dbUser.role === 'ATHLETE' ? 'Atlet' : 'Tränare'} raderade händelse: ${existingEvent.title}`,
+        description: changeDescription,
         previousData: {
           type: existingEvent.type,
           title: existingEvent.title,
@@ -351,7 +386,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       changedById: dbUser.id,
       eventTitle: existingEvent.title,
       eventType: existingEvent.type,
-      description: `${dbUser.role === 'ATHLETE' ? 'Atlet' : 'Tränare'} raderade händelse: ${existingEvent.title}`,
+      description: changeDescription,
       previousDate: existingEvent.startDate,
       trainingImpact: existingEvent.trainingImpact,
     })
