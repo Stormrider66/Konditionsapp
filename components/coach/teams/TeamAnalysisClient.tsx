@@ -247,7 +247,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
               {aggregates.needsAttention.map((entry) => (
                 <Link
                   key={entry.clientId}
-                  href={`${basePath}/clients/${entry.clientId}?tab=analysis`}
+                  href={`${basePath}/clients/${entry.clientId}?tab=development`}
                   className="flex items-center gap-3 py-2.5 hover:bg-muted/40 -mx-2 px-2 rounded-md transition-colors"
                 >
                   <div className="flex-1 min-w-0">
@@ -301,7 +301,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
                     <tr key={m.clientId} className="border-b hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2.5">
                         <Link
-                          href={`${basePath}/clients/${m.clientId}?tab=analysis`}
+                          href={`${basePath}/clients/${m.clientId}?tab=development`}
                           className="font-medium hover:underline"
                         >
                           {m.name}
@@ -337,7 +337,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
                         )}
                       </td>
                       <td className="px-3 py-2.5 text-right">
-                        <Link href={`${basePath}/clients/${m.clientId}?tab=analysis`}>
+                        <Link href={`${basePath}/clients/${m.clientId}?tab=development`}>
                           <Button variant="ghost" size="sm" className="h-7 px-2">
                             <ChevronRight className="h-4 w-4" />
                           </Button>

@@ -328,7 +328,7 @@ export default function BusinessClientsPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link href={`${basePath}/${client.id}/profile`} className="cursor-pointer">
+                              <Link href={`${basePath}/${client.id}?tab=profile`} className="cursor-pointer">
                                 <UserCircle className="w-4 h-4 mr-2" />
                                 {t('actions.fullProfile')}
                               </Link>
@@ -536,7 +536,7 @@ export default function BusinessClientsPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
                                 <Link
-                                  href={`${basePath}/${client.id}/profile`}
+                                  href={`${basePath}/${client.id}?tab=profile`}
                                   className="cursor-pointer"
                                 >
                                   <UserCircle className="w-4 h-4 mr-2" />

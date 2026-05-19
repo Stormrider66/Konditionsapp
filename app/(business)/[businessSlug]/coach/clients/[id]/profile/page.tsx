@@ -1,4 +1,4 @@
-import { CoachAthleteProfilePage } from '@/components/coach/clients/AthleteProfilePage'
+import { redirect } from 'next/navigation'
 
 interface PageProps {
   params: Promise<{
@@ -8,11 +8,23 @@ interface PageProps {
   searchParams: Promise<{ tab?: string }>
 }
 
+const PROFILE_TAB_ALIASES: Record<string, string> = {
+  physiology: 'development',
+  performance: 'development',
+  technique: 'development',
+  hockey: 'development',
+  football: 'development',
+  training: 'planning',
+  readiness: 'overview',
+  health: 'profile',
+  body: 'profile',
+  goals: 'profile',
+}
+
 export default async function BusinessAthleteProfileRoute({ params, searchParams }: PageProps) {
   const { businessSlug, id } = await params
   const { tab } = await searchParams
+  const destinationTab = tab ? (PROFILE_TAB_ALIASES[tab] ?? 'profile') : 'profile'
 
-  return <CoachAthleteProfilePage id={id} tab={tab} basePath={`/${businessSlug}`} />
+  redirect(`/${businessSlug}/coach/clients/${id}?tab=${destinationTab}`)
 }
-
-export const dynamic = 'force-dynamic'

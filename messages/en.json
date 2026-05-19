@@ -3126,7 +3126,7 @@
           "exportCsv": "Export CSV",
           "newClient": "New client",
           "view": "View",
-          "fullProfile": "Full profile",
+          "fullProfile": "Profile",
           "sendInvite": "Send invite",
           "createAthleteAccount": "Create athlete account",
           "delete": "Delete",
@@ -3201,7 +3201,7 @@
           "summary": "Video analysis for {athlete} - {exercise}. Score: {score}. {count} issues identified."
         },
         "actions": {
-          "fullProfile": "Full profile",
+          "fullProfile": "Profile",
           "edit": "Edit",
           "createAthleteAccount": "Create athlete account",
           "exportCsv": "Export CSV",

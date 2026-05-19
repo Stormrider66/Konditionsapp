@@ -3126,7 +3126,7 @@
           "exportCsv": "Exportera CSV",
           "newClient": "Ny Klient",
           "view": "Visa",
-          "fullProfile": "Fullständig profil",
+          "fullProfile": "Profil",
           "sendInvite": "Skicka inbjudan",
           "createAthleteAccount": "Skapa atletkonto",
           "delete": "Ta bort",
@@ -3201,7 +3201,7 @@
           "summary": "Videoanalys för {athlete} - {exercise}. Poäng: {score}. {count} problem identifierade."
         },
         "actions": {
-          "fullProfile": "Fullständig profil",
+          "fullProfile": "Profil",
           "edit": "Redigera",
           "createAthleteAccount": "Skapa atletkonto",
           "exportCsv": "Exportera CSV",

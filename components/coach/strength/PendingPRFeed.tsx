@@ -113,7 +113,7 @@ export function PendingPRFeed({
                 <div className="flex-1 min-w-0">
                   {p.clientName && basePath ? (
                     <Link
-                      href={`${basePath}/clients/${p.clientId}?tab=analysis`}
+                      href={`${basePath}/clients/${p.clientId}?tab=development`}
                       className="text-sm font-medium hover:underline"
                     >
                       {p.clientName}

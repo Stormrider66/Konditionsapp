@@ -776,7 +776,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {item.athletes.map((athlete) => (
-                          <Link key={athlete.id} href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`}>
+                          <Link key={athlete.id} href={`${basePath}/clients/${athlete.id}?tab=development`}>
                             <Badge variant="outline" className="text-[10px] hover:bg-muted">
                               {athlete.name}
                             </Badge>
@@ -961,7 +961,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <p className="text-xs font-medium">Player pathway drill-down</p>
                       {selectedPathwayAthlete && (
-                        <Link href={`${basePath}/clients/${selectedPathwayAthlete.id}/profile?tab=hockey`}>
+                        <Link href={`${basePath}/clients/${selectedPathwayAthlete.id}?tab=development`}>
                           <Badge variant="outline" className="text-[10px] hover:bg-muted">Profil</Badge>
                         </Link>
                       )}
@@ -1191,7 +1191,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     {hockeyAthletes.map((athlete) => (
                       <tr key={athlete.id} className="border-b last:border-0">
                         <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
-                          <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="hover:underline">
+                          <Link href={`${basePath}/clients/${athlete.id}?tab=development`} className="hover:underline">
                             {athlete.name}
                           </Link>
                           {athlete.qualityFlags.some((flag) => flag.severity === 'warning') && (
@@ -1448,7 +1448,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       {hockeyChangeRows.map((athlete) => (
                         <tr key={athlete.id} className="border-b last:border-0">
                           <td className="px-2 py-1.5 font-medium">
-                            <Link href={`${basePath}/clients/${athlete.id}/profile?tab=hockey`} className="hover:underline">
+                            <Link href={`${basePath}/clients/${athlete.id}?tab=development`} className="hover:underline">
                               {athlete.name}
                             </Link>
                           </td>
@@ -1686,7 +1686,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                               <tr key={r.id} className="border-b last:border-0">
                                 <td className="px-3 py-1.5">
                                   <Link
-                                    href={`${basePath}/clients/${r.clientId}?tab=analysis`}
+                                    href={`${basePath}/clients/${r.clientId}?tab=development`}
                                     className="hover:underline"
                                   >
                                     {r.athleteName}
@@ -1731,7 +1731,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
                                     <Link
-                                      href={`${basePath}/clients/${r.clientId}?tab=analysis`}
+                                      href={`${basePath}/clients/${r.clientId}?tab=development`}
                                     >
                                       <Button
                                         variant="ghost"
