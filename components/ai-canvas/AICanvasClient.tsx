@@ -985,7 +985,11 @@ export function AICanvasClient({
   const handleUndoLastCanvasChange = () => {
     const [latest, ...rest] = history
     if (!latest) {
-      addActionReceipt('warning', 'Ingen version att återställa', 'Det finns ingen tidigare canvasversion att återställa ännu.')
+      addActionReceipt(
+        'warning',
+        locale === 'sv' ? 'Ingen version att återställa' : 'No version to restore',
+        locale === 'sv' ? 'Det finns ingen tidigare canvasversion att återställa ännu.' : 'There is no previous canvas version to restore yet.'
+      )
       return
     }
 
@@ -993,7 +997,13 @@ export function AICanvasClient({
     setBlocks(latest.blocks)
     setHistory(rest)
     setLastUpdated(new Date().toLocaleTimeString(dateLocale, timeFormatOptions))
-    addActionReceipt('success', 'Version återställd', `Jag återställde canvasen till versionen före "${latest.label}".`)
+    addActionReceipt(
+      'success',
+      locale === 'sv' ? 'Version återställd' : 'Version restored',
+      locale === 'sv'
+        ? `Jag återställde canvasen till versionen före "${latest.label}".`
+        : `I restored the canvas to the version before "${latest.label}".`
+    )
   }
 
   const handleSelectTemplate = (template: CanvasTemplate) => {
@@ -1111,7 +1121,11 @@ export function AICanvasClient({
       const payload = (await response.json()) as GenerateCanvasResponse
 
       if (!response.ok || !payload.success || !payload.blocks?.length) {
-        addActionReceipt('error', 'Block kunde inte förbättras', payload.error || 'Jag kunde inte förbättra blocket just nu.')
+        addActionReceipt(
+          'error',
+          locale === 'sv' ? 'Block kunde inte förbättras' : 'Block could not be improved',
+          payload.error || (locale === 'sv' ? 'Jag kunde inte förbättra blocket just nu.' : 'I could not improve the block right now.')
+        )
         return
       }
 
@@ -1124,9 +1138,21 @@ export function AICanvasClient({
       setModelLabel(getCanvasModelLabel(payload.model, payload.skillsUsed, modelLabel))
       setCanvasSkillsUsed(payload.skillsUsed || [])
       setLastUpdated(new Date().toLocaleTimeString(dateLocale, timeFormatOptions))
-      addActionReceipt('success', 'Block förbättrat', `Jag förbättrade blocket "${improvedBlock.title || block.title || block.type}".`)
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Block förbättrat' : 'Block improved',
+        locale === 'sv'
+          ? `Jag förbättrade blocket "${improvedBlock.title || block.title || block.type}".`
+          : `I improved the block "${improvedBlock.title || block.title || block.type}".`
+      )
     } catch {
-      addActionReceipt('error', 'Block kunde inte förbättras', 'Jag kunde inte nå AI Canvas för att förbättra blocket just nu.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Block kunde inte förbättras' : 'Block could not be improved',
+        locale === 'sv'
+          ? 'Jag kunde inte nå AI Canvas för att förbättra blocket just nu.'
+          : 'I could not reach AI Canvas to improve the block right now.'
+      )
     } finally {
       setRegeneratingBlockId(null)
     }
@@ -1141,7 +1167,11 @@ export function AICanvasClient({
     setSelectedTemplateId('blank')
     setSelectedSkillIds([])
     setCanvasSkillsUsed([])
-    addActionReceipt('success', 'Canvas återställd', 'Jag återställde canvasen till startläget.')
+    addActionReceipt(
+      'success',
+      locale === 'sv' ? 'Canvas återställd' : 'Canvas reset',
+      locale === 'sv' ? 'Jag återställde canvasen till startläget.' : 'I reset the canvas to its starting state.'
+    )
     setLastUpdated(locale === 'sv' ? 'Återställd' : 'Reset')
     setModelLabel(null)
     setAthleteMessageDraft(null)
@@ -1174,7 +1204,7 @@ export function AICanvasClient({
 
   const handleSave = async () => {
     setIsSaving(true)
-    setAssistantMessage('Jag sparar canvasen...')
+    setAssistantMessage(locale === 'sv' ? 'Jag sparar canvasen...' : 'I am saving the canvas...')
 
     try {
       const response = await fetch(canvasId ? `/api/ai/canvas/${canvasId}` : '/api/ai/canvas', {
@@ -1189,7 +1219,11 @@ export function AICanvasClient({
       const payload = (await response.json()) as CanvasSaveResponse
 
       if (!response.ok || !payload.success || !payload.canvas) {
-        addActionReceipt('error', 'Canvas kunde inte sparas', payload.error || 'Jag kunde inte spara canvasen just nu.')
+        addActionReceipt(
+          'error',
+          locale === 'sv' ? 'Canvas kunde inte sparas' : 'Canvas could not be saved',
+          payload.error || (locale === 'sv' ? 'Jag kunde inte spara canvasen just nu.' : 'I could not save the canvas right now.')
+        )
         return
       }
 
@@ -1198,9 +1232,13 @@ export function AICanvasClient({
       setBlocks(payload.canvas.blocks)
       setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString(dateLocale, timeFormatOptions))
       upsertSavedCanvas(payload.canvas)
-      addActionReceipt('success', 'Canvas sparad', 'Jag sparade canvasen.')
+      addActionReceipt('success', locale === 'sv' ? 'Canvas sparad' : 'Canvas saved', locale === 'sv' ? 'Jag sparade canvasen.' : 'I saved the canvas.')
     } catch {
-      addActionReceipt('error', 'Canvas kunde inte sparas', 'Jag kunde inte nå sparfunktionen just nu. Försök igen om en stund.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Canvas kunde inte sparas' : 'Canvas could not be saved',
+        locale === 'sv' ? 'Jag kunde inte nå sparfunktionen just nu. Försök igen om en stund.' : 'I could not reach the save function right now. Try again in a moment.'
+      )
     } finally {
       setIsSaving(false)
     }
@@ -1208,14 +1246,18 @@ export function AICanvasClient({
 
   const handleLoadCanvas = async (id: string) => {
     setLoadingCanvasId(id)
-    setAssistantMessage('Jag laddar canvasen...')
+    setAssistantMessage(locale === 'sv' ? 'Jag laddar canvasen...' : 'I am loading the canvas...')
 
     try {
       const response = await fetch(`/api/ai/canvas/${id}`)
       const payload = (await response.json()) as CanvasSaveResponse
 
       if (!response.ok || !payload.success || !payload.canvas) {
-        addActionReceipt('error', 'Canvas kunde inte laddas', payload.error || 'Jag kunde inte ladda canvasen.')
+        addActionReceipt(
+          'error',
+          locale === 'sv' ? 'Canvas kunde inte laddas' : 'Canvas could not be loaded',
+          payload.error || (locale === 'sv' ? 'Jag kunde inte ladda canvasen.' : 'I could not load the canvas.')
+        )
         return
       }
 
@@ -1226,9 +1268,13 @@ export function AICanvasClient({
       setModelLabel(null)
       setCanvasSkillsUsed([])
       upsertSavedCanvas(payload.canvas)
-      addActionReceipt('success', 'Canvas laddad', 'Jag laddade canvasen.')
+      addActionReceipt('success', locale === 'sv' ? 'Canvas laddad' : 'Canvas loaded', locale === 'sv' ? 'Jag laddade canvasen.' : 'I loaded the canvas.')
     } catch {
-      addActionReceipt('error', 'Canvas kunde inte laddas', 'Jag kunde inte nå sparade canvases just nu.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Canvas kunde inte laddas' : 'Canvas could not be loaded',
+        locale === 'sv' ? 'Jag kunde inte nå sparade canvases just nu.' : 'I could not reach saved canvases right now.'
+      )
     } finally {
       setLoadingCanvasId(null)
     }
@@ -1236,12 +1282,16 @@ export function AICanvasClient({
 
   const handleArchiveCurrent = async () => {
     if (!canvasId) {
-      addActionReceipt('warning', 'Inget att arkivera', 'Det finns ingen sparad canvas att arkivera ännu.')
+      addActionReceipt(
+        'warning',
+        locale === 'sv' ? 'Inget att arkivera' : 'Nothing to archive',
+        locale === 'sv' ? 'Det finns ingen sparad canvas att arkivera ännu.' : 'There is no saved canvas to archive yet.'
+      )
       return
     }
 
     setIsSaving(true)
-    setAssistantMessage('Jag arkiverar canvasen...')
+    setAssistantMessage(locale === 'sv' ? 'Jag arkiverar canvasen...' : 'I am archiving the canvas...')
 
     try {
       const response = await fetch(`/api/ai/canvas/${canvasId}`, {
@@ -1250,15 +1300,27 @@ export function AICanvasClient({
       const payload = (await response.json()) as { success?: boolean; error?: string }
 
       if (!response.ok || !payload.success) {
-        addActionReceipt('error', 'Canvas kunde inte arkiveras', payload.error || 'Jag kunde inte arkivera canvasen.')
+        addActionReceipt(
+          'error',
+          locale === 'sv' ? 'Canvas kunde inte arkiveras' : 'Canvas could not be archived',
+          payload.error || (locale === 'sv' ? 'Jag kunde inte arkivera canvasen.' : 'I could not archive the canvas.')
+        )
         return
       }
 
       setSavedCanvases((current) => current.filter((canvas) => canvas.id !== canvasId))
       handleReset()
-      addActionReceipt('success', 'Canvas arkiverad', 'Jag arkiverade canvasen och öppnade en ny arbetsyta.')
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Canvas arkiverad' : 'Canvas archived',
+        locale === 'sv' ? 'Jag arkiverade canvasen och öppnade en ny arbetsyta.' : 'I archived the canvas and opened a new workspace.'
+      )
     } catch {
-      addActionReceipt('error', 'Canvas kunde inte arkiveras', 'Jag kunde inte nå arkiveringen just nu.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Canvas kunde inte arkiveras' : 'Canvas could not be archived',
+        locale === 'sv' ? 'Jag kunde inte nå arkiveringen just nu.' : 'I could not reach archiving right now.'
+      )
     } finally {
       setIsSaving(false)
     }
@@ -1268,9 +1330,13 @@ export function AICanvasClient({
     const markdown = canvasToMarkdown(title, blocks, true, locale)
     try {
       await navigator.clipboard.writeText(markdown)
-      addActionReceipt('success', 'Canvas kopierad', 'Jag kopierade canvasen som text.')
+      addActionReceipt('success', locale === 'sv' ? 'Canvas kopierad' : 'Canvas copied', locale === 'sv' ? 'Jag kopierade canvasen som text.' : 'I copied the canvas as text.')
     } catch {
-      addActionReceipt('error', 'Kopiering misslyckades', 'Jag kunde inte kopiera automatiskt. Markera texten och kopiera manuellt.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Kopiering misslyckades' : 'Copy failed',
+        locale === 'sv' ? 'Jag kunde inte kopiera automatiskt. Markera texten och kopiera manuellt.' : 'I could not copy automatically. Select the text and copy it manually.'
+      )
     }
   }
 
@@ -1287,25 +1353,33 @@ export function AICanvasClient({
       anchor.click()
       anchor.remove()
       URL.revokeObjectURL(url)
-      addActionReceipt('success', 'Markdown exporterad', 'Jag exporterade canvasen som markdown.')
+      addActionReceipt('success', locale === 'sv' ? 'Markdown exporterad' : 'Markdown exported', locale === 'sv' ? 'Jag exporterade canvasen som markdown.' : 'I exported the canvas as Markdown.')
     } finally {
       setIsExporting(false)
     }
   }
 
   const handlePrintPdf = () => {
-    addActionReceipt('info', 'PDF-export startad', 'Jag öppnar utskrift. Välj Spara som PDF i dialogen.')
+    addActionReceipt(
+      'info',
+      locale === 'sv' ? 'PDF-export startad' : 'PDF export started',
+      locale === 'sv' ? 'Jag öppnar utskrift. Välj Spara som PDF i dialogen.' : 'I am opening print. Choose Save as PDF in the dialog.'
+    )
     window.setTimeout(() => window.print(), 50)
   }
 
   const handleSaveAthleteNote = async () => {
     if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
-      addActionReceipt('warning', 'Atlet saknas', 'Välj en atlet i kontextpanelen först, så kan jag spara canvasen som en intern coachanteckning.')
+      addActionReceipt(
+        'warning',
+        locale === 'sv' ? 'Atlet saknas' : 'Athlete missing',
+        locale === 'sv' ? 'Välj en atlet i kontextpanelen först, så kan jag spara canvasen som en intern coachanteckning.' : 'Select an athlete in the context panel first, then I can save the canvas as an internal coach note.'
+      )
       return
     }
 
     setIsSavingNote(true)
-    setAssistantMessage(`Jag sparar canvasen som intern anteckning för ${selectedAthlete.name}...`)
+    setAssistantMessage(locale === 'sv' ? `Jag sparar canvasen som intern anteckning för ${selectedAthlete.name}...` : `I am saving the canvas as an internal note for ${selectedAthlete.name}...`)
 
     try {
       const response = await fetch('/api/ai/canvas/note', {
@@ -1321,13 +1395,27 @@ export function AICanvasClient({
       const payload = (await response.json()) as CanvasNoteResponse
 
       if (!response.ok || !payload.success) {
-        addActionReceipt('error', 'Anteckning kunde inte sparas', payload.error || 'Jag kunde inte spara canvasen som coachanteckning.')
+        addActionReceipt(
+          'error',
+          locale === 'sv' ? 'Anteckning kunde inte sparas' : 'Note could not be saved',
+          payload.error || (locale === 'sv' ? 'Jag kunde inte spara canvasen som coachanteckning.' : 'I could not save the canvas as a coach note.')
+        )
         return
       }
 
-      addActionReceipt('success', 'Anteckning sparad', `Jag sparade canvasen som intern coachanteckning för ${payload.athleteName || selectedAthlete.name}.`)
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Anteckning sparad' : 'Note saved',
+        locale === 'sv'
+          ? `Jag sparade canvasen som intern coachanteckning för ${payload.athleteName || selectedAthlete.name}.`
+          : `I saved the canvas as an internal coach note for ${payload.athleteName || selectedAthlete.name}.`
+      )
     } catch {
-      addActionReceipt('error', 'Anteckning kunde inte sparas', 'Jag kunde inte nå anteckningsfunktionen just nu. Försök igen om en stund.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Anteckning kunde inte sparas' : 'Note could not be saved',
+        locale === 'sv' ? 'Jag kunde inte nå anteckningsfunktionen just nu. Försök igen om en stund.' : 'I could not reach the note function right now. Try again in a moment.'
+      )
     } finally {
       setIsSavingNote(false)
     }
@@ -1335,7 +1423,11 @@ export function AICanvasClient({
 
   const handlePrepareAthleteMessage = () => {
     if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
-      addActionReceipt('warning', 'Atlet saknas', 'Välj en atlet i kontextpanelen först, så kan jag förbereda ett meddelande för granskning.')
+      addActionReceipt(
+        'warning',
+        locale === 'sv' ? 'Atlet saknas' : 'Athlete missing',
+        locale === 'sv' ? 'Välj en atlet i kontextpanelen först, så kan jag förbereda ett meddelande för granskning.' : 'Select an athlete in the context panel first, then I can prepare a message for review.'
+      )
       return
     }
 
@@ -1346,42 +1438,68 @@ export function AICanvasClient({
       content,
       createdAt: new Date().toLocaleTimeString(dateLocale, timeFormatOptions),
     })
-    addActionReceipt('success', 'Meddelande förberett', `Jag förberedde ett meddelande till ${selectedAthlete.name}. Inget har skickats.`)
+    addActionReceipt(
+      'success',
+      locale === 'sv' ? 'Meddelande förberett' : 'Message prepared',
+      locale === 'sv' ? `Jag förberedde ett meddelande till ${selectedAthlete.name}. Inget har skickats.` : `I prepared a message for ${selectedAthlete.name}. Nothing has been sent.`
+    )
   }
 
   const handleCopyAthleteMessage = async () => {
     if (!athleteMessageDraft) {
-      addActionReceipt('warning', 'Inget meddelandeutkast', 'Det finns inget förberett meddelande att kopiera ännu.')
+      addActionReceipt(
+        'warning',
+        locale === 'sv' ? 'Inget meddelandeutkast' : 'No message draft',
+        locale === 'sv' ? 'Det finns inget förberett meddelande att kopiera ännu.' : 'There is no prepared message to copy yet.'
+      )
       return
     }
 
     try {
       await navigator.clipboard.writeText(athleteMessageDraft.content)
-      addActionReceipt('success', 'Meddelande kopierat', `Jag kopierade meddelandet till ${athleteMessageDraft.athleteName}. Det är fortfarande inte skickat.`)
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Meddelande kopierat' : 'Message copied',
+        locale === 'sv'
+          ? `Jag kopierade meddelandet till ${athleteMessageDraft.athleteName}. Det är fortfarande inte skickat.`
+          : `I copied the message for ${athleteMessageDraft.athleteName}. It still has not been sent.`
+      )
     } catch {
-      addActionReceipt('error', 'Kopiering misslyckades', 'Jag kunde inte kopiera meddelandet automatiskt. Markera texten och kopiera manuellt.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Kopiering misslyckades' : 'Copy failed',
+        locale === 'sv' ? 'Jag kunde inte kopiera meddelandet automatiskt. Markera texten och kopiera manuellt.' : 'I could not copy the message automatically. Select the text and copy it manually.'
+      )
     }
   }
 
   const handleSendAthleteMessage = async () => {
     if (!athleteMessageDraft) {
-      addActionReceipt('warning', 'Inget meddelandeutkast', 'Det finns inget meddelandeutkast att skicka ännu.')
+      addActionReceipt('warning', locale === 'sv' ? 'Inget meddelandeutkast' : 'No message draft', locale === 'sv' ? 'Det finns inget meddelandeutkast att skicka ännu.' : 'There is no message draft to send yet.')
       return
     }
 
     if (athleteMessageDraft.sentAt) {
-      addActionReceipt('warning', 'Meddelande redan skickat', `Meddelandet till ${athleteMessageDraft.athleteName} är redan skickat.`)
+      addActionReceipt(
+        'warning',
+        locale === 'sv' ? 'Meddelande redan skickat' : 'Message already sent',
+        locale === 'sv' ? `Meddelandet till ${athleteMessageDraft.athleteName} är redan skickat.` : `The message to ${athleteMessageDraft.athleteName} has already been sent.`
+      )
       return
     }
 
-    const confirmed = window.confirm(`Skicka meddelandet till ${athleteMessageDraft.athleteName}?`)
+    const confirmed = window.confirm(locale === 'sv' ? `Skicka meddelandet till ${athleteMessageDraft.athleteName}?` : `Send the message to ${athleteMessageDraft.athleteName}?`)
     if (!confirmed) {
-      addActionReceipt('info', 'Skick avbrutet', `Jag skickade inte meddelandet till ${athleteMessageDraft.athleteName}.`)
+      addActionReceipt(
+        'info',
+        locale === 'sv' ? 'Skick avbrutet' : 'Send cancelled',
+        locale === 'sv' ? `Jag skickade inte meddelandet till ${athleteMessageDraft.athleteName}.` : `I did not send the message to ${athleteMessageDraft.athleteName}.`
+      )
       return
     }
 
     setIsSendingDraft(true)
-    setAssistantMessage(`Jag skickar meddelandet till ${athleteMessageDraft.athleteName}...`)
+    setAssistantMessage(locale === 'sv' ? `Jag skickar meddelandet till ${athleteMessageDraft.athleteName}...` : `I am sending the message to ${athleteMessageDraft.athleteName}...`)
 
     try {
       const response = await fetch('/api/ai/chat/actions/coach-message', {
@@ -1402,15 +1520,27 @@ export function AICanvasClient({
       const payload = (await response.json()) as CanvasSendMessageResponse
 
       if (!response.ok || !payload.success) {
-        addActionReceipt('error', 'Meddelande kunde inte skickas', payload.error || 'Jag kunde inte skicka meddelandet.')
+        addActionReceipt(
+          'error',
+          locale === 'sv' ? 'Meddelande kunde inte skickas' : 'Message could not be sent',
+          payload.error || (locale === 'sv' ? 'Jag kunde inte skicka meddelandet.' : 'I could not send the message.')
+        )
         return
       }
 
       const sentAt = new Date().toLocaleTimeString(dateLocale, timeFormatOptions)
       setAthleteMessageDraft((current) => current ? { ...current, sentAt } : current)
-      addActionReceipt('success', 'Meddelande skickat', payload.message || `Meddelandet skickades till ${athleteMessageDraft.athleteName}.`)
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Meddelande skickat' : 'Message sent',
+        payload.message || (locale === 'sv' ? `Meddelandet skickades till ${athleteMessageDraft.athleteName}.` : `The message was sent to ${athleteMessageDraft.athleteName}.`)
+      )
     } catch {
-      addActionReceipt('error', 'Meddelande kunde inte skickas', 'Jag kunde inte nå meddelandefunktionen just nu. Försök igen om en stund.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Meddelande kunde inte skickas' : 'Message could not be sent',
+        locale === 'sv' ? 'Jag kunde inte nå meddelandefunktionen just nu. Försök igen om en stund.' : 'I could not reach the message function right now. Try again in a moment.'
+      )
     } finally {
       setIsSendingDraft(false)
     }
@@ -1419,17 +1549,29 @@ export function AICanvasClient({
   const handleOpenContext = () => {
     if (contextSelection.scope === 'athlete' && selectedAthlete) {
       window.open(`/${businessSlug}/coach/clients/${selectedAthlete.id}`, '_blank', 'noopener,noreferrer')
-      addActionReceipt('success', 'Profil öppnad', `Jag öppnade profilen för ${selectedAthlete.name} i en ny flik.`)
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Profil öppnad' : 'Profile opened',
+        locale === 'sv' ? `Jag öppnade profilen för ${selectedAthlete.name} i en ny flik.` : `I opened the profile for ${selectedAthlete.name} in a new tab.`
+      )
       return
     }
 
     if (contextSelection.scope === 'team' && selectedTeam) {
       window.open(`/${businessSlug}/coach/teams/${selectedTeam.id}`, '_blank', 'noopener,noreferrer')
-      addActionReceipt('success', 'Lag öppnat', `Jag öppnade lagsidan för ${selectedTeam.name} i en ny flik.`)
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Lag öppnat' : 'Team opened',
+        locale === 'sv' ? `Jag öppnade lagsidan för ${selectedTeam.name} i en ny flik.` : `I opened the team page for ${selectedTeam.name} in a new tab.`
+      )
       return
     }
 
-    addActionReceipt('warning', 'Kontext saknas', 'Välj en atlet eller ett lag i kontextpanelen först, så kan jag öppna rätt sida.')
+    addActionReceipt(
+      'warning',
+      locale === 'sv' ? 'Kontext saknas' : 'Context missing',
+      locale === 'sv' ? 'Välj en atlet eller ett lag i kontextpanelen först, så kan jag öppna rätt sida.' : 'Select an athlete or team in the context panel first, then I can open the right page.'
+    )
   }
 
   const handleCreateFollowUpTask = async (override?: {
@@ -1446,7 +1588,7 @@ export function AICanvasClient({
           : undefined
 
     setIsCreatingTask(true)
-    setAssistantMessage('Jag skapar en uppgift från canvasen...')
+    setAssistantMessage(locale === 'sv' ? 'Jag skapar en uppgift från canvasen...' : 'I am creating a task from the canvas...')
 
     try {
       const response = await fetch('/api/ai/canvas/task', {
@@ -1463,13 +1605,25 @@ export function AICanvasClient({
       const payload = (await response.json()) as CanvasTaskResponse
 
       if (!response.ok || !payload.success || !payload.task) {
-        addActionReceipt('error', 'Uppgift kunde inte skapas', payload.error || 'Jag kunde inte skapa uppgiften.')
+        addActionReceipt(
+          'error',
+          locale === 'sv' ? 'Uppgift kunde inte skapas' : 'Task could not be created',
+          payload.error || (locale === 'sv' ? 'Jag kunde inte skapa uppgiften.' : 'I could not create the task.')
+        )
         return
       }
 
-      addActionReceipt('success', 'Uppgift skapad', `Jag skapade uppgiften "${payload.task.title}".`)
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Uppgift skapad' : 'Task created',
+        locale === 'sv' ? `Jag skapade uppgiften "${payload.task.title}".` : `I created the task "${payload.task.title}".`
+      )
     } catch {
-      addActionReceipt('error', 'Uppgift kunde inte skapas', 'Jag kunde inte nå uppgiftsfunktionen just nu. Försök igen om en stund.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Uppgift kunde inte skapas' : 'Task could not be created',
+        locale === 'sv' ? 'Jag kunde inte nå uppgiftsfunktionen just nu. Försök igen om en stund.' : 'I could not reach the task function right now. Try again in a moment.'
+      )
     } finally {
       setIsCreatingTask(false)
     }
@@ -1477,7 +1631,11 @@ export function AICanvasClient({
 
   const handleScheduleTestAction = (sourceLabel?: string) => {
     if (contextSelection.scope !== 'athlete' || !selectedAthlete) {
-      addActionReceipt('warning', 'Atlet saknas', 'Välj en atlet i kontextpanelen först, så kan jag öppna testbokningen med rätt sammanhang.')
+      addActionReceipt(
+        'warning',
+        locale === 'sv' ? 'Atlet saknas' : 'Athlete missing',
+        locale === 'sv' ? 'Välj en atlet i kontextpanelen först, så kan jag öppna testbokningen med rätt sammanhang.' : 'Select an athlete in the context panel first, then I can open the test booking with the right context.'
+      )
       return
     }
 
@@ -1488,10 +1646,14 @@ export function AICanvasClient({
     window.open(`/${businessSlug}/coach/field-tests/schedule?${params.toString()}`, '_blank', 'noopener,noreferrer')
     addActionReceipt(
       'info',
-      'Testbokning öppnad',
+      locale === 'sv' ? 'Testbokning öppnad' : 'Test booking opened',
       sourceLabel
-        ? `Jag öppnade testbokningen för uppföljningen "${sourceLabel}". Ingen bokning har skapats ännu.`
-        : `Jag öppnade testbokningen för ${selectedAthlete.name}. Ingen bokning har skapats ännu.`
+        ? locale === 'sv'
+          ? `Jag öppnade testbokningen för uppföljningen "${sourceLabel}". Ingen bokning har skapats ännu.`
+          : `I opened test booking for the follow-up "${sourceLabel}". No booking has been created yet.`
+        : locale === 'sv'
+          ? `Jag öppnade testbokningen för ${selectedAthlete.name}. Ingen bokning har skapats ännu.`
+          : `I opened test booking for ${selectedAthlete.name}. No booking has been created yet.`
     )
   }
 
@@ -1518,7 +1680,11 @@ export function AICanvasClient({
     params.set('source', 'AI Canvas')
     params.set('prompt', buildProgramDraftPrompt(title, blocks, locale))
     window.open(`/${businessSlug}/coach/programs/generate?${params.toString()}`, '_blank', 'noopener,noreferrer')
-    addActionReceipt('info', 'Programutkast öppnat', 'Jag öppnade programgeneratorn med canvasens sammanhang. Inget program har skapats ännu.')
+    addActionReceipt(
+      'info',
+      locale === 'sv' ? 'Programutkast öppnat' : 'Program draft opened',
+      locale === 'sv' ? 'Jag öppnade programgeneratorn med canvasens sammanhang. Inget program har skapats ännu.' : 'I opened the program generator with the canvas context. No program has been created yet.'
+    )
   }
 
   return (
@@ -1543,13 +1709,15 @@ export function AICanvasClient({
                   aria-label="Canvas title"
                 />
                 <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                  Skapa rapporter, analyser, planer och coachbriefs som strukturerade block.
+                  {locale === 'sv'
+                    ? 'Skapa rapporter, analyser, planer och coachbriefs som strukturerade block.'
+                    : 'Create reports, analyses, plans, and coach briefs as structured blocks.'}
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              <span>Senast uppdaterad: {lastUpdated}</span>
+              <span>{locale === 'sv' ? 'Senast uppdaterad' : 'Last updated'}: {lastUpdated}</span>
               {modelLabel && (
                 <>
                   <span className="text-slate-300">|</span>
@@ -1561,23 +1729,27 @@ export function AICanvasClient({
           <div className="flex flex-wrap gap-2 print:hidden">
             <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
               <FilePlus2 className="h-4 w-4" />
-              Ny canvas
+              {locale === 'sv' ? 'Ny canvas' : 'New canvas'}
             </Button>
             <Button size="sm" onClick={handleSave} disabled={isSaving} className="gap-2">
               <Save className="h-4 w-4" />
-              {isSaving ? 'Sparar...' : canvasId ? 'Spara ändringar' : 'Spara canvas'}
+              {isSaving
+                ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+                : canvasId
+                  ? locale === 'sv' ? 'Spara ändringar' : 'Save changes'
+                  : locale === 'sv' ? 'Spara canvas' : 'Save canvas'}
             </Button>
             <Button variant="outline" size="sm" onClick={handleArchiveCurrent} disabled={isSaving || !canvasId} className="gap-2">
               <Archive className="h-4 w-4" />
-              Arkivera
+              {locale === 'sv' ? 'Arkivera' : 'Archive'}
             </Button>
             <Button variant="outline" size="sm" onClick={handleUndoLastCanvasChange} disabled={history.length === 0} className="gap-2">
               <Undo2 className="h-4 w-4" />
-              Ångra AI-ändring
+              {locale === 'sv' ? 'Ångra AI-ändring' : 'Undo AI change'}
             </Button>
             <Button variant="outline" size="sm" onClick={handleCopyMarkdown} className="gap-2">
               <Copy className="h-4 w-4" />
-              Kopiera
+              {locale === 'sv' ? 'Kopiera' : 'Copy'}
             </Button>
             <Button variant="outline" size="sm" onClick={handleDownloadMarkdown} disabled={isExporting} className="gap-2">
               <Download className="h-4 w-4" />
@@ -1595,11 +1767,11 @@ export function AICanvasClient({
               className="gap-2"
             >
               <ClipboardList className="h-4 w-4" />
-              Spara anteckning
+              {locale === 'sv' ? 'Spara anteckning' : 'Save note'}
             </Button>
             <Button variant="outline" size="sm" onClick={handlePrepareAthleteMessage} className="gap-2">
               <MessageSquareText className="h-4 w-4" />
-              Förbered meddelande
+              {locale === 'sv' ? 'Förbered meddelande' : 'Prepare message'}
             </Button>
           </div>
         </div>
@@ -1610,12 +1782,12 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-blue-700" />
-              <h2 className="text-sm font-semibold text-slate-900">Nästa åtgärder</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Nästa åtgärder' : 'Next actions'}</h2>
             </div>
             <div className="grid gap-2">
               <Button variant="outline" size="sm" onClick={handleOpenContext} className="justify-start gap-2">
                 <ExternalLink className="h-4 w-4" />
-                Öppna kontext
+                {locale === 'sv' ? 'Öppna kontext' : 'Open context'}
               </Button>
               <Button
                 variant="outline"
@@ -1625,11 +1797,11 @@ export function AICanvasClient({
                 className="justify-start gap-2"
               >
                 <ClipboardList className="h-4 w-4" />
-                {isCreatingTask ? 'Skapar uppgift...' : 'Skapa uppgift'}
+                {isCreatingTask ? (locale === 'sv' ? 'Skapar uppgift...' : 'Creating task...') : (locale === 'sv' ? 'Skapa uppgift' : 'Create task')}
               </Button>
               <Button variant="outline" size="sm" onClick={handlePrepareAthleteMessage} className="justify-start gap-2">
                 <MessageSquareText className="h-4 w-4" />
-                Förbered meddelande
+                {locale === 'sv' ? 'Förbered meddelande' : 'Prepare message'}
               </Button>
               <Button
                 variant="outline"
@@ -1639,11 +1811,11 @@ export function AICanvasClient({
                 className="justify-start gap-2"
               >
                 <ClipboardList className="h-4 w-4" />
-                Spara intern anteckning
+                {locale === 'sv' ? 'Spara intern anteckning' : 'Save internal note'}
               </Button>
               <Button variant="outline" size="sm" onClick={handleOpenProgramDraft} className="justify-start gap-2">
                 <ListChecks className="h-4 w-4" />
-                Öppna programutkast
+                {locale === 'sv' ? 'Öppna programutkast' : 'Open program draft'}
               </Button>
               <Button
                 variant="outline"
@@ -1653,11 +1825,13 @@ export function AICanvasClient({
                 className="justify-start gap-2"
               >
                 <CalendarPlus className="h-4 w-4" />
-                Påminn om reassessment
+                {locale === 'sv' ? 'Påminn om reassessment' : 'Remind about reassessment'}
               </Button>
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-500">
-              Åtgärder kräver klick och AI Canvas berättar alltid vad som hände. Meddelanden skickas bara från granskningspanelen.
+              {locale === 'sv'
+                ? 'Åtgärder kräver klick och AI Canvas berättar alltid vad som hände. Meddelanden skickas bara från granskningspanelen.'
+                : 'Actions require a click and AI Canvas always reports what happened. Messages are only sent from the review panel.'}
             </p>
           </div>
 
@@ -1670,7 +1844,7 @@ export function AICanvasClient({
                 'h-4 w-4',
                 tierGuardrails.level === 'warning' ? 'text-amber-600' : 'text-emerald-600'
               )} />
-              <h2 className="text-sm font-semibold text-slate-900">AI-kostnad & tier</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'AI-kostnad & tier' : 'AI cost & tier'}</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">{tierGuardrails.label}</Badge>
@@ -1683,7 +1857,7 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Startmallar</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Startmallar' : 'Starter templates'}</h2>
             </div>
             <div className="space-y-2">
               {workspaceTemplates.map((template) => {
@@ -1713,7 +1887,7 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <FileText className="h-4 w-4 text-indigo-700" />
-              <h2 className="text-sm font-semibold text-slate-900">Rapportmallar</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Rapportmallar' : 'Report templates'}</h2>
             </div>
             <div className="space-y-2">
               {reportTemplates.map((template) => {
@@ -1743,11 +1917,11 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-cyan-700" />
-              <h2 className="text-sm font-semibold text-slate-900">Kontext</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Kontext' : 'Context'}</h2>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Fokus</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{locale === 'sv' ? 'Fokus' : 'Focus'}</label>
                 <Select
                   value={contextSelection.scope}
                   onValueChange={(value) => {
@@ -1761,19 +1935,19 @@ export function AICanvasClient({
                   }}
                 >
                   <SelectTrigger className="h-9 border-slate-200">
-                    <SelectValue placeholder="Välj fokus" />
+                    <SelectValue placeholder={locale === 'sv' ? 'Välj fokus' : 'Select focus'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Ingen specifik</SelectItem>
-                    <SelectItem value="athlete">Atlet</SelectItem>
-                    <SelectItem value="team">Lag</SelectItem>
+                    <SelectItem value="none">{locale === 'sv' ? 'Ingen specifik' : 'None specific'}</SelectItem>
+                    <SelectItem value="athlete">{locale === 'sv' ? 'Atlet' : 'Athlete'}</SelectItem>
+                    <SelectItem value="team">{locale === 'sv' ? 'Lag' : 'Team'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {contextSelection.scope === 'athlete' && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Atlet</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">{locale === 'sv' ? 'Atlet' : 'Athlete'}</label>
                   <Select
                     value={contextSelection.athleteId || 'none'}
                     onValueChange={(value) => {
@@ -1784,10 +1958,10 @@ export function AICanvasClient({
                     }}
                   >
                     <SelectTrigger className="h-9 border-slate-200">
-                      <SelectValue placeholder="Välj atlet" />
+                      <SelectValue placeholder={locale === 'sv' ? 'Välj atlet' : 'Select athlete'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Välj atlet</SelectItem>
+                      <SelectItem value="none">{locale === 'sv' ? 'Välj atlet' : 'Select athlete'}</SelectItem>
                       {athletes.map((athlete) => (
                         <SelectItem key={athlete.id} value={athlete.id}>
                           {athlete.name}
@@ -1800,7 +1974,7 @@ export function AICanvasClient({
 
               {contextSelection.scope === 'team' && (
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Lag</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">{locale === 'sv' ? 'Lag' : 'Team'}</label>
                   <Select
                     value={contextSelection.teamId || 'none'}
                     onValueChange={(value) => {
@@ -1811,10 +1985,10 @@ export function AICanvasClient({
                     }}
                   >
                     <SelectTrigger className="h-9 border-slate-200">
-                      <SelectValue placeholder="Välj lag" />
+                      <SelectValue placeholder={locale === 'sv' ? 'Välj lag' : 'Select team'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Välj lag</SelectItem>
+                      <SelectItem value="none">{locale === 'sv' ? 'Välj lag' : 'Select team'}</SelectItem>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id}>
                           {team.name}
@@ -1826,7 +2000,7 @@ export function AICanvasClient({
               )}
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Period</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{locale === 'sv' ? 'Period' : 'Period'}</label>
                 <Select
                   value={contextSelection.dateRange}
                   onValueChange={(value) => {
@@ -1837,7 +2011,7 @@ export function AICanvasClient({
                   }}
                 >
                   <SelectTrigger className="h-9 border-slate-200">
-                    <SelectValue placeholder="Välj period" />
+                    <SelectValue placeholder={locale === 'sv' ? 'Välj period' : 'Select period'} />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(dateRangeLabels).map(([value, label]) => (
@@ -1850,7 +2024,7 @@ export function AICanvasClient({
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-medium text-slate-600">Data att förbereda</p>
+                <p className="mb-2 text-xs font-medium text-slate-600">{locale === 'sv' ? 'Data att förbereda' : 'Data to prepare'}</p>
                 <div className="space-y-2">
                   {contextDataOptions.map((option) => (
                     <label key={option.key} className="flex items-center gap-2 text-sm text-slate-700">
@@ -1866,11 +2040,13 @@ export function AICanvasClient({
 
               <div className="rounded-md border border-cyan-100 bg-cyan-50 p-3">
                 <p className="text-xs leading-5 text-cyan-900">
-                  {contextSummary || 'Ingen specifik kontext vald ännu.'}
+                  {contextSummary || (locale === 'sv' ? 'Ingen specifik kontext vald ännu.' : 'No specific context selected yet.')}
                 </p>
                 {contextSummary && (
                   <p className="mt-2 text-[11px] leading-4 text-cyan-800">
-                    När du skapar block hämtar AI Canvas en live-sammanfattning av de valda dataområdena.
+                    {locale === 'sv'
+                      ? 'När du skapar block hämtar AI Canvas en live-sammanfattning av de valda dataområdena.'
+                      : 'When you create blocks, AI Canvas fetches a live summary of the selected data areas.'}
                   </p>
                 )}
               </div>
@@ -1880,11 +2056,13 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <FolderOpen className="h-4 w-4 text-slate-700" />
-              <h2 className="text-sm font-semibold text-slate-900">Sparade canvases</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Sparade canvases' : 'Saved canvases'}</h2>
             </div>
             {savedCanvases.length === 0 ? (
               <p className="text-xs leading-5 text-slate-500">
-                Inga sparade canvases ännu. Skapa ett utkast och tryck Spara canvas.
+                {locale === 'sv'
+                  ? 'Inga sparade canvases ännu. Skapa ett utkast och tryck Spara canvas.'
+                  : 'No saved canvases yet. Create a draft and press Save canvas.'}
               </p>
             ) : (
               <div className="space-y-2">
@@ -1903,7 +2081,7 @@ export function AICanvasClient({
                     >
                       <span className="block truncate text-sm font-medium text-slate-900">{canvas.title}</span>
                       <span className="mt-1 block text-xs text-slate-500">
-                        {canvas.blockCount} block · {new Date(canvas.updatedAt).toLocaleDateString(dateLocale)}
+                        {canvas.blockCount} {locale === 'sv' ? 'block' : 'blocks'} · {new Date(canvas.updatedAt).toLocaleDateString(dateLocale)}
                       </span>
                     </button>
                   )
@@ -1915,10 +2093,12 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-sky-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Datakoppling</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Datakoppling' : 'Data connection'}</h2>
             </div>
             <p className="text-xs leading-5 text-slate-600">
-              Atlet, team, datumintervall, tester, pass, program, readiness och anteckningar kan användas som valbar livekontext.
+              {locale === 'sv'
+                ? 'Atlet, team, datumintervall, tester, pass, program, readiness och anteckningar kan användas som valbar livekontext.'
+                : 'Athlete, team, date range, tests, sessions, programs, readiness, and notes can be used as selectable live context.'}
             </p>
           </div>
         </aside>
@@ -1929,11 +2109,13 @@ export function AICanvasClient({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-900">Canvas</h2>
-                  <p className="text-xs text-slate-500">{blocks.length} block i arbetsytan</p>
+                  <p className="text-xs text-slate-500">
+                    {blocks.length} {locale === 'sv' ? 'block i arbetsytan' : 'blocks in the workspace'}
+                  </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
                   <RotateCcw className="h-4 w-4" />
-                  Återställ
+                  {locale === 'sv' ? 'Återställ' : 'Reset'}
                 </Button>
               </div>
             </div>
@@ -1957,12 +2139,14 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <Wand2 className="h-4 w-4 text-violet-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Skapa block</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Skapa block' : 'Create blocks'}</h2>
             </div>
             <Textarea
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Ex: Skapa en progress report för David med nuläge, risker och nästa steg..."
+              placeholder={locale === 'sv'
+                ? 'Ex: Skapa en progress report för David med nuläge, risker och nästa steg...'
+                : 'Example: Create a progress report for David with current status, risks, and next steps...'}
               className="min-h-[130px] resize-none rounded-md border-slate-200 text-sm"
             />
             <AISkillPicker
@@ -1977,7 +2161,7 @@ export function AICanvasClient({
             <div className="mt-3 flex gap-2">
               <Button onClick={handleGenerate} disabled={isGenerating} className="flex-1 gap-2">
                 {isGenerating ? <Wand2 className="h-4 w-4 animate-pulse" /> : <Send className="h-4 w-4" />}
-                {isGenerating ? 'Skapar...' : 'Skapa'}
+                {isGenerating ? (locale === 'sv' ? 'Skapar...' : 'Creating...') : (locale === 'sv' ? 'Skapa' : 'Create')}
               </Button>
             </div>
           </div>
@@ -1985,7 +2169,7 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-amber-600" />
-              <h2 className="text-sm font-semibold text-slate-900">AI svar</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'AI svar' : 'AI response'}</h2>
             </div>
             <p className="text-sm leading-6 text-slate-700">{assistantMessage}</p>
             {canvasSkillsUsed.length > 0 && (
@@ -2003,11 +2187,13 @@ export function AICanvasClient({
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Åtgärdslogg</h2>
+              <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Åtgärdslogg' : 'Action log'}</h2>
             </div>
             {actionReceipts.length === 0 ? (
               <p className="text-xs leading-5 text-slate-500">
-                När något sparas, skickas, öppnas eller misslyckas visas svaret här.
+                {locale === 'sv'
+                  ? 'När något sparas, skickas, öppnas eller misslyckas visas svaret här.'
+                  : 'When something is saved, sent, opened, or fails, the response appears here.'}
               </p>
             ) : (
               <div className="space-y-2">
@@ -2037,22 +2223,28 @@ export function AICanvasClient({
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Undo2 className="h-4 w-4 text-slate-600" />
-                <h2 className="text-sm font-semibold text-slate-900">Versioner</h2>
+                <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Versioner' : 'Versions'}</h2>
               </div>
               <Button variant="outline" size="sm" onClick={handleUndoLastCanvasChange} disabled={history.length === 0}>
-                Ångra
+                {locale === 'sv' ? 'Ångra' : 'Undo'}
               </Button>
             </div>
             {history.length === 0 ? (
               <p className="text-xs leading-5 text-slate-500">
-                AI-genereringar och blockförbättringar sparar en kort lokal version så coachen kan ångra.
+                {locale === 'sv'
+                  ? 'AI-genereringar och blockförbättringar sparar en kort lokal version så coachen kan ångra.'
+                  : 'AI generations and block improvements save a short local version so the coach can undo.'}
               </p>
             ) : (
               <div className="space-y-2">
                 {history.map((snapshot) => (
                   <div key={snapshot.id} className="rounded-md border border-slate-200 p-3">
-                    <p className="truncate text-xs font-semibold text-slate-900">Före {snapshot.label}</p>
-                    <p className="mt-1 text-[11px] text-slate-500">{snapshot.blocks.length} block · {snapshot.createdAt}</p>
+                    <p className="truncate text-xs font-semibold text-slate-900">
+                      {locale === 'sv' ? 'Före' : 'Before'} {snapshot.label}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      {snapshot.blocks.length} {locale === 'sv' ? 'block' : 'blocks'} · {snapshot.createdAt}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -2065,14 +2257,14 @@ export function AICanvasClient({
                 <div className="flex items-center gap-2">
                   <MessageSquareText className="h-4 w-4 text-blue-700" />
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-900">Meddelandeutkast</h2>
+                    <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'Meddelandeutkast' : 'Message draft'}</h2>
                     <p className="text-xs text-slate-500">
                       {athleteMessageDraft.athleteName} · {athleteMessageDraft.createdAt}
                     </p>
                   </div>
                 </div>
                 <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-                  {athleteMessageDraft.sentAt ? 'Skickat' : 'Ej skickat'}
+                  {athleteMessageDraft.sentAt ? (locale === 'sv' ? 'Skickat' : 'Sent') : (locale === 'sv' ? 'Ej skickat' : 'Not sent')}
                 </Badge>
               </div>
               <Textarea
@@ -2082,17 +2274,17 @@ export function AICanvasClient({
                   setAthleteMessageDraft((current) => current ? { ...current, content: nextContent } : current)
                 }}
                 className="min-h-[230px] resize-none rounded-md border-slate-200 text-sm leading-6"
-                aria-label="Meddelandeutkast"
+                aria-label={locale === 'sv' ? 'Meddelandeutkast' : 'Message draft'}
               />
               <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
                 <span>
-                  {athleteMessageDraft.content.length}/1000 tecken
-                  {athleteMessageDraft.sentAt ? ` · skickat ${athleteMessageDraft.sentAt}` : ''}
+                  {athleteMessageDraft.content.length}/1000 {locale === 'sv' ? 'tecken' : 'characters'}
+                  {athleteMessageDraft.sentAt ? ` · ${locale === 'sv' ? 'skickat' : 'sent'} ${athleteMessageDraft.sentAt}` : ''}
                 </span>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={handleCopyAthleteMessage} className="gap-2">
                     <Copy className="h-4 w-4" />
-                    Kopiera
+                    {locale === 'sv' ? 'Kopiera' : 'Copy'}
                   </Button>
                   <Button
                     size="sm"
@@ -2101,7 +2293,11 @@ export function AICanvasClient({
                     className="gap-2"
                   >
                     <Send className="h-4 w-4" />
-                    {isSendingDraft ? 'Skickar...' : athleteMessageDraft.sentAt ? 'Skickat' : 'Skicka'}
+                    {isSendingDraft
+                      ? locale === 'sv' ? 'Skickar...' : 'Sending...'
+                      : athleteMessageDraft.sentAt
+                        ? locale === 'sv' ? 'Skickat' : 'Sent'
+                        : locale === 'sv' ? 'Skicka' : 'Send'}
                   </Button>
                 </div>
               </div>
