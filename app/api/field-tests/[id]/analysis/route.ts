@@ -21,7 +21,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
-import { logger } from '@/lib/logger'
 
 interface ThirtyMinTTAnalysis {
   testType: '30_MIN_TT'
@@ -106,6 +105,7 @@ interface HRDriftAnalysis {
 }
 
 type FieldTestAnalysis = ThirtyMinTTAnalysis | CriticalVelocityAnalysis | HRDriftAnalysis
+type AppLocale = 'en' | 'sv'
 
 function secondsToMinKm(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
@@ -113,7 +113,7 @@ function secondsToMinKm(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, '0')}/km`
 }
 
-function analyze30MinTT(test: any): ThirtyMinTTAnalysis {
+function analyze30MinTT(test: any, locale: AppLocale): ThirtyMinTTAnalysis {
   const validationWarnings: string[] = []
 
   // Parse test data
@@ -186,13 +186,25 @@ function analyze30MinTT(test: any): ThirtyMinTTAnalysis {
 
   // Validation warnings
   if (pacing.quality === 'POOR') {
-    validationWarnings.push('Pacing var mycket ojämn (CV >8%). Överväg omtest med bättre jämn ansträngning.')
+    validationWarnings.push(t(
+      locale,
+      'Pacing was very uneven (CV >8%). Consider retesting with a steadier effort.',
+      'Pacing var mycket ojämn (CV >8%). Överväg omtest med bättre jämn ansträngning.'
+    ))
   }
   if (hrDrift.quality === 'HIGH') {
-    validationWarnings.push('HR drift >10% indikerar för högt tempo eller otillräcklig återhämtning.')
+    validationWarnings.push(t(
+      locale,
+      'HR drift >10% indicates the pace was too high or recovery was insufficient.',
+      'HR drift >10% indikerar för högt tempo eller otillräcklig återhämtning.'
+    ))
   }
   if (!test.readinessScore || test.readinessScore < 75) {
-    validationWarnings.push('Låg beredskap vid testtillfälle kan påverka resultat.')
+    validationWarnings.push(t(
+      locale,
+      'Low readiness at the time of testing may affect the result.',
+      'Låg beredskap vid testtillfälle kan påverka resultat.'
+    ))
   }
 
   // Determine confidence
@@ -217,14 +229,18 @@ function analyze30MinTT(test: any): ThirtyMinTTAnalysis {
   }
 }
 
-function analyzeCriticalVelocity(test: any): CriticalVelocityAnalysis {
+function analyzeCriticalVelocity(test: any, locale: AppLocale): CriticalVelocityAnalysis {
   const validationWarnings: string[] = []
 
   // Parse trial data (expecting array of {distance, time} objects)
   const trials = test.trials || []
 
   if (trials.length < 2) {
-    validationWarnings.push('Minst 2 försök krävs för Critical Velocity-test.')
+    validationWarnings.push(t(
+      locale,
+      'At least 2 trials are required for a Critical Velocity test.',
+      'Minst 2 försök krävs för Critical Velocity-test.'
+    ))
     return {
       testType: 'CRITICAL_VELOCITY',
       trials: [],
@@ -295,10 +311,18 @@ function analyzeCriticalVelocity(test: any): CriticalVelocityAnalysis {
 
   // Validation warnings
   if (rSquared < 0.90) {
-    validationWarnings.push(`Låg R² (${rSquared.toFixed(3)}) indikerar dålig linjäritet. Lägg till fler försök eller kontrollera data.`)
+    validationWarnings.push(t(
+      locale,
+      `Low R² (${rSquared.toFixed(3)}) indicates poor linearity. Add more trials or check the data.`,
+      `Låg R² (${rSquared.toFixed(3)}) indikerar dålig linjäritet. Lägg till fler försök eller kontrollera data.`
+    ))
   }
   if (trialsData.length < 3) {
-    validationWarnings.push('Minst 3 försök rekommenderas för högre tillförlitlighet.')
+    validationWarnings.push(t(
+      locale,
+      'At least 3 trials are recommended for higher reliability.',
+      'Minst 3 försök rekommenderas för högre tillförlitlighet.'
+    ))
   }
 
   // Determine confidence
@@ -321,7 +345,7 @@ function analyzeCriticalVelocity(test: any): CriticalVelocityAnalysis {
   }
 }
 
-function analyzeHRDrift(test: any): HRDriftAnalysis {
+function analyzeHRDrift(test: any, locale: AppLocale): HRDriftAnalysis {
   const validationWarnings: string[] = []
 
   const duration = test.duration || 60 // minutes
@@ -373,10 +397,18 @@ function analyzeHRDrift(test: any): HRDriftAnalysis {
 
   // Validation warnings
   if (duration < 60) {
-    validationWarnings.push('Testtid <60 min kan ge opålitliga resultat. Rekommenderad tid: 60-90 min.')
+    validationWarnings.push(t(
+      locale,
+      'Test duration <60 min may produce unreliable results. Recommended duration: 60-90 min.',
+      'Testtid <60 min kan ge opålitliga resultat. Rekommenderad tid: 60-90 min.'
+    ))
   }
   if (assessment === 'WELL_ABOVE_LT1') {
-    validationWarnings.push('HR drift >10% indikerar tempo väl över LT1. Sänk tempo för nästa test.')
+    validationWarnings.push(t(
+      locale,
+      'HR drift >10% indicates a pace well above LT1. Lower the pace for the next test.',
+      'HR drift >10% indikerar tempo väl över LT1. Sänk tempo för nästa test.'
+    ))
   }
 
   // Determine confidence
@@ -405,6 +437,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    const locale = getUserLocale(user.language)
     const { id: testId } = await params
 
     // Get field test
@@ -429,13 +462,13 @@ export async function GET(
 
     switch (test.testType) {
       case '30_MIN_TT':
-        analysis = analyze30MinTT(test)
+        analysis = analyze30MinTT(test, locale)
         break
       case 'CRITICAL_VELOCITY':
-        analysis = analyzeCriticalVelocity(test)
+        analysis = analyzeCriticalVelocity(test, locale)
         break
       case 'HR_DRIFT':
-        analysis = analyzeHRDrift(test)
+        analysis = analyzeHRDrift(test, locale)
         break
       default:
         return NextResponse.json({ error: 'Unknown test type' }, { status: 400 })
@@ -452,4 +485,12 @@ export async function GET(
   } catch (error: unknown) {
     return handleApiError(error)
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

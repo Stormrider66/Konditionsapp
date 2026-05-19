@@ -19,7 +19,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
-import { logger } from '@/lib/logger'
 
 interface FieldTestPoint {
   id: string
@@ -53,15 +52,12 @@ interface TrendAnalysis {
   }
 }
 
+type AppLocale = 'en' | 'sv'
+
 function secondsToMinKm(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   const secs = Math.round(seconds % 60)
   return `${minutes}:${secs.toString().padStart(2, '0')}/km`
-}
-
-function minKmToSeconds(pace: string): number {
-  const [min, sec] = pace.split(':').map((s) => parseInt(s.replace('/km', '')))
-  return min * 60 + sec
 }
 
 export async function GET(
@@ -70,6 +66,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    const locale = getUserLocale(user.language)
     const { clientId } = await params
 
     const hasAccess = await canAccessClient(user.id, clientId)
@@ -260,28 +257,42 @@ export async function GET(
 
     if (trendAnalysis) {
       if (trendAnalysis.averageInterval < 40) {
-        recommendations.push('Testfrekvens är bra (<6 veckor mellan tester).')
+        recommendations.push(t(locale, 'Test frequency is good (<6 weeks between tests).', 'Testfrekvens är bra (<6 veckor mellan tester).'))
       } else if (trendAnalysis.averageInterval > 90) {
         recommendations.push(
-          'Överväg att testa oftare. Rekommendation: var 8-12:e vecka.'
+          t(locale, 'Consider testing more often. Recommendation: every 8-12 weeks.', 'Överväg att testa oftare. Rekommendation: var 8-12:e vecka.')
         )
       }
 
       if (trendAnalysis.consistency.quality === 'POOR') {
         recommendations.push(
-          'Låg konsistens i testresultat. Fokusera på bättre jämnt tempo och tillräcklig återhämtning.'
+          t(
+            locale,
+            'Low consistency in test results. Focus on steadier pacing and sufficient recovery.',
+            'Låg konsistens i testresultat. Fokusera på bättre jämnt tempo och tillräcklig återhämtning.'
+          )
         )
       }
 
       if (trendAnalysis.improvement < 0) {
         recommendations.push(
-          `Bra framsteg! LT2-tempo förbättrat med ${Math.abs(
-            trendAnalysis.improvement
-          )} sek/km (${Math.abs(trendAnalysis.improvementPercent).toFixed(1)}%).`
+          t(
+            locale,
+            `Good progress. LT2 pace improved by ${Math.abs(
+              trendAnalysis.improvement
+            )} sec/km (${Math.abs(trendAnalysis.improvementPercent).toFixed(1)}%).`,
+            `Bra framsteg! LT2-tempo förbättrat med ${Math.abs(
+              trendAnalysis.improvement
+            )} sek/km (${Math.abs(trendAnalysis.improvementPercent).toFixed(1)}%).`
+          )
         )
       } else if (trendAnalysis.improvement > 0) {
         recommendations.push(
-          `Negativ trend: LT2-tempo försämrat med ${trendAnalysis.improvement} sek/km. Kontrollera träningsvolym och återhämtning.`
+          t(
+            locale,
+            `Negative trend: LT2 pace worsened by ${trendAnalysis.improvement} sec/km. Check training volume and recovery.`,
+            `Negativ trend: LT2-tempo försämrat med ${trendAnalysis.improvement} sek/km. Kontrollera träningsvolym och återhämtning.`
+          )
         )
       }
     }
@@ -289,17 +300,25 @@ export async function GET(
     if (divergenceAnalysis) {
       if (divergenceAnalysis.alignment === 'EXCELLENT' || divergenceAnalysis.alignment === 'GOOD') {
         recommendations.push(
-          `Fälttester stämmer bra överens med labbtester (±${divergenceAnalysis.percentDifference}%).`
+          t(
+            locale,
+            `Field tests align well with lab tests (±${divergenceAnalysis.percentDifference}%).`,
+            `Fälttester stämmer bra överens med labbtester (±${divergenceAnalysis.percentDifference}%).`
+          )
         )
       } else {
         recommendations.push(
-          `Fälttester avviker från labbtester (${divergenceAnalysis.percentDifference}%). Kontrollera testteknik.`
+          t(
+            locale,
+            `Field tests differ from lab tests (${divergenceAnalysis.percentDifference}%). Check test technique.`,
+            `Fälttester avviker från labbtester (${divergenceAnalysis.percentDifference}%). Kontrollera testteknik.`
+          )
         )
       }
     }
 
     if (fieldTestPoints.length === 0) {
-      recommendations.push('Inga fälttester ännu. Börja med ett 30-minuters tidstest.')
+      recommendations.push(t(locale, 'No field tests yet. Start with a 30-minute time trial.', 'Inga fälttester ännu. Börja med ett 30-minuters tidstest.'))
     }
 
     return NextResponse.json({
@@ -324,4 +343,12 @@ export async function GET(
   } catch (error: unknown) {
     return handleApiError(error)
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
