@@ -209,137 +209,263 @@ interface CanvasTemplate {
   group: 'workspace' | 'report'
 }
 
-const starterTemplates: CanvasTemplate[] = [
-  {
-    id: 'blank',
-    name: 'Tom canvas',
-    description: 'Börja fritt med en egen fråga eller idé.',
-    prompt: '',
-    icon: Plus,
-    group: 'workspace',
-  },
-  {
-    id: 'athlete-review',
-    name: 'Athlete review',
-    description: 'Skapa en tydlig statusrapport för en atlet.',
-    prompt: 'Skapa en athlete review med nuläge, viktigaste observationer, risker och nästa steg.',
-    icon: FileText,
-    group: 'workspace',
-  },
-  {
-    id: 'weekly-briefing',
-    name: 'Coach briefing',
-    description: 'Sammanfatta veckan och vad coachen bör prioritera.',
-    prompt: 'Skapa en weekly coach briefing med prioriteringar, uppföljningar och beslut.',
-    icon: ClipboardList,
-    group: 'workspace',
-  },
-  {
-    id: 'team-risk',
-    name: 'Team risk scan',
-    description: 'Identifiera uppföljningar, testbehov och risker.',
-    prompt: 'Skapa en team risk scan med atleter att följa upp, dataluckor och rekommenderade åtgärder.',
-    icon: BarChart3,
-    group: 'workspace',
-  },
-  {
-    id: 'program-notes',
-    name: 'Programplan',
-    description: 'Bygg en arbetsyta för programidéer och träningsblock.',
-    prompt: 'Skapa program planning notes för ett fyra veckors block med mål, nyckelpass och kontrollpunkter.',
-    icon: ListChecks,
-    group: 'workspace',
-  },
-  {
-    id: 'athlete-progress-report',
-    name: 'Athlete progress report',
-    description: 'Polerad rapport för atletens utveckling, nuläge och nästa beslut.',
-    prompt:
-      'Skapa en professionell athlete progress report med executive summary, datadrivna observationer, utveckling, risker, rekommendationer och nästa steg.',
-    icon: FileText,
-    group: 'report',
-  },
-  {
-    id: 'team-monthly-report',
-    name: 'Team monthly report',
-    description: 'Månadsrapport för lagstatus, risker, trender och prioriteringar.',
-    prompt:
-      'Skapa en professionell team monthly report med sammanfattning, lagstatus, testläge, träningsgenomförande, readiness, risker och prioriteringar för nästa månad.',
-    icon: BarChart3,
-    group: 'report',
-  },
-  {
-    id: 'program-audit',
-    name: 'Program audit',
-    description: 'Granska ett program eller block och hitta justeringar.',
-    prompt:
-      'Skapa en program audit med syfte, programstatus, belastningsrisker, saknad data, föreslagna justeringar och coachbeslut.',
-    icon: ClipboardList,
-    group: 'report',
-  },
-  {
-    id: 'test-interpretation-report',
-    name: 'Test interpretation',
-    description: 'Tolka testdata och översätt den till praktiska träningsbeslut.',
-    prompt:
-      'Skapa en test interpretation report med testöversikt, viktigaste fysiologiska signaler, träningsimplikationer, dataluckor och rekommenderade nästa steg.',
-    icon: Sparkles,
-    group: 'report',
-  },
-  {
-    id: 'return-to-training-plan',
-    name: 'Return-to-training plan',
-    description: 'Strukturerad plan för försiktig återgång till träning.',
-    prompt:
-      'Skapa en return-to-training plan med nuläge, begränsningar, progression, kontrollpunkter, varningssignaler och tydliga coachåtgärder. Var försiktig och icke-medicinsk.',
-    icon: ListChecks,
-    group: 'report',
-  },
-]
+type AppLocale = 'en' | 'sv'
 
-const workspaceTemplates = starterTemplates.filter((template) => template.group === 'workspace')
-const reportTemplates = starterTemplates.filter((template) => template.group === 'report')
+const starterTemplatesByLocale: Record<AppLocale, CanvasTemplate[]> = {
+  en: [
+    {
+      id: 'blank',
+      name: 'Blank canvas',
+      description: 'Start freely with your own question or idea.',
+      prompt: '',
+      icon: Plus,
+      group: 'workspace',
+    },
+    {
+      id: 'athlete-review',
+      name: 'Athlete review',
+      description: 'Create a clear status report for an athlete.',
+      prompt: 'Create an athlete review with current status, key observations, risks, and next steps.',
+      icon: FileText,
+      group: 'workspace',
+    },
+    {
+      id: 'weekly-briefing',
+      name: 'Coach briefing',
+      description: 'Summarize the week and what the coach should prioritize.',
+      prompt: 'Create a weekly coach briefing with priorities, follow-ups, and decisions.',
+      icon: ClipboardList,
+      group: 'workspace',
+    },
+    {
+      id: 'team-risk',
+      name: 'Team risk scan',
+      description: 'Identify follow-ups, testing needs, and risks.',
+      prompt: 'Create a team risk scan with athletes to follow up, data gaps, and recommended actions.',
+      icon: BarChart3,
+      group: 'workspace',
+    },
+    {
+      id: 'program-notes',
+      name: 'Program plan',
+      description: 'Build a workspace for program ideas and training blocks.',
+      prompt: 'Create program planning notes for a four-week block with goals, key sessions, and checkpoints.',
+      icon: ListChecks,
+      group: 'workspace',
+    },
+    {
+      id: 'athlete-progress-report',
+      name: 'Athlete progress report',
+      description: 'Polished report for athlete development, current status, and next decisions.',
+      prompt:
+        'Create a professional athlete progress report with executive summary, data-driven observations, development, risks, recommendations, and next steps.',
+      icon: FileText,
+      group: 'report',
+    },
+    {
+      id: 'team-monthly-report',
+      name: 'Team monthly report',
+      description: 'Monthly report for team status, risks, trends, and priorities.',
+      prompt:
+        'Create a professional team monthly report with summary, team status, testing status, training completion, readiness, risks, and priorities for next month.',
+      icon: BarChart3,
+      group: 'report',
+    },
+    {
+      id: 'program-audit',
+      name: 'Program audit',
+      description: 'Review a program or block and identify adjustments.',
+      prompt:
+        'Create a program audit with purpose, program status, load risks, missing data, suggested adjustments, and coach decisions.',
+      icon: ClipboardList,
+      group: 'report',
+    },
+    {
+      id: 'test-interpretation-report',
+      name: 'Test interpretation',
+      description: 'Interpret test data and translate it into practical training decisions.',
+      prompt:
+        'Create a test interpretation report with test overview, key physiological signals, training implications, data gaps, and recommended next steps.',
+      icon: Sparkles,
+      group: 'report',
+    },
+    {
+      id: 'return-to-training-plan',
+      name: 'Return-to-training plan',
+      description: 'Structured plan for a cautious return to training.',
+      prompt:
+        'Create a return-to-training plan with current status, limitations, progression, checkpoints, warning signs, and clear coach actions. Keep it cautious and non-medical.',
+      icon: ListChecks,
+      group: 'report',
+    },
+  ],
+  sv: [
+    {
+      id: 'blank',
+      name: 'Tom canvas',
+      description: 'Börja fritt med en egen fråga eller idé.',
+      prompt: '',
+      icon: Plus,
+      group: 'workspace',
+    },
+    {
+      id: 'athlete-review',
+      name: 'Athlete review',
+      description: 'Skapa en tydlig statusrapport för en atlet.',
+      prompt: 'Skapa en athlete review med nuläge, viktigaste observationer, risker och nästa steg.',
+      icon: FileText,
+      group: 'workspace',
+    },
+    {
+      id: 'weekly-briefing',
+      name: 'Coach briefing',
+      description: 'Sammanfatta veckan och vad coachen bör prioritera.',
+      prompt: 'Skapa en weekly coach briefing med prioriteringar, uppföljningar och beslut.',
+      icon: ClipboardList,
+      group: 'workspace',
+    },
+    {
+      id: 'team-risk',
+      name: 'Team risk scan',
+      description: 'Identifiera uppföljningar, testbehov och risker.',
+      prompt: 'Skapa en team risk scan med atleter att följa upp, dataluckor och rekommenderade åtgärder.',
+      icon: BarChart3,
+      group: 'workspace',
+    },
+    {
+      id: 'program-notes',
+      name: 'Programplan',
+      description: 'Bygg en arbetsyta för programidéer och träningsblock.',
+      prompt: 'Skapa program planning notes för ett fyra veckors block med mål, nyckelpass och kontrollpunkter.',
+      icon: ListChecks,
+      group: 'workspace',
+    },
+    {
+      id: 'athlete-progress-report',
+      name: 'Athlete progress report',
+      description: 'Polerad rapport för atletens utveckling, nuläge och nästa beslut.',
+      prompt:
+        'Skapa en professionell athlete progress report med executive summary, datadrivna observationer, utveckling, risker, rekommendationer och nästa steg.',
+      icon: FileText,
+      group: 'report',
+    },
+    {
+      id: 'team-monthly-report',
+      name: 'Team monthly report',
+      description: 'Månadsrapport för lagstatus, risker, trender och prioriteringar.',
+      prompt:
+        'Skapa en professionell team monthly report med sammanfattning, lagstatus, testläge, träningsgenomförande, readiness, risker och prioriteringar för nästa månad.',
+      icon: BarChart3,
+      group: 'report',
+    },
+    {
+      id: 'program-audit',
+      name: 'Program audit',
+      description: 'Granska ett program eller block och hitta justeringar.',
+      prompt:
+        'Skapa en program audit med syfte, programstatus, belastningsrisker, saknad data, föreslagna justeringar och coachbeslut.',
+      icon: ClipboardList,
+      group: 'report',
+    },
+    {
+      id: 'test-interpretation-report',
+      name: 'Test interpretation',
+      description: 'Tolka testdata och översätt den till praktiska träningsbeslut.',
+      prompt:
+        'Skapa en test interpretation report med testöversikt, viktigaste fysiologiska signaler, träningsimplikationer, dataluckor och rekommenderade nästa steg.',
+      icon: Sparkles,
+      group: 'report',
+    },
+    {
+      id: 'return-to-training-plan',
+      name: 'Return-to-training plan',
+      description: 'Strukturerad plan för försiktig återgång till träning.',
+      prompt:
+        'Skapa en return-to-training plan med nuläge, begränsningar, progression, kontrollpunkter, varningssignaler och tydliga coachåtgärder. Var försiktig och icke-medicinsk.',
+      icon: ListChecks,
+      group: 'report',
+    },
+  ],
+}
 
-const initialBlocks: CanvasBlock[] = [
-  {
-    id: 'welcome-heading',
-    type: 'heading',
-    title: 'AI Canvas',
-    content: 'En arbetsyta för rapporter, analyser, planer och coachbeslut.',
-    source: 'template',
-  },
-  {
-    id: 'welcome-insight',
-    type: 'insight',
-    title: 'Första versionen',
-    content:
-      'Den här versionen fokuserar på känslan i arbetsytan: mallar, prompt, block och tydliga svar. Nästa steg blir att koppla in riktig atlet- och teamdata.',
-    tone: 'positive',
-    source: 'template',
-  },
-  {
-    id: 'welcome-actions',
-    type: 'actions',
-    title: 'Bra första tester',
-    items: [
-      'Skapa en athlete review för en atlet',
-      'Bygg en weekly coach briefing',
-      'Sammanfatta risker inför kommande vecka',
-    ],
-    source: 'template',
-  },
-]
+function getInitialBlocks(locale: AppLocale): CanvasBlock[] {
+  if (locale === 'sv') {
+    return [
+      {
+        id: 'welcome-heading',
+        type: 'heading',
+        title: 'AI Canvas',
+        content: 'En arbetsyta för rapporter, analyser, planer och coachbeslut.',
+        source: 'template',
+      },
+      {
+        id: 'welcome-insight',
+        type: 'insight',
+        title: 'Första versionen',
+        content:
+          'Den här versionen fokuserar på känslan i arbetsytan: mallar, prompt, block och tydliga svar. Nästa steg blir att koppla in riktig atlet- och teamdata.',
+        tone: 'positive',
+        source: 'template',
+      },
+      {
+        id: 'welcome-actions',
+        type: 'actions',
+        title: 'Bra första tester',
+        items: [
+          'Skapa en athlete review för en atlet',
+          'Bygg en weekly coach briefing',
+          'Sammanfatta risker inför kommande vecka',
+        ],
+        source: 'template',
+      },
+    ]
+  }
+
+  return [
+    {
+      id: 'welcome-heading',
+      type: 'heading',
+      title: 'AI Canvas',
+      content: 'A workspace for reports, analyses, plans, and coach decisions.',
+      source: 'template',
+    },
+    {
+      id: 'welcome-insight',
+      type: 'insight',
+      title: 'First version',
+      content:
+        'This version focuses on the workspace feel: templates, prompts, blocks, and clear responses. Next step is connecting real athlete and team data.',
+      tone: 'positive',
+      source: 'template',
+    },
+    {
+      id: 'welcome-actions',
+      type: 'actions',
+      title: 'Good first tests',
+      items: [
+        'Create an athlete review for an athlete',
+        'Build a weekly coach briefing',
+        'Summarize risks for the coming week',
+      ],
+      source: 'template',
+    },
+  ]
+}
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-function getAssistantMessage(prompt: string, blockCount: number): string {
+function getAssistantMessage(prompt: string, blockCount: number, locale: AppLocale): string {
   if (!prompt.trim()) {
-    return 'Jag behöver en fråga eller mall för att skapa nya block. Välj gärna en mall eller skriv vad du vill bygga.'
+    return locale === 'sv'
+      ? 'Jag behöver en fråga eller mall för att skapa nya block. Välj gärna en mall eller skriv vad du vill bygga.'
+      : 'I need a question or template to create new blocks. Choose a template or write what you want to build.'
   }
 
-  return `Jag skapade ${blockCount} canvasblock som ett första arbetsutkast.`
+  return locale === 'sv'
+    ? `Jag skapade ${blockCount} canvasblock som ett första arbetsutkast.`
+    : `I created ${blockCount} canvas blocks as a first working draft.`
 }
 
 function cleanDraftText(value: string): string {
@@ -538,23 +664,41 @@ interface CanvasSnapshot {
   createdAt: string
 }
 
-const contextDataOptions: Array<{ key: CanvasContextDataKey; label: string }> = [
-  { key: 'tests', label: 'Tester' },
-  { key: 'sessions', label: 'Träningspass' },
-  { key: 'programs', label: 'Program' },
-  { key: 'readiness', label: 'Readiness' },
-  { key: 'notes', label: 'Anteckningar' },
-]
+const contextDataOptionsByLocale: Record<AppLocale, Array<{ key: CanvasContextDataKey; label: string }>> = {
+  en: [
+    { key: 'tests', label: 'Tests' },
+    { key: 'sessions', label: 'Training sessions' },
+    { key: 'programs', label: 'Programs' },
+    { key: 'readiness', label: 'Readiness' },
+    { key: 'notes', label: 'Notes' },
+  ],
+  sv: [
+    { key: 'tests', label: 'Tester' },
+    { key: 'sessions', label: 'Träningspass' },
+    { key: 'programs', label: 'Program' },
+    { key: 'readiness', label: 'Readiness' },
+    { key: 'notes', label: 'Anteckningar' },
+  ],
+}
 
-const dateRangeLabels: Record<CanvasContextSelection['dateRange'], string> = {
-  last7: 'Senaste 7 dagarna',
-  last30: 'Senaste 30 dagarna',
-  last90: 'Senaste 90 dagarna',
-  next30: 'Kommande 30 dagarna',
+const dateRangeLabelsByLocale: Record<AppLocale, Record<CanvasContextSelection['dateRange'], string>> = {
+  en: {
+    last7: 'Last 7 days',
+    last30: 'Last 30 days',
+    last90: 'Last 90 days',
+    next30: 'Next 30 days',
+  },
+  sv: {
+    last7: 'Senaste 7 dagarna',
+    last30: 'Senaste 30 dagarna',
+    last90: 'Senaste 90 dagarna',
+    next30: 'Kommande 30 dagarna',
+  },
 }
 
 function buildContextSummary(
   selection: CanvasContextSelection,
+  locale: AppLocale,
   athlete?: CanvasAthleteOption,
   team?: CanvasTeamOption
 ): string {
@@ -563,25 +707,61 @@ function buildContextSummary(
   const subject =
     selection.scope === 'athlete'
       ? athlete
-        ? `Atlet: ${athlete.name}${athlete.primarySport ? ` (${athlete.primarySport})` : ''}`
-        : 'Atlet: ingen atlet vald'
+        ? `${locale === 'sv' ? 'Atlet' : 'Athlete'}: ${athlete.name}${athlete.primarySport ? ` (${athlete.primarySport})` : ''}`
+        : locale === 'sv' ? 'Atlet: ingen atlet vald' : 'Athlete: no athlete selected'
       : team
-        ? `Lag: ${team.name}${team.sportType ? ` (${team.sportType})` : ''}, ${team.athleteCount} atleter`
-        : 'Lag: inget lag valt'
+        ? `${locale === 'sv' ? 'Lag' : 'Team'}: ${team.name}${team.sportType ? ` (${team.sportType})` : ''}, ${team.athleteCount} ${locale === 'sv' ? 'atleter' : 'athletes'}`
+        : locale === 'sv' ? 'Lag: inget lag valt' : 'Team: no team selected'
 
+  const contextDataOptions = contextDataOptionsByLocale[locale]
   const dataLabels = contextDataOptions
     .filter((option) => selection.dataKeys.includes(option.key))
     .map((option) => option.label)
 
   return [
     subject,
-    `Period: ${dateRangeLabels[selection.dateRange]}`,
-    `Valda dataområden: ${dataLabels.length > 0 ? dataLabels.join(', ') : 'inga'}`,
-    'Live-data hämtas vid generering och används för datadrivna analysblock.',
+    `${locale === 'sv' ? 'Period' : 'Period'}: ${dateRangeLabelsByLocale[locale][selection.dateRange]}`,
+    locale === 'sv'
+      ? `Valda dataområden: ${dataLabels.length > 0 ? dataLabels.join(', ') : 'inga'}`
+      : `Selected data areas: ${dataLabels.length > 0 ? dataLabels.join(', ') : 'none'}`,
+    locale === 'sv'
+      ? 'Live-data hämtas vid generering och används för datadrivna analysblock.'
+      : 'Live data is fetched during generation and used for data-driven analysis blocks.',
   ].join('\n')
 }
 
-function getCoachTierCanvasGuardrails(tier: AICanvasClientProps['coachTier']) {
+function getCoachTierCanvasGuardrails(tier: AICanvasClientProps['coachTier'], locale: AppLocale) {
+  if (locale === 'en') {
+    const config = {
+      FREE: {
+        label: 'Free / trial',
+        message: 'AI Canvas can be tested with light usage. Keep reports short and use export/notes for manual work.',
+        calls: 'Low volume',
+        level: 'warning' as const,
+      },
+      BASIC: {
+        label: 'Basic',
+        message: 'Fits individual athlete reports, notes, tasks, and message drafts. Keep team reports short.',
+        calls: 'Normal volume',
+        level: 'info' as const,
+      },
+      PRO: {
+        label: 'Pro',
+        message: 'Recommended level for team reports, block improvements, and multiple workflows per coach day.',
+        calls: 'Higher volume',
+        level: 'success' as const,
+      },
+      ENTERPRISE: {
+        label: 'Enterprise',
+        message: 'Full workflow for coach teams: team reports, multiple canvases, export, tasks, and follow-ups with broader usage.',
+        calls: 'Extended volume',
+        level: 'success' as const,
+      },
+    }
+
+    return config[tier]
+  }
+
   const config = {
     FREE: {
       label: 'Free / trial',
@@ -665,16 +845,24 @@ export function AICanvasClient({
 }: AICanvasClientProps) {
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const timeFormatOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' }
+  const starterTemplates = starterTemplatesByLocale[locale]
+  const workspaceTemplates = starterTemplates.filter((template) => template.group === 'workspace')
+  const reportTemplates = starterTemplates.filter((template) => template.group === 'report')
+  const contextDataOptions = contextDataOptionsByLocale[locale]
+  const dateRangeLabels = dateRangeLabelsByLocale[locale]
   const [canvasId, setCanvasId] = useState<string | null>(null)
   const [savedCanvases, setSavedCanvases] = useState<SavedCanvasSummary[]>(initialCanvases)
   const [title, setTitle] = useState('Untitled coach canvas')
   const [prompt, setPrompt] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState<CanvasTemplateId>('blank')
-  const [blocks, setBlocks] = useState<CanvasBlock[]>(initialBlocks)
+  const [blocks, setBlocks] = useState<CanvasBlock[]>(() => getInitialBlocks(locale))
   const [assistantMessage, setAssistantMessage] = useState(
-    'Canvasen är redo. Välj en mall eller skriv vad du vill skapa.'
+    locale === 'sv'
+      ? 'Canvasen är redo. Välj en mall eller skriv vad du vill skapa.'
+      : 'The canvas is ready. Choose a template or write what you want to create.'
   )
-  const [lastUpdated, setLastUpdated] = useState('Inte sparad än')
+  const [lastUpdated, setLastUpdated] = useState(locale === 'sv' ? 'Inte sparad än' : 'Not saved yet')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSavingNote, setIsSavingNote] = useState(false)
@@ -699,13 +887,13 @@ export function AICanvasClient({
 
   const selectedTemplate = useMemo(
     () => starterTemplates.find((template) => template.id === selectedTemplateId) ?? starterTemplates[0],
-    [selectedTemplateId]
+    [selectedTemplateId, starterTemplates]
   )
 
   const selectedAthlete = athletes.find((athlete) => athlete.id === contextSelection.athleteId)
   const selectedTeam = teams.find((team) => team.id === contextSelection.teamId)
-  const contextSummary = buildContextSummary(contextSelection, selectedAthlete, selectedTeam)
-  const tierGuardrails = getCoachTierCanvasGuardrails(coachTier)
+  const contextSummary = buildContextSummary(contextSelection, locale, selectedAthlete, selectedTeam)
+  const tierGuardrails = getCoachTierCanvasGuardrails(coachTier, locale)
 
   const addActionReceipt = (status: ActionStatus, titleText: string, detail: string) => {
     const receipt: CanvasActionReceipt = {
@@ -713,7 +901,7 @@ export function AICanvasClient({
       status,
       title: titleText,
       detail,
-      createdAt: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toLocaleTimeString(dateLocale, timeFormatOptions),
     }
     setActionReceipts((current) => [receipt, ...current].slice(0, 6))
     setAssistantMessage(detail)
@@ -726,7 +914,7 @@ export function AICanvasClient({
         label,
         title,
         blocks,
-        createdAt: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+        createdAt: new Date().toLocaleTimeString(dateLocale, timeFormatOptions),
       },
       ...current,
     ].slice(0, 5))
@@ -742,7 +930,7 @@ export function AICanvasClient({
     setTitle(latest.title)
     setBlocks(latest.blocks)
     setHistory(rest)
-    setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+    setLastUpdated(new Date().toLocaleTimeString(dateLocale, timeFormatOptions))
     addActionReceipt('success', 'Version återställd', `Jag återställde canvasen till versionen före "${latest.label}".`)
   }
 
@@ -751,21 +939,25 @@ export function AICanvasClient({
     setPrompt(template.prompt)
     setAssistantMessage(
       template.id === 'blank'
-        ? 'Tom canvas vald. Skriv vad du vill skapa så bygger jag ett första utkast.'
-        : `Mallen ${template.name} är vald. Du kan ändra prompten innan du skapar block.`
+        ? locale === 'sv'
+          ? 'Tom canvas vald. Skriv vad du vill skapa så bygger jag ett första utkast.'
+          : 'Blank canvas selected. Write what you want to create and I will build a first draft.'
+        : locale === 'sv'
+          ? `Mallen ${template.name} är vald. Du kan ändra prompten innan du skapar block.`
+          : `The ${template.name} template is selected. You can edit the prompt before creating blocks.`
     )
   }
 
   const handleGenerate = async () => {
     const requestPrompt = (prompt || selectedTemplate.prompt).trim()
     if (!requestPrompt) {
-      setAssistantMessage(getAssistantMessage('', 0))
+      setAssistantMessage(getAssistantMessage('', 0, locale))
       return
     }
 
     setIsGenerating(true)
-    setAssistantMessage('Jag skapar strukturerade canvasblock...')
-    rememberSnapshot('ny generering')
+    setAssistantMessage(locale === 'sv' ? 'Jag skapar strukturerade canvasblock...' : 'I am creating structured canvas blocks...')
+    rememberSnapshot(locale === 'sv' ? 'ny generering' : 'new generation')
 
     try {
       const response = await fetch('/api/ai/canvas/generate', {
@@ -799,12 +991,22 @@ export function AICanvasClient({
 
       setBlocks(nextBlocks)
       setTitle(payload.title || title)
-      addActionReceipt('success', 'Canvas skapad', payload.assistantMessage || getAssistantMessage(requestPrompt, nextBlocks.length))
+      addActionReceipt(
+        'success',
+        locale === 'sv' ? 'Canvas skapad' : 'Canvas created',
+        payload.assistantMessage || getAssistantMessage(requestPrompt, nextBlocks.length, locale)
+      )
       setModelLabel(getCanvasModelLabel(payload.model, payload.skillsUsed, null))
       setCanvasSkillsUsed(payload.skillsUsed || [])
-      setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+      setLastUpdated(new Date().toLocaleTimeString(dateLocale, timeFormatOptions))
     } catch {
-      addActionReceipt('error', 'Canvas kunde inte skapas', 'Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.')
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Canvas kunde inte skapas' : 'Canvas could not be created',
+        locale === 'sv'
+          ? 'Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.'
+          : 'I could not reach AI Canvas right now. Check the connection and try again.'
+      )
     } finally {
       setIsGenerating(false)
     }
@@ -849,7 +1051,7 @@ export function AICanvasClient({
       setBlocks((current) => current.map((item) => item.id === block.id ? improvedBlock : item))
       setModelLabel(getCanvasModelLabel(payload.model, payload.skillsUsed, modelLabel))
       setCanvasSkillsUsed(payload.skillsUsed || [])
-      setLastUpdated(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+      setLastUpdated(new Date().toLocaleTimeString(dateLocale, timeFormatOptions))
       addActionReceipt('success', 'Block förbättrat', `Jag förbättrade blocket "${improvedBlock.title || block.title || block.type}".`)
     } catch {
       addActionReceipt('error', 'Block kunde inte förbättras', 'Jag kunde inte nå AI Canvas för att förbättra blocket just nu.')
@@ -859,16 +1061,16 @@ export function AICanvasClient({
   }
 
   const handleReset = () => {
-    rememberSnapshot('återställning')
+    rememberSnapshot(locale === 'sv' ? 'återställning' : 'reset')
     setCanvasId(null)
-    setBlocks(initialBlocks)
+    setBlocks(getInitialBlocks(locale))
     setTitle('Untitled coach canvas')
     setPrompt('')
     setSelectedTemplateId('blank')
     setSelectedSkillIds([])
     setCanvasSkillsUsed([])
     addActionReceipt('success', 'Canvas återställd', 'Jag återställde canvasen till startläget.')
-    setLastUpdated('Återställd')
+    setLastUpdated(locale === 'sv' ? 'Återställd' : 'Reset')
     setModelLabel(null)
     setAthleteMessageDraft(null)
   }
@@ -922,7 +1124,7 @@ export function AICanvasClient({
       setCanvasId(payload.canvas.id)
       setTitle(payload.canvas.title)
       setBlocks(payload.canvas.blocks)
-      setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+      setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString(dateLocale, timeFormatOptions))
       upsertSavedCanvas(payload.canvas)
       addActionReceipt('success', 'Canvas sparad', 'Jag sparade canvasen.')
     } catch {
@@ -948,7 +1150,7 @@ export function AICanvasClient({
       setCanvasId(payload.canvas.id)
       setTitle(payload.canvas.title)
       setBlocks(payload.canvas.blocks)
-      setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
+      setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString(dateLocale, timeFormatOptions))
       setModelLabel(null)
       setCanvasSkillsUsed([])
       upsertSavedCanvas(payload.canvas)
@@ -1070,7 +1272,7 @@ export function AICanvasClient({
       athleteId: selectedAthlete.id,
       athleteName: selectedAthlete.name,
       content,
-      createdAt: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toLocaleTimeString(dateLocale, timeFormatOptions),
     })
     addActionReceipt('success', 'Meddelande förberett', `Jag förberedde ett meddelande till ${selectedAthlete.name}. Inget har skickats.`)
   }
@@ -1132,7 +1334,7 @@ export function AICanvasClient({
         return
       }
 
-      const sentAt = new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+      const sentAt = new Date().toLocaleTimeString(dateLocale, timeFormatOptions)
       setAthleteMessageDraft((current) => current ? { ...current, sentAt } : current)
       addActionReceipt('success', 'Meddelande skickat', payload.message || `Meddelandet skickades till ${athleteMessageDraft.athleteName}.`)
     } catch {
