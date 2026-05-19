@@ -11,6 +11,7 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts'
+import { useLocale } from '@/i18n/client'
 
 interface AthleteDiag {
   clientName: string
@@ -24,6 +25,7 @@ interface DModXChartProps {
 }
 
 export function DModXChart({ diagnostics, dmodxLimit }: DModXChartProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const data = [...diagnostics]
     .sort((a, b) => b.dmodx - a.dmodx)
     .map((d) => ({
@@ -35,10 +37,12 @@ export function DModXChart({ diagnostics, dmodxLimit }: DModXChartProps) {
   return (
     <div className="w-full">
       <h3 className="text-lg font-semibold mb-4 dark:text-white">
-        Avstånd till modellen (DModX)
+        {locale === 'sv' ? 'Avstånd till modellen' : 'Distance to model'} (DModX)
       </h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Hur väl varje spelare passar modellen. Höga värden = passar inte lagmönstret.
+        {locale === 'sv'
+          ? 'Hur väl varje spelare passar modellen. Höga värden = passar inte lagmönstret.'
+          : 'How well each player fits the model. High values indicate a poor fit to the team pattern.'}
       </p>
       <ResponsiveContainer width="100%" height={Math.max(300, data.length * 32)}>
         <BarChart data={data} layout="vertical" margin={{ top: 10, right: 30, bottom: 10, left: 100 }}>
@@ -62,7 +66,7 @@ export function DModXChart({ diagnostics, dmodxLimit }: DModXChartProps) {
             x={dmodxLimit}
             stroke="#ef4444"
             strokeDasharray="5 5"
-            label={{ value: 'Gräns', position: 'top', fill: '#ef4444', fontSize: 11 }}
+            label={{ value: locale === 'sv' ? 'Gräns' : 'Limit', position: 'top', fill: '#ef4444', fontSize: 11 }}
           />
           <Bar dataKey="dmodx" radius={[0, 4, 4, 0]}>
             {data.map((entry, index) => (

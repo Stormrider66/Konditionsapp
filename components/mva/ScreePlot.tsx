@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  BarChart,
   Bar,
   XAxis,
   YAxis,
@@ -12,6 +11,7 @@ import {
   ComposedChart,
   ReferenceLine,
 } from 'recharts'
+import { useLocale } from '@/i18n/client'
 
 interface ScreePlotProps {
   explainedVariance: number[]
@@ -19,6 +19,7 @@ interface ScreePlotProps {
 }
 
 export function ScreePlot({ explainedVariance, cumulativeVariance }: ScreePlotProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const data = explainedVariance.map((ev, i) => ({
     component: `PC${i + 1}`,
     variance: +(ev * 100).toFixed(1),
@@ -28,7 +29,7 @@ export function ScreePlot({ explainedVariance, cumulativeVariance }: ScreePlotPr
   return (
     <div className="w-full">
       <h3 className="text-lg font-semibold mb-4 dark:text-white">
-        Förklarad varians (Scree Plot)
+        {locale === 'sv' ? 'Förklarad varians' : 'Explained variance'} (Scree Plot)
       </h3>
       <ResponsiveContainer width="100%" height={350}>
         <ComposedChart data={data} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
@@ -48,7 +49,9 @@ export function ScreePlot({ explainedVariance, cumulativeVariance }: ScreePlotPr
             }}
             formatter={(value: number, name: string) => [
               `${value}%`,
-              name === 'variance' ? 'Förklarad varians' : 'Kumulativ',
+              name === 'variance'
+                ? (locale === 'sv' ? 'Förklarad varians' : 'Explained variance')
+                : (locale === 'sv' ? 'Kumulativ' : 'Cumulative'),
             ]}
           />
           <ReferenceLine
@@ -72,11 +75,11 @@ export function ScreePlot({ explainedVariance, cumulativeVariance }: ScreePlotPr
       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground justify-center">
         <span className="flex items-center gap-1">
           <span className="w-3 h-3 rounded bg-blue-600 inline-block" />
-          Förklarad varians per komponent
+          {locale === 'sv' ? 'Förklarad varians per komponent' : 'Explained variance per component'}
         </span>
         <span className="flex items-center gap-1">
           <span className="w-3 h-3 rounded bg-emerald-600 inline-block" />
-          Kumulativ
+          {locale === 'sv' ? 'Kumulativ' : 'Cumulative'}
         </span>
       </div>
     </div>

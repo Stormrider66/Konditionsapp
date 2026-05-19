@@ -11,6 +11,7 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts'
+import { useLocale } from '@/i18n/client'
 
 interface AthleteDiag {
   clientName: string
@@ -25,6 +26,7 @@ interface HotellingChartProps {
 }
 
 export function HotellingChart({ diagnostics, t2Limit95, t2Limit99 }: HotellingChartProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const data = [...diagnostics]
     .sort((a, b) => b.hotellingT2 - a.hotellingT2)
     .map((d) => ({
@@ -39,7 +41,9 @@ export function HotellingChart({ diagnostics, t2Limit95, t2Limit99 }: HotellingC
         Hotelling&apos;s T²
       </h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Avstånd från centrum i modellen. Höga värden indikerar ovanliga profiler.
+        {locale === 'sv'
+          ? 'Avstånd från centrum i modellen. Höga värden indikerar ovanliga profiler.'
+          : 'Distance from the model center. High values indicate unusual profiles.'}
       </p>
       <ResponsiveContainer width="100%" height={Math.max(300, data.length * 32)}>
         <BarChart data={data} layout="vertical" margin={{ top: 10, right: 30, bottom: 10, left: 100 }}>

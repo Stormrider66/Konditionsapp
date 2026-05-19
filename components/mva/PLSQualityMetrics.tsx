@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useLocale } from '@/i18n/client'
 
 interface PLSQualityMetricsProps {
   r2Y: number
@@ -31,15 +32,18 @@ export function PLSQualityMetrics({
   nXVariables,
   yVariableName,
 }: PLSQualityMetricsProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
+
   return (
     <Card className="dark:bg-slate-900/50 dark:border-white/10">
       <CardHeader>
-        <CardTitle className="dark:text-white">Modellkvalitet</CardTitle>
+        <CardTitle className="dark:text-white">{t('Modellkvalitet', 'Model quality')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">R²Y (Förklaringsgrad)</p>
+            <p className="text-sm text-muted-foreground">R²Y ({t('Förklaringsgrad', 'explained variance')})</p>
             <p className={`text-2xl font-bold ${getTextColorClass(r2Y)}`}>
               {(r2Y * 100).toFixed(1)}%
             </p>
@@ -51,7 +55,7 @@ export function PLSQualityMetrics({
             </div>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Q² (Korsvaliderad)</p>
+            <p className="text-sm text-muted-foreground">Q² ({t('Korsvaliderad', 'cross-validated')})</p>
             <p className={`text-2xl font-bold ${getTextColorClass(q2)}`}>
               {(q2 * 100).toFixed(1)}%
             </p>
@@ -63,22 +67,22 @@ export function PLSQualityMetrics({
             </div>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Komponenter</p>
+            <p className="text-sm text-muted-foreground">{t('Komponenter', 'Components')}</p>
             <p className="text-2xl font-bold dark:text-white">{nComponents}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Observationer</p>
+            <p className="text-sm text-muted-foreground">{t('Observationer', 'Observations')}</p>
             <p className="text-2xl font-bold dark:text-white">{nObservations}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">X-variabler</p>
+            <p className="text-sm text-muted-foreground">{t('X-variabler', 'X variables')}</p>
             <p className="text-2xl font-bold dark:text-white">{nXVariables}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Y-variabel</p>
+            <p className="text-sm text-muted-foreground">{t('Y-variabel', 'Y variable')}</p>
             <p className="text-lg font-semibold dark:text-white truncate" title={yVariableName}>
               {yVariableName}
             </p>

@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   LabelList,
 } from 'recharts'
+import { useLocale } from '@/i18n/client'
 
 interface LoadingPlotProps {
   loadings: number[][]
@@ -32,38 +33,54 @@ const CATEGORY_COLORS: Record<string, string> = {
   TEMPORAL: '#9333ea',
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  PHYSIOLOGICAL: 'Fysiologiska',
-  BODY_COMPOSITION: 'Kroppssammansättning',
-  TRAINING_LOAD: 'Träningsbelastning',
-  DAILY_MONITORING: 'Daglig uppföljning',
-  PERFORMANCE: 'Prestation',
-  STRENGTH: 'Styrka',
-  RECOVERY: 'Återhämtning',
-  GAIT: 'Löpteknik',
-  INTEGRATION: 'Integrationer',
-  TEMPORAL: 'Trender',
+const CATEGORY_LABELS: Record<'en' | 'sv', Record<string, string>> = {
+  en: {
+    PHYSIOLOGICAL: 'Physiological',
+    BODY_COMPOSITION: 'Body composition',
+    TRAINING_LOAD: 'Training load',
+    DAILY_MONITORING: 'Daily monitoring',
+    PERFORMANCE: 'Performance',
+    STRENGTH: 'Strength',
+    RECOVERY: 'Recovery',
+    GAIT: 'Gait',
+    INTEGRATION: 'Integrations',
+    TEMPORAL: 'Trends',
+  },
+  sv: {
+    PHYSIOLOGICAL: 'Fysiologiska',
+    BODY_COMPOSITION: 'Kroppssammansättning',
+    TRAINING_LOAD: 'Träningsbelastning',
+    DAILY_MONITORING: 'Daglig uppföljning',
+    PERFORMANCE: 'Prestation',
+    STRENGTH: 'Styrka',
+    RECOVERY: 'Återhämtning',
+    GAIT: 'Löpteknik',
+    INTEGRATION: 'Integrationer',
+    TEMPORAL: 'Trender',
+  },
 }
 
 interface CustomTooltipProps {
+  locale: 'en' | 'sv'
   active?: boolean
   payload?: { payload: { name: string; l1: number; l2: number; category: string } }[]
 }
 
-function CustomTooltip({ active, payload }: CustomTooltipProps) {
+function CustomTooltip({ active, payload, locale }: CustomTooltipProps) {
   if (!active || !payload?.[0]) return null
   const d = payload[0].payload
   return (
     <div className="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg p-3 shadow-lg text-sm">
       <p className="font-medium dark:text-white">{d.name}</p>
-      <p className="text-muted-foreground">PC1-laddning: {d.l1.toFixed(3)}</p>
-      <p className="text-muted-foreground">PC2-laddning: {d.l2.toFixed(3)}</p>
-      <p className="text-muted-foreground">{CATEGORY_LABELS[d.category] ?? d.category}</p>
+      <p className="text-muted-foreground">PC1 {locale === 'sv' ? 'laddning' : 'loading'}: {d.l1.toFixed(3)}</p>
+      <p className="text-muted-foreground">PC2 {locale === 'sv' ? 'laddning' : 'loading'}: {d.l2.toFixed(3)}</p>
+      <p className="text-muted-foreground">{CATEGORY_LABELS[locale][d.category] ?? d.category}</p>
     </div>
   )
 }
 
 export function LoadingPlot({ loadings, variableIds, variableNames, explainedVariance, variableCategories }: LoadingPlotProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const data = variableIds.map((id, i) => {
     const category = variableCategories?.[id] ?? 'PHYSIOLOGICAL'
     return {
@@ -84,7 +101,7 @@ export function LoadingPlot({ loadings, variableIds, variableNames, explainedVar
   return (
     <div className="w-full">
       <h3 className="text-lg font-semibold mb-4 dark:text-white">
-        Laddningsplot (Loading Plot)
+        {locale === 'sv' ? 'Laddningsplot' : 'Loading plot'} (Loading Plot)
       </h3>
       <ResponsiveContainer width="100%" height={450}>
         <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
@@ -114,7 +131,7 @@ export function LoadingPlot({ loadings, variableIds, variableNames, explainedVar
             }}
             tick={{ fill: 'currentColor' }}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip locale={locale} />} />
           <Scatter data={data}>
             <LabelList
               dataKey="name"
@@ -126,7 +143,7 @@ export function LoadingPlot({ loadings, variableIds, variableNames, explainedVar
         </ScatterChart>
       </ResponsiveContainer>
       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground justify-center flex-wrap">
-        {Object.entries(CATEGORY_LABELS)
+        {Object.entries(CATEGORY_LABELS[locale])
           .filter(([key]) => presentCategories.has(key))
           .map(([key, label]) => (
             <span key={key} className="flex items-center gap-1">
