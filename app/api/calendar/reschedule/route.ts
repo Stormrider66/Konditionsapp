@@ -16,10 +16,7 @@ import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { detectWorkoutConflicts } from '@/lib/calendar/conflict-detection'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
-import {
-  findOrCreateTrainingDayForWorkout,
-  formatDateSwedish,
-} from '@/lib/calendar/workout-scheduling'
+import { findOrCreateTrainingDayForWorkout } from '@/lib/calendar/workout-scheduling'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { z } from 'zod'
 import { logError } from '@/lib/logger-console'
@@ -30,6 +27,7 @@ const rescheduleSchema = z.object({
   skipConflictCheck: z.boolean().optional().default(false),
   reason: z.string().optional(),
 })
+type AppLocale = 'en' | 'sv'
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +47,7 @@ export async function POST(request: NextRequest) {
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    const locale = getUserLocale(dbUser.language)
 
     const body = await request.json()
     const validationResult = rescheduleSchema.safeParse(body)
@@ -157,7 +156,7 @@ export async function POST(request: NextRequest) {
         clientId: client.id,
         changeType: 'WORKOUT_RESCHEDULED',
         changedById: dbUser.id,
-        description: `Passet "${workout.name}" flyttades från ${formatDateSwedish(originalDate)} till ${formatDateSwedish(targetDate)}${reason ? `. Anledning: ${reason}` : ''}`,
+        description: workoutMoveDescription(workout.name, originalDate, targetDate, locale, reason),
         previousData: {
           workoutId: workout.id,
           workoutName: workout.name,
@@ -179,7 +178,7 @@ export async function POST(request: NextRequest) {
       clientId: client.id,
       changedById: dbUser.id,
       eventTitle: workout.name,
-      description: `Passet "${workout.name}" flyttades från ${formatDateSwedish(originalDate)} till ${formatDateSwedish(targetDate)}${reason ? `. Anledning: ${reason}` : ''}`,
+      description: workoutMoveDescription(workout.name, originalDate, targetDate, locale, reason),
       previousDate: originalDate,
       newDate: targetDate,
     })
@@ -197,10 +196,41 @@ export async function POST(request: NextRequest) {
       },
       warnings: conflicts.filter((c) => c.severity !== 'CRITICAL'),
       originalDate: originalDate.toISOString(),
-      message: `Passet har flyttats till ${formatDateSwedish(targetDate)}`,
+      message: t(locale, `Workout moved to ${formatDateForLocale(targetDate, locale)}`, `Passet har flyttats till ${formatDateForLocale(targetDate, locale)}`),
     })
   } catch (error) {
     logError('Error rescheduling workout:', error)
     return NextResponse.json({ error: 'Failed to reschedule workout' }, { status: 500 })
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function formatDateForLocale(date: Date, locale: AppLocale): string {
+  return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    dateStyle: 'medium',
+    timeZone: 'Europe/Stockholm',
+  }).format(date)
+}
+
+function workoutMoveDescription(
+  workoutName: string,
+  originalDate: Date,
+  targetDate: Date,
+  locale: AppLocale,
+  reason?: string
+): string {
+  const base = t(
+    locale,
+    `Workout "${workoutName}" moved from ${formatDateForLocale(originalDate, locale)} to ${formatDateForLocale(targetDate, locale)}`,
+    `Passet "${workoutName}" flyttades från ${formatDateForLocale(originalDate, locale)} till ${formatDateForLocale(targetDate, locale)}`
+  )
+  if (!reason) return base
+  return `${base}. ${t(locale, 'Reason', 'Anledning')}: ${reason}`
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

@@ -12,7 +12,6 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
-import { formatDateSwedish } from '@/lib/calendar/workout-scheduling'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { z } from 'zod'
 import { logError } from '@/lib/logger-console'
@@ -24,8 +23,10 @@ const dragScheduledWorkoutSchema = z.object({
 })
 
 type AssignmentKind = 'strength' | 'cardio' | 'hybrid' | 'agility'
+type AppLocale = 'en' | 'sv'
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const supabase = await createClient()
     const {
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    locale = getUserLocale(dbUser.language)
 
     const body = await request.json()
     const validationResult = dragScheduledWorkoutSchema.safeParse(body)
@@ -182,6 +184,7 @@ export async function POST(request: NextRequest) {
             assignment: assignment.record,
             targetDate,
             changedById: dbUser.id,
+            locale,
           })
         : await copyScheduledWorkoutEvent({
             event,
@@ -189,6 +192,7 @@ export async function POST(request: NextRequest) {
             assignment: assignment.record,
             targetDate,
             changedById: dbUser.id,
+            locale,
           })
 
     await invalidateUnifiedCalendarCacheForClient(event.clientId)
@@ -201,13 +205,13 @@ export async function POST(request: NextRequest) {
       originalDate: event.startDate.toISOString(),
       message:
         action === 'move'
-          ? `Passet har flyttats till ${formatDateSwedish(targetDate)}`
-          : `Passet har kopierats till ${formatDateSwedish(targetDate)}`,
+          ? t(locale, `Workout moved to ${formatDateForLocale(targetDate, locale)}`, `Passet har flyttats till ${formatDateForLocale(targetDate, locale)}`)
+          : t(locale, `Workout copied to ${formatDateForLocale(targetDate, locale)}`, `Passet har kopierats till ${formatDateForLocale(targetDate, locale)}`),
     })
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json(
-        { error: 'Det finns redan en tilldelning för det passet på valt datum' },
+        { error: t(locale, 'There is already an assignment for that workout on the selected date', 'Det finns redan en tilldelning för det passet på valt datum') },
         { status: 409 }
       )
     }
@@ -260,12 +264,14 @@ async function moveScheduledWorkoutEvent({
   assignment,
   targetDate,
   changedById,
+  locale,
 }: {
   event: NonNullable<Awaited<ReturnType<typeof prisma.calendarEvent.findUnique>>>
   kind: AssignmentKind
   assignment: any
   targetDate: Date
   changedById: string
+  locale: AppLocale
 }) {
   const updated = await prisma.$transaction(async (tx) => {
     const updatedEvent = await tx.calendarEvent.update({
@@ -285,7 +291,7 @@ async function moveScheduledWorkoutEvent({
         clientId: event.clientId,
         changeType: 'SCHEDULED_WORKOUT_MOVED',
         changedById,
-        description: `Passet "${event.title}" flyttades från ${formatDateSwedish(event.startDate)} till ${formatDateSwedish(targetDate)}`,
+        description: scheduledWorkoutChangeDescription('move', event.title, event.startDate, targetDate, locale),
         previousData: {
           calendarEventId: event.id,
           assignmentId: assignment.id,
@@ -318,12 +324,14 @@ async function copyScheduledWorkoutEvent({
   assignment,
   targetDate,
   changedById,
+  locale,
 }: {
   event: NonNullable<Awaited<ReturnType<typeof prisma.calendarEvent.findUnique>>>
   kind: AssignmentKind
   assignment: any
   targetDate: Date
   changedById: string
+  locale: AppLocale
 }) {
   const result = await prisma.$transaction(async (tx) => {
     const copiedEvent = await tx.calendarEvent.create({
@@ -357,7 +365,7 @@ async function copyScheduledWorkoutEvent({
         clientId: event.clientId,
         changeType: 'SCHEDULED_WORKOUT_COPIED',
         changedById,
-        description: `Passet "${event.title}" kopierades från ${formatDateSwedish(event.startDate)} till ${formatDateSwedish(targetDate)}`,
+        description: scheduledWorkoutChangeDescription('copy', event.title, event.startDate, targetDate, locale),
         previousData: {
           sourceCalendarEventId: event.id,
           sourceAssignmentId: assignment.id,
@@ -518,4 +526,34 @@ function serializeDraggedEvent(event: {
     endDate: event.endDate.toISOString(),
     status: event.status,
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function formatDateForLocale(date: Date, locale: AppLocale): string {
+  return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    dateStyle: 'medium',
+    timeZone: 'Europe/Stockholm',
+  }).format(date)
+}
+
+function scheduledWorkoutChangeDescription(
+  action: 'move' | 'copy',
+  title: string,
+  originalDate: Date,
+  targetDate: Date,
+  locale: AppLocale
+): string {
+  const from = formatDateForLocale(originalDate, locale)
+  const to = formatDateForLocale(targetDate, locale)
+  if (action === 'move') {
+    return t(locale, `Workout "${title}" moved from ${from} to ${to}`, `Passet "${title}" flyttades från ${from} till ${to}`)
+  }
+  return t(locale, `Workout "${title}" copied from ${from} to ${to}`, `Passet "${title}" kopierades från ${from} till ${to}`)
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
