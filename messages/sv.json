@@ -13347,6 +13347,34 @@
         }
       }
     },
+    "chatActionCard": {
+      "toastCopiedTitle": "Meddelandet kopierat",
+      "toastCopiedDescription": "Meddelandet har kopierats till urklipp.",
+      "toastCopyFailedTitle": "Kunde inte kopiera",
+      "toastCopyFailedDescription": "Kopiera texten manuellt.",
+      "errorSendCouldNotSend": "Meddelandet kunde inte skickas",
+      "statusSentMessage": "{count, plural, one {Meddelandet har skickats till # mottagare.} other {Meddelandet har skickats till # mottagare.}}",
+      "toastSentTitle": "Meddelande skickat",
+      "toastSentDescription": "{count, plural, one {Skickat till # mottagare.} other {Skickat till # mottagare.}}",
+      "statusSendErrorMessage": "Jag kunde inte skicka meddelandet: {error}",
+      "toastSendFailedTitle": "Kunde inte skicka meddelandet",
+      "errorTryAgain": "Försök igen.",
+      "statusSentBadge": "Skickat",
+      "labels": {
+        "recipients": "Mottagare",
+        "subject": "Ämne",
+        "message": "Meddelande"
+      },
+      "recipientCount": "{count, plural, one {# mottagare} other {# mottagare}}",
+      "sendConfirmationMessage": "Det här skickas först när du bekräftar.",
+      "statusSendingError": "Något gick fel vid skickandet. Kontrollera mottagarna och försök igen.",
+      "sentButtonLabel": "Skickat",
+      "sentButtonLabelWithCount": "Skickat ({count})",
+      "buttons": {
+        "copy": "Kopiera",
+        "messages": "Meddelanden"
+      }
+    },
     "memoryIndicator": {
       "title": "AI-minnen",
       "subtitle": "Saker jag kommer ihåg om dig",
@@ -14481,6 +14509,12 @@
       "crossover": {
         "label": "Crossover"
       }
+    },
+    "nutritionScanPage": {
+      "backToNutrition": "Tillbaka till kost",
+      "backToDashboard": "Tillbaka till dashboard",
+      "title": "Fota din mat",
+      "subtitle": "Ta bild, analysera, spara"
     },
     "coachCalendar": {
       "title": "Kalender",

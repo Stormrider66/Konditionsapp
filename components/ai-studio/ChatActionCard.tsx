@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/i18n/client'
 
 type CoachMessageAction = {
   type: 'sendCoachMessage'
@@ -50,6 +51,7 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [sentCount, setSentCount] = useState<number | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const t = useTranslations('components.chatActionCard')
 
   if (!result.action || result.action.type !== 'sendCoachMessage') return null
   const action = result.action
@@ -61,11 +63,14 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(action.content)
-      toast({ title: 'Meddelandet kopierat' })
+      toast({
+        title: t('toastCopiedTitle'),
+        description: t('toastCopiedDescription'),
+      })
     } catch {
       toast({
-        title: 'Kunde inte kopiera',
-        description: 'Markera texten manuellt och kopiera.',
+        title: t('toastCopyFailedTitle'),
+        description: t('toastCopyFailedDescription'),
         variant: 'destructive',
       })
     }
@@ -87,22 +92,36 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Meddelandet kunde inte skickas')
+        throw new Error(data.error || t('errorSendCouldNotSend'))
       }
 
       setSentCount(data.sent ?? action.recipientCount)
       setStatus('sent')
-      setStatusMessage(data.message || `Jag har skickat meddelandet till ${data.sent ?? action.recipientCount} mottagare.`)
+      const count = data.sent ?? action.recipientCount
+      setStatusMessage(
+        data.message ||
+          t('statusSentMessage', {
+            count,
+          }),
+      )
       toast({
-        title: 'Meddelande skickat',
-        description: data.message || `Skickat till ${data.sent ?? action.recipientCount} mottagare.`,
+        title: t('toastSentTitle'),
+        description:
+          data.message ||
+          t('toastSentDescription', {
+            count,
+          }),
       })
     } catch (error) {
       setStatus('error')
-      setStatusMessage(`Jag kunde inte skicka meddelandet: ${error instanceof Error ? error.message : 'Försök igen.'}`)
+      setStatusMessage(
+        t('statusSendErrorMessage', {
+          error: error instanceof Error ? error.message : t('errorTryAgain'),
+        }),
+      )
       toast({
-        title: 'Kunde inte skicka meddelandet',
-        description: error instanceof Error ? error.message : 'Försök igen.',
+        title: t('toastSendFailedTitle'),
+        description: error instanceof Error ? error.message : t('errorTryAgain'),
         variant: 'destructive',
       })
     }
@@ -124,7 +143,7 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
             {isSent && (
               <Badge variant="secondary" className="h-5 shrink-0 gap-1 px-1.5 text-[10px]">
                 <Check className="h-3 w-3" />
-                Skickat
+                {t('statusSentBadge')}
               </Badge>
             )}
           </div>
@@ -135,7 +154,7 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
       <div className="space-y-3 p-3">
         <div>
           <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Mottagare
+            {t('labels.recipients')}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {previewRecipients.map((recipient) => (
@@ -150,14 +169,14 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {action.targetLabel} · {action.recipientCount} mottagare
+            {action.targetLabel} · {t('recipientCount', { count: action.recipientCount })}
           </p>
         </div>
 
         {action.subject && (
           <div>
             <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Ämne
+              {t('labels.subject')}
             </p>
             <p className="text-sm">{action.subject}</p>
           </div>
@@ -165,7 +184,7 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
 
         <div>
           <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Meddelande
+            {t('labels.message')}
           </p>
           <div className="max-h-44 overflow-auto rounded-md bg-muted/60 p-3 text-sm leading-relaxed whitespace-pre-wrap">
             {action.content}
@@ -175,13 +194,13 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
         {!isSent && (
           <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>Det här skickas först när du bekräftar.</span>
+            <span>{t('sendConfirmationMessage')}</span>
           </div>
         )}
 
         {status === 'error' && (
           <p className="text-xs text-destructive">
-            Något gick fel vid skickandet. Kontrollera mottagarna och försök igen.
+            {t('statusSendingError')}
           </p>
         )}
 
@@ -213,14 +232,18 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
             ) : (
               <Send className="mr-2 h-4 w-4" />
             )}
-            {isSent ? `Skickat${sentCount ? ` (${sentCount})` : ''}` : action.confirmLabel}
+            {isSent
+              ? sentCount
+                ? t('sentButtonLabelWithCount', { count: sentCount })
+                : t('sentButtonLabel')
+              : action.confirmLabel}
           </Button>
           <Button type="button" variant="outline" size="sm" onClick={handleCopy} className="h-9">
             <Copy className="mr-2 h-4 w-4" />
-            Kopiera
+            {t('buttons.copy')}
           </Button>
           <Button asChild type="button" variant="ghost" size="sm" className="h-9">
-            <Link href={resolveHref(action.reviewHref, basePath)}>Meddelanden</Link>
+            <Link href={resolveHref(action.reviewHref, basePath)}>{t('buttons.messages')}</Link>
           </Button>
         </div>
       </div>

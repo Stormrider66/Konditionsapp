@@ -12987,6 +12987,34 @@
         }
       }
     },
+    "chatActionCard": {
+      "toastCopiedTitle": "Message copied",
+      "toastCopiedDescription": "Message copied to clipboard.",
+      "toastCopyFailedTitle": "Could not copy",
+      "toastCopyFailedDescription": "Please copy the text manually.",
+      "errorSendCouldNotSend": "The message could not be sent",
+      "statusSentMessage": "{count, plural, one {The message was sent to # recipient.} other {The message was sent to # recipients.}}",
+      "toastSentTitle": "Message sent",
+      "toastSentDescription": "{count, plural, one {Sent to # recipient.} other {Sent to # recipients.}}",
+      "statusSendErrorMessage": "I could not send the message: {error}",
+      "toastSendFailedTitle": "Could not send the message",
+      "errorTryAgain": "Try again.",
+      "statusSentBadge": "Sent",
+      "labels": {
+        "recipients": "Recipients",
+        "subject": "Subject",
+        "message": "Message"
+      },
+      "recipientCount": "{count, plural, one {# recipient} other {# recipients}}",
+      "sendConfirmationMessage": "This will be sent only after confirmation.",
+      "statusSendingError": "Something went wrong while sending. Check recipients and try again.",
+      "sentButtonLabel": "Sent",
+      "sentButtonLabelWithCount": "Sent ({count})",
+      "buttons": {
+        "copy": "Copy",
+        "messages": "Messages"
+      }
+    },
     "memoryIndicator": {
       "title": "AI memories",
       "subtitle": "Things I remember about you",
@@ -14135,6 +14163,12 @@
       "crossover": {
         "label": "Crossover"
       }
+    },
+    "nutritionScanPage": {
+      "backToNutrition": "Back to nutrition",
+      "backToDashboard": "Back to dashboard",
+      "title": "Snap your meal",
+      "subtitle": "Take photo, analyze, save"
     },
     "coachCalendar": {
       "title": "Calendar",

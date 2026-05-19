@@ -7,8 +7,10 @@ import { ArrowLeft, Camera } from 'lucide-react'
 import { FoodPhotoScanner } from '@/components/nutrition/FoodPhotoScanner'
 import { Button } from '@/components/ui/button'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { useTranslations } from '@/i18n/client'
 
 export default function NutritionScanPage() {
+  const t = useTranslations('components.nutritionScanPage')
   const basePath = useBasePath()
   const searchParams = useSearchParams()
   const returnTo = searchParams.get('returnTo') === 'nutrition' ? 'nutrition' : 'dashboard'
@@ -16,8 +18,8 @@ export default function NutritionScanPage() {
     ? `${basePath}/athlete/nutrition`
     : `${basePath}/athlete/dashboard`
   const backLabel = returnTo === 'nutrition'
-    ? 'Tillbaka till kost'
-    : 'Tillbaka till dashboard'
+    ? t('backToNutrition')
+    : t('backToDashboard')
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 selection:bg-cyan-500/30 dark:bg-[#050505] dark:text-slate-200">
@@ -40,10 +42,10 @@ export default function NutritionScanPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
-              Fota din mat
+              {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
-              Ta bild, analysera, spara
+              {t('subtitle')}
             </p>
           </div>
         </div>
