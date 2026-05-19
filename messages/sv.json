@@ -14299,6 +14299,49 @@
         "none": "Inga deltagare ännu"
       }
     },
+    "coachCalendar": {
+      "title": "Kalender",
+      "subtitle": "Överblick av alla atleters schema och händelser",
+      "filters": {
+        "teamPlaceholder": "Lag",
+        "sportPlaceholder": "Sport",
+        "athletePlaceholder": "Filtrera atlet",
+        "allTeams": "Alla lag",
+        "allSports": "Alla sporter",
+        "allAthletes": "Alla atleter"
+      },
+      "stats": {
+        "athletes": "Atleter",
+        "todaysWorkouts": "Pass idag",
+        "upcomingEvents": "Kommande händelser",
+        "races": "Tävlingar"
+      },
+      "sections": {
+        "todayWorkouts": "Dagens pass",
+        "upcomingEvents": "Kommande händelser",
+        "quickAccess": "Snabbåtkomst till kalendrar"
+      },
+      "workouts": {
+        "empty": "Inga pass schemalagda idag"
+      },
+      "events": {
+        "empty": "Inga kommande händelser de närmaste 14 dagarna",
+        "raceA": "A-tävling",
+        "raceB": "B-tävling",
+        "raceC": "C-tävling",
+        "competition": "Tävling",
+        "altitudeCamp": "Höjdläger",
+        "trainingCamp": "Träningsläger",
+        "travel": "Resa",
+        "illness": "Sjukdom",
+        "restDay": "Vila",
+        "unknown": "Okänd typ"
+      },
+      "athletes": {
+        "empty": "Inga atleter hittades"
+      },
+      "searchPlaceholder": "Sök atlet..."
+    },
     "athleteAttentionList": {
       "title": "Behöver uppmärksamhet",
       "more": "+{count} fler",

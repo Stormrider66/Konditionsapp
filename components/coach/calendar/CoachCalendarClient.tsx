@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { format, isToday, isTomorrow, differenceInDays } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { sv, enUS } from 'date-fns/locale'
 import {
   Calendar,
   CalendarDays,
@@ -29,7 +29,6 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -40,6 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { useTranslations, useLocale } from '@/i18n/client'
 
 interface Athlete {
   id: string
@@ -56,24 +56,24 @@ interface Team {
   name: string
 }
 
-const SPORT_LABELS: Record<string, string> = {
-  RUNNING: 'Löpning',
-  CYCLING: 'Cykling',
-  SKIING: 'Längdskidåkning',
-  SWIMMING: 'Simning',
-  TRIATHLON: 'Triathlon',
-  HYROX: 'HYROX',
-  GENERAL_FITNESS: 'Allmän fitness',
-  FUNCTIONAL_FITNESS: 'Funktionell träning',
-  STRENGTH: 'Styrka',
-  TEAM_FOOTBALL: 'Fotboll',
-  TEAM_ICE_HOCKEY: 'Ishockey',
-  TEAM_HANDBALL: 'Handboll',
-  TEAM_FLOORBALL: 'Innebandy',
-  TEAM_BASKETBALL: 'Basket',
-  TEAM_VOLLEYBALL: 'Volleyboll',
-  TENNIS: 'Tennis',
-  PADEL: 'Padel',
+const SPORT_LABEL_KEYS: Record<string, string> = {
+  RUNNING: 'sports.running',
+  CYCLING: 'sports.cycling',
+  SKIING: 'sports.skiing',
+  SWIMMING: 'sports.swimming',
+  TRIATHLON: 'sports.triathlon',
+  HYROX: 'sports.hyrox',
+  GENERAL_FITNESS: 'sports.generalFitness',
+  FUNCTIONAL_FITNESS: 'sports.functionalFitness',
+  STRENGTH: 'sports.strength',
+  TEAM_FOOTBALL: 'sports.football',
+  TEAM_ICE_HOCKEY: 'sports.iceHockey',
+  TEAM_HANDBALL: 'sports.handball',
+  TEAM_FLOORBALL: 'sports.floorball',
+  TEAM_BASKETBALL: 'sports.basketball',
+  TEAM_VOLLEYBALL: 'sports.volleyball',
+  TENNIS: 'sports.tennis',
+  PADEL: 'sports.padel',
 }
 
 interface CalendarEventData {
@@ -111,24 +111,25 @@ interface CoachCalendarClientProps {
   sports?: string[]
 }
 
-const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  RACE_A: { label: 'A-Tävling', icon: Trophy, color: 'text-yellow-500 bg-yellow-500/10' },
-  RACE_B: { label: 'B-Tävling', icon: Trophy, color: 'text-orange-500 bg-orange-500/10' },
-  RACE_C: { label: 'C-Tävling', icon: Trophy, color: 'text-blue-500 bg-blue-500/10' },
-  COMPETITION: { label: 'Tävling', icon: Trophy, color: 'text-purple-500 bg-purple-500/10' },
-  ALTITUDE_CAMP: { label: 'Höjdläger', icon: Mountain, color: 'text-cyan-500 bg-cyan-500/10' },
-  TRAINING_CAMP: { label: 'Träningsläger', icon: MapPin, color: 'text-green-500 bg-green-500/10' },
-  TRAVEL: { label: 'Resa', icon: Plane, color: 'text-slate-400 bg-slate-500/10' },
-  ILLNESS: { label: 'Sjukdom', icon: AlertTriangle, color: 'text-red-500 bg-red-500/10' },
-  REST_DAY: { label: 'Vila', icon: Clock, color: 'text-emerald-500 bg-emerald-500/10' },
+const EVENT_TYPE_CONFIG: Record<string, { labelKey: string; icon: React.ElementType; color: string }> = {
+  RACE_A: { labelKey: 'events.raceA', icon: Trophy, color: 'text-yellow-500 bg-yellow-500/10' },
+  RACE_B: { labelKey: 'events.raceB', icon: Trophy, color: 'text-orange-500 bg-orange-500/10' },
+  RACE_C: { labelKey: 'events.raceC', icon: Trophy, color: 'text-blue-500 bg-blue-500/10' },
+  COMPETITION: { labelKey: 'events.competition', icon: Trophy, color: 'text-purple-500 bg-purple-500/10' },
+  ALTITUDE_CAMP: { labelKey: 'events.altitudeCamp', icon: Mountain, color: 'text-cyan-500 bg-cyan-500/10' },
+  TRAINING_CAMP: { labelKey: 'events.trainingCamp', icon: MapPin, color: 'text-green-500 bg-green-500/10' },
+  TRAVEL: { labelKey: 'events.travel', icon: Plane, color: 'text-slate-400 bg-slate-500/10' },
+  ILLNESS: { labelKey: 'events.illness', icon: AlertTriangle, color: 'text-red-500 bg-red-500/10' },
+  REST_DAY: { labelKey: 'events.restDay', icon: Clock, color: 'text-emerald-500 bg-emerald-500/10' },
 }
 
-function formatRelativeDate(date: Date): string {
-  if (isToday(date)) return 'Idag'
-  if (isTomorrow(date)) return 'Imorgon'
+function formatRelativeDate(date: Date, localeCode: 'sv' | 'en'): string {
+  const locale = localeCode === 'en' ? enUS : sv
+  if (isToday(date)) return localeCode === 'en' ? 'Today' : 'Idag'
+  if (isTomorrow(date)) return localeCode === 'en' ? 'Tomorrow' : 'Imorgon'
   const days = differenceInDays(date, new Date())
-  if (days < 7) return format(date, 'EEEE', { locale: sv })
-  return format(date, 'd MMM', { locale: sv })
+  if (days < 7) return format(date, 'EEEE', { locale })
+  return format(date, 'd MMM', { locale })
 }
 
 export function CoachCalendarClient({
@@ -140,6 +141,10 @@ export function CoachCalendarClient({
   teams = [],
   sports = [],
 }: CoachCalendarClientProps) {
+  const t = useTranslations('components.coachCalendar')
+  const locale = useLocale()
+  const localeCode = locale === 'en' ? 'en' : 'sv'
+
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('all')
   const [selectedTeamId, setSelectedTeamId] = useState<string>('all')
   const [selectedSport, setSelectedSport] = useState<string>('all')
@@ -204,10 +209,10 @@ export function CoachCalendarClient({
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <CalendarDays className="w-5 h-5 text-primary" />
             </div>
-            Kalender
+            {t('title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Överblick av alla atleters schema och händelser
+            {t('subtitle')}
           </p>
         </div>
 
@@ -218,10 +223,10 @@ export function CoachCalendarClient({
             <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
               <SelectTrigger className="w-[160px] bg-background/50 backdrop-blur-sm border-border">
                 <Users className="w-4 h-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Lag" />
+                <SelectValue placeholder={t('filters.teamPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alla lag</SelectItem>
+                <SelectItem value="all">{t('filters.allTeams')}</SelectItem>
                 {teams.map(team => (
                   <SelectItem key={team.id} value={team.id}>
                     {team.name}
@@ -236,13 +241,13 @@ export function CoachCalendarClient({
             <Select value={selectedSport} onValueChange={setSelectedSport}>
               <SelectTrigger className="w-[160px] bg-background/50 backdrop-blur-sm border-border">
                 <Dumbbell className="w-4 h-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Sport" />
+                <SelectValue placeholder={t('filters.sportPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alla sporter</SelectItem>
+                <SelectItem value="all">{t('filters.allSports')}</SelectItem>
                 {sports.map(sport => (
                   <SelectItem key={sport} value={sport}>
-                    {SPORT_LABELS[sport] || sport}
+                    {SPORT_LABEL_KEYS[sport] ? t(SPORT_LABEL_KEYS[sport]) : sport}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -253,10 +258,10 @@ export function CoachCalendarClient({
           <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
             <SelectTrigger className="w-[180px] bg-background/50 backdrop-blur-sm border-border">
               <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Filtrera atlet" />
+              <SelectValue placeholder={t('filters.athletePlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alla atleter</SelectItem>
+              <SelectItem value="all">{t('filters.allAthletes')}</SelectItem>
               {filteredAthletes.map(athlete => (
                 <SelectItem key={athlete.id} value={athlete.id}>
                   {athlete.name}
@@ -273,7 +278,7 @@ export function CoachCalendarClient({
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Atleter</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('stats.athletes')}</p>
                 <p className="text-2xl font-bold text-foreground">{athletes.length}</p>
               </div>
               <Users className="w-8 h-8 text-blue-500/50" />
@@ -285,7 +290,7 @@ export function CoachCalendarClient({
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Pass idag</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('stats.todaysWorkouts')}</p>
                 <p className="text-2xl font-bold text-foreground">
                   {completedWorkouts}/{totalWorkouts}
                 </p>
@@ -299,7 +304,7 @@ export function CoachCalendarClient({
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Kommande händelser</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('stats.upcomingEvents')}</p>
                 <p className="text-2xl font-bold text-foreground">{filteredEvents.length}</p>
               </div>
               <Calendar className="w-8 h-8 text-purple-500/50" />
@@ -311,7 +316,7 @@ export function CoachCalendarClient({
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Tävlingar</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('stats.races')}</p>
                 <p className="text-2xl font-bold text-foreground">{filteredRaces.length}</p>
               </div>
               <Trophy className="w-8 h-8 text-yellow-500/50" />
@@ -326,13 +331,13 @@ export function CoachCalendarClient({
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-500" />
-              Dagens pass
+              {t('sections.todayWorkouts')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="p-0">
             {filteredWorkouts.length === 0 ? (
               <div className="p-6 text-center text-muted-foreground">
-                Inga pass schemalagda idag
+                {t('workouts.empty')}
               </div>
             ) : (
               <div className="divide-y divide-border">
@@ -377,19 +382,19 @@ export function CoachCalendarClient({
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-blue-500" />
-              Kommande händelser
+              {t('sections.upcomingEvents')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="p-0">
             {filteredEvents.length === 0 ? (
               <div className="p-6 text-center text-muted-foreground">
-                Inga kommande händelser de närmaste 14 dagarna
+                {t('events.empty')}
               </div>
             ) : (
               <div className="divide-y divide-border">
                 {filteredEvents.slice(0, 10).map(event => {
                   const config = EVENT_TYPE_CONFIG[event.type] || {
-                    label: event.type,
+                    labelKey: 'events.unknown',
                     icon: Calendar,
                     color: 'text-muted-foreground bg-muted',
                   }
@@ -413,11 +418,11 @@ export function CoachCalendarClient({
                             {event.title}
                           </p>
                           <Badge variant="outline" className="text-xs border-border shrink-0">
-                            {config.label}
+                            {config.labelKey === 'events.unknown' ? event.type : t(config.labelKey)}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {event.client.name} • {formatRelativeDate(new Date(event.startDate))}
+                          {event.client.name} • {formatRelativeDate(new Date(event.startDate), localeCode)}
                         </p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -436,12 +441,12 @@ export function CoachCalendarClient({
           <div className="flex items-center justify-between">
             <GlassCardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5 text-purple-500" />
-              Snabbåtkomst till kalendrar
+              {t('sections.quickAccess')}
             </GlassCardTitle>
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Sök atlet..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 bg-background/50 border-border placeholder:text-muted-foreground"
@@ -452,7 +457,7 @@ export function CoachCalendarClient({
         <GlassCardContent>
           {filteredAthletes.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              Inga atleter hittades
+              {t('athletes.empty')}
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">

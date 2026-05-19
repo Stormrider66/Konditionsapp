@@ -13953,6 +13953,49 @@
         "none": "No participants yet"
       }
     },
+    "coachCalendar": {
+      "title": "Calendar",
+      "subtitle": "Overview of all athletes' schedules and events",
+      "filters": {
+        "teamPlaceholder": "Team",
+        "sportPlaceholder": "Sport",
+        "athletePlaceholder": "Filter athlete",
+        "allTeams": "All teams",
+        "allSports": "All sports",
+        "allAthletes": "All athletes"
+      },
+      "stats": {
+        "athletes": "Athletes",
+        "todaysWorkouts": "Workouts today",
+        "upcomingEvents": "Upcoming events",
+        "races": "Races"
+      },
+      "sections": {
+        "todayWorkouts": "Today's workouts",
+        "upcomingEvents": "Upcoming events",
+        "quickAccess": "Quick access to calendars"
+      },
+      "workouts": {
+        "empty": "No workouts scheduled today"
+      },
+      "events": {
+        "empty": "No upcoming events in the next 14 days",
+        "raceA": "Race A",
+        "raceB": "Race B",
+        "raceC": "Race C",
+        "competition": "Competition",
+        "altitudeCamp": "Altitude camp",
+        "trainingCamp": "Training camp",
+        "travel": "Travel",
+        "illness": "Illness",
+        "restDay": "Rest day",
+        "unknown": "Unknown event type"
+      },
+      "athletes": {
+        "empty": "No athletes found"
+      },
+      "searchPlaceholder": "Search athlete..."
+    },
     "athleteAttentionList": {
       "title": "Needs attention",
       "more": "+{count} more",
