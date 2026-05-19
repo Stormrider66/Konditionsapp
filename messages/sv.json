@@ -14169,6 +14169,85 @@
         "sendFailedTitle": "Kunde inte skicka meddelande"
       }
     },
+    "competitionManager": {
+      "actions": {
+        "newChallenge": "Ny utmaning",
+        "create": "Skapa utmaning",
+        "saving": "Skapar...",
+        "cancel": "Avbryt",
+        "end": "Avsluta",
+        "reactivate": "Återaktivera"
+      },
+      "form": {
+        "title": "Skapa ny utmaning",
+        "labels": {
+          "name": "Namn",
+          "type": "Typ",
+          "metric": "Mätvärde",
+          "unit": "Enhet (valfritt)",
+          "startDate": "Startdatum",
+          "endDate": "Slutdatum",
+          "description": "Beskrivning (valfritt)"
+        },
+        "placeholders": {
+          "name": "t.ex. 'April Push-up utmaning'",
+          "metric": "Vad mäts?",
+          "unit": "kg, km, st...",
+          "description": "Beskriv utmaningen..."
+        }
+      },
+      "empty": {
+        "title": "Inga utmaningar ännu",
+        "description": "Skapa en utmaning för att engagera dina medlemmar"
+      },
+      "sections": {
+        "active": "Aktiva utmaningar",
+        "past": "Avslutade utmaningar"
+      },
+      "types": {
+        "MOST_WORKOUTS": "Flest pass",
+        "TOTAL_VOLUME": "Total volym",
+        "TOTAL_DISTANCE": "Total distans",
+        "WEIGHT_LOSS": "Viktnedgång",
+        "STREAK": "Streak",
+        "CUSTOM": "Anpassad"
+      },
+      "typeDefaults": {
+        "mostWorkouts": {
+          "metric": "Antal pass",
+          "unit": ""
+        },
+        "totalVolume": {
+          "metric": "Total volym",
+          "unit": "kg"
+        },
+        "totalDistance": {
+          "metric": "Total distans",
+          "unit": "km"
+        },
+        "weightLoss": {
+          "metric": "Viktnedgång",
+          "unit": "kg"
+        },
+        "streak": {
+          "metric": "Dagar i rad",
+          "unit": "dagar"
+        },
+        "custom": {
+          "metric": "",
+          "unit": ""
+        }
+      },
+      "state": {
+        "ended": "Avslutad"
+      },
+      "competition": {
+        "participants": "{count, plural, one {# deltagare} other {# deltagare}}",
+        "daysLeft": "{days}d kvar",
+        "moreParticipants": "{count, plural, one {+{count} deltagare till} other {+{count} fler deltagare}}",
+        "none": "Inga deltagare ännu"
+      }
+    },
     "athleteAttentionList": {
       "title": "Behöver uppmärksamhet",
       "more": "+{count} fler",

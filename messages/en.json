@@ -13823,6 +13823,85 @@
         "sendFailedTitle": "Could not send message"
       }
     },
+    "competitionManager": {
+      "actions": {
+        "newChallenge": "New challenge",
+        "create": "Create challenge",
+        "saving": "Creating...",
+        "cancel": "Cancel",
+        "end": "End",
+        "reactivate": "Reactivate"
+      },
+      "form": {
+        "title": "Create new challenge",
+        "labels": {
+          "name": "Name",
+          "type": "Type",
+          "metric": "Metric",
+          "unit": "Unit (optional)",
+          "startDate": "Start date",
+          "endDate": "End date",
+          "description": "Description (optional)"
+        },
+        "placeholders": {
+          "name": "E.g. April Push-up Challenge",
+          "metric": "What to measure?",
+          "unit": "kg, km, pcs...",
+          "description": "Describe the challenge..."
+        }
+      },
+      "empty": {
+        "title": "No challenges yet",
+        "description": "Create a challenge to engage your members"
+      },
+      "sections": {
+        "active": "Active challenges",
+        "past": "Ended challenges"
+      },
+      "types": {
+        "MOST_WORKOUTS": "Most workouts",
+        "TOTAL_VOLUME": "Total volume",
+        "TOTAL_DISTANCE": "Total distance",
+        "WEIGHT_LOSS": "Weight loss",
+        "STREAK": "Streak",
+        "CUSTOM": "Custom"
+      },
+      "typeDefaults": {
+        "mostWorkouts": {
+          "metric": "Number of workouts",
+          "unit": ""
+        },
+        "totalVolume": {
+          "metric": "Total volume",
+          "unit": "kg"
+        },
+        "totalDistance": {
+          "metric": "Total distance",
+          "unit": "km"
+        },
+        "weightLoss": {
+          "metric": "Weight loss",
+          "unit": "kg"
+        },
+        "streak": {
+          "metric": "Streak",
+          "unit": "days"
+        },
+        "custom": {
+          "metric": "",
+          "unit": ""
+        }
+      },
+      "state": {
+        "ended": "Ended"
+      },
+      "competition": {
+        "participants": "{count, plural, one {# participant} other {# participants}}",
+        "daysLeft": "{days}d left",
+        "moreParticipants": "{count, plural, one {+{count} more participant} other {+{count} more participants}}",
+        "none": "No participants yet"
+      }
+    },
     "athleteAttentionList": {
       "title": "Needs attention",
       "more": "+{count} more",

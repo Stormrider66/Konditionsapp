@@ -12,11 +12,11 @@ import {
   Users,
   Clock,
   Loader2,
-  Medal,
   Calendar,
   Target,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslations, useLocale } from '@/i18n/client'
 
 interface CompetitionEntry {
   id: string
@@ -43,13 +43,31 @@ interface Competition {
   _count: { entries: number }
 }
 
-const typeLabels: Record<string, string> = {
-  MOST_WORKOUTS: 'Flest pass',
-  TOTAL_VOLUME: 'Total volym',
-  TOTAL_DISTANCE: 'Total distans',
-  WEIGHT_LOSS: 'Viktnedgång',
-  STREAK: 'Streak',
-  CUSTOM: 'Anpassad',
+const competitionTypeDefaults = {
+  MOST_WORKOUTS: {
+    metric: 'typeDefaults.mostWorkouts.metric',
+    unit: 'typeDefaults.mostWorkouts.unit',
+  },
+  TOTAL_VOLUME: {
+    metric: 'typeDefaults.totalVolume.metric',
+    unit: 'typeDefaults.totalVolume.unit',
+  },
+  TOTAL_DISTANCE: {
+    metric: 'typeDefaults.totalDistance.metric',
+    unit: 'typeDefaults.totalDistance.unit',
+  },
+  WEIGHT_LOSS: {
+    metric: 'typeDefaults.weightLoss.metric',
+    unit: 'typeDefaults.weightLoss.unit',
+  },
+  STREAK: {
+    metric: 'typeDefaults.streak.metric',
+    unit: 'typeDefaults.streak.unit',
+  },
+  CUSTOM: {
+    metric: 'typeDefaults.custom.metric',
+    unit: 'typeDefaults.custom.unit',
+  },
 }
 
 const rankIcons = ['🥇', '🥈', '🥉']
@@ -66,17 +84,19 @@ interface CompetitionManagerProps {
   basePath: string
 }
 
-export function CompetitionManager({ basePath }: CompetitionManagerProps) {
+export function CompetitionManager({ basePath: _basePath }: CompetitionManagerProps) {
   const [competitions, setCompetitions] = useState<Competition[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
+  const t = useTranslations('components.competitionManager')
+  const locale = useLocale()
 
   // Create form
   const [newName, setNewName] = useState('')
   const [newDescription, setNewDescription] = useState('')
   const [newType, setNewType] = useState('MOST_WORKOUTS')
-  const [newMetric, setNewMetric] = useState('Antal pass')
+  const [newMetric, setNewMetric] = useState(t('typeDefaults.mostWorkouts.metric'))
   const [newUnit, setNewUnit] = useState('')
   const [newStartDate, setNewStartDate] = useState('')
   const [newEndDate, setNewEndDate] = useState('')
@@ -141,6 +161,11 @@ export function CompetitionManager({ basePath }: CompetitionManagerProps) {
 
   const activeCompetitions = competitions.filter(c => c.isActive && new Date(c.endDate) > new Date())
   const pastCompetitions = competitions.filter(c => !c.isActive || new Date(c.endDate) <= new Date())
+  const dateLocale = locale === 'en' ? 'en-US' : 'sv-SE'
+  const formatDate = useCallback((value: string) => new Date(value).toLocaleDateString(dateLocale, {
+    day: 'numeric',
+    month: 'short',
+  }), [dateLocale])
 
   return (
     <div className="space-y-6">
@@ -148,7 +173,7 @@ export function CompetitionManager({ basePath }: CompetitionManagerProps) {
       <div className="flex justify-end">
         <Button onClick={() => setShowCreate(!showCreate)}>
           <Plus className="h-4 w-4 mr-2" />
-          Ny utmaning
+          {t('actions.newChallenge')}
         </Button>
       </div>
 
@@ -156,68 +181,64 @@ export function CompetitionManager({ basePath }: CompetitionManagerProps) {
       {showCreate && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Skapa ny utmaning</CardTitle>
+            <CardTitle className="text-lg">{t('form.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Namn</label>
+                <label className="text-sm font-medium">{t('form.labels.name')}</label>
                 <Input
-                  placeholder="t.ex. 'April Push-up Challenge'"
+                  placeholder={t('form.placeholders.name')}
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Typ</label>
+                <label className="text-sm font-medium">{t('form.labels.type')}</label>
                 <select
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={newType}
                   onChange={e => {
                     setNewType(e.target.value)
-                    const defaults: Record<string, { metric: string; unit: string }> = {
-                      MOST_WORKOUTS: { metric: 'Antal pass', unit: '' },
-                      TOTAL_VOLUME: { metric: 'Total volym', unit: 'kg' },
-                      TOTAL_DISTANCE: { metric: 'Total distans', unit: 'km' },
-                      STREAK: { metric: 'Dagar i rad', unit: 'dagar' },
-                      CUSTOM: { metric: '', unit: '' },
+                    const defaults = competitionTypeDefaults[e.target.value as keyof typeof competitionTypeDefaults]
+                    if (defaults) {
+                      setNewMetric(t(defaults.metric))
+                      setNewUnit(t(defaults.unit))
                     }
-                    const def = defaults[e.target.value]
-                    if (def) { setNewMetric(def.metric); setNewUnit(def.unit) }
                   }}
                 >
-                  {Object.entries(typeLabels).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
+                  {Object.keys(competitionTypeDefaults).map(k => (
+                    <option key={k} value={k}>{t(`types.${k}`)}</option>
                   ))}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Mätvärde</label>
-                <Input placeholder="Vad mäts?" value={newMetric} onChange={e => setNewMetric(e.target.value)} />
+                <label className="text-sm font-medium">{t('form.labels.metric')}</label>
+                <Input placeholder={t('form.placeholders.metric')} value={newMetric} onChange={e => setNewMetric(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Enhet (valfritt)</label>
-                <Input placeholder="kg, km, st..." value={newUnit} onChange={e => setNewUnit(e.target.value)} />
+                <label className="text-sm font-medium">{t('form.labels.unit')}</label>
+                <Input placeholder={t('form.placeholders.unit')} value={newUnit} onChange={e => setNewUnit(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Startdatum</label>
+                <label className="text-sm font-medium">{t('form.labels.startDate')}</label>
                 <Input type="date" value={newStartDate} onChange={e => setNewStartDate(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Slutdatum</label>
+                <label className="text-sm font-medium">{t('form.labels.endDate')}</label>
                 <Input type="date" value={newEndDate} onChange={e => setNewEndDate(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Beskrivning (valfritt)</label>
-              <Textarea placeholder="Beskriv utmaningen..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} />
+              <label className="text-sm font-medium">{t('form.labels.description')}</label>
+              <Textarea placeholder={t('form.placeholders.description')} value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} />
             </div>
             <div className="flex gap-2">
               <Button onClick={createCompetition} disabled={saving || !newName.trim() || !newStartDate || !newEndDate}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trophy className="h-4 w-4 mr-2" />}
-                Skapa utmaning
+                {saving ? t('actions.saving') : t('actions.create')}
               </Button>
-              <Button variant="ghost" onClick={() => setShowCreate(false)}>Avbryt</Button>
+              <Button variant="ghost" onClick={() => setShowCreate(false)}>{t('actions.cancel')}</Button>
             </div>
           </CardContent>
         </Card>
@@ -230,8 +251,8 @@ export function CompetitionManager({ basePath }: CompetitionManagerProps) {
       ) : competitions.length === 0 && !showCreate ? (
         <div className="text-center py-16 text-muted-foreground">
           <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p className="text-lg font-medium">Inga utmaningar ännu</p>
-          <p className="text-sm mt-1">Skapa en utmaning för att engagera dina medlemmar</p>
+          <p className="text-lg font-medium">{t('empty.title')}</p>
+          <p className="text-sm mt-1">{t('empty.description')}</p>
         </div>
       ) : (
         <>
@@ -240,11 +261,17 @@ export function CompetitionManager({ basePath }: CompetitionManagerProps) {
             <div className="space-y-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Target className="h-5 w-5 text-green-500" />
-                Aktiva utmaningar
+                {t('sections.active')}
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {activeCompetitions.map(comp => (
-                  <CompetitionDetailCard key={comp.id} competition={comp} onToggle={toggleActive} onRefresh={fetchData} />
+                  <CompetitionDetailCard
+                    key={comp.id}
+                    competition={comp}
+                    onToggle={toggleActive}
+                    formatDate={formatDate}
+                    t={t}
+                  />
                 ))}
               </div>
             </div>
@@ -255,11 +282,17 @@ export function CompetitionManager({ basePath }: CompetitionManagerProps) {
             <div className="space-y-4">
               <h2 className="text-lg font-semibold flex items-center gap-2 text-muted-foreground">
                 <Clock className="h-5 w-5" />
-                Avslutade utmaningar
+                {t('sections.past')}
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {pastCompetitions.map(comp => (
-                  <CompetitionDetailCard key={comp.id} competition={comp} onToggle={toggleActive} onRefresh={fetchData} />
+                  <CompetitionDetailCard
+                    key={comp.id}
+                    competition={comp}
+                    onToggle={toggleActive}
+                    formatDate={formatDate}
+                    t={t}
+                  />
                 ))}
               </div>
             </div>
@@ -270,13 +303,22 @@ export function CompetitionManager({ basePath }: CompetitionManagerProps) {
   )
 }
 
-function CompetitionDetailCard({ competition: comp, onToggle, onRefresh }: {
+type CompetitionManagerTranslations = ReturnType<typeof useTranslations>
+
+function CompetitionDetailCard({
+  competition: comp,
+  onToggle,
+  formatDate,
+  t,
+}: {
   competition: Competition
   onToggle: (id: string, isActive: boolean) => void
-  onRefresh: () => void
+  formatDate: (value: string) => string
+  t: CompetitionManagerTranslations
 }) {
   const days = daysRemaining(comp.endDate)
   const isEnded = new Date(comp.endDate) <= new Date()
+  const typeLabel = t(`types.${comp.type}`)
 
   return (
     <Card className={cn(!comp.isActive && 'opacity-60')}>
@@ -285,18 +327,18 @@ function CompetitionDetailCard({ competition: comp, onToggle, onRefresh }: {
           <div>
             <CardTitle className="text-base">{comp.name}</CardTitle>
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="secondary" className="text-xs">{typeLabels[comp.type] || comp.type}</Badge>
+              <Badge variant="secondary" className="text-xs">{typeLabel || comp.type}</Badge>
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Users className="h-3 w-3" /> {comp._count.entries} deltagare
+                <Users className="h-3 w-3" /> {t('competition.participants', { count: comp._count.entries })}
               </span>
             </div>
           </div>
           <div className="text-right">
             {isEnded ? (
-              <Badge variant="outline" className="text-xs">Avslutad</Badge>
+              <Badge variant="outline" className="text-xs">{t('state.ended')}</Badge>
             ) : (
               <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                <Clock className="h-3 w-3 mr-1" /> {days}d kvar
+                <Clock className="h-3 w-3 mr-1" /> {t('competition.daysLeft', { days })}
               </Badge>
             )}
           </div>
@@ -312,7 +354,7 @@ function CompetitionDetailCard({ competition: comp, onToggle, onRefresh }: {
             {comp.entries.slice(0, 5).map((entry, i) => (
               <div key={entry.id} className="flex items-center gap-2 py-1">
                 <span className="text-sm w-6 text-center">
-                  {i < 3 ? rankIcons[i] : `${i + 1}.`}
+                {i < 3 ? rankIcons[i] : `${i + 1}.`}
                 </span>
                 <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[9px] font-semibold">
                   {getInitials(entry.client.name)}
@@ -325,18 +367,18 @@ function CompetitionDetailCard({ competition: comp, onToggle, onRefresh }: {
             ))}
             {comp._count.entries > 5 && (
               <p className="text-xs text-muted-foreground text-center">
-                +{comp._count.entries - 5} fler deltagare
+                {t('competition.moreParticipants', { count: comp._count.entries - 5 })}
               </p>
             )}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground text-center py-3">Inga deltagare ännu</p>
+          <p className="text-xs text-muted-foreground text-center py-3">{t('competition.none')}</p>
         )}
 
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            {new Date(comp.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} — {new Date(comp.endDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+            {formatDate(comp.startDate)} — {formatDate(comp.endDate)}
           </span>
           <Button
             variant="ghost"
@@ -344,7 +386,7 @@ function CompetitionDetailCard({ competition: comp, onToggle, onRefresh }: {
             className="text-xs h-6"
             onClick={() => onToggle(comp.id, comp.isActive)}
           >
-            {comp.isActive ? 'Avsluta' : 'Återaktivera'}
+            {comp.isActive ? t('actions.end') : t('actions.reactivate')}
           </Button>
         </div>
       </CardContent>
