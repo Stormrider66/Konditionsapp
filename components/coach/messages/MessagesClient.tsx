@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
+import { enUS } from 'date-fns/locale'
 import { sv } from 'date-fns/locale'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useTranslations, useLocale } from '@/i18n/client'
 
 interface Message {
   id: string
@@ -69,6 +71,9 @@ interface AthleteConversation {
 export default function CoachMessagesPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const t = useTranslations('components.coachMessages')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
 
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -138,7 +143,7 @@ export default function CoachMessagesPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att hämta meddelanden')
+        throw new Error(result.error || t('errors.fetchFailed'))
       }
 
       const fetchedMessages = result.data as Message[]
@@ -159,7 +164,7 @@ export default function CoachMessagesPage() {
     } catch (error: any) {
       console.error('Error fetching messages:', error)
       toast({
-        title: 'Kunde inte hämta meddelanden',
+        title: t('errors.fetchFailedTitle'),
         description: error.message,
         variant: 'destructive',
       })
@@ -222,12 +227,12 @@ export default function CoachMessagesPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att skicka meddelande')
+        throw new Error(result.error || t('errors.sendFailed'))
       }
 
       toast({
-        title: 'Meddelande skickat',
-        description: 'Ditt meddelande har skickats till atleten.',
+        title: t('toasts.sent.title'),
+        description: t('toasts.sent.description'),
       })
 
       setReplyText('')
@@ -235,7 +240,7 @@ export default function CoachMessagesPage() {
     } catch (error: any) {
       console.error('Error sending message:', error)
       toast({
-        title: 'Kunde inte skicka meddelande',
+        title: t('errors.sendFailedTitle'),
         description: error.message,
         variant: 'destructive',
       })
@@ -265,10 +270,10 @@ export default function CoachMessagesPage() {
       <div className="mb-4 sm:mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
           <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-          Meddelanden
+          {t('title')}
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground mt-1">
-          Kommunicera med dina atleter
+          {t('subtitle')}
         </p>
       </div>
 
@@ -279,7 +284,7 @@ export default function CoachMessagesPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <Users className="h-5 w-5 flex-shrink-0" />
-                Atleter
+                {t('sidebar.title')}
               </CardTitle>
               <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
                 <SelectTrigger className="w-full sm:w-32 min-h-[44px]">
@@ -287,8 +292,8 @@ export default function CoachMessagesPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Alla</SelectItem>
-                  <SelectItem value="unread">Olästa</SelectItem>
+                  <SelectItem value="all">{t('filters.all')}</SelectItem>
+                  <SelectItem value="unread">{t('filters.unread')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -297,7 +302,7 @@ export default function CoachMessagesPage() {
             {filteredConversations.length === 0 ? (
               <div className="text-center py-8 px-4 text-muted-foreground">
                 <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p className="text-sm sm:text-base">Inga meddelanden ännu</p>
+                <p className="text-sm sm:text-base">{t('empty.messages')}</p>
               </div>
             ) : (
               <ScrollArea className="h-[400px] sm:h-[500px] lg:h-[600px]">
@@ -322,9 +327,9 @@ export default function CoachMessagesPage() {
                     <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                       {conversation.lastMessage.content}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                       {format(new Date(conversation.lastMessage.createdAt), 'PPp', {
-                        locale: sv,
+                        locale: dateLocale,
                       })}
                     </p>
                   </button>
@@ -395,7 +400,7 @@ export default function CoachMessagesPage() {
                 {/* Reply Form */}
                 <div className="space-y-2">
                   <Textarea
-                    placeholder="Skriv ditt meddelande här..."
+                    placeholder={t('reply.placeholder')}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     rows={3}
@@ -405,7 +410,7 @@ export default function CoachMessagesPage() {
                   />
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <p className="text-xs sm:text-sm text-muted-foreground">
-                      {replyText.length}/1000 tecken
+                      {replyText.length}/1000 {t('reply.characterCount')}
                     </p>
                     <Button
                       onClick={sendMessage}
@@ -415,12 +420,12 @@ export default function CoachMessagesPage() {
                       {sending ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Skickar...
+                          {t('reply.sending')}
                         </>
                       ) : (
                         <>
                           <Send className="h-4 w-4 mr-2" />
-                          Skicka
+                          {t('reply.send')}
                         </>
                       )}
                     </Button>
@@ -432,7 +437,7 @@ export default function CoachMessagesPage() {
             <CardContent className="flex items-center justify-center h-full py-20 px-4">
               <div className="text-center text-muted-foreground">
                 <MessageSquare className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-50" />
-                <p className="text-sm sm:text-base">Välj en atlet för att se meddelanden</p>
+                <p className="text-sm sm:text-base">{t('empty.chooseAthlete')}</p>
               </div>
             </CardContent>
           )}

@@ -14136,6 +14136,39 @@
       "emptyQueue": "Inga akuta operatorärenden just nu.",
       "nextMove": "Nästa drag"
     },
+    "coachMessages": {
+      "title": "Meddelanden",
+      "subtitle": "Kommunicera med dina atleter",
+      "sidebar": {
+        "title": "Atleter"
+      },
+      "filters": {
+        "all": "Alla",
+        "unread": "Olästa"
+      },
+      "empty": {
+        "messages": "Inga meddelanden ännu",
+        "chooseAthlete": "Välj en atlet för att se meddelanden"
+      },
+      "reply": {
+        "placeholder": "Skriv ditt meddelande här...",
+        "characterCount": "tecken",
+        "sending": "Skickar...",
+        "send": "Skicka"
+      },
+      "toasts": {
+        "sent": {
+          "title": "Meddelande skickat",
+          "description": "Ditt meddelande har skickats till atleten."
+        }
+      },
+      "errors": {
+        "fetchFailed": "Kunde inte hämta meddelanden",
+        "fetchFailedTitle": "Kunde inte hämta meddelanden",
+        "sendFailed": "Kunde inte skicka meddelande",
+        "sendFailedTitle": "Kunde inte skicka meddelande"
+      }
+    },
     "athleteAttentionList": {
       "title": "Behöver uppmärksamhet",
       "more": "+{count} fler",

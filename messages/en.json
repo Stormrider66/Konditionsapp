@@ -13790,6 +13790,39 @@
       "emptyQueue": "No urgent operator cases right now.",
       "nextMove": "Next move"
     },
+    "coachMessages": {
+      "title": "Messages",
+      "subtitle": "Communicate with your athletes",
+      "sidebar": {
+        "title": "Athletes"
+      },
+      "filters": {
+        "all": "All",
+        "unread": "Unread"
+      },
+      "empty": {
+        "messages": "No messages yet",
+        "chooseAthlete": "Select an athlete to view messages"
+      },
+      "reply": {
+        "placeholder": "Write your message here...",
+        "characterCount": "characters",
+        "sending": "Sending...",
+        "send": "Send"
+      },
+      "toasts": {
+        "sent": {
+          "title": "Message sent",
+          "description": "Your message has been sent to the athlete."
+        }
+      },
+      "errors": {
+        "fetchFailed": "Could not fetch messages",
+        "fetchFailedTitle": "Could not load messages",
+        "sendFailed": "Could not send message",
+        "sendFailedTitle": "Could not send message"
+      }
+    },
     "athleteAttentionList": {
       "title": "Needs attention",
       "more": "+{count} more",
