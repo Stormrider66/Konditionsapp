@@ -5,6 +5,8 @@ import type { CardioSegmentType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 
+type AppLocale = 'en' | 'sv'
+
 interface CardioSegmentData {
   id: string
   type: string
@@ -64,18 +66,33 @@ interface FocusModeSegment {
   logId?: string
 }
 
-const SEGMENT_TYPE_NAMES: Record<string, string> = {
-  WARMUP: 'Uppvärmning',
-  COOLDOWN: 'Nedvarvning',
-  INTERVAL: 'Intervall',
-  STEADY: 'Jämn',
-  RECOVERY: 'Återhämtning',
-  REST: 'Vila',
-  HILL: 'Backe',
-  DRILLS: 'Övningar',
-  CORE: 'Core',
-  PREHAB: 'Stabilitet / Prehab',
-  PLYOMETRIC: 'Plyometri',
+const SEGMENT_TYPE_NAMES: Record<AppLocale, Record<string, string>> = {
+  en: {
+    WARMUP: 'Warm-up',
+    COOLDOWN: 'Cool-down',
+    INTERVAL: 'Interval',
+    STEADY: 'Steady',
+    RECOVERY: 'Recovery',
+    REST: 'Rest',
+    HILL: 'Hill',
+    DRILLS: 'Drills',
+    CORE: 'Core',
+    PREHAB: 'Stability / Prehab',
+    PLYOMETRIC: 'Plyometrics',
+  },
+  sv: {
+    WARMUP: 'Uppvärmning',
+    COOLDOWN: 'Nedvarvning',
+    INTERVAL: 'Intervall',
+    STEADY: 'Jämn',
+    RECOVERY: 'Återhämtning',
+    REST: 'Vila',
+    HILL: 'Backe',
+    DRILLS: 'Övningar',
+    CORE: 'Core',
+    PREHAB: 'Stabilitet / Prehab',
+    PLYOMETRIC: 'Plyometri',
+  },
 }
 
 /**
@@ -107,6 +124,14 @@ function parsePaceToSeconds(pace: string | undefined): number | undefined {
   return undefined
 }
 
+function segmentTypeName(type: string, fallback: string | undefined, locale: AppLocale): string {
+  return SEGMENT_TYPE_NAMES[locale][type] || fallback || type
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/cardio-sessions/[id]/focus-mode
  * Get cardio session data organized for focus mode execution
@@ -125,6 +150,7 @@ export async function GET(
       )
     }
     const { clientId } = resolved
+    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
 
     // Get assignment with session
     const assignment = await prisma.cardioSessionAssignment.findUnique({
@@ -194,7 +220,7 @@ export async function GET(
               ? `${step.targetValue} ${step.targetType === 'power' ? 'W' : step.targetType === 'cadence' ? 'rpm' : ''}`
               : ''
             const noteParts = [
-              `Runda ${rep + 1}/${repeats}`,
+              t(locale, `Round ${rep + 1}/${repeats}`, `Runda ${rep + 1}/${repeats}`),
               step.notes,
               calLabel,
               targetLabel,
@@ -204,7 +230,7 @@ export async function GET(
               id: `${seg.id}-r${rep}-${step.id}`,
               index: globalIndex,
               type: segmentType,
-              typeName: SEGMENT_TYPE_NAMES[segmentType] || step.type,
+              typeName: segmentTypeName(segmentType, step.type, locale),
               plannedDuration: step.duration,
               plannedDistance: step.distance ? step.distance / 1000 : undefined,
               plannedPace: parsePaceToSeconds(step.pace),
@@ -228,9 +254,9 @@ export async function GET(
               id: `${seg.id}-r${rep}-rest`,
               index: globalIndex,
               type: 'RECOVERY' as CardioSegmentType,
-              typeName: 'Vila mellan rundor',
+              typeName: t(locale, 'Rest between rounds', 'Vila mellan rundor'),
               plannedDuration: seg.restBetweenRounds,
-              notes: `Runda ${rep + 1}/${repeats} klar`,
+              notes: t(locale, `Round ${rep + 1}/${repeats} complete`, `Runda ${rep + 1}/${repeats} klar`),
               actualDuration: log?.actualDuration ?? undefined,
               actualDistance: log?.actualDistance ?? undefined,
               actualPace: log?.actualPace ?? undefined,
@@ -259,7 +285,7 @@ export async function GET(
             id: `${seg.id}-rep${rep}`,
             index: globalIndex,
             type: segmentType,
-            typeName: SEGMENT_TYPE_NAMES[segmentType] || seg.type,
+            typeName: segmentTypeName(segmentType, seg.type, locale),
             plannedDuration: seg.duration,
             plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
             plannedPace: parsePaceToSeconds(seg.pace),
@@ -283,7 +309,7 @@ export async function GET(
               id: `${seg.id}-rest${rep}`,
               index: globalIndex,
               type: 'RECOVERY' as CardioSegmentType,
-              typeName: 'Vila',
+              typeName: segmentTypeName('REST', 'REST', locale),
               plannedDuration: seg.restDuration,
               completed: restLog?.completed ?? false,
               skipped: restLog?.skipped ?? false,
@@ -313,7 +339,7 @@ export async function GET(
         id: seg.id || `segment-${globalIndex}`,
         index: globalIndex,
         type: segmentType,
-        typeName: SEGMENT_TYPE_NAMES[segmentType] || seg.type,
+        typeName: segmentTypeName(segmentType, seg.type, locale),
         plannedDuration: seg.duration,
         plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
         plannedPace: parsePaceToSeconds(seg.pace),
