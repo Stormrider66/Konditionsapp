@@ -1,13 +1,22 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { performAllCalculations } from '@/lib/calculations'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { Test, Client, TestStage } from '@/types'
 
+type ReportData = {
+  client: Client
+  test: Test
+  calculations: Awaited<ReturnType<typeof performAllCalculations>>
+}
+
 export default function CyclingTestPage() {
+  const locale = useLocale()
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [showReport, setShowReport] = useState(false)
-  const [reportData, setReportData] = useState<any>(null)
+  const [reportData, setReportData] = useState<ReportData | null>(null)
 
   const sampleClient: Client = {
     id: '1',
@@ -23,7 +32,7 @@ export default function CyclingTestPage() {
 
   const handleGenerateReport = async () => {
 
-    // Realistisk FTP-test data för en vältränad kvinnlig cyklist
+    // Realistic FTP test data for a well-trained female cyclist.
     const testStages: TestStage[] = [
       {
         id: '1',
@@ -113,8 +122,8 @@ export default function CyclingTestPage() {
       })
       setShowReport(true)
     } catch (error) {
-      console.error('Fel vid cykelberäkningar:', error)
-      alert(`Fel: ${error instanceof Error ? error.message : 'Okänt fel'}`)
+      console.error('Error during cycling calculations:', error)
+      alert(`${t('Fel', 'Error')}: ${error instanceof Error ? error.message : t('Okänt fel', 'Unknown error')}`)
     }
   }
 
@@ -123,26 +132,31 @@ export default function CyclingTestPage() {
       <header className="gradient-primary text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold">Trainomics</h1>
-          <p className="text-white/90 mt-1">Cykeltest Demo</p>
+          <p className="text-white/90 mt-1">{t('Cykeltest Demo', 'Cycling Test Demo')}</p>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!showReport ? (
           <div className="bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-2xl font-semibold mb-4">Testa Cykelberäkningar</h2>
+            <h2 className="text-2xl font-semibold mb-4">
+              {t('Testa Cykelberäkningar', 'Test Cycling Calculations')}
+            </h2>
             <p className="text-gray-600 mb-4">
-              Klicka på knappen nedan för att generera en cykeltestreport med realistisk FTP-testdata.
+              {t(
+                'Klicka på knappen nedan för att generera en cykeltestreport med realistisk FTP-testdata.',
+                'Click the button below to generate a cycling test report with realistic FTP test data.'
+              )}
             </p>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-blue-900 mb-2">Sample Data:</h3>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Klient: Emma Andersson (Kvinna, 37 år)</li>
-                <li>• Vikt: 62 kg</li>
-                <li>• Test: 6 steg från 100W till 250W</li>
-                <li>• Förväntad FTP: ~200-210W (3.2-3.4 W/kg)</li>
-                <li>• Nivå: Vältränad cyklist</li>
+                <li>• {t('Klient: Emma Andersson (Kvinna, 37 år)', 'Client: Emma Andersson (female, 37 years old)')}</li>
+                <li>• {t('Vikt: 62 kg', 'Weight: 62 kg')}</li>
+                <li>• {t('Test: 6 steg från 100W till 250W', 'Test: 6 stages from 100W to 250W')}</li>
+                <li>• {t('Förväntad FTP: ~200-210W (3.2-3.4 W/kg)', 'Expected FTP: ~200-210W (3.2-3.4 W/kg)')}</li>
+                <li>• {t('Nivå: Vältränad cyklist', 'Level: Well-trained cyclist')}</li>
               </ul>
             </div>
 
@@ -150,7 +164,7 @@ export default function CyclingTestPage() {
               onClick={handleGenerateReport}
               className="w-full py-4 bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white text-xl font-semibold rounded-md hover:opacity-90 transition"
             >
-              Generera Cykelrapport
+              {t('Generera Cykelrapport', 'Generate Cycling Report')}
             </button>
           </div>
         ) : (
@@ -160,13 +174,13 @@ export default function CyclingTestPage() {
                 onClick={() => setShowReport(false)}
                 className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
               >
-                Tillbaka
+                {t('Tillbaka', 'Back')}
               </button>
               <button
                 onClick={() => window.print()}
                 className="px-4 py-2 gradient-primary text-white rounded-md hover:opacity-90"
               >
-                Skriv ut / Spara som PDF
+                {t('Skriv ut / Spara som PDF', 'Print / Save as PDF')}
               </button>
             </div>
             {reportData && (
