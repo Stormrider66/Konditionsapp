@@ -36,11 +36,14 @@ import {
   CalendarDays,
   Dumbbell,
   Trophy,
+  Sparkles,
+  MessageSquareText,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PracticeBlock } from '@/lib/team-calendar/practice-plan'
 import { inputDateValue } from '@/lib/team-calendar/date-time'
+import { openCoachFloatingChat } from '@/lib/events/coach-floating-chat'
 
 interface TeamEvent {
   id: string
@@ -430,7 +433,7 @@ interface TeamCalendarViewProps {
   businessSlug?: string
 }
 
-export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: TeamCalendarViewProps) {
+export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalendarViewProps) {
   const [events, setEvents] = useState<TeamEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [weekBase, setWeekBase] = useState(new Date())
@@ -662,6 +665,20 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
     window.open(`/api/coach/teams/${teamId}/events/export${params.size ? `?${params}` : ''}`, '_blank')
   }
 
+  const openAiCalendarBrief = (focus: 'overview' | 'missingContent' | 'load' = 'overview') => {
+    const from = rangeStartIso.slice(0, 10)
+    const to = rangeEndIso.slice(0, 10)
+    const focusInstruction = {
+      overview: 'Ge mig en kort prioriterad brief: risker, saknat innehåll, klara pass att tilldela och nästa steg.',
+      missingContent: 'Fokusera på fys-pass som saknar innehåll och prioritera vilka som bör byggas först.',
+      load: 'Fokusera på veckobelastning, matchnära risker och dagar som behöver justeras.',
+    }[focus]
+
+    openCoachFloatingChat(
+      `Läs lagkalendern för ${teamName} (teamId: ${teamId}) från ${from} till ${to}. Använd getTeamCalendarBriefing. ${focusInstruction}`
+    )
+  }
+
   const today = new Date()
 
   return (
@@ -710,6 +727,12 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
                 Planering
               </Button>
             </div>
+          )}
+          {isStaffPlanningView && (
+            <Button variant="outline" size="sm" onClick={() => openAiCalendarBrief()}>
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              AI-brief
+            </Button>
           )}
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-3.5 w-3.5 mr-1.5" />
@@ -1005,12 +1028,26 @@ export function TeamCalendarView({ teamId, teamName: _teamName, businessSlug }: 
         <div className="rounded-lg border bg-amber-50/70 p-3 text-amber-950">
           <div className="flex flex-col gap-3">
             <div>
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Filter className="h-4 w-4" />
-                Fys-pass som behöver innehåll
-              </div>
-              <div className="text-xs text-amber-900/80">
-                {allOpenContentQueue.length} planerade pass saknar kopplat workout-innehåll.
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Filter className="h-4 w-4" />
+                    Fys-pass som behöver innehåll
+                  </div>
+                  <div className="text-xs text-amber-900/80">
+                    {allOpenContentQueue.length} planerade pass saknar kopplat workout-innehåll.
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 shrink-0 border-amber-300 bg-white/70 px-2 text-xs text-amber-950 hover:bg-white"
+                  onClick={() => openAiCalendarBrief('missingContent')}
+                >
+                  <MessageSquareText className="mr-1 h-3.5 w-3.5" />
+                  Prioritera med AI
+                </Button>
               </div>
             </div>
 
