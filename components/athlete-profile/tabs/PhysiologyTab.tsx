@@ -2,7 +2,7 @@
 
 import { useState, type ElementType } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { Activity, ChevronDown, ChevronUp, Beaker, Zap, Heart, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/table'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 
 interface PhysiologyTabProps {
   data: AthleteProfileData
@@ -34,6 +35,9 @@ interface PhysiologyTabProps {
 }
 
 export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = '' }: PhysiologyTabProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const [expandedTestId, setExpandedTestId] = useState<string | null>(null)
   const isGlass = variant === 'glass'
 
@@ -66,15 +70,15 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
         <CardContentWrapper className="py-20 text-center">
           <Activity className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-slate-300 dark:text-white/10" : "text-gray-300")} />
           <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
-            Ingen fysiologisk data
+            {t('Ingen fysiologisk data', 'No physiology data')}
           </h3>
           <p className={cn("font-medium mb-8 max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
-            Lägg till labb- eller fälttest för att se fysiologisk data här.
+            {t('Lägg till labb- eller fälttest för att se fysiologisk data här.', 'Add lab or field tests to see physiology data here.')}
           </p>
           {viewMode === 'coach' && (
             <Link href={newTestHref}>
               <Button className={isGlass ? "bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-xs h-12 px-8 rounded-xl" : ""}>
-                Skapa nytt test
+                {t('Skapa nytt test', 'Create new test')}
               </Button>
             </Link>
           )}
@@ -100,7 +104,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
         <MetricCard
           icon={Heart}
           accentColor="red"
-          label="Max puls"
+          label={t('Max puls', 'Max HR')}
           value={latestTest?.maxHR ? `${latestTest.maxHR}` : '-'}
           unit="bpm"
           isGlass={isGlass}
@@ -109,7 +113,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
         <MetricCard
           icon={Beaker}
           accentColor="purple"
-          label="Max laktat"
+          label={t('Max laktat', 'Max lactate')}
           value={latestTest?.maxLactate ? `${latestTest.maxLactate.toFixed(1)}` : '-'}
           unit="mmol/L"
           isGlass={isGlass}
@@ -118,7 +122,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
         <MetricCard
           icon={Zap}
           accentColor="yellow"
-          label="LT2 puls"
+          label={t('LT2 puls', 'LT2 HR')}
           value={lt2Hr ? `${Math.round(lt2Hr)}` : '-'}
           unit="bpm"
           subValue={lt2Lactate ? `${lt2Lactate.toFixed(1)} mmol/L` : undefined}
@@ -132,10 +136,10 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
           <CardHeaderWrapper>
             <CardTitleWrapper className={cn("flex items-center gap-3 text-xl font-black uppercase italic tracking-tight")}>
               <TrendingUp className={cn("h-6 w-6", isGlass ? "text-blue-400" : "text-gray-900")} />
-              Träningszoner
+              {t('Träningszoner', 'Training zones')}
             </CardTitleWrapper>
             <CardDescriptionWrapper className={cn("font-black uppercase tracking-widest text-[10px]")}>
-              Baserat på test {format(new Date(latestTest.testDate), 'd MMMM yyyy', { locale: sv })}
+              {t('Baserat på test', 'Based on test')} {format(new Date(latestTest.testDate), 'd MMMM yyyy', { locale: dateLocale })}
             </CardDescriptionWrapper>
           </CardHeaderWrapper>
           <CardContentWrapper>
@@ -143,10 +147,10 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
               <Table>
                 <TableHeader>
                   <TableRow className={isGlass ? "border-slate-200 dark:border-white/5" : ""}>
-                    <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Zon</TableHead>
+                    <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Zon', 'Zone')}</TableHead>
                     <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Puls (bpm)</TableHead>
-                    <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>% av max</TableHead>
-                    <TableHead className={cn("hidden md:table-cell font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Beskrivning</TableHead>
+                    <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>% {t('av max', 'of max')}</TableHead>
+                    <TableHead className={cn("hidden md:table-cell font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Beskrivning', 'Description')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -186,14 +190,14 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
         <CardHeaderWrapper>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitleWrapper className={cn("text-xl font-black uppercase italic tracking-tight")}>Labbtest</CardTitleWrapper>
+              <CardTitleWrapper className={cn("text-xl font-black uppercase italic tracking-tight")}>{t('Labbtest', 'Lab tests')}</CardTitleWrapper>
               <CardDescriptionWrapper className={cn("font-black uppercase tracking-widest text-[10px]")}>
-                {tests.length} test registrerade
+                {tests.length} {t('test registrerade', 'tests registered')}
               </CardDescriptionWrapper>
             </div>
             {viewMode === 'coach' && (
               <Link href={newTestHref}>
-                <Button size="sm" variant={isGlass ? "ghost" : "outline"} className={cn(isGlass && "bg-white/5 border-white/10 hover:bg-white/10")}>+ Nytt test</Button>
+                <Button size="sm" variant={isGlass ? "ghost" : "outline"} className={cn(isGlass && "bg-white/5 border-white/10 hover:bg-white/10")}>+ {t('Nytt test', 'New test')}</Button>
               </Link>
             )}
           </div>
@@ -201,7 +205,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
         <CardContentWrapper>
           {tests.length === 0 ? (
             <p className={cn("text-center py-10 font-bold uppercase tracking-widest text-[10px]", isGlass ? "text-slate-600" : "text-gray-400")}>
-              Inga labbtest registrerade
+              {t('Inga labbtest registrerade', 'No lab tests registered')}
             </p>
           ) : (
             <div className="space-y-3">
@@ -225,10 +229,10 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
                       <div className="flex items-center gap-4">
                         <div className="text-left">
                           <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
-                            {format(new Date(test.testDate), 'd MMMM yyyy', { locale: sv })}
+                            {format(new Date(test.testDate), 'd MMMM yyyy', { locale: dateLocale })}
                           </p>
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                            {getTestTypeLabel(test.testType)}
+                            {getTestTypeLabel(test.testType, locale)}
                           </p>
                         </div>
                       </div>
@@ -248,7 +252,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
                               : (isGlass ? "bg-slate-500/10 text-slate-400" : "bg-slate-100 text-slate-800")
                           )}
                         >
-                          {test.status === 'COMPLETED' ? 'Genomfört' : 'Utkast'}
+                          {test.status === 'COMPLETED' ? t('Genomfört', 'Completed') : t('Utkast', 'Draft')}
                         </Badge>
                         {isExpanded ? (
                           <ChevronUp className="h-4 w-4 text-slate-600" />
@@ -271,19 +275,19 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
                             </p>
                           </div>
                           <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Max puls</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">{t('Max puls', 'Max HR')}</p>
                             <p className={cn("font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                               {test.maxHR ? `${test.maxHR} bpm` : '-'}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Aerob tröskel</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">{t('Aerob tröskel', 'Aerobic threshold')}</p>
                             <p className={cn("font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                               {(aerobicThreshold?.heartRate || aerobicThreshold?.hr) ? `${aerobicThreshold.heartRate || aerobicThreshold.hr} bpm` : '-'}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Anaerob tröskel</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">{t('Anaerob tröskel', 'Anaerobic threshold')}</p>
                             <p className={cn("font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                               {(anaerobicThreshold?.heartRate || anaerobicThreshold?.hr) ? `${anaerobicThreshold.heartRate || anaerobicThreshold.hr} bpm` : '-'}
                             </p>
@@ -292,7 +296,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
 
                         {test.notes && (
                           <div className="mt-6 p-4 rounded-xl bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Anteckningar</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">{t('Anteckningar', 'Notes')}</p>
                             <p className="text-xs font-medium leading-relaxed">{test.notes}</p>
                           </div>
                         )}
@@ -303,7 +307,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
                               "font-black uppercase tracking-widest text-[10px] h-9 rounded-lg px-4",
                               isGlass ? "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-900 dark:text-white" : ""
                             )}>
-                              Visa detaljer
+                              {t('Visa detaljer', 'View details')}
                             </Button>
                           </Link>
                         </div>
@@ -315,7 +319,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
 
               {tests.length > 10 && (
                 <p className="text-center text-[10px] font-black uppercase tracking-widest text-slate-600 py-4">
-                  +{tests.length - 10} äldre tester
+                  +{tests.length - 10} {t('äldre tester', 'older tests')}
                 </p>
               )}
             </div>
@@ -327,9 +331,9 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
       {fieldTests.length > 0 && (
         <CardWrapper>
           <CardHeaderWrapper>
-            <CardTitleWrapper className={cn("text-xl font-black uppercase italic tracking-tight")}>Fälttest</CardTitleWrapper>
+            <CardTitleWrapper className={cn("text-xl font-black uppercase italic tracking-tight")}>{t('Fälttest', 'Field tests')}</CardTitleWrapper>
             <CardDescriptionWrapper className={cn("font-black uppercase tracking-widest text-[10px]")}>
-              {fieldTests.length} fälttest registrerade
+              {fieldTests.length} {t('fälttest registrerade', 'field tests registered')}
             </CardDescriptionWrapper>
           </CardHeaderWrapper>
           <CardContentWrapper>
@@ -344,10 +348,10 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
                 >
                   <div>
                     <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
-                      {getFieldTestTypeLabel(test.testType)}
+                      {getFieldTestTypeLabel(test.testType, locale)}
                     </p>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      {format(new Date(test.date), 'd MMM yyyy', { locale: sv })}
+                      {format(new Date(test.date), 'd MMM yyyy', { locale: dateLocale })}
                     </p>
                   </div>
                   <div className="text-right">
@@ -363,7 +367,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
                           ? (isGlass ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-500 text-white")
                           : (isGlass ? "bg-slate-500/10 text-slate-400" : "bg-slate-500 text-white")
                       )}>
-                        {Math.round(test.confidence * 100)}% konfid.
+                        {Math.round(test.confidence * 100)}% {t('konfid.', 'conf.')}
                       </Badge>
                     )}
                   </div>
@@ -449,25 +453,42 @@ function MetricCard({
 }
 
 // Helper functions
-function getTestTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löptest',
-    CYCLING: 'Cykeltest',
-    SKIING: 'Skidtest',
+function getTestTypeLabel(type: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      RUNNING: 'Running test',
+      CYCLING: 'Cycling test',
+      SKIING: 'Skiing test',
+    },
+    sv: {
+      RUNNING: 'Löptest',
+      CYCLING: 'Cykeltest',
+      SKIING: 'Skidtest',
+    },
   }
-  return labels[type] || type
+  return labels[locale][type] || type
 }
 
-function getFieldTestTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    '30MIN_TT': '30 min time trial',
-    '20MIN_TT': '20 min time trial',
-    HR_DRIFT: 'HR Drift Test',
-    CRITICAL_VELOCITY: 'Critical Velocity',
-    TALK_TEST: 'Prattest',
-    RACE_BASED: 'Tävlingsbaserat',
+function getFieldTestTypeLabel(type: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      '30MIN_TT': '30 min time trial',
+      '20MIN_TT': '20 min time trial',
+      HR_DRIFT: 'HR drift test',
+      CRITICAL_VELOCITY: 'Critical velocity',
+      TALK_TEST: 'Talk test',
+      RACE_BASED: 'Race based',
+    },
+    sv: {
+      '30MIN_TT': '30 min time trial',
+      '20MIN_TT': '20 min time trial',
+      HR_DRIFT: 'HR Drift Test',
+      CRITICAL_VELOCITY: 'Critical Velocity',
+      TALK_TEST: 'Prattest',
+      RACE_BASED: 'Tävlingsbaserat',
+    },
   }
-  return labels[type] || type
+  return labels[locale][type] || type
 }
 
 function getZoneColorClasses(zoneNumber: number, isGlass: boolean = false): string {
