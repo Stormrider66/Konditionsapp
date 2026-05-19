@@ -24,6 +24,16 @@ import {
   type StartGenerationRequest,
 } from '@/lib/ai/program-generator'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================
 // POST - Start Program Generation
 // ============================================
@@ -32,6 +42,7 @@ export async function POST(request: NextRequest) {
   try {
     // Authenticate
     const user = await requireCoach()
+    const locale = getUserLocale(user.language)
 
     // Subscription gate (coach-level)
     const denied = await requireCoachFeatureAccess(user.id, 'program_generation')
@@ -135,8 +146,12 @@ export async function POST(request: NextRequest) {
       totalPhases: phases.length,
       estimatedMinutes,
       message: totalWeeks > 8
-        ? `Programmet på ${totalWeeks} veckor genereras i ${phases.length} faser`
-        : 'Programmet genereras',
+        ? t(
+          locale,
+          `The ${totalWeeks}-week program is being generated in ${phases.length} phases`,
+          `Programmet på ${totalWeeks} veckor genereras i ${phases.length} faser`
+        )
+        : t(locale, 'The program is being generated', 'Programmet genereras'),
     })
   } catch (error) {
     logger.error('POST /api/ai/generate-program error', {}, error)
