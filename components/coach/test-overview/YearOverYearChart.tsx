@@ -10,7 +10,12 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Calendar } from 'lucide-react'
 
 interface TestRecord {
@@ -85,14 +90,14 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
+    <GlassCard glow="purple">
+      <GlassCardHeader className="pb-2">
+        <GlassCardTitle className="text-sm flex items-center gap-2">
           <Calendar className="h-4 w-4" />
           {config.label} över tid ({config.unit})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </GlassCardTitle>
+      </GlassCardHeader>
+      <GlassCardContent>
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={chartData} margin={{ left: -10, right: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -113,7 +118,7 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
             ))}
           </LineChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

@@ -10,7 +10,7 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Bell,
   Calendar,
@@ -45,6 +45,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -76,31 +77,31 @@ interface NotificationsPanelProps {
 
 const changeTypeConfig: Record<
   string,
-  { icon: typeof Bell; label: string; color: string }
+  { icon: typeof Bell; label: { en: string; sv: string }; color: string }
 > = {
   EVENT_CREATED: {
     icon: Plus,
-    label: 'Ny händelse',
+    label: { en: 'New event', sv: 'Ny händelse' },
     color: 'text-green-600 dark:text-green-400',
   },
   EVENT_UPDATED: {
     icon: Pencil,
-    label: 'Händelse uppdaterad',
+    label: { en: 'Event updated', sv: 'Händelse uppdaterad' },
     color: 'text-blue-600 dark:text-blue-400',
   },
   EVENT_DELETED: {
     icon: Trash2,
-    label: 'Händelse borttagen',
+    label: { en: 'Event deleted', sv: 'Händelse borttagen' },
     color: 'text-red-600 dark:text-red-400',
   },
   WORKOUT_RESCHEDULED: {
     icon: ArrowRightLeft,
-    label: 'Pass flyttat',
+    label: { en: 'Workout moved', sv: 'Pass flyttat' },
     color: 'text-purple-600 dark:text-purple-400',
   },
   CONFLICT_DETECTED: {
     icon: AlertTriangle,
-    label: 'Konflikt upptäckt',
+    label: { en: 'Conflict detected', sv: 'Konflikt upptäckt' },
     color: 'text-yellow-600 dark:text-yellow-400',
   },
 }
@@ -109,6 +110,8 @@ export function NotificationsPanel({
   clientId,
   variant = 'popover',
 }: NotificationsPanelProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const [isOpen, setIsOpen] = useState(false)
 
   // Build API URL
@@ -159,6 +162,7 @@ export function NotificationsPanel({
       onMarkAsRead={handleMarkAsRead}
       onMarkAllAsRead={handleMarkAllAsRead}
       onRefresh={() => mutate()}
+      locale={appLocale}
     />
   )
 
@@ -169,7 +173,7 @@ export function NotificationsPanel({
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Notiser
+              {appLocale === 'sv' ? 'Notiser' : 'Notifications'}
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="text-xs">
                   {unreadCount}
@@ -203,13 +207,15 @@ export function NotificationsPanel({
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              Notiser
+              {appLocale === 'sv' ? 'Notiser' : 'Notifications'}
               {unreadCount > 0 && (
-                <Badge variant="destructive">{unreadCount} olästa</Badge>
+                <Badge variant="destructive">
+                  {unreadCount} {appLocale === 'sv' ? 'olästa' : 'unread'}
+                </Badge>
               )}
             </SheetTitle>
             <SheetDescription>
-              Ändringar i kalender och träningspass
+              {appLocale === 'sv' ? 'Ändringar i kalender och träningspass' : 'Calendar and workout changes'}
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4">{content}</div>
@@ -236,10 +242,12 @@ export function NotificationsPanel({
           <div className="flex items-center justify-between">
             <h3 className="font-semibold flex items-center gap-2">
               <Bell className="h-4 w-4" />
-              Notiser
+              {appLocale === 'sv' ? 'Notiser' : 'Notifications'}
             </h3>
             {unreadCount > 0 && (
-              <Badge variant="secondary">{unreadCount} olästa</Badge>
+              <Badge variant="secondary">
+                {unreadCount} {appLocale === 'sv' ? 'olästa' : 'unread'}
+              </Badge>
             )}
           </div>
         </div>
@@ -257,6 +265,7 @@ interface NotificationsListProps {
   onMarkAsRead: (id: string) => void
   onMarkAllAsRead: () => void
   onRefresh: () => void
+  locale: 'en' | 'sv'
 }
 
 function NotificationsList({
@@ -267,6 +276,7 @@ function NotificationsList({
   onMarkAsRead,
   onMarkAllAsRead,
   onRefresh,
+  locale,
 }: NotificationsListProps) {
   if (isLoading) {
     return (
@@ -280,10 +290,10 @@ function NotificationsList({
     return (
       <div className="text-center py-8 text-muted-foreground">
         <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-destructive" />
-        <p>Kunde inte ladda notiser</p>
+        <p>{locale === 'sv' ? 'Kunde inte ladda notiser' : 'Could not load notifications'}</p>
         <Button variant="ghost" size="sm" onClick={onRefresh} className="mt-2">
           <RefreshCw className="h-4 w-4 mr-2" />
-          Försök igen
+          {locale === 'sv' ? 'Försök igen' : 'Try again'}
         </Button>
       </div>
     )
@@ -293,7 +303,7 @@ function NotificationsList({
     return (
       <div className="text-center py-8 text-muted-foreground">
         <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p>Inga notiser</p>
+        <p>{locale === 'sv' ? 'Inga notiser' : 'No notifications'}</p>
       </div>
     )
   }
@@ -309,7 +319,7 @@ function NotificationsList({
             onClick={onMarkAllAsRead}
           >
             <CheckCheck className="h-4 w-4 mr-2" />
-            Markera alla som lästa
+            {locale === 'sv' ? 'Markera alla som lästa' : 'Mark all as read'}
           </Button>
         </div>
       )}
@@ -320,6 +330,7 @@ function NotificationsList({
               key={notification.id}
               notification={notification}
               onMarkAsRead={onMarkAsRead}
+              locale={locale}
             />
           ))}
         </div>
@@ -331,19 +342,20 @@ function NotificationsList({
 interface NotificationItemProps {
   notification: Notification
   onMarkAsRead: (id: string) => void
+  locale: 'en' | 'sv'
 }
 
-function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
+function NotificationItem({ notification, onMarkAsRead, locale }: NotificationItemProps) {
   const config = changeTypeConfig[notification.type] || {
     icon: Bell,
-    label: 'Ändring',
+    label: { en: 'Change', sv: 'Ändring' },
     color: 'text-muted-foreground',
   }
   const Icon = config.icon
 
   const timeAgo = formatDistanceToNow(new Date(notification.createdAt), {
     addSuffix: true,
-    locale: sv,
+    locale: locale === 'sv' ? sv : enUS,
   })
 
   return (
@@ -388,7 +400,7 @@ function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps)
           <div className="flex items-center justify-between mt-2">
             <span className="text-xs text-muted-foreground">{timeAgo}</span>
             <Badge variant="outline" className="text-xs">
-              {config.label}
+              {config.label[locale]}
             </Badge>
           </div>
         </div>

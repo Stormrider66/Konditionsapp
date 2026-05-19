@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -138,15 +144,15 @@ export function AnalyticsDashboardClient({
   if (error || !data) {
     return (
       <div className="container mx-auto py-6 px-4 max-w-7xl">
-        <Card>
-          <CardContent className="py-8 text-center">
+        <GlassCard glow="slate">
+          <GlassCardContent className="py-8 text-center">
             <p className="text-muted-foreground">{error || 'No data available'}</p>
             <Button onClick={fetchAnalytics} variant="outline" className="mt-4">
               <RefreshCw className="h-4 w-4 mr-2" />
               {t('retry')}
             </Button>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     );
   }
@@ -188,8 +194,8 @@ export function AnalyticsDashboardClient({
 
       {/* Subscription & Usage */}
       {data.subscription && (
-        <Card className="mb-6">
-          <CardContent className="py-4">
+        <GlassCard className="mb-6" glow="amber">
+          <GlassCardContent className="py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Crown className="h-5 w-5 text-amber-500" />
@@ -221,14 +227,14 @@ export function AnalyticsDashboardClient({
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Key Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
+        <GlassCard glow="blue">
+          <GlassCardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Users className="h-5 w-5 text-blue-500" />
               {data.overview.newClientsThisPeriod > 0 && (
@@ -240,11 +246,11 @@ export function AnalyticsDashboardClient({
             </div>
             <p className="text-2xl font-bold">{data.overview.totalClients}</p>
             <p className="text-xs text-muted-foreground">{t('totalAthletes')}</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardContent className="p-4">
+        <GlassCard glow="emerald">
+          <GlassCardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <ClipboardList className="h-5 w-5 text-green-500" />
               {data.overview.testsThisPeriod > 0 && (
@@ -255,11 +261,11 @@ export function AnalyticsDashboardClient({
             </div>
             <p className="text-2xl font-bold">{data.overview.totalTests}</p>
             <p className="text-xs text-muted-foreground">{t('totalTests')}</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardContent className="p-4">
+        <GlassCard glow="purple">
+          <GlassCardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Calendar className="h-5 w-5 text-purple-500" />
               {data.overview.programsThisPeriod > 0 && (
@@ -270,29 +276,29 @@ export function AnalyticsDashboardClient({
             </div>
             <p className="text-2xl font-bold">{data.overview.activePrograms}</p>
             <p className="text-xs text-muted-foreground">{t('activePrograms')}</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardContent className="p-4">
+        <GlassCard glow="amber">
+          <GlassCardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Activity className="h-5 w-5 text-orange-500" />
             </div>
             <p className="text-2xl font-bold">{data.activity.completedWorkouts}</p>
             <p className="text-xs text-muted-foreground">{t('completedWorkouts')}</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Activity Chart */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{t('workoutActivity')}</CardTitle>
-            <CardDescription>{t('workoutActivityDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard glow="blue">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-base">{t('workoutActivity')}</GlassCardTitle>
+            <GlassCardDescription>{t('workoutActivityDescription')}</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.charts.dailyActivity}>
@@ -325,16 +331,16 @@ export function AnalyticsDashboardClient({
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* Engagement Stats */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{t('engagement')}</CardTitle>
-            <CardDescription>{t('engagementDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <GlassCard glow="purple">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-base">{t('engagement')}</GlassCardTitle>
+            <GlassCardDescription>{t('engagementDescription')}</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
@@ -375,19 +381,19 @@ export function AnalyticsDashboardClient({
               </div>
               <p className="text-2xl font-bold">{data.referrals.totalReferrals}</p>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Summary Stats */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">{t('periodSummary')}</CardTitle>
-          <CardDescription>
+      <GlassCard glow="slate">
+        <GlassCardHeader className="pb-2">
+          <GlassCardTitle className="text-base">{t('periodSummary')}</GlassCardTitle>
+          <GlassCardDescription>
             {format(parseISO(data.period.start), 'PPP', { locale: sv })} - {format(parseISO(data.period.end), 'PPP', { locale: sv })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <p className="text-2xl font-bold text-blue-600">{data.overview.newClientsThisPeriod}</p>
@@ -406,8 +412,8 @@ export function AnalyticsDashboardClient({
               <p className="text-xs text-muted-foreground">{t('workoutsLogged')}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   );
 }

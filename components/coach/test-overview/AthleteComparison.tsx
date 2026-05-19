@@ -10,7 +10,12 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 
 interface AthleteSummary {
   id: string
@@ -49,11 +54,11 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {vo2Data.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">VO2max (ml/kg/min)</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard glow="blue">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-sm">VO2max (ml/kg/min)</GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={vo2Data}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -63,16 +68,16 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
                 <Bar dataKey="VO2max" fill="#3B82F6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {hrData.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Max HR (bpm)</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard glow="red">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-sm">Max HR (bpm)</GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={hrData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -82,16 +87,16 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
                 <Bar dataKey="Max HR" fill="#EF4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {lactateData.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Max Laktat (mmol/L)</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard glow="amber">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-sm">Max Laktat (mmol/L)</GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={lactateData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -101,16 +106,16 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
                 <Bar dataKey="Max Laktat" fill="#F59E0B" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Data table */}
-      <Card className="md:col-span-2">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Detaljerad jämförelse</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
+      <GlassCard className="md:col-span-2" glow="purple">
+        <GlassCardHeader className="pb-2">
+          <GlassCardTitle className="text-sm">Detaljerad jämförelse</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
@@ -133,8 +138,8 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
               ))}
             </tbody>
           </table>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   )
 }

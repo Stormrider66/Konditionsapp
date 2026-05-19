@@ -1,6 +1,11 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Users, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 interface TeamGroupStats {
@@ -45,24 +50,24 @@ export function GroupStats({ stats }: GroupStatsProps) {
   return (
     <div className="space-y-4">
       {stats.map((team) => (
-        <Card key={team.teamName}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+        <GlassCard key={team.teamName} glow="blue">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-base flex items-center gap-2">
               <Users className="h-4 w-4" />
               {team.teamName}
               <span className="text-xs text-muted-foreground font-normal">
                 {team.athleteCount} atleter
               </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="grid grid-cols-3 gap-4">
               <StatValue label="VO2max" avg={team.vo2max.avg} min={team.vo2max.min} max={team.vo2max.max} unit="ml/kg/min" />
               <StatValue label="Max HR" avg={team.maxHR.avg} min={team.maxHR.min} max={team.maxHR.max} unit="bpm" />
               <StatValue label="Max Laktat" avg={team.maxLactate.avg} min={team.maxLactate.min} max={team.maxLactate.max} unit="mmol/L" />
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       ))}
     </div>
   )
