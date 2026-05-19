@@ -943,7 +943,21 @@ export function TeamCalendarView({
       )}
 
       {isStaffPlanningView && activeTeamPlan && (
-        <AthletePlanSummaryCard plan={activeTeamPlan} now={today} variant="team" />
+        <AthletePlanSummaryCard
+          plan={activeTeamPlan}
+          now={today}
+          variant="team"
+          action={
+            <CreateTeamPlanDialog
+              teamId={teamId}
+              teamName={teamName}
+              businessSlug={businessSlug}
+              initialPlan={activeTeamPlan}
+              onSaved={(plan) => setTeamPlans((current) => current.map((item) => item.id === plan.id ? plan : item))}
+              trigger={<Button variant="outline" size="sm">Redigera</Button>}
+            />
+          }
+        />
       )}
 
       {isStaffPlanningView && !activeTeamPlan && (

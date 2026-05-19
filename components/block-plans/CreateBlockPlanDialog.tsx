@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea'
 import type { AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
 
 interface BlockDraft {
+  draftId: string
   title: string
   focus: string
   description: string
@@ -54,8 +55,10 @@ interface CreateBlockPlanDialogProps {
   subjectName: string
   subjectLabel?: string
   onCreated?: (plan: AthletePlanSummary) => void
+  onSaved?: (plan: AthletePlanSummary) => void
   trigger?: ReactNode
   defaultTemplateKey?: string
+  initialPlan?: AthletePlanSummary
 }
 
 const PLAN_TEMPLATES: PlanTemplate[] = [
@@ -119,14 +122,19 @@ function dateInput(date: Date) {
   return format(date, 'yyyy-MM-dd')
 }
 
+function draftId(prefix: string, index: number, startDate: string) {
+  return `${prefix}-${index}-${startDate}`
+}
+
 function buildBlocksFromTemplate(template: PlanTemplate, startDate: Date): BlockDraft[] {
   let cursor = new Date(startDate)
-  return template.blocks.map((block) => {
+  return template.blocks.map((block, index) => {
     const blockStart = new Date(cursor)
     const blockEnd = addDays(addWeeks(blockStart, block.weeks), -1)
     cursor = addDays(blockEnd, 1)
 
     return {
+      draftId: draftId(template.key, index, dateInput(blockStart)),
       title: block.title,
       focus: block.focus,
       description: '',
@@ -134,6 +142,21 @@ function buildBlocksFromTemplate(template: PlanTemplate, startDate: Date): Block
       endDate: dateInput(blockEnd),
     }
   })
+}
+
+function buildBlocksFromPlan(plan: AthletePlanSummary): BlockDraft[] {
+  return plan.blocks.map((block, index) => ({
+    draftId: block.id || draftId(plan.id, index, dateInput(toDate(block.startDate))),
+    title: block.title,
+    focus: block.focus ?? '',
+    description: block.description ?? '',
+    startDate: dateInput(toDate(block.startDate)),
+    endDate: dateInput(toDate(block.endDate)),
+  }))
+}
+
+function toDate(value: string | Date) {
+  return value instanceof Date ? value : new Date(value)
 }
 
 function blockWeeks(block: BlockDraft) {
@@ -181,17 +204,40 @@ export function CreateBlockPlanDialog({
   subjectName,
   subjectLabel = 'atlet',
   onCreated,
+  onSaved,
   trigger,
   defaultTemplateKey = 'hockey-9',
+  initialPlan,
 }: CreateBlockPlanDialogProps) {
   const today = useMemo(() => new Date(), [])
   const initialTemplate = PLAN_TEMPLATES.find((template) => template.key === defaultTemplateKey) ?? PLAN_TEMPLATES[0]
+  const isEditing = Boolean(initialPlan)
   const [open, setOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [templateKey, setTemplateKey] = useState(initialTemplate.key)
-  const [name, setName] = useState(initialTemplate.planName)
-  const [description, setDescription] = useState(initialTemplate.description)
-  const [blocks, setBlocks] = useState<BlockDraft[]>(() => buildBlocksFromTemplate(initialTemplate, today))
+  const [templateKey, setTemplateKey] = useState(isEditing ? 'custom-edit' : initialTemplate.key)
+  const [name, setName] = useState(initialPlan?.name ?? initialTemplate.planName)
+  const [description, setDescription] = useState(initialPlan?.description ?? initialTemplate.description)
+  const [blocks, setBlocks] = useState<BlockDraft[]>(() => initialPlan ? buildBlocksFromPlan(initialPlan) : buildBlocksFromTemplate(initialTemplate, today))
+
+  function resetForm() {
+    if (initialPlan) {
+      setTemplateKey('custom-edit')
+      setName(initialPlan.name)
+      setDescription(initialPlan.description ?? '')
+      setBlocks(buildBlocksFromPlan(initialPlan))
+      return
+    }
+
+    setTemplateKey(initialTemplate.key)
+    setName(initialTemplate.planName)
+    setDescription(initialTemplate.description)
+    setBlocks(buildBlocksFromTemplate(initialTemplate, today))
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) resetForm()
+    setOpen(nextOpen)
+  }
 
   const planStartDate = blocks[0]?.startDate ?? dateInput(today)
   const planEndDate = blocks[blocks.length - 1]?.endDate ?? dateInput(addDays(addWeeks(today, 6), -1))
@@ -251,6 +297,7 @@ export function CreateBlockPlanDialog({
       return [
         ...current,
         {
+          draftId: draftId('manual', current.length, dateInput(start)),
           title: `Block ${current.length + 1}`,
           focus: '',
           description: '',
@@ -258,6 +305,28 @@ export function CreateBlockPlanDialog({
           endDate: dateInput(end),
         },
       ]
+    })
+  }
+
+  function addEasyWeek(afterIndex: number) {
+    setBlocks((current) => {
+      const boundedIndex = Math.max(0, Math.min(afterIndex, current.length - 1))
+      const reference = current[boundedIndex]
+      const start = reference ? addDays(dateFromInput(reference.endDate, today), 1) : today
+      const easyWeek: BlockDraft = {
+        draftId: draftId('easy', current.length, dateInput(start)),
+        title: 'Easy week',
+        focus: 'Sänk volym, håll kvalitet och återhämtning',
+        description: 'Planerad avlastningsvecka utan att störa huvudfaserna.',
+        startDate: dateInput(start),
+        endDate: dateInput(blockEndFromWeeks(start, 1)),
+      }
+      const next = [
+        ...current.slice(0, boundedIndex + 1),
+        easyWeek,
+        ...current.slice(boundedIndex + 1),
+      ]
+      return recalculateFromBlock(next, boundedIndex + 2)
     })
   }
 
@@ -272,7 +341,7 @@ export function CreateBlockPlanDialog({
     setIsSaving(true)
     try {
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
@@ -281,7 +350,11 @@ export function CreateBlockPlanDialog({
           endDate: planEndDate,
           status: 'ACTIVE',
           blocks: blocks.map((block, index) => ({
-            ...block,
+            title: block.title,
+            focus: block.focus,
+            description: block.description,
+            startDate: block.startDate,
+            endDate: block.endDate,
             order: index + 1,
           })),
         }),
@@ -289,22 +362,26 @@ export function CreateBlockPlanDialog({
 
       const body = await response.json()
       if (!response.ok || !body.success) {
-        throw new Error(body.error || 'Kunde inte skapa blockplan')
+        throw new Error(body.error || (isEditing ? 'Kunde inte uppdatera blockplan' : 'Kunde inte skapa blockplan'))
       }
 
-      onCreated?.(body.data)
-      toast.success('Blockplan skapad')
+      if (isEditing) {
+        onSaved?.(body.data)
+      } else {
+        onCreated?.(body.data)
+      }
+      toast.success(isEditing ? 'Blockplan uppdaterad' : 'Blockplan skapad')
       setOpen(false)
-      if (!onCreated) window.location.reload()
+      if ((isEditing && !onSaved) || (!isEditing && !onCreated)) window.location.reload()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Kunde inte skapa blockplan')
+      toast.error(error instanceof Error ? error.message : (isEditing ? 'Kunde inte uppdatera blockplan' : 'Kunde inte skapa blockplan'))
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger ?? (
           <Button size="sm">
@@ -315,9 +392,9 @@ export function CreateBlockPlanDialog({
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Skapa blockplan för {subjectName}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Redigera blockplan' : `Skapa blockplan för ${subjectName}`}</DialogTitle>
           <DialogDescription>
-            Lägg planen först. Workouts kan fyllas på i kalendern senare.
+            {isEditing ? 'Justera namn, datum och block utan att skapa om passen.' : 'Lägg planen först. Workouts kan fyllas på i kalendern senare.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -325,11 +402,14 @@ export function CreateBlockPlanDialog({
           <div className="grid gap-3 md:grid-cols-[1fr_220px]">
             <div className="grid gap-2">
               <Label htmlFor="block-plan-template">Mall</Label>
-              <Select value={templateKey} onValueChange={applyTemplate}>
+              <Select value={templateKey} onValueChange={applyTemplate} disabled={isEditing}>
                 <SelectTrigger id="block-plan-template">
-                  <SelectValue placeholder="Välj mall" />
+                  <SelectValue placeholder={isEditing ? 'Befintlig plan' : 'Välj mall'} />
                 </SelectTrigger>
                 <SelectContent>
+                  {isEditing && (
+                    <SelectItem value="custom-edit">Befintlig plan</SelectItem>
+                  )}
                   {PLAN_TEMPLATES.map((template) => (
                     <SelectItem key={template.key} value={template.key}>
                       {template.label}
@@ -390,7 +470,7 @@ export function CreateBlockPlanDialog({
             </div>
 
             {blocks.map((block, index) => (
-              <div key={index} className="rounded-lg border p-3">
+              <div key={block.draftId} className="rounded-lg border p-3">
                 <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold">Block {index + 1}</p>
@@ -409,6 +489,17 @@ export function CreateBlockPlanDialog({
                         onChange={(event) => updateBlockWeeks(index, event.target.value)}
                       />
                     </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-11 px-3"
+                      onClick={() => addEasyWeek(index)}
+                      disabled={blocks.length >= 24}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Easy week
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
@@ -460,7 +551,7 @@ export function CreateBlockPlanDialog({
           </Button>
           <Button onClick={handleSubmit} disabled={isSaving || !name.trim() || blocks.length === 0}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-            Skapa blockplan
+            {isEditing ? 'Spara ändringar' : 'Skapa blockplan'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1185,7 +1185,24 @@ export default function BusinessClientDetailPage() {
 
         {activeAthletePlan && (
           <div className="mt-5">
-            <AthletePlanSummaryCard plan={activeAthletePlan} now={now} />
+            <AthletePlanSummaryCard
+              plan={activeAthletePlan}
+              now={now}
+              action={
+                <CreateAthletePlanDialog
+                  clientId={id}
+                  clientName={client.name}
+                  initialPlan={activeAthletePlan}
+                  onSaved={(plan) => setAthletePlans((current) => current.map((item) => item.id === plan.id ? plan : item))}
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Redigera
+                    </Button>
+                  }
+                />
+              }
+            />
           </div>
         )}
 

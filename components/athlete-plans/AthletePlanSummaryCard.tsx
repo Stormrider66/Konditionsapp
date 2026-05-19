@@ -1,4 +1,5 @@
 import { format, differenceInCalendarDays } from 'date-fns'
+import type { ReactNode } from 'react'
 import { sv } from 'date-fns/locale'
 import { CalendarDays, Layers3 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +32,7 @@ interface AthletePlanSummaryCardProps {
   now?: Date
   variant?: 'coach' | 'athlete' | 'team'
   className?: string
+  action?: ReactNode
 }
 
 function toDate(value: string | Date) {
@@ -62,6 +64,7 @@ export function AthletePlanSummaryCard({
   now = new Date(),
   variant = 'coach',
   className,
+  action,
 }: AthletePlanSummaryCardProps) {
   const currentBlock = getCurrentBlock(plan, now)
   const planProgress = progressPercent(plan.startDate, plan.endDate, now)
@@ -83,9 +86,12 @@ export function AthletePlanSummaryCard({
               {formatShortDate(plan.startDate)} - {formatShortDate(plan.endDate)}
             </p>
           </div>
-          <Badge variant="outline">
-            {variant === 'athlete' ? 'Min plan' : variant === 'team' ? 'Lagplan' : 'Blockplan'}
-          </Badge>
+          <div className="flex shrink-0 items-center gap-2">
+            <Badge variant="outline">
+              {variant === 'athlete' ? 'Min plan' : variant === 'team' ? 'Lagplan' : 'Blockplan'}
+            </Badge>
+            {action}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

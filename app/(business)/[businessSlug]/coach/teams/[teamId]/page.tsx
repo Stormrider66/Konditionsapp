@@ -667,7 +667,20 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
 
       <div className="mb-8">
         {activeTeamPlan ? (
-          <AthletePlanSummaryCard plan={activeTeamPlan} now={today} variant="team" />
+          <AthletePlanSummaryCard
+            plan={activeTeamPlan}
+            now={today}
+            variant="team"
+            action={
+              <CreateTeamPlanDialog
+                teamId={teamId}
+                teamName={team.name}
+                businessSlug={businessSlug}
+                initialPlan={activeTeamPlan}
+                trigger={<Button variant="outline" size="sm">Redigera</Button>}
+              />
+            }
+          />
         ) : (
           <Card className="dark:bg-slate-900/50 dark:border-white/10">
             <CardHeader>
