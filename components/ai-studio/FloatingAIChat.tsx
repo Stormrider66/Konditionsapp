@@ -290,6 +290,309 @@ function formatVoiceDuration(seconds: number): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
+type AppLocale = 'en' | 'sv'
+
+const FLOATING_CHAT_COPY = {
+  en: {
+    assistant: 'AI assistant',
+    browserVoice: 'Using the browser voice.',
+    generatingVoice: 'Creating AI voice...',
+    playingVoice: 'Playing AI voice...',
+    spokenRepliesUnavailable: 'Voice replies could not be played in this browser.',
+    spokenRepliesUnsupported: 'Voice replies are not supported in this browser.',
+    modernBrowser: 'Try a modern version of Safari, Chrome, or Edge.',
+    voiceOperatorNeedsSpeech: 'Voice operator mode needs voice replies, but this browser does not support speech playback.',
+    voiceOperatorCannotStart: 'Voice operator cannot start',
+    voiceOperatorActiveNotice: 'Voice operator mode is active. I listen through the microphone, send after a short pause, and speak my replies out loud. Actions that send or change anything still require confirmation.',
+    voiceOperatorActiveTitle: 'Voice operator active',
+    voiceOperatorActiveDescription: 'Voice replies and automatic voice sending are on.',
+    voiceOperatorOffNotice: 'Voice operator mode is off. You can still use the microphone manually.',
+    voiceOperatorOffTitle: 'Voice operator off',
+    voiceOperatorOffDescription: 'Voice settings can still be controlled separately.',
+    liveVoiceUnsupported: 'Live voice is not supported in this browser.',
+    missingMicrophone: 'I cannot start live voice because microphone access is missing.',
+    missingMicrophoneTitle: 'Microphone missing',
+    allowMicrophone: 'Allow microphone access and try again.',
+    startingLiveVoice: 'Starting live voice...',
+    liveVoiceActiveConfirm: 'Live voice active. Actions still require confirmation in chat.',
+    liveVoiceDisconnected: 'Live voice is disconnected.',
+    liveVoiceListening: 'Live voice is listening.',
+    liveVoiceUnknownError: 'Live voice received an unknown error.',
+    liveVoiceCouldNotContinue: (message: string) => `Live voice could not continue: ${message}`,
+    liveVoiceAnswered: 'Live voice answered.',
+    liveVoiceListeningEllipsis: 'Live voice listening...',
+    processingLiveVoice: 'Processing live voice...',
+    webRtcOfferFailed: 'Could not create WebRTC offer.',
+    openAiLiveVoiceFailed: 'Could not start OpenAI live voice.',
+    connectingLiveVoice: 'Connecting live voice...',
+    liveVoiceStartFailed: 'Could not start live voice.',
+    liveVoiceStartNotice: (message: string) => `I could not start live voice: ${message}`,
+    liveVoiceStartToastTitle: 'Live voice could not start',
+    liveVoiceOff: 'Live voice is off.',
+    requestFailedNotice: (message: string) => `I could not complete the request: ${message}`,
+    sendErrorTitle: 'Could not send message',
+    noAthleteTitle: 'No athlete selected',
+    noAthleteDescription: 'Select an athlete to save the program.',
+    programSavedTitle: 'Program saved!',
+    programSavedDescription: (name: string) => `"${name}" has been saved.`,
+    saveProgramErrorTitle: 'Could not save program',
+    tryAgainLater: 'Try again later.',
+    saveErrorTitle: 'Save failed',
+    unexpectedError: 'An unexpected error occurred.',
+    modelLoadingNotice: 'I cannot send right now because the AI model is still loading. Wait a few seconds and try again.',
+    transcribeError: 'Could not transcribe the voice message.',
+    noSpeechHeard: 'I did not hear anything clear in the voice message.',
+    voiceInputUnsupported: 'Voice input is not supported in this browser.',
+    noMicrophoneAudio: 'I did not receive any audio data from the microphone.',
+    voiceTranscribedTitle: 'Voice transcribed',
+    voiceAutoSendDescription: 'I will send the message automatically in a moment.',
+    voicePlacedDescription: 'The text is in the message field.',
+    voiceHandlingError: 'Could not handle the voice message.',
+    voiceUseErrorNotice: (message: string) => `I could not use the voice message: ${message}`,
+    voiceUseErrorTitle: 'Could not use voice',
+    contextAthlete: (name: string) => `Athlete: ${name}`,
+    athleteContext: 'Athlete context',
+    programContext: 'Program context',
+    testContext: 'Test context',
+    videoContextTotal: (total?: number, done?: number) => `**Total**: ${total} video analyses (${done} complete)`,
+    athletePseudonym: 'Athlete',
+    type: 'Type',
+    status: 'Status',
+    score: 'Score',
+    issues: 'Issues',
+    recommendations: 'Recommendations',
+    exercise: 'Exercise',
+    identifiedIssues: 'Identified issues',
+    poseAnalysis: 'MediaPipe pose analysis',
+    aiScore: 'AI score',
+    interpretation: 'Interpretation',
+    technicalFeedback: 'Technical feedback',
+    patterns: 'Patterns',
+    overallAssessment: 'Overall assessment',
+    currentPageContext: (title: string) => `\n\n## CURRENT PAGE CONTEXT: ${title}\n`,
+    newConversation: 'New conversation',
+    minimizeChat: 'Minimize chat',
+    expandChat: 'Expand chat',
+    closeChat: 'Close chat',
+    sideContext: 'Page context',
+    active: 'Active',
+    inactive: 'Inactive',
+    consentMissing: 'Athlete consent is missing - the AI chat cannot use athlete data',
+    voiceOperatorBanner: 'Voice operator active: microphone, auto-send, and voice replies are on',
+    confirmsActions: 'Confirms actions',
+    stop: 'Stop',
+    howCanIHelp: 'How can I help?',
+    hasContext: (title: string) => `I have access to ${title.toLowerCase()}. Ask me anything about it.`,
+    contextDisabled: 'Context is disabled. Click the button above to enable it.',
+    defaultEmpty: 'Ask me about training programs, test analyses, or other questions about your athletes.',
+    operatorActive: 'Dashboard operator mode is active.',
+    explainIssues: 'Explain issues',
+    explainIssuesPrompt: 'Explain the most important issues in the analysis',
+    improvementExercises: 'Improvement exercises',
+    improvementExercisesPrompt: 'Give me specific exercises to improve technique',
+    simpleSummary: 'Simple summary',
+    simpleSummaryPrompt: 'Summarize the analysis in simple terms for the athlete',
+    operatorBrief: 'Operator brief',
+    weeklySummary: 'Weekly summary',
+    operatorBriefPrompt: 'Create a proactive coach-operator brief from the dashboard work queue. Prioritize risks, feedback, and the next app view to open.',
+    weeklySummaryPrompt: 'Create a short proactive weekly summary from the coach dashboard operator mode and highlight what I should monitor next.',
+    summarize: 'Summarize',
+    summarizeDashboardPrompt: 'Summarize the coach dashboard from the page context and prioritize the three most important next steps.',
+    whatNeedsAction: 'What needs action?',
+    whatNeedsActionPrompt: 'What needs action on this dashboard right now? Separate urgent signals from things to follow up later.',
+    explainCards: 'Explain cards',
+    explainCardsPrompt: 'Explain the cards and signals on the dashboard so I quickly know how to read the page.',
+    summarizePage: 'Summarize page',
+    summarizePagePrompt: 'Summarize this page and highlight what I should look at first.',
+    nextSteps: 'Next steps',
+    nextStepsPrompt: 'Suggest concrete next steps based on the page context.',
+    explainConcepts: 'Explain concepts',
+    explainConceptsPrompt: 'Explain the most important concepts on this page briefly and practically.',
+    analyzeTrainingPrompt: (name: string) => `Analyze ${name}'s training history`,
+    analyzeTraining: 'Analyze training',
+    createProgramPrompt: (name: string) => `Create a training program for ${name}`,
+    createProgram: 'Create program',
+    tenKPrompt: 'How do I create an effective 10K program?',
+    thresholdPrompt: 'Explain threshold training and zones',
+    trainingZones: 'Training zones',
+    recording: (duration: string) => `Recording ${duration}`,
+    transcribingVoiceMessage: 'Transcribing voice message...',
+    stopRecording: 'Stop recording',
+    transcribingVoice: 'Transcribing voice',
+    startVoiceInput: 'Start voice input',
+    turnOffSpokenReplies: 'Turn off voice replies',
+    turnOnSpokenReplies: 'Turn on voice replies',
+    turnOffAutoSend: 'Turn off automatic voice sending',
+    turnOnAutoSend: 'Turn on automatic voice sending',
+    turnOffVoiceOperator: 'Turn off voice operator',
+    turnOnVoiceOperator: 'Turn on voice operator',
+    turnOffLiveVoice: 'Turn off live voice',
+    startLiveVoice: 'Start live voice',
+    apiKeyMissingTitle: 'API key missing',
+    athleteAssistantUnavailable: 'AI assistant unavailable',
+    athleteAssistantUnavailableDescription: 'Your coach has not activated the AI assistant yet. Contact your coach to enable this feature.',
+    configureApiKeyDescription: 'Configure your API key (Anthropic or Google) to use the AI assistant.',
+    goToSettings: 'Go to settings',
+    weeks: 'weeks',
+    chooseAthleteToSave: 'Select an athlete to save',
+    saveProgram: 'Save program',
+    inputPlaceholder: 'Write a message...',
+    voiceAutoSendSoon: 'Sending the voice message soon...',
+    cancel: 'Cancel',
+    readingReply: 'Reading the reply...',
+    aiVoiceGenerated: 'The voice is AI-generated.',
+  },
+  sv: {
+    assistant: 'AI-assistent',
+    browserVoice: 'Använder webbläsarens röst.',
+    generatingVoice: 'Skapar AI-röst...',
+    playingVoice: 'Spelar AI-röst...',
+    spokenRepliesUnavailable: 'Röstsvar kunde inte spelas i den här webbläsaren.',
+    spokenRepliesUnsupported: 'Röstsvar stöds inte i den här webbläsaren.',
+    modernBrowser: 'Testa en modern version av Safari, Chrome eller Edge.',
+    voiceOperatorNeedsSpeech: 'Voice operator-läget behöver röstsvar, men den här webbläsaren stödjer inte uppläsning.',
+    voiceOperatorCannotStart: 'Voice operator kan inte startas',
+    voiceOperatorActiveNotice: 'Voice operator-läget är aktivt. Jag lyssnar via mikrofonen, skickar efter en kort paus och säger mina svar högt. Åtgärder som skickar eller ändrar något kräver fortfarande bekräftelse.',
+    voiceOperatorActiveTitle: 'Voice operator aktiv',
+    voiceOperatorActiveDescription: 'Röstsvar och automatisk röstsändning är på.',
+    voiceOperatorOffNotice: 'Voice operator-läget är avstängt. Du kan fortfarande använda mikrofonen manuellt.',
+    voiceOperatorOffTitle: 'Voice operator avstängd',
+    voiceOperatorOffDescription: 'Röstinställningarna kan fortfarande styras separat.',
+    liveVoiceUnsupported: 'Live voice stöds inte i den här webbläsaren.',
+    missingMicrophone: 'Jag kan inte starta live voice eftersom mikrofonåtkomst saknas.',
+    missingMicrophoneTitle: 'Mikrofon saknas',
+    allowMicrophone: 'Tillåt mikrofonåtkomst och försök igen.',
+    startingLiveVoice: 'Startar live voice...',
+    liveVoiceActiveConfirm: 'Live voice aktiv. Åtgärder kräver fortsatt bekräftelse i chatten.',
+    liveVoiceDisconnected: 'Live voice är frånkopplad.',
+    liveVoiceListening: 'Live voice lyssnar.',
+    liveVoiceUnknownError: 'Live voice fick ett okänt fel.',
+    liveVoiceCouldNotContinue: (message: string) => `Live voice kunde inte fortsätta: ${message}`,
+    liveVoiceAnswered: 'Live voice svarade.',
+    liveVoiceListeningEllipsis: 'Live voice lyssnar...',
+    processingLiveVoice: 'Bearbetar live voice...',
+    webRtcOfferFailed: 'Kunde inte skapa WebRTC-offer.',
+    openAiLiveVoiceFailed: 'Kunde inte starta OpenAI live voice.',
+    connectingLiveVoice: 'Ansluter live voice...',
+    liveVoiceStartFailed: 'Kunde inte starta live voice.',
+    liveVoiceStartNotice: (message: string) => `Jag kunde inte starta live voice: ${message}`,
+    liveVoiceStartToastTitle: 'Live voice kunde inte starta',
+    liveVoiceOff: 'Live voice är avstängd.',
+    requestFailedNotice: (message: string) => `Jag kunde inte slutföra förfrågan: ${message}`,
+    sendErrorTitle: 'Kunde inte skicka meddelande',
+    noAthleteTitle: 'Ingen atlet vald',
+    noAthleteDescription: 'Välj en atlet för att spara programmet.',
+    programSavedTitle: 'Program sparat!',
+    programSavedDescription: (name: string) => `"${name}" har sparats.`,
+    saveProgramErrorTitle: 'Kunde inte spara programmet',
+    tryAgainLater: 'Försök igen senare.',
+    saveErrorTitle: 'Fel vid sparning',
+    unexpectedError: 'Ett oväntat fel uppstod.',
+    modelLoadingNotice: 'Jag kan inte skicka just nu eftersom AI-modellen inte är färdigladdad. Vänta några sekunder och försök igen.',
+    transcribeError: 'Kunde inte transkribera röstmeddelandet.',
+    noSpeechHeard: 'Jag hörde inget tydligt i röstmeddelandet.',
+    voiceInputUnsupported: 'Röstinmatning stöds inte i den här webbläsaren.',
+    noMicrophoneAudio: 'Jag fick ingen ljuddata från mikrofonen.',
+    voiceTranscribedTitle: 'Röst transkriberad',
+    voiceAutoSendDescription: 'Jag skickar meddelandet automatiskt om en liten stund.',
+    voicePlacedDescription: 'Texten ligger i meddelandefältet.',
+    voiceHandlingError: 'Kunde inte hantera röstmeddelandet.',
+    voiceUseErrorNotice: (message: string) => `Jag kunde inte använda röstmeddelandet: ${message}`,
+    voiceUseErrorTitle: 'Kunde inte använda rösten',
+    contextAthlete: (name: string) => `Atlet: ${name}`,
+    athleteContext: 'Atletkontext',
+    programContext: 'Programkontext',
+    testContext: 'Testkontext',
+    videoContextTotal: (total?: number, done?: number) => `**Totalt**: ${total} videoanalyser (${done} klara)`,
+    athletePseudonym: 'Atleten',
+    type: 'Typ',
+    status: 'Status',
+    score: 'Poäng',
+    issues: 'Problem',
+    recommendations: 'Rekommendationer',
+    exercise: 'Övning',
+    identifiedIssues: 'Identifierade problem',
+    poseAnalysis: 'MediaPipe Poseanalys',
+    aiScore: 'AI-poäng',
+    interpretation: 'Tolkning',
+    technicalFeedback: 'Teknisk feedback',
+    patterns: 'Mönster',
+    overallAssessment: 'Övergripande bedömning',
+    currentPageContext: (title: string) => `\n\n## AKTUELL SIDKONTEXT: ${title}\n`,
+    newConversation: 'Ny konversation',
+    minimizeChat: 'Minimera chatten',
+    expandChat: 'Expandera chatten',
+    closeChat: 'Stäng chatten',
+    sideContext: 'Sidkontext',
+    active: 'Aktiv',
+    inactive: 'Inaktiv',
+    consentMissing: 'Atletens samtycke saknas - AI-chatten kan inte använda atletdata',
+    voiceOperatorBanner: 'Voice operator aktiv: mikrofon, auto-send och röstsvar är på',
+    confirmsActions: 'Bekräftar åtgärder',
+    stop: 'Stoppa',
+    howCanIHelp: 'Hur kan jag hjälpa dig?',
+    hasContext: (title: string) => `Jag har tillgång till ${title.toLowerCase()}. Fråga mig vad som helst om det!`,
+    contextDisabled: 'Kontext är inaktiverad. Klicka på knappen ovan för att aktivera.',
+    defaultEmpty: 'Fråga mig om träningsprogram, testanalyser, eller andra frågor om dina atleter.',
+    operatorActive: 'Dashboardens operatorläge är aktivt.',
+    explainIssues: 'Förklara problem',
+    explainIssuesPrompt: 'Förklara de viktigaste problemen i analysen',
+    improvementExercises: 'Förbättringsövningar',
+    improvementExercisesPrompt: 'Ge mig specifika övningar för att förbättra tekniken',
+    simpleSummary: 'Enkel sammanfattning',
+    simpleSummaryPrompt: 'Sammanfatta analysen i enkla termer för atleten',
+    operatorBrief: 'Operatorbrief',
+    weeklySummary: 'Veckosummering',
+    operatorBriefPrompt: 'Gör en proaktiv coach-operator brief från dashboardens arbetskö. Prioritera risker, feedback och nästa app-vy att öppna.',
+    weeklySummaryPrompt: 'Gör en kort proaktiv veckosummering från coachdashboardens operatorläge och lyft vad jag bör bevaka härnäst.',
+    summarize: 'Sammanfatta',
+    summarizeDashboardPrompt: 'Sammanfatta coachdashboarden utifrån sidkontexten och prioritera de tre viktigaste nästa stegen.',
+    whatNeedsAction: 'Vad kräver åtgärd?',
+    whatNeedsActionPrompt: 'Vad kräver åtgärd på den här dashboarden just nu? Skilj på akuta signaler och saker att följa upp senare.',
+    explainCards: 'Förklara korten',
+    explainCardsPrompt: 'Förklara korten och signalerna på dashboarden så jag snabbt vet hur jag ska läsa sidan.',
+    summarizePage: 'Sammanfatta sidan',
+    summarizePagePrompt: 'Sammanfatta den här sidan och lyft fram vad jag bör titta på först.',
+    nextSteps: 'Nästa steg',
+    nextStepsPrompt: 'Föreslå konkreta nästa steg baserat på sidkontexten.',
+    explainConcepts: 'Förklara begrepp',
+    explainConceptsPrompt: 'Förklara de viktigaste begreppen på den här sidan kort och praktiskt.',
+    analyzeTrainingPrompt: (name: string) => `Analysera ${name}s träningshistorik`,
+    analyzeTraining: 'Analysera träning',
+    createProgramPrompt: (name: string) => `Skapa ett träningsprogram för ${name}`,
+    createProgram: 'Skapa program',
+    tenKPrompt: 'Hur skapar jag ett effektivt 10K-program?',
+    thresholdPrompt: 'Förklara tröskelträning och zoner',
+    trainingZones: 'Träningszoner',
+    recording: (duration: string) => `Spelar in ${duration}`,
+    transcribingVoiceMessage: 'Skriver ut röstmeddelandet...',
+    stopRecording: 'Stoppa inspelning',
+    transcribingVoice: 'Transkriberar röst',
+    startVoiceInput: 'Starta röstinmatning',
+    turnOffSpokenReplies: 'Stäng av röstsvar',
+    turnOnSpokenReplies: 'Slå på röstsvar',
+    turnOffAutoSend: 'Stäng av automatisk röstsändning',
+    turnOnAutoSend: 'Slå på automatisk röstsändning',
+    turnOffVoiceOperator: 'Stäng av voice operator',
+    turnOnVoiceOperator: 'Slå på voice operator',
+    turnOffLiveVoice: 'Stäng av live voice',
+    startLiveVoice: 'Starta live voice',
+    apiKeyMissingTitle: 'API-nyckel saknas',
+    athleteAssistantUnavailable: 'AI-assistenten ej tillgänglig',
+    athleteAssistantUnavailableDescription: 'Din coach har inte aktiverat AI-assistenten ännu. Kontakta din coach för att aktivera denna funktion.',
+    configureApiKeyDescription: 'Konfigurera din API-nyckel (Anthropic eller Google) för att använda AI-assistenten.',
+    goToSettings: 'Gå till inställningar',
+    weeks: 'veckor',
+    chooseAthleteToSave: 'Välj en atlet för att spara',
+    saveProgram: 'Spara program',
+    inputPlaceholder: 'Skriv ett meddelande...',
+    voiceAutoSendSoon: 'Skickar röstmeddelandet snart...',
+    cancel: 'Avbryt',
+    readingReply: 'Läser upp svaret...',
+    aiVoiceGenerated: 'Rösten är AI-genererad.',
+  },
+} satisfies Record<AppLocale, Record<string, string | ((value: string) => string) | ((total?: number, done?: number) => string)>>
+
 function getMessageTextContent(parts?: unknown[]): string {
   return parts
     ?.filter((part): part is { type: 'text'; text: string } => {
@@ -313,12 +616,13 @@ export function FloatingAIChat({
   athleteId,
   athleteName,
   initialMessage,
-  contextType = 'general',
+  contextType: _contextType = 'general',
   pageContext,
   visibleConcepts,
 }: FloatingAIChatProps) {
   const { toast } = useToast()
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = FLOATING_CHAT_COPY[locale]
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
@@ -442,10 +746,15 @@ export function FloatingAIChat({
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices()
       const preferredVoice =
-        voices.find((voice) => voice.lang.toLowerCase().startsWith('sv') && /alva|klara|oskar/i.test(voice.name)) ||
-        voices.find((voice) => voice.lang.toLowerCase().startsWith('sv')) ||
-        voices.find((voice) => voice.lang.toLowerCase().startsWith('en') && /samantha|daniel/i.test(voice.name)) ||
-        voices.find((voice) => voice.lang.toLowerCase().startsWith('en')) ||
+        (locale === 'sv'
+          ? voices.find((voice) => voice.lang.toLowerCase().startsWith('sv') && /alva|klara|oskar/i.test(voice.name)) ||
+            voices.find((voice) => voice.lang.toLowerCase().startsWith('sv')) ||
+            voices.find((voice) => voice.lang.toLowerCase().startsWith('en') && /samantha|daniel/i.test(voice.name)) ||
+            voices.find((voice) => voice.lang.toLowerCase().startsWith('en'))
+          : voices.find((voice) => voice.lang.toLowerCase().startsWith('en') && /samantha|daniel/i.test(voice.name)) ||
+            voices.find((voice) => voice.lang.toLowerCase().startsWith('en')) ||
+            voices.find((voice) => voice.lang.toLowerCase().startsWith('sv') && /alva|klara|oskar/i.test(voice.name)) ||
+            voices.find((voice) => voice.lang.toLowerCase().startsWith('sv'))) ||
         voices[0] ||
         null
 
@@ -459,7 +768,7 @@ export function FloatingAIChat({
       window.speechSynthesis.removeEventListener('voiceschanged', pickVoice)
       window.speechSynthesis.cancel()
     }
-  }, [])
+  }, [locale])
 
   const stopAssistantSpeech = useCallback(() => {
     assistantSpeechAbortRef.current?.abort()
@@ -551,13 +860,13 @@ export function FloatingAIChat({
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(speakableText)
     const voice = assistantSpeechVoiceRef.current
-    utterance.lang = voice?.lang || 'sv-SE'
+    utterance.lang = voice?.lang || (locale === 'sv' ? 'sv-SE' : 'en-US')
     utterance.voice = voice
     utterance.rate = 1
     utterance.pitch = 1
     utterance.onstart = () => {
       setIsSpeakingAssistant(true)
-      setVoicePlaybackStatus('Använder webbläsarens röst.')
+      setVoicePlaybackStatus(copy.browserVoice)
     }
     utterance.onend = () => {
       setIsSpeakingAssistant(false)
@@ -569,7 +878,7 @@ export function FloatingAIChat({
     }
     window.speechSynthesis.speak(utterance)
     return true
-  }, [isBrowserSpeechSupported])
+  }, [copy.browserVoice, isBrowserSpeechSupported, locale])
 
   const playPremiumAssistantReply = useCallback(async (text: string): Promise<boolean> => {
     if (premiumVoiceUnavailableRef.current) return false
@@ -582,7 +891,7 @@ export function FloatingAIChat({
     const controller = new AbortController()
     assistantSpeechAbortRef.current = controller
     setIsGeneratingAssistantAudio(true)
-    setVoicePlaybackStatus('Skapar AI-röst...')
+    setVoicePlaybackStatus(copy.generatingVoice)
 
     try {
       const response = await fetch('/api/ai/chat/speech', {
@@ -611,7 +920,7 @@ export function FloatingAIChat({
       audio.onplay = () => {
         setIsGeneratingAssistantAudio(false)
         setIsSpeakingAssistant(true)
-        setVoicePlaybackStatus('Spelar AI-röst...')
+        setVoicePlaybackStatus(copy.playingVoice)
       }
       audio.onended = () => {
         setIsSpeakingAssistant(false)
@@ -638,7 +947,7 @@ export function FloatingAIChat({
       }
       setIsGeneratingAssistantAudio(false)
     }
-  }, [isAthleteUser, pathBusinessSlug, stopAssistantSpeech])
+  }, [copy.generatingVoice, copy.playingVoice, isAthleteUser, pathBusinessSlug, stopAssistantSpeech])
 
   const speakAssistantReply = useCallback(async (text: string) => {
     if (!isSpokenRepliesEnabled || !isSpeechSupported) return
@@ -648,12 +957,14 @@ export function FloatingAIChat({
 
     const usedBrowserVoice = speakBrowserAssistantReply(text)
     if (usedBrowserVoice) {
-      setVoicePlaybackStatus(premiumVoiceUnavailableRef.current ? 'Använder webbläsarens röst.' : null)
+      setVoicePlaybackStatus(premiumVoiceUnavailableRef.current ? copy.browserVoice : null)
       return
     }
 
-    setVoicePlaybackStatus('Röstsvar kunde inte spelas i den här webbläsaren.')
+    setVoicePlaybackStatus(copy.spokenRepliesUnavailable)
   }, [
+    copy.browserVoice,
+    copy.spokenRepliesUnavailable,
     isSpeechSupported,
     isSpokenRepliesEnabled,
     playPremiumAssistantReply,
@@ -662,11 +973,11 @@ export function FloatingAIChat({
 
   const toggleSpokenReplies = useCallback(() => {
     if (!isSpeechSupported) {
-      const message = 'Röstsvar stöds inte i den här webbläsaren.'
+      const message = copy.spokenRepliesUnsupported
       addAssistantNotice(message)
       toast({
-        title: 'Röstsvar stöds inte',
-        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        title: copy.spokenRepliesUnsupported,
+        description: copy.modernBrowser,
         variant: 'destructive',
       })
       return
@@ -682,7 +993,7 @@ export function FloatingAIChat({
       }
       return next
     })
-  }, [addAssistantNotice, isSpeechSupported, stopAssistantSpeech, toast])
+  }, [addAssistantNotice, copy.modernBrowser, copy.spokenRepliesUnsupported, isSpeechSupported, stopAssistantSpeech, toast])
 
   const cancelVoiceAutoSend = useCallback(() => {
     if (voiceAutoSendTimeoutRef.current) {
@@ -714,11 +1025,11 @@ export function FloatingAIChat({
 
   const toggleVoiceOperatorMode = useCallback(() => {
     if (!isVoiceOperatorModeEnabled && !isSpeechSupported) {
-      const message = 'Voice operator-läget behöver röstsvar, men den här webbläsaren stödjer inte uppläsning.'
+      const message = copy.voiceOperatorNeedsSpeech
       addAssistantNotice(message)
       toast({
-        title: 'Voice operator kan inte startas',
-        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        title: copy.voiceOperatorCannotStart,
+        description: copy.modernBrowser,
         variant: 'destructive',
       })
       return
@@ -733,22 +1044,31 @@ export function FloatingAIChat({
       setIsVoiceAutoSendEnabled(true)
       window.localStorage.setItem('floating-ai-spoken-replies', 'true')
       window.localStorage.setItem('floating-ai-voice-auto-send', 'true')
-      addAssistantNotice('Voice operator-läget är aktivt. Jag lyssnar via mikrofonen, skickar efter en kort paus och säger mina svar högt. Åtgärder som skickar eller ändrar något kräver fortfarande bekräftelse.')
+      addAssistantNotice(copy.voiceOperatorActiveNotice)
       toast({
-        title: 'Voice operator aktiv',
-        description: 'Röstsvar och automatisk röstsändning är på.',
+        title: copy.voiceOperatorActiveTitle,
+        description: copy.voiceOperatorActiveDescription,
       })
     } else {
       cancelVoiceAutoSend()
-      addAssistantNotice('Voice operator-läget är avstängt. Du kan fortfarande använda mikrofonen manuellt.')
+      addAssistantNotice(copy.voiceOperatorOffNotice)
       toast({
-        title: 'Voice operator avstängd',
-        description: 'Röstinställningarna kan fortfarande styras separat.',
+        title: copy.voiceOperatorOffTitle,
+        description: copy.voiceOperatorOffDescription,
       })
     }
   }, [
     addAssistantNotice,
     cancelVoiceAutoSend,
+    copy.modernBrowser,
+    copy.voiceOperatorActiveDescription,
+    copy.voiceOperatorActiveNotice,
+    copy.voiceOperatorActiveTitle,
+    copy.voiceOperatorCannotStart,
+    copy.voiceOperatorNeedsSpeech,
+    copy.voiceOperatorOffDescription,
+    copy.voiceOperatorOffNotice,
+    copy.voiceOperatorOffTitle,
     isSpeechSupported,
     isVoiceOperatorModeEnabled,
     toast,
@@ -847,17 +1167,17 @@ export function FloatingAIChat({
         setIsLoadingConfig(false)
       }
     }
-    fetchModelConfig()
+    void fetchModelConfig()
   }, [])
 
   // GDPR: Check athlete consent when athleteId is set
   useEffect(() => {
-    if (!athleteId) {
-      setAthleteConsentStatus(null)
-      return
-    }
-    setAthleteConsentStatus('loading')
-    async function checkAthleteConsent() {
+    void Promise.resolve().then(async () => {
+      if (!athleteId) {
+        setAthleteConsentStatus(null)
+        return
+      }
+      setAthleteConsentStatus('loading')
       try {
         const response = await fetch(`/api/agent/consent?clientId=${athleteId}`)
         const data = await response.json()
@@ -865,15 +1185,14 @@ export function FloatingAIChat({
       } catch {
         setAthleteConsentStatus('none')
       }
-    }
-    checkAthleteConsent()
+    })
   }, [athleteId])
 
   // Build page context string for the AI
   const buildPageContextString = useCallback(() => {
     if (!pageContext || !isContextEnabled) return ''
 
-    let contextStr = `\n\n## AKTUELL SIDKONTEXT: ${pageContext.title}\n`
+    let contextStr = copy.currentPageContext(pageContext.title)
 
     if (pageContext.summary) {
       contextStr += `\n${pageContext.summary}\n`
@@ -916,25 +1235,25 @@ export function FloatingAIChat({
 
       // Handle list of analyses from VideoAnalysisList
       if (data.analyses && Array.isArray(data.analyses)) {
-        contextStr += `\n**Totalt**: ${data.totalAnalyses} videoanalyser (${data.completedCount} klara)\n`
+        contextStr += `\n${copy.videoContextTotal(data.totalAnalyses, data.completedCount)}\n`
 
         data.analyses.forEach((analysis, idx) => {
           contextStr += `\n### Video ${idx + 1}: ${analysis.exerciseName}\n`
           // GDPR: Use pseudonym instead of real name in AI context
-          contextStr += `- **Atlet**: Atleten\n`
-          contextStr += `- **Typ**: ${analysis.videoType}\n`
-          contextStr += `- **Status**: ${analysis.status}\n`
-          if (analysis.formScore) contextStr += `- **Poäng**: ${analysis.formScore}/100\n`
+          contextStr += `- **${copy.athletePseudonym}**: ${copy.athletePseudonym}\n`
+          contextStr += `- **${copy.type}**: ${analysis.videoType}\n`
+          contextStr += `- **${copy.status}**: ${analysis.status}\n`
+          if (analysis.formScore) contextStr += `- **${copy.score}**: ${analysis.formScore}/100\n`
 
           if (analysis.issuesDetected && analysis.issuesDetected.length > 0) {
-            contextStr += `\n**Problem:**\n`
+            contextStr += `\n**${copy.issues}:**\n`
             analysis.issuesDetected.forEach((issue, i) => {
               contextStr += `  ${i + 1}. ${issue.issue} (${issue.severity}): ${issue.description}\n`
             })
           }
 
           if (analysis.recommendations && analysis.recommendations.length > 0) {
-            contextStr += `\n**Rekommendationer:**\n`
+            contextStr += `\n**${copy.recommendations}:**\n`
             analysis.recommendations.forEach((rec, i) => {
               contextStr += `  ${i + 1}. ${rec.recommendation}: ${rec.explanation}\n`
             })
@@ -942,19 +1261,19 @@ export function FloatingAIChat({
         })
       } else {
         // Handle single analysis (original logic)
-        if (data.videoType) contextStr += `- **Typ**: ${data.videoType}\n`
-        if (data.exerciseName) contextStr += `- **Övning**: ${data.exerciseName}\n`
-        if (data.formScore) contextStr += `- **Poäng**: ${data.formScore}/100\n`
+        if (data.videoType) contextStr += `- **${copy.type}**: ${data.videoType}\n`
+        if (data.exerciseName) contextStr += `- **${copy.exercise}**: ${data.exerciseName}\n`
+        if (data.formScore) contextStr += `- **${copy.score}**: ${data.formScore}/100\n`
 
         if (data.issues && data.issues.length > 0) {
-          contextStr += `\n### Identifierade problem:\n`
+          contextStr += `\n### ${copy.identifiedIssues}:\n`
           data.issues.forEach((issue, i) => {
             contextStr += `${i + 1}. **${issue.issue}** (${issue.severity}): ${issue.description}\n`
           })
         }
 
         if (data.recommendations && data.recommendations.length > 0) {
-          contextStr += `\n### Rekommendationer:\n`
+          contextStr += `\n### ${copy.recommendations}:\n`
           data.recommendations.forEach((rec, i) => {
             contextStr += `${i + 1}. **${rec.recommendation}**: ${rec.explanation}\n`
           })
@@ -962,26 +1281,26 @@ export function FloatingAIChat({
 
         if (data.poseAnalysis) {
           const pose = data.poseAnalysis
-          contextStr += `\n### MediaPipe Poseanalys:\n`
-          if (pose.score) contextStr += `- **AI-poäng**: ${pose.score}/100\n`
-          if (pose.interpretation) contextStr += `- **Tolkning**: ${pose.interpretation}\n`
+          contextStr += `\n### ${copy.poseAnalysis}:\n`
+          if (pose.score) contextStr += `- **${copy.aiScore}**: ${pose.score}/100\n`
+          if (pose.interpretation) contextStr += `- **${copy.interpretation}**: ${pose.interpretation}\n`
 
           if (pose.technicalFeedback && pose.technicalFeedback.length > 0) {
-            contextStr += `\n**Teknisk feedback:**\n`
+            contextStr += `\n**${copy.technicalFeedback}:**\n`
             pose.technicalFeedback.forEach((fb, i) => {
               contextStr += `${i + 1}. ${fb.area}: ${fb.observation} → ${fb.suggestion}\n`
             })
           }
 
           if (pose.patterns && pose.patterns.length > 0) {
-            contextStr += `\n**Mönster:**\n`
+            contextStr += `\n**${copy.patterns}:**\n`
             pose.patterns.forEach((p, i) => {
               contextStr += `${i + 1}. ${p.pattern}: ${p.significance}\n`
             })
           }
 
           if (pose.overallAssessment) {
-            contextStr += `\n**Övergripande bedömning**: ${pose.overallAssessment}\n`
+            contextStr += `\n**${copy.overallAssessment}**: ${pose.overallAssessment}\n`
           }
         }
       }
@@ -1023,7 +1342,7 @@ export function FloatingAIChat({
     }
 
     return contextStr
-  }, [pageContext, isContextEnabled, visibleConcepts, locale])
+  }, [copy, pageContext, isContextEnabled, visibleConcepts, locale])
 
   // Ref to store the current context string - updated when context changes
   const contextStringRef = useRef('')
@@ -1034,21 +1353,21 @@ export function FloatingAIChat({
   const startRealtimeVoice = useCallback(async () => {
     if (isRealtimeVoiceConnecting || isRealtimeVoiceActive) return
     if (typeof window === 'undefined' || !window.RTCPeerConnection) {
-      const message = 'Live voice stöds inte i den här webbläsaren.'
+      const message = copy.liveVoiceUnsupported
       addAssistantNotice(message)
       toast({
-        title: 'Live voice stöds inte',
-        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        title: copy.liveVoiceUnsupported,
+        description: copy.modernBrowser,
         variant: 'destructive',
       })
       return
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      const message = 'Jag kan inte starta live voice eftersom mikrofonåtkomst saknas.'
+      const message = copy.missingMicrophone
       addAssistantNotice(message)
       toast({
-        title: 'Mikrofon saknas',
-        description: 'Tillåt mikrofonåtkomst och försök igen.',
+        title: copy.missingMicrophoneTitle,
+        description: copy.allowMicrophone,
         variant: 'destructive',
       })
       return
@@ -1057,7 +1376,7 @@ export function FloatingAIChat({
     stopAssistantSpeech()
     cancelVoiceAutoSend()
     setIsRealtimeVoiceConnecting(true)
-    setRealtimeVoiceStatus('Startar live voice...')
+    setRealtimeVoiceStatus(copy.startingLiveVoice)
 
     let peer: RTCPeerConnection | null = null
     let mediaStream: MediaStream | null = null
@@ -1082,10 +1401,10 @@ export function FloatingAIChat({
           }
           setIsRealtimeVoiceConnecting(false)
           setIsRealtimeVoiceActive(true)
-          setRealtimeVoiceStatus('Live voice aktiv. Åtgärder kräver fortsatt bekräftelse i chatten.')
+          setRealtimeVoiceStatus(copy.liveVoiceActiveConfirm)
         }
         if (['failed', 'closed', 'disconnected'].includes(peer.connectionState)) {
-          stopRealtimeVoice('Live voice är frånkopplad.', 'disconnected')
+          stopRealtimeVoice(copy.liveVoiceDisconnected, 'disconnected')
         }
       }
 
@@ -1098,22 +1417,22 @@ export function FloatingAIChat({
       const dataChannel = peer.createDataChannel('oai-events')
       realtimeDataChannelRef.current = dataChannel
       dataChannel.onopen = () => {
-        setRealtimeVoiceStatus('Live voice lyssnar.')
+        setRealtimeVoiceStatus(copy.liveVoiceListening)
       }
       dataChannel.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as { type?: string; error?: { message?: string } }
           addRealtimeUsageFromEvent(realtimeUsageRef.current, data)
           if (data.type === 'error') {
-            const message = data.error?.message || 'Live voice fick ett okänt fel.'
+            const message = data.error?.message || copy.liveVoiceUnknownError
             setRealtimeVoiceStatus(message)
-            addAssistantNotice(`Live voice kunde inte fortsätta: ${message}`)
+            addAssistantNotice(copy.liveVoiceCouldNotContinue(message))
           } else if (data.type === 'response.audio_transcript.done') {
-            setRealtimeVoiceStatus('Live voice svarade.')
+            setRealtimeVoiceStatus(copy.liveVoiceAnswered)
           } else if (data.type === 'input_audio_buffer.speech_started') {
-            setRealtimeVoiceStatus('Live voice lyssnar...')
+            setRealtimeVoiceStatus(copy.liveVoiceListeningEllipsis)
           } else if (data.type === 'input_audio_buffer.speech_stopped') {
-            setRealtimeVoiceStatus('Bearbetar live voice...')
+            setRealtimeVoiceStatus(copy.processingLiveVoice)
           }
         } catch {
           // Ignore non-JSON realtime diagnostics.
@@ -1123,7 +1442,7 @@ export function FloatingAIChat({
       const offer = await peer.createOffer()
       await peer.setLocalDescription(offer)
       if (!offer.sdp) {
-        throw new Error('Kunde inte skapa WebRTC-offer.')
+        throw new Error(copy.webRtcOfferFailed)
       }
 
       const response = await fetch('/api/ai/chat/realtime-call', {
@@ -1139,7 +1458,7 @@ export function FloatingAIChat({
       })
       const answerSdp = await response.text()
       if (!response.ok) {
-        let message = 'Kunde inte starta OpenAI live voice.'
+        let message = copy.openAiLiveVoiceFailed
         try {
           const parsed = JSON.parse(answerSdp) as { error?: string }
           message = parsed.error || message
@@ -1150,13 +1469,13 @@ export function FloatingAIChat({
       }
 
       await peer.setRemoteDescription({ type: 'answer', sdp: answerSdp })
-      setRealtimeVoiceStatus('Ansluter live voice...')
+      setRealtimeVoiceStatus(copy.connectingLiveVoice)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Kunde inte starta live voice.'
+      const message = error instanceof Error ? error.message : copy.liveVoiceStartFailed
       stopRealtimeVoice(message, 'error')
-      addAssistantNotice(`Jag kunde inte starta live voice: ${message}`)
+      addAssistantNotice(copy.liveVoiceStartNotice(message))
       toast({
-        title: 'Live voice kunde inte starta',
+        title: copy.liveVoiceStartToastTitle,
         description: message,
         variant: 'destructive',
       })
@@ -1164,6 +1483,7 @@ export function FloatingAIChat({
   }, [
     addAssistantNotice,
     cancelVoiceAutoSend,
+    copy,
     isAthleteUser,
     isRealtimeVoiceActive,
     isRealtimeVoiceConnecting,
@@ -1175,11 +1495,12 @@ export function FloatingAIChat({
 
   const toggleRealtimeVoice = useCallback(() => {
     if (isRealtimeVoiceActive || isRealtimeVoiceConnecting) {
-      stopRealtimeVoice('Live voice är avstängd.', 'user_stopped')
+      stopRealtimeVoice(copy.liveVoiceOff, 'user_stopped')
       return
     }
     void startRealtimeVoice()
   }, [
+    copy.liveVoiceOff,
     isRealtimeVoiceActive,
     isRealtimeVoiceConnecting,
     startRealtimeVoice,
@@ -1221,9 +1542,9 @@ export function FloatingAIChat({
       fetch: skillCapturingFetch,
     }),
     onError: (error) => {
-      addAssistantNotice(`Jag kunde inte slutföra förfrågan: ${error.message}`)
+      addAssistantNotice(copy.requestFailedNotice(error.message))
       toast({
-        title: 'Kunde inte skicka meddelande',
+        title: copy.sendErrorTitle,
         description: error.message,
         variant: 'destructive',
       })
@@ -1247,16 +1568,18 @@ export function FloatingAIChat({
 
     if (!textContent || textContent.length < 100) return
 
-    try {
-      const result = parseAIProgram(textContent)
-      if (result.success && result.program) {
-        setDetectedProgram(result)
-      } else {
+    void Promise.resolve().then(() => {
+      try {
+        const result = parseAIProgram(textContent)
+        if (result.success && result.program) {
+          setDetectedProgram(result)
+        } else {
+          setDetectedProgram(null)
+        }
+      } catch {
         setDetectedProgram(null)
       }
-    } catch {
-      setDetectedProgram(null)
-    }
+    })
   }, [messages, isLoading])
 
   useEffect(() => {
@@ -1289,8 +1612,8 @@ export function FloatingAIChat({
     if (!detectedProgram?.program) return
     if (!athleteId) {
       toast({
-        title: 'Ingen atlet vald',
-        description: 'Välj en atlet för att spara programmet.',
+        title: copy.noAthleteTitle,
+        description: copy.noAthleteDescription,
         variant: 'destructive',
       })
       return
@@ -1315,22 +1638,22 @@ export function FloatingAIChat({
 
       if (response.ok) {
         toast({
-          title: 'Program sparat!',
-          description: `"${detectedProgram.program.name}" har sparats.`,
+          title: copy.programSavedTitle,
+          description: copy.programSavedDescription(detectedProgram.program.name),
         })
         setDetectedProgram(null)
       } else {
         const data = await response.json()
         toast({
-          title: 'Kunde inte spara programmet',
-          description: data.error || 'Försök igen senare.',
+          title: copy.saveProgramErrorTitle,
+          description: data.error || copy.tryAgainLater,
           variant: 'destructive',
         })
       }
     } catch {
       toast({
-        title: 'Fel vid sparning',
-        description: 'Ett oväntat fel uppstod.',
+        title: copy.saveErrorTitle,
+        description: copy.unexpectedError,
         variant: 'destructive',
       })
     } finally {
@@ -1364,7 +1687,7 @@ export function FloatingAIChat({
     const messageContent = message.trim()
     if (!messageContent || isLoading) return
     if (!modelConfig) {
-      addAssistantNotice('Jag kan inte skicka just nu eftersom AI-modellen inte är färdigladdad. Vänta några sekunder och försök igen.')
+      addAssistantNotice(copy.modelLoadingNotice)
       return
     }
     setAssistantNotices([])
@@ -1409,6 +1732,7 @@ export function FloatingAIChat({
     addAssistantNotice,
     athleteId,
     conversationId,
+    copy.modelLoadingNotice,
     isLoading,
     modelConfig,
     pathBusinessSlug,
@@ -1444,18 +1768,18 @@ export function FloatingAIChat({
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Kunde inte transkribera röstmeddelandet.')
+        throw new Error(data.error || copy.transcribeError)
       }
 
       const text = typeof data.text === 'string' ? data.text.trim() : ''
       if (!text) {
-        throw new Error('Jag hörde inget tydligt i röstmeddelandet.')
+        throw new Error(copy.noSpeechHeard)
       }
       return text
     } finally {
       setIsTranscribingVoice(false)
     }
-  }, [isAthleteUser, pathBusinessSlug])
+  }, [copy.noSpeechHeard, copy.transcribeError, isAthleteUser, pathBusinessSlug])
 
   async function handleVoiceButtonClick() {
     if (isVoiceRecording) {
@@ -1467,11 +1791,11 @@ export function FloatingAIChat({
     cancelVoiceAutoSend()
 
     if (!isVoiceSupported) {
-      const message = 'Röstinmatning stöds inte i den här webbläsaren.'
+      const message = copy.voiceInputUnsupported
       addAssistantNotice(message)
       toast({
-        title: 'Röstinmatning stöds inte',
-        description: 'Testa en modern version av Safari, Chrome eller Edge.',
+        title: copy.voiceInputUnsupported,
+        description: copy.modernBrowser,
         variant: 'destructive',
       })
       return
@@ -1486,7 +1810,7 @@ export function FloatingAIChat({
       voiceRecordingPromiseRef.current = null
 
       if (audioBlob.size === 0) {
-        throw new Error('Jag fick ingen ljuddata från mikrofonen.')
+        throw new Error(copy.noMicrophoneAudio)
       }
 
       const transcript = await transcribeVoiceBlob(audioBlob)
@@ -1497,20 +1821,20 @@ export function FloatingAIChat({
       if (isVoiceAutoSendEnabled) {
         scheduleVoiceAutoSend(nextInputValue)
         toast({
-          title: 'Röst transkriberad',
-          description: 'Jag skickar meddelandet automatiskt om en liten stund.',
+          title: copy.voiceTranscribedTitle,
+          description: copy.voiceAutoSendDescription,
         })
       } else {
         toast({
-          title: 'Röst transkriberad',
-          description: 'Texten ligger i meddelandefältet.',
+          title: copy.voiceTranscribedTitle,
+          description: copy.voicePlacedDescription,
         })
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Kunde inte hantera röstmeddelandet.'
-      addAssistantNotice(`Jag kunde inte använda röstmeddelandet: ${message}`)
+      const message = error instanceof Error ? error.message : copy.voiceHandlingError
+      addAssistantNotice(copy.voiceUseErrorNotice(message))
       toast({
-        title: 'Kunde inte använda rösten',
+        title: copy.voiceUseErrorTitle,
         description: message,
         variant: 'destructive',
       })
@@ -1524,7 +1848,7 @@ export function FloatingAIChat({
   // Send initial message if provided
   useEffect(() => {
     if (isOpen && initialMessage && messages.length === 0) {
-      setInput(initialMessage)
+      void Promise.resolve().then(() => setInput(initialMessage))
     }
   }, [isOpen, initialMessage, messages.length])
 
@@ -1568,40 +1892,22 @@ export function FloatingAIChat({
     spokenAssistantNoticeIdsRef.current.clear()
   }
 
-  // Get context label
-  function getContextLabel() {
-    if (pageContext) return pageContext.title
-    if (athleteName) return `Atlet: ${athleteName}`
-    switch (contextType) {
-      case 'athlete':
-        return 'Atletkontext'
-      case 'program':
-        return 'Programkontext'
-      case 'test':
-        return 'Testkontext'
-      default:
-        return null
-    }
-  }
-
-  const contextLabel = getContextLabel()
-
   const contextualQuickPrompts = useMemo<QuickPrompt[]>(() => {
     if (!pageContext || !hasContext || !isContextEnabled) return []
 
     if (pageContext.type === 'video-analysis') {
       return [
         {
-          label: 'Förklara problem',
-          prompt: 'Förklara de viktigaste problemen i analysen',
+          label: copy.explainIssues,
+          prompt: copy.explainIssuesPrompt,
         },
         {
-          label: 'Förbättringsövningar',
-          prompt: 'Ge mig specifika övningar för att förbättra tekniken',
+          label: copy.improvementExercises,
+          prompt: copy.improvementExercisesPrompt,
         },
         {
-          label: 'Enkel sammanfattning',
-          prompt: 'Sammanfatta analysen i enkla termer för atleten',
+          label: copy.simpleSummary,
+          prompt: copy.simpleSummaryPrompt,
         },
       ]
     }
@@ -1609,45 +1915,45 @@ export function FloatingAIChat({
     if (pageContext.type === 'coach-dashboard') {
       const operatorPrompt: QuickPrompt | null = operatorContext
         ? {
-            label: operatorAttentionCount > 0 ? 'Operatorbrief' : 'Veckosummering',
+            label: operatorAttentionCount > 0 ? copy.operatorBrief : copy.weeklySummary,
             prompt: operatorAttentionCount > 0
-              ? 'Gör en proaktiv coach-operator brief från dashboardens arbetskö. Prioritera risker, feedback och nästa app-vy att öppna.'
-              : 'Gör en kort proaktiv veckosummering från coachdashboardens operatorläge och lyft vad jag bör bevaka härnäst.',
+              ? copy.operatorBriefPrompt
+              : copy.weeklySummaryPrompt,
           }
         : null
 
       return [
         ...(operatorPrompt ? [operatorPrompt] : []),
         {
-          label: 'Sammanfatta',
-          prompt: 'Sammanfatta coachdashboarden utifrån sidkontexten och prioritera de tre viktigaste nästa stegen.',
+          label: copy.summarize,
+          prompt: copy.summarizeDashboardPrompt,
         },
         {
-          label: 'Vad kräver åtgärd?',
-          prompt: 'Vad kräver åtgärd på den här dashboarden just nu? Skilj på akuta signaler och saker att följa upp senare.',
+          label: copy.whatNeedsAction,
+          prompt: copy.whatNeedsActionPrompt,
         },
         {
-          label: 'Förklara korten',
-          prompt: 'Förklara korten och signalerna på dashboarden så jag snabbt vet hur jag ska läsa sidan.',
+          label: copy.explainCards,
+          prompt: copy.explainCardsPrompt,
         },
       ]
     }
 
     return [
       {
-        label: 'Sammanfatta sidan',
-        prompt: 'Sammanfatta den här sidan och lyft fram vad jag bör titta på först.',
+        label: copy.summarizePage,
+        prompt: copy.summarizePagePrompt,
       },
       {
-        label: 'Nästa steg',
-        prompt: 'Föreslå konkreta nästa steg baserat på sidkontexten.',
+        label: copy.nextSteps,
+        prompt: copy.nextStepsPrompt,
       },
       {
-        label: 'Förklara begrepp',
-        prompt: 'Förklara de viktigaste begreppen på den här sidan kort och praktiskt.',
+        label: copy.explainConcepts,
+        prompt: copy.explainConceptsPrompt,
       },
     ]
-  }, [pageContext, hasContext, isContextEnabled, operatorContext, operatorAttentionCount])
+  }, [copy, pageContext, hasContext, isContextEnabled, operatorContext, operatorAttentionCount])
 
   // Get provider color for badge
   function getProviderBadge() {
@@ -1673,29 +1979,29 @@ export function FloatingAIChat({
   }
 
   const voiceStatusMessage = isVoiceRecording
-    ? `Spelar in ${formatVoiceDuration(voiceDuration)}`
+    ? copy.recording(formatVoiceDuration(voiceDuration))
     : isTranscribingVoice
-      ? 'Skriver ut röstmeddelandet...'
+      ? copy.transcribingVoiceMessage
       : voiceRecorderError
         ? voiceRecorderError
         : null
   const voiceButtonLabel = isVoiceRecording
-    ? 'Stoppa inspelning'
+    ? copy.stopRecording
     : isTranscribingVoice
-      ? 'Transkriberar röst'
-      : 'Starta röstinmatning'
+      ? copy.transcribingVoice
+      : copy.startVoiceInput
   const spokenRepliesLabel = isSpokenRepliesEnabled
-    ? 'Stäng av röstsvar'
-    : 'Slå på röstsvar'
+    ? copy.turnOffSpokenReplies
+    : copy.turnOnSpokenReplies
   const voiceAutoSendLabel = isVoiceAutoSendEnabled
-    ? 'Stäng av automatisk röstsändning'
-    : 'Slå på automatisk röstsändning'
+    ? copy.turnOffAutoSend
+    : copy.turnOnAutoSend
   const voiceOperatorModeLabel = isVoiceOperatorModeEnabled
-    ? 'Stäng av voice operator'
-    : 'Slå på voice operator'
+    ? copy.turnOffVoiceOperator
+    : copy.turnOnVoiceOperator
   const realtimeVoiceLabel = isRealtimeVoiceActive || isRealtimeVoiceConnecting
-    ? 'Stäng av live voice'
-    : 'Starta live voice'
+    ? copy.turnOffLiveVoice
+    : copy.startLiveVoice
 
   // Floating button (always visible)
   if (!isOpen) {
@@ -1733,7 +2039,7 @@ export function FloatingAIChat({
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">AI-assistent</span>
+            <span className="font-semibold text-white">{copy.assistant}</span>
           </div>
           <Button
             variant="ghost"
@@ -1767,7 +2073,7 @@ export function FloatingAIChat({
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">AI-assistent</span>
+            <span className="font-semibold text-white">{copy.assistant}</span>
           </div>
           <Button
             variant="ghost"
@@ -1782,18 +2088,18 @@ export function FloatingAIChat({
           <div>
             <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="font-semibold mb-2">
-              {isAthleteUser ? 'AI-assistenten ej tillgänglig' : 'API-nyckel saknas'}
+              {isAthleteUser ? copy.athleteAssistantUnavailable : copy.apiKeyMissingTitle}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
               {isAthleteUser
-                ? 'Din coach har inte aktiverat AI-assistenten ännu. Kontakta din coach för att aktivera denna funktion.'
-                : 'Konfigurera din API-nyckel (Anthropic eller Google) för att använda AI-assistenten.'}
+                ? copy.athleteAssistantUnavailableDescription
+                : copy.configureApiKeyDescription}
             </p>
             {!isAthleteUser && (
               <Button asChild>
                 <Link href={`${basePath}/coach/settings/ai`}>
                   <Settings className="h-4 w-4 mr-2" />
-                  Gå till inställningar
+                  {copy.goToSettings}
                 </Link>
               </Button>
             )}
@@ -1826,7 +2132,7 @@ export function FloatingAIChat({
             )}
           >
             <Bot className="h-5 w-5 shrink-0 text-white" />
-            <span className="truncate font-semibold text-white">AI-assistent</span>
+            <span className="truncate font-semibold text-white">{copy.assistant}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <Button
@@ -1834,8 +2140,8 @@ export function FloatingAIChat({
               size="icon"
               onClick={handleNewChat}
               className="h-8 w-8 text-white hover:bg-white/20"
-              title="Ny konversation"
-              aria-label="Ny konversation"
+              title={copy.newConversation}
+              aria-label={copy.newConversation}
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
@@ -1844,8 +2150,8 @@ export function FloatingAIChat({
               size="icon"
               onClick={() => setIsExpanded(!isExpanded)}
               className="h-8 w-8 text-white hover:bg-white/20"
-              title={isExpanded ? 'Minimera chatten' : 'Expandera chatten'}
-              aria-label={isExpanded ? 'Minimera chatten' : 'Expandera chatten'}
+              title={isExpanded ? copy.minimizeChat : copy.expandChat}
+              aria-label={isExpanded ? copy.minimizeChat : copy.expandChat}
             >
               {isExpanded ? (
                 <Minimize2 className="h-4 w-4" />
@@ -1858,8 +2164,8 @@ export function FloatingAIChat({
               size="icon"
               onClick={handleClose}
               className="h-8 w-8 text-white hover:bg-white/20"
-              title="Stäng chatten"
-              aria-label="Stäng chatten"
+              title={copy.closeChat}
+              aria-label={copy.closeChat}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -1949,7 +2255,7 @@ export function FloatingAIChat({
         >
           <div className="flex items-center gap-2">
             <Database className="h-3 w-3" />
-            <span>{pageContext?.title || 'Sidkontext'}</span>
+            <span>{pageContext?.title || copy.sideContext}</span>
           </div>
           <div className={cn(
             'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium',
@@ -1960,10 +2266,10 @@ export function FloatingAIChat({
             {isContextEnabled ? (
               <>
                 <Check className="h-3 w-3" />
-                Aktiv
+                {copy.active}
               </>
             ) : (
-              'Inaktiv'
+              copy.inactive
             )}
           </div>
         </button>
@@ -1973,7 +2279,7 @@ export function FloatingAIChat({
       {athleteId && athleteConsentStatus === 'none' && (
         <div className="px-3 py-2 border-b bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          <span>Atletens samtycke saknas — AI-chatten kan inte använda atletdata</span>
+          <span>{copy.consentMissing}</span>
         </div>
       )}
 
@@ -1981,10 +2287,10 @@ export function FloatingAIChat({
         <div className="px-3 py-2 border-b bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Headphones className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Voice operator aktiv: mikrofon, auto-send och röstsvar är på</span>
+            <span className="truncate">{copy.voiceOperatorBanner}</span>
           </div>
           <span className="shrink-0 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium">
-            Bekräftar åtgärder
+            {copy.confirmsActions}
           </span>
         </div>
       )}
@@ -2006,10 +2312,10 @@ export function FloatingAIChat({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => stopRealtimeVoice('Live voice är avstängd.', 'user_stopped')}
+              onClick={() => stopRealtimeVoice(copy.liveVoiceOff, 'user_stopped')}
               className="h-6 px-2 text-xs hover:bg-emerald-500/10"
             >
-              Stoppa
+              {copy.stop}
             </Button>
           )}
         </div>
@@ -2020,13 +2326,13 @@ export function FloatingAIChat({
         {messages.length === 0 && assistantNotices.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="h-10 w-10 text-muted-foreground mb-3" />
-            <h3 className="font-medium mb-1">Hur kan jag hjälpa dig?</h3>
+            <h3 className="font-medium mb-1">{copy.howCanIHelp}</h3>
             <p className="text-sm text-muted-foreground max-w-[250px]">
               {hasContext && isContextEnabled
-                ? `Jag har tillgång till ${pageContext?.title?.toLowerCase() || 'sidkontext'}. Fråga mig vad som helst om det!`
+                ? copy.hasContext(pageContext?.title || copy.sideContext)
                 : hasContext && !isContextEnabled
-                ? 'Kontext är inaktiverad. Klicka på knappen ovan för att aktivera.'
-                : 'Fråga mig om träningsprogram, testanalyser, eller andra frågor om dina atleter.'}
+                ? copy.contextDisabled
+                : copy.defaultEmpty}
             </p>
             {showVoiceGuideCard && (
               <VoiceModesGuide
@@ -2043,7 +2349,7 @@ export function FloatingAIChat({
                   Coachoperator
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {operatorContext.headline || 'Dashboardens operatorläge är aktivt.'}
+                  {operatorContext.headline || copy.operatorActive}
                 </p>
                 {operatorContext.focusAreas && operatorContext.focusAreas.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
@@ -2074,18 +2380,18 @@ export function FloatingAIChat({
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => setInput(`Analysera ${athleteName}s träningshistorik`)}
+                    onClick={() => setInput(copy.analyzeTrainingPrompt(athleteName))}
                     className="text-xs"
                   >
-                    Analysera träning
+                    {copy.analyzeTraining}
                   </Button>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => setInput(`Skapa ett träningsprogram för ${athleteName}`)}
+                    onClick={() => setInput(copy.createProgramPrompt(athleteName))}
                     className="text-xs"
                   >
-                    Skapa program
+                    {copy.createProgram}
                   </Button>
                 </>
               )}
@@ -2094,7 +2400,7 @@ export function FloatingAIChat({
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => setInput('Hur skapar jag ett effektivt 10K-program?')}
+                    onClick={() => setInput(copy.tenKPrompt)}
                     className="text-xs"
                   >
                     10K-program
@@ -2102,10 +2408,10 @@ export function FloatingAIChat({
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => setInput('Förklara tröskelträning och zoner')}
+                    onClick={() => setInput(copy.thresholdPrompt)}
                     className="text-xs"
                   >
-                    Träningszoner
+                    {copy.trainingZones}
                   </Button>
                 </>
               )}
@@ -2201,8 +2507,8 @@ export function FloatingAIChat({
                   {detectedProgram.program.name}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  {detectedProgram.program.totalWeeks} veckor
-                  {!athleteId && ' — Välj en atlet för att spara'}
+                  {detectedProgram.program.totalWeeks} {copy.weeks}
+                  {!athleteId && ` - ${copy.chooseAthleteToSave}`}
                 </p>
               </div>
             </div>
@@ -2217,7 +2523,7 @@ export function FloatingAIChat({
               ) : (
                 <Save className="h-3 w-3 mr-1" />
               )}
-              Spara program
+              {copy.saveProgram}
             </Button>
           </div>
         </div>
@@ -2246,7 +2552,7 @@ export function FloatingAIChat({
                 setInput(e.target.value)
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Skriv ett meddelande..."
+              placeholder={copy.inputPlaceholder}
               className="min-h-[44px] max-h-[120px] resize-none"
               rows={1}
             />
@@ -2293,7 +2599,7 @@ export function FloatingAIChat({
           )}
           {isVoiceAutoSendPending && (
             <div className="flex items-center justify-between gap-2 rounded-md bg-blue-500/10 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
-              <span>Skickar röstmeddelandet snart...</span>
+              <span>{copy.voiceAutoSendSoon}</span>
               <Button
                 type="button"
                 variant="ghost"
@@ -2301,14 +2607,14 @@ export function FloatingAIChat({
                 onClick={cancelVoiceAutoSend}
                 className="h-6 px-2 text-xs hover:bg-blue-500/10"
               >
-                Avbryt
+                {copy.cancel}
               </Button>
             </div>
           )}
           {isSpokenRepliesEnabled && (isGeneratingAssistantAudio || isSpeakingAssistant || voicePlaybackStatus) && (
             <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-              {voicePlaybackStatus || (isSpeakingAssistant ? 'Läser upp svaret...' : 'Skapar AI-röst...')}
-              <span className="ml-1">Rösten är AI-genererad.</span>
+              {voicePlaybackStatus || (isSpeakingAssistant ? copy.readingReply : copy.generatingVoice)}
+              <span className="ml-1">{copy.aiVoiceGenerated}</span>
             </div>
           )}
         </div>
