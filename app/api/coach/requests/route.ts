@@ -7,6 +7,21 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
+type AppLocale = 'en' | 'sv'
+
+const copy = {
+  en: {
+    unauthorized: 'Unauthorized',
+    coachOnly: 'Only coaches can view requests',
+    fetchFailed: 'Failed to fetch requests',
+  },
+  sv: {
+    unauthorized: 'Obehörig',
+    coachOnly: 'Endast coacher kan se förfrågningar',
+    fetchFailed: 'Misslyckades med att hämta förfrågningar',
+  },
+} satisfies Record<AppLocale, Record<string, string>>
+
 /**
  * GET /api/coach/requests
  * List all coach requests (pending and recent)
@@ -15,19 +30,21 @@ import { canAccessCoachPlatform } from '@/lib/user-capabilities'
  * - status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'all' (default: 'PENDING')
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = user?.language === 'sv' ? 'sv' : 'en'
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Obehörig' },
+        { success: false, error: copy[locale].unauthorized },
         { status: 401 }
       )
     }
 
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Endast coacher kan se förfrågningar' },
+        { success: false, error: copy[locale].coachOnly },
         { status: 403 }
       )
     }
@@ -112,7 +129,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error listing coach requests', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att hämta förfrågningar' },
+      { success: false, error: copy[locale].fetchFailed },
       { status: 500 }
     )
   }

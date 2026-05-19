@@ -8,6 +8,8 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
+type AppLocale = 'en' | 'sv'
+
 interface RouteParams {
   params: Promise<{
     id: string
@@ -18,24 +20,43 @@ const rejectSchema = z.object({
   response: z.string().max(500).optional(),
 })
 
+const copy = {
+  en: {
+    unauthorized: 'Unauthorized',
+    coachOnly: 'Only coaches can reject requests',
+    rejected: 'Request rejected.',
+    invalidData: 'Invalid data',
+    rejectFailed: 'Failed to reject request',
+  },
+  sv: {
+    unauthorized: 'Obehörig',
+    coachOnly: 'Endast coacher kan avvisa förfrågningar',
+    rejected: 'Förfrågan avvisad.',
+    invalidData: 'Ogiltiga data',
+    rejectFailed: 'Misslyckades med att avvisa förfrågan',
+  },
+} satisfies Record<AppLocale, Record<string, string>>
+
 /**
  * POST /api/coach/requests/[id]/reject
  * Reject a connection request from an athlete
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = user?.language === 'sv' ? 'sv' : 'en'
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Obehörig' },
+        { success: false, error: copy[locale].unauthorized },
         { status: 401 }
       )
     }
 
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Endast coacher kan avvisa förfrågningar' },
+        { success: false, error: copy[locale].coachOnly },
         { status: 403 }
       )
     }
@@ -52,12 +73,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         id: result.id,
         status: result.status,
       },
-      message: 'Förfrågan avvisad.',
+      message: copy[locale].rejected,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Ogiltiga data', details: error.errors },
+        { success: false, error: copy[locale].invalidData, details: error.errors },
         { status: 400 }
       )
     }
@@ -77,7 +98,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     logger.error('Error rejecting coach request', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att avvisa förfrågan' },
+      { success: false, error: copy[locale].rejectFailed },
       { status: 500 }
     )
   }
