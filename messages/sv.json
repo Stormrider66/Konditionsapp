@@ -14169,6 +14169,57 @@
         "sendFailedTitle": "Kunde inte skicka meddelande"
       }
     },
+    "socialMediaManager": {
+      "tabs": {
+        "posts": "Inlägg",
+        "create": "Skapa nytt",
+        "accounts": "Konton"
+      },
+      "status": {
+        "all": "Alla",
+        "draft": "Utkast",
+        "approved": "Godkänt",
+        "queued": "I kö",
+        "published": "Publicerat",
+        "failed": "Misslyckades"
+      },
+      "posts": {
+        "empty": "Inga inlägg",
+        "emptyWithStatus": "Inga inlägg med denna status",
+        "draftCount": "{count, plural, one {# utkast} other {# utkast}}"
+      },
+      "create": {
+        "title": "Skapa nytt inlägg",
+        "aiSectionTitle": "AI-generera caption",
+        "aiSectionPlaceholder": "Beskriv vad du vill posta... (t.ex. 'Marknadsför vår nya HIIT-klass')",
+        "captionLabel": "Caption",
+        "captionPlaceholder": "Skriv din caption här...",
+        "characterCount": "{count, plural, one {# tecken} other {# tecken}}"
+      },
+      "trigger": {
+        "prAchieved": "Nytt PR",
+        "milestone": "Milstolpe",
+        "challengeComplete": "Utmaning avslutad",
+        "weeklySummary": "Veckosammanfattning",
+        "classPromo": "Klasspromo",
+        "manual": "Manuellt"
+      },
+      "actions": {
+        "approve": "Godkänn",
+        "delete": "Ta bort",
+        "queue": "Lägg i kö",
+        "generate": "Generera",
+        "saveAsDraft": "Spara som utkast",
+        "approveDirect": "Godkänn direkt"
+      },
+      "accounts": {
+        "title": "Anslutna konton",
+        "empty": "Inga konton anslutna",
+        "hint": "Kontoanslutning via Ayrshare kommer snart. Inlägg skapas som utkast tills konton är anslutna.",
+        "active": "Aktiv",
+        "inactive": "Inaktiv"
+      }
+    },
     "competitionManager": {
       "actions": {
         "newChallenge": "Ny utmaning",

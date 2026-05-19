@@ -13823,6 +13823,57 @@
         "sendFailedTitle": "Could not send message"
       }
     },
+    "socialMediaManager": {
+      "tabs": {
+        "posts": "Posts",
+        "create": "Create new",
+        "accounts": "Accounts"
+      },
+      "status": {
+        "all": "All",
+        "draft": "Draft",
+        "approved": "Approved",
+        "queued": "Queued",
+        "published": "Published",
+        "failed": "Failed"
+      },
+      "posts": {
+        "empty": "No posts yet",
+        "emptyWithStatus": "No posts with this status",
+        "draftCount": "{count, plural, one {# draft} other {# drafts}}"
+      },
+      "create": {
+        "title": "Create new post",
+        "aiSectionTitle": "Generate AI caption",
+        "aiSectionPlaceholder": "Describe what you want to post... (e.g. 'Promote our new HIIT class')",
+        "captionLabel": "Caption",
+        "captionPlaceholder": "Write your caption here...",
+        "characterCount": "{count, plural, one {# character} other {# characters}}"
+      },
+      "trigger": {
+        "prAchieved": "New PR",
+        "milestone": "Milestone",
+        "challengeComplete": "Challenge completed",
+        "weeklySummary": "Weekly summary",
+        "classPromo": "Class promo",
+        "manual": "Manual"
+      },
+      "actions": {
+        "approve": "Approve",
+        "delete": "Delete",
+        "queue": "Queue",
+        "generate": "Generate",
+        "saveAsDraft": "Save as draft",
+        "approveDirect": "Approve directly"
+      },
+      "accounts": {
+        "title": "Connected accounts",
+        "empty": "No accounts connected",
+        "hint": "Account connection via Ayrshare will be available soon. Posts will be created as drafts until accounts are connected.",
+        "active": "Active",
+        "inactive": "Inactive"
+      }
+    },
     "competitionManager": {
       "actions": {
         "newChallenge": "New challenge",
