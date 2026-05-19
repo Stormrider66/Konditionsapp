@@ -965,6 +965,10 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
           })
 
           const summaries = await getTeamCalendarAssignmentSummaries(events.map((event) => event.assignedBroadcastId))
+          const coach = await prisma.user.findUnique({
+            where: { id: coachUserId },
+            select: { language: true },
+          })
           const briefingEvents: TeamCalendarBriefingEvent[] = events.map((event) => {
             const summary = event.assignedBroadcastId ? summaries.get(event.assignedBroadcastId) : null
             return {
@@ -996,6 +1000,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
             events: briefingEvents,
             rangeStart,
             rangeEnd,
+            locale: coach?.language === 'sv' ? 'sv' : 'en',
           })
 
           return {

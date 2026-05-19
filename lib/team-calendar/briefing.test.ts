@@ -67,8 +67,8 @@ describe('team calendar briefing', () => {
     expect(briefing.nextActions.map((action) => action.type)).toEqual(
       expect.arrayContaining(['build_content', 'assign_ready', 'complete_ice_plan'])
     )
-    expect(briefing.summaryText).toContain('1 behöver innehåll')
-    expect(briefing.events.find((item) => item.id === 'ready')?.planningFlags).toContain('Redo att tilldela')
+    expect(briefing.summaryText).toContain('1 need content')
+    expect(briefing.events.find((item) => item.id === 'ready')?.planningFlags).toContain('Ready to assign')
   })
 
   it('does not mark assigned physical sessions as missing content', () => {
@@ -107,7 +107,29 @@ describe('team calendar briefing', () => {
       ],
     })
 
-    expect(briefing.warnings.some((warning) => warning.includes('Fys dagen före match'))).toBe(true)
+    expect(briefing.warnings.some((warning) => warning.includes('Physical work the day before game'))).toBe(true)
+  })
+
+  it('keeps Swedish briefing copy when requested', () => {
+    const briefing = buildTeamCalendarBriefing({
+      team,
+      rangeStart: new Date('2026-05-18T00:00:00.000Z'),
+      rangeEnd: new Date('2026-05-24T23:59:59.999Z'),
+      locale: 'sv',
+      events: [
+        event({
+          id: 'ready',
+          title: 'Kondition',
+          type: 'CARDIO',
+          contentStatus: 'CONTENT_READY',
+          linkedWorkoutId: 'cardio-1',
+          linkedWorkoutName: 'Shift-repeat 4x6',
+        }),
+      ],
+    })
+
+    expect(briefing.summaryText).toContain('1 är redo att tilldela')
+    expect(briefing.events.find((item) => item.id === 'ready')?.planningFlags).toContain('Redo att tilldela')
   })
 
   it('uses high load level for six or more load points', () => {

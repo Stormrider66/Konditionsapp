@@ -10,6 +10,7 @@ import {
 } from '@/lib/team-calendar/event-types'
 
 export type TeamCalendarLoadLevel = 'low' | 'moderate' | 'high'
+type AppLocale = 'en' | 'sv'
 
 export type TeamCalendarBriefingEvent = {
   id: string
@@ -84,45 +85,83 @@ export type TeamCalendarBriefing = {
   summaryText: string
 }
 
-const dateFormatter = new Intl.DateTimeFormat('sv-SE', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-})
+const TEAM_EVENT_TYPE_LABELS_EN: Record<TeamEventType, string> = {
+  PRACTICE: 'Ice practice',
+  ICE_PRACTICE: 'Ice practice',
+  STRENGTH: 'Strength',
+  CARDIO: 'Conditioning',
+  HYBRID: 'Hybrid',
+  AGILITY: 'Agility',
+  PREHAB: 'Stability / Prehab',
+  PLYOMETRICS: 'Plyometrics',
+  GAME: 'Game',
+  TEST: 'Test',
+  INTERVAL_SESSION: 'Interval session',
+  OFF_DAY: 'Rest day',
+  MEETING: 'Meeting',
+  ANNUAL_PLAN: 'Annual plan',
+  OTHER: 'Other',
+}
 
-const timeFormatter = new Intl.DateTimeFormat('sv-SE', {
-  hour: '2-digit',
-  minute: '2-digit',
-})
+const TEAM_EVENT_CONTENT_STATUS_LABELS_EN: Record<TeamEventContentStatus, string> = {
+  PLANNED: 'Planned outline',
+  NEEDS_CONTENT: 'Needs content',
+  CONTENT_READY: 'Content ready',
+  ASSIGNED: 'Assigned',
+}
+
+const TEAM_EVENT_CONTENT_OWNER_LABELS_EN: Record<TeamEventContentOwner, string> = {
+  coach: 'Coaching staff',
+  physical_trainer: 'Physical trainer',
+  physio: 'Physiotherapist',
+  shared: 'Shared responsibility',
+}
+
+function getDateFormatter(locale: AppLocale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
+function getTimeFormatter(locale: AppLocale): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 function dateKey(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-function formatDate(date: Date): string {
-  return dateFormatter.format(date)
+function formatDate(date: Date, locale: AppLocale): string {
+  return getDateFormatter(locale).format(date)
 }
 
-function formatTime(date: Date): string {
-  return timeFormatter.format(date)
+function formatTime(date: Date, locale: AppLocale): string {
+  return getTimeFormatter(locale).format(date)
 }
 
-function eventTypeLabel(type: string): string {
-  if (isTeamEventType(type)) return TEAM_EVENT_TYPE_LABELS[type]
-  return type || 'Övrigt'
+function eventTypeLabel(type: string, locale: AppLocale): string {
+  if (isTeamEventType(type)) return locale === 'sv' ? TEAM_EVENT_TYPE_LABELS[type] : TEAM_EVENT_TYPE_LABELS_EN[type]
+  return type || (locale === 'sv' ? 'Övrigt' : 'Other')
 }
 
-function contentStatusLabel(status: string): string {
-  if (TEAM_EVENT_CONTENT_STATUS_LABELS[status as TeamEventContentStatus]) {
-    return TEAM_EVENT_CONTENT_STATUS_LABELS[status as TeamEventContentStatus]
+function contentStatusLabel(status: string, locale: AppLocale): string {
+  const labels = locale === 'sv' ? TEAM_EVENT_CONTENT_STATUS_LABELS : TEAM_EVENT_CONTENT_STATUS_LABELS_EN
+  if (labels[status as TeamEventContentStatus]) {
+    return labels[status as TeamEventContentStatus]
   }
-  return TEAM_EVENT_CONTENT_STATUS_LABELS.PLANNED
+  return labels.PLANNED
 }
 
-function contentOwnerLabel(owner: string | null): string | null {
+function contentOwnerLabel(owner: string | null, locale: AppLocale): string | null {
   if (!owner) return null
-  if (TEAM_EVENT_CONTENT_OWNER_LABELS[owner as TeamEventContentOwner]) {
-    return TEAM_EVENT_CONTENT_OWNER_LABELS[owner as TeamEventContentOwner]
+  const labels = locale === 'sv' ? TEAM_EVENT_CONTENT_OWNER_LABELS : TEAM_EVENT_CONTENT_OWNER_LABELS_EN
+  if (labels[owner as TeamEventContentOwner]) {
+    return labels[owner as TeamEventContentOwner]
   }
   return owner
 }
@@ -183,19 +222,24 @@ export function getTeamCalendarLoadLevel(points: number): TeamCalendarLoadLevel 
   return 'low'
 }
 
-function loadLevelLabel(level: TeamCalendarLoadLevel): string {
-  if (level === 'high') return 'hög'
-  if (level === 'moderate') return 'medel'
-  return 'låg'
+function loadLevelLabel(level: TeamCalendarLoadLevel, locale: AppLocale): string {
+  if (locale === 'sv') {
+    if (level === 'high') return 'hög'
+    if (level === 'moderate') return 'medel'
+    return 'låg'
+  }
+  if (level === 'high') return 'high'
+  if (level === 'moderate') return 'moderate'
+  return 'low'
 }
 
-function planningFlags(event: TeamCalendarBriefingEvent): string[] {
+function planningFlags(event: TeamCalendarBriefingEvent, locale: AppLocale): string[] {
   const flags: string[] = []
 
-  if (teamCalendarEventNeedsContent(event)) flags.push('Behöver workout-innehåll')
-  if (teamCalendarEventReadyToAssign(event)) flags.push('Redo att tilldela')
-  if (event.assignedBroadcastId) flags.push('Tilldelat')
-  if (isTeamCalendarIcePractice(event) && !teamCalendarEventHasPracticePlan(event)) flags.push('Saknar isplan')
+  if (teamCalendarEventNeedsContent(event)) flags.push(locale === 'sv' ? 'Behöver workout-innehåll' : 'Needs workout content')
+  if (teamCalendarEventReadyToAssign(event)) flags.push(locale === 'sv' ? 'Redo att tilldela' : 'Ready to assign')
+  if (event.assignedBroadcastId) flags.push(locale === 'sv' ? 'Tilldelat' : 'Assigned')
+  if (isTeamCalendarIcePractice(event) && !teamCalendarEventHasPracticePlan(event)) flags.push(locale === 'sv' ? 'Saknar isplan' : 'Missing ice plan')
 
   return flags
 }
@@ -205,11 +249,13 @@ export function buildTeamCalendarBriefing({
   events,
   rangeStart,
   rangeEnd,
+  locale = 'en',
 }: {
   team: { id: string; name: string; sportType: string | null }
   events: TeamCalendarBriefingEvent[]
   rangeStart: Date
   rangeEnd: Date
+  locale?: AppLocale
 }): TeamCalendarBriefing {
   const sortedEvents = [...events].sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
   const physicalEvents = sortedEvents.filter(isTeamCalendarPhysicalEvent)
@@ -241,17 +287,27 @@ export function buildTeamCalendarBriefing({
       eventCount: dayEvents.length,
       loadPoints: points,
       loadLevel: getTeamCalendarLoadLevel(points),
-      labels: dayEvents.map((event) => eventTypeLabel(event.type)),
+      labels: dayEvents.map((event) => eventTypeLabel(event.type, locale)),
     }
   })
 
   const warnings: string[] = []
-  if (needsContent.length > 0) warnings.push(`${needsContent.length} fyspass saknar workout-innehåll.`)
-  if (missingIcePlans.length > 0) warnings.push(`${missingIcePlans.length} ispass saknar blockplan.`)
+  if (needsContent.length > 0) {
+    warnings.push(locale === 'sv'
+      ? `${needsContent.length} fyspass saknar workout-innehåll.`
+      : `${needsContent.length} physical session(s) are missing workout content.`)
+  }
+  if (missingIcePlans.length > 0) {
+    warnings.push(locale === 'sv'
+      ? `${missingIcePlans.length} ispass saknar blockplan.`
+      : `${missingIcePlans.length} ice session(s) are missing a block plan.`)
+  }
 
   const highLoadDays = dayLoads.filter((day) => day.loadLevel === 'high')
   highLoadDays.forEach((day) => {
-    warnings.push(`${day.date} har hög totalbelastning (${day.loadPoints} poäng).`)
+    warnings.push(locale === 'sv'
+      ? `${day.date} har hög totalbelastning (${day.loadPoints} poäng).`
+      : `${day.date} has high total load (${day.loadPoints} points).`)
   })
 
   games.forEach((game) => {
@@ -260,7 +316,9 @@ export function buildTeamCalendarBriefing({
     previousDay.setDate(previousDay.getDate() - 1)
     const previousPhysical = physicalEvents.filter((event) => dateKey(event.startDate) === dateKey(previousDay))
     if (previousPhysical.length > 0) {
-      warnings.push(`Fys dagen före match ${gameDay}: ${previousPhysical.map((event) => eventTypeLabel(event.type)).join(', ')}.`)
+      warnings.push(locale === 'sv'
+        ? `Fys dagen före match ${gameDay}: ${previousPhysical.map((event) => eventTypeLabel(event.type, locale)).join(', ')}.`
+        : `Physical work the day before game ${gameDay}: ${previousPhysical.map((event) => eventTypeLabel(event.type, locale)).join(', ')}.`)
     }
   })
 
@@ -270,21 +328,27 @@ export function buildTeamCalendarBriefing({
       eventId: event.id,
       eventTitle: event.title,
       date: dateKey(event.startDate),
-      message: `Bygg workout-innehåll för ${event.title} ${formatDate(event.startDate)}.`,
+      message: locale === 'sv'
+        ? `Bygg workout-innehåll för ${event.title} ${formatDate(event.startDate, locale)}.`
+        : `Build workout content for ${event.title} ${formatDate(event.startDate, locale)}.`,
     })),
     ...readyToAssign.slice(0, 3).map((event) => ({
       type: 'assign_ready' as const,
       eventId: event.id,
       eventTitle: event.title,
       date: dateKey(event.startDate),
-      message: `Tilldela ${event.linkedWorkoutName ?? event.title} till laget.`,
+      message: locale === 'sv'
+        ? `Tilldela ${event.linkedWorkoutName ?? event.title} till laget.`
+        : `Assign ${event.linkedWorkoutName ?? event.title} to the team.`,
     })),
     ...missingIcePlans.slice(0, 3).map((event) => ({
       type: 'complete_ice_plan' as const,
       eventId: event.id,
       eventTitle: event.title,
       date: dateKey(event.startDate),
-      message: `Lägg in blockplan för ispasset ${event.title} ${formatDate(event.startDate)}.`,
+      message: locale === 'sv'
+        ? `Lägg in blockplan för ispasset ${event.title} ${formatDate(event.startDate, locale)}.`
+        : `Add a block plan for ice session ${event.title} ${formatDate(event.startDate, locale)}.`,
     })),
   ]
 
@@ -292,17 +356,27 @@ export function buildTeamCalendarBriefing({
     nextActions.push({
       type: 'review_load',
       date: day.date,
-      message: `Granska belastningen ${day.date}; dagen ligger på ${loadLevelLabel(day.loadLevel)} nivå.`,
+      message: locale === 'sv'
+        ? `Granska belastningen ${day.date}; dagen ligger på ${loadLevelLabel(day.loadLevel, locale)} nivå.`
+        : `Review load on ${day.date}; the day is at ${loadLevelLabel(day.loadLevel, locale)} level.`,
     })
   })
 
-  const summaryParts = [
-    `${team.name}: ${sortedEvents.length} kalenderhändelser`,
-    `${needsContent.length} behöver innehåll`,
-    `${readyToAssign.length} är redo att tilldela`,
-    `${missingIcePlans.length} ispass saknar plan`,
-    `veckobelastning ${loadLevelLabel(loadLevel)} (${loadPoints} poäng)`,
-  ]
+  const summaryParts = locale === 'sv'
+    ? [
+        `${team.name}: ${sortedEvents.length} kalenderhändelser`,
+        `${needsContent.length} behöver innehåll`,
+        `${readyToAssign.length} är redo att tilldela`,
+        `${missingIcePlans.length} ispass saknar plan`,
+        `veckobelastning ${loadLevelLabel(loadLevel, locale)} (${loadPoints} poäng)`,
+      ]
+    : [
+        `${team.name}: ${sortedEvents.length} calendar event(s)`,
+        `${needsContent.length} need content`,
+        `${readyToAssign.length} ready to assign`,
+        `${missingIcePlans.length} ice session(s) missing a plan`,
+        `weekly load ${loadLevelLabel(loadLevel, locale)} (${loadPoints} points)`,
+      ]
 
   return {
     team,
@@ -328,17 +402,17 @@ export function buildTeamCalendarBriefing({
       id: event.id,
       title: event.title,
       type: event.type,
-      typeLabel: eventTypeLabel(event.type),
+      typeLabel: eventTypeLabel(event.type, locale),
       date: dateKey(event.startDate),
-      startTime: event.allDay ? null : formatTime(event.startDate),
-      endTime: event.allDay || !event.endDate ? null : formatTime(event.endDate),
+      startTime: event.allDay ? null : formatTime(event.startDate, locale),
+      endTime: event.allDay || !event.endDate ? null : formatTime(event.endDate, locale),
       location: event.location,
       contentStatus: event.contentStatus,
-      contentStatusLabel: contentStatusLabel(event.contentStatus),
-      contentOwnerLabel: contentOwnerLabel(event.contentOwner),
+      contentStatusLabel: contentStatusLabel(event.contentStatus, locale),
+      contentOwnerLabel: contentOwnerLabel(event.contentOwner, locale),
       linkedWorkoutName: event.linkedWorkoutName,
       assignment: event.assignmentSummary ?? null,
-      planningFlags: planningFlags(event),
+      planningFlags: planningFlags(event, locale),
     })),
     dayLoads,
     summaryText: `${summaryParts.join(', ')}.`,
