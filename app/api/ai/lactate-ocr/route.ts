@@ -27,9 +27,12 @@ import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
+type AppLocale = 'en' | 'sv'
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const locale = getUserLocale(user.language)
 
     // Subscription gate (coach-level)
     const denied = await requireCoachFeatureAccess(user.id, 'lactate_ocr')
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     if (!imageFile) {
       return NextResponse.json(
-        { error: 'Ingen bild uppladdad' },
+        { error: t(locale, 'No image uploaded', 'Ingen bild uppladdad') },
         { status: 400 }
       );
     }
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
     if (!validTypes.includes(imageFile.type)) {
       return NextResponse.json(
-        { error: 'Ogiltigt bildformat. Använd JPEG, PNG, WebP eller HEIC.' },
+        { error: t(locale, 'Invalid image format. Use JPEG, PNG, WebP, or HEIC.', 'Ogiltigt bildformat. Använd JPEG, PNG, WebP eller HEIC.') },
         { status: 400 }
       );
     }
@@ -79,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google API-nyckel saknas. Konfigurera i Inställningar.' },
+        { error: t(locale, 'Google API key is missing. Configure it in Settings.', 'Google API-nyckel saknas. Konfigurera i Inställningar.') },
         { status: 400 }
       );
     }
@@ -140,21 +143,7 @@ export async function POST(request: NextRequest) {
               },
               {
                 type: 'text',
-                text: `Du är en expert på att läsa av laktatmätare. Analysera denna bild och extrahera laktatvärdet.
-${contextInfo}
-
-VIKTIGT:
-1. Läs av det exakta värdet som visas på displayen
-2. Identifiera om det är en Lactate Pro 2, Lactate Scout, eller annan mätare
-3. Notera eventuella kvalitetsproblem med bilden (bländning, vinkel, skärpa)
-4. Varna om värdet verkar ovanligt (>15 mmol/L är mycket högt, <0.5 är mycket lågt)
-5. Om displayen visar ett felmeddelande (LO, HI, E-1, etc.), rapportera det
-
-Typiska laktatvärden:
-- Vila: 0.5-2.0 mmol/L
-- Aerob tröskel: 2.0-2.5 mmol/L
-- Anaerob tröskel: 3.5-5.0 mmol/L
-- Maximal ansträngning: 8-20+ mmol/L`,
+                text: buildLactateOcrPrompt(locale, contextInfo),
               },
             ],
           },
@@ -184,7 +173,7 @@ Typiska laktatvärden:
 
     return NextResponse.json(
       {
-        error: 'Kunde inte läsa av laktatmätaren',
+        error: 'Could not read the lactate meter',
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -193,4 +182,48 @@ Typiska laktatvärden:
       { status: 500 }
     );
   }
+}
+
+function buildLactateOcrPrompt(locale: AppLocale, contextInfo: string): string {
+  if (locale === 'sv') {
+    return `Du är en expert på att läsa av laktatmätare. Analysera denna bild och extrahera laktatvärdet.
+${contextInfo}
+
+VIKTIGT:
+1. Läs av det exakta värdet som visas på displayen
+2. Identifiera om det är en Lactate Pro 2, Lactate Scout, eller annan mätare
+3. Notera eventuella kvalitetsproblem med bilden (bländning, vinkel, skärpa)
+4. Varna om värdet verkar ovanligt (>15 mmol/L är mycket högt, <0.5 är mycket lågt)
+5. Om displayen visar ett felmeddelande (LO, HI, E-1, etc.), rapportera det
+
+Typiska laktatvärden:
+- Vila: 0.5-2.0 mmol/L
+- Aerob tröskel: 2.0-2.5 mmol/L
+- Anaerob tröskel: 3.5-5.0 mmol/L
+- Maximal ansträngning: 8-20+ mmol/L`
+  }
+
+  return `You are an expert at reading lactate meters. Analyze this image and extract the lactate value.
+${contextInfo}
+
+IMPORTANT:
+1. Read the exact value shown on the display
+2. Identify whether it is a Lactate Pro 2, Lactate Scout, or another meter
+3. Note any image quality issues (glare, angle, sharpness)
+4. Warn if the value appears unusual (>15 mmol/L is very high, <0.5 is very low)
+5. If the display shows an error message (LO, HI, E-1, etc.), report it
+
+Typical lactate values:
+- Rest: 0.5-2.0 mmol/L
+- Aerobic threshold: 2.0-2.5 mmol/L
+- Anaerobic threshold: 3.5-5.0 mmol/L
+- Maximal effort: 8-20+ mmol/L`
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
