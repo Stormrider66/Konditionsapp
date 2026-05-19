@@ -24,6 +24,7 @@ import {
 import { History, Search, Trash2, User, MessageSquare, Loader2, Bot } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import type { AIProvider } from '@prisma/client'
+import { useLocale } from '@/i18n/client'
 
 interface Conversation {
   id: string
@@ -48,6 +49,59 @@ interface ChatHistoryPanelProps {
   onLoadConversation: (conversationId: string) => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const copy = {
+  en: {
+    fetchErrorTitle: 'Could not load history',
+    fetchErrorDescription: 'Try again later',
+    deletedTitle: 'Conversation deleted',
+    deleteErrorTitle: 'Could not delete conversation',
+    title: 'Chat history',
+    searchPlaceholder: 'Search conversations...',
+    noMatches: 'No matching conversations',
+    noHistory: 'No chat history yet',
+    newConversation: 'New conversation',
+    messages: 'messages',
+    deleteTitle: 'Delete conversation?',
+    deleteDescription:
+      'This action cannot be undone. The conversation and all of its messages will be permanently deleted.',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    groups: {
+      today: 'Today',
+      yesterday: 'Yesterday',
+      thisWeek: 'This week',
+      older: 'Older',
+    },
+  },
+  sv: {
+    fetchErrorTitle: 'Kunde inte hämta historik',
+    fetchErrorDescription: 'Försök igen senare',
+    deletedTitle: 'Konversation borttagen',
+    deleteErrorTitle: 'Kunde inte ta bort konversation',
+    title: 'Chatthistorik',
+    searchPlaceholder: 'Sök konversationer...',
+    noMatches: 'Inga matchande konversationer',
+    noHistory: 'Ingen chatthistorik ännu',
+    newConversation: 'Ny konversation',
+    messages: 'meddelanden',
+    deleteTitle: 'Ta bort konversation?',
+    deleteDescription:
+      'Denna åtgärd kan inte ångras. Konversationen och alla dess meddelanden kommer att tas bort permanent.',
+    cancel: 'Avbryt',
+    delete: 'Ta bort',
+    groups: {
+      today: 'Idag',
+      yesterday: 'Igår',
+      thisWeek: 'Denna vecka',
+      older: 'Äldre',
+    },
+  },
+}
+
 export function ChatHistoryPanel({
   open,
   onOpenChange,
@@ -55,6 +109,8 @@ export function ChatHistoryPanel({
   onLoadConversation,
 }: ChatHistoryPanelProps) {
   const { toast } = useToast()
+  const appLocale = getAppLocale(useLocale())
+  const ui = copy[appLocale]
   const toastRef = useRef(toast)
 
   useEffect(() => {
@@ -77,18 +133,18 @@ export function ChatHistoryPanel({
     } catch (err) {
       console.error('Failed to fetch conversations:', err)
       toastRef.current({
-        title: 'Kunde inte hämta historik',
-        description: 'Försök igen senare',
+        title: ui.fetchErrorTitle,
+        description: ui.fetchErrorDescription,
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [ui.fetchErrorDescription, ui.fetchErrorTitle])
 
   useEffect(() => {
     if (open) {
-      fetchConversations()
+      void Promise.resolve().then(fetchConversations)
     }
   }, [open, fetchConversations])
 
@@ -101,14 +157,14 @@ export function ChatHistoryPanel({
       if (response.ok) {
         setConversations((prev) => prev.filter((c) => c.id !== id))
         toast({
-          title: 'Konversation borttagen',
+          title: ui.deletedTitle,
         })
       } else {
         throw new Error('Failed to delete')
       }
-    } catch (err) {
+    } catch (_err) {
       toast({
-        title: 'Kunde inte ta bort konversation',
+        title: ui.deleteErrorTitle,
         variant: 'destructive',
       })
     } finally {
@@ -129,7 +185,7 @@ export function ChatHistoryPanel({
   })
 
   // Group conversations by date
-  const groupedConversations = groupByDate(filteredConversations)
+  const groupedConversations = groupByDate(filteredConversations, ui.groups)
 
   return (
     <>
@@ -138,7 +194,7 @@ export function ChatHistoryPanel({
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
-              Chatthistorik
+              {ui.title}
             </SheetTitle>
           </SheetHeader>
 
@@ -147,7 +203,7 @@ export function ChatHistoryPanel({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Sök konversationer..."
+                placeholder={ui.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -164,7 +220,7 @@ export function ChatHistoryPanel({
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-20" />
                   <p className="text-sm">
-                    {searchQuery ? 'Inga matchande konversationer' : 'Ingen chatthistorik ännu'}
+                    {searchQuery ? ui.noMatches : ui.noHistory}
                   </p>
                 </div>
               ) : (
@@ -189,7 +245,7 @@ export function ChatHistoryPanel({
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm truncate">
-                                  {conv.title || 'Ny konversation'}
+                                  {conv.title || ui.newConversation}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                                   {conv.athlete && (
@@ -204,12 +260,12 @@ export function ChatHistoryPanel({
                                   </span>
                                   {conv._count?.messages && (
                                     <Badge variant="secondary" className="text-[10px] py-0">
-                                      {conv._count.messages} meddelanden
+                                      {conv._count.messages} {ui.messages}
                                     </Badge>
                                   )}
                                 </div>
                                 <p className="text-[10px] text-muted-foreground/70 mt-1">
-                                  {formatTime(conv.updatedAt)}
+                                  {formatTime(conv.updatedAt, appLocale)}
                                 </p>
                               </div>
                               <Button
@@ -240,13 +296,13 @@ export function ChatHistoryPanel({
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort konversation?</AlertDialogTitle>
+            <AlertDialogTitle>{ui.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Denna åtgärd kan inte ångras. Konversationen och alla dess meddelanden kommer att tas bort permanent.
+              {ui.deleteDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{ui.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && handleDelete(deleteId)}
               disabled={deleting}
@@ -257,7 +313,7 @@ export function ChatHistoryPanel({
               ) : (
                 <Trash2 className="h-4 w-4 mr-2" />
               )}
-              Ta bort
+              {ui.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -267,7 +323,10 @@ export function ChatHistoryPanel({
 }
 
 // Helper function to group conversations by date
-function groupByDate(conversations: Conversation[]): Record<string, Conversation[]> {
+function groupByDate(
+  conversations: Conversation[],
+  labels: typeof copy.en.groups
+): Record<string, Conversation[]> {
   const groups: Record<string, Conversation[]> = {}
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -282,13 +341,13 @@ function groupByDate(conversations: Conversation[]): Record<string, Conversation
 
     let group: string
     if (date.getTime() === today.getTime()) {
-      group = 'Idag'
+      group = labels.today
     } else if (date.getTime() === yesterday.getTime()) {
-      group = 'Igår'
+      group = labels.yesterday
     } else if (date.getTime() > weekAgo.getTime()) {
-      group = 'Denna vecka'
+      group = labels.thisWeek
     } else {
-      group = 'Äldre'
+      group = labels.older
     }
 
     if (!groups[group]) {
@@ -301,16 +360,17 @@ function groupByDate(conversations: Conversation[]): Record<string, Conversation
 }
 
 // Helper function to format time
-function formatTime(date: Date): string {
+function formatTime(date: Date, locale: AppLocale): string {
   const d = new Date(date)
   const now = new Date()
   const isToday = d.toDateString() === now.toDateString()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
 
   if (isToday) {
-    return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })
   }
 
-  return d.toLocaleDateString('sv-SE', {
+  return d.toLocaleDateString(dateLocale, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
