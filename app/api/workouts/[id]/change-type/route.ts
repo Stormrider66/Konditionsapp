@@ -3,12 +3,15 @@ import { prisma } from '@/lib/prisma'
 import { requireCoachAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessWorkout } from '@/lib/auth-utils'
 
+type AppLocale = 'en' | 'sv'
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireCoachAuth()
+    const locale = getUserLocale(user.language)
     const { id } = await params
     const body = await request.json()
     const { newType } = body
@@ -34,7 +37,7 @@ export async function POST(
         where: { id },
         data: {
           type: newType,
-          name: getDefaultWorkoutName(newType),
+          name: getDefaultWorkoutName(newType, locale),
           duration: null,
           distance: null,
           instructions: null,
@@ -47,7 +50,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       workout: updatedWorkout,
-      message: 'Workout type changed successfully'
+      message: t(locale, 'Workout type changed successfully', 'Träningspassets typ har ändrats')
     })
 
   } catch (error) {
@@ -55,14 +58,32 @@ export async function POST(
   }
 }
 
-function getDefaultWorkoutName(type: string): string {
-  const names: Record<string, string> = {
-    RUNNING: 'Nytt löppass',
-    STRENGTH: 'Nytt styrkepass',
-    CORE: 'Nytt core-pass',
-    CYCLING: 'Nytt cykelpass',
-    SWIMMING: 'Nytt simpass',
-    ALTERNATIVE: 'Nytt alternativt pass',
+function getDefaultWorkoutName(type: string, locale: AppLocale): string {
+  const names: Record<AppLocale, Record<string, string>> = {
+    en: {
+      RUNNING: 'New run workout',
+      STRENGTH: 'New strength workout',
+      CORE: 'New core workout',
+      CYCLING: 'New cycling workout',
+      SWIMMING: 'New swim workout',
+      ALTERNATIVE: 'New alternative workout',
+    },
+    sv: {
+      RUNNING: 'Nytt löppass',
+      STRENGTH: 'Nytt styrkepass',
+      CORE: 'Nytt core-pass',
+      CYCLING: 'Nytt cykelpass',
+      SWIMMING: 'Nytt simpass',
+      ALTERNATIVE: 'Nytt alternativt pass',
+    },
   }
-  return names[type] || 'Nytt träningspass'
+  return names[locale][type] || t(locale, 'New workout', 'Nytt träningspass')
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
