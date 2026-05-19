@@ -184,6 +184,51 @@ model AthletePlanBlock {
   @@index([startDate, endDate])
 }
 
+model TeamPlan {
+  id      String @id @default(uuid())
+  teamId  String
+  coachId String
+
+  name        String
+  description String? @db.Text
+  status      String  @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
+
+  startDate DateTime
+  endDate   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team   Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  coach  User            @relation("CoachTeamPlans", fields: [coachId], references: [id])
+  blocks TeamPlanBlock[]
+
+  @@index([teamId, startDate, endDate])
+  @@index([coachId])
+  @@index([status])
+}
+
+model TeamPlanBlock {
+  id     String @id @default(uuid())
+  planId String
+
+  title       String
+  focus       String?
+  description String? @db.Text
+  order       Int
+
+  startDate DateTime
+  endDate   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plan TeamPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, order])
+  @@index([startDate, endDate])
+}
+
 model TrainingWeek {
   id        String @id @default(uuid())
   programId String

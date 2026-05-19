@@ -30,6 +30,8 @@ import {
 } from 'lucide-react'
 import { TeamDashboardClient } from '@/components/coach/teams/TeamDashboardClient'
 import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
+import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
+import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { TeamLeaderboard } from '@/components/coach/leaderboards'
 import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
@@ -176,6 +178,35 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
   tomorrow.setDate(tomorrow.getDate() + 1)
   const upcomingUntil = new Date(today)
   upcomingUntil.setDate(upcomingUntil.getDate() + 7)
+  const activeTeamPlan = await prisma.teamPlan.findFirst({
+    where: {
+      teamId,
+      status: 'ACTIVE',
+      startDate: { lte: today },
+      endDate: { gte: today },
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      status: true,
+      startDate: true,
+      endDate: true,
+      blocks: {
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          focus: true,
+          description: true,
+          order: true,
+          startDate: true,
+          endDate: true,
+        },
+      },
+    },
+    orderBy: { startDate: 'desc' },
+  })
   const activeAssignmentStatuses = [
     AssignmentStatus.PENDING,
     AssignmentStatus.SCHEDULED,
@@ -551,6 +582,11 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             basePath={`/${businessSlug}/coach`}
             importPath={`/${businessSlug}/coach/teams/${teamId}/import`}
           />
+          <CreateTeamPlanDialog
+            teamId={teamId}
+            teamName={team.name}
+            businessSlug={businessSlug}
+          />
           <TeamDashboardClient teamId={teamId} basePath={`/${businessSlug}`} />
         </div>
       </div>
@@ -628,6 +664,28 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           </div>
         </CardContent>
       </Card>
+
+      <div className="mb-8">
+        {activeTeamPlan ? (
+          <AthletePlanSummaryCard plan={activeTeamPlan} now={today} variant="team" />
+        ) : (
+          <Card className="dark:bg-slate-900/50 dark:border-white/10">
+            <CardHeader>
+              <CardTitle className="dark:text-white">Lagets blockplan</CardTitle>
+              <CardDescription>
+                Skapa planens faser först, fyll sedan kalendern med is, fys och matcher.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CreateTeamPlanDialog
+                teamId={teamId}
+                teamName={team.name}
+                businessSlug={businessSlug}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <div className="mb-8">
         <Card className="dark:bg-slate-900/50 dark:border-white/10">

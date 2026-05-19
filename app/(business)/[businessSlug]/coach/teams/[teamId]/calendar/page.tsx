@@ -3,6 +3,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
+import { prisma } from '@/lib/prisma'
 import { TeamCalendarView } from '@/components/coach/team-calendar/TeamCalendarView'
 import { ManageAssistantsDialog } from '@/components/coach/team-calendar/ManageAssistantsDialog'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,48 @@ export default async function TeamCalendarPage({ params }: PageProps) {
   const team = await getAccessibleTeam(user.id, teamId, businessSlug)
 
   if (!team) notFound()
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const activeTeamPlans = await prisma.teamPlan.findMany({
+    where: {
+      teamId,
+      status: 'ACTIVE',
+      startDate: { lte: today },
+      endDate: { gte: today },
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      status: true,
+      startDate: true,
+      endDate: true,
+      blocks: {
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          focus: true,
+          description: true,
+          order: true,
+          startDate: true,
+          endDate: true,
+        },
+      },
+    },
+    orderBy: { startDate: 'desc' },
+  })
+  const serializedTeamPlans = activeTeamPlans.map((plan) => ({
+    ...plan,
+    startDate: plan.startDate.toISOString(),
+    endDate: plan.endDate.toISOString(),
+    blocks: plan.blocks.map((block) => ({
+      ...block,
+      startDate: block.startDate.toISOString(),
+      endDate: block.endDate.toISOString(),
+    })),
+  }))
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
@@ -58,6 +101,7 @@ export default async function TeamCalendarPage({ params }: PageProps) {
         teamId={team.id}
         teamName={team.name}
         businessSlug={businessSlug}
+        initialTeamPlans={serializedTeamPlans}
       />
     </div>
   )

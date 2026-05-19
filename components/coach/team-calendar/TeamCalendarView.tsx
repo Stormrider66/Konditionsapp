@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CreateEventDialog } from './CreateEventDialog'
 import { EditEventDialog } from './EditEventDialog'
+import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
+import { AthletePlanSummaryCard, type AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import Link from 'next/link'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
@@ -431,10 +433,17 @@ interface TeamCalendarViewProps {
   teamId: string
   teamName: string
   businessSlug?: string
+  initialTeamPlans?: AthletePlanSummary[]
 }
 
-export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalendarViewProps) {
+export function TeamCalendarView({
+  teamId,
+  teamName,
+  businessSlug,
+  initialTeamPlans = [],
+}: TeamCalendarViewProps) {
   const [events, setEvents] = useState<TeamEvent[]>([])
+  const [teamPlans, setTeamPlans] = useState<AthletePlanSummary[]>(initialTeamPlans)
   const [loading, setLoading] = useState(true)
   const [weekBase, setWeekBase] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<TeamEvent | null>(null)
@@ -456,6 +465,12 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
   rangeEnd.setHours(23, 59, 59, 999)
   const weekEnd = new Date(weekDates[6])
   weekEnd.setHours(23, 59, 59, 999)
+  const today = new Date()
+  const activeTeamPlan = teamPlans.find((plan) => {
+    const start = new Date(plan.startDate)
+    const end = new Date(plan.endDate)
+    return plan.status === 'ACTIVE' && start <= today && end >= today
+  }) ?? null
 
   // Stabilize the ISO strings outside the dep array — react-hooks v6
   // requires deps to be simple expressions (no method calls).
@@ -679,8 +694,6 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
     )
   }
 
-  const today = new Date()
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -733,6 +746,20 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
               <Sparkles className="h-3.5 w-3.5 mr-1.5" />
               AI-brief
             </Button>
+          )}
+          {isStaffPlanningView && (
+            <CreateTeamPlanDialog
+              teamId={teamId}
+              teamName={teamName}
+              businessSlug={businessSlug}
+              onCreated={(plan) => setTeamPlans((current) => [plan, ...current])}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
+                  Blockplan
+                </Button>
+              }
+            />
           )}
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-3.5 w-3.5 mr-1.5" />
@@ -912,6 +939,32 @@ export function TeamCalendarView({ teamId, teamName, businessSlug }: TeamCalenda
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {isStaffPlanningView && activeTeamPlan && (
+        <AthletePlanSummaryCard plan={activeTeamPlan} now={today} variant="team" />
+      )}
+
+      {isStaffPlanningView && !activeTeamPlan && (
+        <div className="rounded-lg border bg-background p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <CalendarDays className="h-4 w-4" />
+                Ingen aktiv blockplan
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Sätt säsongens faser först, fyll sedan kalendern med pass och matcher.
+              </p>
+            </div>
+            <CreateTeamPlanDialog
+              teamId={teamId}
+              teamName={teamName}
+              businessSlug={businessSlug}
+              onCreated={(plan) => setTeamPlans((current) => [plan, ...current])}
+            />
+          </div>
         </div>
       )}
 

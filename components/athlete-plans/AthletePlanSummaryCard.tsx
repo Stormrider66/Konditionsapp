@@ -29,7 +29,7 @@ export interface AthletePlanSummary {
 interface AthletePlanSummaryCardProps {
   plan: AthletePlanSummary
   now?: Date
-  variant?: 'coach' | 'athlete'
+  variant?: 'coach' | 'athlete' | 'team'
   className?: string
 }
 
@@ -83,7 +83,9 @@ export function AthletePlanSummaryCard({
               {formatShortDate(plan.startDate)} - {formatShortDate(plan.endDate)}
             </p>
           </div>
-          <Badge variant="outline">{variant === 'athlete' ? 'Min plan' : 'Blockplan'}</Badge>
+          <Badge variant="outline">
+            {variant === 'athlete' ? 'Min plan' : variant === 'team' ? 'Lagplan' : 'Blockplan'}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -192,6 +192,7 @@ model User {
   // New relations for training programs
   coachPrograms    TrainingProgram[] @relation("CoachPrograms")
   coachAthletePlans AthletePlan[]    @relation("CoachAthletePlans")
+  coachTeamPlans    TeamPlan[]       @relation("CoachTeamPlans")
   createdRaceFuelingPlans RaceFuelingPlan[] @relation("RaceFuelingPlanCreator")
   exercises        Exercise[]
   workoutLogs      WorkoutLog[]
@@ -415,6 +416,7 @@ model Team {
 
   // Team Calendar
   events TeamEvent[]
+  plans  TeamPlan[]
 
   // Assistant coach assignments
   coachAssignments TeamCoachAssignment[]
