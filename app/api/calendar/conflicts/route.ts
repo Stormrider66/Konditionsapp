@@ -65,7 +65,8 @@ export async function GET(request: NextRequest) {
       ? new Date(endDateStr)
       : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
 
-    const conflicts = await detectConflictsInRange(clientId, startDate, endDate)
+    const locale = dbUser.language === 'sv' ? 'sv' : 'en'
+    const conflicts = await detectConflictsInRange(clientId, startDate, endDate, locale)
 
     // Group conflicts by severity
     const grouped = {
@@ -176,7 +177,8 @@ export async function POST(request: NextRequest) {
       workoutId,
       new Date(targetDate),
       workoutType || workout.type,
-      workoutIntensity || workout.intensity
+      workoutIntensity || workout.intensity,
+      dbUser.language === 'sv' ? 'sv' : 'en'
     )
 
     const hasCritical = conflicts.some((c) => c.severity === 'CRITICAL')

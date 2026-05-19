@@ -6,8 +6,10 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { EventImpact, CalendarEventType } from '@prisma/client'
+import { CalendarEventType } from '@prisma/client'
 import { calculateAvailability } from './availability-calculator'
+
+type AppLocale = 'en' | 'sv'
 
 export type ConflictType =
   | 'WORKOUT_BLOCKED'        // Workout on a day with NO_TRAINING event
@@ -67,7 +69,8 @@ export async function detectWorkoutConflicts(
   workoutId: string,
   targetDate: Date,
   workoutType?: string,
-  workoutIntensity?: string
+  workoutIntensity?: string,
+  locale: AppLocale = 'en'
 ): Promise<Conflict[]> {
   const conflicts: Conflict[] = []
   const dateStart = new Date(targetDate)
@@ -91,9 +94,8 @@ export async function detectWorkoutConflicts(
     },
   })
 
-  const wType = workoutType || workout?.type || 'RUNNING'
   const wIntensity = workoutIntensity || workout?.intensity || 'MODERATE'
-  const workoutName = workout?.name || 'Träningspass'
+  const workoutName = workout?.name || t(locale, 'workout')
 
   // 1. Check for calendar events on target date
   const events = await prisma.calendarEvent.findMany({
@@ -118,8 +120,10 @@ export async function detectWorkoutConflicts(
         ],
         eventId: event.id,
         eventType: event.type,
-        explanation: `Passet "${workoutName}" är planerat på en blockerad dag (${event.title})`,
-        suggestedResolutions: await generateResolutions(clientId, workoutId, targetDate, 'BLOCKED', event),
+        explanation: locale === 'sv'
+          ? `Passet "${workoutName}" är planerat på en blockerad dag (${event.title})`
+          : `Workout "${workoutName}" is planned on a blocked day (${event.title})`,
+        suggestedResolutions: await generateResolutions(clientId, workoutId, targetDate, 'BLOCKED', event, locale),
       })
     }
 
@@ -137,8 +141,10 @@ export async function detectWorkoutConflicts(
           ],
           eventId: event.id,
           eventType: event.type,
-          explanation: `Hårt pass "${workoutName}" på dag med reducerad träning (${event.title})`,
-          suggestedResolutions: await generateResolutions(clientId, workoutId, targetDate, 'REDUCED', event),
+          explanation: locale === 'sv'
+            ? `Hårt pass "${workoutName}" på dag med reducerad träning (${event.title})`
+            : `Hard workout "${workoutName}" on a reduced-training day (${event.title})`,
+          suggestedResolutions: await generateResolutions(clientId, workoutId, targetDate, 'REDUCED', event, locale),
         })
       }
     }
@@ -156,19 +162,19 @@ export async function detectWorkoutConflicts(
           ],
           eventId: event.id,
           eventType: event.type,
-          explanation: `Högintensivt pass under akut höghöjdsanpassning rekommenderas inte`,
+          explanation: t(locale, 'altitudeIntensityExplanation'),
           suggestedResolutions: [
             {
               type: 'MODIFY_INTENSITY',
-              description: 'Reducera intensiteten',
-              impact: 'Sänk till Easy/Moderate under anpassningsfasen',
+              description: t(locale, 'reduceIntensity'),
+              impact: t(locale, 'altitudeReduceImpact'),
               confidence: 90,
-              modifications: { intensity: 'EASY', notes: 'Anpassad för höghöjd' },
+              modifications: { intensity: 'EASY', notes: t(locale, 'altitudeAdjusted') },
             },
             {
               type: 'RESCHEDULE',
-              description: 'Flytta till efter anpassningsfasen',
-              impact: 'Planera om till dag 6+ av lägret',
+              description: t(locale, 'moveAfterAdaptation'),
+              impact: t(locale, 'moveAfterAdaptationImpact'),
               confidence: 75,
             },
           ],
@@ -206,19 +212,19 @@ export async function detectWorkoutConflicts(
       ],
       eventId: adjacentTravel.id,
       eventType: 'TRAVEL',
-      explanation: `Hårt pass nära resedag kan påverka återhämtningen`,
+      explanation: t(locale, 'travelAdjacentExplanation'),
       suggestedResolutions: [
         {
           type: 'MODIFY_INTENSITY',
-          description: 'Reducera intensiteten',
-          impact: 'Kör ett lättare pass istället',
+          description: t(locale, 'reduceIntensity'),
+          impact: t(locale, 'lighterWorkoutImpact'),
           confidence: 70,
           modifications: { intensity: 'EASY' },
         },
         {
           type: 'IGNORE',
-          description: 'Fortsätt som planerat',
-          impact: 'Var medveten om potentiell trötthet',
+          description: t(locale, 'continueAsPlanned'),
+          impact: t(locale, 'fatigueAwareness'),
           confidence: 50,
         },
       ],
@@ -252,19 +258,21 @@ export async function detectWorkoutConflicts(
           { type: 'WORKOUT', id: workoutId, date: targetDate, name: workoutName },
           { type: 'RACE', id: race.id, date: race.date, name: race.name },
         ],
-        explanation: `Hårt pass ${daysToRace} dag(ar) före A-tävling "${race.name}"`,
+        explanation: locale === 'sv'
+          ? `Hårt pass ${daysToRace} dag(ar) före A-tävling "${race.name}"`
+          : `Hard workout ${daysToRace} day(s) before A-priority race "${race.name}"`,
         suggestedResolutions: [
           {
             type: 'MODIFY_INTENSITY',
-            description: 'Sänk till lätt avslappningspass',
-            impact: 'Undvik att gå in trött till tävlingen',
+            description: t(locale, 'reduceToShakeout'),
+            impact: t(locale, 'avoidRaceFatigue'),
             confidence: 95,
             modifications: { intensity: 'RECOVERY' },
           },
           {
             type: 'CANCEL',
-            description: 'Vila helt',
-            impact: 'Prioritera vila inför tävlingen',
+            description: t(locale, 'restCompletely'),
+            impact: t(locale, 'prioritizeRaceRest'),
             confidence: 80,
           },
         ],
@@ -283,7 +291,8 @@ async function generateResolutions(
   workoutId: string,
   originalDate: Date,
   conflictReason: 'BLOCKED' | 'REDUCED',
-  event: { id: string; startDate: Date; endDate: Date; title: string }
+  event: { id: string; startDate: Date; endDate: Date; title: string },
+  locale: AppLocale
 ): Promise<ConflictResolution[]> {
   const resolutions: ConflictResolution[] = []
 
@@ -311,12 +320,14 @@ async function generateResolutions(
 
   for (const altDate of availableDates) {
     const daysDiff = Math.ceil((altDate.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24))
-    const direction = daysDiff > 0 ? 'framåt' : 'bakåt'
+    const direction = daysDiff > 0 ? t(locale, 'forward') : t(locale, 'backward')
 
     resolutions.push({
       type: 'RESCHEDULE',
-      description: `Flytta ${Math.abs(daysDiff)} dag(ar) ${direction}`,
-      impact: `Nytt datum: ${altDate.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'short' })}`,
+      description: locale === 'sv'
+        ? `Flytta ${Math.abs(daysDiff)} dag(ar) ${direction}`
+        : `Move ${Math.abs(daysDiff)} day(s) ${direction}`,
+      impact: `${t(locale, 'newDate')}: ${formatResolutionDate(altDate, locale)}`,
       confidence: Math.max(50, 95 - Math.abs(daysDiff) * 10),
       newDate: altDate,
     })
@@ -326,8 +337,8 @@ async function generateResolutions(
   if (conflictReason === 'BLOCKED') {
     resolutions.push({
       type: 'CANCEL',
-      description: 'Hoppa över passet',
-      impact: `Inget pass under "${event.title}"`,
+      description: t(locale, 'skipWorkout'),
+      impact: locale === 'sv' ? `Inget pass under "${event.title}"` : `No workout during "${event.title}"`,
       confidence: 60,
     })
   }
@@ -336,8 +347,8 @@ async function generateResolutions(
   if (conflictReason === 'REDUCED') {
     resolutions.push({
       type: 'MODIFY_INTENSITY',
-      description: 'Reducera intensiteten',
-      impact: 'Kör ett lättare pass istället',
+      description: t(locale, 'reduceIntensity'),
+      impact: t(locale, 'lighterWorkoutImpact'),
       confidence: 85,
       modifications: { intensity: 'EASY', durationMultiplier: 0.7 },
     })
@@ -346,8 +357,8 @@ async function generateResolutions(
   // Always add ignore option (lowest confidence)
   resolutions.push({
     type: 'IGNORE',
-    description: 'Fortsätt som planerat',
-    impact: 'Ignorera konflikten',
+    description: t(locale, 'continueAsPlanned'),
+    impact: t(locale, 'ignoreConflict'),
     confidence: 20,
   })
 
@@ -360,7 +371,8 @@ async function generateResolutions(
 export async function detectConflictsInRange(
   clientId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  locale: AppLocale = 'en'
 ): Promise<Conflict[]> {
   const allConflicts: Conflict[] = []
 
@@ -388,7 +400,8 @@ export async function detectConflictsInRange(
       workout.id,
       workout.day.date,
       workout.type,
-      workout.intensity
+      workout.intensity,
+      locale
     )
     allConflicts.push(...conflicts)
   }
@@ -411,7 +424,8 @@ export async function detectConflictsInRange(
 export async function applyResolution(
   conflictId: string,
   resolution: ConflictResolution,
-  userId: string
+  userId: string,
+  locale: AppLocale = 'en'
 ): Promise<{ success: boolean; message: string; newWorkoutId?: string }> {
   // Parse conflict ID to get workout ID
   const parts = conflictId.split('-')
@@ -433,16 +447,16 @@ export async function applyResolution(
   })
 
   if (!workout) {
-    return { success: false, message: 'Passet hittades inte' }
+    return { success: false, message: t(locale, 'workoutNotFound') }
   }
 
   switch (resolution.type) {
     case 'RESCHEDULE':
       if (!resolution.newDate) {
-        return { success: false, message: 'Nytt datum saknas' }
+        return { success: false, message: t(locale, 'missingNewDate') }
       }
       // This will be handled by the reschedule API
-      return { success: true, message: 'Använd reschedule API för att flytta passet' }
+      return { success: true, message: t(locale, 'useRescheduleApi') }
 
     case 'MODIFY_INTENSITY':
       if (resolution.modifications?.intensity) {
@@ -453,7 +467,7 @@ export async function applyResolution(
             status: 'MODIFIED',
           },
         })
-        return { success: true, message: 'Intensiteten har uppdaterats' }
+        return { success: true, message: t(locale, 'intensityUpdated') }
       }
       break
 
@@ -464,12 +478,114 @@ export async function applyResolution(
           status: 'CANCELLED',
         },
       })
-      return { success: true, message: 'Passet har avbokats' }
+      return { success: true, message: t(locale, 'workoutCancelled') }
 
     case 'IGNORE':
       // Just log that user chose to ignore
-      return { success: true, message: 'Konflikten ignorerad' }
+      return { success: true, message: t(locale, 'conflictIgnored') }
   }
 
-  return { success: false, message: 'Okänd resolution-typ' }
+  return { success: false, message: t(locale, 'unknownResolution') }
+}
+
+function formatResolutionDate(date: Date, locale: AppLocale): string {
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
+type CopyKey =
+  | 'workout'
+  | 'altitudeIntensityExplanation'
+  | 'reduceIntensity'
+  | 'altitudeReduceImpact'
+  | 'altitudeAdjusted'
+  | 'moveAfterAdaptation'
+  | 'moveAfterAdaptationImpact'
+  | 'travelAdjacentExplanation'
+  | 'lighterWorkoutImpact'
+  | 'continueAsPlanned'
+  | 'fatigueAwareness'
+  | 'reduceToShakeout'
+  | 'avoidRaceFatigue'
+  | 'restCompletely'
+  | 'prioritizeRaceRest'
+  | 'forward'
+  | 'backward'
+  | 'newDate'
+  | 'skipWorkout'
+  | 'ignoreConflict'
+  | 'workoutNotFound'
+  | 'missingNewDate'
+  | 'useRescheduleApi'
+  | 'intensityUpdated'
+  | 'workoutCancelled'
+  | 'conflictIgnored'
+  | 'unknownResolution'
+
+const copy: Record<AppLocale, Record<CopyKey, string>> = {
+  en: {
+    workout: 'Workout',
+    altitudeIntensityExplanation: 'High-intensity work is not recommended during acute altitude adaptation',
+    reduceIntensity: 'Reduce intensity',
+    altitudeReduceImpact: 'Drop to Easy/Moderate during the adaptation phase',
+    altitudeAdjusted: 'Adjusted for altitude',
+    moveAfterAdaptation: 'Move until after the adaptation phase',
+    moveAfterAdaptationImpact: 'Reschedule to day 6+ of the camp',
+    travelAdjacentExplanation: 'A hard workout close to a travel day may affect recovery',
+    lighterWorkoutImpact: 'Do a lighter workout instead',
+    continueAsPlanned: 'Continue as planned',
+    fatigueAwareness: 'Be aware of possible fatigue',
+    reduceToShakeout: 'Reduce to an easy shakeout workout',
+    avoidRaceFatigue: 'Avoid going into the race fatigued',
+    restCompletely: 'Rest completely',
+    prioritizeRaceRest: 'Prioritize rest before the race',
+    forward: 'forward',
+    backward: 'back',
+    newDate: 'New date',
+    skipWorkout: 'Skip the workout',
+    ignoreConflict: 'Ignore the conflict',
+    workoutNotFound: 'Workout not found',
+    missingNewDate: 'New date is missing',
+    useRescheduleApi: 'Use the reschedule API to move the workout',
+    intensityUpdated: 'Intensity has been updated',
+    workoutCancelled: 'Workout has been cancelled',
+    conflictIgnored: 'Conflict ignored',
+    unknownResolution: 'Unknown resolution type',
+  },
+  sv: {
+    workout: 'Träningspass',
+    altitudeIntensityExplanation: 'Högintensivt pass under akut höghöjdsanpassning rekommenderas inte',
+    reduceIntensity: 'Reducera intensiteten',
+    altitudeReduceImpact: 'Sänk till Easy/Moderate under anpassningsfasen',
+    altitudeAdjusted: 'Anpassad för höghöjd',
+    moveAfterAdaptation: 'Flytta till efter anpassningsfasen',
+    moveAfterAdaptationImpact: 'Planera om till dag 6+ av lägret',
+    travelAdjacentExplanation: 'Hårt pass nära resedag kan påverka återhämtningen',
+    lighterWorkoutImpact: 'Kör ett lättare pass istället',
+    continueAsPlanned: 'Fortsätt som planerat',
+    fatigueAwareness: 'Var medveten om potentiell trötthet',
+    reduceToShakeout: 'Sänk till lätt avslappningspass',
+    avoidRaceFatigue: 'Undvik att gå in trött till tävlingen',
+    restCompletely: 'Vila helt',
+    prioritizeRaceRest: 'Prioritera vila inför tävlingen',
+    forward: 'framåt',
+    backward: 'bakåt',
+    newDate: 'Nytt datum',
+    skipWorkout: 'Hoppa över passet',
+    ignoreConflict: 'Ignorera konflikten',
+    workoutNotFound: 'Passet hittades inte',
+    missingNewDate: 'Nytt datum saknas',
+    useRescheduleApi: 'Använd reschedule API för att flytta passet',
+    intensityUpdated: 'Intensiteten har uppdaterats',
+    workoutCancelled: 'Passet har avbokats',
+    conflictIgnored: 'Konflikten ignorerad',
+    unknownResolution: 'Okänd resolution-typ',
+  },
+}
+
+function t(locale: AppLocale, key: CopyKey): string {
+  return copy[locale][key]
 }

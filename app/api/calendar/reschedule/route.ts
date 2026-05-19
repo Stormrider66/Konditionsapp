@@ -114,7 +114,8 @@ export async function POST(request: NextRequest) {
         workoutId,
         targetDate,
         workout.type,
-        workout.intensity
+        workout.intensity,
+        dbUser.language === 'sv' ? 'sv' : 'en'
       )
 
       // If there are critical conflicts, warn the user
