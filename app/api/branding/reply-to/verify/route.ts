@@ -8,13 +8,16 @@ import { consumeReplyToVerificationToken } from '@/lib/email/reply-to-verificati
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token') || ''
-  const result = await consumeReplyToVerificationToken(token)
+  const locale = request.nextUrl.searchParams.get('locale') === 'sv' ? 'sv' : 'en'
+  const result = await consumeReplyToVerificationToken(token, locale)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
   const status = result.success ? 'ok' : 'error'
   const message = result.success
-    ? 'Svar-adressen är bekräftad. Utskick går nu med din adress som reply-to.'
-    : result.error || 'Bekräftelsen misslyckades.'
+    ? locale === 'sv'
+      ? 'Svar-adressen är bekräftad. Utskick går nu med din adress som reply-to.'
+      : 'The reply-to address is confirmed. Emails now use your address as the reply-to.'
+    : result.error || (locale === 'sv' ? 'Bekräftelsen misslyckades.' : 'Verification failed.')
 
   // Redirect to a static status page on the platform domain so we get
   // consistent branding regardless of which business sent the verify email.

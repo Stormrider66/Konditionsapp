@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger'
 import type { EmailLocale } from './templates'
 
 const VERIFY_TOKEN_TTL_HOURS = 24
+type AppLocale = 'en' | 'sv'
 
 interface SendOptions {
   businessId: string
@@ -43,7 +44,7 @@ export async function sendReplyToVerificationEmail(opts: SendOptions): Promise<{
   })
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
-  const verifyUrl = `${appUrl}/api/branding/reply-to/verify?token=${token}`
+  const verifyUrl = `${appUrl}/api/branding/reply-to/verify?token=${token}&locale=${locale}`
 
   // Branded email — uses the business's logo/colors so the recipient
   // recognises it as legitimate even though it lands in their personal inbox.
@@ -99,13 +100,22 @@ export async function sendReplyToVerificationEmail(opts: SendOptions): Promise<{
  * hasn't expired. Returns the businessId on success so the caller can show a
  * branded confirmation page.
  */
-export async function consumeReplyToVerificationToken(token: string): Promise<{
+function resolveLocale(locale: string | null | undefined): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
+export async function consumeReplyToVerificationToken(token: string, localeInput?: string | null): Promise<{
   success: boolean
   businessId?: string
   error?: string
 }> {
+  const locale = resolveLocale(localeInput)
   if (!token || token.length < 8) {
-    return { success: false, error: 'Ogiltig länk' }
+    return { success: false, error: t(locale, 'Invalid link', 'Ogiltig länk') }
   }
 
   const business = await prisma.business.findUnique({
@@ -117,14 +127,21 @@ export async function consumeReplyToVerificationToken(token: string): Promise<{
   })
 
   if (!business) {
-    return { success: false, error: 'Länken är ogiltig eller redan använd' }
+    return { success: false, error: t(locale, 'The link is invalid or has already been used', 'Länken är ogiltig eller redan använd') }
   }
 
   if (
     business.replyToEmailVerifyExpires &&
     business.replyToEmailVerifyExpires.getTime() < Date.now()
   ) {
-    return { success: false, error: 'Länken har gått ut. Spara adressen igen för att skicka en ny.' }
+    return {
+      success: false,
+      error: t(
+        locale,
+        'The link has expired. Save the address again to send a new one.',
+        'Länken har gått ut. Spara adressen igen för att skicka en ny.',
+      ),
+    }
   }
 
   await prisma.business.update({

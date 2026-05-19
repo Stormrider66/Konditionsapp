@@ -10,8 +10,18 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 const hexColorRegex = /^#[0-9A-Fa-f]{6}$/
+type AppLocale = 'en' | 'sv'
 
-const updateBrandingSchema = z.object({
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
+function updateBrandingSchema(locale: AppLocale) {
+  return z.object({
   // Tier 0: always available
   logoUrl: z.string().url().optional().nullable(),
   primaryColor: z.string().regex(hexColorRegex).optional().nullable(),
@@ -30,12 +40,16 @@ const updateBrandingSchema = z.object({
     .string()
     .min(1)
     .max(100)
-    .regex(/^[^<>@\r\n]+$/, 'Avsändarnamn får inte innehålla < > @ eller radbrytningar')
+    .regex(
+      /^[^<>@\r\n]+$/,
+      t(locale, 'Sender name cannot contain < > @ or line breaks', 'Avsändarnamn får inte innehålla < > @ eller radbrytningar'),
+    )
     .optional()
     .nullable(),
   pageTitle: z.string().min(1).max(100).optional().nullable(),
   hidePlatformBranding: z.boolean().optional(),
-})
+  })
+}
 
 // GET /api/coach/admin/branding - Get branding settings with feature flags
 export async function GET(request: NextRequest) {
@@ -95,9 +109,10 @@ export async function PUT(request: NextRequest) {
   try {
     const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
+    const locale = resolveLocale(admin.language)
 
     const body = await request.json()
-    const validatedData = updateBrandingSchema.parse(body)
+    const validatedData = updateBrandingSchema(locale).parse(body)
 
     const features = await getBrandingFeatures(businessId)
 
@@ -204,6 +219,7 @@ export async function PUT(request: NextRequest) {
           businessId,
           newReplyToEmail: next,
           businessName: current?.name || '',
+          locale,
         })
         if (!result.success) {
           logger.warn('reply-to verification email failed to send', {
