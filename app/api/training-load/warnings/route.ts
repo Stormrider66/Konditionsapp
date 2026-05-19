@@ -11,12 +11,14 @@
  * - CAUTION: ACWR 1.3-1.5 (moderate injury risk)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
-export async function GET(request: NextRequest) {
+type AppLocale = 'en' | 'sv'
+
+export async function GET() {
   try {
     // Authenticate user
     const supabase = await createClient()
@@ -44,6 +46,7 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       )
     }
+    const locale = getUserLocale(dbUser.language)
 
     // Get all athletes for this coach
     const athletes = await prisma.client.findMany({
@@ -84,16 +87,25 @@ export async function GET(request: NextRequest) {
 
         if (acwr >= 2.0) {
           risk = 'CRITICAL'
-          recommendedAction =
+          recommendedAction = t(
+            locale,
+            'Immediate rest is recommended. Training must be reduced sharply (50-70%) or paused completely until ACWR is below 1.5.',
             'Omedelbar vila rekommenderas. Träningen måste minskas kraftigt (50-70%) eller pausas helt tills ACWR < 1.5.'
+          )
         } else if (acwr >= 1.5) {
           risk = 'DANGER'
-          recommendedAction =
+          recommendedAction = t(
+            locale,
+            'Reduce training volume/intensity by 40-50%. Add an extra recovery day. Avoid high intensities.',
             'Minska träningsvolym/intensitet med 40-50%. Lägg till extra återhämtningsdag. Undvik höga intensiteter.'
+          )
         } else {
           risk = 'CAUTION'
-          recommendedAction =
+          recommendedAction = t(
+            locale,
+            'Reduce training volume/intensity by 20-30%. Monitor closely. Increase focus on recovery and sleep.',
             'Minska träningsvolym/intensitet med 20-30%. Övervaka noga. Öka fokus på återhämtning och sömn.'
+          )
         }
 
         return {
@@ -149,4 +161,12 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
