@@ -3,6 +3,7 @@
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ReferenceLine } from 'recharts'
 import { TestStage } from '@/types'
 import { fitPolynomial3 } from '@/lib/training-engine/utils/polynomial-fit'
+import { useTranslations } from '@/i18n/client'
 
 interface ThresholdValue {
   heartRate: number
@@ -27,6 +28,8 @@ interface LactateHeartRateChartProps {
  * - LT2 (anaerobic threshold) marker
  */
 export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThreshold }: LactateHeartRateChartProps) {
+  const t = useTranslations('components.lactateHeartRateChart')
+
   // Extract data points
   const dataPoints = stages.map(stage => ({
     heartRate: stage.heartRate,
@@ -111,7 +114,7 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold">Laktat vs Puls</h4>
+        <h4 className="font-semibold">{t('title')}</h4>
         <span className="text-sm text-gray-600">
           R² = {(r2 * 100).toFixed(1)}%
         </span>
@@ -125,13 +128,13 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="heartRate"
-            label={{ value: 'Puls (slag/min)', position: 'bottom', offset: 0 }}
+            label={{ value: t('axes.pulse'), position: 'bottom', offset: 0 }}
             type="number"
             domain={[Math.floor(minHR * 0.95), Math.ceil(maxHR * 1.02)]}
             tick={{ dy: 5 }}
           />
           <YAxis
-            label={{ value: 'Laktat (mmol/L)', angle: -90, position: 'insideLeft' }}
+            label={{ value: t('axes.lactate'), angle: -90, position: 'insideLeft' }}
             domain={yDomain}
           />
           <Tooltip
@@ -139,7 +142,7 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
               if (value === null) return ['-', name]
               return [`${value.toFixed(2)} mmol/L`, name]
             }}
-            labelFormatter={(label) => `Puls: ${label} slag/min`}
+            labelFormatter={(label) => t('tooltip.label', { heartRate: label })}
           />
           <Legend
             verticalAlign="bottom"
@@ -153,7 +156,7 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
             stroke="#94a3b8"
             strokeWidth={1}
             strokeDasharray="5 5"
-            name="Baslinje"
+            name={t('series.baseline')}
             dot={false}
             isAnimationActive={false}
           />
@@ -164,7 +167,7 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
             dataKey="polynomial"
             stroke="#3b82f6"
             strokeWidth={2}
-            name="Polynomisk kurva"
+            name={t('series.polynomial')}
             dot={false}
             isAnimationActive={false}
           />
@@ -175,7 +178,7 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
             dataKey="measuredLactate"
             stroke="transparent"
             strokeWidth={0}
-            name="Uppmätta värden"
+            name={t('series.measured')}
             dot={{ fill: '#ef4444', r: 6, stroke: '#ef4444', strokeWidth: 2 }}
             activeDot={{ r: 8 }}
             isAnimationActive={false}
@@ -188,7 +191,7 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
               <Scatter
                 data={[lt1Point]}
                 dataKey="lt1Lactate"
-                name="LT1 (Aerob)"
+                name={t('series.lt1')}
                 fill="#22c55e"
                 shape="circle"
                 line={false}
@@ -214,7 +217,7 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
               <Scatter
                 data={[lt2Point]}
                 dataKey="lt2Lactate"
-                name="LT2 (Anaerob)"
+                name={t('series.lt2')}
                 fill="#f59e0b"
                 shape="star"
                 line={false}
@@ -240,23 +243,25 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
       {/* Explanation */}
       <div className="text-xs text-gray-600 space-y-1">
         <p>
-          <strong>Blå kurva:</strong> Polynomisk anpassning (grad 3) av laktat vs puls
+          <strong>{t('explanations.polynomialTitle')}:</strong> {t('explanations.polynomialBody')}
         </p>
         <p>
-          <strong>Streckad grå linje:</strong> Baslinje från första till sista mätpunkten
+          <strong>{t('explanations.baselineTitle')}:</strong> {t('explanations.baselineBody')}
         </p>
         {lt1Point && (
           <p>
-            <strong className="text-green-600">Grön cirkel (LT1):</strong> Aerob tröskel vid {lt1Point.heartRate} slag/min ({aerobicThreshold?.lactate?.toFixed(2)} mmol/L)
+            <strong className="text-green-600">{t('explanations.lt1Title')}:</strong>{' '}
+            {t('explanations.lt1Body', { hr: lt1Point.heartRate, value: aerobicThreshold?.lactate?.toFixed(2) })}
           </p>
         )}
         {lt2Point && (
           <p>
-            <strong className="text-orange-500">Orange stjärna (LT2):</strong> Anaerob tröskel vid {lt2Point.heartRate} slag/min ({anaerobicThreshold?.lactate?.toFixed(2)} mmol/L)
+            <strong className="text-orange-500">{t('explanations.lt2Title')}:</strong>{' '}
+            {t('explanations.lt2Body', { hr: lt2Point.heartRate, value: anaerobicThreshold?.lactate?.toFixed(2) })}
           </p>
         )}
         <p>
-          <strong>Röda punkter:</strong> Dina uppmätta laktatvärden från testet
+          <strong>{t('explanations.measuredTitle')}:</strong> {t('explanations.measuredBody')}
         </p>
       </div>
     </div>

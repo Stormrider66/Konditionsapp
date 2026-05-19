@@ -14432,6 +14432,35 @@
         "noTests": "Inga fälttester eller labbtester ännu. Skapa ett fälttest för att börja spåra progression."
       }
     },
+    "lactateHeartRateChart": {
+      "title": "Laktat vs Puls",
+      "axes": {
+        "pulse": "Puls (slag/min)",
+        "lactate": "Laktat (mmol/L)"
+      },
+      "series": {
+        "baseline": "Baslinje",
+        "polynomial": "Polynomisk kurva",
+        "measured": "Uppmätta värden",
+        "lt1": "LT1 (Aerob)",
+        "lt2": "LT2 (Anaerob)"
+      },
+      "explanations": {
+        "polynomialTitle": "Blå kurva",
+        "polynomialBody": "Polynomisk anpassning (grad 3) av laktat vs puls",
+        "baselineTitle": "Streckad grå linje",
+        "baselineBody": "Baslinje från första till sista mätpunkten",
+        "lt1Title": "Grön cirkel (LT1)",
+        "lt1Body": "Aerob tröskel vid {hr} slag/min ({value} mmol/L)",
+        "lt2Title": "Orange stjärna (LT2)",
+        "lt2Body": "Anaerob tröskel vid {hr} slag/min ({value} mmol/L)",
+        "measuredTitle": "Röda punkter",
+        "measuredBody": "Dina uppmätta laktatvärden från testet"
+      },
+      "tooltip": {
+        "label": "Puls: {heartRate} slag/min"
+      }
+    },
     "coachCalendar": {
       "title": "Kalender",
       "subtitle": "Överblick av alla atleters schema och händelser",

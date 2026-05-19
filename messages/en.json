@@ -14086,6 +14086,35 @@
         "noTests": "No field tests or lab tests yet. Create a field test to start tracking progression."
       }
     },
+    "lactateHeartRateChart": {
+      "title": "Lactate vs Heart Rate",
+      "axes": {
+        "pulse": "Heart rate (bpm)",
+        "lactate": "Lactate (mmol/L)"
+      },
+      "series": {
+        "baseline": "Baseline",
+        "polynomial": "Polynomial curve",
+        "measured": "Measured values",
+        "lt1": "LT1 (Aerobic)",
+        "lt2": "LT2 (Anaerobic)"
+      },
+      "explanations": {
+        "polynomialTitle": "Blue curve",
+        "polynomialBody": "Polynomial fit (3rd degree) of lactate versus heart rate",
+        "baselineTitle": "Dashed gray line",
+        "baselineBody": "Baseline from first to last measured point",
+        "lt1Title": "Green circle (LT1)",
+        "lt1Body": "Aerobic threshold at {hr} bpm ({value} mmol/L)",
+        "lt2Title": "Orange star (LT2)",
+        "lt2Body": "Anaerobic threshold at {hr} bpm ({value} mmol/L)",
+        "measuredTitle": "Red dots",
+        "measuredBody": "Your measured lactate values from the test"
+      },
+      "tooltip": {
+        "label": "Heart rate: {heartRate} bpm"
+      }
+    },
     "coachCalendar": {
       "title": "Calendar",
       "subtitle": "Overview of all athletes' schedules and events",
