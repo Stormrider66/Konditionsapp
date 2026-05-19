@@ -13,6 +13,7 @@ import { z } from 'zod'
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
+type AppLocale = 'en' | 'sv'
 
 const addAssistantSchema = z.object({
   email: z.string().email(),
@@ -64,6 +65,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
 
     // Verify coach owns this team
@@ -88,11 +90,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
     })
 
     if (!targetUser) {
-      return NextResponse.json({ error: 'Användare med denna e-post hittades inte' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'userNotFound') }, { status: 404 })
     }
 
     if (targetUser.id === user.id) {
-      return NextResponse.json({ error: 'Du kan inte lägga till dig själv som assistent' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'cannotAddSelf') }, { status: 400 })
     }
 
     // Get the business for this coach
@@ -135,7 +137,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         },
       })
     } catch {
-      return NextResponse.json({ error: 'Denna coach är redan tillagd i laget' }, { status: 409 })
+      return NextResponse.json({ error: t(locale, 'alreadyAdded') }, { status: 409 })
     }
 
     return NextResponse.json({
@@ -153,4 +155,18 @@ export async function POST(req: NextRequest, context: RouteContext) {
     console.error('Error adding assistant coach:', error)
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
+}
+
+function t(locale: AppLocale, key: 'userNotFound' | 'cannotAddSelf' | 'alreadyAdded'): string {
+  const en = {
+    userNotFound: 'No user with this email was found',
+    cannotAddSelf: 'You cannot add yourself as an assistant',
+    alreadyAdded: 'This coach has already been added to the team',
+  }
+  const sv = {
+    userNotFound: 'Användare med denna e-post hittades inte',
+    cannotAddSelf: 'Du kan inte lägga till dig själv som assistent',
+    alreadyAdded: 'Denna coach är redan tillagd i laget',
+  }
+  return locale === 'sv' ? sv[key] : en[key]
 }

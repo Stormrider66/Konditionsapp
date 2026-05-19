@@ -9,6 +9,7 @@ import { z } from 'zod'
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
+type AppLocale = 'en' | 'sv'
 
 const createLocationSchema = z.object({
   name: z.string().min(1).max(120),
@@ -17,6 +18,7 @@ const createLocationSchema = z.object({
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
@@ -82,7 +84,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
           id: `team:${location}`,
           name: location,
           source: 'team' as const,
-          description: 'Tidigare använd i lagkalendern',
+          description: locale === 'sv' ? 'Tidigare använd i lagkalendern' : 'Previously used in the team calendar',
           isPrimary: false,
         })),
       ],
