@@ -3319,6 +3319,35 @@
           "reviewFueling": "Review fueling",
           "reviewFuelingDescription": "Check energy and hydration before key sessions."
         },
+        "development": {
+          "title": "Development mode",
+          "status": {
+            "good": "Trend ready",
+            "caution": "Needs more context",
+            "setup": "Baseline missing"
+          },
+          "summary": {
+            "good": "There are recent tests and sport context to interpret development with confidence.",
+            "caution": "There is data, but the trend needs fresher or deeper context.",
+            "setup": "Start with sport profile and test baseline before the development view can support good decisions."
+          },
+          "editProfile": "Edit profile",
+          "latestTest": "Latest test",
+          "testDepth": "Test depth",
+          "completedTests": "{count} completed tests",
+          "vo2Trend": "VO2 trend",
+          "noTrend": "No trend yet",
+          "sportContext": "Sport context",
+          "noSportProfile": "No sport profile",
+          "reviewTests": "Review test history",
+          "reviewTestsDescription": "See zones, thresholds, and changes over time.",
+          "planNextTest": "Plan next test",
+          "planNextTestDescription": "Add the next data point before the trend gets stale.",
+          "updateTest": "Update test data",
+          "updateTestDescription": "Create a fresh test for better zones and decisions.",
+          "completeSportContext": "Secure sport context",
+          "completeSportContextDescription": "Connect development to sport, role, and level."
+        },
         "profile": {
           "portalTitle": "Athlete portal",
           "portalDescription": "Account, sign-in, and invitation status.",

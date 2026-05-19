@@ -3319,6 +3319,35 @@
           "reviewFueling": "Granska fueling",
           "reviewFuelingDescription": "Säkerställ energi och vätska inför nyckelpass."
         },
+        "development": {
+          "title": "Utvecklingsläge",
+          "status": {
+            "good": "Trend redo",
+            "caution": "Behöver mer underlag",
+            "setup": "Baslinje saknas"
+          },
+          "summary": {
+            "good": "Det finns tillräckligt färska tester och sportkontext för att tolka utvecklingen.",
+            "caution": "Det finns data, men trenden behöver färskare eller djupare underlag.",
+            "setup": "Börja med sportprofil och testbaslinje innan utvecklingsvyn kan ge bra beslut."
+          },
+          "editProfile": "Redigera profil",
+          "latestTest": "Senaste test",
+          "testDepth": "Testunderlag",
+          "completedTests": "{count} klara tester",
+          "vo2Trend": "VO2-trend",
+          "noTrend": "Ingen trend ännu",
+          "sportContext": "Sportkontext",
+          "noSportProfile": "Ingen sportprofil",
+          "reviewTests": "Granska testhistorik",
+          "reviewTestsDescription": "Se zoner, trösklar och förändringar över tid.",
+          "planNextTest": "Planera nästa test",
+          "planNextTestDescription": "Lägg in nästa datapunkt innan trenden blir gammal.",
+          "updateTest": "Uppdatera testdata",
+          "updateTestDescription": "Skapa ett färskt test för bättre zoner och beslut.",
+          "completeSportContext": "Säkra sportkontext",
+          "completeSportContextDescription": "Koppla utvecklingen till idrott, roll och nivå."
+        },
         "profile": {
           "portalTitle": "Atletportal",
           "portalDescription": "Konto, inloggning och inbjudningsstatus.",

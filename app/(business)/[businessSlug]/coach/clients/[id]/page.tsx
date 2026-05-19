@@ -658,6 +658,23 @@ export default function BusinessClientDetailPage() {
       ? t('planning.logsReady')
       : t('planning.logsNeedInvite')
     : t('planning.logsNeedAccount')
+  const previousCompletedTest = completedTests[1] ?? null
+  const latestVo2max = latestCompletedTest?.vo2max ?? null
+  const previousVo2max = previousCompletedTest?.vo2max ?? null
+  const vo2Trend = latestVo2max !== null && previousVo2max !== null
+    ? latestVo2max - previousVo2max
+    : null
+  const developmentStatusTone: CoachSnapshotTone = completedTests.length === 0 || !sportProfile
+    ? 'setup'
+    : !hasRecentTest || completedTests.length < 2
+      ? 'caution'
+      : 'good'
+  const developmentTrendLabel = vo2Trend !== null
+    ? `${vo2Trend > 0 ? '+' : ''}${vo2Trend.toFixed(1)} VO2max`
+    : t('development.noTrend')
+  const developmentPrimarySportLabel = sportProfile?.primarySport
+    ? sportProfile.primarySport.replace(/_/g, ' ')
+    : t('development.noSportProfile')
 
   const noAthleteAccountContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
@@ -1133,6 +1150,87 @@ export default function BusinessClientDetailPage() {
 
   const developmentContent = (
     <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('development.title')}</h2>
+              <Badge
+                variant="outline"
+                className={cn(
+                  'border font-medium',
+                  developmentStatusTone === 'good' && 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+                  developmentStatusTone === 'caution' && 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+                  developmentStatusTone === 'setup' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
+                )}
+              >
+                {developmentStatusTone === 'good' ? <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> : <CircleAlert className="mr-1 h-3.5 w-3.5" />}
+                {t(`development.status.${developmentStatusTone}`)}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t(`development.summary.${developmentStatusTone}`)}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`${basePath}/test`}>
+              <Button size="sm">{t('tests.newTest')}</Button>
+            </Link>
+            <Link href={`${basePath}/clients/${id}?tab=profile`}>
+              <Button variant="outline" size="sm">{t('development.editProfile')}</Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-4 mt-5">
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('development.latestTest')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">{latestTestLabel}</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('development.testDepth')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1">
+              {t('development.completedTests', { count: completedTests.length })}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('development.vo2Trend')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">{developmentTrendLabel}</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('development.sportContext')}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">{developmentPrimarySportLabel}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3 mt-5">
+          <Link href={`${basePath}/clients/${id}?tab=development`}>
+            <Button variant="outline" className="h-auto w-full justify-start p-3">
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('development.reviewTests')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('development.reviewTestsDescription')}</p>
+              </div>
+            </Button>
+          </Link>
+          <Link href={`${basePath}/test`}>
+            <Button variant="outline" className="h-auto w-full justify-start p-3">
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{hasRecentTest ? t('development.planNextTest') : t('development.updateTest')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{hasRecentTest ? t('development.planNextTestDescription') : t('development.updateTestDescription')}</p>
+              </div>
+            </Button>
+          </Link>
+          <Link href={`${basePath}/clients/${id}?tab=profile`}>
+            <Button variant="outline" className="h-auto w-full justify-start p-3">
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('development.completeSportContext')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('development.completeSportContextDescription')}</p>
+              </div>
+            </Button>
+          </Link>
+        </div>
+      </div>
+
       {!sportProfileLoading && (
         <SportSpecificAthleteView
           clientId={id}
