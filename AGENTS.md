@@ -22,6 +22,18 @@ npx prisma studio    # View/edit data
 npx prisma migrate dev --name <name>  # Create migration
 ```
 
+### Local Machine Memory
+
+This workstation has 64 GB RAM. For heavy full-repo checks, it is safe to raise Node's heap instead of letting tools fail from memory pressure:
+
+```bash
+NODE_OPTIONS=--max-old-space-size=8192 npm run lint
+NODE_OPTIONS=--max-old-space-size=8192 npm run build
+NODE_OPTIONS=--max-old-space-size=8192 npm run typecheck
+```
+
+For unusually large cleanup or autofix passes, `--max-old-space-size=12288` or `16384` is acceptable.
+
 ### Prisma & Database Connection
 
 Env vars are in `.env.local` (not `.env`). Prisma doesn't auto-load `.env.local`, so load them manually:
