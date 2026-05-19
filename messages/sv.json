@@ -10451,6 +10451,15 @@
         "RETURN_TO_SPORT": "Återgång till idrott"
       }
     },
+    "physioError": {
+      "title": "Något gick fel",
+      "description": "Ett oväntat fel uppstod. Försök igen eller gå tillbaka till dashboarden.",
+      "errorIdLabel": "Fel-ID",
+      "actions": {
+        "retry": "Försök igen",
+        "dashboard": "Dashboard"
+      }
+    },
     "treatmentSessionForm": {
       "sections": {
         "athlete": "Atlet",

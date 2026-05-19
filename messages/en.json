@@ -10084,6 +10084,15 @@
         "RETURN_TO_SPORT": "Return to sport"
       }
     },
+    "physioError": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred. Try again or return to the dashboard.",
+      "errorIdLabel": "Error ID",
+      "actions": {
+        "retry": "Try again",
+        "dashboard": "Dashboard"
+      }
+    },
     "treatmentSessionForm": {
       "sections": {
         "athlete": "Athlete",

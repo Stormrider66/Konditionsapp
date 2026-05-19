@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertTriangle, RefreshCw, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations } from '@/i18n/client'
 
 export default function PhysioError({
   error,
@@ -17,6 +18,7 @@ export default function PhysioError({
 }) {
   const params = useParams()
   const businessSlug = params?.businessSlug as string
+  const t = useTranslations('components.physioError')
 
   useEffect(() => {
     Sentry.captureException(error)
@@ -31,9 +33,9 @@ export default function PhysioError({
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <CardTitle className="text-lg">Något gick fel</CardTitle>
+              <CardTitle className="text-lg">{t('title')}</CardTitle>
               <CardDescription>
-                Ett oväntat fel uppstod. Försök igen eller gå tillbaka till dashboarden.
+                {t('description')}
               </CardDescription>
             </div>
           </div>
@@ -41,19 +43,19 @@ export default function PhysioError({
         <CardContent className="space-y-4">
           {error.digest && (
             <p className="text-xs text-muted-foreground font-mono">
-              Fel-ID: {error.digest}
+              {t('errorIdLabel')}: {error.digest}
             </p>
           )}
 
           <div className="flex gap-3">
             <Button onClick={reset} variant="outline" className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4" />
-              Försök igen
+              {t('actions.retry')}
             </Button>
             <Button asChild variant="default" className="flex items-center gap-2">
               <Link href={`/${businessSlug}/physio/dashboard`}>
                 <LayoutDashboard className="h-4 w-4" />
-                Dashboard
+                {t('actions.dashboard')}
               </Link>
             </Button>
           </div>
