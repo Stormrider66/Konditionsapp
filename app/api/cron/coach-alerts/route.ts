@@ -29,6 +29,7 @@ const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
 
 type AlertType = 'READINESS_DROP' | 'MISSED_CHECKINS' | 'MISSED_WORKOUTS' | 'PAIN_MENTION' | 'HIGH_ACWR'
 type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+type AppLocale = 'en' | 'sv'
 
 interface AlertData {
   coachId: string
@@ -231,20 +232,21 @@ async function processAlertCandidate(
 ): Promise<ProcessAlertCandidateResult> {
   try {
     const alerts: AlertData[] = []
+    const locale = await getUserLocale(athlete.userId)
 
-    const readinessAlert = await checkReadinessDrop(athlete.userId, athlete.id, athlete.name)
+    const readinessAlert = await checkReadinessDrop(athlete.userId, athlete.id, athlete.name, locale)
     if (readinessAlert) alerts.push(readinessAlert)
 
-    const missedCheckinAlert = await checkMissedCheckins(athlete.userId, athlete.id, athlete.name)
+    const missedCheckinAlert = await checkMissedCheckins(athlete.userId, athlete.id, athlete.name, locale)
     if (missedCheckinAlert) alerts.push(missedCheckinAlert)
 
-    const missedWorkoutAlerts = await checkMissedWorkouts(athlete.userId, athlete.id, athlete.name)
+    const missedWorkoutAlerts = await checkMissedWorkouts(athlete.userId, athlete.id, athlete.name, locale)
     alerts.push(...missedWorkoutAlerts)
 
-    const painAlerts = await checkPainMentions(athlete.userId, athlete.id, athlete.name)
+    const painAlerts = await checkPainMentions(athlete.userId, athlete.id, athlete.name, locale)
     alerts.push(...painAlerts)
 
-    const acwrAlert = await checkHighACWR(athlete.userId, athlete.id, athlete.name)
+    const acwrAlert = await checkHighACWR(athlete.userId, athlete.id, athlete.name, locale)
     if (acwrAlert) alerts.push(acwrAlert)
 
     let alertsCreated = 0
@@ -283,7 +285,8 @@ async function processAlertCandidate(
 async function checkReadinessDrop(
   coachId: string,
   clientId: string,
-  clientName: string
+  clientName: string,
+  locale: AppLocale
 ): Promise<AlertData | null> {
   const threeDaysAgo = new Date()
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
@@ -320,8 +323,12 @@ async function checkReadinessDrop(
     clientId,
     alertType: 'READINESS_DROP',
     severity,
-    title: `${clientName}: Låg readiness`,
-    message: `${clientName} har haft låg readiness (snitt ${avgScore.toFixed(1)}/10) de senaste 3 dagarna. Överväg att ta kontakt.`,
+    title: t(locale, `${clientName}: Low readiness`, `${clientName}: Låg readiness`),
+    message: t(
+      locale,
+      `${clientName} has had low readiness (avg ${avgScore.toFixed(1)}/10) for the last 3 days. Consider reaching out.`,
+      `${clientName} har haft låg readiness (snitt ${avgScore.toFixed(1)}/10) de senaste 3 dagarna. Överväg att ta kontakt.`
+    ),
     contextData: {
       avgReadiness: avgScore,
       days: 3,
@@ -337,7 +344,8 @@ async function checkReadinessDrop(
 async function checkMissedCheckins(
   coachId: string,
   clientId: string,
-  clientName: string
+  clientName: string,
+  locale: AppLocale
 ): Promise<AlertData | null> {
   const totalCheckIns = await prisma.dailyCheckIn.count({
     where: { clientId },
@@ -374,8 +382,12 @@ async function checkMissedCheckins(
     clientId,
     alertType: 'MISSED_CHECKINS',
     severity,
-    title: `${clientName}: Inga check-ins`,
-    message: `${clientName} har inte gjort en daily check-in på ${daysSince} dagar. Detta är ovanligt för denna atlet.`,
+    title: t(locale, `${clientName}: No check-ins`, `${clientName}: Inga check-ins`),
+    message: t(
+      locale,
+      `${clientName} has not completed a daily check-in for ${daysSince} days. This is unusual for this athlete.`,
+      `${clientName} har inte gjort en daily check-in på ${daysSince} dagar. Detta är ovanligt för denna atlet.`
+    ),
     contextData: {
       daysSinceLastCheckIn: daysSince,
       lastCheckInDate: lastCheckIn?.date.toISOString(),
@@ -391,7 +403,8 @@ async function checkMissedCheckins(
 async function checkMissedWorkouts(
   coachId: string,
   clientId: string,
-  clientName: string
+  clientName: string,
+  locale: AppLocale
 ): Promise<AlertData[]> {
   const alerts: AlertData[] = []
   const now = new Date()
@@ -448,8 +461,12 @@ async function checkMissedWorkouts(
     clientId,
     alertType: 'MISSED_WORKOUTS',
     severity,
-    title: `${clientName}: Missade pass`,
-    message: `${clientName} har ${totalMissed} planerade pass som inte genomförts: ${workoutNames.join(', ')}${totalMissed > 3 ? '...' : ''}.`,
+    title: t(locale, `${clientName}: Missed workouts`, `${clientName}: Missade pass`),
+    message: t(
+      locale,
+      `${clientName} has ${totalMissed} planned workouts that were not completed: ${workoutNames.join(', ')}${totalMissed > 3 ? '...' : ''}.`,
+      `${clientName} har ${totalMissed} planerade pass som inte genomförts: ${workoutNames.join(', ')}${totalMissed > 3 ? '...' : ''}.`
+    ),
     contextData: {
       missedCount: totalMissed,
       workoutNames,
@@ -468,7 +485,8 @@ async function checkMissedWorkouts(
 async function checkPainMentions(
   coachId: string,
   clientId: string,
-  clientName: string
+  clientName: string,
+  locale: AppLocale
 ): Promise<AlertData[]> {
   const alerts: AlertData[] = []
   const sevenDaysAgo = new Date()
@@ -504,8 +522,12 @@ async function checkPainMentions(
       clientId,
       alertType: 'PAIN_MENTION',
       severity,
-      title: `${clientName}: Smärta/obehag`,
-      message: `${clientName} nämnde i AI-chatten: "${mention.content}"`,
+      title: t(locale, `${clientName}: Pain/discomfort`, `${clientName}: Smärta/obehag`),
+      message: t(
+        locale,
+        `${clientName} mentioned in AI chat: "${mention.content}"`,
+        `${clientName} nämnde i AI-chatten: "${mention.content}"`
+      ),
       contextData: {
         memoryContent: mention.content,
         context: mention.context,
@@ -526,7 +548,8 @@ async function checkPainMentions(
 async function checkHighACWR(
   coachId: string,
   clientId: string,
-  clientName: string
+  clientName: string,
+  locale: AppLocale
 ): Promise<AlertData | null> {
   const recentLoad = await prisma.trainingLoad.findFirst({
     where: {
@@ -556,8 +579,12 @@ async function checkHighACWR(
     clientId,
     alertType: 'HIGH_ACWR',
     severity,
-    title: `${clientName}: Hög ACWR`,
-    message: `${clientName} har en ACWR på ${acwr.toFixed(2)} (${riskLevel}). Överväg att reducera träningsbelastningen.`,
+    title: t(locale, `${clientName}: High ACWR`, `${clientName}: Hög ACWR`),
+    message: t(
+      locale,
+      `${clientName} has an ACWR of ${acwr.toFixed(2)} (${riskLevel}). Consider reducing training load.`,
+      `${clientName} har en ACWR på ${acwr.toFixed(2)} (${riskLevel}). Överväg att reducera träningsbelastningen.`
+    ),
     contextData: {
       acwr,
       injuryRisk: riskLevel,
@@ -602,6 +629,18 @@ async function createAlertIfNotExists(alert: AlertData): Promise<boolean> {
   })
 
   return true
+}
+
+async function getUserLocale(userId: string): Promise<AppLocale> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return user?.language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 function parseBoundedInt(
