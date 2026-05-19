@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Download, FileSpreadsheet, FileText, Loader2, Printer } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 export type SessionType = 'strength' | 'cardio'
 
@@ -40,6 +41,8 @@ export function SessionExportButton({
   disabled = false,
 }: SessionExportButtonProps) {
   const { toast } = useToast()
+  const locale = useLocale()
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en
   const [exporting, setExporting] = useState<'excel' | 'pdf' | 'print' | null>(null)
 
   const handleExportExcel = async () => {
@@ -47,7 +50,7 @@ export function SessionExportButton({
     try {
       const data = getSessionData()
       if (!data) {
-        throw new Error('Inga data att exportera')
+        throw new Error(t('Inga data att exportera', 'No data to export'))
       }
 
       const exportData = {
@@ -55,6 +58,7 @@ export function SessionExportButton({
         athleteName,
         coachName,
         date: new Date(),
+        locale,
       }
 
       if (sessionType === 'strength') {
@@ -66,13 +70,13 @@ export function SessionExportButton({
       }
 
       toast({
-        title: 'Excel exporterad!',
-        description: 'Passet har laddats ner som Excel-fil.',
+        title: t('Excel exporterad!', 'Excel exported!'),
+        description: t('Passet har laddats ner som Excel-fil.', 'The session has been downloaded as an Excel file.'),
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte exportera',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t('Kunde inte exportera', 'Could not export'),
+        description: error instanceof Error ? error.message : t('Okänt fel', 'Unknown error'),
         variant: 'destructive',
       })
     } finally {
@@ -85,7 +89,7 @@ export function SessionExportButton({
     try {
       const data = getSessionData()
       if (!data) {
-        throw new Error('Inga data att exportera')
+        throw new Error(t('Inga data att exportera', 'No data to export'))
       }
 
       const exportData = {
@@ -93,6 +97,7 @@ export function SessionExportButton({
         athleteName,
         coachName,
         date: new Date(),
+        locale,
       }
 
       if (sessionType === 'strength') {
@@ -104,13 +109,13 @@ export function SessionExportButton({
       }
 
       toast({
-        title: 'PDF exporterad!',
-        description: 'Passet har laddats ner som PDF.',
+        title: t('PDF exporterad!', 'PDF exported!'),
+        description: t('Passet har laddats ner som PDF.', 'The session has been downloaded as a PDF.'),
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte exportera',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t('Kunde inte exportera', 'Could not export'),
+        description: error instanceof Error ? error.message : t('Okänt fel', 'Unknown error'),
         variant: 'destructive',
       })
     } finally {
@@ -123,7 +128,7 @@ export function SessionExportButton({
     try {
       const data = getSessionData()
       if (!data) {
-        throw new Error('Inga data att skriva ut')
+        throw new Error(t('Inga data att skriva ut', 'No data to print'))
       }
 
       const exportData = {
@@ -131,6 +136,7 @@ export function SessionExportButton({
         athleteName,
         coachName,
         date: new Date(),
+        locale,
       }
 
       // Generate PDF and open in new window for printing
@@ -152,13 +158,13 @@ export function SessionExportButton({
       }
 
       toast({
-        title: 'Redo att skriva ut',
-        description: 'Utskriftsdialogen öppnas...',
+        title: t('Redo att skriva ut', 'Ready to print'),
+        description: t('Utskriftsdialogen öppnas...', 'The print dialog is opening...'),
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte skriva ut',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t('Kunde inte skriva ut', 'Could not print'),
+        description: error instanceof Error ? error.message : t('Okänt fel', 'Unknown error'),
         variant: 'destructive',
       })
     } finally {
@@ -175,14 +181,14 @@ export function SessionExportButton({
           {isExporting ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {exporting === 'excel' && 'Exporterar Excel...'}
-              {exporting === 'pdf' && 'Exporterar PDF...'}
-              {exporting === 'print' && 'Förbereder utskrift...'}
+              {exporting === 'excel' && t('Exporterar Excel...', 'Exporting Excel...')}
+              {exporting === 'pdf' && t('Exporterar PDF...', 'Exporting PDF...')}
+              {exporting === 'print' && t('Förbereder utskrift...', 'Preparing print...')}
             </>
           ) : (
             <>
               <Download className="h-4 w-4 mr-2" />
-              Exportera
+              {t('Exportera', 'Export')}
             </>
           )}
         </Button>
@@ -190,15 +196,15 @@ export function SessionExportButton({
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={handleExportExcel} disabled={isExporting}>
           <FileSpreadsheet className="h-4 w-4 mr-2" />
-          Exportera till Excel
+          {t('Exportera till Excel', 'Export to Excel')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleExportPDF} disabled={isExporting}>
           <FileText className="h-4 w-4 mr-2" />
-          Exportera till PDF
+          {t('Exportera till PDF', 'Export to PDF')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handlePrint} disabled={isExporting}>
           <Printer className="h-4 w-4 mr-2" />
-          Skriv ut
+          {t('Skriv ut', 'Print')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

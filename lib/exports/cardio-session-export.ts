@@ -7,6 +7,8 @@
 import ExcelJS from 'exceljs'
 import { jsPDF } from 'jspdf'
 
+type ExportLocale = 'en' | 'sv'
+
 export type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
 export interface CardioSegment {
@@ -31,36 +33,125 @@ export interface CardioSessionData {
   coachName?: string
   date?: Date
   organization?: string
+  locale?: ExportLocale
 }
 
-// Segment type labels in Swedish
-const SEGMENT_LABELS: Record<SegmentType, string> = {
-  WARMUP: 'Uppvärmning',
-  COOLDOWN: 'Nedvarvning',
-  INTERVAL: 'Intervall',
-  STEADY: 'Distans',
-  RECOVERY: 'Återhämtning',
-  HILL: 'Backe',
-  DRILLS: 'Teknik',
-  CORE: 'Core',
-  PREHAB: 'Stabilitet / Prehab',
-  PLYOMETRIC: 'Plyometri',
+const SEGMENT_LABELS: Record<ExportLocale, Record<SegmentType, string>> = {
+  en: {
+    WARMUP: 'Warm-up',
+    COOLDOWN: 'Cool-down',
+    INTERVAL: 'Interval',
+    STEADY: 'Steady',
+    RECOVERY: 'Recovery',
+    HILL: 'Hill',
+    DRILLS: 'Drills',
+    CORE: 'Core',
+    PREHAB: 'Stability / Prehab',
+    PLYOMETRIC: 'Plyometric',
+  },
+  sv: {
+    WARMUP: 'Uppvärmning',
+    COOLDOWN: 'Nedvarvning',
+    INTERVAL: 'Intervall',
+    STEADY: 'Distans',
+    RECOVERY: 'Återhämtning',
+    HILL: 'Backe',
+    DRILLS: 'Teknik',
+    CORE: 'Core',
+    PREHAB: 'Stabilitet / Prehab',
+    PLYOMETRIC: 'Plyometri',
+  },
 }
 
-// Intensity labels in Swedish
-const INTENSITY_LABELS: Record<string, string> = {
-  RECOVERY: 'Återhämtning',
-  EASY: 'Lugn',
-  MODERATE: 'Måttlig',
-  THRESHOLD: 'Tröskel',
-  INTERVAL: 'Intervall',
-  MAX: 'Max',
+const INTENSITY_LABELS: Record<ExportLocale, Record<string, string>> = {
+  en: {
+    RECOVERY: 'Recovery',
+    EASY: 'Easy',
+    MODERATE: 'Moderate',
+    THRESHOLD: 'Threshold',
+    INTERVAL: 'Interval',
+    MAX: 'Max',
+  },
+  sv: {
+    RECOVERY: 'Återhämtning',
+    EASY: 'Lugn',
+    MODERATE: 'Måttlig',
+    THRESHOLD: 'Tröskel',
+    INTERVAL: 'Intervall',
+    MAX: 'Max',
+  },
+}
+
+const CARDIO_LABELS = {
+  en: {
+    title: 'RUNNING SESSION',
+    session: 'Session',
+    intensity: 'Intensity',
+    date: 'Date',
+    athlete: 'Athlete',
+    coach: 'Coach',
+    summary: 'SUMMARY',
+    summaryTitle: 'Summary',
+    totalTime: 'Total time',
+    totalDistance: 'Total distance',
+    segmentCount: 'Segment count',
+    averageZone: 'Average zone',
+    type: 'Type',
+    time: 'Time',
+    distance: 'Distance',
+    pace: 'Pace',
+    heartRate: 'Heart rate',
+    zone: 'Zone',
+    repeats: 'Repeats',
+    rest: 'Rest',
+    notes: 'Notes',
+    visualOverview: 'Visual overview',
+    generated: 'Generated',
+    filenamePrefix: 'Running_session',
+  },
+  sv: {
+    title: 'LÖPPASS',
+    session: 'Pass',
+    intensity: 'Intensitet',
+    date: 'Datum',
+    athlete: 'Atlet',
+    coach: 'Coach',
+    summary: 'SAMMANFATTNING',
+    summaryTitle: 'Sammanfattning',
+    totalTime: 'Total tid',
+    totalDistance: 'Total distans',
+    segmentCount: 'Antal segment',
+    averageZone: 'Snittzon',
+    type: 'Typ',
+    time: 'Tid',
+    distance: 'Distans',
+    pace: 'Tempo',
+    heartRate: 'Puls',
+    zone: 'Zon',
+    repeats: 'Upprepningar',
+    rest: 'Vila',
+    notes: 'Anteckningar',
+    visualOverview: 'Visuell översikt',
+    generated: 'Genererad',
+    filenamePrefix: 'Loppass',
+  },
+} satisfies Record<ExportLocale, Record<string, string>>
+
+function getExportLocale(data: { locale?: ExportLocale }): ExportLocale {
+  return data.locale === 'sv' ? 'sv' : 'en'
+}
+
+function getDateLocale(locale: ExportLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
 }
 
 /**
  * Generate Excel workbook for a cardio session
  */
 export async function generateCardioSessionExcel(data: CardioSessionData): Promise<Blob> {
+  const locale = getExportLocale(data)
+  const labels = CARDIO_LABELS[locale]
+  const dateLocale = getDateLocale(locale)
   const workbook = new ExcelJS.Workbook()
   workbook.creator = data.organization || 'Trainomics'
   workbook.created = new Date()
@@ -74,20 +165,20 @@ export async function generateCardioSessionExcel(data: CardioSessionData): Promi
 
   // Info Sheet
   const infoData: (string | number)[][] = [
-    ['LÖPPASS'],
+    [labels.title],
     [''],
-    ['Pass', data.sessionName],
-    ['Intensitet', INTENSITY_LABELS[data.intensity] || data.intensity],
-    ['Datum', data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE')],
+    [labels.session, data.sessionName],
+    [labels.intensity, INTENSITY_LABELS[locale][data.intensity] || data.intensity],
+    [labels.date, data.date ? data.date.toLocaleDateString(dateLocale) : new Date().toLocaleDateString(dateLocale)],
     [''],
-    ['Atlet', data.athleteName || ''],
-    ['Coach', data.coachName || ''],
+    [labels.athlete, data.athleteName || ''],
+    [labels.coach, data.coachName || ''],
     [''],
-    ['SAMMANFATTNING'],
-    ['Total tid', `${totalDuration} min`],
-    ['Total distans', `${totalDistance.toFixed(1)} km`],
-    ['Antal segment', data.segments.length],
-    ['Snittzon', `Z${avgZone}`],
+    [labels.summary],
+    [labels.totalTime, `${totalDuration} min`],
+    [labels.totalDistance, `${totalDistance.toFixed(1)} km`],
+    [labels.segmentCount, data.segments.length],
+    [labels.averageZone, `Z${avgZone}`],
   ]
 
   const infoSheet = workbook.addWorksheet('Info')
@@ -98,13 +189,13 @@ export async function generateCardioSessionExcel(data: CardioSessionData): Promi
 
   // Segments Sheet
   const segmentData: (string | number)[][] = [
-    ['#', 'Typ', 'Tid (min)', 'Distans (km)', 'Tempo', 'Puls', 'Zon', 'Upprepningar', 'Vila', 'Anteckningar'],
+    ['#', labels.type, `${labels.time} (min)`, `${labels.distance} (km)`, labels.pace, labels.heartRate, labels.zone, labels.repeats, labels.rest, labels.notes],
   ]
 
   data.segments.forEach((seg, idx) => {
     segmentData.push([
       idx + 1,
-      SEGMENT_LABELS[seg.type] || seg.type,
+      SEGMENT_LABELS[locale][seg.type] || seg.type,
       seg.duration || '-',
       seg.distance ? seg.distance.toFixed(2) : '-',
       seg.pace || '-',
@@ -145,6 +236,9 @@ export async function generateCardioSessionExcel(data: CardioSessionData): Promi
  * Generate PDF for a cardio session
  */
 export function generateCardioSessionPDF(data: CardioSessionData): Blob {
+  const locale = getExportLocale(data)
+  const labels = CARDIO_LABELS[locale]
+  const dateLocale = getDateLocale(locale)
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -165,7 +259,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   // Header
   pdf.setFontSize(20)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('LÖPPASS', margin, y)
+  pdf.text(labels.title, margin, y)
   y += 10
 
   pdf.setFontSize(14)
@@ -175,16 +269,16 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
 
   pdf.setFontSize(10)
   pdf.setTextColor(100, 100, 100)
-  pdf.text(`Intensitet: ${INTENSITY_LABELS[data.intensity] || data.intensity}`, margin, y)
+  pdf.text(`${labels.intensity}: ${INTENSITY_LABELS[locale][data.intensity] || data.intensity}`, margin, y)
   y += 5
-  pdf.text(`Datum: ${data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE')}`, margin, y)
+  pdf.text(`${labels.date}: ${data.date ? data.date.toLocaleDateString(dateLocale) : new Date().toLocaleDateString(dateLocale)}`, margin, y)
   y += 5
   if (data.athleteName) {
-    pdf.text(`Atlet: ${data.athleteName}`, margin, y)
+    pdf.text(`${labels.athlete}: ${data.athleteName}`, margin, y)
     y += 5
   }
   if (data.coachName) {
-    pdf.text(`Coach: ${data.coachName}`, margin, y)
+    pdf.text(`${labels.coach}: ${data.coachName}`, margin, y)
     y += 5
   }
   y += 10
@@ -197,15 +291,15 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   pdf.setFontSize(11)
   pdf.setFont('helvetica', 'bold')
   y += 5
-  pdf.text('Sammanfattning', margin + 5, y)
+  pdf.text(labels.summaryTitle, margin + 5, y)
   y += 7
 
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
   const summaryY = y
-  pdf.text(`Total tid: ${totalDuration} min`, margin + 5, summaryY)
-  pdf.text(`Total distans: ${totalDistance.toFixed(1)} km`, margin + 50, summaryY)
-  pdf.text(`Snittzon: Z${avgZone}`, margin + 100, summaryY)
+  pdf.text(`${labels.totalTime}: ${totalDuration} min`, margin + 5, summaryY)
+  pdf.text(`${labels.totalDistance}: ${totalDistance.toFixed(1)} km`, margin + 50, summaryY)
+  pdf.text(`${labels.averageZone}: Z${avgZone}`, margin + 100, summaryY)
   pdf.text(`Segment: ${data.segments.length}`, margin + 140, summaryY)
 
   y += 20
@@ -221,15 +315,15 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   pdf.rect(margin, y - 4, pageWidth - 2 * margin, 8, 'F')
   pdf.setFontSize(8)
   pdf.text('#', margin + 2, y)
-  pdf.text('Typ', margin + 10, y)
-  pdf.text('Tid', margin + 40, y)
+  pdf.text(labels.type, margin + 10, y)
+  pdf.text(labels.time, margin + 40, y)
   pdf.text('Dist', margin + 55, y)
-  pdf.text('Tempo', margin + 72, y)
-  pdf.text('Puls', margin + 92, y)
-  pdf.text('Zon', margin + 115, y)
+  pdf.text(labels.pace, margin + 72, y)
+  pdf.text(labels.heartRate, margin + 92, y)
+  pdf.text(labels.zone, margin + 115, y)
   pdf.text('Rep', margin + 130, y)
-  pdf.text('Vila', margin + 145, y)
-  pdf.text('Ant.', margin + 162, y)
+  pdf.text(labels.rest, margin + 145, y)
+  pdf.text(locale === 'sv' ? 'Ant.' : 'Note', margin + 162, y)
   y += 8
 
   // Table rows
@@ -255,7 +349,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
 
     pdf.setTextColor(0, 0, 0)
     pdf.text(`${idx + 1}`, margin + 2, y)
-    pdf.text((SEGMENT_LABELS[seg.type] || seg.type).substring(0, 12), margin + 10, y)
+    pdf.text((SEGMENT_LABELS[locale][seg.type] || seg.type).substring(0, 12), margin + 10, y)
     pdf.text(seg.duration ? `${seg.duration}m` : '-', margin + 40, y)
     pdf.text(seg.distance ? `${seg.distance.toFixed(1)}` : '-', margin + 55, y)
     pdf.text(seg.pace || '-', margin + 72, y)
@@ -272,7 +366,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   if (y < 250) {
     pdf.setFontSize(10)
     pdf.setFont('helvetica', 'bold')
-    pdf.text('Visuell översikt', margin, y)
+    pdf.text(labels.visualOverview, margin, y)
     y += 8
 
     const timelineWidth = pageWidth - 2 * margin
@@ -311,7 +405,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   // Footer
   pdf.setFontSize(8)
   pdf.setTextColor(150, 150, 150)
-  pdf.text(`Genererad: ${new Date().toLocaleString('sv-SE')}`, margin, 285)
+  pdf.text(`${labels.generated}: ${new Date().toLocaleString(dateLocale)}`, margin, 285)
   pdf.text(`${data.organization || 'Trainomics'} - Cardio Studio`, pageWidth - margin - 50, 285)
 
   return pdf.output('blob')
@@ -320,7 +414,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
 /**
  * Generate filename for cardio session export
  */
-export function generateCardioFilename(sessionName: string, extension: string): string {
+export function generateCardioFilename(sessionName: string, extension: string, locale: ExportLocale = 'en'): string {
   const safeName = sessionName
     .replace(/[åä]/gi, 'a')
     .replace(/[ö]/gi, 'o')
@@ -329,7 +423,7 @@ export function generateCardioFilename(sessionName: string, extension: string): 
     .substring(0, 40)
 
   const date = new Date().toISOString().split('T')[0]
-  return `Loppass_${safeName}_${date}.${extension}`
+  return `${CARDIO_LABELS[locale].filenamePrefix}_${safeName}_${date}.${extension}`
 }
 
 /**
@@ -337,7 +431,7 @@ export function generateCardioFilename(sessionName: string, extension: string): 
  */
 export async function downloadCardioSessionExcel(data: CardioSessionData, filename?: string): Promise<void> {
   const blob = await generateCardioSessionExcel(data)
-  const finalFilename = filename || generateCardioFilename(data.sessionName, 'xlsx')
+  const finalFilename = filename || generateCardioFilename(data.sessionName, 'xlsx', getExportLocale(data))
   downloadBlob(blob, finalFilename)
 }
 
@@ -346,7 +440,7 @@ export async function downloadCardioSessionExcel(data: CardioSessionData, filena
  */
 export function downloadCardioSessionPDF(data: CardioSessionData, filename?: string): void {
   const blob = generateCardioSessionPDF(data)
-  const finalFilename = filename || generateCardioFilename(data.sessionName, 'pdf')
+  const finalFilename = filename || generateCardioFilename(data.sessionName, 'pdf', getExportLocale(data))
   downloadBlob(blob, finalFilename)
 }
 

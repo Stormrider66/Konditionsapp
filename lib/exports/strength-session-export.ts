@@ -7,6 +7,8 @@
 import ExcelJS from 'exceljs'
 import { jsPDF } from 'jspdf'
 
+type ExportLocale = 'en' | 'sv'
+
 export interface StrengthExercise {
   id: string
   name: string
@@ -25,31 +27,86 @@ export interface StrengthSessionData {
   coachName?: string
   date?: Date
   organization?: string
+  locale?: ExportLocale
+}
+
+const STRENGTH_LABELS = {
+  en: {
+    title: 'STRENGTH SESSION',
+    session: 'Session',
+    phase: 'Phase',
+    date: 'Date',
+    athlete: 'Athlete',
+    coach: 'Coach',
+    summary: 'SUMMARY',
+    summaryTitle: 'Summary',
+    exerciseCount: 'Exercise count',
+    totalSets: 'Total sets',
+    estimatedTime: 'Estimated time',
+    exercises: 'Exercises',
+    exercise: 'Exercise',
+    load: 'Load',
+    rest: 'Rest',
+    notes: 'Notes',
+    generated: 'Generated',
+    filenamePrefix: 'Strength_session',
+  },
+  sv: {
+    title: 'STYRKEPASS',
+    session: 'Pass',
+    phase: 'Fas',
+    date: 'Datum',
+    athlete: 'Atlet',
+    coach: 'Coach',
+    summary: 'SAMMANFATTNING',
+    summaryTitle: 'Sammanfattning',
+    exerciseCount: 'Antal övningar',
+    totalSets: 'Totalt antal set',
+    estimatedTime: 'Uppskattad tid',
+    exercises: 'Övningar',
+    exercise: 'Övning',
+    load: 'Belastning',
+    rest: 'Vila',
+    notes: 'Anteckningar',
+    generated: 'Genererad',
+    filenamePrefix: 'Styrkepass',
+  },
+} satisfies Record<ExportLocale, Record<string, string>>
+
+function getExportLocale(data: { locale?: ExportLocale }): ExportLocale {
+  return data.locale === 'sv' ? 'sv' : 'en'
+}
+
+function getDateLocale(locale: ExportLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
 }
 
 /**
  * Generate Excel workbook for a strength session
  */
 export async function generateStrengthSessionExcel(data: StrengthSessionData): Promise<Blob> {
+  const locale = getExportLocale(data)
+  const labels = STRENGTH_LABELS[locale]
+  const dateLocale = getDateLocale(locale)
   const workbook = new ExcelJS.Workbook()
   workbook.creator = data.organization || 'Trainomics'
   workbook.created = new Date()
 
   // Info Sheet
   const infoData: (string | number)[][] = [
-    ['STYRKEPASS'],
+    [labels.title],
     [''],
-    ['Pass', data.sessionName],
-    ['Fas', data.phase],
-    ['Datum', data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE')],
+    [labels.session, data.sessionName],
+    [labels.phase, data.phase],
+    [labels.date, data.date ? data.date.toLocaleDateString(dateLocale) : new Date().toLocaleDateString(dateLocale)],
     [''],
-    ['Atlet', data.athleteName || ''],
-    ['Coach', data.coachName || ''],
+    [labels.athlete, data.athleteName || ''],
+    [labels.coach, data.coachName || ''],
     [''],
-    ['SAMMANFATTNING'],
-    ['Antal övningar', data.exercises.length],
-    ['Totalt antal set', data.exercises.reduce((acc, ex) => acc + ex.sets, 0)],
-    ['Uppskattad tid', `${data.exercises.reduce((acc, ex) => acc + (ex.sets * (2 + ex.rest / 60)), 10).toFixed(0)} min`],
+    [labels.summary],
+    [labels.exerciseCount, data.exercises.length],
+    [labels.totalSets, data.exercises.reduce((acc, ex) => acc + ex.sets, 0)],
+    [labels.estimatedTime, `${data.exercises.reduce((acc, ex) => acc + (ex.sets * (2 + ex.rest / 60)), 10).toFixed(0)} min`],
   ]
 
   const infoSheet = workbook.addWorksheet('Info')
@@ -60,7 +117,7 @@ export async function generateStrengthSessionExcel(data: StrengthSessionData): P
 
   // Exercises Sheet
   const exerciseData: (string | number)[][] = [
-    ['#', 'Övning', 'Set', 'Reps', 'Belastning', 'Vila (s)', 'Anteckningar'],
+    ['#', labels.exercise, 'Set', 'Reps', labels.load, `${labels.rest} (s)`, labels.notes],
   ]
 
   data.exercises.forEach((ex, idx) => {
@@ -75,7 +132,7 @@ export async function generateStrengthSessionExcel(data: StrengthSessionData): P
     ])
   })
 
-  const exerciseSheet = workbook.addWorksheet('Övningar')
+  const exerciseSheet = workbook.addWorksheet(labels.exercises)
   exerciseSheet.addRows(exerciseData)
   exerciseSheet.columns = [
     { width: 5 },   // #
@@ -101,6 +158,9 @@ export async function generateStrengthSessionExcel(data: StrengthSessionData): P
  * Generate PDF for a strength session
  */
 export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
+  const locale = getExportLocale(data)
+  const labels = STRENGTH_LABELS[locale]
+  const dateLocale = getDateLocale(locale)
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -114,7 +174,7 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
   // Header
   pdf.setFontSize(20)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('STYRKEPASS', margin, y)
+  pdf.text(labels.title, margin, y)
   y += 10
 
   pdf.setFontSize(14)
@@ -124,16 +184,16 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
 
   pdf.setFontSize(10)
   pdf.setTextColor(100, 100, 100)
-  pdf.text(`Fas: ${data.phase}`, margin, y)
+  pdf.text(`${labels.phase}: ${data.phase}`, margin, y)
   y += 5
-  pdf.text(`Datum: ${data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE')}`, margin, y)
+  pdf.text(`${labels.date}: ${data.date ? data.date.toLocaleDateString(dateLocale) : new Date().toLocaleDateString(dateLocale)}`, margin, y)
   y += 5
   if (data.athleteName) {
-    pdf.text(`Atlet: ${data.athleteName}`, margin, y)
+    pdf.text(`${labels.athlete}: ${data.athleteName}`, margin, y)
     y += 5
   }
   if (data.coachName) {
-    pdf.text(`Coach: ${data.coachName}`, margin, y)
+    pdf.text(`${labels.coach}: ${data.coachName}`, margin, y)
     y += 5
   }
   y += 10
@@ -142,21 +202,21 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
   pdf.setTextColor(0, 0, 0)
   pdf.setFontSize(12)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('Sammanfattning', margin, y)
+  pdf.text(labels.summaryTitle, margin, y)
   y += 6
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
-  pdf.text(`Antal övningar: ${data.exercises.length}`, margin, y)
+  pdf.text(`${labels.exerciseCount}: ${data.exercises.length}`, margin, y)
   y += 5
-  pdf.text(`Totalt antal set: ${data.exercises.reduce((acc, ex) => acc + ex.sets, 0)}`, margin, y)
+  pdf.text(`${labels.totalSets}: ${data.exercises.reduce((acc, ex) => acc + ex.sets, 0)}`, margin, y)
   y += 5
-  pdf.text(`Uppskattad tid: ${data.exercises.reduce((acc, ex) => acc + (ex.sets * (2 + ex.rest / 60)), 10).toFixed(0)} min`, margin, y)
+  pdf.text(`${labels.estimatedTime}: ${data.exercises.reduce((acc, ex) => acc + (ex.sets * (2 + ex.rest / 60)), 10).toFixed(0)} min`, margin, y)
   y += 15
 
   // Exercises Table Header
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(12)
-  pdf.text('Övningar', margin, y)
+  pdf.text(labels.exercises, margin, y)
   y += 8
 
   // Table header
@@ -164,11 +224,11 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
   pdf.rect(margin, y - 4, pageWidth - 2 * margin, 8, 'F')
   pdf.setFontSize(9)
   pdf.text('#', margin + 2, y)
-  pdf.text('Övning', margin + 12, y)
+  pdf.text(labels.exercise, margin + 12, y)
   pdf.text('Set', margin + 80, y)
   pdf.text('Reps', margin + 95, y)
-  pdf.text('Belastning', margin + 115, y)
-  pdf.text('Vila', margin + 145, y)
+  pdf.text(labels.load, margin + 115, y)
+  pdf.text(labels.rest, margin + 145, y)
   y += 8
 
   // Table rows
@@ -202,7 +262,7 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
   // Footer
   pdf.setFontSize(8)
   pdf.setTextColor(150, 150, 150)
-  pdf.text(`Genererad: ${new Date().toLocaleString('sv-SE')}`, margin, 285)
+  pdf.text(`${labels.generated}: ${new Date().toLocaleString(dateLocale)}`, margin, 285)
   pdf.text(`${data.organization || 'Trainomics'} - Strength Studio`, pageWidth - margin - 50, 285)
 
   return pdf.output('blob')
@@ -211,7 +271,7 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
 /**
  * Generate filename for strength session export
  */
-export function generateStrengthFilename(sessionName: string, extension: string): string {
+export function generateStrengthFilename(sessionName: string, extension: string, locale: ExportLocale = 'en'): string {
   const safeName = sessionName
     .replace(/[åä]/gi, 'a')
     .replace(/[ö]/gi, 'o')
@@ -220,7 +280,7 @@ export function generateStrengthFilename(sessionName: string, extension: string)
     .substring(0, 40)
 
   const date = new Date().toISOString().split('T')[0]
-  return `Styrkepass_${safeName}_${date}.${extension}`
+  return `${STRENGTH_LABELS[locale].filenamePrefix}_${safeName}_${date}.${extension}`
 }
 
 /**
@@ -228,7 +288,7 @@ export function generateStrengthFilename(sessionName: string, extension: string)
  */
 export async function downloadStrengthSessionExcel(data: StrengthSessionData, filename?: string): Promise<void> {
   const blob = await generateStrengthSessionExcel(data)
-  const finalFilename = filename || generateStrengthFilename(data.sessionName, 'xlsx')
+  const finalFilename = filename || generateStrengthFilename(data.sessionName, 'xlsx', getExportLocale(data))
   downloadBlob(blob, finalFilename)
 }
 
@@ -237,7 +297,7 @@ export async function downloadStrengthSessionExcel(data: StrengthSessionData, fi
  */
 export function downloadStrengthSessionPDF(data: StrengthSessionData, filename?: string): void {
   const blob = generateStrengthSessionPDF(data)
-  const finalFilename = filename || generateStrengthFilename(data.sessionName, 'pdf')
+  const finalFilename = filename || generateStrengthFilename(data.sessionName, 'pdf', getExportLocale(data))
   downloadBlob(blob, finalFilename)
 }
 
