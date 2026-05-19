@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 // Field test types with Swedish labels
 const FIELD_TEST_TYPES = [
@@ -89,6 +90,8 @@ export function ScheduleTestDialog({
   onScheduled,
 }: ScheduleTestDialogProps) {
   const { toast } = useToast()
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form state
@@ -130,7 +133,7 @@ export function ScheduleTestDialog({
       const selectedTest = FIELD_TEST_TYPES.find(t => t.value === testType)
       toast({
         title: 'Test schemalagt',
-        description: `${selectedTest?.label} schemalagt för ${format(date, 'd MMMM', { locale: sv })}`,
+        description: `${selectedTest?.label} schemalagt för ${format(date, 'd MMMM', { locale: dateLocale })}`,
       })
 
       onScheduled()
@@ -147,7 +150,7 @@ export function ScheduleTestDialog({
     }
   }
 
-  const formattedDate = format(date, 'EEEE d MMMM yyyy', { locale: sv })
+  const formattedDate = format(date, 'EEEE d MMMM yyyy', { locale: dateLocale })
   const selectedTest = FIELD_TEST_TYPES.find(t => t.value === testType)
 
   return (

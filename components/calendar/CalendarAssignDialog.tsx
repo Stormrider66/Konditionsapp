@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Loader2, Calendar, Clock, MapPin, User, UserCircle } from 'lucide-react'
 import {
   Dialog,
@@ -29,6 +29,7 @@ import {
   computeWeeklyDates,
   DEFAULT_OCCURRENCES,
 } from '@/components/coach/scheduling/RepeatWeeklyFields'
+import { useLocale } from '@/i18n/client'
 
 interface CoachOption {
   id: string
@@ -62,6 +63,8 @@ export function CalendarAssignDialog({
   onSkip,
 }: CalendarAssignDialogProps) {
   const router = useRouter()
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [athleteName, setAthleteName] = useState<string>('')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -150,7 +153,7 @@ export function CalendarAssignDialog({
 
   const formattedDate = (() => {
     try {
-      return format(parseISO(date), 'd MMMM yyyy', { locale: sv })
+      return format(parseISO(date), 'd MMMM yyyy', { locale: dateLocale })
     } catch {
       return date
     }

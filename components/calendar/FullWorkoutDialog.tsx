@@ -14,7 +14,7 @@
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Dumbbell,
   HeartPulse,
@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useLocale } from '@/i18n/client'
 
 interface StudioOption {
   id: 'strength' | 'cardio' | 'hybrid' | 'agility' | 'free-text'
@@ -110,6 +111,8 @@ export function FullWorkoutDialog({
   businessSlug,
 }: FullWorkoutDialogProps) {
   const router = useRouter()
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
 
   const handleStudioSelect = useCallback(
     (option: StudioOption) => {
@@ -135,7 +138,7 @@ export function FullWorkoutDialog({
     [router, clientId, date, onOpenChange, onOpenEventDialog, businessSlug]
   )
 
-  const formattedDate = format(date, 'EEEE d MMMM yyyy', { locale: sv })
+  const formattedDate = format(date, 'EEEE d MMMM yyyy', { locale: dateLocale })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

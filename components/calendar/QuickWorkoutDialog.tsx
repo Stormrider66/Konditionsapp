@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Loader2 } from 'lucide-react'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { ProgramSelector } from './ProgramSelector'
+import { useLocale } from '@/i18n/client'
 
 // Workout types with Swedish labels
 const WORKOUT_TYPES = [
@@ -81,6 +82,8 @@ export function QuickWorkoutDialog({
   onCreated,
 }: QuickWorkoutDialogProps) {
   const { toast } = useToast()
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form state
@@ -94,8 +97,8 @@ export function QuickWorkoutDialog({
   // Generate default name based on type
   const generateDefaultName = useCallback((type: WorkoutType) => {
     const typeLabel = WORKOUT_TYPES.find(t => t.value === type)?.label || type
-    return `${typeLabel} - ${format(date, 'd MMM', { locale: sv })}`
-  }, [date])
+    return `${typeLabel} - ${format(date, 'd MMM', { locale: dateLocale })}`
+  }, [date, dateLocale])
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -170,7 +173,7 @@ export function QuickWorkoutDialog({
     }
   }
 
-  const formattedDate = format(date, 'EEEE d MMMM yyyy', { locale: sv })
+  const formattedDate = format(date, 'EEEE d MMMM yyyy', { locale: dateLocale })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
