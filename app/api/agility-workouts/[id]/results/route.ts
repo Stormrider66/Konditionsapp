@@ -103,6 +103,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { clientId } = resolved
+    const locale = resolved.user.language === 'sv' ? 'sv' : 'en'
 
     // Verify workout exists
     const workout = await prisma.agilityWorkout.findUnique({
@@ -144,6 +145,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const warning = getFutureWorkoutCompletionWarning({
         assignedDate: assignment.assignedDate,
         allowFutureCompletion: validatedData.allowFutureCompletion,
+        locale,
       })
 
       if (warning) {

@@ -528,6 +528,7 @@ export async function PUT(
       )
     }
     const { clientId } = resolved
+    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
 
     const body = await request.json()
 
@@ -557,6 +558,7 @@ export async function PUT(
       const warning = getFutureWorkoutCompletionWarning({
         assignedDate: assignment.assignedDate,
         allowFutureCompletion,
+        locale,
       })
 
       if (warning) {

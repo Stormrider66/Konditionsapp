@@ -4,25 +4,6 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 
-interface HybridMovementData {
-  id: string
-  exerciseId: string
-  exerciseName?: string
-  order: number
-  roundNumber?: number
-  setNumber?: number
-  reps?: number
-  calories?: number
-  distance?: number
-  duration?: number
-  weightMale?: number
-  weightFemale?: number
-  percentOfMax?: number
-  isUnbroken?: boolean
-  alternateSides?: boolean
-  notes?: string
-}
-
 interface FocusModeMovement {
   id: string
   exerciseId: string
@@ -327,6 +308,7 @@ export async function PUT(
       )
     }
     const { clientId } = resolved
+    const locale = resolved.user.language === 'sv' ? 'sv' : 'en'
     const body = await request.json()
 
     const {
@@ -365,6 +347,7 @@ export async function PUT(
       const warning = getFutureWorkoutCompletionWarning({
         assignedDate: assignment.assignedDate,
         allowFutureCompletion,
+        locale,
       })
 
       if (warning) {

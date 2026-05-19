@@ -107,6 +107,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const locale = user.language === 'sv' ? 'sv' : 'en'
 
     const { id } = await context.params;
     const body = await request.json();
@@ -184,6 +185,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const warning = getFutureWorkoutCompletionWarning({
         assignedDate: scheduledAssignment.assignedDate,
         allowFutureCompletion,
+        locale,
       })
 
       if (warning) {
