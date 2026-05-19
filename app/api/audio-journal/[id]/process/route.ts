@@ -28,6 +28,7 @@ import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export const maxDuration = 300
+type AppLocale = 'en' | 'sv'
 
 export async function POST(
   request: NextRequest,
@@ -49,6 +50,7 @@ export async function POST(
       user = await requireCoach();
       isCoach = true;
     }
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('audio-journal:process', user.id, {
       limit: 5,
@@ -101,7 +103,7 @@ export async function POST(
 
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Ingen Google API-nyckel hittades. Kontrollera AI-inställningarna.' },
+        { error: t(locale, 'No Google API key was found. Check AI settings.', 'Ingen Google API-nyckel hittades. Kontrollera AI-inställningarna.') },
         { status: 400 }
       );
     }
@@ -118,63 +120,7 @@ export async function POST(
       const client = createGoogleGenAIClient(googleKey);
       const modelId = getGeminiModelId('audio');
 
-      // Build Swedish prompt for extraction
-      const prompt = `Du är en erfaren idrottscoach som lyssnar på en atletnodagsincheckning.
-
-UPPGIFT: Transkribera inspelningen och extrahera strukturerad data för träningsplanering.
-
-## LYSSNA EFTER:
-1. **Sömnkvalitet och längd** - "sov bra/dåligt", "vaknade X gånger", "X timmar"
-2. **Trötthet/energi** - "trött", "pigg", "sliten", "full av energi"
-3. **Ömhet/smärta** - kroppsdel + intensitet (lätt, måttlig, kraftig)
-4. **Stress** - arbete, privatliv, träningsrelaterad
-5. **Humör** - "glad", "nedstämd", "irriterad", etc.
-6. **Motivation** - "taggad", "orkar inte", "ser fram emot"
-7. **Gårdagens träning** - hur det kändes, RPE, eventuella problem
-
-## KONVERTERING TILL NUMERISK SKALA (1-10):
-- "utmärkt/jättebra/fantastisk" = 9-10
-- "bra/pigg" = 7-8
-- "okej/normal" = 5-6
-- "dålig/trött" = 3-4
-- "mycket dålig/sliten" = 1-2
-
-## OUTPUT FORMAT
-Svara i följande JSON-format:
-
-\`\`\`json
-{
-  "transcription": "<full transkription på svenska>",
-  "confidence": <0.0-1.0>,
-  "wellness": {
-    "sleepQuality": <1-10 eller null om ej nämnt>,
-    "sleepHours": <antal timmar eller null>,
-    "fatigue": <1-10 eller null>,
-    "soreness": <1-10 eller null>,
-    "stress": <1-10 eller null>,
-    "mood": <1-10 eller null>,
-    "motivation": <1-10 eller null>,
-    "sorenessLocation": "<kroppsdel eller null>"
-  },
-  "physicalSymptoms": [
-    {"symptom": "<symptom>", "severity": "MILD|MODERATE|SEVERE", "location": "<plats eller null>"}
-  ],
-  "trainingNotes": {
-    "yesterdayPerformance": "<kommentar om gårdagens träning eller null>",
-    "plannedAdjustments": "<planerade ändringar eller null>",
-    "concerns": ["<bekymmer>"]
-  },
-  "aiInterpretation": {
-    "readinessEstimate": <1-10>,
-    "recommendedAction": "PROCEED|REDUCE|EASY|REST",
-    "flaggedConcerns": ["<bekymmer som kräver coach-uppmärksamhet>"],
-    "keyInsights": ["<viktiga insikter från inspelningen>"]
-  }
-}
-\`\`\`
-
-VIKTIGT: Om atleten INTE nämner något (t.ex. sömn), lämna det fältet som null.
-Gissa inte värden som inte nämndes.`;
+      const prompt = buildAudioJournalPrompt(locale)
 
       // Fetch audio and convert to base64 (supports both legacy public URLs and storage paths)
       const MAX_AUDIO_BYTES = 15 * 1024 * 1024 // 15MB (inline_data practical limit)
@@ -230,7 +176,7 @@ Gissa inte värden som inte nämndes.`;
             readinessEstimate: 5,
             recommendedAction: 'PROCEED' as const,
             flaggedConcerns: [],
-            keyInsights: ['Kunde inte tolka inspelningen strukturerat'],
+            keyInsights: [t(locale, 'Could not interpret the recording in a structured way', 'Kunde inte tolka inspelningen strukturerat')],
           },
         };
       }
@@ -282,7 +228,7 @@ Gissa inte värden som inte nämndes.`;
             motivation: extracted.wellness.motivation || 5,
             readinessScore: extracted.aiInterpretation.readinessEstimate,
             readinessDecision: extracted.aiInterpretation.recommendedAction,
-            notes: `[Röstincheckning] ${extracted.transcription.substring(0, 500)}`,
+            notes: `[${t(locale, 'Voice check-in', 'Röstincheckning')}] ${extracted.transcription.substring(0, 500)}`,
           },
         });
 
@@ -354,4 +300,126 @@ function hasEnoughData(wellness: AudioExtractionResult['wellness']): boolean {
 
   const filledFields = fields.filter((f) => f !== null && f !== undefined);
   return filledFields.length >= 3;
+}
+
+function buildAudioJournalPrompt(locale: AppLocale): string {
+  if (locale === 'sv') {
+    return `Du är en erfaren idrottscoach som lyssnar på en atlets dagsincheckning.
+
+UPPGIFT: Transkribera inspelningen och extrahera strukturerad data för träningsplanering.
+
+## LYSSNA EFTER:
+1. **Sömnkvalitet och längd** - "sov bra/dåligt", "vaknade X gånger", "X timmar"
+2. **Trötthet/energi** - "trött", "pigg", "sliten", "full av energi"
+3. **Ömhet/smärta** - kroppsdel + intensitet (lätt, måttlig, kraftig)
+4. **Stress** - arbete, privatliv, träningsrelaterad
+5. **Humör** - "glad", "nedstämd", "irriterad", etc.
+6. **Motivation** - "taggad", "orkar inte", "ser fram emot"
+7. **Gårdagens träning** - hur det kändes, RPE, eventuella problem
+
+## KONVERTERING TILL NUMERISK SKALA (1-10):
+- "utmärkt/jättebra/fantastisk" = 9-10
+- "bra/pigg" = 7-8
+- "okej/normal" = 5-6
+- "dålig/trött" = 3-4
+- "mycket dålig/sliten" = 1-2
+
+## OUTPUT FORMAT
+Svara i följande JSON-format:
+
+\`\`\`json
+{
+  "transcription": "<full transkription på svenska>",
+  "confidence": <0.0-1.0>,
+  "wellness": {
+    "sleepQuality": <1-10 eller null om ej nämnt>,
+    "sleepHours": <antal timmar eller null>,
+    "fatigue": <1-10 eller null>,
+    "soreness": <1-10 eller null>,
+    "stress": <1-10 eller null>,
+    "mood": <1-10 eller null>,
+    "motivation": <1-10 eller null>,
+    "sorenessLocation": "<kroppsdel eller null>"
+  },
+  "physicalSymptoms": [
+    {"symptom": "<symptom>", "severity": "MILD|MODERATE|SEVERE", "location": "<plats eller null>"}
+  ],
+  "trainingNotes": {
+    "yesterdayPerformance": "<kommentar om gårdagens träning eller null>",
+    "plannedAdjustments": "<planerade ändringar eller null>",
+    "concerns": ["<bekymmer>"]
+  },
+  "aiInterpretation": {
+    "readinessEstimate": <1-10>,
+    "recommendedAction": "PROCEED|REDUCE|EASY|REST",
+    "flaggedConcerns": ["<bekymmer som kräver coach-uppmärksamhet>"],
+    "keyInsights": ["<viktiga insikter från inspelningen>"]
+  }
+}
+\`\`\`
+
+VIKTIGT: Om atleten INTE nämner något (t.ex. sömn), lämna det fältet som null.
+Gissa inte värden som inte nämndes.`
+  }
+
+  return `You are an experienced sports coach listening to an athlete's daily check-in.
+
+TASK: Transcribe the recording and extract structured data for training planning.
+
+## LISTEN FOR:
+1. **Sleep quality and duration** - "slept well/poorly", "woke up X times", "X hours"
+2. **Fatigue/energy** - "tired", "fresh", "run down", "full of energy"
+3. **Soreness/pain** - body part + intensity (mild, moderate, severe)
+4. **Stress** - work, private life, training-related
+5. **Mood** - "happy", "low", "irritated", etc.
+6. **Motivation** - "excited", "can't be bothered", "looking forward to it"
+7. **Yesterday's training** - how it felt, RPE, any issues
+
+## CONVERT TO NUMERIC SCALE (1-10):
+- "excellent/great/fantastic" = 9-10
+- "good/fresh" = 7-8
+- "okay/normal" = 5-6
+- "poor/tired" = 3-4
+- "very poor/run down" = 1-2
+
+## OUTPUT FORMAT
+Respond in the following JSON format:
+
+\`\`\`json
+{
+  "transcription": "<full transcription in English>",
+  "confidence": <0.0-1.0>,
+  "wellness": {
+    "sleepQuality": <1-10 or null if not mentioned>,
+    "sleepHours": <number of hours or null>,
+    "fatigue": <1-10 or null>,
+    "soreness": <1-10 or null>,
+    "stress": <1-10 or null>,
+    "mood": <1-10 or null>,
+    "motivation": <1-10 or null>,
+    "sorenessLocation": "<body part or null>"
+  },
+  "physicalSymptoms": [
+    {"symptom": "<symptom>", "severity": "MILD|MODERATE|SEVERE", "location": "<location or null>"}
+  ],
+  "trainingNotes": {
+    "yesterdayPerformance": "<comment about yesterday's training or null>",
+    "plannedAdjustments": "<planned adjustments or null>",
+    "concerns": ["<concern>"]
+  },
+  "aiInterpretation": {
+    "readinessEstimate": <1-10>,
+    "recommendedAction": "PROCEED|REDUCE|EASY|REST",
+    "flaggedConcerns": ["<concerns requiring coach attention>"],
+    "keyInsights": ["<important insights from the recording>"]
+  }
+}
+\`\`\`
+
+IMPORTANT: If the athlete does NOT mention something (for example sleep), leave that field as null.
+Do not guess values that were not mentioned.`
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
