@@ -27,7 +27,8 @@ import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 export function buildWODPrompt(
   context: WODAthleteContext,
   request: WODRequest,
-  guardrails: WODGuardrailResult
+  guardrails: WODGuardrailResult,
+  locale: 'en' | 'sv' = 'en'
 ): string {
   const workoutType = request.workoutType || 'strength'
   const modePrompt = getModePrompt(request.mode)
@@ -37,8 +38,12 @@ export function buildWODPrompt(
   const excludedCategories = getExcludedExerciseCategories(guardrails.excludedAreas)
   const jsonTemplate = getJsonTemplate(workoutType)
   const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
+  const outputLanguage = locale === 'sv' ? 'SWEDISH' : 'ENGLISH'
 
   return `${SYSTEM_CONTEXT}
+
+## OUTPUT LANGUAGE
+Generate all user-facing workout copy in ${outputLanguage}. Use Swedish only when the user locale is sv.
 
 ${modePrompt}
 
@@ -86,7 +91,7 @@ ${jsonTemplate}
 \`\`\`
 
 VIKTIGT:
-- Alla texter ska vara på SVENSKA
+- Alla användarvända texter ska vara på ${outputLanguage}
 - Övningsnamn ska ha både svenskt namn (nameSv) och engelskt namn (name)
 - Passet ska passa den angivna längden exakt
 - Respektera ALLA begränsningar ovan

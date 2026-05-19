@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
     let staffPermissions: Awaited<ReturnType<typeof getStaffPermissions>> | undefined
     let athleteAllowedProviders: Set<LowerProvider> | null = null
     let skillAccessMode: KnowledgeSkillAccessMode = 'full'
+    let responseLocale: 'en' | 'sv' = 'en'
 
     let calendarProgramStartDate: Date | undefined
     let calendarProgramEndDate: Date | undefined
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
       if (!resolved) return jsonError(401, { error: 'Unauthorized' })
 
       userId = resolved.user.id
+      responseLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
       athleteClientId = resolved.clientId
 
       const clientRecord = await prisma.client.findUnique({
@@ -168,6 +170,7 @@ export async function POST(request: NextRequest) {
     } else {
       const user = await requireCoach()
       userId = user.id
+      responseLocale = user.language === 'sv' ? 'sv' : 'en'
       apiKeyUserId = user.id
       staffPermissions = await getStaffPermissions(user.id)
     }
@@ -241,12 +244,14 @@ export async function POST(request: NextRequest) {
       calendarProgramEndDate,
       selectedSkillIds,
       skillAccessMode,
+      locale: responseLocale,
     })
 
     // ── 6. System prompt ────────────────────────────────────────────
     const systemPrompt = isAthleteChat && context.athleteSystemPrompt
-      ? `${context.athleteSystemPrompt}\n${VISIBLE_ACTION_RESPONSE_POLICY}\n${pageContext}\n`
+      ? `${context.athleteSystemPrompt}\n${VISIBLE_ACTION_RESPONSE_POLICY}\n## OUTPUT LANGUAGE\n${responseLocale === 'sv' ? 'Svara på svenska om inte atleten uttryckligen ber om ett annat språk.' : 'Respond in English unless the athlete explicitly asks for another language.'}\n${pageContext}\n`
       : buildCoachSystemPrompt({
+          locale: responseLocale,
           pageContext,
           athleteContext: context.athleteContext,
           sportSpecificContext: context.sportSpecificContext,

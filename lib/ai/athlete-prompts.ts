@@ -42,10 +42,14 @@ export function buildAthleteSystemPrompt(
   athleteContext: string,
   athleteName?: string,
   memoryContext?: MemoryContext,
-  capabilities?: AthleteCapabilities
+  capabilities?: AthleteCapabilities,
+  locale: 'en' | 'sv' = 'en'
 ): string {
   // GDPR: Never send athlete's real name to external AI providers
   const greeting = 'Du hjälper atleten'
+  const languageRule = locale === 'sv'
+    ? '**Svara på svenska** - Använd korrekt svensk terminologi'
+    : '**Respond in English** unless the athlete explicitly asks for Swedish. Keep Swedish exercise aliases as accepted input, but do not default to Swedish output.'
 
   // Build capabilities section for self-coached athletes
   let capabilitiesSection = ''
@@ -133,7 +137,7 @@ Använd dessa verktyg proaktivt. Om atleten säger "jag sov dåligt och har ont 
 
 ## VIKTIGA REGLER
 
-1. **Svara ALLTID på svenska** - Använd korrekt svensk terminologi
+1. ${languageRule}
 2. **Basera svar på atletens data** - Referera till specifika värden och resultat
 3. **Var uppmuntrande men ärlig** - Ge realistiska förväntningar
 4. **${capabilities?.isSelfCoached && capabilities?.canGenerateProgram ? 'Du KAN hjälpa till att skapa och anpassa träningsprogram' : 'Respektera coachrelationen - Du kan INTE ändra träningsprogrammet'}**

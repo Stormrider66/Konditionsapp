@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { user, clientId } = resolved
+    const locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:wod:generate', user.id, {
       limit: 10,
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
       focusArea,
     }
 
-    const prompt = buildWODPrompt(context, wodRequest, guardrails)
+    const prompt = buildWODPrompt(context, wodRequest, guardrails, locale)
 
     // Get API keys - try athlete's coach's keys first, then system keys
     const coachId = clientRecord?.userId

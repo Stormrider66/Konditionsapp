@@ -51,6 +51,7 @@ export interface BuildChatContextInput {
   calendarProgramEndDate?: Date
   selectedSkillIds?: string[]
   skillAccessMode?: KnowledgeSkillAccessMode
+  locale?: 'en' | 'sv'
 }
 
 export interface ChatContextResult {
@@ -98,6 +99,7 @@ export async function buildChatContext(
     skillAccessMode = isAthleteChat
       ? (athleteCapabilities?.isSelfCoached ? 'athlete_self_coached' : 'athlete_coached')
       : 'full',
+    locale = 'en',
   } = input
 
   let athleteContext = ''
@@ -116,7 +118,8 @@ export async function buildChatContext(
         athleteContext,
         undefined,
         memoryContext,
-        athleteCapabilities
+        athleteCapabilities,
+        locale
       )
     } catch (error) {
       logger.warn('Error building athlete context', { athleteClientId }, error)

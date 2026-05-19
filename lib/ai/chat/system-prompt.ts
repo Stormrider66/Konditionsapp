@@ -13,6 +13,7 @@ När du använder ett verktyg eller försöker utföra en åtgärd måste du all
 - Avsluta aldrig med enbart ett verktyg, ett kort, en länk eller tystnad.`
 
 export interface CoachSystemPromptInput {
+  locale?: 'en' | 'sv'
   pageContext?: string
   athleteContext?: string
   sportSpecificContext?: string
@@ -37,6 +38,7 @@ export interface CoachSystemPromptInput {
  */
 export function buildCoachSystemPrompt(input: CoachSystemPromptInput): string {
   const {
+    locale = 'en',
     pageContext = '',
     athleteContext = '',
     sportSpecificContext = '',
@@ -49,8 +51,14 @@ export function buildCoachSystemPrompt(input: CoachSystemPromptInput): string {
     athleteIdRequested = false,
     hasAthleteConsent = false,
   } = input
+  const outputLanguageInstruction = locale === 'sv'
+    ? 'Svara på svenska om inte coachen uttryckligen ber om ett annat språk.'
+    : 'Respond in English unless the coach explicitly asks for another language. Keep Swedish-only domain aliases as accepted input, but do not default to Swedish output.'
 
   return `${buildConstitutionPreamble('chat', 'coach')}Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
+
+## OUTPUT LANGUAGE
+${outputLanguageInstruction}
 
 ## FLYTANDE SIDASSISTENT
 Du körs ofta som en flytande assistent ovanpå den sida coachen tittar på.
@@ -317,7 +325,7 @@ Förbered ett meddelande till en atlet, ett lag eller en filtrerad grupp i ett l
 Fråga bara om information du behöver om det är oklart.
 
 ## INSTRUKTIONER
-- Svara ALLTID på svenska
+- ${locale === 'sv' ? 'Svara på svenska' : 'Svara på engelska om coachen inte uttryckligen ber om svenska'}
 - Var konkret och ge praktiska råd baserade på vetenskaplig grund
 - När du föreslår träningsprogram, var specifik med intensiteter, volymer och frekvenser
 - Använd etablerade träningszoner och metodiker
