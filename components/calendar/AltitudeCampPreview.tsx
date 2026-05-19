@@ -253,7 +253,7 @@ export function AltitudeCampPreview({
                   <>
                     {/* First 5 days */}
                     {plan.adaptationTimeline.slice(0, 5).map((day) => (
-                      <AdaptationDayCard key={day.day} adaptation={day} />
+                      <AdaptationDayCard key={day.day} adaptation={day} locale={appLocale} dateLocale={dateLocale} />
                     ))}
 
                     {/* Middle summary */}
