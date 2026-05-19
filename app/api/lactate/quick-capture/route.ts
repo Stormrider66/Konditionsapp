@@ -22,13 +22,17 @@ const quickCaptureSchema = z.object({
   intervalNumber: z.number().optional(),
   timestamp: z.string().datetime().optional(),
 });
+type AppLocale = 'en' | 'sv'
+const QUICK_CAPTURE_NOTE_MARKER = 'quick_capture'
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    locale = getUserLocale(user.language)
 
     const body = await request.json();
     const data = quickCaptureSchema.parse(body);
@@ -36,18 +40,19 @@ export async function POST(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, data.clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'Klient hittades inte eller saknar behörighet' },
+        { error: t(locale, 'Client not found or access denied', 'Klient hittades inte eller saknar behörighet') },
         { status: 403 }
       );
     }
 
     // Build notes with context
     const notesParts: string[] = [];
-    if (data.context) notesParts.push(`Träningspass: ${data.context}`);
-    if (data.intervalNumber) notesParts.push(`Intervall: #${data.intervalNumber}`);
+    notesParts.push(QUICK_CAPTURE_NOTE_MARKER);
+    if (data.context) notesParts.push(`${t(locale, 'Workout', 'Träningspass')}: ${data.context}`);
+    if (data.intervalNumber) notesParts.push(`${t(locale, 'Interval', 'Intervall')}: #${data.intervalNumber}`);
     if (data.rpe) notesParts.push(`RPE: ${data.rpe}`);
-    if (data.confidence) notesParts.push(`AI-konfidens: ${Math.round(data.confidence * 100)}%`);
-    notesParts.push('Snabbregistrering under träning');
+    if (data.confidence) notesParts.push(`${t(locale, 'AI confidence', 'AI-konfidens')}: ${Math.round(data.confidence * 100)}%`);
+    notesParts.push(t(locale, 'Quick capture during training', 'Snabbregistrering under träning'));
 
     // Create the lactate reading using the correct schema fields
     const lactateReading = await prisma.selfReportedLactate.create({
@@ -81,24 +86,26 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Ogiltig data', details: error.errors },
+        { error: t(locale, 'Invalid data', 'Ogiltig data'), details: error.errors },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Kunde inte spara laktatvärdet' },
+      { error: t(locale, 'Could not save the lactate value', 'Kunde inte spara laktatvärdet') },
       { status: 500 }
     );
   }
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    locale = getUserLocale(user.language)
 
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
@@ -107,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId krävs' },
+        { error: t(locale, 'clientId is required', 'clientId krävs') },
         { status: 400 }
       );
     }
@@ -115,7 +122,7 @@ export async function GET(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'Klient hittades inte eller saknar behörighet' },
+        { error: t(locale, 'Client not found or access denied', 'Klient hittades inte eller saknar behörighet') },
         { status: 403 }
       );
     }
@@ -125,9 +132,10 @@ export async function GET(request: NextRequest) {
       where: {
         clientId,
         ...(workoutId ? { workoutId } : {}),
-        notes: {
-          contains: 'Snabbregistrering',
-        },
+        OR: [
+          { notes: { contains: QUICK_CAPTURE_NOTE_MARKER } },
+          { notes: { contains: 'Snabbregistrering' } },
+        ],
       },
       orderBy: { date: 'desc' },
       take: limit,
@@ -149,8 +157,16 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Get quick captures error:', error);
     return NextResponse.json(
-      { error: 'Kunde inte hämta laktatvärden' },
+      { error: t(locale, 'Could not fetch lactate values', 'Kunde inte hämta laktatvärden') },
       { status: 500 }
     );
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
