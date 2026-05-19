@@ -1,18 +1,21 @@
 // app/api/messages/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
 // Validation schema for new messages
 const createMessageSchema = z.object({
-  receiverId: z.string().uuid('Ogiltigt mottagare-ID'),
+  receiverId: z.string().uuid(),
   content: z
     .string()
-    .min(1, 'Meddelandet får inte vara tomt')
-    .max(1000, 'Meddelandet får max vara 1000 tecken'),
-  workoutId: z.string().uuid('Ogiltigt träningspass-ID').optional(),
+    .min(1)
+    .max(1000),
+  workoutId: z.string().uuid().optional(),
 })
 
 /**
@@ -23,14 +26,16 @@ const createMessageSchema = z.object({
  * - conversationWith: userId (filter by conversation partner)
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = getUserLocale(user?.language)
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -41,7 +46,7 @@ export async function GET(request: NextRequest) {
     const conversationWith = searchParams.get('conversationWith')
 
     // Build where clause - user can only see their own messages
-    const where: any = {
+    const where: Prisma.MessageWhereInput = {
       OR: [
         { senderId: user.id },
         { receiverId: user.id },
@@ -105,7 +110,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att hämta meddelanden',
+        error: t(locale, 'Failed to fetch messages', 'Misslyckades med att hämta meddelanden'),
       },
       { status: 500 }
     )
@@ -119,14 +124,16 @@ export async function GET(request: NextRequest) {
  * Optional: workoutId
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = getUserLocale(user?.language)
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -141,7 +148,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: validationResult.error.errors[0].message,
+          error: formatValidationError(validationResult.error, locale),
         },
         { status: 400 }
       )
@@ -158,7 +165,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Mottagaren hittades inte',
+          error: t(locale, 'Recipient not found', 'Mottagaren hittades inte'),
         },
         { status: 404 }
       )
@@ -174,7 +181,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Träningspasset hittades inte',
+            error: t(locale, 'Workout not found', 'Träningspasset hittades inte'),
           },
           { status: 404 }
         )
@@ -220,7 +227,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         data: message,
-        message: 'Meddelande skickat',
+        message: t(locale, 'Message sent', 'Meddelande skickat'),
       },
       { status: 201 }
     )
@@ -229,9 +236,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att skicka meddelande',
+        error: t(locale, 'Failed to send message', 'Misslyckades med att skicka meddelande'),
       },
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function formatValidationError(error: z.ZodError, locale: AppLocale): string {
+  const issue = error.errors[0]
+  const field = issue?.path[0]
+
+  if (field === 'receiverId') return t(locale, 'Invalid recipient ID', 'Ogiltigt mottagare-ID')
+  if (field === 'workoutId') return t(locale, 'Invalid workout ID', 'Ogiltigt träningspass-ID')
+  if (field === 'content') {
+    if (issue?.code === 'too_small') return t(locale, 'Message cannot be empty', 'Meddelandet får inte vara tomt')
+    if (issue?.code === 'too_big') return t(locale, 'Message can be at most 1000 characters', 'Meddelandet får max vara 1000 tecken')
+  }
+
+  return t(locale, 'Invalid request', 'Ogiltig förfrågan')
 }

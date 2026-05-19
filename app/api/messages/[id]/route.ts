@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
 /**
  * PATCH /api/messages/[id]
  * Mark message as read
@@ -13,14 +15,16 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
+    locale = getUserLocale(user?.language)
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -37,7 +41,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Meddelandet hittades inte',
+          error: t(locale, 'Message not found', 'Meddelandet hittades inte'),
         },
         { status: 404 }
       )
@@ -48,7 +52,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Du har inte behörighet att markera detta meddelande som läst',
+          error: t(locale, 'You do not have permission to mark this message as read', 'Du har inte behörighet att markera detta meddelande som läst'),
         },
         { status: 403 }
       )
@@ -91,16 +95,24 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: updatedMessage,
-      message: 'Meddelande markerat som läst',
+      message: t(locale, 'Message marked as read', 'Meddelande markerat som läst'),
     })
   } catch (error) {
     logger.error('Error marking message as read', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att markera meddelande som läst',
+        error: t(locale, 'Failed to mark message as read', 'Misslyckades med att markera meddelande som läst'),
       },
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
