@@ -8,12 +8,24 @@ import {
 } from '@/lib/ai/skill-access'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET() {
   try {
     let accessMode: KnowledgeSkillAccessMode = 'full'
+    let locale: AppLocale = 'en'
 
     const athleteResolved = await resolveAthleteClientId()
     if (athleteResolved) {
+      locale = resolveLocale(athleteResolved.user.language)
       const subscription = await prisma.athleteSubscription.findUnique({
         where: { clientId: athleteResolved.clientId },
         select: { tier: true, assignedCoachId: true, aiChatEnabled: true },
@@ -22,7 +34,7 @@ export async function GET() {
       if (!athleteResolved.isCoachInAthleteMode) {
         if (!subscription?.aiChatEnabled) {
           return NextResponse.json(
-            { error: 'AI skills kräver aktiv AI-chatt.' },
+            { error: t(locale, 'AI skills require active AI chat.', 'AI skills kräver aktiv AI-chatt.') },
             { status: 403 }
           )
         }
