@@ -3240,6 +3240,16 @@
           "coachSnapshot": "Coach overview",
           "coachSnapshotDescription": "The key daily signals for load, readiness, nutrition, and recent development."
         },
+        "profile": {
+          "portalTitle": "Athlete portal",
+          "portalDescription": "Account, sign-in, and invitation status.",
+          "accountCreated": "Account created",
+          "lastSignIn": "Last sign-in",
+          "passwordUpdated": "Password updated",
+          "sendInvite": "Send invite",
+          "noPortalAccount": "This athlete does not have a portal account yet.",
+          "notAvailable": "Not available"
+        },
         "analysis": {
           "trainingLogs": {
             "title": "Training logs",

@@ -36,6 +36,7 @@ import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
+import { cn } from '@/lib/utils'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
 import {
   Select,
@@ -528,6 +529,16 @@ export default function BusinessClientDetailPage() {
     custom: t('programGoals.custom'),
   }
 
+  const portalStatusLabels = {
+    passwordReady: t('portalStatus.passwordReady'),
+    active: t('portalStatus.active'),
+    notLoggedIn: t('portalStatus.notLoggedIn'),
+  }
+  const athletePortalStatus = client.athleteAccount?.authStatus
+  const formatProfileDate = (value?: string | Date | null) => value
+    ? format(new Date(value), 'PPP', { locale: dateFnsLocale })
+    : t('profile.notAvailable')
+
   const noAthleteAccountContent = (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
       <div className="text-center py-12 text-gray-500 dark:text-slate-400">
@@ -554,89 +565,39 @@ export default function BusinessClientDetailPage() {
     </div>
   )
 
-  const personalInfoContent = (
-    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+  const profileOverviewContent = (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('overview.personalInfo')}</h2>
             <AthletePortalStatusBadge
               athleteAccount={client.athleteAccount}
-              labels={{
-                passwordReady: t('portalStatus.passwordReady'),
-                active: t('portalStatus.active'),
-                notLoggedIn: t('portalStatus.notLoggedIn'),
-              }}
+              labels={portalStatusLabels}
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <CreateAthleteAccountDialog
-              clientId={id}
-              clientName={client.name}
-              clientEmail={client.email}
-              clientPhone={client.phone}
-              hasExistingAccount={!!client.athleteAccount}
-              onAccountCreated={fetchClient}
-            />
-            <AIContextButton
-              athleteId={id}
-              athleteName={client.name}
-            />
-            <Link href={`${basePath}/clients/${id}/edit`}>
-              <Button variant="outline" size="sm">
-                <Edit2 className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">{t('actions.edit')}</span>
-              </Button>
-            </Link>
-          </div>
+          <Link href={`${basePath}/clients/${id}/edit`}>
+            <Button variant="outline" size="sm">
+              <Edit2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">{t('actions.edit')}</span>
+            </Button>
+          </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.age')}</p>
-            <p className="text-base sm:text-lg font-medium dark:text-slate-200">{t('ageYears', { age: calculateAge(client.birthDate) })}</p>
-          </div>
-          <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.gender')}</p>
-            <p className="text-base sm:text-lg font-medium dark:text-slate-200">
-              {client.gender === 'MALE' ? t('gender.male') : t('gender.female')}
-            </p>
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.birthDate')}</p>
-            <p className="text-base sm:text-lg font-medium dark:text-slate-200">
-              {format(new Date(client.birthDate), 'PPP', { locale: dateFnsLocale })}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.height')}</p>
-            <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.height} cm</p>
-          </div>
-          <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.weight')}</p>
-            <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.weight} kg</p>
-          </div>
-          <div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">BMI</p>
-            <p className="text-base sm:text-lg font-medium dark:text-slate-200">
-              {calculateBMI(client.weight, client.height)}
-            </p>
-          </div>
+          <ProfileField label={t('fields.age')} value={t('ageYears', { age: calculateAge(client.birthDate) })} />
+          <ProfileField label={t('fields.gender')} value={client.gender === 'MALE' ? t('gender.male') : t('gender.female')} />
+          <ProfileField label={t('fields.birthDate')} value={format(new Date(client.birthDate), 'PPP', { locale: dateFnsLocale })} className="col-span-2 sm:col-span-1" />
+          <ProfileField label={t('fields.height')} value={`${client.height} cm`} />
+          <ProfileField label={t('fields.weight')} value={`${client.weight} kg`} />
+          <ProfileField label="BMI" value={calculateBMI(client.weight, client.height)} />
           {client.email && (
-            <div className="col-span-2 sm:col-span-1">
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.email')}</p>
-              <p className="text-base sm:text-lg font-medium dark:text-slate-200 truncate">{client.email}</p>
-            </div>
+            <ProfileField label={t('fields.email')} value={client.email} className="col-span-2 sm:col-span-1" />
           )}
           {client.phone && (
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.phone')}</p>
-              <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.phone}</p>
-            </div>
+            <ProfileField label={t('fields.phone')} value={client.phone} />
           )}
           {client.team && (
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">{t('fields.team')}</p>
-              <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.team.name}</p>
-            </div>
+            <ProfileField label={t('fields.team')} value={client.team.name} />
           )}
         </div>
         {client.notes && (
@@ -646,6 +607,62 @@ export default function BusinessClientDetailPage() {
           </div>
         )}
       </div>
+
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('profile.portalTitle')}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t('profile.portalDescription')}</p>
+          </div>
+
+          {client.athleteAccount ? (
+            <>
+              <AthletePortalStatusBadge
+                athleteAccount={client.athleteAccount}
+                labels={portalStatusLabels}
+              />
+              <div className="space-y-3 text-sm">
+                <ProfileField label={t('profile.accountCreated')} value={formatProfileDate(client.athleteAccount.user?.createdAt)} compact />
+                <ProfileField label={t('profile.lastSignIn')} value={formatProfileDate(athletePortalStatus?.lastSignInAt)} compact />
+                <ProfileField label={t('profile.passwordUpdated')} value={formatProfileDate(athletePortalStatus?.passwordUpdatedAt)} compact />
+              </div>
+              <CreateAthleteAccountDialog
+                clientId={id}
+                clientName={client.name}
+                clientEmail={client.email}
+                clientPhone={client.phone}
+                hasExistingAccount
+                onAccountCreated={fetchClient}
+                trigger={
+                  <Button variant="outline" size="sm" className="w-full">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    {t('profile.sendInvite')}
+                  </Button>
+                }
+              />
+            </>
+          ) : (
+            <div className="rounded-lg border border-dashed border-gray-300 dark:border-white/10 p-4 text-sm text-muted-foreground">
+              <p className="mb-3">{t('profile.noPortalAccount')}</p>
+              <CreateAthleteAccountDialog
+                clientId={id}
+                clientName={client.name}
+                clientEmail={client.email}
+                clientPhone={client.phone}
+                hasExistingAccount={false}
+                onAccountCreated={fetchClient}
+                trigger={
+                  <Button size="sm" className="w-full">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    {t('actions.createAthleteAccount')}
+                  </Button>
+                }
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 
   const sportProfileContent = !sportProfileLoading ? (
@@ -886,7 +903,7 @@ export default function BusinessClientDetailPage() {
 
   const profileContent = (
     <div className="space-y-4 sm:space-y-6">
-      {personalInfoContent}
+      {profileOverviewContent}
       {sportProfileContent}
     </div>
   )
@@ -1294,6 +1311,35 @@ export default function BusinessClientDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  )
+}
+
+function ProfileField({
+  label,
+  value,
+  className,
+  compact = false,
+}: {
+  label: string
+  value: string
+  className?: string
+  compact?: boolean
+}) {
+  return (
+    <div className={className}>
+      <p className={cn(
+        'text-xs text-gray-500 dark:text-slate-400',
+        compact ? 'sm:text-xs' : 'sm:text-sm',
+      )}>
+        {label}
+      </p>
+      <p className={cn(
+        'font-medium dark:text-slate-200 truncate',
+        compact ? 'text-sm' : 'text-base sm:text-lg',
+      )}>
+        {value}
+      </p>
     </div>
   )
 }

@@ -3240,6 +3240,16 @@
           "coachSnapshot": "Coachöversikt",
           "coachSnapshotDescription": "Dagens viktigaste signaler för belastning, beredskap, nutrition och senaste utveckling."
         },
+        "profile": {
+          "portalTitle": "Atletportal",
+          "portalDescription": "Konto, inloggning och inbjudningsstatus.",
+          "accountCreated": "Konto skapat",
+          "lastSignIn": "Senaste inloggning",
+          "passwordUpdated": "Lösenord uppdaterat",
+          "sendInvite": "Skicka inbjudan",
+          "noPortalAccount": "Den här atleten har inget portal-konto ännu.",
+          "notAvailable": "Ej tillgängligt"
+        },
         "analysis": {
           "trainingLogs": {
             "title": "Träningsloggar",
