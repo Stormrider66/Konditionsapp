@@ -40,6 +40,7 @@ const VALID_AUDIO_TYPES = [
   'audio/aac',
   'audio/x-m4a',
 ]
+type AppLocale = 'en' | 'sv'
 
 function getFormString(formData: FormData, key: string): string | undefined {
   const value = formData.get(key)
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
       formData = await request.formData()
     } catch {
       return NextResponse.json(
-        { error: 'Skicka röstmeddelandet som formulärdata.' },
+        { error: 'Send the voice message as form data.' },
         { status: 400 }
       )
     }
@@ -72,20 +73,20 @@ export async function POST(request: NextRequest) {
     const businessSlug = getFormString(formData, 'businessSlug')
 
     if (!audioFile) {
-      return NextResponse.json({ error: 'Ingen ljudfil uppladdad' }, { status: 400 })
+      return NextResponse.json({ error: 'No audio file uploaded' }, { status: 400 })
     }
 
     const baseType = audioFile.type.split(';')[0].trim()
     if (!VALID_AUDIO_TYPES.includes(baseType)) {
       return NextResponse.json(
-        { error: 'Ogiltigt ljudformat. Använd WebM, MP4, WAV, OGG eller MP3.' },
+        { error: 'Invalid audio format. Use WebM, MP4, WAV, OGG, or MP3.' },
         { status: 400 }
       )
     }
 
     if (audioFile.size > MAX_AUDIO_SIZE) {
       return NextResponse.json(
-        { error: 'Röstmeddelandet får inte vara större än 5MB.' },
+        { error: 'The voice message must not be larger than 5MB.' },
         { status: 400 }
       )
     }
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = getUserLocale(currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-voice-transcribe', currentUser.id, {
       limit: 12,
@@ -128,7 +130,7 @@ export async function POST(request: NextRequest) {
       if (!consent.hasRequiredConsent) {
         return NextResponse.json(
           {
-            error: 'Du måste godkänna databehandling innan du kan använda röstinmatning.',
+            error: t(locale, 'You must approve data processing before using voice input.', 'Du måste godkänna databehandling innan du kan använda röstinmatning.'),
             code: 'CONSENT_REQUIRED',
           },
           { status: 403 }
@@ -152,7 +154,7 @@ export async function POST(request: NextRequest) {
     } else {
       const hasCoachAccess = await canAccessCoachPlatform(currentUser.id)
       if (!hasCoachAccess) {
-        return NextResponse.json({ error: 'Coachbehörighet krävs' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Coach access required', 'Coachbehörighet krävs') }, { status: 403 })
       }
 
       const businessId = await resolveBusinessId(businessSlug)
@@ -165,7 +167,11 @@ export async function POST(request: NextRequest) {
     if (!googleKey) {
       return NextResponse.json(
         {
-          error: 'Google/Gemini API-nyckel saknas för röstinmatning. Aktivera Gemini i AI-inställningar.',
+          error: t(
+            locale,
+            'Google/Gemini API key is missing for voice input. Enable Gemini in AI settings.',
+            'Google/Gemini API-nyckel saknas för röstinmatning. Aktivera Gemini i AI-inställningar.'
+          ),
         },
         { status: 400 }
       )
@@ -180,9 +186,7 @@ export async function POST(request: NextRequest) {
       genaiClient,
       modelId,
       [
-        createText(
-          'Transkribera denna korta röstinmatning till ren text för en AI-chatt i Trainomics. Behåll språket som användaren talar, oftast svenska. Lägg inte till förklaringar, rubriker, citattecken eller markdown. Returnera bara transkriptionen.'
-        ),
+        createText(buildTranscriptionPrompt(locale)),
         createInlineData(base64, baseType),
       ],
       { thinkingLevel: 'low', maxOutputTokens: 512 },
@@ -201,7 +205,7 @@ export async function POST(request: NextRequest) {
     logger.error('Chat voice transcription error', {}, error)
     return NextResponse.json(
       {
-        error: 'Kunde inte transkribera röstmeddelandet',
+        error: 'Could not transcribe the voice message',
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -210,4 +214,18 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function buildTranscriptionPrompt(locale: AppLocale): string {
+  return locale === 'sv'
+    ? 'Transkribera denna korta röstinmatning till ren text för en AI-chatt i Trainomics. Behåll språket som användaren talar, oftast svenska. Lägg inte till förklaringar, rubriker, citattecken eller markdown. Returnera bara transkriptionen.'
+    : 'Transcribe this short voice input into clean text for a Trainomics AI chat. Keep the language the user is speaking, usually English. Do not add explanations, headings, quotation marks, or markdown. Return only the transcription.'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

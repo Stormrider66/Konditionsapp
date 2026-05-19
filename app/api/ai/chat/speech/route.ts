@@ -33,6 +33,7 @@ const TTS_VOICE = 'marin'
 const MAX_TTS_CHARS = 4096
 const OPENAI_TTS_INPUT_USD_PER_1M = 0.60
 const OPENAI_TTS_AUDIO_OUTPUT_USD_PER_1M = 12.00
+type AppLocale = 'en' | 'sv'
 
 const requestSchema = z.object({
   text: z.string().trim().min(1).max(MAX_TTS_CHARS),
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     const parsed = requestSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Skicka texten som ska läsas upp.' },
+        { error: 'Send the text that should be read aloud.' },
         { status: 400 }
       )
     }
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = getUserLocale(currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-speech', currentUser.id, {
       limit: 30,
@@ -116,7 +118,7 @@ export async function POST(request: NextRequest) {
       if (!consent.hasRequiredConsent) {
         return NextResponse.json(
           {
-            error: 'Du måste godkänna databehandling innan du kan använda AI-röst.',
+            error: t(locale, 'You must approve data processing before using AI voice.', 'Du måste godkänna databehandling innan du kan använda AI-röst.'),
             code: 'CONSENT_REQUIRED',
           },
           { status: 403 }
@@ -148,7 +150,7 @@ export async function POST(request: NextRequest) {
       const allowedProviders = await resolveAthleteProviderAllowlist(keyOwnerId, businessId)
       if (allowedProviders && !allowedProviders.has('openai')) {
         return NextResponse.json(
-          { error: 'OpenAI-röster är inte tillåtna för det här atletkontot.' },
+          { error: t(locale, 'OpenAI voices are not allowed for this athlete account.', 'OpenAI-röster är inte tillåtna för det här atletkontot.') },
           { status: 403 }
         )
       }
@@ -160,7 +162,7 @@ export async function POST(request: NextRequest) {
     } else {
       const hasCoachAccess = await canAccessCoachPlatform(currentUser.id)
       if (!hasCoachAccess) {
-        return NextResponse.json({ error: 'Coachbehörighet krävs' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Coach access required', 'Coachbehörighet krävs') }, { status: 403 })
       }
 
       businessId = await resolveBusinessId(businessSlug)
@@ -173,7 +175,11 @@ export async function POST(request: NextRequest) {
     if (!openaiKey) {
       return NextResponse.json(
         {
-          error: 'OpenAI API-nyckel saknas för AI-röst. Jag kan använda webbläsarens röst som fallback.',
+          error: t(
+            locale,
+            "OpenAI API key is missing for AI voice. I can use the browser's voice as a fallback.",
+            'OpenAI API-nyckel saknas för AI-röst. Jag kan använda webbläsarens röst som fallback.'
+          ),
           fallback: 'browser_speech',
         },
         { status: 400 }
@@ -185,8 +191,7 @@ export async function POST(request: NextRequest) {
       model: TTS_MODEL,
       voice: TTS_VOICE,
       input: text,
-      instructions:
-        'Speak Swedish naturally unless the text is in another language. Use a calm, helpful coach-operator tone. Keep names and training terms clear.',
+      instructions: buildTtsInstructions(locale),
       response_format: 'mp3',
     })
 
@@ -217,7 +222,7 @@ export async function POST(request: NextRequest) {
     logger.error('Chat speech generation error', {}, error)
     return NextResponse.json(
       {
-        error: 'Kunde inte skapa AI-rösten just nu. Jag kan använda webbläsarens röst som fallback.',
+        error: "Could not create the AI voice right now. I can use the browser's voice as a fallback.",
         fallback: 'browser_speech',
         details:
           process.env.NODE_ENV === 'production'
@@ -227,4 +232,18 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function buildTtsInstructions(locale: AppLocale): string {
+  return locale === 'sv'
+    ? 'Speak Swedish naturally unless the text is in another language. Use a calm, helpful coach-operator tone. Keep names and training terms clear.'
+    : 'Speak English naturally unless the text is in another language. Use a calm, helpful coach-operator tone. Keep names and training terms clear.'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
