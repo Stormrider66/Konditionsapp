@@ -525,20 +525,20 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="w-full justify-start overflow-x-auto bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl gap-1">
-          <TabsTrigger value="builder" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+        <TabsList className="w-full justify-start overflow-x-auto bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1">
+          <TabsTrigger value="builder" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Skapa </span>Pass
           </TabsTrigger>
-          <TabsTrigger value="library" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="library" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Library className="h-4 w-4" />
             Övningar
           </TabsTrigger>
-          <TabsTrigger value="sessions" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="sessions" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <FolderOpen className="h-4 w-4" />
             <span className="hidden sm:inline">Pass</span>bibliotek
           </TabsTrigger>
-          <TabsTrigger value="progression" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="progression" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Activity className="h-4 w-4" />
             Progression
           </TabsTrigger>

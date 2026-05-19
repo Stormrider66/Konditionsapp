@@ -157,7 +157,7 @@ export default function AgilityStudioClient({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white/5 dark:bg-slate-950/20 border border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
+      <div className="flex flex-col sm:flex-row gap-4 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -186,20 +186,20 @@ export default function AgilityStudioClient({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl">
-          <TabsTrigger value="drills" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+        <TabsList className="grid w-full grid-cols-4 bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1">
+          <TabsTrigger value="drills" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Dumbbell className="h-4 w-4" />
             <span className="hidden sm:inline">{t('tabs.drills')}</span>
           </TabsTrigger>
-          <TabsTrigger value="workouts" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="workouts" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Zap className="h-4 w-4" />
             <span className="hidden sm:inline">{t('tabs.workouts')}</span>
           </TabsTrigger>
-          <TabsTrigger value="testing" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="testing" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Timer className="h-4 w-4" />
             <span className="hidden sm:inline">{t('tabs.testing')}</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="analytics" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">{t('tabs.analytics')}</span>
           </TabsTrigger>

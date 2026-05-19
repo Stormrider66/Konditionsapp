@@ -402,7 +402,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center bg-white/5 dark:bg-slate-950/20 border border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -429,14 +429,14 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl">
-          <TabsTrigger value="all" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+        <TabsList className="bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1">
+          <TabsTrigger value="all" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             Alla ({workouts.length})
           </TabsTrigger>
-          <TabsTrigger value="benchmarks" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="benchmarks" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             Benchmarks ({benchmarkWorkouts.length})
           </TabsTrigger>
-          <TabsTrigger value="custom" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="custom" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             Mina Pass ({customWorkouts.length})
           </TabsTrigger>
         </TabsList>

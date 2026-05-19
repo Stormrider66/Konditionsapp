@@ -103,16 +103,16 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
       </div>
 
       <Tabs id="cardio-studio-tabs" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl gap-1">
-          <TabsTrigger value="builder" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+        <TabsList className="bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1">
+          <TabsTrigger value="builder" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Timer className="h-4 w-4" />
             Skapa Pass
           </TabsTrigger>
-          <TabsTrigger value="library" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="library" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Library className="h-4 w-4" />
             Mina Pass
           </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
+          <TabsTrigger value="templates" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <BookOpen className="h-4 w-4" />
             Mallar
           </TabsTrigger>

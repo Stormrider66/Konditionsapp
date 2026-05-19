@@ -354,7 +354,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
               )}
             </div>
             <Tabs value={testCategory} onValueChange={(v) => setTestCategory(v as TestCategory)}>
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 h-auto gap-1.5 bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 backdrop-blur-md p-1.5 rounded-xl">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 h-auto gap-1.5 bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 backdrop-blur-md p-1.5 rounded-xl shadow-inner">
                 {visibleTestCategories.map((category) => {
                   const Icon = category.icon
                   return (
@@ -362,7 +362,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                       key={category.value}
                       value={category.value}
                       disabled={!category.available}
-                      className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-300 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-blue-500/30 data-[state=active]:shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                      className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-300 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5 data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm dark:data-[state=active]:shadow-[0_0_15px_rgba(59,130,246,0.15)]"
                     >
                       <Icon className="w-4 h-4" />
                       <span className="hidden lg:inline">{category.label}</span>
@@ -410,10 +410,10 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                     <div className="space-y-2">
                       <Label className="text-slate-900 dark:text-white">Testtyp</Label>
                       <Tabs value={testType} onValueChange={(value) => setTestType(value as TestType)}>
-                        <TabsList className="grid w-full grid-cols-3 bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-lg">
-                          <TabsTrigger value="RUNNING" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Löpning</TabsTrigger>
-                          <TabsTrigger value="CYCLING" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Cykling</TabsTrigger>
-                          <TabsTrigger value="SKIING" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Skidåkning</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-3 bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-lg">
+                          <TabsTrigger value="RUNNING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Löpning</TabsTrigger>
+                          <TabsTrigger value="CYCLING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Cykling</TabsTrigger>
+                          <TabsTrigger value="SKIING" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Skidåkning</TabsTrigger>
                         </TabsList>
                       </Tabs>
                     </div>
