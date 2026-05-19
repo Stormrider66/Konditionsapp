@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Trophy, Medal, Dumbbell, TrendingUp, Clock, Zap, Plus, Bike, Waves, Mountain, Flame } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +30,7 @@ import { TriathlonPerformanceForm } from '@/components/athlete/performance/Triat
 import { HYROXPerformanceForm } from '@/components/athlete/performance/HYROXPerformanceForm'
 import { SkiingPerformanceForm } from '@/components/athlete/performance/SkiingPerformanceForm'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
+import { useLocale } from '@/i18n/client'
 
 interface PerformanceTabProps {
   data: AthleteProfileData
@@ -39,16 +40,15 @@ interface PerformanceTabProps {
 
 import {
   GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 
-export function PerformanceTab({ data, viewMode, variant = 'default' }: PerformanceTabProps) {
+export function PerformanceTab({ data, viewMode: _viewMode, variant = 'default' }: PerformanceTabProps) {
   const router = useRouter()
   const isGlass = variant === 'glass'
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const [isRaceDialogOpen, setIsRaceDialogOpen] = useState(false)
   const [isStrengthDialogOpen, setIsStrengthDialogOpen] = useState(false)
   const [isCyclingDialogOpen, setIsCyclingDialogOpen] = useState(false)
@@ -59,7 +59,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
 
   const { raceResults, progressionTracking, oneRepMaxHistory } = data.performance
   const clientId = data.identity.client?.id
-  const clientName = data.identity.client?.name || 'Atlet'
+  const clientName = data.identity.client?.name || t('Atlet', 'Athlete')
   const primarySport = data.identity.sportProfile?.primarySport || 'RUNNING'
   const secondarySports = data.identity.sportProfile?.secondarySports || []
   const athleteWeight = data.identity.client?.weight
@@ -117,18 +117,18 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
   const getSportButtonConfig = (sport: string) => {
     switch (sport) {
       case 'CYCLING':
-        return { sport, label: 'Cykel', icon: Bike, onClick: () => setIsCyclingDialogOpen(true), color: isGlass ? 'text-blue-400' : 'text-blue-600', accent: 'blue' }
+        return { sport, label: t('Cykel', 'Cycling'), icon: Bike, onClick: () => setIsCyclingDialogOpen(true), color: isGlass ? 'text-blue-400' : 'text-blue-600', accent: 'blue' }
       case 'SWIMMING':
-        return { sport, label: 'Simning', icon: Waves, onClick: () => setIsSwimmingDialogOpen(true), color: isGlass ? 'text-cyan-400' : 'text-cyan-600', accent: 'cyan' }
+        return { sport, label: t('Simning', 'Swimming'), icon: Waves, onClick: () => setIsSwimmingDialogOpen(true), color: isGlass ? 'text-cyan-400' : 'text-cyan-600', accent: 'cyan' }
       case 'TRIATHLON':
         return { sport, label: 'Triathlon', icon: Trophy, onClick: () => setIsTriathlonDialogOpen(true), color: isGlass ? 'text-orange-400' : 'text-orange-600', accent: 'orange' }
       case 'HYROX':
         return { sport, label: 'HYROX', icon: Flame, onClick: () => setIsHyroxDialogOpen(true), color: isGlass ? 'text-orange-400' : 'text-orange-600', accent: 'orange' }
       case 'SKIING':
-        return { sport, label: 'Skidor', icon: Mountain, onClick: () => setIsSkiingDialogOpen(true), color: isGlass ? 'text-sky-400' : 'text-sky-600', accent: 'sky' }
+        return { sport, label: t('Skidor', 'Skiing'), icon: Mountain, onClick: () => setIsSkiingDialogOpen(true), color: isGlass ? 'text-sky-400' : 'text-sky-600', accent: 'sky' }
       case 'RUNNING':
       default:
-        return { sport, label: 'Löpning', icon: Trophy, onClick: () => setIsRaceDialogOpen(true), color: isGlass ? 'text-yellow-400' : 'text-yellow-600', accent: 'yellow' }
+        return { sport, label: t('Löpning', 'Running'), icon: Trophy, onClick: () => setIsRaceDialogOpen(true), color: isGlass ? 'text-yellow-400' : 'text-yellow-600', accent: 'yellow' }
     }
   }
 
@@ -146,7 +146,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <Dialog open={isRaceDialogOpen} onOpenChange={setIsRaceDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Lägg till tävlingsresultat</DialogTitle>
+            <DialogTitle>{t('Lägg till tävlingsresultat', 'Add race result')}</DialogTitle>
           </DialogHeader>
           {clientId && (
             <RaceResultForm
@@ -163,7 +163,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <Dialog open={isStrengthDialogOpen} onOpenChange={setIsStrengthDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Lägg till styrke-PR</DialogTitle>
+            <DialogTitle>{t('Lägg till styrke-PR', 'Add strength PR')}</DialogTitle>
           </DialogHeader>
           {clientId && (
             <StrengthPRForm
@@ -180,7 +180,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <Dialog open={isCyclingDialogOpen} onOpenChange={setIsCyclingDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Logga cykelprestation</DialogTitle>
+            <DialogTitle>{t('Logga cykelprestation', 'Log cycling performance')}</DialogTitle>
           </DialogHeader>
           {clientId && (
             <CyclingPerformanceForm
@@ -197,7 +197,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <Dialog open={isSwimmingDialogOpen} onOpenChange={setIsSwimmingDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Logga simprestation</DialogTitle>
+            <DialogTitle>{t('Logga simprestation', 'Log swimming performance')}</DialogTitle>
           </DialogHeader>
           {clientId && (
             <SwimmingPerformanceForm
@@ -213,7 +213,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <Dialog open={isTriathlonDialogOpen} onOpenChange={setIsTriathlonDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Logga triathlonresultat</DialogTitle>
+            <DialogTitle>{t('Logga triathlonresultat', 'Log triathlon result')}</DialogTitle>
           </DialogHeader>
           {clientId && (
             <TriathlonPerformanceForm
@@ -229,7 +229,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <Dialog open={isHyroxDialogOpen} onOpenChange={setIsHyroxDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Logga HYROX-resultat</DialogTitle>
+            <DialogTitle>{t('Logga HYROX-resultat', 'Log HYROX result')}</DialogTitle>
           </DialogHeader>
           {clientId && (
             <HYROXPerformanceForm
@@ -245,7 +245,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <Dialog open={isSkiingDialogOpen} onOpenChange={setIsSkiingDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Logga skidresultat</DialogTitle>
+            <DialogTitle>{t('Logga skidresultat', 'Log skiing result')}</DialogTitle>
           </DialogHeader>
           {clientId && (
             <SkiingPerformanceForm
@@ -266,10 +266,10 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
           <CardContent className="py-24 text-center">
             <Trophy className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-slate-300 dark:text-white/10" : "text-gray-300")} />
             <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
-              Ingen prestationsdata
+              {t('Ingen prestationsdata', 'No performance data')}
             </h3>
             <p className={cn("font-medium mb-10 max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
-              Registrera tävlingsresultat eller logga styrketräning för att se PRs.
+              {t('Registrera tävlingsresultat eller logga styrketräning för att se PRs.', 'Register race results or log strength training to see PRs.')}
             </p>
             {clientId && (
               <div className="flex flex-col gap-6 items-center">
@@ -301,7 +301,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                     )}
                   >
                     <Dumbbell className="h-4 w-4 mr-2 text-slate-400" />
-                    Styrke-PR
+                    {t('Styrke-PR', 'Strength PR')}
                   </Button>
                 </div>
               </div>
@@ -323,7 +323,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
             <CardContent className="py-4 px-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <span className={cn("text-[10px] font-black uppercase tracking-[0.2em]", isGlass ? "text-slate-500" : "text-gray-600")}>
-                  Logga prestationer
+                  {t('Logga prestationer', 'Log performances')}
                 </span>
                 <div className="flex gap-2 flex-wrap">
                   {sportButtons.map((btn) => {
@@ -354,7 +354,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                     )}
                   >
                     <Dumbbell className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
-                    Styrka
+                    {t('Styrka', 'Strength')}
                   </Button>
                 </div>
               </div>
@@ -370,18 +370,18 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                 <div>
                   <CardTitle className={cn("flex items-center gap-3 text-xl font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "")}>
                     <Medal className={cn("h-6 w-6", isGlass ? "text-yellow-400" : "text-yellow-500")} />
-                    Personliga rekord
+                    {t('Personliga rekord', 'Personal records')}
                   </CardTitle>
                   {bestVdot > 0 && (
                     <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-                      BÄSTA VDOT: {bestVdot.toFixed(1)}
+                      {t('BÄSTA VDOT', 'BEST VDOT')}: {bestVdot.toFixed(1)}
                     </CardDescription>
                   )}
                 </div>
                 {clientId && (
                   <Button size="sm" variant="ghost" onClick={() => setIsRaceDialogOpen(true)} className={cn(isGlass ? "bg-white/5 text-white h-9 rounded-lg px-4 font-black uppercase tracking-widest text-[9px]" : "")}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Nytt PR
+                    {t('Nytt PR', 'New PR')}
                   </Button>
                 )}
               </div>
@@ -389,7 +389,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
             <CardContent>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.entries(prsByDistance).map(([distance, pr]) => (
-                  <PRCard key={distance} distance={distance} pr={pr} isGlass={isGlass} />
+                  <PRCard key={distance} distance={distance} pr={pr} isGlass={isGlass} locale={locale} />
                 ))}
               </div>
             </CardContent>
@@ -402,9 +402,9 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "")}>Tävlingshistorik</CardTitle>
+                  <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "")}>{t('Tävlingshistorik', 'Race history')}</CardTitle>
                   <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-                    {raceResults.length} tävlingar registrerade
+                    {raceResults.length} {raceResults.length === 1 ? t('tävling registrerad', 'race registered') : t('tävlingar registrerade', 'races registered')}
                   </CardDescription>
                 </div>
               </div>
@@ -414,11 +414,11 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                 <Table>
                   <TableHeader>
                     <TableRow className={isGlass ? "border-white/5" : ""}>
-                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Datum</TableHead>
-                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Tävling</TableHead>
-                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Distans</TableHead>
-                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Tid</TableHead>
-                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Tempo</TableHead>
+                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Datum', 'Date')}</TableHead>
+                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Tävling', 'Race')}</TableHead>
+                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Distans', 'Distance')}</TableHead>
+                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Tid', 'Time')}</TableHead>
+                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Tempo', 'Pace')}</TableHead>
                       <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>VDOT</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -426,14 +426,14 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                     {raceResults.slice(0, 15).map((race) => (
                       <TableRow key={race.id} className={isGlass ? "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5" : ""}>
                         <TableCell className={cn("whitespace-nowrap font-black text-xs", isGlass ? "text-slate-400" : "")}>
-                          {format(new Date(race.raceDate), 'd MMM yyyy', { locale: sv })}
+                          {format(new Date(race.raceDate), 'd MMM yyyy', { locale: dateLocale })}
                         </TableCell>
                         <TableCell className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
                           {race.raceName || '-'}
                         </TableCell>
                         <TableCell>
                           <Badge className={cn("font-black uppercase tracking-widest text-[9px] h-5 rounded-lg border-0", isGlass ? "bg-white/10 text-slate-400" : "bg-slate-100 text-slate-800")}>
-                            {getDistanceLabel(race.distance)}
+                            {getDistanceLabel(race.distance, locale)}
                           </Badge>
                         </TableCell>
                         <TableCell className={cn("font-black text-sm", isGlass ? "text-white" : "")}>{race.timeFormatted || '-'}</TableCell>
@@ -463,16 +463,16 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
               <div>
                 <CardTitle className={cn("flex items-center gap-3 text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
                   <Dumbbell className={cn("h-6 w-6", isGlass ? "text-red-500" : "text-red-500")} />
-                  Styrke-PRs
+                  {t('Styrke-PRs', 'Strength PRs')}
                 </CardTitle>
                 <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
-                  BASERAT PÅ LOGGADE SET OCH ESTIMAL 1RM
+                  {t('BASERAT PÅ LOGGADE SET OCH ESTIMAL 1RM', 'BASED ON LOGGED SETS AND ESTIMATED 1RM')}
                 </CardDescription>
               </div>
               {clientId && (
                 <Button size="sm" variant="ghost" onClick={() => setIsStrengthDialogOpen(true)} className={cn(isGlass ? "bg-white/5 text-white h-9 rounded-lg px-4 font-black uppercase tracking-widest text-[9px]" : "")}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Nytt PR
+                  {t('Nytt PR', 'New PR')}
                 </Button>
               )}
             </div>
@@ -481,14 +481,14 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {strengthPRs.map((pr) => (
-                  <StrengthPRCard key={pr.exerciseId} pr={pr} isGlass={isGlass} />
+                  <StrengthPRCard key={pr.exerciseId} pr={pr} isGlass={isGlass} locale={locale} />
                 ))}
               </div>
             </CardContent>
           ) : (
             <CardContent>
               <p className={cn("text-center py-10 font-bold uppercase tracking-widest text-[10px]", isGlass ? "text-slate-600" : "text-gray-400")}>
-                Inga styrke-PRs registrerade ännu
+                {t('Inga styrke-PRs registrerade ännu', 'No strength PRs registered yet')}
               </p>
             </CardContent>
           )}
@@ -500,7 +500,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
             <CardHeader>
               <CardTitle className={cn("flex items-center gap-3 text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
                 <TrendingUp className={cn("h-6 w-6", isGlass ? "text-emerald-500" : "text-emerald-500")} />
-                Progressionsstatus
+                {t('Progressionsstatus', 'Progression status')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -508,8 +508,8 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                 <Table>
                   <TableHeader>
                     <TableRow className={isGlass ? "border-white/5" : ""}>
-                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Övning</TableHead>
-                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Senaste set</TableHead>
+                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Övning', 'Exercise')}</TableHead>
+                      <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Senaste set', 'Latest set')}</TableHead>
                       <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Est. 1RM</TableHead>
                       <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Status</TableHead>
                     </TableRow>
@@ -520,7 +520,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                       .map((prog) => (
                         <TableRow key={prog.id} className={isGlass ? "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5" : ""}>
                           <TableCell className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
-                            {prog.exercise.nameSv || prog.exercise.name}
+                            {locale === 'sv' ? prog.exercise.nameSv || prog.exercise.name : prog.exercise.name}
                           </TableCell>
                           <TableCell className={cn("font-black text-xs", isGlass ? "text-slate-400" : "")}>
                             {prog.sets}x{prog.repsCompleted} @ {prog.actualLoad} kg
@@ -535,7 +535,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                                 ? (isGlass ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-500 text-white")
                                 : (isGlass ? "bg-slate-500/10 text-slate-400" : "bg-slate-500 text-white")
                             )}>
-                              {getProgressionStatusLabel(prog.progressionStatus)}
+                              {getProgressionStatusLabel(prog.progressionStatus, locale)}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -558,12 +558,15 @@ function PRCard({
   distance,
   pr,
   isGlass = false,
+  locale,
 }: {
   distance: string
   pr: { timeFormatted: string; date: Date; vdot: number | null; avgPace: string | null; timeMinutes: number; distance: string; customDistanceKm: number | null }
   isGlass?: boolean
+  locale: 'en' | 'sv'
 }) {
   const pace = pr.avgPace || calculatePace(pr.timeMinutes, pr.distance, pr.customDistanceKm)
+  const dateLocale = locale === 'sv' ? sv : enUS
 
   return (
     <div className={cn(
@@ -576,7 +579,7 @@ function PRCard({
         <span className={cn(
           "font-black uppercase tracking-widest text-[10px]",
           isGlass ? "text-yellow-500" : "text-yellow-800"
-        )}>{getDistanceLabel(distance)}</span>
+        )}>{getDistanceLabel(distance, locale)}</span>
         <Trophy className={cn("h-4 w-4", isGlass ? "text-yellow-500/50" : "text-yellow-600")} />
       </div>
       <p className={cn(
@@ -595,7 +598,7 @@ function PRCard({
           )}
         </div>
         <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-          {format(new Date(pr.date), 'd MMM yyyy', { locale: sv })}
+          {format(new Date(pr.date), 'd MMM yyyy', { locale: dateLocale })}
         </p>
       </div>
     </div>
@@ -605,6 +608,7 @@ function PRCard({
 function StrengthPRCard({
   pr,
   isGlass = false,
+  locale,
 }: {
   pr: {
     exerciseId: string
@@ -615,7 +619,10 @@ function StrengthPRCard({
     pillar: string
   }
   isGlass?: boolean
+  locale: 'en' | 'sv'
 }) {
+  const dateLocale = locale === 'sv' ? sv : enUS
+
   return (
     <div className={cn(
       "p-5 rounded-3xl transition-all duration-300",
@@ -628,7 +635,7 @@ function StrengthPRCard({
           "font-black uppercase tracking-widest text-[10px]",
           isGlass ? "text-red-500" : "text-red-800"
         )}>
-          {pr.exerciseNameSv || pr.exerciseName}
+          {locale === 'sv' ? pr.exerciseNameSv || pr.exerciseName : pr.exerciseName}
         </span>
         <Zap className={cn("h-4 w-4", isGlass ? "text-red-500/50" : "text-red-600")} />
       </div>
@@ -643,10 +650,10 @@ function StrengthPRCard({
 
       <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5">
         <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-          {format(new Date(pr.date), 'd MMM yyyy', { locale: sv })}
+          {format(new Date(pr.date), 'd MMM yyyy', { locale: dateLocale })}
         </span>
         <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 px-1.5 rounded-md border-0", isGlass ? "bg-white/5 text-slate-400" : "bg-white border")}>
-          {getPillarLabel(pr.pillar)}
+          {getPillarLabel(pr.pillar, locale)}
         </Badge>
       </div>
     </div>
@@ -750,25 +757,42 @@ function getUniqueExerciseProgressions(
   return unique
 }
 
-function getDistanceLabel(distance: string): string {
-  const labels: Record<string, string> = {
-    '5K': '5 km',
-    '10K': '10 km',
-    HALF_MARATHON: 'Halvmaraton',
-    MARATHON: 'Maraton',
-    CUSTOM: 'Annan',
+function getDistanceLabel(distance: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      '5K': '5 km',
+      '10K': '10 km',
+      HALF_MARATHON: 'Half marathon',
+      MARATHON: 'Marathon',
+      CUSTOM: 'Custom',
+    },
+    sv: {
+      '5K': '5 km',
+      '10K': '10 km',
+      HALF_MARATHON: 'Halvmaraton',
+      MARATHON: 'Maraton',
+      CUSTOM: 'Annan',
+    },
   }
-  return labels[distance] || distance
+  return labels[locale][distance] || distance
 }
 
-function getProgressionStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    ON_TRACK: 'På rätt spår',
-    PLATEAU: 'Platå',
-    REGRESSING: 'Tillbakagång',
-    DELOAD_NEEDED: 'Deload behövs',
+function getProgressionStatusLabel(status: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      ON_TRACK: 'On track',
+      PLATEAU: 'Plateau',
+      REGRESSING: 'Regressing',
+      DELOAD_NEEDED: 'Deload needed',
+    },
+    sv: {
+      ON_TRACK: 'På rätt spår',
+      PLATEAU: 'Platå',
+      REGRESSING: 'Tillbakagång',
+      DELOAD_NEEDED: 'Deload behövs',
+    },
   }
-  return labels[status] || status
+  return labels[locale][status] || status
 }
 
 function getProgressionStatusVariant(
@@ -787,29 +811,26 @@ function getProgressionStatusVariant(
   }
 }
 
-function getPillarLabel(pillar: string): string {
-  const labels: Record<string, string> = {
-    POSTERIOR_CHAIN: 'Bakkedja',
-    KNEE_DOMINANCE: 'Knädominant',
-    UNILATERAL: 'Unilateral',
-    FOOT_ANKLE: 'Fot/Ankel',
-    CORE: 'Core',
-    UPPER_BODY: 'Överkropp',
+function getPillarLabel(pillar: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      POSTERIOR_CHAIN: 'Posterior chain',
+      KNEE_DOMINANCE: 'Knee dominant',
+      UNILATERAL: 'Unilateral',
+      FOOT_ANKLE: 'Foot/ankle',
+      CORE: 'Core',
+      UPPER_BODY: 'Upper body',
+    },
+    sv: {
+      POSTERIOR_CHAIN: 'Bakkedja',
+      KNEE_DOMINANCE: 'Knädominant',
+      UNILATERAL: 'Unilateral',
+      FOOT_ANKLE: 'Fot/Ankel',
+      CORE: 'Core',
+      UPPER_BODY: 'Överkropp',
+    },
   }
-  return labels[pillar] || pillar
-}
-
-function getSportName(sport: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykel',
-    SWIMMING: 'Sim',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-    SKIING: 'Skid',
-    GENERAL_FITNESS: 'Fitness',
-  }
-  return labels[sport] || sport
+  return labels[locale][pillar] || pillar
 }
 
 /**
