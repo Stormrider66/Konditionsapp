@@ -10,15 +10,28 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
 import type { AIModel as PrismaAIModel, AIProvider } from '@prisma/client'
+import {
+  normalizeAIModelDisplayName,
+  normalizeAIModelId,
+  normalizeAIModelPricing,
+} from '@/lib/ai/model-compat'
 
 // Transform database model to match the expected interface in DefaultModelSelector
 function transformModel(dbModel: PrismaAIModel) {
+  const modelId = normalizeAIModelId(dbModel.modelId)
+  const displayName = normalizeAIModelDisplayName(dbModel.modelId, dbModel.displayName)
+  const pricing = normalizeAIModelPricing(
+    dbModel.modelId,
+    dbModel.inputCostPer1k,
+    dbModel.outputCostPer1k,
+  )
+
   return {
     id: dbModel.id,
     provider: dbModel.provider,
-    modelId: dbModel.modelId,
-    displayName: dbModel.displayName,
-    name: dbModel.displayName,
+    modelId,
+    displayName,
+    name: displayName,
     description: dbModel.description,
     capabilities: {
       reasoning: 'excellent' as const,
@@ -28,8 +41,8 @@ function transformModel(dbModel: PrismaAIModel) {
     },
     pricing: {
       // Convert from per 1K tokens to per 1M tokens
-      input: (dbModel.inputCostPer1k || 0) * 1000,
-      output: (dbModel.outputCostPer1k || 0) * 1000,
+      input: (pricing.inputCostPer1k || 0) * 1000,
+      output: (pricing.outputCostPer1k || 0) * 1000,
     },
     recommended: dbModel.isDefault,
     bestForLongOutput: (dbModel.maxOutputTokens || 0) >= 32000,
@@ -120,6 +133,8 @@ export async function PUT(request: NextRequest) {
 
     // Validate model exists and is active
     if (modelId) {
+      const normalizedModelId = typeof modelId === 'string' ? normalizeAIModelId(modelId) : modelId
+
       // Try to find by database ID first, then by modelId (string identifier)
       let model = await prisma.aIModel.findUnique({
         where: { id: modelId },
@@ -128,7 +143,7 @@ export async function PUT(request: NextRequest) {
       if (!model) {
         // Try by exact modelId (e.g., "gemini-3.5-flash")
         model = await prisma.aIModel.findUnique({
-          where: { modelId: modelId },
+          where: { modelId: normalizedModelId },
         });
       }
 
@@ -136,7 +151,7 @@ export async function PUT(request: NextRequest) {
         // Try by modelId starting with the input (e.g., "gemini-3.5" matches "gemini-3.5-flash")
         model = await prisma.aIModel.findFirst({
           where: {
-            modelId: { startsWith: modelId },
+            modelId: { startsWith: normalizedModelId },
             isActive: true,
           },
         });
@@ -148,7 +163,7 @@ export async function PUT(request: NextRequest) {
           where: {
             OR: [
               { displayName: { contains: modelId, mode: 'insensitive' } },
-              { modelId: { contains: modelId, mode: 'insensitive' } },
+              { modelId: { contains: normalizedModelId, mode: 'insensitive' } },
             ],
             isActive: true,
           },

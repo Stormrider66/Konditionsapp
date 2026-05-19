@@ -9,6 +9,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import {
+  normalizeAIModelDisplayName,
+  normalizeAIModelId,
+  normalizeAIModelPricing,
+} from '@/lib/ai/model-compat'
 import { z } from 'zod'
 
 const updateModelsSchema = z.object({
@@ -43,7 +48,7 @@ export async function GET(request: NextRequest) {
     if (aiKeys?.openaiKeyValid) validProviders.push('OPENAI')
 
     // Fetch eligible models for valid providers
-    const eligibleModels = validProviders.length > 0
+    const rawEligibleModels = validProviders.length > 0
       ? await prisma.aIModel.findMany({
           where: {
             provider: { in: validProviders },
@@ -62,6 +67,21 @@ export async function GET(request: NextRequest) {
           orderBy: [{ provider: 'asc' }, { displayName: 'asc' }],
         })
       : []
+    const eligibleModels = rawEligibleModels.map((model) => {
+      const pricing = normalizeAIModelPricing(
+        model.modelId,
+        model.inputCostPer1k,
+        model.outputCostPer1k,
+      )
+
+      return {
+        ...model,
+        modelId: normalizeAIModelId(model.modelId),
+        displayName: normalizeAIModelDisplayName(model.modelId, model.displayName),
+        inputCostPer1k: pricing.inputCostPer1k,
+        outputCostPer1k: pricing.outputCostPer1k,
+      }
+    })
 
     return NextResponse.json({
       success: true,

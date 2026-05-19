@@ -10,6 +10,7 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { wrapLanguageModel } from 'ai'
 import type { ResolvedModel } from '@/types/ai-models'
 import { wrapAiFetch } from './fetch'
+import { normalizeAIModelId } from './model-compat'
 import { usageLoggingMiddleware, type AiProviderTag } from './usage-logger'
 
 const PROVIDER_TAG: Record<ResolvedModel['provider'], AiProviderTag> = {
@@ -20,27 +21,28 @@ const PROVIDER_TAG: Record<ResolvedModel['provider'], AiProviderTag> = {
 
 export function createModelInstance(resolved: ResolvedModel) {
   const middleware = usageLoggingMiddleware(PROVIDER_TAG[resolved.provider])
+  const modelId = normalizeAIModelId(resolved.modelId)
   switch (resolved.provider) {
     case 'anthropic': {
       const anthropic = createAnthropic({
         apiKey: resolved.apiKey,
         fetch: wrapAiFetch('anthropic'),
       })
-      return wrapLanguageModel({ model: anthropic(resolved.modelId), middleware })
+      return wrapLanguageModel({ model: anthropic(modelId), middleware })
     }
     case 'google': {
       const google = createGoogleGenerativeAI({
         apiKey: resolved.apiKey,
         fetch: wrapAiFetch('google'),
       })
-      return wrapLanguageModel({ model: google(resolved.modelId), middleware })
+      return wrapLanguageModel({ model: google(modelId), middleware })
     }
     case 'openai': {
       const openai = createOpenAI({
         apiKey: resolved.apiKey,
         fetch: wrapAiFetch('openai'),
       })
-      return wrapLanguageModel({ model: openai(resolved.modelId), middleware })
+      return wrapLanguageModel({ model: openai(modelId), middleware })
     }
     default:
       throw new Error(`Unsupported provider: ${resolved.provider}`)

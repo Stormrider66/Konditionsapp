@@ -16,15 +16,28 @@ import type { AIModel as PrismaAIModel, AIProvider } from '@prisma/client'
 import { INTENT_TIER_LABELS, isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
 import type { ModelIntent } from '@/types/ai-models'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
+import {
+  normalizeAIModelDisplayName,
+  normalizeAIModelId,
+  normalizeAIModelPricing,
+} from '@/lib/ai/model-compat'
 
 // Transform database model to match the expected interface
 function transformDbModel(dbModel: PrismaAIModel) {
+  const modelId = normalizeAIModelId(dbModel.modelId)
+  const displayName = normalizeAIModelDisplayName(dbModel.modelId, dbModel.displayName)
+  const pricing = normalizeAIModelPricing(
+    dbModel.modelId,
+    dbModel.inputCostPer1k,
+    dbModel.outputCostPer1k,
+  )
+
   return {
     id: dbModel.id,
     provider: dbModel.provider,
-    modelId: dbModel.modelId,
-    displayName: dbModel.displayName,
-    name: dbModel.displayName,
+    modelId,
+    displayName,
+    name: displayName,
     description: dbModel.description,
     capabilities: {
       reasoning: 'excellent' as const,
@@ -34,8 +47,8 @@ function transformDbModel(dbModel: PrismaAIModel) {
     },
     pricing: {
       // Convert from per 1K tokens to per 1M tokens
-      input: (dbModel.inputCostPer1k || 0) * 1000,
-      output: (dbModel.outputCostPer1k || 0) * 1000,
+      input: (pricing.inputCostPer1k || 0) * 1000,
+      output: (pricing.outputCostPer1k || 0) * 1000,
     },
     recommended: dbModel.isDefault,
     bestForLongOutput: (dbModel.maxOutputTokens || 0) >= 32000,

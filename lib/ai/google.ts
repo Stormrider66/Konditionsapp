@@ -15,6 +15,7 @@ import { wrapLanguageModel } from 'ai'
 import type { LanguageModelV2 } from '@ai-sdk/provider'
 import { wrapAiFetch } from './fetch'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { normalizeAIModelId } from './model-compat'
 import { usageLoggingMiddleware } from './usage-logger'
 
 const middleware = usageLoggingMiddleware('GOOGLE')
@@ -24,7 +25,7 @@ const sharedFetch = wrapAiFetch('google')
 const sharedClient = createGoogleGenerativeAI({ fetch: sharedFetch })
 
 export function google(modelId: string) {
-  return wrapLanguageModel({ model: sharedClient(modelId), middleware })
+  return wrapLanguageModel({ model: sharedClient(normalizeAIModelId(modelId)), middleware })
 }
 
 /**

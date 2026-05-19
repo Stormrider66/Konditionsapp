@@ -28,6 +28,7 @@ import { mergePhases, validateMergedProgram } from './merger'
 import { getActiveVariant } from '@/lib/auto-optimize/prompt-variants'
 import { stripConditionalBlocks } from '@/lib/auto-optimize/iteration-engine'
 import { buildConstitutionPreamble } from '@/lib/ai/constitution'
+import { normalizeAIModelId } from '@/lib/ai/model-compat'
 import { logAiUsage, type AiProviderTag } from '@/lib/ai/usage-logger'
 
 // ============================================
@@ -374,7 +375,7 @@ async function callGoogle(
   const { generateText } = await import('ai')
 
   const google = createGoogleGenerativeAI({ apiKey })
-  const model = modelId || 'gemini-3.5-flash'
+  const model = normalizeAIModelId(modelId || 'gemini-3.5-flash')
 
   const result = await generateText({
     model: google(model),

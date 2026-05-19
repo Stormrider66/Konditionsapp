@@ -5,6 +5,7 @@ import { resolveModel, isModelIntent } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { isProviderHealthy } from '@/lib/ai/circuit-breaker'
 import { wrapAiFetch } from '@/lib/ai/fetch'
+import { normalizeAIModelId } from '@/lib/ai/model-compat'
 import { logger } from '@/lib/logger'
 
 type EffectiveKeys = {
@@ -73,7 +74,7 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
       apiKey: healthyKeys.googleKey,
       fetch: wrapAiFetch('google'),
     })
-    const geminiModel = model || 'gemini-3.5-flash'
+    const geminiModel = normalizeAIModelId(model || 'gemini-3.5-flash')
     if (deepThinkEnabled) {
       logger.info('Using Gemini Deep Think mode', { model: geminiModel })
     }

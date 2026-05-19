@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { normalizeAIModelDisplayName, normalizeAIModelId } from '@/lib/ai/model-compat'
 
 export interface UserAIConfig {
   userId: string
@@ -154,9 +155,9 @@ export async function getUserAIConfig(): Promise<UserAIConfig | null> {
     openaiValid,
     defaultModel: effectiveModel ? {
       id: effectiveModel.id,
-      modelId: effectiveModel.modelId,
+      modelId: normalizeAIModelId(effectiveModel.modelId),
       provider: effectiveModel.provider,
-      displayName: effectiveModel.displayName,
+      displayName: normalizeAIModelDisplayName(effectiveModel.modelId, effectiveModel.displayName),
     } : null,
     isExplicitlySet: !!userKeys?.defaultModelId,
   }

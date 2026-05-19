@@ -15,6 +15,7 @@ import { resolveModel } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { normalizeAIModelId } from '@/lib/ai/model-compat'
 import { logAiUsage, withAiContext } from '@/lib/ai/usage-logger'
 
 interface SendMessageRequest {
@@ -240,7 +241,7 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
       } else if (conversation.provider === 'GOOGLE' && decryptedKeys.googleKey) {
         // Google/Gemini API call
         try {
-          const model = conversation.modelUsed || 'gemini-3.5-flash'
+          const model = normalizeAIModelId(conversation.modelUsed || 'gemini-3.5-flash')
           const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${decryptedKeys.googleKey}`,
             {

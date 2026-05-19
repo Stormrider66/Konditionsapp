@@ -4,6 +4,8 @@
  * Defines available AI models with their capabilities, cost tiers, and provider info.
  */
 
+import { normalizeAIModelId } from '@/lib/ai/model-compat'
+
 export type AIProvider = 'anthropic' | 'google' | 'openai'
 
 export type CostTier = 'free' | 'low' | 'medium' | 'high'
@@ -228,7 +230,8 @@ export function getAvailableModels(keys: {
  * Get model by ID
  */
 export function getModelById(id: string): AIModelConfig | undefined {
-  return AI_MODELS.find(m => m.id === id || m.modelId === id)
+  const normalizedId = normalizeAIModelId(id)
+  return AI_MODELS.find(m => m.id === id || m.modelId === id || m.modelId === normalizedId)
 }
 
 /**

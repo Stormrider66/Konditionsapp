@@ -30,6 +30,7 @@ import type {
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { getModelById, getDefaultModel, AI_MODELS, resolveModel, isModelIntent } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
+import { normalizeAIModelId } from '@/lib/ai/model-compat'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
@@ -211,7 +212,8 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      modelName = selectedModelConfig.modelId
+      const selectedProviderModelId = normalizeAIModelId(selectedModelConfig.modelId)
+      modelName = selectedProviderModelId
       providerTag =
         selectedModelConfig.provider === 'anthropic'
           ? 'ANTHROPIC'
@@ -221,24 +223,24 @@ export async function POST(request: NextRequest) {
 
       logger.debug('WOD generation model selected', {
         requestedModelId: requestedModelId || undefined,
-        selectedModelId: selectedModelConfig.modelId,
+        selectedModelId: selectedProviderModelId,
         provider: selectedModelConfig.provider,
       })
 
       switch (selectedModelConfig.provider) {
         case 'anthropic': {
           const anthropic = createAnthropic({ apiKey: apiKeys.anthropicKey! })
-          model = anthropic(selectedModelConfig.modelId) as LanguageModel
+          model = anthropic(selectedProviderModelId) as LanguageModel
           break
         }
         case 'google': {
           const google = createGoogleGenerativeAI({ apiKey: apiKeys.googleKey! })
-          model = google(selectedModelConfig.modelId) as LanguageModel
+          model = google(selectedProviderModelId) as LanguageModel
           break
         }
         case 'openai': {
           const openai = createOpenAI({ apiKey: apiKeys.openaiKey! })
-          model = openai(selectedModelConfig.modelId) as LanguageModel
+          model = openai(selectedProviderModelId) as LanguageModel
           break
         }
         default:

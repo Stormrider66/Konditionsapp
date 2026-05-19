@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { normalizeAIModelId } from '@/lib/ai/model-compat'
 import { recordAiUsageDebit, usdToSek } from '@/lib/ai/billing/allowance'
 
 // ============================================
@@ -418,7 +419,8 @@ export function estimateCost(
     'claude-haiku-4-5': { input: 0.25, output: 1.25 },
   }
 
-  const modelPricing = pricing[model]
+  const normalizedModel = normalizeAIModelId(model)
+  const modelPricing = pricing[normalizedModel] || pricing[model]
 
   if (!modelPricing) {
     // Default fallback pricing
