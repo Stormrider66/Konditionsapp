@@ -19,11 +19,11 @@ interface ClientDetailTabsProps {
   defaultTab?: ClientDetailTab
 }
 
-const TAB_CONFIG: { value: ClientDetailTab; labelKey: string; icon: React.ElementType }[] = [
-  { value: 'overview', labelKey: 'overview', icon: LayoutGrid },
-  { value: 'planning', labelKey: 'planning', icon: CalendarDays },
-  { value: 'development', labelKey: 'development', icon: TrendingUp },
-  { value: 'profile', labelKey: 'profile', icon: UserCircle },
+const TAB_CONFIG: { value: ClientDetailTab; labelKey: string; descriptionKey: string; icon: React.ElementType }[] = [
+  { value: 'overview', labelKey: 'overview', descriptionKey: 'overviewDescription', icon: LayoutGrid },
+  { value: 'planning', labelKey: 'planning', descriptionKey: 'planningDescription', icon: CalendarDays },
+  { value: 'development', labelKey: 'development', descriptionKey: 'developmentDescription', icon: TrendingUp },
+  { value: 'profile', labelKey: 'profile', descriptionKey: 'profileDescription', icon: UserCircle },
 ]
 
 export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'overview' }: ClientDetailTabsProps) {
@@ -73,20 +73,23 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       {/* Tab Navigation */}
       <div className="sticky top-0 z-10 bg-gray-50 pb-3 sm:pb-4">
-        <TabsList className="w-full h-auto p-1 bg-white shadow-sm rounded-lg border border-gray-200 grid grid-cols-4 gap-0.5 sm:gap-1">
-          {TAB_CONFIG.map(({ value, labelKey, icon: Icon }) => (
+        <TabsList className="w-full h-auto p-1 bg-white dark:bg-slate-900 shadow-sm rounded-lg border border-gray-200 dark:border-white/10 grid grid-cols-4 gap-0.5 sm:gap-1">
+          {TAB_CONFIG.map(({ value, labelKey, descriptionKey, icon: Icon }) => (
             <TabsTrigger
               key={value}
               value={value}
               className={cn(
-                "flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 py-2 sm:py-2.5 px-1 sm:px-3 rounded-md transition-all",
+                "flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 py-2 sm:py-2.5 px-1 sm:px-3 rounded-md transition-all",
                 "data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm",
-                "data-[state=inactive]:hover:bg-gray-100",
+                "data-[state=inactive]:hover:bg-gray-100 dark:data-[state=inactive]:hover:bg-white/5",
                 "text-xs sm:text-sm font-medium"
               )}
             >
               <Icon className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
-              <span className="text-[10px] sm:text-sm truncate">{t(labelKey)}</span>
+              <span className="min-w-0 text-center md:text-left">
+                <span className="block text-[10px] sm:text-sm truncate">{t(labelKey)}</span>
+                <span className="hidden lg:block text-[11px] font-normal opacity-75 truncate">{t(descriptionKey)}</span>
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>

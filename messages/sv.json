@@ -4758,9 +4758,13 @@
   "components": {
     "clientDetailTabs": {
       "overview": "Översikt",
+      "overviewDescription": "Beslut idag",
       "planning": "Planering",
+      "planningDescription": "Kalender & program",
       "development": "Utveckling",
-      "profile": "Profil"
+      "developmentDescription": "Tester & trend",
+      "profile": "Profil",
+      "profileDescription": "Konto & setup"
     },
     "quickActionsGrid": {
       "logWorkout": "Logga pass",

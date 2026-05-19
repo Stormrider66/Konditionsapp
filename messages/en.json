@@ -4758,9 +4758,13 @@
   "components": {
     "clientDetailTabs": {
       "overview": "Overview",
+      "overviewDescription": "Today’s decisions",
       "planning": "Planning",
+      "planningDescription": "Calendar & programs",
       "development": "Development",
-      "profile": "Profile"
+      "developmentDescription": "Tests & trends",
+      "profile": "Profile",
+      "profileDescription": "Account & setup"
     },
     "quickActionsGrid": {
       "logWorkout": "Log workout",
