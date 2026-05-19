@@ -27,7 +27,6 @@ import { Resend } from 'resend'
 import {
   detectPainPatterns,
   formatPatternNotification,
-  type PatternDetectionResult,
 } from '@/lib/injury-detection/pattern-detector'
 import { resolveEmailBranding } from '@/lib/email/branding'
 
@@ -70,6 +69,16 @@ interface TriggerDetection {
   injuryType?: InjuryDetection['injuryType']
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * POST /api/injury/process-checkin
  *
@@ -81,6 +90,7 @@ export async function POST(request: NextRequest) {
     const isInternalJob = !!process.env.CRON_SECRET && internalJobSecret === process.env.CRON_SECRET
 
     let dbUserId: string | null = null
+    let requestLocale: AppLocale = 'en'
     if (!isInternalJob) {
       const supabase = await createClient()
       const {
@@ -100,6 +110,7 @@ export async function POST(request: NextRequest) {
       }
 
       dbUserId = dbUser.id
+      requestLocale = getUserLocale(dbUser.language)
     }
 
     // Parse request body
@@ -108,11 +119,6 @@ export async function POST(request: NextRequest) {
       clientId,
       date,
       injuryPain,
-      stress,
-      sleepHours,
-      energyLevel,
-      readinessScore,
-      readinessLevel,
       muscleSoreness,
       injuryDetails,
       keywordAnalysis,
@@ -142,6 +148,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const coachUser = await prisma.user.findUnique({
+      where: { id: client.userId },
+      select: { language: true },
+    })
+    const coachLocale = getUserLocale(coachUser?.language)
+    if (isInternalJob) {
+      requestLocale = coachLocale
+    }
+
     // ==========================================
     // Step 1: Detect if injury cascade should trigger
     // ==========================================
@@ -157,11 +172,11 @@ export async function POST(request: NextRequest) {
       isIllness: injuryDetails?.isIllness || false,
       illnessType: injuryDetails?.illnessType || null,
       keywordBodyPart: keywordAnalysis?.suggestedBodyPart || null,
-    })
+    }, requestLocale)
 
     // If pattern detected but no immediate trigger, escalate to coach
     if (!triggerDetection.triggered && patternResult.shouldEscalate) {
-      const patternNotification = formatPatternNotification(patternResult)
+      const patternNotification = formatPatternNotification(patternResult, coachLocale)
 
       // Send pattern-based coach notification
       await sendCoachNotification(client.userId, {
@@ -170,14 +185,14 @@ export async function POST(request: NextRequest) {
         urgency: patternNotification.urgency,
         actionRequired: true,
         suggestedActions: [
-          'Granska idrottarens senaste rapporter',
-          'Kontakta idrottaren för uppföljning',
-          'Överväg förebyggande träningsanpassningar',
+          t(coachLocale, 'Review the athlete’s recent reports', 'Granska idrottarens senaste rapporter'),
+          t(coachLocale, 'Contact the athlete for follow-up', 'Kontakta idrottaren för uppföljning'),
+          t(coachLocale, 'Consider preventive training adjustments', 'Överväg förebyggande träningsanpassningar'),
         ],
         athleteName: client.name,
         injuryType: 'PATTERN_DETECTED',
         painLevel: injuryPain,
-      })
+      }, coachLocale)
 
       logger.info('Pattern-based escalation triggered', {
         athlete: client.name,
@@ -234,18 +249,22 @@ export async function POST(request: NextRequest) {
 
         // Send low-urgency notification to coach
         await sendCoachNotification(client.userId, {
-          title: `Kronisk sjukdom noterad: ${client.name}`,
-          message: `Idrottaren har rapporterat en kronisk sjukdom. Träningen påverkas inte automatiskt, men informationen loggas för uppföljning.`,
+          title: t(coachLocale, `Chronic illness noted: ${client.name}`, `Kronisk sjukdom noterad: ${client.name}`),
+          message: t(
+            coachLocale,
+            'The athlete reported a chronic illness. Training is not affected automatically, but the information is logged for follow-up.',
+            'Idrottaren har rapporterat en kronisk sjukdom. Träningen påverkas inte automatiskt, men informationen loggas för uppföljning.'
+          ),
           urgency: 'LOW',
           actionRequired: false,
           suggestedActions: [
-            'Följ upp med idrottaren vid behov',
-            'Justera träningen manuellt om det krävs',
+            t(coachLocale, 'Follow up with the athlete if needed', 'Följ upp med idrottaren vid behov'),
+            t(coachLocale, 'Adjust training manually if required', 'Justera träningen manuellt om det krävs'),
           ],
           athleteName: client.name,
           injuryType: 'CHRONIC_ILLNESS',
           painLevel: body.injuryPain,
-        })
+        }, coachLocale)
 
         return NextResponse.json({
           success: true,
@@ -265,12 +284,16 @@ export async function POST(request: NextRequest) {
             notificationUrgency: 'LOW',
           },
           summary: {
-            title: 'Kronisk sjukdom noterad',
-            message: 'Kronisk sjukdom noterad. Träningen påverkas inte automatiskt, men informationen loggas.',
+            title: t(requestLocale, 'Chronic illness noted', 'Kronisk sjukdom noterad'),
+            message: t(
+              requestLocale,
+              'Chronic illness noted. Training is not affected automatically, but the information is logged.',
+              'Kronisk sjukdom noterad. Träningen påverkas inte automatiskt, men informationen loggas.'
+            ),
             nextSteps: [
-              'Träna som vanligt om du mår bra',
-              'Rapportera om symtomen förvärras',
-              'Din coach har informerats',
+              t(requestLocale, 'Train as usual if you feel well', 'Träna som vanligt om du mår bra'),
+              t(requestLocale, 'Report if symptoms worsen', 'Rapportera om symtomen förvärras'),
+              t(requestLocale, 'Your coach has been informed', 'Din coach har informerats'),
             ],
             programAdjustment: 'No automatic adjustment. Chronic condition logged for coach awareness.',
           },
@@ -302,13 +325,21 @@ export async function POST(request: NextRequest) {
           notificationUrgency: 'HIGH',
         },
         summary: {
-          title: `Sjukdom rapporterad: ${injuryDetails.illnessType || 'ospecificerad'}`,
-          message: `Idrottaren har rapporterat sjukdom. Komplett vila rekommenderas tills symtomen försvinner. Ingen träning eller korskräning tillåten under sjukdomsperioden.`,
+          title: t(
+            requestLocale,
+            `Illness reported: ${injuryDetails.illnessType || 'unspecified'}`,
+            `Sjukdom rapporterad: ${injuryDetails.illnessType || 'ospecificerad'}`
+          ),
+          message: t(
+            requestLocale,
+            'The athlete reported illness. Complete rest is recommended until symptoms resolve. No training or cross-training is allowed during the illness period.',
+            'Idrottaren har rapporterat sjukdom. Komplett vila rekommenderas tills symtomen försvinner. Ingen träning eller korskräning tillåten under sjukdomsperioden.'
+          ),
           nextSteps: [
-            'Ingen träning tills symtomfri i minst 24 timmar',
-            'Återgå gradvis med lätt aktivitet först',
-            'Vid feber: minst 1 vecka vila efter feberfri',
-            'Konsultera läkare vid allvarliga symtom',
+            t(requestLocale, 'No training until symptom-free for at least 24 hours', 'Ingen träning tills symtomfri i minst 24 timmar'),
+            t(requestLocale, 'Return gradually with light activity first', 'Återgå gradvis med lätt aktivitet först'),
+            t(requestLocale, 'With fever: rest for at least 1 week after fever resolves', 'Vid feber: minst 1 vecka vila efter feberfri'),
+            t(requestLocale, 'Consult a doctor for serious symptoms', 'Konsultera läkare vid allvarliga symtom'),
           ],
           programAdjustment: 'All training suspended due to illness. Cross-training not recommended during illness recovery.',
         },
@@ -365,7 +396,7 @@ export async function POST(request: NextRequest) {
     // ==========================================
     // Step 7: Send coach notification
     // ==========================================
-    await sendCoachNotification(client.userId, injuryResponse.coachNotification)
+    await sendCoachNotification(client.userId, injuryResponse.coachNotification, coachLocale)
 
     // ==========================================
     // Step 8: Return comprehensive response
@@ -653,7 +684,8 @@ async function getACWRRisk(clientId: string): Promise<{
  */
 async function sendCoachNotification(
   coachUserId: string,
-  notification: InjuryResponse['coachNotification']
+  notification: InjuryResponse['coachNotification'],
+  locale: AppLocale = 'en'
 ) {
   try {
     await prisma.message.create({
@@ -690,7 +722,9 @@ async function sendCoachNotification(
             coachUser.businessMemberships[0]?.businessId ?? null,
           )
           const urgencyColor = notification.urgency === 'CRITICAL' ? '#dc2626' : '#f59e0b'
-          const urgencyText = notification.urgency === 'CRITICAL' ? 'KRITISKT' : 'HÖG PRIORITET'
+          const urgencyText = notification.urgency === 'CRITICAL'
+            ? t(locale, 'CRITICAL', 'KRITISKT')
+            : t(locale, 'HIGH PRIORITY', 'HÖG PRIORITET')
 
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
           const injuryHtml = `
@@ -703,7 +737,7 @@ async function sendCoachNotification(
                   <p style="color: #444;">${notification.message}</p>
                   <a href="${appUrl}/coach/injuries"
                      style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 15px;">
-                    Se skadehantering
+                    ${t(locale, 'View injury management', 'Se skadehantering')}
                   </a>
                 </div>
               </div>

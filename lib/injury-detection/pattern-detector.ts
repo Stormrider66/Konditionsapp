@@ -47,6 +47,8 @@ export interface DetectedPattern {
   descriptionSv: string
 }
 
+type AppLocale = 'en' | 'sv'
+
 // ============================================
 // CONSTANTS
 // ============================================
@@ -67,7 +69,8 @@ const PAIN_THRESHOLD_FOR_CONCERN = 3 // Pain >= 3 is flagged for pattern analysi
  */
 export async function detectPainPatterns(
   clientId: string,
-  currentReport?: Partial<PainReport>
+  currentReport?: Partial<PainReport>,
+  locale: AppLocale = 'en'
 ): Promise<PatternDetectionResult> {
   try {
     // Calculate date range
@@ -126,7 +129,7 @@ export async function detectPainPatterns(
     const patterns: DetectedPattern[] = []
 
     // 1. Check for recurring body part pain
-    const bodyPartPatterns = analyzeBodyPartPatterns(painReports)
+    const bodyPartPatterns = analyzeBodyPartPatterns(painReports, locale)
     patterns.push(...bodyPartPatterns)
 
     // 2. Check for increasing pain trend
@@ -141,7 +144,7 @@ export async function detectPainPatterns(
     const shouldEscalate = patterns.some((p) => p.severity === 'HIGH' || p.occurrences >= MIN_OCCURRENCES_FOR_PATTERN)
     const escalationReasons = patterns
       .filter((p) => p.severity === 'HIGH' || p.occurrences >= MIN_OCCURRENCES_FOR_PATTERN)
-      .map((p) => p.descriptionSv)
+      .map((p) => locale === 'sv' ? p.descriptionSv : p.description)
 
     let recommendation: PatternDetectionResult['recommendation'] = 'NO_ACTION'
     if (shouldEscalate) {
@@ -176,7 +179,7 @@ export async function detectPainPatterns(
 /**
  * Analyze recurring pain in the same body part
  */
-function analyzeBodyPartPatterns(reports: PainReport[]): DetectedPattern[] {
+function analyzeBodyPartPatterns(reports: PainReport[], locale: AppLocale): DetectedPattern[] {
   const patterns: DetectedPattern[] = []
 
   // Group by body part (including keyword-detected body parts)
@@ -209,7 +212,8 @@ function analyzeBodyPartPatterns(reports: PainReport[]): DetectedPattern[] {
         severity = 'LOW'
       }
 
-      const bodyPartLabel = getBodyPartLabel(bodyPart)
+      const bodyPartLabel = getBodyPartLabel(bodyPart, locale)
+      const bodyPartLabelSv = getBodyPartLabel(bodyPart, 'sv')
 
       patterns.push({
         type: 'RECURRING_BODY_PART',
@@ -220,7 +224,7 @@ function analyzeBodyPartPatterns(reports: PainReport[]): DetectedPattern[] {
         trend,
         severity,
         description: `${bodyPartLabel} pain reported ${groupReports.length} times in ${LOOKBACK_DAYS} days (avg ${avgPain.toFixed(1)}/10)`,
-        descriptionSv: `Smärta i ${bodyPartLabel.toLowerCase()} rapporterad ${groupReports.length} gånger på ${LOOKBACK_DAYS} dagar (snitt ${avgPain.toFixed(1)}/10)`,
+        descriptionSv: `Smärta i ${bodyPartLabelSv.toLowerCase()} rapporterad ${groupReports.length} gånger på ${LOOKBACK_DAYS} dagar (snitt ${avgPain.toFixed(1)}/10)`,
       })
     }
   }
@@ -276,10 +280,6 @@ function analyzeIllnessPatterns(reports: PainReport[]): DetectedPattern[] {
 
   if (illnessReports.length >= 2) {
     // Two or more illness reports in a week is concerning
-    const illnessTypes = illnessReports
-      .map((r) => r.illnessType)
-      .filter((t): t is string => t !== null)
-
     patterns.push({
       type: 'RECURRING_ILLNESS',
       occurrences: illnessReports.length,
@@ -322,28 +322,49 @@ function calculateTrend(values: number[]): DetectedPattern['trend'] {
 /**
  * Get human-readable body part label
  */
-function getBodyPartLabel(bodyPart: string): string {
-  const labels: Record<string, string> = {
-    FOOT: 'Fot',
-    ANKLE: 'Fotled',
-    SHIN: 'Underben',
-    CALF: 'Vad',
-    KNEE: 'Knä',
-    THIGH: 'Lår',
-    HAMSTRING: 'Bakre lår',
-    QUAD: 'Främre lår',
-    HIP: 'Höft',
-    GROIN: 'Ljumske',
-    LOWER_BACK: 'Nedre rygg',
-    UPPER_BACK: 'Övre rygg',
-    SHOULDER: 'Axel',
-    NECK: 'Nacke',
-    ARM: 'Arm',
-    WRIST: 'Handled',
-    OTHER: 'Övrigt',
+function getBodyPartLabel(bodyPart: string, locale: AppLocale): string {
+  const labels: Record<AppLocale, Record<string, string>> = {
+    en: {
+      FOOT: 'Foot',
+      ANKLE: 'Ankle',
+      SHIN: 'Shin',
+      CALF: 'Calf',
+      KNEE: 'Knee',
+      THIGH: 'Thigh',
+      HAMSTRING: 'Hamstring',
+      QUAD: 'Quad',
+      HIP: 'Hip',
+      GROIN: 'Groin',
+      LOWER_BACK: 'Lower back',
+      UPPER_BACK: 'Upper back',
+      SHOULDER: 'Shoulder',
+      NECK: 'Neck',
+      ARM: 'Arm',
+      WRIST: 'Wrist',
+      OTHER: 'Other',
+    },
+    sv: {
+      FOOT: 'Fot',
+      ANKLE: 'Fotled',
+      SHIN: 'Underben',
+      CALF: 'Vad',
+      KNEE: 'Knä',
+      THIGH: 'Lår',
+      HAMSTRING: 'Bakre lår',
+      QUAD: 'Främre lår',
+      HIP: 'Höft',
+      GROIN: 'Ljumske',
+      LOWER_BACK: 'Nedre rygg',
+      UPPER_BACK: 'Övre rygg',
+      SHOULDER: 'Axel',
+      NECK: 'Nacke',
+      ARM: 'Arm',
+      WRIST: 'Handled',
+      OTHER: 'Övrigt',
+    },
   }
 
-  return labels[bodyPart] || bodyPart
+  return labels[locale][bodyPart] || bodyPart
 }
 
 // ============================================
@@ -353,15 +374,20 @@ function getBodyPartLabel(bodyPart: string): string {
 /**
  * Format pattern detection result for coach notification
  */
-export function formatPatternNotification(result: PatternDetectionResult): {
+export function formatPatternNotification(
+  result: PatternDetectionResult,
+  locale: AppLocale = 'en'
+): {
   title: string
   message: string
   urgency: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 } {
   if (!result.shouldEscalate) {
     return {
-      title: 'Inga oroande mönster',
-      message: 'Inga mönster som kräver åtgärd just nu.',
+      title: locale === 'sv' ? 'Inga oroande mönster' : 'No concerning patterns',
+      message: locale === 'sv'
+        ? 'Inga mönster som kräver åtgärd just nu.'
+        : 'No patterns require action right now.',
       urgency: 'LOW',
     }
   }
@@ -370,11 +396,17 @@ export function formatPatternNotification(result: PatternDetectionResult): {
   const urgency: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' =
     highSeverityPatterns.length > 0 ? 'HIGH' : 'MEDIUM'
 
-  const patternSummaries = result.patterns.map((p) => `• ${p.descriptionSv}`).join('\n')
+  const patternSummaries = result.patterns
+    .map((p) => `• ${locale === 'sv' ? p.descriptionSv : p.description}`)
+    .join('\n')
 
   return {
-    title: 'Återkommande smärtmönster upptäckt',
-    message: `Följande mönster har identifierats:\n${patternSummaries}\n\nRekommendation: Uppföljning med idrottaren.`,
+    title: locale === 'sv'
+      ? 'Återkommande smärtmönster upptäckt'
+      : 'Recurring pain pattern detected',
+    message: locale === 'sv'
+      ? `Följande mönster har identifierats:\n${patternSummaries}\n\nRekommendation: Uppföljning med idrottaren.`
+      : `The following patterns were identified:\n${patternSummaries}\n\nRecommendation: Follow up with the athlete.`,
     urgency,
   }
 }
