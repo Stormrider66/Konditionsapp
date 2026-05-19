@@ -1,12 +1,13 @@
 'use client'
 
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Bot, User, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { useLocale } from '@/i18n/client'
 import { EnhancedProgramPreview } from './EnhancedProgramPreview'
 import { JsonDataCard, tryParseJson } from './JsonDataCard'
 
@@ -31,6 +32,8 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message, athleteId, athleteName, coachName, conversationId, onProgramSaved, onPublishProgram, onFixFormat, isFixingFormat }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
 
@@ -185,7 +188,7 @@ export function ChatMessage({ message, athleteId, athleteName, coachName, conver
           }`}
         >
           <span>
-            {format(new Date(message.createdAt), 'HH:mm', { locale: sv })}
+            {format(new Date(message.createdAt), 'HH:mm', { locale: dateLocale })}
           </span>
           {!isUser && (
             <Button
