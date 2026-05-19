@@ -26,6 +26,8 @@ interface ReadinessData {
   acwr: number | null
 }
 
+type AppLocale = 'en' | 'sv'
+
 /**
  * GET /api/ai/workout-optimization
  * Analyze athlete readiness and provide workout optimization suggestions
@@ -36,6 +38,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = getUserLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:workout-optimization', user.id, {
       limit: 30,
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get('clientId')
     const workoutId = searchParams.get('workoutId')
-    const workoutType = searchParams.get('workoutType')
+    const _workoutType = searchParams.get('workoutType')
     const plannedIntensity = searchParams.get('plannedIntensity')
 
     if (!clientId) {
@@ -170,12 +173,20 @@ export async function GET(req: NextRequest) {
       suggestions.push({
         type: 'reduce_volume',
         urgency: 'immediate',
-        title: 'Hög skaderisk - Minska belastningen',
-        description: 'Din träningsbelastningskvot (ACWR) är hög. Minska volymen för att undvika överbelastning.',
-        originalValue: 'Planerad volym',
-        suggestedValue: 'Reducera med 20-30%',
+        title: t(locale, 'High injury risk - reduce load', 'Hög skaderisk - Minska belastningen'),
+        description: t(
+          locale,
+          'Your acute:chronic workload ratio (ACWR) is high. Reduce volume to avoid overload.',
+          'Din träningsbelastningskvot (ACWR) är hög. Minska volymen för att undvika överbelastning.'
+        ),
+        originalValue: t(locale, 'Planned volume', 'Planerad volym'),
+        suggestedValue: t(locale, 'Reduce by 20-30%', 'Reducera med 20-30%'),
         confidence: 0.9,
-        reason: `ACWR ${acwr.toFixed(2)} > 1.5 indikerar ökad skaderisk`,
+        reason: t(
+          locale,
+          `ACWR ${acwr.toFixed(2)} > 1.5 indicates increased injury risk`,
+          `ACWR ${acwr.toFixed(2)} > 1.5 indikerar ökad skaderisk`
+        ),
       })
     }
 
@@ -185,23 +196,35 @@ export async function GET(req: NextRequest) {
         suggestions.push({
           type: 'swap_workout',
           urgency: 'immediate',
-          title: 'Byt till återhämtningspass',
-          description: 'Din beredskap är mycket låg. Överväg att byta till ett lätt återhämtningspass eller vila helt.',
-          originalValue: plannedIntensity || workout?.intensity || 'Planerad',
-          suggestedValue: 'Återhämtning/Vila',
+          title: t(locale, 'Switch to recovery workout', 'Byt till återhämtningspass'),
+          description: t(
+            locale,
+            'Your readiness is very low. Consider switching to an easy recovery workout or resting completely.',
+            'Din beredskap är mycket låg. Överväg att byta till ett lätt återhämtningspass eller vila helt.'
+          ),
+          originalValue: plannedIntensity || workout?.intensity || t(locale, 'Planned', 'Planerad'),
+          suggestedValue: t(locale, 'Recovery/rest', 'Återhämtning/Vila'),
           confidence: 0.95,
-          reason: `Beredskap endast ${readinessScore}/100`,
+          reason: t(locale, `Readiness only ${readinessScore}/100`, `Beredskap endast ${readinessScore}/100`),
         })
       } else if (readinessScore < 60) {
         suggestions.push({
           type: 'reduce_intensity',
           urgency: 'recommended',
-          title: 'Sänk intensiteten',
-          description: 'Överväg att köra passet på lägre intensitet än planerat.',
-          originalValue: plannedIntensity || workout?.intensity || 'Planerad',
-          suggestedValue: 'Lätt-Medel intensitet',
+          title: t(locale, 'Lower the intensity', 'Sänk intensiteten'),
+          description: t(
+            locale,
+            'Consider completing the workout at a lower intensity than planned.',
+            'Överväg att köra passet på lägre intensitet än planerat.'
+          ),
+          originalValue: plannedIntensity || workout?.intensity || t(locale, 'Planned', 'Planerad'),
+          suggestedValue: t(locale, 'Easy-moderate intensity', 'Lätt-Medel intensitet'),
           confidence: 0.8,
-          reason: `Beredskap ${readinessScore}/100 under optimalt`,
+          reason: t(
+            locale,
+            `Readiness ${readinessScore}/100 is below optimal`,
+            `Beredskap ${readinessScore}/100 under optimalt`
+          ),
         })
       }
     }
@@ -211,10 +234,14 @@ export async function GET(req: NextRequest) {
       suggestions.push({
         type: 'add_recovery',
         urgency: 'recommended',
-        title: 'Hög trötthet detekterad',
-        description: 'Inkludera extra återhämtning efter passet eller ta en vilodag imorgon.',
+        title: t(locale, 'High fatigue detected', 'Hög trötthet detekterad'),
+        description: t(
+          locale,
+          'Include extra recovery after the workout or take a rest day tomorrow.',
+          'Inkludera extra återhämtning efter passet eller ta en vilodag imorgon.'
+        ),
         confidence: 0.75,
-        reason: `Trötthetsnivå ${fatigueLevel}% är hög`,
+        reason: t(locale, `Fatigue level ${fatigueLevel}% is high`, `Trötthetsnivå ${fatigueLevel}% är hög`),
       })
     }
 
@@ -228,12 +255,20 @@ export async function GET(req: NextRequest) {
       suggestions.push({
         type: 'reduce_intensity',
         urgency: 'recommended',
-        title: 'Flera hårda pass i rad',
-        description: 'Du har redan kört intensiva pass de senaste dagarna. Överväg att sänka intensiteten.',
+        title: t(locale, 'Several hard sessions in a row', 'Flera hårda pass i rad'),
+        description: t(
+          locale,
+          'You have already completed intense workouts in recent days. Consider lowering the intensity.',
+          'Du har redan kört intensiva pass de senaste dagarna. Överväg att sänka intensiteten.'
+        ),
         originalValue: workout.intensity,
         suggestedValue: 'MODERATE',
         confidence: 0.7,
-        reason: `${recentHighIntensity} högintensiva pass senaste 3 dagarna`,
+        reason: t(
+          locale,
+          `${recentHighIntensity} high-intensity sessions in the last 3 days`,
+          `${recentHighIntensity} högintensiva pass senaste 3 dagarna`
+        ),
       })
     }
 
@@ -243,10 +278,18 @@ export async function GET(req: NextRequest) {
       suggestions.push({
         type: 'swap_workout',
         urgency: 'immediate',
-        title: 'Aktiv skada - Anpassa träningen',
-        description: `Du har en aktiv skada (${highPainInjuries[0].painLocation}). Undvik belastning av det området.`,
+        title: t(locale, 'Active injury - adjust training', 'Aktiv skada - Anpassa träningen'),
+        description: t(
+          locale,
+          `You have an active injury (${highPainInjuries[0].painLocation}). Avoid loading that area.`,
+          `Du har en aktiv skada (${highPainInjuries[0].painLocation}). Undvik belastning av det området.`
+        ),
         confidence: 0.85,
-        reason: `Smärtnivå ${highPainInjuries[0].painLevel}/10 rapporterad`,
+        reason: t(
+          locale,
+          `Pain level ${highPainInjuries[0].painLevel}/10 reported`,
+          `Smärtnivå ${highPainInjuries[0].painLevel}/10 rapporterad`
+        ),
       })
     }
 
@@ -255,10 +298,18 @@ export async function GET(req: NextRequest) {
       suggestions.push({
         type: 'proceed_as_planned',
         urgency: 'optional',
-        title: 'Kör som planerat!',
-        description: 'Alla indikatorer ser bra ut. Du är redo för dagens pass.',
+        title: t(locale, 'Proceed as planned', 'Kör som planerat!'),
+        description: t(
+          locale,
+          "All indicators look good. You are ready for today's workout.",
+          'Alla indikatorer ser bra ut. Du är redo för dagens pass.'
+        ),
         confidence: 0.9,
-        reason: 'Beredskap, träningsbelastning och återhämtning inom normala gränser',
+        reason: t(
+          locale,
+          'Readiness, training load, and recovery are within normal ranges',
+          'Beredskap, träningsbelastning och återhämtning inom normala gränser'
+        ),
       })
     }
 
@@ -275,7 +326,7 @@ export async function GET(req: NextRequest) {
       workoutId,
       readiness,
       suggestions,
-      summary: suggestions[0]?.title || 'Analys slutförd',
+      summary: suggestions[0]?.title || t(locale, 'Analysis complete', 'Analys slutförd'),
       canProceed,
       generatedAt: new Date().toISOString(),
     })
@@ -286,4 +337,12 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
