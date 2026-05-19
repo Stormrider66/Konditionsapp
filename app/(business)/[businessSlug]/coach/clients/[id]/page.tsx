@@ -716,8 +716,8 @@ export default function BusinessClientDetailPage() {
   if (!hasPlanContext) {
     coachSnapshotActions.push({
       id: 'create-program',
-      title: 'Skapa blockplan',
-      description: 'Sätt blocken först, fyll sedan på pass i kalendern.',
+      title: t('planning.createProgramAction'),
+      description: t('planning.createProgramActionDescription'),
       dialog: 'createPlan',
     })
   }
@@ -748,7 +748,7 @@ export default function BusinessClientDetailPage() {
   const planningProgramMeta = activeProgram
     ? t('planning.daysRemaining', { days: daysRemainingInActiveProgram ?? 0 })
     : activeAthletePlan
-      ? `${currentAthletePlanBlock?.title ?? 'Blockplan'} · ${daysRemainingInActiveAthletePlan ?? 0} dagar kvar`
+      ? `${currentAthletePlanBlock?.title ?? t('planning.blockPlan')} · ${t('planning.daysRemaining', { days: daysRemainingInActiveAthletePlan ?? 0 })}`
     : upcomingProgram
       ? t('planning.startsIn', { days: daysUntilUpcomingProgram ?? 0 })
       : t('planning.noProgramDescription')
@@ -769,12 +769,12 @@ export default function BusinessClientDetailPage() {
     : programsInNextSevenDays.length > 0
       ? t('planning.nextSevenDaysCovered', { count: programsInNextSevenDays.length })
       : activeAthletePlan
-        ? `${currentAthletePlanBlock?.title ?? 'Blockplan'} är aktiv`
+        ? t('planning.blockActive', { block: currentAthletePlanBlock?.title ?? t('planning.blockPlan') })
       : t('planning.nextSevenDaysEmpty')
   const planningWeekDescription = programsInNextSevenDays.length > 0
     ? t('planning.nextSevenDaysCoveredDescription')
     : activeAthletePlan
-      ? 'Blocket syns för coach och atlet även innan alla pass är inlagda.'
+      ? t('planning.blockVisibleDescription')
     : t('planning.nextSevenDaysEmptyDescription')
   const previousCompletedTest = completedTests[1] ?? null
   const latestVo2max = latestCompletedTest?.vo2max ?? null
@@ -1197,7 +1197,7 @@ export default function BusinessClientDetailPage() {
                   trigger={
                     <Button variant="outline" size="sm">
                       <Edit2 className="mr-2 h-4 w-4" />
-                      Redigera
+                      {t('planning.editPlan')}
                     </Button>
                   }
                 />
@@ -1260,8 +1260,8 @@ export default function BusinessClientDetailPage() {
             <Link href={newProgramHref}>
               <Button variant="outline" className="h-auto w-full justify-start p-3">
                 <div className="text-left">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Fyll på pass</p>
-                  <p className="text-xs text-muted-foreground mt-1">Skapa detaljerade workouts utifrån blockplanen.</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.fillSessions')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('planning.fillSessionsDescription')}</p>
                 </div>
               </Button>
             </Link>
@@ -1273,8 +1273,8 @@ export default function BusinessClientDetailPage() {
               trigger={
                 <Button variant="outline" className="h-auto w-full justify-start p-3">
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">Skapa blockplan</p>
-                    <p className="text-xs text-muted-foreground mt-1">Sätt planens faser innan passen fylls i.</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.createProgramAction')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('planning.createProgramActionDescription')}</p>
                   </div>
                 </Button>
               }
@@ -1318,7 +1318,7 @@ export default function BusinessClientDetailPage() {
             </Button>
           </Link>
 
-          <Link href={`${basePath}/ai-studio?athleteId=${id}&prompt=Planera+n%C3%A4sta+7+dagar`}>
+          <Link href={`${basePath}/ai-studio?athleteId=${id}&prompt=${encodeURIComponent(t('planning.askAiPrompt'))}`}>
             <Button variant="outline" className="h-auto w-full justify-start p-3">
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.askAi')}</p>
