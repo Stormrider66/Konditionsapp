@@ -65,12 +65,14 @@ interface SportSpecificAthleteViewProps {
   clientId: string
   clientName: string
   sportProfile: SportProfile | null
+  basePath?: string
 }
 
 export function SportSpecificAthleteView({
   clientId,
   clientName,
   sportProfile,
+  basePath,
 }: SportSpecificAthleteViewProps) {
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
@@ -158,6 +160,7 @@ export function SportSpecificAthleteView({
             clientId={clientId}
             clientName={clientName}
             settings={sportProfile.hockeySettings}
+            basePath={basePath}
           />
         )
       case 'TEAM_FOOTBALL':

@@ -104,6 +104,20 @@ interface ThresholdSummary {
   heartRate?: number | null
 }
 
+interface RecentTestEntry {
+  id: string
+  date: string
+  kind: 'TEST' | 'HOCKEY_PHYSICAL' | 'CUSTOM'
+  label: string
+  summary: string | null
+}
+
+interface RecentTestCounts {
+  test: number
+  hockey: number
+  custom: number
+}
+
 type SortField = 'date' | 'type' | 'vo2max' | 'status'
 type SortDirection = 'asc' | 'desc'
 type CoachSnapshotTone = 'good' | 'caution' | 'setup'
@@ -214,6 +228,8 @@ export default function BusinessClientDetailPage() {
   const [programsLoading, setProgramsLoading] = useState(true)
   const [sportProfile, setSportProfile] = useState<SportProfileSummary | null>(null)
   const [sportProfileLoading, setSportProfileLoading] = useState(true)
+  const [recentTests, setRecentTests] = useState<RecentTestEntry[]>([])
+  const [recentTestCounts, setRecentTestCounts] = useState<RecentTestCounts>({ test: 0, hockey: 0, custom: 0 })
 
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -330,15 +346,35 @@ export default function BusinessClientDetailPage() {
     }
   }, [id])
 
+  const fetchRecentTests = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/clients/${id}/recent-tests`)
+      const result = await response.json()
+
+      if (result.success) {
+        setRecentTests(result.data || [])
+        setRecentTestCounts(result.counts || { test: 0, hockey: 0, custom: 0 })
+      } else {
+        setRecentTests([])
+        setRecentTestCounts({ test: 0, hockey: 0, custom: 0 })
+      }
+    } catch (err) {
+      console.error('Error fetching recent tests:', err)
+      setRecentTests([])
+      setRecentTestCounts({ test: 0, hockey: 0, custom: 0 })
+    }
+  }, [id])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void fetchClient()
       void fetchPrograms()
       void fetchSportProfile()
+      void fetchRecentTests()
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [fetchClient, fetchPrograms, fetchSportProfile])
+  }, [fetchClient, fetchPrograms, fetchSportProfile, fetchRecentTests])
 
   const calculateAge = (birthDate: Date) => {
     const today = new Date()
@@ -434,6 +470,7 @@ export default function BusinessClientDetailPage() {
           description: t('toasts.testDeletedDescription'),
         })
         await fetchClient()
+        await fetchRecentTests()
         if (expandedTestId === testToDelete.id) {
           setExpandedTestId(null)
         }
@@ -515,6 +552,8 @@ export default function BusinessClientDetailPage() {
   const hockeySettings = isHockeyAthlete
     ? buildHockeySettings(client, sportProfile)
     : null
+  const newTestHref = `${basePath}/test?clientId=${id}${isHockeyAthlete ? '&category=hockey' : ''}`
+  const newProgramHref = `${basePath}/programs/new?clientId=${id}`
   const testTypeLabels: Record<TestType, string> = {
     RUNNING: t('testTypes.running'),
     CYCLING: t('testTypes.cycling'),
@@ -551,8 +590,28 @@ export default function BusinessClientDetailPage() {
     .filter((test) => test.status === 'COMPLETED')
     .sort((a, b) => new Date(b.testDate).getTime() - new Date(a.testDate).getTime())
   const latestCompletedTest = completedTests[0] ?? null
-  const latestTestAgeDays = latestCompletedTest
-    ? Math.max(0, Math.floor((now.getTime() - new Date(latestCompletedTest.testDate).getTime()) / 86_400_000))
+  const fallbackRecentTests: RecentTestEntry[] = completedTests.slice(0, 5).map((test) => ({
+    id: test.id,
+    date: new Date(test.testDate).toISOString(),
+    kind: 'TEST',
+    label: testTypeLabels[test.testType],
+    summary: test.vo2max != null
+      ? `VO2max ${test.vo2max.toFixed(1)} ml/kg/min`
+      : test.maxHR != null
+        ? `MaxHR ${test.maxHR} bpm`
+        : null,
+  }))
+  const recentTestEntries = recentTests.length > 0 ? recentTests : fallbackRecentTests
+  const latestRecentTest = recentTestEntries[0] ?? null
+  const aggregatedTestCountFromEndpoint = recentTestCounts.test + recentTestCounts.hockey + recentTestCounts.custom
+  const aggregatedTestCount = Math.max(aggregatedTestCountFromEndpoint, completedTests.length)
+  const latestTestDate = latestRecentTest?.date
+    ? new Date(latestRecentTest.date)
+    : latestCompletedTest
+      ? new Date(latestCompletedTest.testDate)
+      : null
+  const latestTestAgeDays = latestTestDate
+    ? Math.max(0, Math.floor((now.getTime() - latestTestDate.getTime()) / 86_400_000))
     : null
   const activeProgram = programs.find((program) => {
     const startDate = new Date(program.startDate)
@@ -571,7 +630,7 @@ export default function BusinessClientDetailPage() {
     : null
   const hasRecentTest = latestTestAgeDays !== null && latestTestAgeDays <= 90
   const hasPortalLogin = athletePortalStatus?.hasLoggedIn === true
-  const coachSnapshotTone: CoachSnapshotTone = !client.athleteAccount || !latestCompletedTest || !activeProgram
+  const coachSnapshotTone: CoachSnapshotTone = !client.athleteAccount || !latestRecentTest || !activeProgram
     ? 'setup'
     : !hasRecentTest || !sportProfile || !hasPortalLogin
       ? 'caution'
@@ -603,16 +662,16 @@ export default function BusinessClientDetailPage() {
     })
   }
 
-  if (!latestCompletedTest || !hasRecentTest) {
+  if (!latestRecentTest || !hasRecentTest) {
     coachSnapshotActions.push({
       id: 'schedule-test',
-      title: latestCompletedTest
+      title: latestRecentTest
         ? t('overview.snapshotActions.retest.title')
         : t('overview.snapshotActions.firstTest.title'),
-      description: latestCompletedTest
+      description: latestRecentTest
         ? t('overview.snapshotActions.retest.description')
         : t('overview.snapshotActions.firstTest.description'),
-      href: `${basePath}/test`,
+      href: newTestHref,
     })
   }
 
@@ -621,7 +680,7 @@ export default function BusinessClientDetailPage() {
       id: 'create-program',
       title: t('overview.snapshotActions.createProgram.title'),
       description: t('overview.snapshotActions.createProgram.description'),
-      href: `${basePath}/programs/new`,
+      href: newProgramHref,
     })
   }
 
@@ -635,10 +694,10 @@ export default function BusinessClientDetailPage() {
   }
 
   const visibleCoachSnapshotActions = coachSnapshotActions.slice(0, 3)
-  const latestTestLabel = latestCompletedTest
+  const latestTestLabel = latestTestDate
     ? latestTestAgeDays !== null && latestTestAgeDays > 90
       ? t('overview.snapshotMetrics.staleTest', { days: latestTestAgeDays })
-      : format(new Date(latestCompletedTest.testDate), 'PPP', { locale: dateFnsLocale })
+      : format(latestTestDate, 'PPP', { locale: dateFnsLocale })
     : t('overview.snapshotMetrics.noTests')
   const portalMetricLabel = client.athleteAccount
     ? athletePortalStatus?.hasLoggedIn
@@ -679,9 +738,9 @@ export default function BusinessClientDetailPage() {
   const vo2Trend = latestVo2max !== null && previousVo2max !== null
     ? latestVo2max - previousVo2max
     : null
-  const developmentStatusTone: CoachSnapshotTone = completedTests.length === 0 || !sportProfile
+  const developmentStatusTone: CoachSnapshotTone = aggregatedTestCount === 0 || !sportProfile
     ? 'setup'
-    : !hasRecentTest || completedTests.length < 2
+    : !hasRecentTest || aggregatedTestCount < 2
       ? 'caution'
       : 'good'
   const developmentTrendLabel = vo2Trend !== null
@@ -693,13 +752,20 @@ export default function BusinessClientDetailPage() {
   const latestCompletedTestTypeLabel = latestCompletedTest
     ? testTypeLabels[latestCompletedTest.testType]
     : t('overview.snapshotMetrics.noTests')
+  const latestTestDetailLabel = latestRecentTest
+    ? latestRecentTest.summary ?? latestRecentTest.label
+    : latestCompletedTest
+      ? latestCompletedTestTypeLabel
+      : t('cockpit.cards.noTestDetail')
   const developmentChangeTitle = vo2Trend !== null
     ? vo2Trend > 0
       ? t('development.change.positiveTitle')
       : vo2Trend < 0
         ? t('development.change.negativeTitle')
         : t('development.change.stableTitle')
-    : completedTests.length >= 1
+    : latestRecentTest?.summary
+      ? t('development.change.latestSummaryTitle', { label: latestRecentTest.label })
+      : aggregatedTestCount >= 1
       ? t('development.change.needsComparisonTitle')
       : t('development.change.noBaselineTitle')
   const developmentChangeDescription = vo2Trend !== null
@@ -708,7 +774,9 @@ export default function BusinessClientDetailPage() {
       : vo2Trend < 0
         ? t('development.change.negativeDescription', { value: Math.abs(vo2Trend).toFixed(1) })
         : t('development.change.stableDescription')
-    : completedTests.length >= 1
+    : latestRecentTest?.summary
+      ? t('development.change.latestSummaryDescription', { summary: latestRecentTest.summary })
+      : aggregatedTestCount >= 1
       ? t('development.change.needsComparisonDescription')
       : t('development.change.noBaselineDescription')
   const profileSetupItems = [
@@ -1024,7 +1092,7 @@ export default function BusinessClientDetailPage() {
                 <span className="hidden sm:inline">{t('planning.openCalendar')}</span>
               </Button>
             </Link>
-            <Link href={`${basePath}/programs/new`}>
+            <Link href={newProgramHref}>
               <Button size="sm">{t('programs.newProgram')}</Button>
             </Link>
           </div>
@@ -1101,7 +1169,7 @@ export default function BusinessClientDetailPage() {
               </Button>
             </Link>
           ) : (
-            <Link href={`${basePath}/programs/new`}>
+            <Link href={newProgramHref}>
               <Button variant="outline" className="h-auto w-full justify-start p-3">
                 <div className="text-left">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">{t('planning.createProgramAction')}</p>
@@ -1207,7 +1275,7 @@ export default function BusinessClientDetailPage() {
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
           <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('programs.title')}</h2>
-          <Link href={`${basePath}/programs/new`} className="shrink-0">
+          <Link href={newProgramHref} className="shrink-0">
             <Button size="sm" className="w-full sm:w-auto">{t('programs.newProgram')}</Button>
           </Link>
         </div>
@@ -1221,7 +1289,7 @@ export default function BusinessClientDetailPage() {
           <div className="text-center py-8 text-gray-500 dark:text-slate-400">
             <p className="mb-2">{t('programs.emptyTitle')}</p>
             <Link
-              href={`${basePath}/programs/new`}
+              href={newProgramHref}
               className="text-blue-600 hover:text-blue-800 font-medium"
             >
               {t('programs.createFirst')}
@@ -1296,7 +1364,7 @@ export default function BusinessClientDetailPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href={`${basePath}/test`}>
+            <Link href={newTestHref}>
               <Button size="sm">{t('tests.newTest')}</Button>
             </Link>
             <Link href={`${basePath}/clients/${id}?tab=profile`}>
@@ -1313,7 +1381,7 @@ export default function BusinessClientDetailPage() {
           <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('development.testDepth')}</p>
             <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1">
-              {t('development.completedTests', { count: completedTests.length })}
+              {t('development.completedTests', { count: aggregatedTestCount })}
             </p>
           </div>
           <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
@@ -1353,7 +1421,7 @@ export default function BusinessClientDetailPage() {
               </div>
             </Button>
           </Link>
-          <Link href={`${basePath}/test`}>
+          <Link href={newTestHref}>
             <Button variant="outline" className="h-auto w-full justify-start p-3">
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{hasRecentTest ? t('development.planNextTest') : t('development.updateTest')}</p>
@@ -1385,6 +1453,7 @@ export default function BusinessClientDetailPage() {
           clientId={id}
           clientName={client.name}
           sportProfile={sportProfile}
+          basePath={`/${businessSlug}`}
         />
       )}
 
@@ -1565,7 +1634,7 @@ export default function BusinessClientDetailPage() {
             </div>
 
             <Link
-              href={`${basePath}/test`}
+              href={newTestHref}
               className="px-4 py-2 gradient-primary text-white rounded-lg hover:opacity-90 transition self-end sm:self-auto"
             >
               {t('tests.newTest')}
@@ -1616,7 +1685,7 @@ export default function BusinessClientDetailPage() {
           <div className="text-center py-12 text-gray-500 dark:text-slate-400">
             <p className="mb-4">{t('tests.emptyTitle')}</p>
             <Link
-              href={`${basePath}/test`}
+              href={newTestHref}
               className="text-blue-600 hover:text-blue-800 font-medium"
             >
               {t('tests.createFirst')}
@@ -1946,7 +2015,7 @@ export default function BusinessClientDetailPage() {
           <CoachCockpitCard
             label={t('cockpit.cards.latestTest')}
             value={latestTestLabel}
-            detail={latestCompletedTest ? latestCompletedTestTypeLabel : t('cockpit.cards.noTestDetail')}
+            detail={latestTestDetailLabel}
           />
           <CoachCockpitCard
             label={t('cockpit.cards.nextSevenDays')}

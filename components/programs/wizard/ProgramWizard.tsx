@@ -45,15 +45,18 @@ interface Client {
 interface ProgramWizardProps {
   clients: Client[]
   basePath: string
+  initialClientId?: string
 }
 
-export function ProgramWizard({ clients, basePath }: ProgramWizardProps) {
+export function ProgramWizard({ clients, basePath, initialClientId = '' }: ProgramWizardProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedSport, setSelectedSport] = useState<SportType | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null)
   const [selectedDataSource, setSelectedDataSource] = useState<DataSourceType | null>(null)
-  const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [selectedClientId, setSelectedClientId] = useState<string>(() =>
+    clients.some((client) => client.id === initialClientId) ? initialClientId : ''
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Reset downstream selections when sport changes

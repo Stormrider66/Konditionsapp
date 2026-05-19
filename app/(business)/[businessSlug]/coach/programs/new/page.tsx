@@ -133,7 +133,11 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
         </div>
       )}
 
-      <ProgramWizard clients={clients as unknown as ProgramWizardClients} basePath={basePath} />
+      <ProgramWizard
+        clients={clients as unknown as ProgramWizardClients}
+        basePath={basePath}
+        initialClientId={query?.clientId}
+      />
     </div>
   )
 }

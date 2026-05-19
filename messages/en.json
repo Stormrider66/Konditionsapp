@@ -3406,6 +3406,8 @@
             "negativeDescription": "The latest test is {value} lower than the previous one. Review load, illness, sleep, and test conditions before drawing a conclusion.",
             "stableTitle": "VO2max is stable",
             "stableDescription": "The latest test is in line with the previous one. Look for changes in thresholds, zones, or training quality.",
+            "latestSummaryTitle": "Latest data point: {label}",
+            "latestSummaryDescription": "{summary}. Add the next comparable test to show a trend, but use this data point as the current baseline now.",
             "needsComparisonTitle": "One data point exists",
             "needsComparisonDescription": "Add a new test when the block is complete to get a real trend.",
             "noBaselineTitle": "No baseline yet",

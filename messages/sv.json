@@ -3406,6 +3406,8 @@
             "negativeDescription": "Senaste testet är {value} lägre än föregående. Granska belastning, sjukdom, sömn och testförhållanden innan slutsats.",
             "stableTitle": "VO2max är stabilt",
             "stableDescription": "Senaste testet ligger i linje med föregående. Leta efter förändringar i trösklar, zoner eller träningskvalitet.",
+            "latestSummaryTitle": "Senaste datapunkt: {label}",
+            "latestSummaryDescription": "{summary}. Lägg till nästa jämförbara test för att visa trend, men använd datapunkten som nuläge redan nu.",
             "needsComparisonTitle": "En datapunkt finns",
             "needsComparisonDescription": "Lägg in ett nytt test när blocket är klart för att få en riktig trend.",
             "noBaselineTitle": "Ingen baslinje ännu",

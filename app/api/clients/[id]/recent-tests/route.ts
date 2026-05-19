@@ -95,7 +95,7 @@ export async function GET(
 
     // Pull from the three test sources in parallel. Each grabs a few
     // more than LIMIT so we have headroom after merging + sorting.
-    const [tests, hockey, custom] = await Promise.all([
+    const [tests, hockey, custom, testCount, hockeyCount, customCount] = await Promise.all([
       prisma.test.findMany({
         where: { clientId, status: { not: 'DRAFT' } },
         orderBy: { testDate: 'desc' },
@@ -139,6 +139,9 @@ export async function GET(
           protocol: { select: { name: true } },
         },
       }),
+      prisma.test.count({ where: { clientId, status: { not: 'DRAFT' } } }),
+      prisma.hockeyPhysicalTest.count({ where: { clientId } }),
+      prisma.customTestResult.count({ where: { clientId } }),
     ])
 
     const entries: RecentTestEntry[] = []
@@ -184,9 +187,9 @@ export async function GET(
       success: true,
       data: entries.slice(0, LIMIT),
       counts: {
-        test: tests.length,
-        hockey: hockey.length,
-        custom: custom.length,
+        test: testCount,
+        hockey: hockeyCount,
+        custom: customCount,
       },
     })
   } catch (error: unknown) {
