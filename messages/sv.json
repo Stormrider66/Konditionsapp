@@ -14333,6 +14333,36 @@
         "link": "Länka"
       }
     },
+    "progressionChart": {
+      "title": "Progression över tid",
+      "labels": {
+        "testType": "Testtyp",
+        "timePeriod": "Tidsperiod"
+      },
+      "tabs": {
+        "all": "Alla",
+        "running": "Löpning",
+        "cycling": "Cykling"
+      },
+      "timePeriod": {
+        "all": "Alla tider",
+        "sixMonths": "Senaste 6 mån",
+        "oneYear": "Senaste året"
+      },
+      "emptyState": {
+        "minTests": "Minst 2 tester krävs för att visa progression",
+        "tryDifferentFilters": "Prova att ändra testtyp eller tidsperiod"
+      },
+      "charts": {
+        "vo2max": "VO2max (ml/kg/min)",
+        "thresholds": "Trösklar (Puls - bpm)"
+      },
+      "chartLines": {
+        "vo2max": "VO2max",
+        "aerobicThreshold": "Aerob tröskel",
+        "anaerobicThreshold": "Anaerob tröskel"
+      }
+    },
     "coachCalendar": {
       "title": "Kalender",
       "subtitle": "Överblick av alla atleters schema och händelser",

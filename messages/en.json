@@ -13987,6 +13987,36 @@
         "link": "Link"
       }
     },
+    "progressionChart": {
+      "title": "Progress over time",
+      "labels": {
+        "testType": "Test type",
+        "timePeriod": "Time period"
+      },
+      "tabs": {
+        "all": "All",
+        "running": "Running",
+        "cycling": "Cycling"
+      },
+      "timePeriod": {
+        "all": "All time",
+        "sixMonths": "Last 6 months",
+        "oneYear": "Last year"
+      },
+      "emptyState": {
+        "minTests": "At least 2 completed tests are required to show progression",
+        "tryDifferentFilters": "Try changing test type or time period"
+      },
+      "charts": {
+        "vo2max": "VO2max (ml/kg/min)",
+        "thresholds": "Thresholds (HR - bpm)"
+      },
+      "chartLines": {
+        "vo2max": "VO2max",
+        "aerobicThreshold": "Aerobic threshold",
+        "anaerobicThreshold": "Anaerobic threshold"
+      }
+    },
     "coachCalendar": {
       "title": "Calendar",
       "subtitle": "Overview of all athletes' schedules and events",

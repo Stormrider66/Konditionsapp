@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   LineChart,
   Line,
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ProgressionChartProps {
   tests: Test[]
@@ -32,8 +33,11 @@ interface ProgressionChartProps {
 type TimePeriod = 'all' | '6months' | '1year'
 
 export function ProgressionChart({ tests }: ProgressionChartProps) {
+  const locale = useLocale()
+  const t = useTranslations('components.progressionChart')
   const [selectedTestType, setSelectedTestType] = useState<TestType | 'ALL'>('ALL')
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('all')
+  const chartLocale = locale === 'en' ? enUS : sv
 
   // Filter and prepare data
   const chartData = useMemo(() => {
@@ -64,7 +68,7 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
       const anaerobicThreshold = test.anaerobicThreshold as any
 
       return {
-        date: format(new Date(test.testDate), 'dd MMM yyyy', { locale: sv }),
+        date: format(new Date(test.testDate), 'dd MMM yyyy', { locale: chartLocale }),
         fullDate: new Date(test.testDate),
         vo2max: test.vo2max || null,
         aerobicHR: aerobicThreshold?.heartRate || null,
@@ -72,7 +76,7 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
         testType: test.testType,
       }
     })
-  }, [tests, selectedTestType, timePeriod])
+  }, [tests, selectedTestType, timePeriod, chartLocale])
 
   // Don't show chart if less than 2 tests
   if (chartData.length < 2) {
@@ -83,21 +87,21 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
     <Card className="mb-6">
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <CardTitle>Progression över tid</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             {/* Test Type Filter */}
             <div className="space-y-2">
-              <Label className="text-xs text-gray-500">Testtyp</Label>
+              <Label className="text-xs text-gray-500">{t('labels.testType')}</Label>
               <Tabs
                 value={selectedTestType}
                 onValueChange={(value) => setSelectedTestType(value as TestType | 'ALL')}
                 className="w-full"
               >
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="ALL">Alla</TabsTrigger>
-                  <TabsTrigger value="RUNNING">Löpning</TabsTrigger>
-                  <TabsTrigger value="CYCLING">Cykling</TabsTrigger>
+                  <TabsTrigger value="ALL">{t('tabs.all')}</TabsTrigger>
+                  <TabsTrigger value="RUNNING">{t('tabs.running')}</TabsTrigger>
+                  <TabsTrigger value="CYCLING">{t('tabs.cycling')}</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
@@ -105,16 +109,16 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
             {/* Time Period Filter */}
             <div className="space-y-2">
               <Label htmlFor="time-period" className="text-xs text-gray-500">
-                Tidsperiod
+                {t('labels.timePeriod')}
               </Label>
               <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
                 <SelectTrigger id="time-period" className="w-full sm:w-[150px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Alla tider</SelectItem>
-                  <SelectItem value="6months">Senaste 6 mån</SelectItem>
-                  <SelectItem value="1year">Senaste året</SelectItem>
+                  <SelectItem value="all">{t('timePeriod.all')}</SelectItem>
+                  <SelectItem value="6months">{t('timePeriod.sixMonths')}</SelectItem>
+                  <SelectItem value="1year">{t('timePeriod.oneYear')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -124,16 +128,18 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
       <CardContent>
         {chartData.length < 2 ? (
           <div className="text-center py-8 text-gray-500">
-            <p>Minst 2 tester krävs för att visa progression</p>
+            <p>{t('emptyState.minTests')}</p>
             <p className="text-sm mt-2">
-              {selectedTestType !== 'ALL' && 'Prova att ändra testtyp eller tidsperiod'}
+              {selectedTestType !== 'ALL' && t('emptyState.tryDifferentFilters')}
             </p>
           </div>
         ) : (
           <div className="space-y-8">
             {/* VO2max Chart */}
             <div>
-              <h3 className="text-sm font-semibold mb-3 text-gray-700">VO2max (ml/kg/min)</h3>
+              <h3 className="text-sm font-semibold mb-3 text-gray-700">
+                {t('charts.vo2max')}
+              </h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 50 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
@@ -166,7 +172,7 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
                     strokeWidth={2}
                     dot={{ r: 4, fill: '#3b82f6' }}
                     activeDot={{ r: 6 }}
-                    name="VO2max"
+                    name={t('chartLines.vo2max')}
                     connectNulls
                   />
                 </LineChart>
@@ -175,7 +181,9 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
 
             {/* Heart Rate Thresholds Chart */}
             <div>
-              <h3 className="text-sm font-semibold mb-3 text-gray-700">Trösklar (Puls - bpm)</h3>
+              <h3 className="text-sm font-semibold mb-3 text-gray-700">
+                {t('charts.thresholds')}
+              </h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 50 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
@@ -208,7 +216,7 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
                     strokeWidth={2}
                     dot={{ r: 4, fill: '#10b981' }}
                     activeDot={{ r: 6 }}
-                    name="Aerob tröskel"
+                    name={t('chartLines.aerobicThreshold')}
                     connectNulls
                   />
                   <Line
@@ -218,7 +226,7 @@ export function ProgressionChart({ tests }: ProgressionChartProps) {
                     strokeWidth={2}
                     dot={{ r: 4, fill: '#f59e0b' }}
                     activeDot={{ r: 6 }}
-                    name="Anaerob tröskel"
+                    name={t('chartLines.anaerobicThreshold')}
                     connectNulls
                   />
                 </LineChart>
