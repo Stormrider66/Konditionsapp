@@ -13,14 +13,15 @@
  */
 
 import { useEffect, useState } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship, Sparkles, Zap, Dumbbell } from 'lucide-react'
+import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship, Zap, Dumbbell } from 'lucide-react'
 import { GarminAttribution } from '@/components/ui/GarminAttribution'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 
 interface UnifiedActivity {
   id: string
@@ -66,13 +67,13 @@ interface IntegratedRecentActivityProps {
 }
 
 const SOURCE_CONFIG = {
-  manual: { label: 'Manuell', color: 'bg-gray-100 text-gray-700', icon: '📝' },
+  manual: { label: { en: 'Manual', sv: 'Manuell' }, color: 'bg-gray-100 text-gray-700', icon: '📝' },
   strava: { label: 'Strava', color: 'bg-orange-100 text-orange-700', icon: '🏃' },
   garmin: { label: 'Garmin', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
   concept2: { label: 'Concept2', color: 'bg-cyan-100 text-cyan-700', icon: '🚣' },
-  ai: { label: 'AI-Pass', color: 'bg-purple-100 text-purple-700', icon: '✨' },
-  adhoc: { label: 'Manuell', color: 'bg-emerald-100 text-emerald-700', icon: '✏️' },
-  'adhoc+garmin': { label: 'Manuell + Garmin', color: 'bg-teal-100 text-teal-700', icon: '📱' },
+  ai: { label: { en: 'AI session', sv: 'AI-Pass' }, color: 'bg-purple-100 text-purple-700', icon: '✨' },
+  adhoc: { label: { en: 'Manual', sv: 'Manuell' }, color: 'bg-emerald-100 text-emerald-700', icon: '✏️' },
+  'adhoc+garmin': { label: { en: 'Manual + Garmin', sv: 'Manuell + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -87,6 +88,8 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 }
 
 export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'default' }: IntegratedRecentActivityProps) {
+  const locale = useLocale()
+  const t = (svText: string, enText: string) => (locale === 'sv' ? svText : enText)
   const [activities, setActivities] = useState<UnifiedActivity[]>([])
   const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0, ai: 0, adhoc: 0 })
   const [isLoading, setIsLoading] = useState(true)
@@ -108,14 +111,14 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
         setCounts(data.counts || { manual: 0, strava: 0, garmin: 0, concept2: 0, ai: 0, adhoc: 0 })
       } catch (err) {
         console.error('Error fetching activities:', err)
-        setError('Kunde inte ladda aktiviteter')
+        setError(locale === 'sv' ? 'Kunde inte ladda aktiviteter' : 'Could not load activities')
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchActivities()
-  }, [clientId, limit])
+    void fetchActivities()
+  }, [clientId, limit, locale])
 
   if (isLoading) {
     return (
@@ -123,7 +126,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Senaste aktiviteter
+            {t('Senaste aktiviteter', 'Recent activities')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -141,7 +144,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Senaste aktiviteter
+            {t('Senaste aktiviteter', 'Recent activities')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -160,7 +163,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
           <div className="flex items-center justify-between">
             <GlassCardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-orange-600 dark:text-orange-500" />
-              Senaste aktiviteter
+              {t('Senaste aktiviteter', 'Recent activities')}
             </GlassCardTitle>
             {(totalSynced > 0 || counts.ai > 0) && (
               <div className="flex gap-1">
@@ -187,15 +190,18 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
           {activities.length === 0 ? (
             <div className="text-center py-8">
               <Activity className="mx-auto h-12 w-12 text-slate-600 mb-4" />
-              <p className="text-slate-400">Ingen aktivitet ännu</p>
+              <p className="text-slate-400">{t('Ingen aktivitet ännu', 'No activity yet')}</p>
               <p className="text-sm text-slate-500 mt-2">
-                Logga ett pass eller anslut Strava/Garmin Connect
+                {t(
+                  'Logga ett pass eller anslut Strava/Garmin Connect',
+                  'Log a session or connect Strava/Garmin Connect'
+                )}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
               {activities.map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} variant="glass" />
+                <ActivityCard key={activity.id} activity={activity} variant="glass" locale={locale} />
               ))}
             </div>
           )}
@@ -210,7 +216,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Senaste aktiviteter
+            {t('Senaste aktiviteter', 'Recent activities')}
           </CardTitle>
           {(totalSynced > 0 || counts.ai > 0) && (
             <div className="flex gap-1">
@@ -237,15 +243,15 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
         {activities.length === 0 ? (
           <div className="text-center py-8">
             <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Ingen aktivitet ännu</p>
+            <p className="text-muted-foreground">{t('Ingen aktivitet ännu', 'No activity yet')}</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Logga ett pass eller anslut Strava/Garmin
+              {t('Logga ett pass eller anslut Strava/Garmin', 'Log a session or connect Strava/Garmin')}
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             {activities.map((activity) => (
-              <ActivityCard key={activity.id} activity={activity} />
+              <ActivityCard key={activity.id} activity={activity} locale={locale} />
             ))}
           </div>
         )}
@@ -254,8 +260,21 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
   )
 }
 
-function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActivity, variant?: 'default' | 'glass' }) {
+function ActivityCard({
+  activity,
+  variant = 'default',
+  locale,
+}: {
+  activity: UnifiedActivity
+  variant?: 'default' | 'glass'
+  locale: string
+}) {
   const sourceConfig = SOURCE_CONFIG[activity.source] || SOURCE_CONFIG.manual
+  const labelLocale = locale === 'sv' ? 'sv' : 'en'
+  const sourceLabel = typeof sourceConfig.label === 'string'
+    ? sourceConfig.label
+    : sourceConfig.label[labelLocale]
+  const dateFnsLocale = locale === 'sv' ? sv : enUS
   const typeIcon = TYPE_ICONS[activity.type] || <Activity className="h-4 w-4" />
 
   if (variant === 'glass') {
@@ -271,7 +290,7 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
               <span>
                 {formatDistanceToNow(new Date(activity.date), {
                   addSuffix: true,
-                  locale: sv,
+                  locale: dateFnsLocale,
                 })}
               </span>
               <Badge className={`text-xs px-1.5 py-0 ${
@@ -280,7 +299,7 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
                 activity.source === 'adhoc' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
                 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
               }`}>
-                {sourceConfig.icon} {sourceConfig.label}
+                {sourceConfig.icon} {sourceLabel}
               </Badge>
             </div>
           </div>
@@ -353,7 +372,7 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
           )}
         </div>
 
-        <ActivityDetails activity={activity} variant="glass" />
+        <ActivityDetails activity={activity} variant="glass" locale={locale} />
 
         {activity.source === 'garmin' && (
           <GarminAttribution deviceModel={activity.deviceModel} />
@@ -374,11 +393,11 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
             <span>
               {formatDistanceToNow(new Date(activity.date), {
                 addSuffix: true,
-                locale: sv,
+                locale: dateFnsLocale,
               })}
             </span>
             <Badge className={`text-xs px-1.5 py-0 ${sourceConfig.color}`}>
-              {sourceConfig.icon} {sourceConfig.label}
+              {sourceConfig.icon} {sourceLabel}
             </Badge>
           </div>
         </div>
@@ -451,7 +470,7 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
         )}
       </div>
 
-      <ActivityDetails activity={activity} />
+      <ActivityDetails activity={activity} locale={locale} />
 
       {activity.source === 'garmin' && (
         <GarminAttribution deviceModel={activity.deviceModel} />
@@ -465,7 +484,16 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
 }
 
 /** Compact display of strength exercises or hybrid movements */
-function ActivityDetails({ activity, variant = 'default' }: { activity: UnifiedActivity; variant?: 'default' | 'glass' }) {
+function ActivityDetails({
+  activity,
+  variant = 'default',
+  locale,
+}: {
+  activity: UnifiedActivity
+  variant?: 'default' | 'glass'
+  locale: string
+}) {
+  const t = (svText: string, enText: string) => (locale === 'sv' ? svText : enText)
   const textColor = variant === 'glass'
     ? 'text-slate-500 dark:text-slate-400'
     : 'text-muted-foreground'
@@ -486,7 +514,7 @@ function ActivityDetails({ activity, variant = 'default' }: { activity: UnifiedA
             {i < exercises.length - 1 && <span className="mx-0.5">·</span>}
           </span>
         ))}
-        {remaining > 0 && <span>+{remaining} till</span>}
+        {remaining > 0 && <span>+{remaining} {t('till', 'more')}</span>}
       </div>
     )
   }
@@ -515,7 +543,7 @@ function ActivityDetails({ activity, variant = 'default' }: { activity: UnifiedA
             {i < moves.length - 1 && <span className="mx-0.5">·</span>}
           </span>
         ))}
-        {remaining > 0 && <span>+{remaining} till</span>}
+        {remaining > 0 && <span>+{remaining} {t('till', 'more')}</span>}
       </div>
     )
   }
