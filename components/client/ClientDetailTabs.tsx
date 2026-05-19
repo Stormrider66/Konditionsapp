@@ -2,32 +2,28 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { LayoutGrid, Calendar, BarChart3, Folder, TestTube } from 'lucide-react'
+import { LayoutGrid, CalendarDays, TrendingUp, UserCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
 
-// `analysis` replaces the old `logs` tab. Old `?tab=logs` URLs are
-// soft-redirected to analysis below so deep links don't break.
-export type ClientDetailTab = 'overview' | 'calendar' | 'analysis' | 'programs' | 'tests'
+export type ClientDetailTab = 'overview' | 'planning' | 'development' | 'profile'
 
 interface ClientDetailTabsProps {
   clientId: string
   content: {
     overview: React.ReactNode
-    calendar: React.ReactNode
-    analysis: React.ReactNode
-    programs: React.ReactNode
-    tests: React.ReactNode
+    planning: React.ReactNode
+    development: React.ReactNode
+    profile: React.ReactNode
   }
   defaultTab?: ClientDetailTab
 }
 
 const TAB_CONFIG: { value: ClientDetailTab; labelKey: string; icon: React.ElementType }[] = [
   { value: 'overview', labelKey: 'overview', icon: LayoutGrid },
-  { value: 'calendar', labelKey: 'calendar', icon: Calendar },
-  { value: 'analysis', labelKey: 'analysis', icon: BarChart3 },
-  { value: 'programs', labelKey: 'programs', icon: Folder },
-  { value: 'tests', labelKey: 'tests', icon: TestTube },
+  { value: 'planning', labelKey: 'planning', icon: CalendarDays },
+  { value: 'development', labelKey: 'development', icon: TrendingUp },
+  { value: 'profile', labelKey: 'profile', icon: UserCircle },
 ]
 
 export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'overview' }: ClientDetailTabsProps) {
@@ -36,12 +32,27 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
   const searchParams = useSearchParams()
   const pathname = usePathname()
 
-  // Get active tab from URL or use default. Soft-migrate the deprecated
-  // `logs` value (replaced by `analysis`) so old deep links land on the
-  // new tab rather than triggering a default-fallback to overview.
   const rawTab = searchParams.get('tab')
-  const activeTab: ClientDetailTab =
-    rawTab === 'logs' ? 'analysis' : ((rawTab as ClientDetailTab) || defaultTab)
+  const tabAliases: Record<string, ClientDetailTab> = {
+    calendar: 'planning',
+    programs: 'planning',
+    logs: 'planning',
+    analysis: 'development',
+    tests: 'development',
+    fullProfile: 'profile',
+    physiology: 'development',
+    performance: 'development',
+    training: 'planning',
+    health: 'profile',
+    readiness: 'overview',
+    technique: 'development',
+    goals: 'profile',
+    body: 'profile',
+  }
+  const normalizedTab = rawTab ? (tabAliases[rawTab] ?? rawTab) : defaultTab
+  const activeTab: ClientDetailTab = TAB_CONFIG.some((tab) => tab.value === normalizedTab)
+    ? normalizedTab as ClientDetailTab
+    : defaultTab
 
   const handleTabChange = (value: string) => {
     const tab = value as ClientDetailTab
@@ -62,7 +73,7 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       {/* Tab Navigation */}
       <div className="sticky top-0 z-10 bg-gray-50 pb-3 sm:pb-4">
-        <TabsList className="w-full h-auto p-1 bg-white shadow-sm rounded-lg border border-gray-200 grid grid-cols-5 gap-0.5 sm:gap-1">
+        <TabsList className="w-full h-auto p-1 bg-white shadow-sm rounded-lg border border-gray-200 grid grid-cols-4 gap-0.5 sm:gap-1">
           {TAB_CONFIG.map(({ value, labelKey, icon: Icon }) => (
             <TabsTrigger
               key={value}
@@ -86,20 +97,16 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
         {content.overview}
       </TabsContent>
 
-      <TabsContent value="calendar" className="mt-0">
-        {content.calendar}
+      <TabsContent value="planning" className="mt-0">
+        {content.planning}
       </TabsContent>
 
-      <TabsContent value="analysis" className="mt-0">
-        {content.analysis}
+      <TabsContent value="development" className="mt-0">
+        {content.development}
       </TabsContent>
 
-      <TabsContent value="programs" className="mt-0">
-        {content.programs}
-      </TabsContent>
-
-      <TabsContent value="tests" className="mt-0">
-        {content.tests}
+      <TabsContent value="profile" className="mt-0">
+        {content.profile}
       </TabsContent>
     </Tabs>
   )

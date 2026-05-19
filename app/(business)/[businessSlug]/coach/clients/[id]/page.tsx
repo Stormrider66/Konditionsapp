@@ -10,7 +10,6 @@ import { useLocale, useTranslations } from '@/i18n/client'
 import type { Client, Team, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
-import { HockeyAthleteView } from '@/components/coach/sport-views/HockeyAthleteView'
 import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
 import { PaceValidationDashboard } from '@/components/coach/pace-zones/PaceValidationDashboard'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
@@ -34,7 +33,7 @@ import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert } from 'lucide-react'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, ExternalLink, Loader2, UserPlus, ClipboardList, CheckCircle2, KeyRound, CircleAlert } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
@@ -529,9 +528,34 @@ export default function BusinessClientDetailPage() {
     custom: t('programGoals.custom'),
   }
 
-  const overviewContent = (
-    <>
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
+  const noAthleteAccountContent = (
+    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+      <div className="text-center py-12 text-gray-500 dark:text-slate-400">
+        <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p className="mb-2">{t('analysis.noAthleteAccount.title')}</p>
+        <p className="text-sm mb-4">
+          {t('analysis.noAthleteAccount.description')}
+        </p>
+        <CreateAthleteAccountDialog
+          clientId={id}
+          clientName={client.name}
+          clientEmail={client.email}
+          clientPhone={client.phone}
+          hasExistingAccount={false}
+          onAccountCreated={fetchClient}
+          trigger={
+            <Button>
+              <UserPlus className="w-4 h-4 mr-2" />
+              {t('actions.createAthleteAccount')}
+            </Button>
+          }
+        />
+      </div>
+    </div>
+  )
+
+  const personalInfoContent = (
+    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('overview.personalInfo')}</h2>
@@ -553,12 +577,6 @@ export default function BusinessClientDetailPage() {
               hasExistingAccount={!!client.athleteAccount}
               onAccountCreated={fetchClient}
             />
-            <Link href={`${basePath}/clients/${id}/profile`}>
-              <Button variant="outline" size="sm">
-                <UserCircle className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">{t('actions.fullProfile')}</span>
-              </Button>
-            </Link>
             <AIContextButton
               athleteId={id}
               athleteName={client.name}
@@ -628,39 +646,190 @@ export default function BusinessClientDetailPage() {
           </div>
         )}
       </div>
+  )
 
-      {!sportProfileLoading && (
-        <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
-          <h2 className="text-xl font-semibold mb-4 dark:text-white">{t('overview.sportSpecificData')}</h2>
-          <SportProfileEditor
-            key={sportProfile?.id ?? id}
-            clientId={id}
-            sportProfile={sportProfile}
-            onUpdated={(updatedProfile) => setSportProfile(updatedProfile as SportProfileSummary | null)}
-          />
-          <SportSpecificAthleteView
-            clientId={id}
-            clientName={client.name}
-            sportProfile={sportProfile}
-          />
+  const sportProfileContent = !sportProfileLoading ? (
+    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+      <h2 className="text-xl font-semibold mb-4 dark:text-white">{t('overview.sportSpecificData')}</h2>
+      <SportProfileEditor
+        key={sportProfile?.id ?? id}
+        clientId={id}
+        sportProfile={sportProfile}
+        onUpdated={(updatedProfile) => setSportProfile(updatedProfile as SportProfileSummary | null)}
+      />
+    </div>
+  ) : null
+
+  const overviewContent = (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('overview.coachSnapshot')}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{t('overview.coachSnapshotDescription')}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AIContextButton athleteId={id} athleteName={client.name} />
+            <Link href={`${basePath}/clients/${id}/edit`}>
+              <Button variant="outline" size="sm">
+                <Edit2 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('actions.edit')}</span>
+              </Button>
+            </Link>
+          </div>
         </div>
+      </div>
+
+      {client.athleteAccount ? (
+        <>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <ClientLoadSummary clientId={id} />
+            <ReadinessDashboard clientId={id} />
+            <ClientFuelingSummary clientId={id} plansHref={`${basePath}/clients/${id}/fueling`} />
+          </div>
+
+          <RecentTestsCard
+            clientId={id}
+            testsHref={`${basePath}/clients/${id}?tab=development`}
+          />
+
+          <VisualReportCard
+            clientId={id}
+            reportType="training-summary"
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <VBTProgressionWidget clientId={id} />
+            <Concept2SummaryWidget clientId={id} />
+          </div>
+        </>
+      ) : noAthleteAccountContent}
+    </div>
+  )
+
+  const planningContent = (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 lg:p-6">
+        <UnifiedCalendar
+          clientId={id}
+          clientName={client.name}
+          isCoachView={true}
+        />
+      </div>
+
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm flex items-center gap-2 dark:text-white">
+              <ClipboardList className="h-4 w-4 text-blue-500" />
+              {hockeySettings ? t('analysis.hockeyLogs.title') : t('analysis.trainingLogs.title')}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {hockeySettings ? t('analysis.hockeyLogs.description') : t('analysis.trainingLogs.description')}
+            </p>
+          </div>
+          {client.athleteAccount ? (
+            <Link href={`${basePath}/athletes/${id}/logs`}>
+              <Button size="sm" variant="outline" className="w-full sm:w-auto">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {t('analysis.trainingLogs.cta')}
+              </Button>
+            </Link>
+          ) : (
+            <CreateAthleteAccountDialog
+              clientId={id}
+              clientName={client.name}
+              clientEmail={client.email}
+              clientPhone={client.phone}
+              hasExistingAccount={false}
+              onAccountCreated={fetchClient}
+              trigger={
+                <Button size="sm" variant="outline" className="w-full sm:w-auto">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {t('actions.createAthleteAccount')}
+                </Button>
+              }
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('programs.title')}</h2>
+          <Link href={`${basePath}/programs/new`} className="shrink-0">
+            <Button size="sm" className="w-full sm:w-auto">{t('programs.newProgram')}</Button>
+          </Link>
+        </div>
+
+        {programsLoading ? (
+          <div className="flex items-center justify-center py-8 text-gray-500 dark:text-slate-400">
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            {t('programs.loading')}
+          </div>
+        ) : programs.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 dark:text-slate-400">
+            <p className="mb-2">{t('programs.emptyTitle')}</p>
+            <Link
+              href={`${basePath}/programs/new`}
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {t('programs.createFirst')}
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {programs.map((program) => (
+              <Link key={program.id} href={`${basePath}/programs/${program.id}`}>
+                <div className="border dark:border-white/10 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition cursor-pointer">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1 dark:text-white">{program.name}</h3>
+                      <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
+                        {programGoalLabels[program.goalType] ?? program.goalType}
+                      </p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
+                        <span>
+                          {format(new Date(program.startDate), 'PPP', { locale: dateFnsLocale })} -{' '}
+                          {format(new Date(program.endDate), 'PPP', { locale: dateFnsLocale })}
+                        </span>
+                        {program._count?.weeks && (
+                          <span className="text-gray-400">
+                            {t('programs.weeks', { count: program._count.weeks })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        {t('actions.viewArrow')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <RaceFuelingCard
+        clientId={id}
+        detailBasePath={`${basePath}/clients/${id}/fueling`}
+        listHref={`${basePath}/clients/${id}/fueling`}
+      />
+    </div>
+  )
+
+  const developmentContent = (
+    <div className="space-y-4 sm:space-y-6">
+      {!sportProfileLoading && (
+        <SportSpecificAthleteView
+          clientId={id}
+          clientName={client.name}
+          sportProfile={sportProfile}
+        />
       )}
-
-      {/* Training Summary Visual Report */}
-      <div className="mb-6">
-        <VisualReportCard
-          clientId={id}
-          reportType="training-summary"
-        />
-      </div>
-
-      <div className="mb-6">
-        <RaceFuelingCard
-          clientId={id}
-          detailBasePath={`${basePath}/clients/${id}/fueling`}
-          listHref={`${basePath}/clients/${id}/fueling`}
-        />
-      </div>
 
       {!sportProfileLoading && sportProfile?.primarySport === 'RUNNING' && (
         <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6 mb-6">
@@ -670,6 +839,17 @@ export default function BusinessClientDetailPage() {
           />
         </div>
       )}
+
+      <RecentTestsCard
+        clientId={id}
+        testsHref={`${basePath}/clients/${id}?tab=development`}
+      />
+
+      <PendingPRFeedSingle clientId={id} />
+
+      <StrengthPRTable clientId={id} clientName={client.name} />
+
+      <ProgressionDashboard clientId={id} clientName={client.name} />
 
       <ClientVideoAnalyses
         clientId={id}
@@ -701,210 +881,13 @@ export default function BusinessClientDetailPage() {
       {client.tests && client.tests.length >= 2 && (
         <ProgressionChart tests={client.tests} />
       )}
-    </>
-  )
-
-  const calendarContent = (
-    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 lg:p-6">
-      <UnifiedCalendar
-        clientId={id}
-        clientName={client.name}
-        isCoachView={true}
-      />
     </div>
   )
 
-  const genericAnalysisContent = client.athleteAccount ? (
+  const profileContent = (
     <div className="space-y-4 sm:space-y-6">
-      <div className="grid gap-4 lg:grid-cols-3">
-        <ClientLoadSummary clientId={id} />
-        <ReadinessDashboard clientId={id} />
-        <ClientFuelingSummary clientId={id} plansHref={`${basePath}/clients/${id}/fueling`} />
-      </div>
-
-      <PendingPRFeedSingle clientId={id} />
-
-      <StrengthPRTable clientId={id} clientName={client.name} />
-
-      <RecentTestsCard
-        clientId={id}
-        testsHref={`${basePath}/clients/${id}?tab=tests`}
-      />
-
-      <ProgressionDashboard clientId={id} clientName={client.name} />
-
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-sm flex items-center gap-2 dark:text-white">
-              <ClipboardList className="h-4 w-4 text-blue-500" />
-              {t('analysis.trainingLogs.title')}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('analysis.trainingLogs.description')}
-            </p>
-          </div>
-          <Link href={`${basePath}/athletes/${id}/logs`}>
-            <Button size="sm" variant="outline" className="w-full sm:w-auto">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              {t('analysis.trainingLogs.cta')}
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-      <div className="text-center py-12 text-gray-500 dark:text-slate-400">
-        <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p className="mb-2">{t('analysis.noAthleteAccount.title')}</p>
-        <p className="text-sm mb-4">
-          {t('analysis.noAthleteAccount.description')}
-        </p>
-        <CreateAthleteAccountDialog
-          clientId={id}
-          clientName={client.name}
-          clientEmail={client.email}
-          clientPhone={client.phone}
-          hasExistingAccount={false}
-          onAccountCreated={fetchClient}
-          trigger={
-            <Button>
-              <UserPlus className="w-4 h-4 mr-2" />
-              {t('actions.createAthleteAccount')}
-            </Button>
-          }
-        />
-      </div>
-    </div>
-  )
-
-  const hockeyAnalysisContent = hockeySettings ? (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ClientLoadSummary clientId={id} />
-        <ReadinessDashboard clientId={id} />
-      </div>
-
-      <HockeyAthleteView
-        clientId={id}
-        clientName={client.name}
-        settings={hockeySettings}
-      />
-
-      <PendingPRFeedSingle clientId={id} />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <VBTProgressionWidget clientId={id} />
-        <RecentTestsCard
-          clientId={id}
-          testsHref={`${basePath}/clients/${id}?tab=tests`}
-        />
-      </div>
-
-      <StrengthPRTable clientId={id} clientName={client.name} />
-
-      <ProgressionDashboard clientId={id} clientName={client.name} />
-
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-sm flex items-center gap-2 dark:text-white">
-              <ClipboardList className="h-4 w-4 text-blue-500" />
-              {t('analysis.hockeyLogs.title')}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t('analysis.hockeyLogs.description')}
-            </p>
-          </div>
-          {client.athleteAccount ? (
-            <Link href={`${basePath}/athletes/${id}/logs`}>
-              <Button size="sm" variant="outline" className="w-full sm:w-auto">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                {t('analysis.trainingLogs.cta')}
-              </Button>
-            </Link>
-          ) : (
-            <CreateAthleteAccountDialog
-              clientId={id}
-              clientName={client.name}
-              clientEmail={client.email}
-              clientPhone={client.phone}
-              hasExistingAccount={false}
-              onAccountCreated={fetchClient}
-              trigger={
-                <Button size="sm" variant="outline" className="w-full sm:w-auto">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  {t('actions.createAthleteAccount')}
-                </Button>
-              }
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  ) : null
-
-  const analysisContent = hockeyAnalysisContent ?? genericAnalysisContent
-
-  const programsContent = (
-    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-        <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('programs.title')}</h2>
-        <Link href={`${basePath}/programs/new`} className="shrink-0">
-          <Button size="sm" className="w-full sm:w-auto">{t('programs.newProgram')}</Button>
-        </Link>
-      </div>
-
-      {programsLoading ? (
-        <div className="flex items-center justify-center py-8 text-gray-500 dark:text-slate-400">
-          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-          {t('programs.loading')}
-        </div>
-      ) : programs.length === 0 ? (
-        <div className="text-center py-8 text-gray-500 dark:text-slate-400">
-          <p className="mb-2">{t('programs.emptyTitle')}</p>
-          <Link
-            href={`${basePath}/programs/new`}
-            className="text-blue-600 hover:text-blue-800 font-medium"
-          >
-            {t('programs.createFirst')}
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {programs.map((program) => (
-            <Link key={program.id} href={`${basePath}/programs/${program.id}`}>
-              <div className="border dark:border-white/10 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition cursor-pointer">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1 dark:text-white">{program.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
-                      {programGoalLabels[program.goalType] ?? program.goalType}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
-                      <span>
-                        {format(new Date(program.startDate), 'PPP', { locale: dateFnsLocale })} -{' '}
-                        {format(new Date(program.endDate), 'PPP', { locale: dateFnsLocale })}
-                      </span>
-                      {program._count?.weeks && (
-                        <span className="text-gray-400">
-                          {t('programs.weeks', { count: program._count.weeks })}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                      {t('actions.viewArrow')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      {personalInfoContent}
+      {sportProfileContent}
     </div>
   )
 
@@ -1274,10 +1257,14 @@ export default function BusinessClientDetailPage() {
           clientId={id}
           content={{
             overview: overviewContent,
-            calendar: calendarContent,
-            analysis: analysisContent,
-            programs: programsContent,
-            tests: testsContent,
+            planning: planningContent,
+            development: (
+              <div className="space-y-4 sm:space-y-6">
+                {developmentContent}
+                {testsContent}
+              </div>
+            ),
+            profile: profileContent,
           }}
         />
       </Suspense>

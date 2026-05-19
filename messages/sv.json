@@ -3192,7 +3192,7 @@
       "clientDetail": {
         "loading": "Laddar klientinformation...",
         "backToClientList": "Tillbaka till klientlista",
-        "subtitle": "Klientdetaljer och testhistorik",
+        "subtitle": "Coachvy för beslut, planering och utveckling",
         "ageYears": "{age} år",
         "aiContext": {
           "title": "Videoanalys: {exercise}",
@@ -3236,7 +3236,9 @@
         "overview": {
           "personalInfo": "Personuppgifter",
           "sportSpecificData": "Sportspecifik Data",
-          "heartRateZoneAnalysis": "Pulszonanalys"
+          "heartRateZoneAnalysis": "Pulszonanalys",
+          "coachSnapshot": "Coachöversikt",
+          "coachSnapshotDescription": "Dagens viktigaste signaler för belastning, beredskap, nutrition och senaste utveckling."
         },
         "analysis": {
           "trainingLogs": {
@@ -4610,10 +4612,9 @@
   "components": {
     "clientDetailTabs": {
       "overview": "Översikt",
-      "calendar": "Kalender",
-      "analysis": "Analys",
-      "programs": "Program",
-      "tests": "Tester"
+      "planning": "Planering",
+      "development": "Utveckling",
+      "profile": "Profil"
     },
     "quickActionsGrid": {
       "logWorkout": "Logga pass",

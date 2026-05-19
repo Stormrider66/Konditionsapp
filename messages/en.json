@@ -3192,7 +3192,7 @@
       "clientDetail": {
         "loading": "Loading client information...",
         "backToClientList": "Back to client list",
-        "subtitle": "Client details and test history",
+        "subtitle": "Coach view for decisions, planning, and development",
         "ageYears": "{age} years",
         "aiContext": {
           "title": "Video analysis: {exercise}",
@@ -3236,7 +3236,9 @@
         "overview": {
           "personalInfo": "Personal information",
           "sportSpecificData": "Sport-specific data",
-          "heartRateZoneAnalysis": "Heart rate zone analysis"
+          "heartRateZoneAnalysis": "Heart rate zone analysis",
+          "coachSnapshot": "Coach overview",
+          "coachSnapshotDescription": "The key daily signals for load, readiness, nutrition, and recent development."
         },
         "analysis": {
           "trainingLogs": {
@@ -4610,10 +4612,9 @@
   "components": {
     "clientDetailTabs": {
       "overview": "Overview",
-      "calendar": "Calendar",
-      "analysis": "Analysis",
-      "programs": "Programs",
-      "tests": "Tests"
+      "planning": "Planning",
+      "development": "Development",
+      "profile": "Profile"
     },
     "quickActionsGrid": {
       "logWorkout": "Log workout",
