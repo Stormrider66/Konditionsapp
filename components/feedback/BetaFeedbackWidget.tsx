@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { Bug, Image as ImageIcon, Loader2, MessageSquarePlus, Send, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,18 +38,34 @@ interface BetaFeedbackWidgetProps {
   className?: string
 }
 
-const categoryLabels: Record<FeedbackCategory, string> = {
-  bug: 'Bug',
-  feature_request: 'Förslag',
-  question: 'Fråga',
-  other: 'Annat',
+const categoryLabels: Record<'en' | 'sv', Record<FeedbackCategory, string>> = {
+  en: {
+    bug: 'Bug',
+    feature_request: 'Suggestion',
+    question: 'Question',
+    other: 'Other',
+  },
+  sv: {
+    bug: 'Bug',
+    feature_request: 'Förslag',
+    question: 'Fråga',
+    other: 'Annat',
+  },
 }
 
-const priorityLabels: Record<FeedbackPriority, string> = {
-  LOW: 'Låg',
-  NORMAL: 'Normal',
-  HIGH: 'Hög',
-  URGENT: 'Blockerar mig',
+const priorityLabels: Record<'en' | 'sv', Record<FeedbackPriority, string>> = {
+  en: {
+    LOW: 'Low',
+    NORMAL: 'Normal',
+    HIGH: 'High',
+    URGENT: 'Blocking me',
+  },
+  sv: {
+    LOW: 'Låg',
+    NORMAL: 'Normal',
+    HIGH: 'Hög',
+    URGENT: 'Blockerar mig',
+  },
 }
 
 const fieldClassName =
@@ -98,6 +115,9 @@ export function BetaFeedbackWidget({
   businessSlug,
   className,
 }: BetaFeedbackWidgetProps) {
+  const locale = useLocale()
+  const labelLocale = locale === 'sv' ? 'sv' : 'en'
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [category, setCategory] = useState<FeedbackCategory>('bug')
@@ -138,8 +158,8 @@ export function BetaFeedbackWidget({
 
     if (file.size > MAX_SCREENSHOT_BYTES) {
       toast({
-        title: 'Bilden är för stor',
-        description: 'Maxstorlek är 5 MB.',
+        title: t('Bilden är för stor', 'The image is too large'),
+        description: t('Maxstorlek är 5 MB.', 'The maximum size is 5 MB.'),
         variant: 'destructive',
       })
       setScreenshotFile(null)
@@ -149,8 +169,8 @@ export function BetaFeedbackWidget({
 
     if (!file.type.startsWith('image/')) {
       toast({
-        title: 'Ogiltigt filformat',
-        description: 'Välj en bildfil.',
+        title: t('Ogiltigt filformat', 'Invalid file format'),
+        description: t('Välj en bildfil.', 'Choose an image file.'),
         variant: 'destructive',
       })
       setScreenshotFile(null)
@@ -235,8 +255,8 @@ export function BetaFeedbackWidget({
       }
 
       toast({
-        title: 'Tack, feedbacken är skickad',
-        description: 'Vi tar den vidare i beta-triagen.',
+        title: t('Tack, feedbacken är skickad', 'Thanks, your feedback was sent'),
+        description: t('Vi tar den vidare i beta-triagen.', 'We will take it into beta triage.'),
       })
       setTitle('')
       setDescription('')
@@ -247,8 +267,10 @@ export function BetaFeedbackWidget({
       setOpen(false)
     } catch (error) {
       toast({
-        title: 'Kunde inte skicka feedback',
-        description: error instanceof Error ? error.message : 'Försök igen om en stund.',
+        title: t('Kunde inte skicka feedback', 'Could not send feedback'),
+        description: error instanceof Error
+          ? error.message
+          : t('Försök igen om en stund.', 'Try again in a moment.'),
         variant: 'destructive',
       })
     } finally {
@@ -266,7 +288,7 @@ export function BetaFeedbackWidget({
           className
         )}
         onClick={() => setOpen(true)}
-        aria-label="Öppna feedback"
+        aria-label={t('Öppna feedback', 'Open feedback')}
       >
         <MessageSquarePlus className="h-4 w-4" />
         <span className="hidden sm:inline">Feedback</span>
@@ -275,16 +297,21 @@ export function BetaFeedbackWidget({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[92vh] overflow-y-auto border-slate-700 bg-slate-950 text-slate-100 shadow-2xl sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="text-slate-50">Skicka feedback</DialogTitle>
+            <DialogTitle className="text-slate-50">{t('Skicka feedback', 'Send feedback')}</DialogTitle>
             <DialogDescription className="text-slate-300">
-              Buggar, förbättringar och saker som känns fel i beta.
+              {t(
+                'Buggar, förbättringar och saker som känns fel i beta.',
+                'Bugs, improvements, and anything that feels off in beta.'
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="feedback-category" className={labelClassName}>Typ</Label>
+                <Label htmlFor="feedback-category" className={labelClassName}>
+                  {t('Typ', 'Type')}
+                </Label>
                 <Select
                   value={category}
                   onValueChange={(value) => setCategory(value as FeedbackCategory)}
@@ -293,7 +320,7 @@ export function BetaFeedbackWidget({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-slate-700 bg-slate-950 text-slate-100">
-                    {Object.entries(categoryLabels).map(([value, label]) => (
+                    {Object.entries(categoryLabels[labelLocale]).map(([value, label]) => (
                       <SelectItem key={value} value={value}>
                         {label}
                       </SelectItem>
@@ -303,7 +330,9 @@ export function BetaFeedbackWidget({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="feedback-priority" className={labelClassName}>Prioritet</Label>
+                <Label htmlFor="feedback-priority" className={labelClassName}>
+                  {t('Prioritet', 'Priority')}
+                </Label>
                 <Select
                   value={priority}
                   onValueChange={(value) => setPriority(value as FeedbackPriority)}
@@ -312,7 +341,7 @@ export function BetaFeedbackWidget({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-slate-700 bg-slate-950 text-slate-100">
-                    {Object.entries(priorityLabels).map(([value, label]) => (
+                    {Object.entries(priorityLabels[labelLocale]).map(([value, label]) => (
                       <SelectItem key={value} value={value}>
                         {label}
                       </SelectItem>
@@ -323,33 +352,42 @@ export function BetaFeedbackWidget({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="feedback-title" className={labelClassName}>Rubrik</Label>
+              <Label htmlFor="feedback-title" className={labelClassName}>
+                {t('Rubrik', 'Title')}
+              </Label>
               <Input
                 id="feedback-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 maxLength={160}
-                placeholder="Kort sammanfattning"
+                placeholder={t('Kort sammanfattning', 'Short summary')}
                 className={fieldClassName}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="feedback-description" className={labelClassName}>Detaljer</Label>
+              <Label htmlFor="feedback-description" className={labelClassName}>
+                {t('Detaljer', 'Details')}
+              </Label>
               <Textarea
                 id="feedback-description"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 maxLength={5000}
-                placeholder="Vad hände, vad förväntade du dig, och hur kan vi återskapa det?"
+                placeholder={t(
+                  'Vad hände, vad förväntade du dig, och hur kan vi återskapa det?',
+                  'What happened, what did you expect, and how can we reproduce it?'
+                )}
                 className={cn('min-h-32', fieldClassName)}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="feedback-email" className={labelClassName}>E-post (valfritt)</Label>
+              <Label htmlFor="feedback-email" className={labelClassName}>
+                {t('E-post (valfritt)', 'Email (optional)')}
+              </Label>
               <Input
                 id="feedback-email"
                 type="email"
@@ -362,7 +400,9 @@ export function BetaFeedbackWidget({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="feedback-screenshot" className={labelClassName}>Skärmbild (valfritt)</Label>
+              <Label htmlFor="feedback-screenshot" className={labelClassName}>
+                {t('Skärmbild (valfritt)', 'Screenshot (optional)')}
+              </Label>
               <div className="rounded-md border border-slate-700 bg-slate-950 p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 text-sm text-slate-300">
@@ -374,7 +414,7 @@ export function BetaFeedbackWidget({
                         </p>
                       </>
                     ) : (
-                      <p>Lägg till en bild som visar problemet.</p>
+                      <p>{t('Lägg till en bild som visar problemet.', 'Add an image that shows the issue.')}</p>
                     )}
                   </div>
                   <div className="flex shrink-0 gap-2">
@@ -387,7 +427,7 @@ export function BetaFeedbackWidget({
                         onClick={clearScreenshot}
                       >
                         <X className="h-4 w-4" />
-                        Ta bort
+                        {t('Ta bort', 'Remove')}
                       </Button>
                     )}
                     <Button
@@ -399,7 +439,7 @@ export function BetaFeedbackWidget({
                     >
                       <label htmlFor="feedback-screenshot" className="cursor-pointer">
                         <ImageIcon className="h-4 w-4" />
-                        Välj bild
+                        {t('Välj bild', 'Choose image')}
                       </label>
                     </Button>
                   </div>
@@ -415,7 +455,7 @@ export function BetaFeedbackWidget({
                 {screenshotPreviewUrl && (
                   <img
                     src={screenshotPreviewUrl}
-                    alt="Förhandsvisning av skärmbild"
+                    alt={t('Förhandsvisning av skärmbild', 'Screenshot preview')}
                     className="mt-3 max-h-48 w-full rounded-md border border-slate-800 object-contain"
                   />
                 )}
@@ -424,7 +464,10 @@ export function BetaFeedbackWidget({
 
             <div className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-300">
               <Bug className="mr-2 inline h-3.5 w-3.5 align-[-2px]" />
-              Aktuell sida och teknisk kontext bifogas automatiskt.
+              {t(
+                'Aktuell sida och teknisk kontext bifogas automatiskt.',
+                'Current page and technical context are attached automatically.'
+              )}
             </div>
 
             <DialogFooter>
@@ -434,7 +477,7 @@ export function BetaFeedbackWidget({
                 className="border-slate-700 bg-transparent text-slate-200 hover:bg-slate-900 hover:text-white"
                 onClick={() => setOpen(false)}
               >
-                Avbryt
+                {t('Avbryt', 'Cancel')}
               </Button>
               <Button type="submit" disabled={!canSubmit}>
                 {isSubmitting ? (
@@ -442,7 +485,7 @@ export function BetaFeedbackWidget({
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-                Skicka
+                {t('Skicka', 'Send')}
               </Button>
             </DialogFooter>
           </form>
