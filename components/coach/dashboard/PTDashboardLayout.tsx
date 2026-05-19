@@ -91,7 +91,7 @@ export function PTDashboardLayout({
     {
       key: 'recent-tests',
       node: (
-        <GlassCard>
+        <GlassCard glow="blue" className="group">
           <GlassCardHeader className="pb-2">
             <GlassCardTitle className="text-sm flex items-center gap-2">
               <Gauge className="h-4 w-4 text-cyan-500" />
@@ -109,7 +109,7 @@ export function PTDashboardLayout({
                   <Link
                     key={test.id}
                     href={`${basePath}/coach/tests/${test.id}`}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition"
+                    className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/50 dark:hover:bg-white/5 transition"
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate dark:text-slate-200">
@@ -140,7 +140,7 @@ export function PTDashboardLayout({
     {
       key: 'upcoming-events',
       node: (
-        <GlassCard>
+        <GlassCard glow="purple" className="group">
           <GlassCardHeader className="pb-3">
             <GlassCardTitle className="text-base flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-purple-500" />
@@ -161,7 +161,7 @@ export function PTDashboardLayout({
                     <Link
                       key={event.id}
                       href={`${basePath}/coach/athletes/${event.client.id}/calendar`}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition"
+                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/50 dark:hover:bg-white/5 transition"
                     >
                       <div className={cn(
                         'w-8 h-8 rounded-lg flex items-center justify-center',

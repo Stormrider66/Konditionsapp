@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Loader2, AlertCircle, Plus } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { useLocale } from '@/i18n/client'
 
 interface Program {
   id: string
@@ -48,6 +49,8 @@ export function ProgramSelector({
   onValueChange,
   placeholder = 'Välj program...',
 }: ProgramSelectorProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [programs, setPrograms] = useState<Program[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -145,8 +148,8 @@ export function ProgramSelector({
               <div className="flex flex-col">
                 <span className="font-medium">{program.name}</span>
                 <span className="text-xs text-muted-foreground">
-                  {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
-                  {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+                  {format(new Date(program.startDate), 'd MMM', { locale: dateLocale })} -{' '}
+                  {format(new Date(program.endDate), 'd MMM yyyy', { locale: dateLocale })}
                 </span>
               </div>
             </div>

@@ -31,7 +31,7 @@ export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
   const t = useTranslations('components.strengthPRFeed')
 
   return (
-    <GlassCard>
+    <GlassCard glow="amber" className="group">
       <GlassCardHeader className="pb-2">
         <GlassCardTitle className="text-sm flex items-center gap-2">
           <Trophy className="h-4 w-4 text-yellow-500" />

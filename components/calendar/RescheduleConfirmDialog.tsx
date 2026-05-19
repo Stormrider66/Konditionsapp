@@ -22,8 +22,9 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, ArrowRight, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { useState } from 'react'
+import { useLocale } from '@/i18n/client'
 
 interface RescheduleConfirmDialogProps {
   open: boolean
@@ -50,6 +51,8 @@ export function RescheduleConfirmDialog({
   isLoading = false,
   warnings = [],
 }: RescheduleConfirmDialogProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [reason, setReason] = useState('')
 
   const handleConfirm = () => {
@@ -94,10 +97,10 @@ export function RescheduleConfirmDialog({
                     Från
                   </div>
                   <div className="font-semibold">
-                    {format(originalDate, 'd MMM', { locale: sv })}
+                    {format(originalDate, 'd MMM', { locale: dateLocale })}
                   </div>
                   <div className="text-xs text-muted-foreground capitalize">
-                    {format(originalDate, 'EEEE', { locale: sv })}
+                    {format(originalDate, 'EEEE', { locale: dateLocale })}
                   </div>
                 </div>
 
@@ -113,10 +116,10 @@ export function RescheduleConfirmDialog({
                     Till
                   </div>
                   <div className="font-semibold text-primary">
-                    {format(targetDate, 'd MMM', { locale: sv })}
+                    {format(targetDate, 'd MMM', { locale: dateLocale })}
                   </div>
                   <div className="text-xs text-muted-foreground capitalize">
-                    {format(targetDate, 'EEEE', { locale: sv })}
+                    {format(targetDate, 'EEEE', { locale: dateLocale })}
                   </div>
                 </div>
               </div>

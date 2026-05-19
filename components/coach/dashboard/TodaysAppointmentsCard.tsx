@@ -137,7 +137,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
     const showTodayButton = !isToday(selectedDate);
 
     return (
-      <GlassCard>
+      <GlassCard glow="emerald" className="group">
         <GlassCardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <GlassCardTitle className="text-sm flex items-center gap-2">
@@ -267,7 +267,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
 
   if (loading) {
     return (
-      <GlassCard>
+      <GlassCard glow="emerald" className="group">
         <GlassCardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <GlassCardTitle className="text-base flex items-center gap-2">
@@ -288,7 +288,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
 
   if (appointments.length === 0) {
     return (
-      <GlassCard>
+      <GlassCard glow="emerald" className="group">
         <GlassCardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <GlassCardTitle className="text-base flex items-center gap-2">
@@ -312,7 +312,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
   }
 
   return (
-    <GlassCard>
+    <GlassCard glow="emerald" className="group">
       <GlassCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">

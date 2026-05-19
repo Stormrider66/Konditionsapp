@@ -84,7 +84,7 @@ export function CoachCommandCenter({
   const hasQueue = data.queueItems.length > 0
 
   return (
-    <GlassCard gradient className="mt-8 rounded-lg">
+    <GlassCard gradient glow="blue" className="mt-8 group">
       <GlassCardHeader className="pb-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">

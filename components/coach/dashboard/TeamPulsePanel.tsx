@@ -44,7 +44,7 @@ export function TeamPulsePanel({
     .slice(0, 3)
 
   return (
-    <GlassCard>
+    <GlassCard glow="teal" className="group">
       <GlassCardHeader className="pb-3">
         <GlassCardTitle className="text-base flex items-center gap-2">
           <HeartPulse className="h-4 w-4 text-emerald-500" />

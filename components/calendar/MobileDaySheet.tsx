@@ -9,7 +9,7 @@
 
 import { useRef, useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   X,
   Plus,
@@ -27,6 +27,7 @@ import {
 import { PostEventMonitor } from './PostEventMonitor'
 import { cn } from '@/lib/utils'
 import { CalendarEventItem } from './day-sidebar/item-cards'
+import { useLocale } from '@/i18n/client'
 
 interface MobileDaySheetProps {
   clientId?: string
@@ -61,6 +62,8 @@ export function MobileDaySheet({
   isCoachView,
   variant = 'default',
 }: MobileDaySheetProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const isGlass = variant === 'glass'
   const sheetRef = useRef<HTMLDivElement>(null)
   const [dragY, setDragY] = useState(0)
@@ -148,7 +151,7 @@ export function MobileDaySheet({
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-label={`Detaljer för ${format(date, 'd MMMM', { locale: sv })}`}
+      aria-label={`${locale === 'sv' ? 'Detaljer för' : 'Details for'} ${format(date, 'd MMMM', { locale: dateLocale })}`}
     >
       {/* Backdrop */}
       <div
@@ -198,13 +201,13 @@ export function MobileDaySheet({
               "text-2xl font-black capitalize tracking-tight",
               isGlass ? "text-white" : ""
             )}>
-              {format(date, 'EEEE', { locale: sv })}
+              {format(date, 'EEEE', { locale: dateLocale })}
             </h2>
             <p className={cn(
               "text-sm font-bold uppercase tracking-widest opacity-50",
               isGlass ? "text-slate-400" : "text-muted-foreground"
             )}>
-              {format(date, 'd MMMM yyyy', { locale: sv })}
+              {format(date, 'd MMMM yyyy', { locale: dateLocale })}
             </p>
           </div>
           <div className="flex items-center gap-2">

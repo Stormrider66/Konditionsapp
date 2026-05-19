@@ -56,7 +56,7 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
 
   return (
     <>
-      <GlassCard>
+      <GlassCard glow="blue" className="group">
         <GlassCardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <GlassCardTitle className="text-base flex items-center gap-2">

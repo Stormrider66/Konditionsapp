@@ -85,7 +85,7 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
   const activeCompetitions = competitions.filter(c => c.isActive && new Date(c.endDate) > new Date())
 
   return (
-    <GlassCard>
+    <GlassCard glow="amber" className="group">
       <GlassCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">

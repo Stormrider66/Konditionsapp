@@ -9,7 +9,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Plus,
   X,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CalendarEventType } from '@prisma/client'
+import { useLocale } from '@/i18n/client'
 
 interface QuickAction {
   id: string
@@ -94,6 +95,8 @@ export function MobileCalendarFAB({
   visible = true,
   variant = 'default',
 }: MobileCalendarFABProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [isExpanded, setIsExpanded] = useState(false)
 
   const handleToggle = useCallback(() => {
@@ -200,7 +203,7 @@ export function MobileCalendarFAB({
         >
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>{format(selectedDate, 'd MMMM', { locale: sv })}</span>
+            <span>{format(selectedDate, 'd MMMM', { locale: dateLocale })}</span>
           </div>
         </div>
       )}

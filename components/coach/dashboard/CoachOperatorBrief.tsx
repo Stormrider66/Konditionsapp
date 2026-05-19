@@ -70,7 +70,7 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
   }
 
   return (
-    <GlassCard className={cn('rounded-lg border', tone.shell)} data-ai-operator-brief>
+    <GlassCard glow={data.tone === 'steady' ? 'emerald' : data.tone === 'watch' ? 'amber' : 'red'} className={cn('border group', tone.shell)} data-ai-operator-brief>
       <GlassCardHeader className="pb-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">

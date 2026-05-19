@@ -41,7 +41,7 @@ export function TeamTestsAndActivity({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <GlassCard>
+      <GlassCard glow="blue" className="group">
         <GlassCardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <GlassCardTitle className="text-base flex items-center gap-2">
@@ -83,7 +83,7 @@ export function TeamTestsAndActivity({
         </GlassCardContent>
       </GlassCard>
 
-      <GlassCard>
+      <GlassCard glow="amber" className="group">
         <GlassCardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <GlassCardTitle className="text-base flex items-center gap-2">

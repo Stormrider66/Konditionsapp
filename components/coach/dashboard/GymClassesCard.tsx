@@ -109,7 +109,7 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
   }, [fetchClasses])
 
   return (
-    <GlassCard>
+    <GlassCard glow="purple" className="group">
       <GlassCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">

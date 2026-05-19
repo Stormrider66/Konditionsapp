@@ -133,7 +133,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
   const showTodayButton = !isToday(selectedDate)
 
   return (
-    <GlassCard className="h-full">
+    <GlassCard glow="emerald" className="h-full group">
       <GlassCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">

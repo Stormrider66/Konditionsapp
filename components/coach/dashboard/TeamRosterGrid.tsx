@@ -172,7 +172,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
   ]
 
   return (
-    <GlassCard>
+    <GlassCard glow="blue" className="group">
       <GlassCardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-sm flex items-center gap-2">
