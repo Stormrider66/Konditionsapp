@@ -33,6 +33,7 @@ pnpm-debug.log*
 # Tooling
 .turbo/
 .vercel/
+.codex/
 tsconfig.tsbuildinfo
 
 # Playwright
@@ -42,6 +43,7 @@ playwright/.auth/
 
 # Load test output
 load-tests/cluster-logs/
+load-tests/evidence/
 load-tests/results/
 
 # Local script reports
@@ -52,4 +54,3 @@ prisma/dev.db
 prisma/dev.db-journal
 nul
 tmpclaude-*
-.vercel

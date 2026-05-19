@@ -2796,6 +2796,58 @@
         "title": "Test overview",
         "description": "Results, comparisons, and progress over time"
       },
+      "editTest": {
+        "title": "Edit test",
+        "actions": {
+          "back": "Back",
+          "addStage": "Add stage",
+          "saving": "Saving...",
+          "save": "Save changes",
+          "cancel": "Cancel"
+        },
+        "sections": {
+          "metadata": "Test information",
+          "stages": "Test stages"
+        },
+        "labels": {
+          "testDate": "Test date",
+          "testType": "Test type",
+          "restingLactate": "Resting lactate (mmol/L)",
+          "restingHeartRate": "Resting heart rate (bpm)",
+          "notes": "Notes",
+          "intensity": {
+            "running": "Speed (km/h)",
+            "cycling": "Power (W)",
+            "skiing": "Pace (min/km)"
+          },
+          "testTypes": {
+            "running": "Running",
+            "cycling": "Cycling",
+            "skiing": "Cross-country skiing"
+          }
+        },
+        "table": {
+          "headers": {
+            "step": "Stage",
+            "duration": "Duration (min)",
+            "heartRate": "Heart rate",
+            "lactate": "Lactate",
+            "vo2": "VO2",
+            "incline": "Incline (%)"
+          }
+        },
+        "placeholders": {
+          "notes": "Optional notes..."
+        },
+        "toasts": {
+          "errorTitle": "Error",
+          "fetchFailed": "Could not load test",
+          "updateFailed": "Could not update test",
+          "updatedTitle": "Saved!",
+          "updatedDescription": "The test has been updated.",
+          "saveFailed": "Could not save"
+        }
+      },
       "exerciseLibrary": {
         "loading": "Loading exercise library..."
       },

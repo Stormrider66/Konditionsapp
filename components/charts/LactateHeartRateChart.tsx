@@ -251,13 +251,13 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
         {lt1Point && (
           <p>
             <strong className="text-green-600">{t('explanations.lt1Title')}:</strong>{' '}
-            {t('explanations.lt1Body', { hr: lt1Point.heartRate, value: aerobicThreshold?.lactate?.toFixed(2) })}
+            {t('explanations.lt1Body', { hr: lt1Point.heartRate, value: lt1Point.lt1Lactate.toFixed(2) })}
           </p>
         )}
         {lt2Point && (
           <p>
             <strong className="text-orange-500">{t('explanations.lt2Title')}:</strong>{' '}
-            {t('explanations.lt2Body', { hr: lt2Point.heartRate, value: anaerobicThreshold?.lactate?.toFixed(2) })}
+            {t('explanations.lt2Body', { hr: lt2Point.heartRate, value: lt2Point.lt2Lactate.toFixed(2) })}
           </p>
         )}
         <p>

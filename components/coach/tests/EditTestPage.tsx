@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import Link from 'next/link'
+import { useTranslations } from '@/i18n/client'
 
 interface StageData {
   duration: number
@@ -35,6 +36,7 @@ export default function EditTestPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
+  const t = useTranslations('coach.pages.editTest')
   const testId = params.testId as string
   const businessSlug = params.businessSlug as string | undefined
   const basePath = businessSlug ? `/${businessSlug}` : ''
@@ -54,7 +56,7 @@ export default function EditTestPage() {
         const result = await response.json()
 
         if (!result.success) {
-          toast({ title: 'Fel', description: 'Kunde inte hämta test', variant: 'destructive' })
+          toast({ title: t('toasts.errorTitle'), description: t('toasts.fetchFailed'), variant: 'destructive' })
           return
         }
 
@@ -80,7 +82,7 @@ export default function EditTestPage() {
           })),
         })
       } catch {
-        toast({ title: 'Fel', description: 'Kunde inte hämta test', variant: 'destructive' })
+        toast({ title: t('toasts.errorTitle'), description: t('toasts.fetchFailed'), variant: 'destructive' })
       } finally {
         setLoading(false)
       }
@@ -117,15 +119,15 @@ export default function EditTestPage() {
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || 'Kunde inte uppdatera test')
+        throw new Error(result.error || t('toasts.updateFailed'))
       }
 
-      toast({ title: 'Sparat!', description: 'Testet har uppdaterats.' })
+      toast({ title: t('toasts.updatedTitle'), description: t('toasts.updatedDescription') })
       router.push(`${basePath}/coach/tests/${testId}`)
     } catch (error) {
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte spara',
+        title: t('toasts.errorTitle'),
+        description: error instanceof Error ? error.message : t('toasts.saveFailed'),
         variant: 'destructive',
       })
     } finally {
@@ -133,10 +135,14 @@ export default function EditTestPage() {
     }
   }
 
-  const intensityLabel = testType === 'RUNNING' ? 'Hastighet (km/h)' :
-    testType === 'CYCLING' ? 'Effekt (W)' : 'Tempo (min/km)'
+  const intensityLabel = testType === 'RUNNING' ? t('labels.intensity.running') :
+    testType === 'CYCLING' ? t('labels.intensity.cycling') : t('labels.intensity.skiing')
   const intensityField = testType === 'RUNNING' ? 'speed' :
     testType === 'CYCLING' ? 'power' : 'pace'
+  const testTypeLabel =
+    testType === 'RUNNING' ? t('labels.testTypes.running') :
+      testType === 'CYCLING' ? t('labels.testTypes.cycling') :
+        t('labels.testTypes.skiing')
 
   if (loading) {
     return (
@@ -152,11 +158,11 @@ export default function EditTestPage() {
         <Link href={`${basePath}/coach/tests/${testId}`}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Tillbaka
+            {t('actions.back')}
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">Redigera test</h1>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
           {clientName && <p className="text-sm text-muted-foreground">{clientName}</p>}
         </div>
       </div>
@@ -165,32 +171,32 @@ export default function EditTestPage() {
         {/* Test metadata */}
         <Card>
           <CardHeader>
-            <CardTitle>Testinformation</CardTitle>
+            <CardTitle>{t('sections.metadata')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Testdatum</Label>
+                <Label>{t('labels.testDate')}</Label>
                 <Input type="date" {...register('testDate')} />
               </div>
               <div className="space-y-2">
-                <Label>Testtyp</Label>
-                <Input value={testType === 'RUNNING' ? 'Löpning' : testType === 'CYCLING' ? 'Cykling' : 'Skidåkning'} disabled />
+                <Label>{t('labels.testType')}</Label>
+                <Input value={testTypeLabel} disabled />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Vilolaktat (mmol/L)</Label>
+                <Label>{t('labels.restingLactate')}</Label>
                 <Input type="number" step="0.1" {...register('restingLactate')} />
               </div>
               <div className="space-y-2">
-                <Label>Vilopuls (slag/min)</Label>
+                <Label>{t('labels.restingHeartRate')}</Label>
                 <Input type="number" {...register('restingHeartRate')} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Anteckningar</Label>
-              <Input {...register('notes')} placeholder="Valfria anteckningar..." />
+              <Label>{t('labels.notes')}</Label>
+              <Input {...register('notes')} placeholder={t('placeholders.notes')} />
             </div>
           </CardContent>
         </Card>
@@ -198,20 +204,20 @@ export default function EditTestPage() {
         {/* Test stages */}
         <Card>
           <CardHeader>
-            <CardTitle>Teststeg</CardTitle>
+            <CardTitle>{t('sections.stages')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="px-2 py-2 text-left">Steg</th>
-                    <th className="px-2 py-2 text-left">Tid (min)</th>
-                    <th className="px-2 py-2 text-left">Puls</th>
-                    <th className="px-2 py-2 text-left">Laktat</th>
-                    <th className="px-2 py-2 text-left">VO2</th>
+                    <th className="px-2 py-2 text-left">{t('table.headers.step')}</th>
+                    <th className="px-2 py-2 text-left">{t('table.headers.duration')}</th>
+                    <th className="px-2 py-2 text-left">{t('table.headers.heartRate')}</th>
+                    <th className="px-2 py-2 text-left">{t('table.headers.lactate')}</th>
+                    <th className="px-2 py-2 text-left">{t('table.headers.vo2')}</th>
                     <th className="px-2 py-2 text-left">{intensityLabel}</th>
-                    {testType === 'RUNNING' && <th className="px-2 py-2 text-left">Lutning (%)</th>}
+                    {testType === 'RUNNING' && <th className="px-2 py-2 text-left">{t('table.headers.incline')}</th>}
                     <th className="px-2 py-2"></th>
                   </tr>
                 </thead>
@@ -301,7 +307,7 @@ export default function EditTestPage() {
               }
             >
               <Plus className="w-4 h-4 mr-2" />
-              Lägg till steg
+              {t('actions.addStage')}
             </Button>
           </CardContent>
         </Card>
@@ -310,13 +316,13 @@ export default function EditTestPage() {
         <div className="flex gap-3">
           <Button type="submit" disabled={saving} className="min-w-[140px]">
             {saving ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sparar...</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('actions.saving')}</>
             ) : (
-              <><Save className="w-4 h-4 mr-2" />Spara ändringar</>
+              <><Save className="w-4 h-4 mr-2" />{t('actions.save')}</>
             )}
           </Button>
           <Link href={`${basePath}/coach/tests/${testId}`}>
-            <Button type="button" variant="outline">Avbryt</Button>
+            <Button type="button" variant="outline">{t('actions.cancel')}</Button>
           </Link>
         </div>
       </form>

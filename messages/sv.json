@@ -2796,6 +2796,58 @@
         "title": "Testöversikt",
         "description": "Resultat, jämförelser och utveckling över tid"
       },
+      "editTest": {
+        "title": "Redigera test",
+        "actions": {
+          "back": "Tillbaka",
+          "addStage": "Lägg till steg",
+          "saving": "Sparar...",
+          "save": "Spara ändringar",
+          "cancel": "Avbryt"
+        },
+        "sections": {
+          "metadata": "Testinformation",
+          "stages": "Teststeg"
+        },
+        "labels": {
+          "testDate": "Testdatum",
+          "testType": "Testtyp",
+          "restingLactate": "Vilolaktat (mmol/L)",
+          "restingHeartRate": "Vilopuls (slag/min)",
+          "notes": "Anteckningar",
+          "intensity": {
+            "running": "Hastighet (km/h)",
+            "cycling": "Effekt (W)",
+            "skiing": "Tempo (min/km)"
+          },
+          "testTypes": {
+            "running": "Löpning",
+            "cycling": "Cykling",
+            "skiing": "Skidåkning"
+          }
+        },
+        "table": {
+          "headers": {
+            "step": "Steg",
+            "duration": "Tid (min)",
+            "heartRate": "Puls",
+            "lactate": "Laktat",
+            "vo2": "VO2",
+            "incline": "Lutning (%)"
+          }
+        },
+        "placeholders": {
+          "notes": "Valfria anteckningar..."
+        },
+        "toasts": {
+          "errorTitle": "Fel",
+          "fetchFailed": "Kunde inte hämta test",
+          "updateFailed": "Kunde inte uppdatera test",
+          "updatedTitle": "Sparat!",
+          "updatedDescription": "Testet har uppdaterats.",
+          "saveFailed": "Kunde inte spara"
+        }
+      },
       "exerciseLibrary": {
         "loading": "Laddar övningsbibliotek..."
       },
