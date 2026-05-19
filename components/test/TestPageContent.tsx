@@ -300,7 +300,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
   }
 
   const ClientSelector = () => (
-    <GlassCard>
+    <GlassCard glow="blue">
       <GlassCardHeader>
         <GlassCardTitle>Välj klient</GlassCardTitle>
       </GlassCardHeader>
@@ -354,7 +354,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
               )}
             </div>
             <Tabs value={testCategory} onValueChange={(v) => setTestCategory(v as TestCategory)}>
-              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 h-auto gap-1 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm p-1">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 h-auto gap-1.5 bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 backdrop-blur-md p-1.5 rounded-xl">
                 {visibleTestCategories.map((category) => {
                   const Icon = category.icon
                   return (
@@ -362,7 +362,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                       key={category.value}
                       value={category.value}
                       disabled={!category.available}
-                      className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-2 text-xs sm:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                      className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2.5 px-3 text-xs sm:text-sm font-medium transition-all duration-300 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-blue-500/30 data-[state=active]:shadow-[0_0_15px_rgba(59,130,246,0.15)]"
                     >
                       <Icon className="w-4 h-4" />
                       <span className="hidden lg:inline">{category.label}</span>
@@ -374,7 +374,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
 
               {/* Lactate Test Content */}
               <TabsContent value="lactate" className="space-y-6 mt-6">
-                <GlassCard>
+                <GlassCard glow="blue">
                   <GlassCardHeader>
                     <GlassCardTitle>Laktattestinställningar</GlassCardTitle>
                   </GlassCardHeader>
@@ -393,7 +393,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                         </p>
                       ) : (
                         <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                          <SelectTrigger id="client-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
+                          <SelectTrigger id="client-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                             <SelectValue placeholder="Välj en klient" />
                           </SelectTrigger>
                           <SelectContent>
@@ -410,10 +410,10 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                     <div className="space-y-2">
                       <Label className="text-slate-900 dark:text-white">Testtyp</Label>
                       <Tabs value={testType} onValueChange={(value) => setTestType(value as TestType)}>
-                        <TabsList className="grid w-full grid-cols-3 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm">
-                          <TabsTrigger value="RUNNING">Löpning</TabsTrigger>
-                          <TabsTrigger value="CYCLING">Cykling</TabsTrigger>
-                          <TabsTrigger value="SKIING">Skidåkning</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-3 bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-lg">
+                          <TabsTrigger value="RUNNING" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Löpning</TabsTrigger>
+                          <TabsTrigger value="CYCLING" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Cykling</TabsTrigger>
+                          <TabsTrigger value="SKIING" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Skidåkning</TabsTrigger>
                         </TabsList>
                       </Tabs>
                     </div>
@@ -422,7 +422,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                 </GlassCard>
 
                 {selectedClient && (
-                  <GlassCard>
+                  <GlassCard glow="emerald">
                     <GlassCardHeader>
                       <GlassCardTitle>Mata in testdata</GlassCardTitle>
                     </GlassCardHeader>
@@ -443,7 +443,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                 <ClientSelector />
 
                 {selectedClient && (
-                  <GlassCard>
+                  <GlassCard glow="purple">
                     <GlassCardHeader>
                       <GlassCardTitle>Bioimpedansmätning</GlassCardTitle>
                     </GlassCardHeader>

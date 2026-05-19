@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 
 const ExerciseLibraryBrowser = dynamic(
   () => import('@/components/coach/exercise-library/ExerciseLibraryBrowser').then(mod => mod.ExerciseLibraryBrowser),
@@ -524,20 +525,20 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="builder" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+        <TabsList className="w-full justify-start overflow-x-auto bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl gap-1">
+          <TabsTrigger value="builder" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Skapa </span>Pass
           </TabsTrigger>
-          <TabsTrigger value="library" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+          <TabsTrigger value="library" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <Library className="h-4 w-4" />
             Övningar
           </TabsTrigger>
-          <TabsTrigger value="sessions" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+          <TabsTrigger value="sessions" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <FolderOpen className="h-4 w-4" />
             <span className="hidden sm:inline">Pass</span>bibliotek
           </TabsTrigger>
-          <TabsTrigger value="progression" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+          <TabsTrigger value="progression" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <Activity className="h-4 w-4" />
             Progression
           </TabsTrigger>
@@ -562,25 +563,35 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         </TabsContent>
 
         <TabsContent value="builder">
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white/5 dark:bg-slate-950/20 border border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
             <div className="flex items-center gap-2 sm:gap-4">
               <Button
-                variant={useSectionBuilder ? 'default' : 'outline'}
+                variant="ghost"
                 size="sm"
                 onClick={() => setUseSectionBuilder(true)}
+                className={`text-xs transition-all duration-300 ${
+                  useSectionBuilder
+                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.15)]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
               >
                 Sektionsbyggare
               </Button>
               <Button
-                variant={!useSectionBuilder ? 'default' : 'outline'}
+                variant="ghost"
                 size="sm"
                 onClick={() => setUseSectionBuilder(false)}
+                className={`text-xs transition-all duration-300 ${
+                  !useSectionBuilder
+                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.15)]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
               >
                 Enkel byggare
               </Button>
             </div>
             {useSectionBuilder && (
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-slate-400">
                 Bygg pass med uppvärmning, huvudpass, core och nedvarvning
               </p>
             )}
@@ -588,34 +599,36 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
 
           {/* Weekly program banner */}
           {weeklySessionQueue.length > 1 && weeklySessionQueue.length > currentWeeklyIndex && (
-            <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">
-                    Veckoprogram — Pass {currentWeeklyIndex + 1} av {weeklySessionQueue.length}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Spara detta pass för att gå vidare till nästa.
-                  </p>
+            <GlassCard glow="blue" className="mb-4">
+              <GlassCardContent className="p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      Veckoprogram — Pass {currentWeeklyIndex + 1} av {weeklySessionQueue.length}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Spara detta pass för att gå vidare till nästa.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {weeklySessionQueue.map((_, i) => (
+                      <div
+                        key={i}
+                        className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                          i < currentWeeklyIndex ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+                          i === currentWeeklyIndex ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-white/20'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {weeklySessionQueue.map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-2 w-2 rounded-full ${
-                        i < currentWeeklyIndex ? 'bg-green-500' :
-                        i === currentWeeklyIndex ? 'bg-primary' : 'bg-muted-foreground/30'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-              {weeklyRationales[currentWeeklyIndex] && (
-                <p className="text-xs text-muted-foreground border-t border-primary/10 pt-2">
-                  {weeklyRationales[currentWeeklyIndex]}
-                </p>
-              )}
-            </div>
+                {weeklyRationales[currentWeeklyIndex] && (
+                  <p className="text-xs text-slate-300 border-t border-white/10 pt-2 font-light">
+                    {weeklyRationales[currentWeeklyIndex]}
+                  </p>
+                )}
+              </GlassCardContent>
+            </GlassCard>
           )}
 
           {useSectionBuilder ? (
@@ -688,17 +701,17 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         <TabsContent value="progression">
           <div className="space-y-6">
             {/* Athlete selector for progression */}
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 bg-white/5 dark:bg-slate-950/20 border border-white/5 p-4 rounded-xl backdrop-blur-sm shadow-md">
               <div className="flex-1 max-w-xs">
-                <Label className="text-sm font-medium mb-1.5 block">Välj atlet</Label>
+                <Label className="text-sm font-medium mb-1.5 block text-slate-300">Välj atlet</Label>
                 <select
                   value={progressionClientId}
                   onChange={(e) => setProgressionClientId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-10 w-full rounded-md border border-white/10 bg-slate-950/50 backdrop-blur-sm px-3 py-2 text-sm text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
                 >
-                  <option value="">Välj en atlet...</option>
+                  <option value="" className="bg-slate-950 text-slate-200">Välj en atlet...</option>
                   {progressionAthletes.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
+                    <option key={a.id} value={a.id} className="bg-slate-950 text-slate-200">{a.name}</option>
                   ))}
                 </select>
               </div>

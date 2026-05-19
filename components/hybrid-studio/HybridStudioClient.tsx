@@ -13,6 +13,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -401,18 +402,18 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center bg-white/5 dark:bg-slate-950/20 border border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Sök pass..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
           />
         </div>
         <Select value={formatFilter} onValueChange={setFormatFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
             <SelectValue placeholder="Alla format" />
           </SelectTrigger>
           <SelectContent>
@@ -428,14 +429,14 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">
+        <TabsList className="bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl">
+          <TabsTrigger value="all" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             Alla ({workouts.length})
           </TabsTrigger>
-          <TabsTrigger value="benchmarks">
+          <TabsTrigger value="benchmarks" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             Benchmarks ({benchmarkWorkouts.length})
           </TabsTrigger>
-          <TabsTrigger value="custom">
+          <TabsTrigger value="custom" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             Mina Pass ({customWorkouts.length})
           </TabsTrigger>
         </TabsList>
@@ -489,17 +490,19 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 
         <TabsContent value="custom" className="mt-6">
           {customWorkouts.length === 0 && !loading ? (
-            <Card className="p-8 text-center">
-              <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Inga egna pass än</h3>
-              <p className="text-muted-foreground mb-4">
-                Skapa ditt första hybrid pass för att komma igång.
-              </p>
-              <Button onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Skapa Pass
-              </Button>
-            </Card>
+            <GlassCard glow="blue" className="p-8 text-center">
+              <GlassCardContent>
+                <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-pulse" />
+                <h3 className="text-lg font-semibold mb-2 text-white">Inga egna pass än</h3>
+                <p className="text-slate-400 mb-4">
+                  Skapa ditt första hybrid pass för att komma igång.
+                </p>
+                <Button onClick={() => setIsCreateOpen(true)} className="bg-blue-600 hover:bg-blue-500 text-white">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Skapa Pass
+                </Button>
+              </GlassCardContent>
+            </GlassCard>
           ) : (
             <WorkoutGrid
               workouts={customWorkouts}
@@ -713,16 +716,16 @@ function WorkoutGrid({
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-6 bg-muted rounded w-3/4" />
-              <div className="h-4 bg-muted rounded w-1/2 mt-2" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-4 bg-muted rounded w-full" />
-              <div className="h-4 bg-muted rounded w-2/3 mt-2" />
-            </CardContent>
-          </Card>
+          <GlassCard key={i} className="animate-pulse">
+            <GlassCardHeader>
+              <div className="h-6 bg-muted/20 rounded w-3/4 animate-pulse" />
+              <div className="h-4 bg-muted/20 rounded w-1/2 mt-2 animate-pulse" />
+            </GlassCardHeader>
+            <GlassCardContent>
+              <div className="h-4 bg-muted/20 rounded w-full animate-pulse" />
+              <div className="h-4 bg-muted/20 rounded w-2/3 mt-2 animate-pulse" />
+            </GlassCardContent>
+          </GlassCard>
         ))}
       </div>
     );
@@ -730,102 +733,111 @@ function WorkoutGrid({
 
   if (workouts.length === 0) {
     return (
-      <Card className="p-8 text-center">
-        <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Inga pass hittades</h3>
-        <p className="text-muted-foreground">Prova att ändra dina sökfilter.</p>
-      </Card>
+      <GlassCard glow="blue" className="p-8 text-center">
+        <GlassCardContent>
+          <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2 text-white">Inga pass hittades</h3>
+          <p className="text-muted-foreground">Prova att ändra dina sökfilter.</p>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {workouts.map((workout) => (
-        <Card
-          key={workout.id}
-          className="hover:border-primary/50 transition-colors cursor-pointer group"
-          onClick={() => onView?.(workout)}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  {workout.isBenchmark && (
-                    <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+      {workouts.map((workout) => {
+        const glowColor =
+          workout.scalingLevel === 'RX' ? 'emerald' : workout.scalingLevel === 'SCALED' ? 'amber' : 'blue';
+
+        return (
+          <GlassCard
+            key={workout.id}
+            glow={glowColor}
+            className="hover:border-white/20 transition-all duration-300 cursor-pointer group hover:scale-[1.02]"
+            onClick={() => onView?.(workout)}
+          >
+            <GlassCardHeader className="pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <GlassCardTitle className="text-lg flex items-center gap-2 text-slate-100 group-hover:text-white">
+                    {workout.isBenchmark && (
+                      <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                    )}
+                    <span className="truncate">{workout.name}</span>
+                  </GlassCardTitle>
+                  <GlassCardDescription className="flex items-center gap-2 mt-1">
+                    {formatLabels[workout.format]?.icon}
+                    {formatLabels[workout.format]?.labelSv || workout.format}
+                  </GlassCardDescription>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Badge
+                    className={`${scalingLabels[workout.scalingLevel]?.color || 'bg-gray-500'} text-white border-none`}
+                  >
+                    {scalingLabels[workout.scalingLevel]?.label || workout.scalingLevel}
+                  </Badge>
+                  {!workout.isBenchmark && (onEdit || onDelete) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 hover:bg-white/10 border-none text-slate-300"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-slate-900/90 border border-white/10 backdrop-blur-md">
+                        {onEdit && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEdit(workout);
+                            }}
+                            className="hover:bg-white/5 focus:bg-white/5"
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Redigera
+                          </DropdownMenuItem>
+                        )}
+                        {onDelete && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(workout);
+                            }}
+                            className="text-destructive focus:text-destructive hover:bg-red-500/10 focus:bg-red-500/10"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Ta bort
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
-                  <span className="truncate">{workout.name}</span>
-                </CardTitle>
-                <CardDescription className="flex items-center gap-2 mt-1">
-                  {formatLabels[workout.format]?.icon}
-                  {formatLabels[workout.format]?.labelSv || workout.format}
-                </CardDescription>
+                </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Badge
-                  className={`${scalingLabels[workout.scalingLevel]?.color || 'bg-gray-500'} text-white`}
-                >
-                  {scalingLabels[workout.scalingLevel]?.label || workout.scalingLevel}
-                </Badge>
-                {!workout.isBenchmark && (onEdit || onDelete) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {onEdit && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(workout);
-                          }}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Redigera
-                        </DropdownMenuItem>
-                      )}
-                      {onDelete && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(workout);
-                          }}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Ta bort
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+            </GlassCardHeader>
+            <GlassCardContent>
+              <p className="text-sm text-slate-400 line-clamp-2">
+                {workout.description}
+              </p>
+              <div className="mt-3 text-xs text-muted-foreground font-medium">
+                {formatWorkoutDescription(workout)}
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {workout.description}
-            </p>
-            <div className="mt-3 text-xs text-muted-foreground">
-              {formatWorkoutDescription(workout)}
-            </div>
-            <div className="mt-2 text-xs font-medium">
-              {getMovementSummary(workout.movements)}
-            </div>
-            {workout._count?.results > 0 && (
-              <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                <Target className="h-3 w-3" />
-                {workout._count.results} resultat
+              <div className="mt-2 text-xs font-semibold text-blue-400">
+                {getMovementSummary(workout.movements)}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+              {workout._count?.results > 0 && (
+                <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground font-mono">
+                  <Target className="h-3 w-3 text-emerald-500" />
+                  {workout._count.results} resultat
+                </div>
+              )}
+            </GlassCardContent>
+          </GlassCard>
+        );
+      })}
     </div>
   );
 }

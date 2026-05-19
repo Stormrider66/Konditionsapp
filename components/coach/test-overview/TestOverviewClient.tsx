@@ -16,6 +16,7 @@ import { GroupStats } from './GroupStats'
 import { YearOverYearChart } from './YearOverYearChart'
 import { BarChart3, Users, Calendar, FlaskConical, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 
 interface Team {
   id: string
@@ -107,9 +108,9 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 bg-white/5 dark:bg-slate-950/20 border border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
         <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-48 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
             <SelectValue placeholder="Alla lag" />
           </SelectTrigger>
           <SelectContent>
@@ -122,7 +123,7 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
 
         {canAccessSimca && selectedTeam !== 'all' && (
           <a href={`${businessSlug ? `/${businessSlug}` : ''}/coach/teams/${selectedTeam}/multivariate`}>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="bg-white/5 hover:bg-white/10 border-white/10 text-slate-200 hover:text-white">
               <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
               SIMCA-analys
               <ExternalLink className="h-3 w-3 ml-1" />
@@ -131,18 +132,18 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
         )}
 
         {selectedAthleteIds.length > 0 && (
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-xs bg-blue-500/10 border-blue-500/30 text-blue-400">
             {selectedAthleteIds.length} valda för jämförelse
           </Badge>
         )}
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="overview">Översikt</TabsTrigger>
-          <TabsTrigger value="comparison">Jämförelse</TabsTrigger>
-          <TabsTrigger value="trends">Utveckling</TabsTrigger>
-          <TabsTrigger value="group">Gruppstatistik</TabsTrigger>
+        <TabsList className="flex-wrap bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Översikt</TabsTrigger>
+          <TabsTrigger value="comparison" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Jämförelse</TabsTrigger>
+          <TabsTrigger value="trends" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Utveckling</TabsTrigger>
+          <TabsTrigger value="group" className="data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">Gruppstatistik</TabsTrigger>
         </TabsList>
 
         {/* Overview - athlete list with selection */}
@@ -158,7 +159,7 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
               Inga testresultat hittades
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-2">
               <p className="text-xs text-muted-foreground mb-2">Klicka för att välja atleter till jämförelse</p>
               {athletes.map((a) => {
                 const isSelected = selectedAthleteIds.includes(a.id)
@@ -166,15 +167,15 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
                   <button
                     key={a.id}
                     onClick={() => toggleAthlete(a.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-colors ${
+                    className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-all duration-300 border ${
                       isSelected
-                        ? 'bg-blue-50 border border-blue-200 dark:bg-blue-950/30 dark:border-blue-800'
-                        : 'hover:bg-muted/50 border border-transparent'
+                        ? 'bg-blue-500/10 border-blue-500/30 text-white shadow-[0_0_15px_rgba(59,130,246,0.1)]'
+                        : 'bg-white/5 dark:bg-slate-950/20 hover:bg-white/10 dark:hover:bg-slate-900/30 border-white/5 text-slate-300 hover:text-white'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                        isSelected ? 'bg-blue-600 border-blue-600' : 'border-muted-foreground/30'
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                        isSelected ? 'bg-blue-500 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'border-white/20 bg-white/5'
                       }`}>
                         {isSelected && <span className="text-white text-xs">✓</span>}
                       </div>
@@ -190,13 +191,13 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
                       {a.latestVo2max && (
                         <div className="text-right">
                           <span className="text-muted-foreground">VO2 </span>
-                          <span className="font-semibold">{a.latestVo2max.toFixed(1)}</span>
+                          <span className="font-semibold text-slate-200">{a.latestVo2max.toFixed(1)}</span>
                         </div>
                       )}
                       {a.latestMaxHR && (
                         <div className="text-right">
                           <span className="text-muted-foreground">HR </span>
-                          <span className="font-semibold">{a.latestMaxHR}</span>
+                          <span className="font-semibold text-slate-200">{a.latestMaxHR}</span>
                         </div>
                       )}
                     </div>
@@ -215,13 +216,18 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
         {/* Year-over-year trends */}
         <TabsContent value="trends">
           <div className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex gap-2 bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-lg w-fit">
               {(['vo2max', 'maxHR', 'maxLactate'] as const).map((m) => (
                 <Button
                   key={m}
-                  variant={selectedMetric === m ? 'default' : 'outline'}
+                  variant="ghost"
                   size="sm"
                   onClick={() => setSelectedMetric(m)}
+                  className={`text-xs transition-all duration-300 ${
+                    selectedMetric === m
+                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.15)]'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
                 >
                   {m === 'vo2max' ? 'VO2max' : m === 'maxHR' ? 'Max HR' : 'Max Laktat'}
                 </Button>

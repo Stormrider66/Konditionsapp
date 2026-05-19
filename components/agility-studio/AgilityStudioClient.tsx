@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Plus, Search, Zap, Dumbbell, Timer, BarChart3, FileUp } from 'lucide-react'
 import { toast } from 'sonner'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { DrillLibrary } from './DrillLibrary'
 import { WorkoutList } from './WorkoutList'
 import { AgilityWorkoutBuilder, type ImportedDrillSeed } from './AgilityWorkoutBuilder'
@@ -156,21 +157,21 @@ export default function AgilityStudioClient({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 bg-white/5 dark:bg-slate-950/20 border border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
           />
         </div>
         <Select
           value={developmentStage}
           onValueChange={(value) => setDevelopmentStage(value as DevelopmentStage | 'all')}
         >
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-[200px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
             <SelectValue placeholder={t('developmentStage')} />
           </SelectTrigger>
           <SelectContent>
@@ -185,20 +186,20 @@ export default function AgilityStudioClient({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="drills" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-4 bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl">
+          <TabsTrigger value="drills" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <Dumbbell className="h-4 w-4" />
             <span className="hidden sm:inline">{t('tabs.drills')}</span>
           </TabsTrigger>
-          <TabsTrigger value="workouts" className="flex items-center gap-2">
+          <TabsTrigger value="workouts" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <Zap className="h-4 w-4" />
             <span className="hidden sm:inline">{t('tabs.workouts')}</span>
           </TabsTrigger>
-          <TabsTrigger value="testing" className="flex items-center gap-2">
+          <TabsTrigger value="testing" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <Timer className="h-4 w-4" />
             <span className="hidden sm:inline">{t('tabs.testing')}</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
+          <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">{t('tabs.analytics')}</span>
           </TabsTrigger>
@@ -254,11 +255,13 @@ export default function AgilityStudioClient({
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-6">
-          <div className="text-center py-12 text-muted-foreground">
-            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">{t('analyticsComingSoon')}</h3>
-            <p>{t('analyticsDescription')}</p>
-          </div>
+          <GlassCard glow="blue" className="text-center py-12">
+            <GlassCardContent>
+              <BarChart3 className="h-12 w-12 mx-auto mb-4 text-blue-400 animate-pulse" />
+              <h3 className="text-lg font-medium text-white">{t('analyticsComingSoon')}</h3>
+              <p className="text-slate-400">{t('analyticsDescription')}</p>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
       </Tabs>
 

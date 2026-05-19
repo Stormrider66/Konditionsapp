@@ -103,16 +103,16 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
       </div>
 
       <Tabs id="cardio-studio-tabs" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="builder" className="flex items-center gap-2">
+        <TabsList className="bg-slate-900/40 dark:bg-slate-950/30 border border-white/5 p-1 rounded-xl gap-1">
+          <TabsTrigger value="builder" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <Timer className="h-4 w-4" />
             Skapa Pass
           </TabsTrigger>
-          <TabsTrigger value="library" className="flex items-center gap-2">
+          <TabsTrigger value="library" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <Library className="h-4 w-4" />
             Mina Pass
           </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2">
+          <TabsTrigger value="templates" className="flex items-center gap-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30">
             <BookOpen className="h-4 w-4" />
             Mallar
           </TabsTrigger>
