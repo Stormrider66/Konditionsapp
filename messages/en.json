@@ -14115,6 +14115,27 @@
         "label": "Heart rate: {heartRate} bpm"
       }
     },
+    "substrateUtilizationChart": {
+      "axes": {
+        "intensity": {
+          "running": "Speed (km/h)",
+          "cycling": "Power (W)",
+          "default": "Pace (min/km)"
+        },
+        "unit": {
+          "running": "km/h",
+          "cycling": "W",
+          "default": "min/km"
+        }
+      },
+      "series": {
+        "fat": "Fat oxidation",
+        "cho": "Carbohydrate oxidation"
+      },
+      "crossover": {
+        "label": "Crossover"
+      }
+    },
     "coachCalendar": {
       "title": "Calendar",
       "subtitle": "Overview of all athletes' schedules and events",

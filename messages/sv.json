@@ -14461,6 +14461,27 @@
         "label": "Puls: {heartRate} slag/min"
       }
     },
+    "substrateUtilizationChart": {
+      "axes": {
+        "intensity": {
+          "running": "Hastighet (km/h)",
+          "cycling": "Effekt (W)",
+          "default": "Tempo (min/km)"
+        },
+        "unit": {
+          "running": "km/h",
+          "cycling": "W",
+          "default": "min/km"
+        }
+      },
+      "series": {
+        "fat": "Fettförbränning",
+        "cho": "Kolhydratförbränning"
+      },
+      "crossover": {
+        "label": "Crossover"
+      }
+    },
     "coachCalendar": {
       "title": "Kalender",
       "subtitle": "Överblick av alla atleters schema och händelser",

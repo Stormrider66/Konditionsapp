@@ -12,6 +12,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { TestStage, TestType } from '@/types'
+import { useTranslations } from '@/i18n/client'
 
 interface SubstrateUtilizationChartProps {
   stages: TestStage[]
@@ -19,6 +20,8 @@ interface SubstrateUtilizationChartProps {
 }
 
 export function SubstrateUtilizationChart({ stages, testType }: SubstrateUtilizationChartProps) {
+  const t = useTranslations('components.substrateUtilizationChart')
+
   const chartData = stages
     .filter(s => s.fatPercent != null && s.choPercent != null)
     .map(stage => {
@@ -51,8 +54,11 @@ export function SubstrateUtilizationChart({ stages, testType }: SubstrateUtiliza
   }
 
   const intensityLabel =
-    testType === 'RUNNING' ? 'Hastighet (km/h)' :
-    testType === 'CYCLING' ? 'Effekt (W)' : 'Tempo (min/km)'
+    testType === 'RUNNING'
+      ? t('axes.intensity.running')
+      : testType === 'CYCLING'
+      ? t('axes.intensity.cycling')
+      : t('axes.intensity.default')
 
   return (
     <ResponsiveContainer width="100%" height={350}>
@@ -69,12 +75,20 @@ export function SubstrateUtilizationChart({ stages, testType }: SubstrateUtiliza
         <Tooltip
           formatter={(value: number, name: string) => [
             `${value.toFixed(1)}%`,
-            name === 'fat' ? 'Fettförbränning' : 'Kolhydratförbränning'
+            name === 'fat' ? t('series.fat') : t('series.cho')
           ]}
-          labelFormatter={(label) => `${label} ${testType === 'RUNNING' ? 'km/h' : testType === 'CYCLING' ? 'W' : 'min/km'}`}
+          labelFormatter={(label) =>
+            `${label} ${
+              testType === 'RUNNING'
+                ? t('axes.unit.running')
+                : testType === 'CYCLING'
+                  ? t('axes.unit.cycling')
+                  : t('axes.unit.default')
+            }`
+          }
         />
         <Legend
-          formatter={(value) => value === 'fat' ? 'Fettförbränning' : 'Kolhydratförbränning'}
+          formatter={(value) => (value === 'fat' ? t('series.fat') : t('series.cho'))}
         />
         <Area
           type="monotone"
@@ -99,7 +113,7 @@ export function SubstrateUtilizationChart({ stages, testType }: SubstrateUtiliza
             strokeDasharray="5 5"
             strokeWidth={2}
             label={{
-              value: `Crossover ${crossoverIntensity.toFixed(1)}`,
+              value: `${t('crossover.label')} ${crossoverIntensity.toFixed(1)}`,
               position: 'top',
               fill: '#ef4444',
               fontSize: 12,
