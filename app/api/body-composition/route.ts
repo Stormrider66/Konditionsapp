@@ -12,12 +12,15 @@ import {
   categorizeBodyFat,
 } from '@/lib/ai/nutrition-calculator'
 
+type AppLocale = 'en' | 'sv'
+
 /**
  * POST /api/body-composition
  * Create new body composition measurement
  */
 export async function POST(req: NextRequest) {
   try {
+    const locale = getRequestLocale(req)
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -134,7 +137,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Calculate additional analysis
-    const analysis = analyzeBodyComposition(measurement, client)
+    const analysis = analyzeBodyComposition(measurement, client, locale)
 
     return NextResponse.json({ measurement, analysis }, { status: 201 })
   } catch (error) {
@@ -158,6 +161,7 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
+    const locale = getRequestLocale(req)
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -211,7 +215,7 @@ export async function GET(req: NextRequest) {
       return {
         ...m,
         changes,
-        analysis: includeAnalysis ? analyzeBodyComposition(m, client) : undefined,
+        analysis: includeAnalysis ? analyzeBodyComposition(m, client, locale) : undefined,
       }
     })
 
@@ -283,7 +287,8 @@ function analyzeBodyComposition(
     gender: string | null
     birthDate: Date | null
     height: number | null
-  }
+  },
+  locale: AppLocale
 ) {
   const analysis: {
     bmiCategory?: string
@@ -298,17 +303,17 @@ function analyzeBodyComposition(
   // BMI category
   if (measurement.bmi) {
     if (measurement.bmi < 18.5) {
-      analysis.bmiCategory = 'Undervikt'
+      analysis.bmiCategory = t(locale, 'Underweight', 'Undervikt')
     } else if (measurement.bmi < 25) {
-      analysis.bmiCategory = 'Normalvikt'
+      analysis.bmiCategory = t(locale, 'Normal weight', 'Normalvikt')
     } else if (measurement.bmi < 30) {
-      analysis.bmiCategory = 'Övervikt'
+      analysis.bmiCategory = t(locale, 'Overweight', 'Övervikt')
     } else if (measurement.bmi < 35) {
-      analysis.bmiCategory = 'Fetma grad I'
+      analysis.bmiCategory = t(locale, 'Obesity class I', 'Fetma grad I')
     } else if (measurement.bmi < 40) {
-      analysis.bmiCategory = 'Fetma grad II'
+      analysis.bmiCategory = t(locale, 'Obesity class II', 'Fetma grad II')
     } else {
-      analysis.bmiCategory = 'Fetma grad III'
+      analysis.bmiCategory = t(locale, 'Obesity class III', 'Fetma grad III')
     }
   }
 
@@ -318,11 +323,11 @@ function analyzeBodyComposition(
       (new Date().getTime() - new Date(client.birthDate).getTime()) /
       (1000 * 60 * 60 * 24 * 365.25)
     )
-    analysis.bodyFatCategory = categorizeBodyFat(
+    analysis.bodyFatCategory = localizeBodyFatCategory(categorizeBodyFat(
       measurement.bodyFatPercent,
       client.gender as 'MALE' | 'FEMALE',
       age
-    )
+    ), locale)
   }
 
   // Visceral fat category
@@ -330,9 +335,9 @@ function analyzeBodyComposition(
     if (measurement.visceralFat <= 9) {
       analysis.visceralFatCategory = 'Normal'
     } else if (measurement.visceralFat <= 14) {
-      analysis.visceralFatCategory = 'Förhöjd'
+      analysis.visceralFatCategory = t(locale, 'Elevated', 'Förhöjd')
     } else {
-      analysis.visceralFatCategory = 'Hög'
+      analysis.visceralFatCategory = t(locale, 'High', 'Hög')
     }
   }
 
@@ -340,46 +345,81 @@ function analyzeBodyComposition(
   if (measurement.ffmi && client.gender) {
     if (client.gender === 'MALE') {
       if (measurement.ffmi < 18) {
-        analysis.ffmiCategory = 'Under medel'
+        analysis.ffmiCategory = t(locale, 'Below average', 'Under medel')
       } else if (measurement.ffmi < 20) {
-        analysis.ffmiCategory = 'Medel'
+        analysis.ffmiCategory = t(locale, 'Average', 'Medel')
       } else if (measurement.ffmi < 22) {
-        analysis.ffmiCategory = 'Över medel'
+        analysis.ffmiCategory = t(locale, 'Above average', 'Över medel')
       } else if (measurement.ffmi < 25) {
-        analysis.ffmiCategory = 'Utmärkt'
+        analysis.ffmiCategory = t(locale, 'Excellent', 'Utmärkt')
       } else {
-        analysis.ffmiCategory = 'Exceptionell'
+        analysis.ffmiCategory = t(locale, 'Exceptional', 'Exceptionell')
       }
     } else {
       if (measurement.ffmi < 15) {
-        analysis.ffmiCategory = 'Under medel'
+        analysis.ffmiCategory = t(locale, 'Below average', 'Under medel')
       } else if (measurement.ffmi < 17) {
-        analysis.ffmiCategory = 'Medel'
+        analysis.ffmiCategory = t(locale, 'Average', 'Medel')
       } else if (measurement.ffmi < 19) {
-        analysis.ffmiCategory = 'Över medel'
+        analysis.ffmiCategory = t(locale, 'Above average', 'Över medel')
       } else if (measurement.ffmi < 21) {
-        analysis.ffmiCategory = 'Utmärkt'
+        analysis.ffmiCategory = t(locale, 'Excellent', 'Utmärkt')
       } else {
-        analysis.ffmiCategory = 'Exceptionell'
+        analysis.ffmiCategory = t(locale, 'Exceptional', 'Exceptionell')
       }
     }
   }
 
   // Generate recommendations
   if (measurement.visceralFat !== null && measurement.visceralFat > 12) {
-    analysis.recommendations.push('Visceralt fett är förhöjt. Fokusera på regelbunden aerob träning och minska raffinerade kolhydrater.')
+    analysis.recommendations.push(t(
+      locale,
+      'Visceral fat is elevated. Focus on regular aerobic training and reduce refined carbohydrates.',
+      'Visceralt fett är förhöjt. Fokusera på regelbunden aerob träning och minska raffinerade kolhydrater.'
+    ))
   }
 
   if (measurement.bodyFatPercent && client.gender) {
     const highThreshold = client.gender === 'MALE' ? 25 : 32
     if (measurement.bodyFatPercent > highThreshold) {
-      analysis.recommendations.push('Överväg ett måttligt kaloriunderskott (250-500 kcal/dag) tillsammans med styrketräning för att bevara muskelmassa.')
+      analysis.recommendations.push(t(
+        locale,
+        'Consider a moderate calorie deficit (250-500 kcal/day) together with strength training to preserve muscle mass.',
+        'Överväg ett måttligt kaloriunderskott (250-500 kcal/dag) tillsammans med styrketräning för att bevara muskelmassa.'
+      ))
     }
   }
 
   if (measurement.bmi && measurement.bmi < 18.5) {
-    analysis.recommendations.push('Fokusera på näringstät kost med tillräckligt protein för att bygga muskelmassa.')
+    analysis.recommendations.push(t(
+      locale,
+      'Focus on nutrient-dense food with enough protein to build muscle mass.',
+      'Fokusera på näringstät kost med tillräckligt protein för att bygga muskelmassa.'
+    ))
   }
 
   return analysis
+}
+
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? ''
+  return acceptLanguage.startsWith('sv') || acceptLanguage.includes('sv-') ? 'sv' : 'en'
+}
+
+function localizeBodyFatCategory(category: string, locale: AppLocale): string {
+  if (locale === 'sv') return category
+
+  const enCategories: Record<string, string> = {
+    'Under essentiell nivå (ohälsosamt)': 'Below essential level (unhealthy)',
+    Tävlingsform: 'Competition lean',
+    Atletisk: 'Athletic',
+    Fitness: 'Fitness',
+    Acceptabel: 'Acceptable',
+    Överskott: 'Excess',
+  }
+  return enCategories[category] || category
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
