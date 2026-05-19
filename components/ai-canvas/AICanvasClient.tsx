@@ -481,7 +481,7 @@ function truncateSentence(value: string, maxLength = 170): string {
   return `${clean.slice(0, maxLength - 1).trim()}...`
 }
 
-function buildAthleteMessageDraft(athleteName: string, canvasTitle: string, blocks: CanvasBlock[]): string {
+function buildAthleteMessageDraft(athleteName: string, canvasTitle: string, blocks: CanvasBlock[], locale: AppLocale): string {
   const insights: string[] = []
   const nextSteps: string[] = []
 
@@ -499,7 +499,11 @@ function buildAthleteMessageDraft(athleteName: string, canvasTitle: string, bloc
     if (block.type === 'risk-list') {
       for (const risk of block.risks || []) {
         if (risk.priority === 'high' || risk.priority === 'medium') {
-          insights.push(`Vi följer upp ${risk.title.toLowerCase()}: ${truncateSentence(risk.description, 120)}`)
+          insights.push(
+            locale === 'sv'
+              ? `Vi följer upp ${risk.title.toLowerCase()}: ${truncateSentence(risk.description, 120)}`
+              : `We are following up on ${risk.title.toLowerCase()}: ${truncateSentence(risk.description, 120)}`
+          )
         }
       }
     }
@@ -512,38 +516,49 @@ function buildAthleteMessageDraft(athleteName: string, canvasTitle: string, bloc
   const uniqueInsights = Array.from(new Set(insights.filter(Boolean))).slice(0, 3)
   const uniqueNextSteps = Array.from(new Set(nextSteps.filter(Boolean))).slice(0, 3)
   const titleLine = canvasTitle.trim() && canvasTitle !== 'Untitled coach canvas'
-    ? `Jag har gått igenom ${canvasTitle.trim().toLowerCase()}`
-    : 'Jag har gått igenom din senaste status'
-  const messageLines = [
-    `Hej ${athleteName.split(' ')[0]}!`,
-    '',
-    `${titleLine} och ville dela en kort sammanfattning.`,
-    '',
-    ...(
-      uniqueInsights.length > 0
-        ? ['Viktigast just nu:', ...uniqueInsights.map((item) => `- ${item}`), '']
-        : []
-    ),
-    ...(
-      uniqueNextSteps.length > 0
-        ? ['Nästa steg:', ...uniqueNextSteps.map((item) => `- ${item}`), '']
-        : ['Nästa steg är att vi stämmer av hur kroppen svarar och justerar planen vid behov.', '']
-    ),
-    'Svara gärna om något känns oklart eller om dagsformen har ändrats.',
-  ]
+    ? locale === 'sv'
+      ? `Jag har gått igenom ${canvasTitle.trim().toLowerCase()}`
+      : `I have reviewed ${canvasTitle.trim().toLowerCase()}`
+    : locale === 'sv'
+      ? 'Jag har gått igenom din senaste status'
+      : 'I have reviewed your latest status'
+  const messageLines = locale === 'sv'
+    ? [
+        `Hej ${athleteName.split(' ')[0]}!`,
+        '',
+        `${titleLine} och ville dela en kort sammanfattning.`,
+        '',
+        ...(uniqueInsights.length > 0 ? ['Viktigast just nu:', ...uniqueInsights.map((item) => `- ${item}`), ''] : []),
+        ...(uniqueNextSteps.length > 0
+          ? ['Nästa steg:', ...uniqueNextSteps.map((item) => `- ${item}`), '']
+          : ['Nästa steg är att vi stämmer av hur kroppen svarar och justerar planen vid behov.', '']),
+        'Svara gärna om något känns oklart eller om dagsformen har ändrats.',
+      ]
+    : [
+        `Hi ${athleteName.split(' ')[0]}!`,
+        '',
+        `${titleLine} and wanted to share a short summary.`,
+        '',
+        ...(uniqueInsights.length > 0 ? ['Most important right now:', ...uniqueInsights.map((item) => `- ${item}`), ''] : []),
+        ...(uniqueNextSteps.length > 0
+          ? ['Next steps:', ...uniqueNextSteps.map((item) => `- ${item}`), '']
+          : ['Next step is checking how your body responds and adjusting the plan if needed.', '']),
+        'Reply if anything feels unclear or if your daily status has changed.',
+      ]
 
   return messageLines.join('\n').slice(0, 1000)
 }
 
 function buildFollowUpTaskTitle(
   title: string,
+  locale: AppLocale,
   subject?: { type: 'athlete' | 'team'; name: string }
 ): string {
   const prefix = subject
-    ? subject.type === 'athlete'
+    ? locale === 'sv'
       ? `Följ upp ${subject.name}`
-      : `Följ upp ${subject.name}`
-    : 'Följ upp AI Canvas'
+      : `Follow up ${subject.name}`
+    : locale === 'sv' ? 'Följ upp AI Canvas' : 'Follow up AI Canvas'
 
   if (!title.trim() || title === 'Untitled coach canvas') return prefix
   return `${prefix}: ${title.trim()}`.slice(0, 160)
@@ -552,6 +567,7 @@ function buildFollowUpTaskTitle(
 function buildFollowUpTaskDescription(
   title: string,
   blocks: CanvasBlock[],
+  locale: AppLocale,
   subject?: { type: 'athlete' | 'team'; name: string }
 ): string {
   const actionItems = blocks
@@ -564,18 +580,20 @@ function buildFollowUpTaskDescription(
     .filter((risk) => risk.priority === 'high' || risk.priority === 'medium')
     .slice(0, 4)
   const lines = [
-    `Skapad från AI Canvas: ${title.trim() || 'Untitled coach canvas'}`,
-    subject ? `Kontext: ${subject.name}` : null,
-    actionItems.length > 0 ? `Nästa steg:\n${actionItems.map((item) => `- ${item}`).join('\n')}` : null,
+    locale === 'sv'
+      ? `Skapad från AI Canvas: ${title.trim() || 'Untitled coach canvas'}`
+      : `Created from AI Canvas: ${title.trim() || 'Untitled coach canvas'}`,
+    subject ? `${locale === 'sv' ? 'Kontext' : 'Context'}: ${subject.name}` : null,
+    actionItems.length > 0 ? `${locale === 'sv' ? 'Nästa steg' : 'Next steps'}:\n${actionItems.map((item) => `- ${item}`).join('\n')}` : null,
     riskItems.length > 0
-      ? `Risker att följa upp:\n${riskItems.map((risk) => `- ${risk.title}: ${risk.description}`).join('\n')}`
+      ? `${locale === 'sv' ? 'Risker att följa upp' : 'Risks to follow up'}:\n${riskItems.map((risk) => `- ${risk.title}: ${risk.description}`).join('\n')}`
       : null,
   ].filter(Boolean)
 
   return lines.join('\n\n').slice(0, 1200)
 }
 
-function buildProgramDraftPrompt(title: string, blocks: CanvasBlock[]): string {
+function buildProgramDraftPrompt(title: string, blocks: CanvasBlock[], locale: AppLocale): string {
   const actionItems = blocks
     .filter((block) => block.type === 'actions' || block.type === 'checklist')
     .flatMap((block) => block.items || [])
@@ -589,38 +607,46 @@ function buildProgramDraftPrompt(title: string, blocks: CanvasBlock[]): string {
     .map((risk) => `${risk.title}: ${risk.description}`)
     .slice(0, 4)
 
-  return [
-    `Skapa ett träningsprogramutkast baserat på AI Canvas: ${title}`,
-    insights.length > 0 ? `Insikter:\n${insights.map((item) => `- ${item}`).join('\n')}` : null,
-    risks.length > 0 ? `Risker att respektera:\n${risks.map((item) => `- ${item}`).join('\n')}` : null,
-    actionItems.length > 0 ? `Önskade åtgärder:\n${actionItems.map((item) => `- ${item}`).join('\n')}` : null,
-    'Gör utkastet coachgranskningsbart och säkert. Skapa inget automatiskt utan coachens godkännande.',
-  ].filter(Boolean).join('\n\n').slice(0, 1200)
+  return locale === 'sv'
+    ? [
+        `Skapa ett träningsprogramutkast baserat på AI Canvas: ${title}`,
+        insights.length > 0 ? `Insikter:\n${insights.map((item) => `- ${item}`).join('\n')}` : null,
+        risks.length > 0 ? `Risker att respektera:\n${risks.map((item) => `- ${item}`).join('\n')}` : null,
+        actionItems.length > 0 ? `Önskade åtgärder:\n${actionItems.map((item) => `- ${item}`).join('\n')}` : null,
+        'Gör utkastet coachgranskningsbart och säkert. Skapa inget automatiskt utan coachens godkännande.',
+      ].filter(Boolean).join('\n\n').slice(0, 1200)
+    : [
+        `Create a training program draft based on AI Canvas: ${title}`,
+        insights.length > 0 ? `Insights:\n${insights.map((item) => `- ${item}`).join('\n')}` : null,
+        risks.length > 0 ? `Risks to respect:\n${risks.map((item) => `- ${item}`).join('\n')}` : null,
+        actionItems.length > 0 ? `Requested actions:\n${actionItems.map((item) => `- ${item}`).join('\n')}` : null,
+        'Make the draft coach-reviewable and safe. Do not create anything automatically without coach approval.',
+      ].filter(Boolean).join('\n\n').slice(0, 1200)
 }
 
 function looksLikeTestAction(value: string): boolean {
   return /test|retest|lt1|lt2|laktat|vo2|threshold|tröskel|fält/i.test(value)
 }
 
-function describeCanvasBlock(block: CanvasBlock): string {
+function describeCanvasBlock(block: CanvasBlock, locale: AppLocale): string {
   const parts = [
-    `Typ: ${block.type}`,
-    block.title ? `Titel: ${block.title}` : null,
-    block.content ? `Innehåll: ${block.content}` : null,
-    block.items?.length ? `Punkter: ${block.items.join('; ')}` : null,
+    `${locale === 'sv' ? 'Typ' : 'Type'}: ${block.type}`,
+    block.title ? `${locale === 'sv' ? 'Titel' : 'Title'}: ${block.title}` : null,
+    block.content ? `${locale === 'sv' ? 'Innehåll' : 'Content'}: ${block.content}` : null,
+    block.items?.length ? `${locale === 'sv' ? 'Punkter' : 'Items'}: ${block.items.join('; ')}` : null,
     block.metrics?.length
-      ? `Mätvärden: ${block.metrics.map((metric) => `${metric.label} ${metric.value}`).join('; ')}`
+      ? `${locale === 'sv' ? 'Mätvärden' : 'Metrics'}: ${block.metrics.map((metric) => `${metric.label} ${metric.value}`).join('; ')}`
       : null,
     block.risks?.length
-      ? `Risker: ${block.risks.map((risk) => `${risk.title} (${risk.priority}): ${risk.description}`).join('; ')}`
+      ? `${locale === 'sv' ? 'Risker' : 'Risks'}: ${block.risks.map((risk) => `${risk.title} (${risk.priority}): ${risk.description}`).join('; ')}`
       : null,
     block.trends?.length
-      ? `Trender: ${block.trends.map((trend) => `${trend.label}: ${trend.value}`).join('; ')}`
+      ? `${locale === 'sv' ? 'Trender' : 'Trends'}: ${block.trends.map((trend) => `${trend.label}: ${trend.value}`).join('; ')}`
       : null,
     block.points?.length
-      ? `Diagram: ${block.points.map((point) => `${point.label} ${point.value}`).join('; ')}`
+      ? `${locale === 'sv' ? 'Diagram' : 'Chart'}: ${block.points.map((point) => `${point.label} ${point.value}`).join('; ')}`
       : null,
-    block.columns?.length ? `Kolumner: ${block.columns.join(', ')}` : null,
+    block.columns?.length ? `${locale === 'sv' ? 'Kolumner' : 'Columns'}: ${block.columns.join(', ')}` : null,
   ].filter(Boolean)
 
   return parts.join('\n').slice(0, 3000)
@@ -792,7 +818,43 @@ function getCoachTierCanvasGuardrails(tier: AICanvasClientProps['coachTier'], lo
   return config[tier]
 }
 
-function createTeamPolishBlocks(team: CanvasTeamOption): CanvasBlock[] {
+function createTeamPolishBlocks(team: CanvasTeamOption, locale: AppLocale): CanvasBlock[] {
+  if (locale === 'en') {
+    return [
+      {
+        id: createId('team-priority'),
+        type: 'metric-row',
+        title: 'Team overview',
+        metrics: [
+          {
+            label: 'Team',
+            value: team.name,
+            detail: team.sportType ? `Sport: ${team.sportType}` : 'Sport missing',
+            tone: 'neutral',
+          },
+          {
+            label: 'Athletes',
+            value: String(team.athleteCount),
+            detail: team.athleteCount > 20 ? 'Use risk groups and batch follow-up.' : 'Suitable for quick individual review.',
+            tone: team.athleteCount > 20 ? 'warning' : 'positive',
+          },
+        ],
+        source: 'analytics',
+      },
+      {
+        id: createId('team-actions'),
+        type: 'actions',
+        title: 'Team follow-up',
+        items: [
+          'Group athletes by testing needs, readiness, and latest completed sessions.',
+          'Create a task for the 3 most important follow-ups before the next team brief.',
+          'Book retests for athletes whose test data is older than the current training phase.',
+        ],
+        source: 'analytics',
+      },
+    ]
+  }
+
   return [
     {
       id: createId('team-priority'),
@@ -976,7 +1038,11 @@ export function AICanvasClient({
       const payload = (await response.json()) as GenerateCanvasResponse
 
       if (!response.ok || !payload.success || !payload.blocks) {
-        addActionReceipt('error', 'Canvas kunde inte skapas', payload.error || 'Jag kunde inte skapa canvasblock just nu.')
+        addActionReceipt(
+          'error',
+          locale === 'sv' ? 'Canvas kunde inte skapas' : 'Canvas could not be created',
+          payload.error || (locale === 'sv' ? 'Jag kunde inte skapa canvasblock just nu.' : 'I could not create canvas blocks right now.')
+        )
         return
       }
 
@@ -986,7 +1052,7 @@ export function AICanvasClient({
         ...block,
       }))
       const nextBlocks = contextSelection.scope === 'team' && selectedTeam
-        ? [...createTeamPolishBlocks(selectedTeam), ...generatedBlocks].slice(0, 12)
+        ? [...createTeamPolishBlocks(selectedTeam, locale), ...generatedBlocks].slice(0, 12)
         : generatedBlocks
 
       setBlocks(nextBlocks)
@@ -1014,8 +1080,12 @@ export function AICanvasClient({
 
   const handleRegenerateBlock = async (block: CanvasBlock) => {
     setRegeneratingBlockId(block.id)
-    setAssistantMessage(`Jag förbättrar blocket "${block.title || block.type}"...`)
-    rememberSnapshot(`förbättring av ${block.title || block.type}`)
+    setAssistantMessage(
+      locale === 'sv'
+        ? `Jag förbättrar blocket "${block.title || block.type}"...`
+        : `I am improving the block "${block.title || block.type}"...`
+    )
+    rememberSnapshot(locale === 'sv' ? `förbättring av ${block.title || block.type}` : `improvement of ${block.title || block.type}`)
 
     try {
       const response = await fetch('/api/ai/canvas/generate', {
@@ -1024,11 +1094,13 @@ export function AICanvasClient({
         body: JSON.stringify({
           businessSlug,
           prompt: [
-            'Förbättra endast detta canvasblock.',
-            'Behåll samma ungefärliga syfte, men gör det tydligare, mer användbart och mer coachvänligt.',
-            'Returnera ett enda block om möjligt.',
+            locale === 'sv' ? 'Förbättra endast detta canvasblock.' : 'Improve only this canvas block.',
+            locale === 'sv'
+              ? 'Behåll samma ungefärliga syfte, men gör det tydligare, mer användbart och mer coachvänligt.'
+              : 'Keep roughly the same purpose, but make it clearer, more useful, and more coach-friendly.',
+            locale === 'sv' ? 'Returnera ett enda block om möjligt.' : 'Return a single block if possible.',
             '',
-            describeCanvasBlock(block),
+            describeCanvasBlock(block, locale),
           ].join('\n'),
           templateId: selectedTemplate.id,
           contextSummary,
@@ -1267,7 +1339,7 @@ export function AICanvasClient({
       return
     }
 
-    const content = buildAthleteMessageDraft(selectedAthlete.name, title, blocks)
+    const content = buildAthleteMessageDraft(selectedAthlete.name, title, blocks, locale)
     setAthleteMessageDraft({
       athleteId: selectedAthlete.id,
       athleteName: selectedAthlete.name,
@@ -1382,8 +1454,8 @@ export function AICanvasClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           businessSlug,
-          title: override?.title || buildFollowUpTaskTitle(title, subject),
-          description: override?.description || buildFollowUpTaskDescription(title, blocks, subject),
+          title: override?.title || buildFollowUpTaskTitle(title, locale, subject),
+          description: override?.description || buildFollowUpTaskDescription(title, blocks, locale, subject),
           priority: override?.priority || (blocks.some((block) => block.risks?.some((risk) => risk.priority === 'high')) ? 'HIGH' : 'NORMAL'),
           dueDate: override?.dueDate,
         }),
@@ -1430,7 +1502,9 @@ export function AICanvasClient({
         : contextSelection.scope === 'team' && selectedTeam
           ? `Team reassessment: ${selectedTeam.name}`
           : `Reassess AI Canvas: ${title}`.slice(0, 160),
-      description: `Påminnelse skapad från AI Canvas.\n\n${buildFollowUpTaskDescription(title, blocks)}`,
+      description: locale === 'sv'
+        ? `Påminnelse skapad från AI Canvas.\n\n${buildFollowUpTaskDescription(title, blocks, locale)}`
+        : `Reminder created from AI Canvas.\n\n${buildFollowUpTaskDescription(title, blocks, locale)}`,
       priority: 'NORMAL',
       dueDate: nextWeekIsoDate(),
     })
@@ -1442,7 +1516,7 @@ export function AICanvasClient({
       params.set('clientId', selectedAthlete.id)
     }
     params.set('source', 'AI Canvas')
-    params.set('prompt', buildProgramDraftPrompt(title, blocks))
+    params.set('prompt', buildProgramDraftPrompt(title, blocks, locale))
     window.open(`/${businessSlug}/coach/programs/generate?${params.toString()}`, '_blank', 'noopener,noreferrer')
     addActionReceipt('info', 'Programutkast öppnat', 'Jag öppnade programgeneratorn med canvasens sammanhang. Inget program har skapats ännu.')
   }
