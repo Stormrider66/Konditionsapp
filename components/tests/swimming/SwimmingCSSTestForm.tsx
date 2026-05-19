@@ -90,6 +90,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
   const form = useForm<CSSTestFormData>({
     resolver: zodResolver(cssTestSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       poolLength: '25',
       stroke: 'FREESTYLE',

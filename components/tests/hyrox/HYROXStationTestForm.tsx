@@ -104,6 +104,7 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
   const form = useForm<HYROXStationFormData>({
     resolver: zodResolver(hyroxStationSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       station: 'SKIERG_1K',
       category: 'OPEN',

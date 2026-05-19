@@ -91,6 +91,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
   const form = useForm<RSATestFormData>({
     resolver: zodResolver(rsaTestSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       sprintDistance: 30,
       restTime: 25,

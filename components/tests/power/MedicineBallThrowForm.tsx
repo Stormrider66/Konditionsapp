@@ -71,6 +71,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
   const form = useForm<MedicineBallThrowFormData>({
     resolver: zodResolver(medicineBallThrowSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       ballWeight: 3,
       throwType: 'OVERHEAD',
@@ -133,6 +134,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
 
       onTestSaved?.(resultData.data)
       form.reset({
+        clientId: data.clientId,
         testDate: new Date().toISOString().split('T')[0],
         ballWeight: 3,
         throwType: 'OVERHEAD',

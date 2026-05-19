@@ -140,6 +140,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
   const form = useForm<RaceSimulationFormData>({
     resolver: zodResolver(raceSimulationSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       category: 'OPEN',
       skierg: { minutes: 3, seconds: 30 },

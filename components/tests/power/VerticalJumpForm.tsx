@@ -229,6 +229,7 @@ function CMJForm({
   const form = useForm<CMJFormData>({
     resolver: zodResolver(cmjSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       protocol: 'VERTICAL_JUMP_CMJ',
       testDate: new Date().toISOString().split('T')[0],
       armSwing: false,
@@ -468,6 +469,7 @@ function SJForm({
   const form = useForm<SJFormData>({
     resolver: zodResolver(sjSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       protocol: 'VERTICAL_JUMP_SJ',
       testDate: new Date().toISOString().split('T')[0],
       squatDepth: 90,
@@ -678,6 +680,7 @@ function DJForm({
   const form = useForm<DJFormData>({
     resolver: zodResolver(djSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       protocol: 'VERTICAL_JUMP_DJ',
       testDate: new Date().toISOString().split('T')[0],
       dropHeight: 40,

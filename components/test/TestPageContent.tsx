@@ -53,9 +53,10 @@ const TEST_CATEGORIES = [
 interface TestPageContentProps {
   businessSlug: string
   organizationName?: string
+  initialClientId?: string
 }
 
-export function TestPageContent({ businessSlug, organizationName }: TestPageContentProps) {
+export function TestPageContent({ businessSlug, organizationName, initialClientId = '' }: TestPageContentProps) {
   const basePath = `/${businessSlug}/coach`
   const orgName = organizationName || PLATFORM_NAME
 
@@ -85,7 +86,8 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
 
         if (data.success && data.data.length > 0) {
           setClients(data.data)
-          setSelectedClientId(data.data[0].id)
+          const requestedClient = data.data.find((client: Client) => client.id === initialClientId)
+          setSelectedClientId(requestedClient?.id ?? data.data[0].id)
         }
         setLoading(false)
       } catch (error) {
@@ -123,9 +125,24 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
     fetchUserRole()
 
     return () => controller.abort()
-  }, [toast])
+  }, [initialClientId, toast])
 
   const selectedClient = clients.find((c) => c.id === selectedClientId)
+  const hasProfileContext = Boolean(initialClientId && clients.some((client) => client.id === initialClientId))
+  const orderedClients = selectedClientId
+    ? [...clients].sort((a, b) => {
+        if (a.id === selectedClientId) return -1
+        if (b.id === selectedClientId) return 1
+        return a.name.localeCompare(b.name, 'sv')
+      })
+    : clients
+  const sportFormClients = orderedClients.map(c => ({
+    id: c.id,
+    name: c.name,
+    weight: c.weight || 70,
+    gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+  }))
+  const profileHref = selectedClient ? `${basePath}/clients/${selectedClient.id}/profile` : null
 
   const handleSubmit = async (data: CreateTestFormData) => {
     if (!selectedClient) {
@@ -294,7 +311,17 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
         <div className="space-y-6">
           {/* Test Category Tabs */}
           <div>
-            <h1 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Nytt Test</h1>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Nytt Test</h1>
+              {hasProfileContext && profileHref && (
+                <Link href={profileHref}>
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Tillbaka till profil
+                  </Button>
+                </Link>
+              )}
+            </div>
             <Tabs value={testCategory} onValueChange={(v) => setTestCategory(v as TestCategory)}>
               <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 h-auto gap-1 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm p-1">
                 {TEST_CATEGORIES.map((category) => {
@@ -402,72 +429,42 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
               {/* Power Test Content */}
               <TabsContent value="power" className="mt-6">
                 <PowerTestForm
-                  clients={clients.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    weight: c.weight || 70,
-                    gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
-                  }))}
+                  clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Speed Test Content */}
               <TabsContent value="speed" className="mt-6">
                 <SpeedTestForm
-                  clients={clients.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    weight: c.weight || 70,
-                    gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
-                  }))}
+                  clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Agility Test Content */}
               <TabsContent value="agility" className="mt-6">
                 <AgilityTestForm
-                  clients={clients.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    weight: c.weight || 70,
-                    gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
-                  }))}
+                  clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Strength Test Content */}
               <TabsContent value="strength" className="mt-6">
                 <StrengthTestForm
-                  clients={clients.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    weight: c.weight || 70,
-                    gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
-                  }))}
+                  clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Swimming Test Content */}
               <TabsContent value="swimming" className="mt-6">
                 <SwimmingCSSTestForm
-                  clients={clients.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    weight: c.weight || 70,
-                    gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
-                  }))}
+                  clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Endurance Test Content */}
               <TabsContent value="endurance" className="mt-6">
                 <YoYoTestForm
-                  clients={clients.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    weight: c.weight || 70,
-                    gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
-                  }))}
+                  clients={sportFormClients}
                 />
               </TabsContent>
 
@@ -481,23 +478,13 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
 
                   <TabsContent value="station">
                     <HYROXStationTestForm
-                      clients={clients.map(c => ({
-                        id: c.id,
-                        name: c.name,
-                        weight: c.weight || 70,
-                        gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
-                      }))}
+                      clients={sportFormClients}
                     />
                   </TabsContent>
 
                   <TabsContent value="simulation">
                     <HYROXRaceSimulationForm
-                      clients={clients.map(c => ({
-                        id: c.id,
-                        name: c.name,
-                        weight: c.weight || 70,
-                        gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
-                      }))}
+                      clients={sportFormClients}
                     />
                   </TabsContent>
                 </Tabs>

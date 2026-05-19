@@ -39,6 +39,12 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
 
   const { tests, fieldTests, thresholdCalculations } = data.physiology
   const latestTest = tests[0]
+  const clientId = data.identity.client?.id
+  const newTestHref = basePath && clientId
+    ? `${basePath}/coach/test?clientId=${clientId}`
+    : basePath
+      ? `${basePath}/coach/test`
+      : '/'
 
   // Get latest thresholds
   const latestThreshold = thresholdCalculations[0]
@@ -66,7 +72,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
             Lägg till labb- eller fälttest för att se fysiologisk data här.
           </p>
           {viewMode === 'coach' && (
-            <Link href={basePath ? `${basePath}/coach/test` : '/'}>
+            <Link href={newTestHref}>
               <Button className={isGlass ? "bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-xs h-12 px-8 rounded-xl" : ""}>
                 Skapa nytt test
               </Button>
@@ -186,7 +192,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
               </CardDescriptionWrapper>
             </div>
             {viewMode === 'coach' && (
-              <Link href={`${basePath}/athlete/tests`}>
+              <Link href={newTestHref}>
                 <Button size="sm" variant={isGlass ? "ghost" : "outline"} className={cn(isGlass && "bg-white/5 border-white/10 hover:bg-white/10")}>+ Nytt test</Button>
               </Link>
             )}

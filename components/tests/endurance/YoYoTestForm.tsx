@@ -110,6 +110,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
   const form = useForm<YoYoTestFormData>({
     resolver: zodResolver(yoyoTestSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       testVersion: 'IR1',
       level: 17,

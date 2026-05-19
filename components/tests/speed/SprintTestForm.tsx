@@ -96,6 +96,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
   const form = useForm<SprintTestFormData>({
     resolver: zodResolver(sprintTestSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       distance: 20,
       startType: 'STANDING',
@@ -187,6 +188,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
 
       onTestSaved?.(resultData.data)
       form.reset({
+        clientId: data.clientId,
         testDate: new Date().toISOString().split('T')[0],
         distance: 20,
         startType: 'STANDING',

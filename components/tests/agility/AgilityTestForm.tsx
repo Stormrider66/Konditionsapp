@@ -108,6 +108,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
   const form = useForm<AgilityTestFormData>({
     resolver: zodResolver(agilityTestSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       testType: 'T_TEST',
       surface: 'INDOOR',
@@ -184,6 +185,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
 
       onTestSaved?.(resultData.data)
       form.reset({
+        clientId: data.clientId,
         testDate: new Date().toISOString().split('T')[0],
         testType: 'T_TEST',
         surface: 'INDOOR',

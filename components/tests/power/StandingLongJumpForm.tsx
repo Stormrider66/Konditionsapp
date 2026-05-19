@@ -85,6 +85,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
   const form = useForm<StandingLongJumpFormData>({
     resolver: zodResolver(standingLongJumpSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       attempts: 3,
     },
@@ -150,6 +151,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
 
       onTestSaved?.(resultData.data)
       form.reset({
+        clientId: data.clientId,
         testDate: new Date().toISOString().split('T')[0],
         attempts: 3,
       })
