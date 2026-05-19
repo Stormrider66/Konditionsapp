@@ -12,7 +12,7 @@ import { canAccessClient } from '@/lib/auth-utils'
 import { detectWorkoutConflicts } from '@/lib/calendar/conflict-detection'
 import {
   findOrCreateTrainingDayForWorkout,
-  formatDateSwedish,
+  formatDateForLocale,
 } from '@/lib/calendar/workout-scheduling'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { z } from 'zod'
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    const appLocale = dbUser.language === 'sv' ? 'sv' : 'en'
 
     const body = await request.json()
     const validationResult = copyWorkoutSchema.safeParse(body)
@@ -198,7 +199,10 @@ export async function POST(request: NextRequest) {
           clientId: client.id,
           changeType: 'WORKOUT_COPIED',
           changedById: dbUser.id,
-          description: `Passet "${workout.name}" kopierades från ${formatDateSwedish(workout.day.date)} till ${formatDateSwedish(targetDate)}`,
+          description:
+            appLocale === 'sv'
+              ? `Passet "${workout.name}" kopierades från ${formatDateForLocale(workout.day.date, appLocale)} till ${formatDateForLocale(targetDate, appLocale)}`
+              : `Workout "${workout.name}" was copied from ${formatDateForLocale(workout.day.date, appLocale)} to ${formatDateForLocale(targetDate, appLocale)}`,
           previousData: {
             sourceWorkoutId: workout.id,
             workoutName: workout.name,
@@ -232,7 +236,10 @@ export async function POST(request: NextRequest) {
       },
       warnings: conflicts.filter((conflict) => conflict.severity !== 'CRITICAL'),
       originalDate: workout.day.date.toISOString(),
-      message: `Passet har kopierats till ${formatDateSwedish(targetDate)}`,
+      message:
+        appLocale === 'sv'
+          ? `Passet har kopierats till ${formatDateForLocale(targetDate, appLocale)}`
+          : `Workout copied to ${formatDateForLocale(targetDate, appLocale)}`,
     })
   } catch (error) {
     logError('Error copying workout:', error)

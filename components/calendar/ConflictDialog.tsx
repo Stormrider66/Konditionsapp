@@ -32,10 +32,11 @@ import {
   SkipForward,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import type { Conflict, ConflictResolution, ConflictSeverity } from '@/lib/calendar/conflict-detection'
 import { useState } from 'react'
+import { useLocale } from '@/i18n/client'
 
 interface ConflictDialogProps {
   open: boolean
@@ -51,31 +52,31 @@ interface ConflictDialogProps {
 
 const severityConfig: Record<
   ConflictSeverity,
-  { color: string; bgColor: string; icon: typeof AlertTriangle; label: string }
+  { color: string; bgColor: string; icon: typeof AlertTriangle; label: { en: string; sv: string } }
 > = {
   CRITICAL: {
     color: 'text-red-600 dark:text-red-400',
     bgColor: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900',
     icon: XCircle,
-    label: 'Kritisk',
+    label: { en: 'Critical', sv: 'Kritisk' },
   },
   HIGH: {
     color: 'text-orange-600 dark:text-orange-400',
     bgColor: 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-900',
     icon: AlertTriangle,
-    label: 'Hög',
+    label: { en: 'High', sv: 'Hög' },
   },
   MEDIUM: {
     color: 'text-yellow-600 dark:text-yellow-400',
     bgColor: 'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-900',
     icon: AlertTriangle,
-    label: 'Medium',
+    label: { en: 'Medium', sv: 'Medium' },
   },
   LOW: {
     color: 'text-blue-600 dark:text-blue-400',
     bgColor: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900',
     icon: CheckCircle,
-    label: 'Låg',
+    label: { en: 'Low', sv: 'Låg' },
   },
 }
 
@@ -99,6 +100,9 @@ export function ConflictDialog({
   onCancel,
   isLoading = false,
 }: ConflictDialogProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const [selectedResolution, setSelectedResolution] = useState<ConflictResolution | null>(null)
 
   // Get all unique resolutions across all conflicts
@@ -129,22 +133,25 @@ export function ConflictDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-500" />
-            Konflikter upptäckta
+            {appLocale === 'sv' ? 'Konflikter upptäckta' : 'Conflicts detected'}
           </DialogTitle>
           <DialogDescription>
-            Det finns {conflicts.length} konflikt{conflicts.length > 1 ? 'er' : ''} när du flyttar{' '}
-            <strong>{workoutName}</strong> till{' '}
-            {format(targetDate, 'EEEE d MMMM', { locale: sv })}.
+            {appLocale === 'sv'
+              ? <>Det finns {conflicts.length} konflikt{conflicts.length > 1 ? 'er' : ''} när du flyttar{' '}</>
+              : <>There {conflicts.length === 1 ? 'is' : 'are'} {conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''} when moving{' '}</>}
+            <strong>{workoutName}</strong>{' '}
+            {appLocale === 'sv' ? 'till' : 'to'}{' '}
+            {format(targetDate, 'EEEE d MMMM', { locale: dateLocale })}.
           </DialogDescription>
         </DialogHeader>
 
         {/* Move summary */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-2 px-3 bg-muted rounded-md">
           <Calendar className="h-4 w-4" />
-          <span>{format(originalDate, 'd MMM', { locale: sv })}</span>
+          <span>{format(originalDate, 'd MMM', { locale: dateLocale })}</span>
           <ArrowRight className="h-4 w-4" />
           <span className="font-medium text-foreground">
-            {format(targetDate, 'd MMM', { locale: sv })}
+            {format(targetDate, 'd MMM', { locale: dateLocale })}
           </span>
         </div>
 
@@ -166,11 +173,11 @@ export function ConflictDialog({
                     variant="outline"
                     className={cn('text-xs', config.color)}
                   >
-                    {config.label}
+                    {config.label[appLocale]}
                   </Badge>
                 </AlertTitle>
                 <AlertDescription className="text-xs text-muted-foreground mt-1">
-                  Påverkar:{' '}
+                  {appLocale === 'sv' ? 'Påverkar:' : 'Affects:'}{' '}
                   {conflict.affectedItems.map((item) => item.name).join(', ')}
                 </AlertDescription>
               </Alert>
@@ -181,7 +188,9 @@ export function ConflictDialog({
         {/* Resolution options */}
         {sortedResolutions.length > 0 && (
           <div className="space-y-3 pt-2">
-            <h4 className="font-medium text-sm">Välj hur du vill hantera detta:</h4>
+            <h4 className="font-medium text-sm">
+              {appLocale === 'sv' ? 'Välj hur du vill hantera detta:' : 'Choose how to handle this:'}
+            </h4>
 
             <RadioGroup
               value={selectedResolution?.type || ''}
@@ -219,7 +228,7 @@ export function ConflictDialog({
                         <span className="font-medium">{resolution.description}</span>
                         {isRecommended && (
                           <Badge variant="secondary" className="text-xs">
-                            Rekommenderas
+                            {appLocale === 'sv' ? 'Rekommenderas' : 'Recommended'}
                           </Badge>
                         )}
                       </Label>
@@ -228,7 +237,8 @@ export function ConflictDialog({
                       </p>
                       {resolution.newDate && (
                         <p className="text-xs text-primary">
-                          Nytt datum: {format(new Date(resolution.newDate), 'EEEE d MMMM', { locale: sv })}
+                          {appLocale === 'sv' ? 'Nytt datum:' : 'New date:'}{' '}
+                          {format(new Date(resolution.newDate), 'EEEE d MMMM', { locale: dateLocale })}
                         </p>
                       )}
                     </div>
@@ -246,17 +256,18 @@ export function ConflictDialog({
         {hasCritical && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
-            <AlertTitle>Kritiska konflikter</AlertTitle>
+            <AlertTitle>{appLocale === 'sv' ? 'Kritiska konflikter' : 'Critical conflicts'}</AlertTitle>
             <AlertDescription>
-              Det finns kritiska konflikter som starkt avråder från denna flytt.
-              Välj en alternativ lösning ovan.
+              {appLocale === 'sv'
+                ? 'Det finns kritiska konflikter som starkt avråder från denna flytt. Välj en alternativ lösning ovan.'
+                : 'There are critical conflicts that strongly discourage this move. Choose an alternative solution above.'}
             </AlertDescription>
           </Alert>
         )}
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onCancel} disabled={isLoading}>
-            Avbryt
+            {appLocale === 'sv' ? 'Avbryt' : 'Cancel'}
           </Button>
 
           {!hasCritical && (
@@ -265,7 +276,9 @@ export function ConflictDialog({
               onClick={() => onResolve(null)}
               disabled={isLoading}
             >
-              {hasHigh ? 'Fortsätt ändå' : 'Flytta utan ändringar'}
+              {hasHigh
+                ? appLocale === 'sv' ? 'Fortsätt ändå' : 'Continue anyway'
+                : appLocale === 'sv' ? 'Flytta utan ändringar' : 'Move without changes'}
             </Button>
           )}
 
@@ -274,7 +287,9 @@ export function ConflictDialog({
               onClick={handleConfirm}
               disabled={isLoading}
             >
-              {isLoading ? 'Flyttar...' : 'Tillämpa lösning'}
+              {isLoading
+                ? appLocale === 'sv' ? 'Flyttar...' : 'Moving...'
+                : appLocale === 'sv' ? 'Tillämpa lösning' : 'Apply solution'}
             </Button>
           )}
         </DialogFooter>

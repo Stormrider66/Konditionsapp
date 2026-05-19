@@ -32,10 +32,11 @@ import {
   isSameDay,
   isToday,
 } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Check, Copy, GripVertical, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UnifiedCalendarItem, DayData, EVENT_TYPE_CONFIG, WORKOUT_TYPE_COLORS } from './types'
+import { useLocale } from '@/i18n/client'
 
 interface MonthViewDraggableProps {
   clientId: string
@@ -69,6 +70,9 @@ export function MonthViewDraggable({
   isCopying = false,
   isGlass = false,
 }: MonthViewDraggableProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const [activeItem, setActiveItem] = useState<UnifiedCalendarItem | null>(null)
   const [activeDragAction, setActiveDragAction] = useState<CalendarDragAction>('move')
   const [overDateKey, setOverDateKey] = useState<string | null>(null)
@@ -114,11 +118,11 @@ export function MonthViewDraggable({
   const days = useMemo(() => {
     const monthStart = startOfMonth(month)
     const monthEnd = endOfMonth(month)
-    const calendarStart = startOfWeek(monthStart, { locale: sv, weekStartsOn: 1 })
-    const calendarEnd = endOfWeek(monthEnd, { locale: sv, weekStartsOn: 1 })
+    const calendarStart = startOfWeek(monthStart, { locale: dateLocale, weekStartsOn: 1 })
+    const calendarEnd = endOfWeek(monthEnd, { locale: dateLocale, weekStartsOn: 1 })
 
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd })
-  }, [month])
+  }, [dateLocale, month])
 
   // Group items by date
   const itemsByDate = useMemo(() => {
@@ -247,7 +251,10 @@ export function MonthViewDraggable({
   )
 
   // Weekday headers
-  const weekDays = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+  const weekDays =
+    appLocale === 'sv'
+      ? ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+      : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   return (
     <DndContext
@@ -263,7 +270,11 @@ export function MonthViewDraggable({
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50 rounded-lg">
             <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-lg shadow-lg">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">{isCopying ? 'Kopierar pass...' : 'Flyttar pass...'}</span>
+              <span className="text-sm">
+                {isCopying
+                  ? appLocale === 'sv' ? 'Kopierar pass...' : 'Copying workout...'
+                  : appLocale === 'sv' ? 'Flyttar pass...' : 'Moving workout...'}
+              </span>
             </div>
           </div>
         )}
@@ -293,6 +304,7 @@ export function MonthViewDraggable({
                 isDropTarget={overDateKey === dateKey}
                 onClick={() => onDayClick(day.date)}
                 onItemClick={onItemClick}
+                locale={appLocale}
               />
             )
           })}
@@ -302,15 +314,15 @@ export function MonthViewDraggable({
         <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span>Pass</span>
+            <span>{appLocale === 'sv' ? 'Pass' : 'Workout'}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-red-500" />
-            <span>Tävling</span>
+            <span>{appLocale === 'sv' ? 'Tävling' : 'Race'}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-purple-500" />
-            <span>Händelse</span>
+            <span>{appLocale === 'sv' ? 'Händelse' : 'Event'}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-green-500" />
@@ -322,15 +334,18 @@ export function MonthViewDraggable({
           </div>
           <div className="flex items-center gap-1">
             <span className="w-3 h-3 bg-red-100 border border-red-300 rounded" />
-            <span>Blockerad</span>
+            <span>{appLocale === 'sv' ? 'Blockerad' : 'Blocked'}</span>
           </div>
           <div className="flex items-center gap-1">
             <GripVertical className="h-3 w-3" />
-            <span>Dra pass för att flytta</span>
+            <span>{appLocale === 'sv' ? 'Dra pass för att flytta' : 'Drag workouts to move'}</span>
           </div>
-          <div className="flex items-center gap-1" title="Håll Shift och dra för att skapa en kopia">
+          <div
+            className="flex items-center gap-1"
+            title={appLocale === 'sv' ? 'Håll Shift och dra för att skapa en kopia' : 'Hold Shift and drag to create a copy'}
+          >
             <Copy className="h-3 w-3" />
-            <span>Shift-dra för kopia</span>
+            <span>{appLocale === 'sv' ? 'Shift-dra för kopia' : 'Shift-drag to copy'}</span>
           </div>
         </div>
       </div>
@@ -377,6 +392,7 @@ interface DroppableDayCellProps {
   isDropTarget: boolean
   onClick: () => void
   onItemClick: (item: UnifiedCalendarItem) => void
+  locale: 'en' | 'sv'
 }
 
 function DroppableDayCell({
@@ -386,6 +402,7 @@ function DroppableDayCell({
   isDropTarget,
   onClick,
   onItemClick,
+  locale,
 }: DroppableDayCellProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: dateKey,
@@ -415,7 +432,7 @@ function DroppableDayCell({
     indicators.push({
       type: 'RACE',
       color: 'bg-red-500',
-      label: 'Tävling',
+      label: locale === 'sv' ? 'Tävling' : 'Race',
     })
   }
 
@@ -427,7 +444,7 @@ function DroppableDayCell({
     indicators.push({
       type: 'EVENT',
       color: 'bg-purple-500',
-      label: config?.labelSv || 'Händelse',
+      label: (locale === 'sv' ? config?.labelSv : config?.label) || (locale === 'sv' ? 'Händelse' : 'Event'),
     })
   }
 
@@ -436,7 +453,7 @@ function DroppableDayCell({
     indicators.push({
       type: 'FIELD_TEST',
       color: 'bg-green-500',
-      label: 'Fälttest',
+      label: locale === 'sv' ? 'Fälttest' : 'Field test',
     })
   }
 
@@ -445,7 +462,7 @@ function DroppableDayCell({
     indicators.push({
       type: 'WOD',
       color: 'bg-emerald-500',
-      label: 'AI-Pass',
+      label: locale === 'sv' ? 'AI-Pass' : 'AI workout',
     })
   }
 
@@ -496,7 +513,7 @@ function DroppableDayCell({
           {completedCount > 0 && (
             <span
               className="inline-flex min-w-5 h-5 items-center justify-center gap-0.5 rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white shadow-sm"
-              title={`${completedCount} genomförda pass`}
+              title={`${completedCount} ${locale === 'sv' ? 'genomförda pass' : 'completed workouts'}`}
             >
               <Check className="h-3 w-3" />
               {completedCount > 1 ? completedCount : null}
@@ -504,7 +521,7 @@ function DroppableDayCell({
           )}
           {richDetailCount > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-bold">
-              Detalj
+              {locale === 'sv' ? 'Detalj' : 'Detail'}
             </span>
           )}
           {day.isBlocked && (
@@ -540,11 +557,12 @@ function DroppableDayCell({
               key={item.id}
               item={item}
               onItemClick={onItemClick}
+              locale={locale}
             />
           ))}
           {day.items.length > 2 && (
             <div className="text-xs text-muted-foreground px-1">
-              +{day.items.length - 2} mer
+              +{day.items.length - 2} {locale === 'sv' ? 'mer' : 'more'}
             </div>
           )}
         </div>
@@ -556,12 +574,13 @@ function DroppableDayCell({
 interface DraggableItemProps {
   item: UnifiedCalendarItem
   onItemClick: (item: UnifiedCalendarItem) => void
+  locale: 'en' | 'sv'
 }
 
-function DraggableItem({ item, onItemClick }: DraggableItemProps) {
+function DraggableItem({ item, onItemClick, locale }: DraggableItemProps) {
   const isDraggable = isMovableCalendarItem(item)
   const isCompleted = isCompletedCalendarItem(item)
-  const preview = getMonthPreview(item)
+  const preview = getMonthPreview(item, locale)
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
@@ -594,7 +613,9 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
       style={isDraggable ? { touchAction: 'none' } : undefined}
       title={
         isDraggable
-          ? 'Dra för att flytta. Håll Shift medan du drar för att kopiera.'
+          ? locale === 'sv'
+            ? 'Dra för att flytta. Håll Shift medan du drar för att kopiera.'
+            : 'Drag to move. Hold Shift while dragging to copy.'
           : undefined
       }
       {...(isDraggable ? { ...attributes, ...listeners } : {})}
@@ -641,7 +662,7 @@ function isCompletedCalendarItem(item: UnifiedCalendarItem): boolean {
   )
 }
 
-function getMonthPreview(item: UnifiedCalendarItem): string | null {
+function getMonthPreview(item: UnifiedCalendarItem, locale: 'en' | 'sv'): string | null {
   if (item.type === 'WORKOUT' || item.type === 'AD_HOC') {
     if (typeof item.metadata.distance === 'number' && item.metadata.distance > 0) {
       return `${item.metadata.distance} km`
@@ -655,7 +676,7 @@ function getMonthPreview(item: UnifiedCalendarItem): string | null {
       return item.metadata.actualTime
     }
     if (typeof item.metadata.targetTime === 'string' && item.metadata.targetTime) {
-      return `Mål ${item.metadata.targetTime}`
+      return `${locale === 'sv' ? 'Mål' : 'Goal'} ${item.metadata.targetTime}`
     }
   }
   if (item.type === 'FIELD_TEST' && typeof item.metadata.testType === 'string') {

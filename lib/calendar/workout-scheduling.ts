@@ -40,7 +40,11 @@ export async function findOrCreateTrainingDayForWorkout(
 }
 
 export function formatDateSwedish(date: Date): string {
-  return date.toLocaleDateString('sv-SE', {
+  return formatDateForLocale(date, 'sv')
+}
+
+export function formatDateForLocale(date: Date, locale: 'en' | 'sv' = 'en'): string {
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'short',
