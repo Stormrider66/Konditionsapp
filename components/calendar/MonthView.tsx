@@ -18,10 +18,11 @@ import {
   isSameDay,
   isToday,
 } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UnifiedCalendarItem, DayData, EVENT_TYPE_CONFIG, WORKOUT_TYPE_COLORS } from './types'
+import { useLocale } from '@/i18n/client'
 
 interface MonthViewProps {
   clientId: string
@@ -40,15 +41,19 @@ export function MonthView({
   onItemClick,
   selectedDate,
 }: MonthViewProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
+
   // Generate all days to display (including days from adjacent months)
   const days = useMemo(() => {
     const monthStart = startOfMonth(month)
     const monthEnd = endOfMonth(month)
-    const calendarStart = startOfWeek(monthStart, { locale: sv, weekStartsOn: 1 })
-    const calendarEnd = endOfWeek(monthEnd, { locale: sv, weekStartsOn: 1 })
+    const calendarStart = startOfWeek(monthStart, { locale: dateLocale, weekStartsOn: 1 })
+    const calendarEnd = endOfWeek(monthEnd, { locale: dateLocale, weekStartsOn: 1 })
 
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd })
-  }, [month])
+  }, [dateLocale, month])
 
   // Group items by date
   const itemsByDate = useMemo(() => {
@@ -111,7 +116,10 @@ export function MonthView({
   }, [days, itemsByDate, month])
 
   // Weekday headers
-  const weekDays = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+  const weekDays =
+    appLocale === 'sv'
+      ? ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+      : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   return (
     <div className="w-full">
@@ -136,6 +144,7 @@ export function MonthView({
             isSelected={selectedDate ? isSameDay(day.date, selectedDate) : false}
             onClick={() => onDayClick(day.date)}
             onItemClick={onItemClick}
+            locale={appLocale}
           />
         ))}
       </div>
@@ -144,15 +153,15 @@ export function MonthView({
       <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-blue-500" />
-          <span>Pass</span>
+          <span>{appLocale === 'sv' ? 'Pass' : 'Workout'}</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-red-500" />
-          <span>Tävling</span>
+          <span>{appLocale === 'sv' ? 'Tävling' : 'Race'}</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-purple-500" />
-          <span>Händelse</span>
+          <span>{appLocale === 'sv' ? 'Händelse' : 'Event'}</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-green-500" />
@@ -160,7 +169,7 @@ export function MonthView({
         </div>
         <div className="flex items-center gap-1">
           <span className="w-3 h-3 bg-red-100 border border-red-300 rounded" />
-          <span>Blockerad</span>
+          <span>{appLocale === 'sv' ? 'Blockerad' : 'Blocked'}</span>
         </div>
       </div>
     </div>
@@ -172,9 +181,10 @@ interface DayCellProps {
   isSelected: boolean
   onClick: () => void
   onItemClick: (item: UnifiedCalendarItem) => void
+  locale: 'en' | 'sv'
 }
 
-function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
+function DayCell({ day, isSelected, onClick, onItemClick, locale }: DayCellProps) {
   const maxIndicators = 4
   const completedCount = day.items.filter(isCompletedCalendarItem).length
   const richDetailCount = day.items.filter((item) => hasRichDetails(item)).length
@@ -199,7 +209,7 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
     indicators.push({
       type: 'RACE',
       color: 'bg-red-500',
-      label: 'Tävling',
+      label: locale === 'sv' ? 'Tävling' : 'Race',
     })
   }
 
@@ -211,7 +221,7 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
     indicators.push({
       type: 'EVENT',
       color: 'bg-purple-500',
-      label: config?.labelSv || 'Händelse',
+      label: (locale === 'sv' ? config?.labelSv : config?.label) || (locale === 'sv' ? 'Händelse' : 'Event'),
     })
   }
 
@@ -220,7 +230,7 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
     indicators.push({
       type: 'FIELD_TEST',
       color: 'bg-green-500',
-      label: 'Fälttest',
+      label: locale === 'sv' ? 'Fälttest' : 'Field test',
     })
   }
 
@@ -251,7 +261,7 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
           {completedCount > 0 && (
             <span
               className="inline-flex min-w-5 h-5 items-center justify-center gap-0.5 rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white shadow-sm"
-              title={`${completedCount} genomförda pass`}
+              title={`${completedCount} ${locale === 'sv' ? 'genomförda pass' : 'completed workouts'}`}
             >
               <Check className="h-3 w-3" />
               {completedCount > 1 ? completedCount : null}
@@ -259,7 +269,7 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
           )}
           {richDetailCount > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-bold">
-              Detalj
+              {locale === 'sv' ? 'Detalj' : 'Detail'}
             </span>
           )}
           {day.isBlocked && (
@@ -296,7 +306,7 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
           {day.items.slice(0, 2).map((item) => (
             (() => {
               const isCompleted = isCompletedCalendarItem(item)
-              const preview = getMonthPreview(item)
+              const preview = getMonthPreview(item, locale)
 
               return (
                 <div
@@ -329,7 +339,7 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
           ))}
           {day.items.length > 2 && (
             <div className="text-xs text-muted-foreground px-1">
-              +{day.items.length - 2} mer
+              +{day.items.length - 2} {locale === 'sv' ? 'mer' : 'more'}
             </div>
           )}
         </div>
@@ -372,7 +382,7 @@ function isCompletedCalendarItem(item: UnifiedCalendarItem): boolean {
   )
 }
 
-function getMonthPreview(item: UnifiedCalendarItem): string | null {
+function getMonthPreview(item: UnifiedCalendarItem, locale: 'en' | 'sv'): string | null {
   if (item.type === 'WORKOUT') {
     if (typeof item.metadata.distance === 'number' && item.metadata.distance > 0) {
       return `${item.metadata.distance} km`
@@ -394,7 +404,7 @@ function getMonthPreview(item: UnifiedCalendarItem): string | null {
       return item.metadata.actualTime
     }
     if (typeof item.metadata.targetTime === 'string' && item.metadata.targetTime) {
-      return `Mål ${item.metadata.targetTime}`
+      return `${locale === 'sv' ? 'Mål' : 'Goal'} ${item.metadata.targetTime}`
     }
   }
   if (item.type === 'FIELD_TEST') {
