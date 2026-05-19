@@ -8,7 +8,8 @@
 
 import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import type { Locale } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Tent,
   ChevronDown,
@@ -40,6 +41,7 @@ import {
   type CampType,
   type CampFocus,
 } from '@/lib/calendar/training-camp'
+import { useLocale } from '@/i18n/client'
 
 interface TrainingCampPreviewProps {
   startDate: Date
@@ -58,6 +60,9 @@ export function TrainingCampPreview({
   sessionsPerDay = 2,
   showDetails = true,
 }: TrainingCampPreviewProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const [isExpanded, setIsExpanded] = useState(false)
 
   const plan = useMemo(() => {
@@ -89,11 +94,12 @@ export function TrainingCampPreview({
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h4 className="font-medium">Träningsläger</h4>
-            <Badge variant="outline">{getCampTypeLabel(campType)}</Badge>
+            <h4 className="font-medium">{appLocale === 'sv' ? 'Träningsläger' : 'Training camp'}</h4>
+            <Badge variant="outline">{getCampTypeLabel(campType, appLocale)}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            {plan.totalDays} dagar, {plan.totalSessions} pass
+            {plan.totalDays} {appLocale === 'sv' ? 'dagar' : 'days'}, {plan.totalSessions}{' '}
+            {appLocale === 'sv' ? 'pass' : 'sessions'}
           </p>
         </div>
       </div>
@@ -101,26 +107,28 @@ export function TrainingCampPreview({
       {/* Key Stats */}
       <div className="mt-4 grid grid-cols-4 gap-2">
         <div className="rounded-md bg-background p-2 text-center">
-          <p className="text-xs text-muted-foreground">Dagar</p>
+          <p className="text-xs text-muted-foreground">{appLocale === 'sv' ? 'Dagar' : 'Days'}</p>
           <p className="font-medium text-sm">{plan.totalDays}</p>
         </div>
         <div className="rounded-md bg-background p-2 text-center">
-          <p className="text-xs text-muted-foreground">Pass/dag</p>
+          <p className="text-xs text-muted-foreground">{appLocale === 'sv' ? 'Pass/dag' : 'Sessions/day'}</p>
           <p className="font-medium text-sm">{sessionsPerDay}</p>
         </div>
         <div className="rounded-md bg-background p-2 text-center">
-          <p className="text-xs text-muted-foreground">Snitt volym</p>
+          <p className="text-xs text-muted-foreground">{appLocale === 'sv' ? 'Snitt volym' : 'Avg volume'}</p>
           <p className="font-medium text-sm">{avgVolume}%</p>
         </div>
         <div className="rounded-md bg-background p-2 text-center">
-          <p className="text-xs text-muted-foreground">Toppvolym</p>
+          <p className="text-xs text-muted-foreground">{appLocale === 'sv' ? 'Toppvolym' : 'Peak volume'}</p>
           <p className="font-medium text-sm text-emerald-600">{peakVolume}%</p>
         </div>
       </div>
 
       {/* Volume Progression Chart */}
       <div className="mt-4 space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Volymsprogression</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          {appLocale === 'sv' ? 'Volymsprogression' : 'Volume progression'}
+        </p>
         <div className="flex items-end gap-1 h-12">
           {plan.volumeProgression.map((vol, i) => (
             <div
@@ -135,13 +143,13 @@ export function TrainingCampPreview({
                       : 'bg-emerald-300'
               }`}
               style={{ height: `${(vol / 150) * 100}%` }}
-              title={`Dag ${i + 1}: ${vol}%`}
+              title={`${appLocale === 'sv' ? 'Dag' : 'Day'} ${i + 1}: ${vol}%`}
             />
           ))}
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Dag 1</span>
-          <span>Dag {plan.totalDays}</span>
+          <span>{appLocale === 'sv' ? 'Dag' : 'Day'} 1</span>
+          <span>{appLocale === 'sv' ? 'Dag' : 'Day'} {plan.totalDays}</span>
         </div>
       </div>
 
@@ -150,7 +158,8 @@ export function TrainingCampPreview({
         <div className="mt-3 flex items-center gap-2">
           <Coffee className="h-4 w-4 text-blue-500" />
           <span className="text-sm text-muted-foreground">
-            Vilodagar: {plan.restDayPattern.map((d) => `Dag ${d}`).join(', ')}
+            {appLocale === 'sv' ? 'Vilodagar:' : 'Rest days:'}{' '}
+            {plan.restDayPattern.map((d) => `${appLocale === 'sv' ? 'Dag' : 'Day'} ${d}`).join(', ')}
           </span>
         </div>
       )}
@@ -160,7 +169,7 @@ export function TrainingCampPreview({
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="mt-4">
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="w-full justify-between">
-              <span>Visa dagligt schema</span>
+              <span>{appLocale === 'sv' ? 'Visa dagligt schema' : 'Show daily schedule'}</span>
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4" />
               ) : (
@@ -172,7 +181,7 @@ export function TrainingCampPreview({
             <ScrollArea className="mt-3 max-h-[350px]">
               <div className="space-y-3">
                 {plan.days.map((day) => (
-                  <CampDayCard key={day.day} campDay={day} />
+                  <CampDayCard key={day.day} campDay={day} locale={appLocale} dateLocale={dateLocale} />
                 ))}
               </div>
             </ScrollArea>
@@ -181,7 +190,7 @@ export function TrainingCampPreview({
             <div className="mt-4 rounded-md border p-3">
               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                 <Utensils className="h-4 w-4 text-emerald-500" />
-                <span>Näringstips</span>
+                <span>{appLocale === 'sv' ? 'Näringstips' : 'Nutrition tips'}</span>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1">
                 {plan.nutritionTips.slice(0, 3).map((tip, i) => (
@@ -197,7 +206,7 @@ export function TrainingCampPreview({
             <div className="mt-3 rounded-md border p-3">
               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                 <Activity className="h-4 w-4 text-blue-500" />
-                <span>Efter lägret</span>
+                <span>{appLocale === 'sv' ? 'Efter lägret' : 'After camp'}</span>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1">
                 {plan.recoveryRecommendations.slice(0, 3).map((rec, i) => (
@@ -215,7 +224,15 @@ export function TrainingCampPreview({
   )
 }
 
-function CampDayCard({ campDay }: { campDay: CampDay }) {
+function CampDayCard({
+  campDay,
+  locale,
+  dateLocale,
+}: {
+  campDay: CampDay
+  locale: 'en' | 'sv'
+  dateLocale: Locale
+}) {
   const SessionIcon = ({ type }: { type: CampSession['type'] }) => {
     switch (type) {
       case 'MORNING':
@@ -246,15 +263,15 @@ function CampDayCard({ campDay }: { campDay: CampDay }) {
     <div className={`rounded-md border bg-background p-3 ${campDay.isRestDay ? 'border-blue-200 dark:border-blue-800' : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Dag {campDay.day}</span>
+          <span className="text-sm font-medium">{locale === 'sv' ? 'Dag' : 'Day'} {campDay.day}</span>
           <span className="text-xs text-muted-foreground">
-            {format(campDay.date, 'EEE d MMM', { locale: sv })}
+            {format(campDay.date, 'EEE d MMM', { locale: dateLocale })}
           </span>
         </div>
         <div className="flex items-center gap-2">
           {campDay.isRestDay && (
             <Badge variant="outline" className="text-blue-600 bg-blue-50 dark:bg-blue-950/30">
-              Vilodag
+              {locale === 'sv' ? 'Vilodag' : 'Rest day'}
             </Badge>
           )}
           <Badge variant="secondary">{campDay.volumePercent}%</Badge>
@@ -283,10 +300,7 @@ function CampDayCard({ campDay }: { campDay: CampDay }) {
                 {session.durationMinutes} min
               </span>
               <Badge variant="outline" className={intensityColor(session.intensity)}>
-                {session.intensity === 'HARD' && 'Hård'}
-                {session.intensity === 'MODERATE' && 'Moderat'}
-                {session.intensity === 'EASY' && 'Lätt'}
-                {session.intensity === 'RECOVERY' && 'Vila'}
+                {getSessionIntensityLabel(session.intensity, locale)}
               </Badge>
             </div>
           </div>
@@ -301,4 +315,17 @@ function CampDayCard({ campDay }: { campDay: CampDay }) {
       )}
     </div>
   )
+}
+
+function getSessionIntensityLabel(intensity: CampSession['intensity'], locale: 'en' | 'sv'): string {
+  switch (intensity) {
+    case 'HARD':
+      return locale === 'sv' ? 'Hård' : 'Hard'
+    case 'MODERATE':
+      return locale === 'sv' ? 'Moderat' : 'Moderate'
+    case 'EASY':
+      return locale === 'sv' ? 'Lätt' : 'Easy'
+    case 'RECOVERY':
+      return locale === 'sv' ? 'Vila' : 'Recovery'
+  }
 }
