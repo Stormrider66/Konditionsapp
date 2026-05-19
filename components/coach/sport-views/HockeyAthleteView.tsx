@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,6 +39,7 @@ interface HockeyAthleteViewProps {
   clientId: string
   clientName: string
   settings?: HockeySettings | Record<string, unknown>
+  basePath?: string
 }
 
 interface HockeyTestSummary {
@@ -614,7 +616,7 @@ function readinessGapText(gap: NonNullable<HockeySummaryResponse['pathway']['nex
   return `${gap.label}: ${action} ${amount.toFixed(gap.unit === 's' ? 2 : 1)} ${gap.unit} to target`
 }
 
-export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthleteViewProps) {
+export function HockeyAthleteView({ clientId, clientName, settings, basePath = '' }: HockeyAthleteViewProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
   const [summary, setSummary] = useState<HockeySummaryResponse | null>(null)
@@ -677,6 +679,9 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
   const coachPlan = buildAthleteCoachPlan(summary, hockeySettings)
   const playerHighlight = buildPlayerHighlight(summary, clientName)
   const pathway = summary?.pathway
+  const newHockeyTestHref = basePath
+    ? `${basePath}/coach/test?clientId=${clientId}&category=hockey`
+    : ''
   const pathwayChartData: Array<Record<string, string | number | null>> = (pathway?.seasons ?? []).map((season) => ({
     season: season.season,
     level: season.level,
@@ -720,7 +725,7 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
       {/* Main Profile Card */}
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
                 <Shield className="h-5 w-5 text-blue-500" />
@@ -732,11 +737,20 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
                 <Badge className="bg-blue-500">{PHASE_LABELS[hockeySettings.seasonPhase]}</Badge>
               </CardDescription>
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>
-                {hockeySettings.yearsPlaying}
+            <div className="flex items-center gap-3 sm:flex-col sm:items-end">
+              {newHockeyTestHref && (
+                <Link href={newHockeyTestHref}>
+                  <Button size="sm" variant="outline">
+                    Registrera hockeytest
+                  </Button>
+                </Link>
+              )}
+              <div className="text-right">
+                <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>
+                  {hockeySettings.yearsPlaying}
+                </div>
+                <div className="text-xs" style={{ color: theme.colors.textMuted }}>års erfarenhet</div>
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>års erfarenhet</div>
             </div>
           </div>
         </CardHeader>

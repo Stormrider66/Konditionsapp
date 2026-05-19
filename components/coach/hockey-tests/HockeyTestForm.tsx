@@ -44,6 +44,7 @@ interface HockeyTestFormProps {
   clients: Client[]
   teams: Team[]
   businessSlug?: string
+  initialClientId?: string
   onSaved?: () => void
 }
 
@@ -367,12 +368,12 @@ function parseMusclLabCSV(text: string): Record<string, unknown> {
   return data
 }
 
-export function HockeyTestForm({ clients, teams, businessSlug, onSaved }: HockeyTestFormProps) {
+export function HockeyTestForm({ clients, teams, businessSlug, initialClientId = '', onSaved }: HockeyTestFormProps) {
   const scanInputRef = useRef<HTMLInputElement>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
   const [scanning, setScanning] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [clientId, setClientId] = useState('')
+  const [clientId, setClientId] = useState(initialClientId || clients[0]?.id || '')
   const [testDate, setTestDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
 

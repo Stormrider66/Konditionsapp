@@ -14,7 +14,7 @@ import { PLATFORM_NAME } from '@/lib/branding/types'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell, Shuffle, Waves, Activity, Flame } from 'lucide-react'
+import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell, Shuffle, Waves, Activity, Flame, Shield } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -35,8 +35,17 @@ import { StrengthTestForm } from '@/components/tests/strength'
 import { SwimmingCSSTestForm } from '@/components/tests/swimming'
 import { YoYoTestForm } from '@/components/tests/endurance'
 import { HYROXStationTestForm, HYROXRaceSimulationForm } from '@/components/tests/hyrox'
+import { HockeyTestForm } from '@/components/coach/hockey-tests/HockeyTestForm'
 
-type TestCategory = 'lactate' | 'body-composition' | 'power' | 'speed' | 'agility' | 'strength' | 'swimming' | 'endurance' | 'hyrox'
+type TestCategory = 'lactate' | 'body-composition' | 'power' | 'speed' | 'agility' | 'strength' | 'swimming' | 'endurance' | 'hyrox' | 'hockey'
+type TestPageClient = Client & {
+  sportProfile?: {
+    primarySport?: string | null
+    secondarySports?: string[] | null
+  } | null
+}
+
+const HOCKEY_SPORT = 'TEAM_ICE_HOCKEY'
 
 const TEST_CATEGORIES = [
   { value: 'lactate', label: 'Laktattest', icon: Droplet, available: true },
@@ -48,26 +57,32 @@ const TEST_CATEGORIES = [
   { value: 'swimming', label: 'Simning', icon: Waves, available: true },
   { value: 'endurance', label: 'Uthållighet', icon: Activity, available: true },
   { value: 'hyrox', label: 'HYROX', icon: Flame, available: true },
+  { value: 'hockey', label: 'Hockey', icon: Shield, available: true },
 ] as const
 
 interface TestPageContentProps {
   businessSlug: string
   organizationName?: string
   initialClientId?: string
+  initialCategory?: string
 }
 
-export function TestPageContent({ businessSlug, organizationName, initialClientId = '' }: TestPageContentProps) {
+function isTestCategory(value: string): value is TestCategory {
+  return TEST_CATEGORIES.some((category) => category.value === value)
+}
+
+export function TestPageContent({ businessSlug, organizationName, initialClientId = '', initialCategory = '' }: TestPageContentProps) {
   const basePath = `/${businessSlug}/coach`
   const orgName = organizationName || PLATFORM_NAME
 
-  const [testCategory, setTestCategory] = useState<TestCategory>('lactate')
+  const [testCategory, setTestCategory] = useState<TestCategory>(isTestCategory(initialCategory) ? initialCategory : 'lactate')
   const [showReport, setShowReport] = useState(false)
   const [reportData, setReportData] = useState<{
     client: Client
     test: Test
     calculations: TestCalculations
   } | null>(null)
-  const [clients, setClients] = useState<Client[]>([])
+  const [clients, setClients] = useState<TestPageClient[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [testType, setTestType] = useState<TestType>('RUNNING')
   const [loading, setLoading] = useState(true)
@@ -86,7 +101,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
 
         if (data.success && data.data.length > 0) {
           setClients(data.data)
-          const requestedClient = data.data.find((client: Client) => client.id === initialClientId)
+          const requestedClient = data.data.find((client: TestPageClient) => client.id === initialClientId)
           setSelectedClientId(requestedClient?.id ?? data.data[0].id)
         }
         setLoading(false)
@@ -128,6 +143,14 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
   }, [initialClientId, toast])
 
   const selectedClient = clients.find((c) => c.id === selectedClientId)
+  const isHockeyClient = (client: TestPageClient | undefined) => {
+    if (!client) return false
+    return client.sportProfile?.primarySport === HOCKEY_SPORT
+      || client.sportProfile?.secondarySports?.includes(HOCKEY_SPORT)
+      || client.team?.sportType === HOCKEY_SPORT
+  }
+  const selectedClientIsHockey = isHockeyClient(selectedClient)
+  const visibleTestCategories = TEST_CATEGORIES.filter((category) => category.value !== 'hockey' || selectedClientIsHockey || testCategory === 'hockey')
   const hasProfileContext = Boolean(initialClientId && clients.some((client) => client.id === initialClientId))
   const orderedClients = selectedClientId
     ? [...clients].sort((a, b) => {
@@ -142,6 +165,14 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
     weight: c.weight || 70,
     gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
   }))
+  const hockeyTeams = Array.from(
+    new Map(
+      orderedClients
+        .map((client) => client.team)
+        .filter((team): team is NonNullable<TestPageClient['team']> => Boolean(team))
+        .map((team) => [team.id, { id: team.id, name: team.name }])
+    ).values()
+  )
   const profileHref = selectedClient ? `${basePath}/clients/${selectedClient.id}/profile` : null
 
   const handleSubmit = async (data: CreateTestFormData) => {
@@ -324,7 +355,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
             </div>
             <Tabs value={testCategory} onValueChange={(v) => setTestCategory(v as TestCategory)}>
               <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 h-auto gap-1 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm p-1">
-                {TEST_CATEGORIES.map((category) => {
+                {visibleTestCategories.map((category) => {
                   const Icon = category.icon
                   return (
                     <TabsTrigger
@@ -489,6 +520,22 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                   </TabsContent>
                 </Tabs>
               </TabsContent>
+
+              {selectedClientIsHockey && (
+                <TabsContent value="hockey" className="mt-6">
+                  <HockeyTestForm
+                    key={selectedClientId}
+                    clients={orderedClients.map((client) => ({
+                      id: client.id,
+                      name: client.name,
+                      teamId: client.teamId ?? null,
+                    }))}
+                    teams={hockeyTeams}
+                    businessSlug={businessSlug}
+                    initialClientId={selectedClientId}
+                  />
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         </div>

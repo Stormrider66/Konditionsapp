@@ -177,6 +177,7 @@ export function AthleteProfileClient({
                       clientId={client.id}
                       clientName={client.name}
                       settings={sportProfile?.hockeySettings ?? undefined}
+                      basePath={viewMode === 'coach' ? basePath : undefined}
                     />
                   </TabsContent>
                 )}

@@ -44,6 +44,12 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           team: true,
+          sportProfile: {
+            select: {
+              primarySport: true,
+              secondarySports: true,
+            },
+          },
           athleteAccount: {
             select: {
               id: true,

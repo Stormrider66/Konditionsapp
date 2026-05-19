@@ -5,7 +5,7 @@ import { TestPageContent } from '@/components/test/TestPageContent'
 
 interface BusinessTestPageProps {
   params: Promise<{ businessSlug: string }>
-  searchParams: Promise<{ clientId?: string; athleteId?: string }>
+  searchParams: Promise<{ clientId?: string; athleteId?: string; category?: string }>
 }
 
 export default async function BusinessTestPage({ params, searchParams }: BusinessTestPageProps) {
@@ -23,6 +23,7 @@ export default async function BusinessTestPage({ params, searchParams }: Busines
       businessSlug={businessSlug}
       organizationName={membership.business.name}
       initialClientId={resolvedSearchParams.clientId || resolvedSearchParams.athleteId || ''}
+      initialCategory={resolvedSearchParams.category || ''}
     />
   )
 }
