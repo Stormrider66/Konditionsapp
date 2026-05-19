@@ -8,7 +8,6 @@ import { DefaultChatTransport } from 'ai'
 import {
   GlassCard,
   GlassCardContent,
-  GlassCardDescription,
   GlassCardHeader,
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
@@ -72,6 +71,7 @@ import { ResearchHistory } from './ResearchHistory'
 import { ShareResearchDialog } from './ShareResearchDialog'
 import { AIBudgetSettings } from './AIBudgetSettings'
 import { ProgramGenerationProgress } from './ProgramGenerationProgress'
+import { useLocale } from '@/i18n/client'
 import { parseAIProgram } from '@/lib/ai/program-parser'
 import type { AIProvider } from '@prisma/client'
 import type { MergedProgram } from '@/lib/ai/program-generator'
@@ -108,6 +108,50 @@ function writePersistedSkillSelection(conversationId: string | null, skillIds: s
   } catch {
     // Local storage persistence is a convenience, not a critical path.
   }
+}
+
+function buildFixFormatPrompt(messageContent: string, locale: AppLocale) {
+  if (locale === 'sv') {
+    return `Ditt förra program blev avklippt eller hade ogiltigt JSON-format (troligen tokensgränsen nådd). Generera om HELA programmet i KOMPAKT JSON-format.
+
+VIKTIGA REGLER FÖR ATT UNDVIKA AVKLIPPNING:
+1. Skriv INGEN text före JSON-blocket — gå direkt till \`\`\`json
+2. Håll descriptions KORTA (max 150 tecken) — kompakthet viktigare än detalj
+3. Vilopass: {"type":"REST","description":"Vila"}
+4. Minimera whitespace i JSON
+5. Du MÅSTE avsluta med \`\`\` — ett komplett program med korta beskrivningar är bättre än ett halvfärdigt med långa
+
+JSON-schema:
+\`\`\`json
+{"name":"...","description":"...","totalWeeks":12,"methodology":"...","weeklySchedule":{"sessionsPerWeek":5,"restDays":[4]},"phases":[{"name":"...","weeks":"1-4","focus":"...","weeklyTemplate":{"monday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"tuesday":{"type":"RUNNING","name":"...","duration":45,"zone":"4","description":"...","intensity":"hard"},"wednesday":{"type":"REST","description":"Vila"},"thursday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"friday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"saturday":{"type":"RUNNING","name":"...","duration":40,"zone":"2","description":"...","intensity":"easy"},"sunday":{"type":"REST","description":"Vila"}},"keyWorkouts":["..."],"volumeGuidance":"..."}],"notes":"..."}
+\`\`\`
+
+Giltiga type: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
+Giltiga intensity: easy, moderate, hard, threshold, interval, recovery, race_pace
+
+Här är det avklippta programmet — återskapa det KOMPLETT med ALLA faser och veckodagar:
+${messageContent}`
+  }
+
+  return `Your previous program was cut off or had invalid JSON format (likely because the token limit was reached). Regenerate the ENTIRE program in COMPACT JSON format.
+
+IMPORTANT RULES TO AVOID TRUNCATION:
+1. Write NO text before the JSON block — start directly with \`\`\`json
+2. Keep descriptions SHORT (max 150 characters) — compactness matters more than detail
+3. Rest sessions: {"type":"REST","description":"Rest"}
+4. Minimize whitespace in JSON
+5. You MUST end with \`\`\` — a complete program with short descriptions is better than an incomplete one with long descriptions
+
+JSON schema:
+\`\`\`json
+{"name":"...","description":"...","totalWeeks":12,"methodology":"...","weeklySchedule":{"sessionsPerWeek":5,"restDays":[4]},"phases":[{"name":"...","weeks":"1-4","focus":"...","weeklyTemplate":{"monday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"tuesday":{"type":"RUNNING","name":"...","duration":45,"zone":"4","description":"...","intensity":"hard"},"wednesday":{"type":"REST","description":"Rest"},"thursday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"friday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"saturday":{"type":"RUNNING","name":"...","duration":40,"zone":"2","description":"...","intensity":"easy"},"sunday":{"type":"REST","description":"Rest"}},"keyWorkouts":["..."],"volumeGuidance":"..."}],"notes":"..."}
+\`\`\`
+
+Valid type: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
+Valid intensity: easy, moderate, hard, threshold, interval, recovery, race_pace
+
+Here is the cut-off program — recreate it COMPLETELY with ALL phases and weekdays:
+${messageContent}`
 }
 
 interface Client {
@@ -181,6 +225,249 @@ interface AIStudioClientProps {
   basePath: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+interface AICopy {
+  missingApiKeysTitle: string
+  missingApiKeysDescription: string
+  missingApiKeysStudioDescription: string
+  fixFormatErrorTitle: string
+  unknownError: string
+  genericErrorTitle: string
+  generationStartTitle: string
+  generationStartDescription: (phases: number, minutes: number) => string
+  generationStartErrorTitle: string
+  programReadyTitle: string
+  programReadyDescription: (name: string, weeks: number, phases: number) => string
+  generationFailedTitle: string
+  noModelTitle: string
+  noModelDescription: string
+  createConversationErrorTitle: string
+  loadConversationErrorTitle: string
+  sendErrorTitle: string
+  researchLoadErrorTitle: string
+  researchLoadErrorDescription: string
+  configureKeysTitle: string
+  configureKeysBody: string
+  configured: string
+  notConfigured: string
+  goToSettings: string
+  programMode: string
+  backToWizard: string
+  back: string
+  exit: string
+  deepThinkDescription: string
+  budgetTooltip: string
+  costGuideTooltip: string
+  history: string
+  documents: string
+  web: string
+  createProgramWithAi: string
+  programContextIntro: string
+  longProgram: string
+  longProgramDescription: (weeks: number) => string
+  loadedContext: string
+  athlete: string
+  sport: string
+  goal: string
+  length: string
+  weeks: string
+  sessionsPerWeek: string
+  targetTime: string
+  methodology: string
+  strength: string
+  timesPerWeek: string
+  startMultiPhase: string
+  startProgramCreation: string
+  multiPhaseHint: string
+  contextHint: string
+  welcomeTitle: string
+  welcomeBody: string
+  createTrainingProgram: string
+  marathonProgram: string
+  analyzeTestResults: string
+  lactateThresholds: string
+  hyroxPlanning: string
+  hyroxPlanningDescription: string
+  recentConversations: string
+  newConversation: string
+  aiThinking: string
+  stop: string
+  expertKnowledge: string
+  inputPlaceholder: string
+  send: string
+  noModelSelected: string
+  characters: string
+  streamingResponse: string
+  newProgram: string
+  researchSharedTitle: string
+  researchSharedDescription: string
+  starterProgramPrompt: string
+  starterTestPrompt: string
+  starterHyroxPrompt: string
+}
+
+const COPY = {
+  en: {
+    missingApiKeysTitle: 'API keys missing',
+    missingApiKeysDescription: 'Configure your API keys in Settings.',
+    missingApiKeysStudioDescription: 'Configure your API keys in Settings to use AI Studio.',
+    fixFormatErrorTitle: 'Could not fix format',
+    unknownError: 'Unknown error',
+    genericErrorTitle: 'An error occurred',
+    generationStartTitle: 'Starting program generation',
+    generationStartDescription: (phases: number, minutes: number) => `Generating ${phases} phases. Estimated time: ${minutes} minutes.`,
+    generationStartErrorTitle: 'Could not start generation',
+    programReadyTitle: 'Program ready!',
+    programReadyDescription: (name: string, weeks: number, phases: number) => `${name} - ${weeks} weeks, ${phases} phases. Review and edit below.`,
+    generationFailedTitle: 'Generation failed',
+    noModelTitle: 'No AI model selected',
+    noModelDescription: 'Select an AI model in the toolbar above.',
+    createConversationErrorTitle: 'Could not create conversation',
+    loadConversationErrorTitle: 'Could not load conversation',
+    sendErrorTitle: 'Could not send message',
+    researchLoadErrorTitle: 'Error',
+    researchLoadErrorDescription: 'Failed to load research session.',
+    configureKeysTitle: 'Configure API keys',
+    configureKeysBody: 'To use AI Studio, configure your API keys for at least one AI provider.',
+    configured: 'Configured',
+    notConfigured: 'Not configured',
+    goToSettings: 'Go to Settings',
+    programMode: 'Program creation mode',
+    backToWizard: 'Back to wizard',
+    back: 'Back',
+    exit: 'Exit',
+    deepThinkDescription: 'Enables extended reasoning. The AI thinks more deeply before answering, which gives more considered and well-structured responses.',
+    budgetTooltip: 'AI Budget Settings',
+    costGuideTooltip: 'AI costs per athlete',
+    history: 'History',
+    documents: 'documents',
+    web: 'Web',
+    createProgramWithAi: 'Create program with AI',
+    programContextIntro: 'All information from the program wizard has been loaded. Select documents in the side panel to give the AI extra context, then click the button below to start.',
+    longProgram: 'Long program:',
+    longProgramDescription: (weeks: number) => `${weeks} weeks will be generated in multiple phases for best quality.`,
+    loadedContext: 'Loaded context:',
+    athlete: 'Athlete',
+    sport: 'Sport',
+    goal: 'Goal',
+    length: 'Length',
+    weeks: 'weeks',
+    sessionsPerWeek: 'Sessions/week',
+    targetTime: 'Target time',
+    methodology: 'Methodology',
+    strength: 'Strength',
+    timesPerWeek: 'x/week',
+    startMultiPhase: 'Start multi-phase generation',
+    startProgramCreation: 'Start program creation with all context',
+    multiPhaseHint: 'The AI generates the program phase by phase with context between each part.',
+    contextHint: 'Tip: Select relevant documents in the side panel to include training methodology, physiology knowledge, or previous program templates.',
+    welcomeTitle: 'Welcome to AI Studio',
+    welcomeBody: 'Create training programs with AI. Select an athlete, add documents as context, and start chatting.',
+    createTrainingProgram: 'Create training program',
+    marathonProgram: '8-week marathon program',
+    analyzeTestResults: 'Analyze test results',
+    lactateThresholds: 'Lactate test & thresholds',
+    hyroxPlanning: 'HYROX planning',
+    hyroxPlanningDescription: 'Periodization & stations',
+    recentConversations: 'Recent conversations',
+    newConversation: 'New conversation',
+    aiThinking: 'AI is thinking...',
+    stop: 'Stop',
+    expertKnowledge: 'Expert knowledge:',
+    inputPlaceholder: 'Write your message... (Enter to send, Shift+Enter for new line)',
+    send: 'Send',
+    noModelSelected: 'No model selected',
+    characters: 'characters',
+    streamingResponse: 'Streaming response...',
+    newProgram: 'New program',
+    researchSharedTitle: 'Research shared',
+    researchSharedDescription: 'The research has been shared with the selected athletes.',
+    starterProgramPrompt: 'Create an 8-week training program for a marathon runner',
+    starterTestPrompt: 'Analyze my athlete\'s lactate test and suggest threshold values',
+    starterHyroxPrompt: 'Help me plan a periodization for HYROX',
+  },
+  sv: {
+    missingApiKeysTitle: 'API-nycklar saknas',
+    missingApiKeysDescription: 'Konfigurera dina API-nycklar i Inställningar.',
+    missingApiKeysStudioDescription: 'Konfigurera dina API-nycklar i Inställningar för att använda AI Studio.',
+    fixFormatErrorTitle: 'Kunde inte fixa format',
+    unknownError: 'Okänt fel',
+    genericErrorTitle: 'Ett fel uppstod',
+    generationStartTitle: 'Startar programgenerering',
+    generationStartDescription: (phases: number, minutes: number) => `Genererar ${phases} faser. Uppskattad tid: ${minutes} minuter.`,
+    generationStartErrorTitle: 'Kunde inte starta generering',
+    programReadyTitle: 'Program klart!',
+    programReadyDescription: (name: string, weeks: number, phases: number) => `${name} - ${weeks} veckor, ${phases} faser. Granska och redigera nedan.`,
+    generationFailedTitle: 'Generering misslyckades',
+    noModelTitle: 'Ingen AI-modell vald',
+    noModelDescription: 'Välj en AI-modell i verktygsfältet ovan.',
+    createConversationErrorTitle: 'Kunde inte skapa konversation',
+    loadConversationErrorTitle: 'Kunde inte ladda konversation',
+    sendErrorTitle: 'Kunde inte skicka meddelande',
+    researchLoadErrorTitle: 'Fel',
+    researchLoadErrorDescription: 'Kunde inte ladda research-sessionen.',
+    configureKeysTitle: 'Konfigurera API-nycklar',
+    configureKeysBody: 'För att använda AI Studio behöver du konfigurera dina API-nycklar för minst en AI-leverantör.',
+    configured: 'Konfigurerad',
+    notConfigured: 'Ej konfigurerad',
+    goToSettings: 'Gå till Inställningar',
+    programMode: 'Programskapningsläge',
+    backToWizard: 'Tillbaka till guiden',
+    back: 'Tillbaka',
+    exit: 'Avsluta',
+    deepThinkDescription: 'Aktiverar utökad resoneringsförmåga. AI:n tänker djupare innan den svarar, vilket ger mer genomtänkta och välstrukturerade svar.',
+    budgetTooltip: 'AI Budget Settings',
+    costGuideTooltip: 'AI-kostnader per atlet',
+    history: 'Historik',
+    documents: 'dokument',
+    web: 'Webb',
+    createProgramWithAi: 'Skapa program med AI',
+    programContextIntro: 'All information från programguiden har laddats in. Välj dokument i sidopanelen för att ge AI extra kontext, och klicka sedan på knappen nedan för att starta.',
+    longProgram: 'Långt program:',
+    longProgramDescription: (weeks: number) => `${weeks} veckor genereras i flera faser för bästa kvalitet.`,
+    loadedContext: 'Inläst kontext:',
+    athlete: 'Atlet',
+    sport: 'Sport',
+    goal: 'Mål',
+    length: 'Längd',
+    weeks: 'veckor',
+    sessionsPerWeek: 'Pass/vecka',
+    targetTime: 'Måltid',
+    methodology: 'Metodik',
+    strength: 'Styrka',
+    timesPerWeek: 'x/vecka',
+    startMultiPhase: 'Starta flerfas-generering',
+    startProgramCreation: 'Starta programskapande med all kontext',
+    multiPhaseHint: 'AI:n genererar programmet fas för fas med kontext mellan varje del.',
+    contextHint: 'Tips: Välj relevanta dokument i sidopanelen för att inkludera träningsmetodik, fysiologisk kunskap, eller tidigare programmallar.',
+    welcomeTitle: 'Välkommen till AI Studio',
+    welcomeBody: 'Skapa träningsprogram med hjälp av AI. Välj en atlet, lägg till dokument som kontext, och börja chatta.',
+    createTrainingProgram: 'Skapa träningsprogram',
+    marathonProgram: '8-veckors maratonprogram',
+    analyzeTestResults: 'Analysera testresultat',
+    lactateThresholds: 'Laktattest & tröskelvärden',
+    hyroxPlanning: 'HYROX-planering',
+    hyroxPlanningDescription: 'Periodisering & stationer',
+    recentConversations: 'Senaste konversationer',
+    newConversation: 'Ny konversation',
+    aiThinking: 'AI tänker...',
+    stop: 'Stoppa',
+    expertKnowledge: 'Expertkunskap:',
+    inputPlaceholder: 'Skriv ditt meddelande... (Enter för att skicka, Shift+Enter för ny rad)',
+    send: 'Skicka',
+    noModelSelected: 'Ingen modell vald',
+    characters: 'tecken',
+    streamingResponse: 'Streamar svar...',
+    newProgram: 'Nytt program',
+    researchSharedTitle: 'Research shared',
+    researchSharedDescription: 'The research has been shared with the selected athletes.',
+    starterProgramPrompt: 'Skapa ett 8-veckors träningsprogram för en maratonlöpare',
+    starterTestPrompt: 'Analysera min athletes laktattest och föreslå tröskelvärden',
+    starterHyroxPrompt: 'Hjälp mig planera en periodisering för HYROX',
+  },
+} satisfies Record<AppLocale, AICopy>
+
 export function AIStudioClient({
   clients,
   documents,
@@ -194,6 +481,8 @@ export function AIStudioClient({
 }: AIStudioClientProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const creatingConversationRef = useRef(false)
 
@@ -245,7 +534,6 @@ export function AIStudioClient({
   // Multi-part program generation state (for long programs > 8 weeks)
   const [multiPartSessionId, setMultiPartSessionId] = useState<string | null>(null)
   const [multiPartGenerating, setMultiPartGenerating] = useState(false)
-  const [multiPartProgram, setMultiPartProgram] = useState<MergedProgram | null>(null)
 
   // Fix format state
   const [isFixingFormat, setIsFixingFormat] = useState(false)
@@ -311,7 +599,7 @@ export function AIStudioClient({
     }),
     onError: (error) => {
       toast({
-        title: 'Kunde inte skicka meddelande',
+        title: copy.sendErrorTitle,
         description: error.message,
         variant: 'destructive',
       })
@@ -342,8 +630,8 @@ export function AIStudioClient({
       // Ensure we have API keys
       if (!hasApiKeys) {
         toast({
-          title: 'API-nycklar saknas',
-          description: 'Konfigurera dina API-nycklar i Inställningar.',
+          title: copy.missingApiKeysTitle,
+          description: copy.missingApiKeysDescription,
           variant: 'destructive',
         })
         return
@@ -355,31 +643,13 @@ export function AIStudioClient({
         if (!convId) return
       }
 
-      const fixFormatPrompt = `Ditt förra program blev avklippt eller hade ogiltigt JSON-format (troligen tokensgränsen nådd). Generera om HELA programmet i KOMPAKT JSON-format.
+      const fixFormatPrompt = buildFixFormatPrompt(messageContent, locale)
 
-VIKTIGA REGLER FÖR ATT UNDVIKA AVKLIPPNING:
-1. Skriv INGEN text före JSON-blocket — gå direkt till \`\`\`json
-2. Håll descriptions KORTA (max 150 tecken) — kompakthet viktigare än detalj
-3. Vilopass: {"type":"REST","description":"Vila"}
-4. Minimera whitespace i JSON
-5. Du MÅSTE avsluta med \`\`\` — ett komplett program med korta beskrivningar är bättre än ett halvfärdigt med långa
-
-JSON-schema:
-\`\`\`json
-{"name":"...","description":"...","totalWeeks":12,"methodology":"...","weeklySchedule":{"sessionsPerWeek":5,"restDays":[4]},"phases":[{"name":"...","weeks":"1-4","focus":"...","weeklyTemplate":{"monday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"tuesday":{"type":"RUNNING","name":"...","duration":45,"zone":"4","description":"...","intensity":"hard"},"wednesday":{"type":"REST","description":"Vila"},"thursday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"friday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"saturday":{"type":"RUNNING","name":"...","duration":40,"zone":"2","description":"...","intensity":"easy"},"sunday":{"type":"REST","description":"Vila"}},"keyWorkouts":["..."],"volumeGuidance":"..."}],"notes":"..."}
-\`\`\`
-
-Giltiga type: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
-Giltiga intensity: easy, moderate, hard, threshold, interval, recovery, race_pace
-
-Här är det avklippta programmet — återskapa det KOMPLETT med ALLA faser och veckodagar:
-${messageContent}`
-
-      sendMessage({ text: fixFormatPrompt }, { body: getCurrentBodyParams() })
+      void sendMessage({ text: fixFormatPrompt }, { body: getCurrentBodyParams() })
     } catch (error) {
       toast({
-        title: 'Kunde inte fixa format',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.fixFormatErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
     } finally {
@@ -398,25 +668,27 @@ ${messageContent}`
   useEffect(() => {
     if (error) {
       toast({
-        title: 'Ett fel uppstod',
+        title: copy.genericErrorTitle,
         description: error.message,
         variant: 'destructive',
       })
     }
-  }, [error, toast])
+  }, [copy.genericErrorTitle, error, toast])
 
   // Load program context from sessionStorage when in program mode
   useEffect(() => {
     if (programMode && !programContextLoaded) {
-      const context = getProgramContext()
-      if (context) {
-        setProgramContext(context)
-        // Auto-select the athlete from context
-        if (context.wizardData.clientId) {
-          setSelectedAthlete(context.wizardData.clientId)
+      void Promise.resolve().then(() => {
+        const context = getProgramContext()
+        if (context) {
+          setProgramContext(context)
+          // Auto-select the athlete from context
+          if (context.wizardData.clientId) {
+            setSelectedAthlete(context.wizardData.clientId)
+          }
         }
-      }
-      setProgramContextLoaded(true)
+        setProgramContextLoaded(true)
+      })
     }
   }, [programMode, programContextLoaded])
 
@@ -451,7 +723,7 @@ ${messageContent}`
       }
     }
 
-    checkExistingPrograms()
+    void checkExistingPrograms()
   }, [selectedAthlete])
 
   // Handle "Start with context" button click - send initial message with program context
@@ -460,8 +732,8 @@ ${messageContent}`
 
     if (!hasApiKeys) {
       toast({
-        title: 'API-nycklar saknas',
-        description: 'Konfigurera dina API-nycklar i Inställningar för att använda AI Studio.',
+        title: copy.missingApiKeysTitle,
+        description: copy.missingApiKeysStudioDescription,
         variant: 'destructive',
       })
       return
@@ -482,7 +754,7 @@ ${messageContent}`
     }
 
     const prompt = buildProgramPrompt(programContext)
-    sendMessage({ text: prompt }, { body: getCurrentBodyParams() })
+    void sendMessage({ text: prompt }, { body: getCurrentBodyParams() })
   }
 
   // Start multi-part program generation for long programs
@@ -530,14 +802,14 @@ ${messageContent}`
       setMultiPartSessionId(data.sessionId)
 
       toast({
-        title: 'Startar programgenerering',
-        description: `Genererar ${data.totalPhases} faser. Uppskattad tid: ${data.estimatedMinutes} minuter.`,
+        title: copy.generationStartTitle,
+        description: copy.generationStartDescription(data.totalPhases, data.estimatedMinutes),
       })
     } catch (error) {
       setMultiPartGenerating(false)
       toast({
-        title: 'Kunde inte starta generering',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.generationStartErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
     }
@@ -545,7 +817,6 @@ ${messageContent}`
 
   // Handle multi-part generation completion
   function handleMultiPartComplete(program: MergedProgram) {
-    setMultiPartProgram(program)
     setMultiPartGenerating(false)
     setMultiPartSessionId(null)
 
@@ -564,8 +835,8 @@ ${messageContent}`
     ])
 
     toast({
-      title: 'Program klart!',
-      description: `${program.name} - ${program.totalWeeks} veckor, ${program.phases.length} faser. Granska och redigera nedan.`,
+      title: copy.programReadyTitle,
+      description: copy.programReadyDescription(program.name, program.totalWeeks, program.phases.length),
     })
   }
 
@@ -575,7 +846,7 @@ ${messageContent}`
     setMultiPartSessionId(null)
 
     toast({
-      title: 'Generering misslyckades',
+      title: copy.generationFailedTitle,
       description: error,
       variant: 'destructive',
     })
@@ -606,8 +877,8 @@ ${messageContent}`
     if (creatingConversationRef.current) return null
     if (!currentModel) {
       toast({
-        title: 'Ingen AI-modell vald',
-        description: 'Välj en AI-modell i verktygsfältet ovan.',
+        title: copy.noModelTitle,
+        description: copy.noModelDescription,
         variant: 'destructive',
       })
       return null
@@ -640,8 +911,8 @@ ${messageContent}`
       return data.conversation.id
     } catch (error) {
       toast({
-        title: 'Kunde inte skapa konversation',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.createConversationErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
       return null
@@ -658,8 +929,8 @@ ${messageContent}`
 
     if (!hasApiKeys) {
       toast({
-        title: 'API-nycklar saknas',
-        description: 'Konfigurera dina API-nycklar i Inställningar för att använda AI Studio.',
+        title: copy.missingApiKeysTitle,
+        description: copy.missingApiKeysStudioDescription,
         variant: 'destructive',
       })
       return
@@ -673,7 +944,7 @@ ${messageContent}`
 
     const messageContent = input.trim()
     setInput('') // Clear input
-    sendMessage({ text: messageContent }, { body: getCurrentBodyParams() })
+    void sendMessage({ text: messageContent }, { body: getCurrentBodyParams() })
   }
 
   // Load conversation messages
@@ -713,8 +984,8 @@ ${messageContent}`
       setWebSearchEnabled(data.conversation.webSearchEnabled)
     } catch (error) {
       toast({
-        title: 'Kunde inte ladda konversation',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.loadConversationErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
     }
@@ -784,10 +1055,10 @@ ${messageContent}`
         setResearchHistoryOpen(false)
         setResearchResultOpen(true)
       }
-    } catch (err) {
+    } catch (_err) {
       toast({
-        title: 'Error',
-        description: 'Failed to load research session.',
+        title: copy.researchLoadErrorTitle,
+        description: copy.researchLoadErrorDescription,
         variant: 'destructive',
       })
     }
@@ -814,37 +1085,37 @@ ${messageContent}`
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <AlertCircle className="h-6 w-6 text-amber-500" />
-              Konfigurera API-nycklar
+              {copy.configureKeysTitle}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              För att använda AI Studio behöver du konfigurera dina API-nycklar för minst en AI-leverantör.
+              {copy.configureKeysBody}
             </p>
             <div className="space-y-2">
               <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
                 <span className="text-sm font-medium">Anthropic (Claude)</span>
                 <Badge variant={apiKeyStatus.anthropic ? 'default' : 'secondary'}>
-                  {apiKeyStatus.anthropic ? 'Konfigurerad' : 'Ej konfigurerad'}
+                  {apiKeyStatus.anthropic ? copy.configured : copy.notConfigured}
                 </Badge>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
                 <span className="text-sm font-medium">Google (Gemini)</span>
                 <Badge variant={apiKeyStatus.google ? 'default' : 'secondary'}>
-                  {apiKeyStatus.google ? 'Konfigurerad' : 'Ej konfigurerad'}
+                  {apiKeyStatus.google ? copy.configured : copy.notConfigured}
                 </Badge>
               </div>
               <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/5 bg-slate-50/50 dark:bg-white/5">
                 <span className="text-sm font-medium">OpenAI (Embeddings)</span>
                 <Badge variant={apiKeyStatus.openai ? 'default' : 'secondary'}>
-                  {apiKeyStatus.openai ? 'Konfigurerad' : 'Ej konfigurerad'}
+                  {apiKeyStatus.openai ? copy.configured : copy.notConfigured}
                 </Badge>
               </div>
             </div>
             <Button asChild className="w-full">
               <Link href={`${basePath}/settings/ai`}>
                 <Settings className="h-4 w-4 mr-2" />
-                Gå till Inställningar
+                {copy.goToSettings}
               </Link>
             </Button>
           </GlassCardContent>
@@ -907,20 +1178,20 @@ ${messageContent}`
               <div className="flex items-center gap-2 min-w-0">
                 <Wand2 className="h-5 w-5 text-blue-600 shrink-0" />
                 <div className="min-w-0">
-                  <span className="font-medium text-sm">Programskapningsläge</span>
+                  <span className="font-medium text-sm">{copy.programMode}</span>
                   <span className="text-muted-foreground text-xs sm:text-sm ml-1 sm:ml-2 block sm:inline truncate">
-                    {programContext.wizardData.clientName} • {getSportLabel(programContext.wizardData.sport)} • {getGoalLabel(programContext.wizardData.goal)}
+                    {programContext.wizardData.clientName} • {getSportLabel(programContext.wizardData.sport, locale)} • {getGoalLabel(programContext.wizardData.goal, locale)}
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button variant="ghost" size="sm" onClick={handleBackToWizard}>
                   <ArrowLeft className="h-4 w-4 mr-1" />
-                  <span className="hidden sm:inline">Tillbaka till guiden</span>
-                  <span className="sm:hidden">Tillbaka</span>
+                  <span className="hidden sm:inline">{copy.backToWizard}</span>
+                  <span className="sm:hidden">{copy.back}</span>
                 </Button>
                 <Button variant="ghost" size="sm" onClick={exitProgramMode}>
-                  Avsluta
+                  {copy.exit}
                 </Button>
               </div>
             </div>
@@ -962,7 +1233,7 @@ ${messageContent}`
                   <TooltipContent side="bottom" className="max-w-xs">
                     <p className="font-medium">Gemini Deep Think Mode</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Aktiverar utökad resoneringsförmåga. AI:n tänker djupare innan den svarar, vilket ger mer genomtänkta och välstrukturerade svar.
+                      {copy.deepThinkDescription}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -985,7 +1256,7 @@ ${messageContent}`
                     <DollarSign className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>AI Budget Settings</TooltipContent>
+                <TooltipContent>{copy.budgetTooltip}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <TooltipProvider>
@@ -1002,7 +1273,7 @@ ${messageContent}`
                     </Link>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>AI-kostnader per atlet</TooltipContent>
+                <TooltipContent>{copy.costGuideTooltip}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <Button
@@ -1028,7 +1299,7 @@ ${messageContent}`
               onClick={() => setChatHistoryOpen(true)}
             >
               <History className="h-4 w-4 md:mr-1" />
-              <span className="hidden md:inline">Historik</span>
+              <span className="hidden md:inline">{copy.history}</span>
             </Button>
             <Button variant="outline" size="sm" onClick={startNewChat}>
               <Plus className="h-4 w-4" />
@@ -1047,13 +1318,13 @@ ${messageContent}`
               {selectedDocuments.length > 0 && (
                 <Badge variant="outline" className="flex items-center gap-1 text-xs">
                   <FileText className="h-3 w-3" />
-                  {selectedDocuments.length} dokument
+                  {selectedDocuments.length} {copy.documents}
                 </Badge>
               )}
               {webSearchEnabled && (
                 <Badge variant="outline" className="flex items-center gap-1 text-xs">
                   <Globe className="h-3 w-3" />
-                  Webb
+                  {copy.web}
                 </Badge>
               )}
               {deepThinkEnabled && currentModel?.provider === 'GOOGLE' && (
@@ -1084,10 +1355,9 @@ ${messageContent}`
               {programMode && programContext ? (
                 <>
                   <Wand2 className="h-16 w-16 text-blue-600/40 mb-4" />
-                  <h2 className="text-2xl font-semibold mb-2">Skapa program med AI</h2>
+                  <h2 className="text-2xl font-semibold mb-2">{copy.createProgramWithAi}</h2>
                   <p className="text-muted-foreground max-w-md mb-6">
-                    All information från programguiden har laddats in. Välj dokument i sidopanelen
-                    för att ge AI extra kontext, och klicka sedan på knappen nedan för att starta.
+                    {copy.programContextIntro}
                   </p>
 
                   {/* Long program indicator */}
@@ -1096,7 +1366,7 @@ ${messageContent}`
                       <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
                         <Layers className="h-4 w-4" />
                         <span>
-                          <strong>Långt program:</strong> {programContext.wizardData.durationWeeks} veckor genereras i flera faser för bästa kvalitet.
+                          <strong>{copy.longProgram}</strong> {copy.longProgramDescription(programContext.wizardData.durationWeeks)}
                         </span>
                       </p>
                     </div>
@@ -1104,21 +1374,21 @@ ${messageContent}`
 
                   {/* Context Summary */}
                   <div className="bg-muted/50 rounded-lg p-4 max-w-lg w-full mb-6 text-left">
-                    <h3 className="font-medium mb-2">Inläst kontext:</h3>
+                    <h3 className="font-medium mb-2">{copy.loadedContext}</h3>
                     <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>• <strong>Atlet:</strong> {programContext.wizardData.clientName}</li>
-                      <li>• <strong>Sport:</strong> {getSportLabel(programContext.wizardData.sport)}</li>
-                      <li>• <strong>Mål:</strong> {getGoalLabel(programContext.wizardData.goal)}</li>
-                      <li>• <strong>Längd:</strong> {programContext.wizardData.durationWeeks} veckor</li>
-                      <li>• <strong>Pass/vecka:</strong> {programContext.wizardData.sessionsPerWeek}</li>
+                      <li>• <strong>{copy.athlete}:</strong> {programContext.wizardData.clientName}</li>
+                      <li>• <strong>{copy.sport}:</strong> {getSportLabel(programContext.wizardData.sport, locale)}</li>
+                      <li>• <strong>{copy.goal}:</strong> {getGoalLabel(programContext.wizardData.goal, locale)}</li>
+                      <li>• <strong>{copy.length}:</strong> {programContext.wizardData.durationWeeks} {copy.weeks}</li>
+                      <li>• <strong>{copy.sessionsPerWeek}:</strong> {programContext.wizardData.sessionsPerWeek}</li>
                       {programContext.wizardData.targetTime && (
-                        <li>• <strong>Måltid:</strong> {programContext.wizardData.targetTime}</li>
+                        <li>• <strong>{copy.targetTime}:</strong> {programContext.wizardData.targetTime}</li>
                       )}
                       {programContext.wizardData.methodology && programContext.wizardData.methodology !== 'AUTO' && (
-                        <li>• <strong>Metodik:</strong> {programContext.wizardData.methodology}</li>
+                        <li>• <strong>{copy.methodology}:</strong> {programContext.wizardData.methodology}</li>
                       )}
                       {programContext.wizardData.includeStrength && (
-                        <li>• <strong>Styrka:</strong> {programContext.wizardData.strengthSessionsPerWeek}x/vecka</li>
+                        <li>• <strong>{copy.strength}:</strong> {programContext.wizardData.strengthSessionsPerWeek}{copy.timesPerWeek}</li>
                       )}
                     </ul>
                   </div>
@@ -1132,13 +1402,13 @@ ${messageContent}`
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
                       {programContext.wizardData.durationWeeks > 8
-                        ? 'Starta flerfas-generering'
-                        : 'Starta programskapande med all kontext'}
+                        ? copy.startMultiPhase
+                        : copy.startProgramCreation}
                     </Button>
                     <p className="text-xs text-muted-foreground">
                       {programContext.wizardData.durationWeeks > 8
-                        ? 'AI:n genererar programmet fas för fas med kontext mellan varje del.'
-                        : 'Tips: Välj relevanta dokument i sidopanelen för att inkludera träningsmetodik, fysiologisk kunskap, eller tidigare programmallar.'}
+                        ? copy.multiPhaseHint
+                        : copy.contextHint}
                     </p>
                   </div>
                 </>
@@ -1146,45 +1416,44 @@ ${messageContent}`
                 <>
                   {/* Normal Welcome */}
                   <Sparkles className="h-16 w-16 text-blue-600/20 mb-4" />
-                  <h2 className="text-2xl font-semibold mb-2">Välkommen till AI Studio</h2>
+                  <h2 className="text-2xl font-semibold mb-2">{copy.welcomeTitle}</h2>
                   <p className="text-muted-foreground max-w-md mb-6">
-                    Skapa träningsprogram med hjälp av AI. Välj en atlet, lägg till dokument
-                    som kontext, och börja chatta.
+                    {copy.welcomeBody}
                   </p>
                   <div className="grid gap-2 max-w-lg w-full">
                     <Button
                       variant="outline"
                       className="justify-start h-auto py-3 px-4"
-                      onClick={() => setInput('Skapa ett 8-veckors träningsprogram för en maratonlöpare')}
+                      onClick={() => setInput(copy.starterProgramPrompt)}
                     >
                       <span className="text-left">
-                        <span className="font-medium">Skapa träningsprogram</span>
+                        <span className="font-medium">{copy.createTrainingProgram}</span>
                         <span className="text-muted-foreground text-sm block">
-                          8-veckors maratonprogram
+                          {copy.marathonProgram}
                         </span>
                       </span>
                     </Button>
                     <Button
                       variant="outline"
                       className="justify-start h-auto py-3 px-4"
-                      onClick={() => setInput('Analysera min athletes laktattest och föreslå tröskelvärden')}
+                      onClick={() => setInput(copy.starterTestPrompt)}
                     >
                       <span className="text-left">
-                        <span className="font-medium">Analysera testresultat</span>
+                        <span className="font-medium">{copy.analyzeTestResults}</span>
                         <span className="text-muted-foreground text-sm block">
-                          Laktattest & tröskelvärden
+                          {copy.lactateThresholds}
                         </span>
                       </span>
                     </Button>
                     <Button
                       variant="outline"
                       className="justify-start h-auto py-3 px-4"
-                      onClick={() => setInput('Hjälp mig planera en periodisering för HYROX')}
+                      onClick={() => setInput(copy.starterHyroxPrompt)}
                     >
                       <span className="text-left">
-                        <span className="font-medium">HYROX-planering</span>
+                        <span className="font-medium">{copy.hyroxPlanning}</span>
                         <span className="text-muted-foreground text-sm block">
-                          Periodisering & stationer
+                          {copy.hyroxPlanningDescription}
                         </span>
                       </span>
                     </Button>
@@ -1195,7 +1464,7 @@ ${messageContent}`
                     <div className="mt-8 w-full max-w-lg">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <History className="h-4 w-4" />
-                        Senaste konversationer
+                        {copy.recentConversations}
                       </h3>
                       <div className="space-y-1">
                         {conversations.slice(0, 5).map((conv) => (
@@ -1205,7 +1474,7 @@ ${messageContent}`
                             className="w-full text-left p-2 rounded-lg hover:bg-muted transition text-sm"
                           >
                             <span className="font-medium">
-                              {conv.title || 'Ny konversation'}
+                              {conv.title || copy.newConversation}
                             </span>
                             {conv.athlete && (
                               <span className="text-muted-foreground ml-2">
@@ -1255,17 +1524,17 @@ ${messageContent}`
               {isLoading && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>AI tänker...</span>
+                  <span>{copy.aiThinking}</span>
                   <Button variant="ghost" size="sm" onClick={stop}>
                     <StopCircle className="h-4 w-4 mr-1" />
-                    Stoppa
+                    {copy.stop}
                   </Button>
                 </div>
               )}
               {knowledgeSkills.length > 0 && !isLoading && (
                 <div className="flex items-center gap-2 flex-wrap py-1">
                   <BookOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-xs text-muted-foreground">Expertkunskap:</span>
+                  <span className="text-xs text-muted-foreground">{copy.expertKnowledge}</span>
                   {knowledgeSkills.map((skill) => (
                     <Badge key={skill} variant="secondary" className="text-xs px-2 py-0 h-5 font-normal">
                       {skill}
@@ -1288,10 +1557,10 @@ ${messageContent}`
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
-                    handleFormSubmit(e)
+                    void handleFormSubmit(e)
                   }
                 }}
-                placeholder="Skriv ditt meddelande... (Enter för att skicka, Shift+Enter för ny rad)"
+                placeholder={copy.inputPlaceholder}
                 className="min-h-[80px] pr-24 resize-none"
                 disabled={isLoading}
               />
@@ -1306,16 +1575,16 @@ ${messageContent}`
                 ) : (
                   <>
                     <Send className="h-4 w-4 mr-1" />
-                    Skicka
+                    {copy.send}
                   </>
                 )}
               </Button>
             </div>
             <div className="flex items-center justify-between mt-2">
               <p className="text-xs text-muted-foreground">
-                {currentModel?.displayName || currentModel?.name || 'Ingen modell vald'} -{' '}
-                {input.length} tecken
-                {isLoading && ' - Streamar svar...'}
+                {currentModel?.displayName || currentModel?.name || copy.noModelSelected} -{' '}
+                {input.length} {copy.characters}
+                {isLoading && ` - ${copy.streamingResponse}`}
               </p>
               <div className="flex items-center gap-3">
                 {/* Cost estimate for current input */}
@@ -1354,8 +1623,8 @@ ${messageContent}`
             (() => {
               const parsed = parseAIProgram(publishContent)
               return parsed.success && parsed.program
-                ? parsed.program.name || 'Nytt program'
-                : 'Nytt program'
+                ? parsed.program.name || copy.newProgram
+                : copy.newProgram
             })()
           }
           athleteId={selectedAthlete}
@@ -1420,8 +1689,8 @@ ${messageContent}`
         onShareComplete={() => {
           setShareDialogOpen(false)
           toast({
-            title: 'Research shared',
-            description: 'The research has been shared with the selected athletes.',
+            title: copy.researchSharedTitle,
+            description: copy.researchSharedDescription,
           })
         }}
       />
@@ -1444,40 +1713,72 @@ ${messageContent}`
 }
 
 // Helper functions for displaying labels
-function getSportLabel(sport: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    SKIING: 'Skidåkning',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-    GENERAL_FITNESS: 'Allmän Fitness',
+function getSportLabel(sport: string, locale: AppLocale): string {
+  const labels: Record<AppLocale, Record<string, string>> = {
+    en: {
+      RUNNING: 'Running',
+      CYCLING: 'Cycling',
+      STRENGTH: 'Strength',
+      SKIING: 'Skiing',
+      SWIMMING: 'Swimming',
+      TRIATHLON: 'Triathlon',
+      HYROX: 'HYROX',
+      GENERAL_FITNESS: 'General Fitness',
+    },
+    sv: {
+      RUNNING: 'Löpning',
+      CYCLING: 'Cykling',
+      STRENGTH: 'Styrka',
+      SKIING: 'Skidåkning',
+      SWIMMING: 'Simning',
+      TRIATHLON: 'Triathlon',
+      HYROX: 'HYROX',
+      GENERAL_FITNESS: 'Allmän Fitness',
+    },
   }
-  return labels[sport] || sport
+  return labels[locale][sport] || sport
 }
 
-function getGoalLabel(goal: string): string {
-  const labels: Record<string, string> = {
-    marathon: 'Maraton',
-    'half-marathon': 'Halvmaraton',
-    '10k': '10 km',
-    '5k': '5 km',
-    'ftp-builder': 'FTP-uppbyggnad',
-    'base-builder': 'Basbyggnad',
-    'gran-fondo': 'Gran Fondo',
-    sprint: 'Sprint',
-    olympic: 'Olympisk distans',
-    'half-ironman': 'Halv-Ironman',
-    ironman: 'Ironman',
-    pro: 'Pro Division',
-    'age-group': 'Age Group',
-    doubles: 'Doubles',
-    vasaloppet: 'Vasaloppet',
-    custom: 'Anpassat',
+function getGoalLabel(goal: string, locale: AppLocale): string {
+  const labels: Record<AppLocale, Record<string, string>> = {
+    en: {
+      marathon: 'Marathon',
+      'half-marathon': 'Half marathon',
+      '10k': '10K',
+      '5k': '5K',
+      'ftp-builder': 'FTP builder',
+      'base-builder': 'Base builder',
+      'gran-fondo': 'Gran Fondo',
+      sprint: 'Sprint',
+      olympic: 'Olympic distance',
+      'half-ironman': 'Half-Ironman',
+      ironman: 'Ironman',
+      pro: 'Pro Division',
+      'age-group': 'Age Group',
+      doubles: 'Doubles',
+      vasaloppet: 'Vasaloppet',
+      custom: 'Custom',
+    },
+    sv: {
+      marathon: 'Maraton',
+      'half-marathon': 'Halvmaraton',
+      '10k': '10 km',
+      '5k': '5 km',
+      'ftp-builder': 'FTP-uppbyggnad',
+      'base-builder': 'Basbyggnad',
+      'gran-fondo': 'Gran Fondo',
+      sprint: 'Sprint',
+      olympic: 'Olympisk distans',
+      'half-ironman': 'Halv-Ironman',
+      ironman: 'Ironman',
+      pro: 'Pro Division',
+      'age-group': 'Age Group',
+      doubles: 'Doubles',
+      vasaloppet: 'Vasaloppet',
+      custom: 'Anpassat',
+    },
   }
-  return labels[goal] || goal
+  return labels[locale][goal] || goal
 }
 
 // Format merged program as a JSON code block that parseAIProgram() can parse
