@@ -240,20 +240,38 @@ interface MVAProfileInsight {
   topDrivers: string[]
 }
 
-const ARCHETYPE_LABELS: Record<ArchetypeId, string> = {
-  explosive: 'Explosiv powerprofil',
-  strength: 'Styrkedominant profil',
-  aerobic: 'Aerob/uthållig profil',
-  recovery: 'Belastnings- och återhämtningsprofil',
-  balanced: 'Balanserad profil',
+const ARCHETYPE_LABELS: Record<'en' | 'sv', Record<ArchetypeId, string>> = {
+  en: {
+    explosive: 'Explosive power profile',
+    strength: 'Strength-dominant profile',
+    aerobic: 'Aerobic/endurance profile',
+    recovery: 'Load and recovery profile',
+    balanced: 'Balanced profile',
+  },
+  sv: {
+    explosive: 'Explosiv powerprofil',
+    strength: 'Styrkedominant profil',
+    aerobic: 'Aerob/uthållig profil',
+    recovery: 'Belastnings- och återhämtningsprofil',
+    balanced: 'Balanserad profil',
+  },
 }
 
-const ARCHETYPE_DESCRIPTIONS: Record<ArchetypeId, string> = {
-  explosive: 'Drivs främst av sprint, hopp, agility eller MuscleLab-power.',
-  strength: 'Drivs främst av 1RM, greppstyrka eller annan maximal styrka.',
-  aerobic: 'Drivs främst av VO2, beep, upprepade sprintar eller uthållighetsmått.',
-  recovery: 'Drivs främst av readiness, sömn, HRV eller belastningsvariabler.',
-  balanced: 'Ingen enskild fysisk domän dominerar profilen.',
+const ARCHETYPE_DESCRIPTIONS: Record<'en' | 'sv', Record<ArchetypeId, string>> = {
+  en: {
+    explosive: 'Driven mainly by sprint, jumps, agility, or MuscleLab power.',
+    strength: 'Driven mainly by 1RM, grip strength, or other maximal strength.',
+    aerobic: 'Driven mainly by VO2, beep, repeated sprints, or endurance measures.',
+    recovery: 'Driven mainly by readiness, sleep, HRV, or load variables.',
+    balanced: 'No single physical domain dominates the profile.',
+  },
+  sv: {
+    explosive: 'Drivs främst av sprint, hopp, agility eller MuscleLab-power.',
+    strength: 'Drivs främst av 1RM, greppstyrka eller annan maximal styrka.',
+    aerobic: 'Drivs främst av VO2, beep, upprepade sprintar eller uthållighetsmått.',
+    recovery: 'Drivs främst av readiness, sömn, HRV eller belastningsvariabler.',
+    balanced: 'Ingen enskild fysisk domän dominerar profilen.',
+  },
 }
 
 function contributorArchetype(contributor: { variableId: string; variableName: string }): ArchetypeId | null {
@@ -275,7 +293,7 @@ function fallbackArchetype(scores: number[]): ArchetypeId {
   return 'recovery'
 }
 
-function buildProfileInsights(athleteScores: AthleteScore[]): MVAProfileInsight[] {
+function buildProfileInsights(athleteScores: AthleteScore[], locale: 'en' | 'sv'): MVAProfileInsight[] {
   return athleteScores
     .map((athlete) => {
       const topContributors = athlete.topContributors?.slice(0, 5) ?? []
@@ -291,8 +309,8 @@ function buildProfileInsights(athleteScores: AthleteScore[]): MVAProfileInsight[
       return {
         athlete,
         archetype,
-        label: ARCHETYPE_LABELS[archetype],
-        description: ARCHETYPE_DESCRIPTIONS[archetype],
+        label: ARCHETYPE_LABELS[locale][archetype],
+        description: ARCHETYPE_DESCRIPTIONS[locale][archetype],
         magnitude,
         watch: athlete.isOutlierT2 || athlete.isOutlierDModX,
         topDrivers: topContributors.slice(0, 3).map((contributor) => contributor.variableName),
@@ -302,7 +320,9 @@ function buildProfileInsights(athleteScores: AthleteScore[]): MVAProfileInsight[
 }
 
 function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }) {
-  const insights = buildProfileInsights(athleteScores)
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
+  const insights = buildProfileInsights(athleteScores, locale)
   const archetypeCounts = insights.reduce<Record<ArchetypeId, number>>((acc, insight) => {
     acc[insight.archetype] = (acc[insight.archetype] ?? 0) + 1
     return acc
@@ -315,25 +335,25 @@ function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }
         <div className="rounded-lg border p-3 dark:border-white/10">
           <div className="flex items-center gap-2 text-sm font-medium dark:text-white">
             <Users className="h-4 w-4 text-cyan-500" />
-            Profiler
+            {t('Profiler', 'Profiles')}
           </div>
           <p className="mt-1 text-2xl font-semibold dark:text-white">{insights.length}</p>
-          <p className="text-xs text-muted-foreground">spelare i PCA-kartan</p>
+          <p className="text-xs text-muted-foreground">{t('spelare i PCA-kartan', 'players in the PCA map')}</p>
         </div>
         <div className="rounded-lg border p-3 dark:border-white/10">
           <div className="flex items-center gap-2 text-sm font-medium dark:text-white">
             <Activity className="h-4 w-4 text-emerald-500" />
-            Vanligaste typ
+            {t('Vanligaste typ', 'Most common type')}
           </div>
           <p className="mt-1 text-sm font-semibold dark:text-white">
-            {ARCHETYPE_LABELS[[...Object.entries(archetypeCounts)].sort((a, b) => b[1] - a[1])[0]?.[0] as ArchetypeId] ?? 'Balanserad profil'}
+            {ARCHETYPE_LABELS[locale][[...Object.entries(archetypeCounts)].sort((a, b) => b[1] - a[1])[0]?.[0] as ArchetypeId] ?? ARCHETYPE_LABELS[locale].balanced}
           </p>
-          <p className="text-xs text-muted-foreground">baserat på drivande variabler</p>
+          <p className="text-xs text-muted-foreground">{t('baserat på drivande variabler', 'based on driving variables')}</p>
         </div>
         <div className="rounded-lg border p-3 dark:border-white/10">
           <div className="flex items-center gap-2 text-sm font-medium dark:text-white">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
-            Följ upp
+            {t('Följ upp', 'Follow up')}
           </div>
           <p className="mt-1 text-2xl font-semibold dark:text-white">{watchList.length}</p>
           <p className="text-xs text-muted-foreground">T² eller DModX outliers</p>
@@ -341,12 +361,12 @@ function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }
         <div className="rounded-lg border p-3 dark:border-white/10">
           <div className="flex items-center gap-2 text-sm font-medium dark:text-white">
             <Target className="h-4 w-4 text-violet-500" />
-            Segment
+            {t('Segment', 'Segments')}
           </div>
           <div className="mt-2 flex flex-wrap gap-1">
             {(Object.keys(archetypeCounts) as ArchetypeId[]).filter((key) => archetypeCounts[key] > 0).map((key) => (
               <Badge key={key} variant="outline" className="text-[10px]">
-                {ARCHETYPE_LABELS[key]} {archetypeCounts[key]}
+                {ARCHETYPE_LABELS[locale][key]} {archetypeCounts[key]}
               </Badge>
             ))}
           </div>
@@ -372,7 +392,7 @@ function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }
                   {driver}
                 </Badge>
               )) : (
-                <span className="text-xs text-muted-foreground">Drivande variabler visas efter ny PCA-beräkning.</span>
+                <span className="text-xs text-muted-foreground">{t('Drivande variabler visas efter ny PCA-beräkning.', 'Driving variables appear after a new PCA calculation.')}</span>
               )}
             </div>
           </div>
@@ -383,7 +403,8 @@ function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }
 }
 
 export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initialPLSModel }: MVAAnalysisClientProps) {
-  const locale = useLocale()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const t = useCallback((svText: string, enText: string) => locale === 'sv' ? svText : enText, [locale])
   const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
 
   // Mode toggle
@@ -461,23 +482,23 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       })
       const json = await res.json()
       if (!json.success) {
-        setError(json.error ?? 'Okänt fel vid beräkning')
+        setError(json.error ?? t('Okänt fel vid beräkning', 'Unknown calculation error'))
         return
       }
       setComputeResult(json.data)
       setModel(null)
       setPcaPhase('results')
     } catch {
-      setError('Nätverksfel vid beräkning')
+      setError(t('Nätverksfel vid beräkning', 'Network error during calculation'))
     } finally {
       setLoading(false)
     }
-  }, [teamId])
+  }, [teamId, t])
 
   // PLS run
   const runPLSAnalysis = useCallback(async (selectedVariableIds?: string[]) => {
     if (!yVariableId) {
-      setPlsError('Välj en Y-variabel (responsvariabel)')
+      setPlsError(t('Välj en Y-variabel (responsvariabel)', 'Select a Y variable (response variable)'))
       return
     }
     setPlsLoading(true)
@@ -494,18 +515,18 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       })
       const json = await res.json()
       if (!json.success) {
-        setPlsError(json.error ?? 'Okänt fel vid beräkning')
+        setPlsError(json.error ?? t('Okänt fel vid beräkning', 'Unknown calculation error'))
         return
       }
       setPlsResult(json.data)
       setPlsModel(null)
       setPlsPhase('results')
     } catch {
-      setPlsError('Nätverksfel vid beräkning')
+      setPlsError(t('Nätverksfel vid beräkning', 'Network error during calculation'))
     } finally {
       setPlsLoading(false)
     }
-  }, [teamId, yVariableId])
+  }, [teamId, t, yVariableId])
 
   const fetchSimcaImports = useCallback(async () => {
     setSimcaImportsLoading(true)
@@ -568,22 +589,22 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       })
       const json = await res.json()
       if (!json.success) {
-        setSimcaImportError(json.error ?? 'Kunde inte importera SIMCA-resultat')
+        setSimcaImportError(json.error ?? t('Kunde inte importera SIMCA-resultat', 'Could not import SIMCA results'))
         return
       }
-      const rows = json.data.rowCount ? `${json.data.rowCount} rader` : 'JSON'
-      const cols = json.data.columnCount ? `, ${json.data.columnCount} kolumner` : ''
-      setSimcaImportMessage(`Importerad: ${json.data.fileName} (${rows}${cols})`)
+      const rows = json.data.rowCount ? `${json.data.rowCount} ${t('rader', 'rows')}` : 'JSON'
+      const cols = json.data.columnCount ? `, ${json.data.columnCount} ${t('kolumner', 'columns')}` : ''
+      setSimcaImportMessage(`${t('Importerad', 'Imported')}: ${json.data.fileName} (${rows}${cols})`)
       await fetchSimcaImports()
     } catch {
-      setSimcaImportError('Nätverksfel vid SIMCA-import')
+      setSimcaImportError(t('Nätverksfel vid SIMCA-import', 'Network error during SIMCA import'))
     } finally {
       setSimcaImporting(false)
     }
-  }, [fetchSimcaImports, teamId])
+  }, [fetchSimcaImports, teamId, t])
 
   const deleteSimcaImport = useCallback(async (item: SimcaImportArtifact) => {
-    const confirmed = window.confirm(`Ta bort SIMCA-importen "${item.fileName}"?`)
+    const confirmed = window.confirm(t(`Ta bort SIMCA-importen "${item.fileName}"?`, `Delete SIMCA import "${item.fileName}"?`))
     if (!confirmed) return
 
     setDeletingSimcaImportId(item.id)
@@ -595,24 +616,24 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       })
       const json = await res.json()
       if (!json.success) {
-        setSimcaImportError(json.error ?? 'Kunde inte ta bort SIMCA-import')
+        setSimcaImportError(json.error ?? t('Kunde inte ta bort SIMCA-import', 'Could not delete SIMCA import'))
         return
       }
-      setSimcaImportMessage(`Borttagen: ${item.fileName}`)
+      setSimcaImportMessage(`${t('Borttagen', 'Deleted')}: ${item.fileName}`)
       setSimcaComparison(null)
       if (simcaBaselineId === item.id) setSimcaBaselineId('')
       if (simcaCurrentId === item.id) setSimcaCurrentId('')
       await fetchSimcaImports()
     } catch {
-      setSimcaImportError('Nätverksfel vid borttagning av SIMCA-import')
+      setSimcaImportError(t('Nätverksfel vid borttagning av SIMCA-import', 'Network error while deleting SIMCA import'))
     } finally {
       setDeletingSimcaImportId(null)
     }
-  }, [fetchSimcaImports, simcaBaselineId, simcaCurrentId, teamId])
+  }, [fetchSimcaImports, simcaBaselineId, simcaCurrentId, teamId, t])
 
   const compareSimcaImports = useCallback(async () => {
     if (!simcaBaselineId || !simcaCurrentId || simcaBaselineId === simcaCurrentId) {
-      setSimcaImportError('Välj två olika SIMCA-importer att jämföra')
+      setSimcaImportError(t('Välj två olika SIMCA-importer att jämföra', 'Select two different SIMCA imports to compare'))
       return
     }
 
@@ -628,18 +649,18 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       const json = await res.json()
       if (!json.success) {
         setSimcaComparison(null)
-        setSimcaImportError(json.error ?? 'Kunde inte jämföra SIMCA-importer')
+        setSimcaImportError(json.error ?? t('Kunde inte jämföra SIMCA-importer', 'Could not compare SIMCA imports'))
         return
       }
       setSimcaComparison(json.data)
-      setSimcaImportMessage('SIMCA-jämförelse uppdaterad')
+      setSimcaImportMessage(t('SIMCA-jämförelse uppdaterad', 'SIMCA comparison updated'))
     } catch {
       setSimcaComparison(null)
-      setSimcaImportError('Nätverksfel vid SIMCA-jämförelse')
+      setSimcaImportError(t('Nätverksfel vid SIMCA-jämförelse', 'Network error during SIMCA comparison'))
     } finally {
       setSimcaComparing(false)
     }
-  }, [simcaBaselineId, simcaCurrentId, teamId])
+  }, [simcaBaselineId, simcaCurrentId, teamId, t])
 
   const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
   const selectedSimcaExportPreset = simcaExportPresets.find((preset) => preset.id === simcaExportPresetId)
@@ -651,7 +672,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           <div>
             <p className="text-sm font-medium dark:text-white">SIMCA round-trip</p>
             <p className="text-xs text-muted-foreground">
-              Exportera hockeytester som versionerad CSV, analysera i SIMCA och importera resultat för jämförelse.
+              {t(
+                'Exportera hockeytester som versionerad CSV, analysera i SIMCA och importera resultat för jämförelse.',
+                'Export hockey tests as versioned CSV, analyze in SIMCA, and import results for comparison.'
+              )}
             </p>
           </div>
         </div>
@@ -659,12 +683,12 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           <p className="mb-1 text-xs font-medium text-muted-foreground">Export preset</p>
           <Select value={simcaExportPresetId} onValueChange={setSimcaExportPresetId}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Välj export" />
+              <SelectValue placeholder={t('Välj export', 'Select export')} />
             </SelectTrigger>
             <SelectContent>
               {(simcaExportPresets.length > 0 ? simcaExportPresets : [{ id: 'full', label: 'Full hockey export', description: '', columnCount: 0, columns: [] }]).map((preset) => (
                 <SelectItem key={preset.id} value={preset.id}>
-                  {preset.label}{preset.columnCount ? ` · ${preset.columnCount} kol` : ''}
+                  {preset.label}{preset.columnCount ? ` · ${preset.columnCount} ${t('kol', 'cols')}` : ''}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -676,7 +700,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
         <a href={`/api/teams/${teamId}/hockey-tests/export?preset=${encodeURIComponent(simcaExportPresetId)}`}>
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
-            Exportera CSV
+            {t('Exportera CSV', 'Export CSV')}
           </Button>
         </a>
         <input
@@ -701,7 +725,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           ) : (
             <FileSpreadsheet className="mr-2 h-4 w-4" />
           )}
-          Importera SIMCA
+          {t('Importera SIMCA', 'Import SIMCA')}
         </Button>
       </CardContent>
       {(simcaImportMessage || simcaImportError) && (
@@ -712,11 +736,11 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       )}
       {(simcaImportsLoading || simcaImports.length > 0) && (
         <div className="border-t px-6 py-3 dark:border-white/10">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Senaste SIMCA-importer</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">{t('Senaste SIMCA-importer', 'Latest SIMCA imports')}</p>
           {simcaImportsLoading ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Hämtar importer...
+              {t('Hämtar importer...', 'Loading imports...')}
             </div>
           ) : (
             <div className="grid gap-2 md:grid-cols-2">
@@ -729,7 +753,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                       <a href={`/api/teams/${teamId}/mva/simca-import/${item.id}`}>
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]">
                           <Download className="mr-1 h-3 w-3" />
-                          Fil
+                          {t('Fil', 'File')}
                         </Button>
                       </a>
                       <Button
@@ -744,21 +768,21 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                         ) : (
                           <Trash2 className="mr-1 h-3 w-3" />
                         )}
-                        Ta bort
+                        {t('Ta bort', 'Delete')}
                       </Button>
                     </div>
                   </div>
                   <div className="mt-1 text-muted-foreground">
                     {new Date(item.createdAt).toLocaleDateString(dateLocale)}
                     {' · '}
-                    {item.rowCount > 0 ? `${item.rowCount} rader` : 'JSON'}
-                    {item.columnCount > 0 && ` · ${item.columnCount} kolumner`}
+                    {item.rowCount > 0 ? `${item.rowCount} ${t('rader', 'rows')}` : 'JSON'}
+                    {item.columnCount > 0 && ` · ${item.columnCount} ${t('kolumner', 'columns')}`}
                     {item.exportPreset && ` · ${item.exportPreset}`}
                   </div>
                   {item.exportVersion && (
                     <div className="mt-1 text-[10px] text-muted-foreground">
                       {item.exportVersion}
-                      {item.exportedAt && ` · exporterad ${new Date(item.exportedAt).toLocaleDateString(dateLocale)}`}
+                      {item.exportedAt && ` · ${t('exporterad', 'exported')} ${new Date(item.exportedAt).toLocaleDateString(dateLocale)}`}
                     </div>
                   )}
                 </div>
@@ -772,10 +796,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div className="grid flex-1 gap-3 md:grid-cols-2">
               <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Baslinje</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">{t('Baslinje', 'Baseline')}</p>
                 <Select value={simcaBaselineId} onValueChange={setSimcaBaselineId}>
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Välj tidigare import" />
+                    <SelectValue placeholder={t('Välj tidigare import', 'Select previous import')} />
                   </SelectTrigger>
                   <SelectContent>
                     {simcaImports.map((item) => (
@@ -787,10 +811,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                 </Select>
               </div>
               <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Aktuell</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">{t('Aktuell', 'Current')}</p>
                 <Select value={simcaCurrentId} onValueChange={setSimcaCurrentId}>
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Välj nyare import" />
+                    <SelectValue placeholder={t('Välj nyare import', 'Select newer import')} />
                   </SelectTrigger>
                   <SelectContent>
                     {simcaImports.map((item) => (
@@ -813,7 +837,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
               ) : (
                 <GitCompareArrows className="mr-2 h-4 w-4" />
               )}
-              Jämför importer
+              {t('Jämför importer', 'Compare imports')}
             </Button>
           </div>
 
@@ -822,17 +846,17 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
               <div className="grid gap-2 md:grid-cols-3">
                 <div>
                   <p className="font-medium dark:text-white">{simcaComparison.summary.matchedAthletes}</p>
-                  <p className="text-muted-foreground">matchade spelare</p>
+                  <p className="text-muted-foreground">{t('matchade spelare', 'matched players')}</p>
                 </div>
                 <div>
                   <p className="font-medium dark:text-white">
-                    {simcaComparison.summary.newOutlierCount} nya · {simcaComparison.summary.resolvedOutlierCount} lösta
+                    {simcaComparison.summary.newOutlierCount} {t('nya', 'new')} · {simcaComparison.summary.resolvedOutlierCount} {t('lösta', 'resolved')}
                   </p>
-                  <p className="text-muted-foreground">outlier-flaggor</p>
+                  <p className="text-muted-foreground">{t('outlier-flaggor', 'outlier flags')}</p>
                 </div>
                 <div>
                   <p className="font-medium dark:text-white">{simcaComparison.summary.matchedVipVariables}</p>
-                  <p className="text-muted-foreground">matchade VIP-variabler</p>
+                  <p className="text-muted-foreground">{t('matchade VIP-variabler', 'matched VIP variables')}</p>
                 </div>
               </div>
 
@@ -840,13 +864,13 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                 <div className="grid gap-2 md:grid-cols-2">
                   {simcaComparison.newOutliers.length > 0 && (
                     <div>
-                      <p className="font-medium text-red-600 dark:text-red-400">Nya outliers</p>
+                      <p className="font-medium text-red-600 dark:text-red-400">{t('Nya outliers', 'New outliers')}</p>
                       <p className="text-muted-foreground">{simcaComparison.newOutliers.slice(0, 6).join(', ')}</p>
                     </div>
                   )}
                   {simcaComparison.resolvedOutliers.length > 0 && (
                     <div>
-                      <p className="font-medium text-emerald-600">Lösta outliers</p>
+                      <p className="font-medium text-emerald-600">{t('Lösta outliers', 'Resolved outliers')}</p>
                       <p className="text-muted-foreground">{simcaComparison.resolvedOutliers.slice(0, 6).join(', ')}</p>
                     </div>
                   )}
@@ -855,7 +879,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
 
               {simcaComparison.athleteMovement.length > 0 && (
                 <div>
-                  <p className="mb-2 font-medium dark:text-white">Störst förflyttning i score plot</p>
+                  <p className="mb-2 font-medium dark:text-white">{t('Störst förflyttning i score plot', 'Largest movement in score plot')}</p>
                   <div className="grid gap-1 md:grid-cols-2">
                     {simcaComparison.athleteMovement.slice(0, 6).map((item) => (
                       <div key={item.athleteName} className="flex items-center justify-between gap-3 rounded border px-2 py-1 dark:border-white/10">
@@ -871,7 +895,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
 
               {simcaComparison.vipChanges.length > 0 && (
                 <div>
-                  <p className="mb-2 font-medium dark:text-white">Störst VIP-förändring</p>
+                  <p className="mb-2 font-medium dark:text-white">{t('Störst VIP-förändring', 'Largest VIP change')}</p>
                   <div className="grid gap-1 md:grid-cols-2">
                     {simcaComparison.vipChanges.slice(0, 6).map((item) => (
                       <div key={item.variableName} className="flex items-center justify-between gap-3 rounded border px-2 py-1 dark:border-white/10">
@@ -887,7 +911,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
 
               {simcaComparison.athleteMovement.length === 0 && simcaComparison.vipChanges.length === 0 && (
                 <p className="text-muted-foreground">
-                  Importerna kunde läsas, men inga gemensamma spelare eller VIP-variabler hittades med kända SIMCA-kolumnnamn.
+                  {t(
+                    'Importerna kunde läsas, men inga gemensamma spelare eller VIP-variabler hittades med kända SIMCA-kolumnnamn.',
+                    'The imports could be read, but no shared players or VIP variables were found with known SIMCA column names.'
+                  )}
                 </p>
               )}
             </div>
@@ -906,14 +933,14 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           onClick={() => setAnalysisMode('PCA')}
           size="sm"
         >
-          PCA - Mönsteranalys
+          PCA - {t('Mönsteranalys', 'Pattern analysis')}
         </Button>
         <Button
           variant={analysisMode === 'PLS' ? 'default' : 'outline'}
           onClick={() => setAnalysisMode('PLS')}
           size="sm"
         >
-          PLS - Drivkraftsanalys
+          PLS - {t('Drivkraftsanalys', 'Driver analysis')}
         </Button>
       </div>
       {simcaWorkflow}
@@ -931,7 +958,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
             <Card className="dark:bg-slate-900/50 dark:border-white/10">
               <CardContent className="flex items-center justify-center py-16 gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-muted-foreground">Hämtar variabler...</span>
+                <span className="text-muted-foreground">{t('Hämtar variabler...', 'Loading variables...')}</span>
               </CardContent>
             </Card>
           </div>
@@ -1006,10 +1033,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           <Card className="dark:bg-slate-900/50 dark:border-white/10">
             <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
               <p className="text-muted-foreground text-center">
-                Ingen analys har körts för detta lag ännu.
+                {t('Ingen analys har körts för detta lag ännu.', 'No analysis has been run for this team yet.')}
               </p>
               <Button onClick={() => setPcaPhase('selection')} size="lg">
-                Konfigurera variabler
+                {t('Konfigurera variabler', 'Configure variables')}
               </Button>
               {error && <p className="text-red-500 text-sm text-center">{error}</p>}
             </CardContent>
@@ -1024,8 +1051,8 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Senast beräknad: {new Date(displayData.createdAt).toLocaleString(dateLocale)}
-              {' | '}{displayData.nObservations} spelare, {displayData.nVariables} variabler
+              {t('Senast beräknad', 'Last calculated')}: {new Date(displayData.createdAt).toLocaleString(dateLocale)}
+              {' | '}{displayData.nObservations} {t('spelare', 'players')}, {displayData.nVariables} {t('variabler', 'variables')}
             </div>
             <div className="flex gap-2">
               <Button
@@ -1037,7 +1064,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                 size="sm"
               >
                 <Settings2 className="mr-2 h-4 w-4" />
-                Konfigurera variabler
+                {t('Konfigurera variabler', 'Configure variables')}
               </Button>
               <Button onClick={() => runAnalysis()} disabled={loading} variant="outline" size="sm">
                 {loading ? (
@@ -1045,7 +1072,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
                 )}
-                Kör ny analys
+                {t('Kör ny analys', 'Run new analysis')}
               </Button>
             </div>
           </div>
@@ -1058,10 +1085,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
 
           <Tabs defaultValue="scores" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="scores">Poängdiagram</TabsTrigger>
-              <TabsTrigger value="loadings">Laddningar</TabsTrigger>
-              <TabsTrigger value="diagnostics">Diagnostik</TabsTrigger>
-              <TabsTrigger value="quality">Datakvalitet</TabsTrigger>
+              <TabsTrigger value="scores">{t('Poängdiagram', 'Score plot')}</TabsTrigger>
+              <TabsTrigger value="loadings">{t('Laddningar', 'Loadings')}</TabsTrigger>
+              <TabsTrigger value="diagnostics">{t('Diagnostik', 'Diagnostics')}</TabsTrigger>
+              <TabsTrigger value="quality">{t('Datakvalitet', 'Data quality')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="scores" className="space-y-6">
@@ -1152,7 +1179,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           <Card className="dark:bg-slate-900/50 dark:border-white/10">
             <CardContent className="flex items-center justify-center py-16 gap-2">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-muted-foreground">Hämtar variabler...</span>
+              <span className="text-muted-foreground">{t('Hämtar variabler...', 'Loading variables...')}</span>
             </CardContent>
           </Card>
         </div>
@@ -1167,21 +1194,24 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           <Card className="dark:bg-slate-900/50 dark:border-white/10">
             <CardContent className="pt-6">
               <label className="block text-sm font-medium mb-2 dark:text-white">
-                Y-variabel (responsvariabel)
+                {t('Y-variabel (responsvariabel)', 'Y variable (response variable)')}
               </label>
               <p className="text-sm text-muted-foreground mb-3">
-                Välj vilken variabel du vill förutsäga. X-variablerna nedan används som prediktorer.
+                {t(
+                  'Välj vilken variabel du vill förutsäga. X-variablerna nedan används som prediktorer.',
+                  'Choose which variable you want to predict. The X variables below are used as predictors.'
+                )}
               </p>
               <Select value={yVariableId} onValueChange={setYVariableId}>
                 <SelectTrigger className="w-full max-w-md">
-                  <SelectValue placeholder="Välj Y-variabel..." />
+                  <SelectValue placeholder={t('Välj Y-variabel...', 'Select Y variable...')} />
                 </SelectTrigger>
                 <SelectContent>
                   {variables
                     .filter((v) => v.coverage > 0)
                     .map((v) => (
                       <SelectItem key={v.id} value={v.id}>
-                        {v.nameSv} ({Math.round(v.coverage * 100)}% täckning)
+                        {locale === 'sv' ? v.nameSv : v.name} ({Math.round(v.coverage * 100)}% {t('täckning', 'coverage')})
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -1260,10 +1290,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
         <Card className="dark:bg-slate-900/50 dark:border-white/10">
           <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
             <p className="text-muted-foreground text-center">
-              Ingen PLS-analys har körts för detta lag ännu.
+              {t('Ingen PLS-analys har körts för detta lag ännu.', 'No PLS analysis has been run for this team yet.')}
             </p>
             <Button onClick={() => setPlsPhase('selection')} size="lg">
-              Konfigurera analys
+              {t('Konfigurera analys', 'Configure analysis')}
             </Button>
             {plsError && <p className="text-red-500 text-sm text-center">{plsError}</p>}
           </CardContent>
@@ -1281,8 +1311,8 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Senast beräknad: {new Date(plsDisplay.createdAt).toLocaleString(dateLocale)}
-            {' | '}{plsDisplay.nObservations} spelare, {plsDisplay.nXVariables} X-variabler
+            {t('Senast beräknad', 'Last calculated')}: {new Date(plsDisplay.createdAt).toLocaleString(dateLocale)}
+            {' | '}{plsDisplay.nObservations} {t('spelare', 'players')}, {plsDisplay.nXVariables} {t('X-variabler', 'X variables')}
             {' | '}Y: {plsDisplay.yVariableName}
           </div>
           <div className="flex gap-2">
@@ -1295,7 +1325,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
               size="sm"
             >
               <Settings2 className="mr-2 h-4 w-4" />
-              Konfigurera analys
+              {t('Konfigurera analys', 'Configure analysis')}
             </Button>
             <Button
               onClick={() => runPLSAnalysis()}
@@ -1308,7 +1338,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
-              Kör ny analys
+              {t('Kör ny analys', 'Run new analysis')}
             </Button>
           </div>
         </div>
@@ -1321,10 +1351,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
 
         <Tabs defaultValue="drivers" className="w-full">
           <TabsList className={`grid w-full ${hasInsight ? 'grid-cols-4' : 'grid-cols-3'}`}>
-            <TabsTrigger value="drivers">Nyckeldrivare</TabsTrigger>
-            <TabsTrigger value="prediction">Prediktion</TabsTrigger>
-            {hasInsight && <TabsTrigger value="insights">AI-insikter</TabsTrigger>}
-            <TabsTrigger value="quality">Datakvalitet</TabsTrigger>
+            <TabsTrigger value="drivers">{t('Nyckeldrivare', 'Key drivers')}</TabsTrigger>
+            <TabsTrigger value="prediction">{t('Prediktion', 'Prediction')}</TabsTrigger>
+            {hasInsight && <TabsTrigger value="insights">{t('AI-insikter', 'AI insights')}</TabsTrigger>}
+            <TabsTrigger value="quality">{t('Datakvalitet', 'Data quality')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="drivers" className="space-y-6">
