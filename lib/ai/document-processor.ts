@@ -269,7 +269,7 @@ export async function processDocument(
 ): Promise<ProcessedDocument | ProcessingError> {
   try {
     let content: string;
-    let metadata: ProcessedDocument['metadata'] = {
+    const metadata: ProcessedDocument['metadata'] = {
       wordCount: 0,
       extractedAt: new Date().toISOString(),
     };

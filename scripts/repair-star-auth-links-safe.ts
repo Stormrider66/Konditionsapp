@@ -360,7 +360,7 @@ async function main() {
       let reason = ''
       const warnings = [...authSelection.warnings]
       let chosenDbUserId: string | null = null
-      let chosenAuthUserId: string | null = authSelection.chosen?.id || null
+      const chosenAuthUserId: string | null = authSelection.chosen?.id || null
       let fkCountsForChosenDbUser: FKCount[] = []
       let blockingFksForChosenDbUser: FKCount[] = []
       let authIdCollisionDbUser: { id: string; email: string; name: string } | null = null

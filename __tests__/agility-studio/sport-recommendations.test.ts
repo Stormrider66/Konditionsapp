@@ -22,7 +22,6 @@ import {
 import type { AgilityDrill, AgilityDrillCategory, SportType } from '@/types'
 
 // Mock drill data for testing
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createMockDrill = (overrides: Partial<AgilityDrill> = {}): AgilityDrill => {
   return {
     id: 'drill-1',

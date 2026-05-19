@@ -185,7 +185,7 @@ function calculateFallbackThreshold(
 
   // Find first crossing of 4.0 mmol/L
   let thresholdIntensity = intensity[intensity.length - 1];
-  let thresholdLactate = 4.0;
+  const thresholdLactate = 4.0;
   let thresholdHR = heartRate[heartRate.length - 1];
 
   for (let i = 1; i < lactate.length; i++) {

@@ -133,7 +133,7 @@ export function MonthViewDraggable({
       if (item.endDate && item.type === 'CALENDAR_EVENT') {
         const endDate = new Date(item.endDate)
         const startDate = new Date(item.date)
-        let current = new Date(startDate)
+        const current = new Date(startDate)
         current.setDate(current.getDate() + 1)
 
         while (current <= endDate) {

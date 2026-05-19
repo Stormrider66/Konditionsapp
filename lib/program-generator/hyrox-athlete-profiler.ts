@@ -687,7 +687,7 @@ function generateProfileInsights(
   }
 
   // Add weak stations to focus if any
-  let trainingFocus = [...focusAreas[athleteType]]
+  const trainingFocus = [...focusAreas[athleteType]]
 
   // Add pace degradation insight
   if (runningAnalysis.paceDegradationLevel) {

@@ -188,7 +188,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     // If Garmin push requested, check which athletes have Garmin connected
-    let garminTokensByAthlete: Map<string, boolean> = new Map();
+    const garminTokensByAthlete: Map<string, boolean> = new Map();
     if (pushToGarmin) {
       const garminTokens = await prisma.integrationToken.findMany({
         where: {

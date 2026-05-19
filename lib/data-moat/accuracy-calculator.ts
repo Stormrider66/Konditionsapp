@@ -454,7 +454,7 @@ export async function createAccuracySnapshot(
 ): Promise<string> {
   const now = new Date()
   let startDate: Date
-  let endDate = now
+  const endDate = now
 
   switch (snapshotType) {
     case 'daily':

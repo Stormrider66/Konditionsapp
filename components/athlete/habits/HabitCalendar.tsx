@@ -76,7 +76,7 @@ export function HabitCalendar({
 
       // Count completed habits for this day
       let completed = 0
-      let total = habits.length
+      const total = habits.length
 
       habits.forEach(habit => {
         const log = habit.logs.find(l => l.date.split('T')[0] === dateStr)

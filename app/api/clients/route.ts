@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const businessMembership = await getBusinessMembership(user.id, scope.businessSlug)
 
     let ownerId = user.id
-    let businessId = businessMembership?.businessId ?? null
+    const businessId = businessMembership?.businessId ?? null
     if (data.teamId) {
       const team = await getWritableTeam(user.id, data.teamId, scope.businessSlug, 'roster')
       if (!team) {

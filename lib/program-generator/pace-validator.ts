@@ -407,7 +407,7 @@ export function selectReliableMarathonPace(
     const thresholdUnit = test.anaerobicThreshold?.unit
 
     if (thresholdValue && thresholdUnit) {
-      let lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
+      const lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
 
       if (lt2SpeedKmh > 0) {
         const marathonPaceKmh = lt2SpeedKmh * 0.90
@@ -482,7 +482,7 @@ export function selectReliableMarathonPace(
     const thresholdUnit = test.anaerobicThreshold.unit
 
     if (thresholdValue && thresholdUnit) {
-      let lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
+      const lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
 
       if (lt2SpeedKmh > 0) {
         const marathonPaceKmh = lt2SpeedKmh * 0.90
@@ -509,7 +509,7 @@ export function selectReliableMarathonPace(
     const thresholdUnit = test.anaerobicThreshold.unit
 
     if (thresholdValue && thresholdUnit) {
-      let lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
+      const lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
 
       if (lt2SpeedKmh > 0) {
         const marathonPaceKmh = lt2SpeedKmh * 0.90

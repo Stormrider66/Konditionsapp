@@ -213,7 +213,7 @@ export function getDeloadRecommendations(
   const warnings: string[] = []
 
   let frequency = `Every ${config.baseFrequencyWeeks} weeks`
-  let percentage = `${config.deloadPercentage}% of normal volume`
+  const percentage = `${config.deloadPercentage}% of normal volume`
 
   let rationale = ''
   if (athleteLevel === 'BEGINNER' || athleteLevel === 'RECREATIONAL') {

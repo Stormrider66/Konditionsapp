@@ -26,10 +26,10 @@ export function distributeDefaultWorkouts(params: WorkoutDistributionParams): Wo
     phase
   )
 
-  let currentDay = 1
-  let easyCount = 0
-  let moderateCount = 0
-  let hardCount = 0
+  const currentDay = 1
+  const easyCount = 0
+  const moderateCount = 0
+  const hardCount = 0
 
   switch (phase) {
     case 'BASE':

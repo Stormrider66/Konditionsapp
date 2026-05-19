@@ -257,8 +257,8 @@ function estimateLT2Fallback(
   const hrValues = measurements.map((m) => m.heartRate)
 
   // Find second crossing of 4.0 mmol/L if exists, otherwise first
-  let lt2Intensity = interpolateFromArrays(lactateValues, intensityValues, 4.0) || 0
-  let lt2HR = interpolateFromArrays(lactateValues, hrValues, 4.0) || 0
+  const lt2Intensity = interpolateFromArrays(lactateValues, intensityValues, 4.0) || 0
+  const lt2HR = interpolateFromArrays(lactateValues, hrValues, 4.0) || 0
 
   return {
     intensity: lt2Intensity,

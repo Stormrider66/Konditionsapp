@@ -138,7 +138,7 @@ export function ProgramOverview({
     const week = program.weeks.find((w) => w.weekNumber === selectedWeek)
     if (!week) return []
 
-    let workouts: any[] = []
+    const workouts: any[] = []
 
     week.days.forEach((day) => {
       day.workouts.forEach((workout) => {

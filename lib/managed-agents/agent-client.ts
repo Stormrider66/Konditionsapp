@@ -513,7 +513,7 @@ async function runAgentLoop(
   // Build initial message with event context
   const eventContext = `EVENT: ${event.type}\nDATA: ${JSON.stringify(event.data, null, 2)}\nENTITY: ${event.entityId}\nTIME: ${event.timestamp.toISOString()}\n\nAnalyze this event and take appropriate action using your tools. Always start by reading the athlete's current state before making decisions.`
 
-  let messages: Anthropic.MessageParam[] = [
+  const messages: Anthropic.MessageParam[] = [
     { role: 'user', content: eventContext },
   ]
 

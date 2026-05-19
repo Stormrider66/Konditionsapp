@@ -71,7 +71,7 @@ async function main() {
     console.log(`\n--- Processing: ${member.name} ---`)
 
     // 1. Look up existing User by current email (or new email if already updated)
-    let existingUser = await prisma.user.findFirst({
+    const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
           { email: member.currentEmail },

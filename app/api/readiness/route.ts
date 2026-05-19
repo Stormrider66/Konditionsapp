@@ -230,7 +230,7 @@ function calculateCheckInStreak(metrics: Array<{ date: Date }>): number {
   const sorted = [...metrics].sort((a, b) => b.date.getTime() - a.date.getTime())
 
   let streak = 0
-  let expectedDate = new Date()
+  const expectedDate = new Date()
   expectedDate.setHours(0, 0, 0, 0)
 
   for (const metric of sorted) {

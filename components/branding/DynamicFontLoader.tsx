@@ -20,7 +20,6 @@ export function DynamicFontLoader({ fontFamily }: DynamicFontLoaderProps) {
   if (!fontParam) return null
 
   return (
-    // eslint-disable-next-line @next/next/no-page-custom-font
     <link
       rel="stylesheet"
       href={`https://fonts.googleapis.com/css2?family=${fontParam}&display=swap`}

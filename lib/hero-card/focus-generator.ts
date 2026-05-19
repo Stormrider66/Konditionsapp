@@ -325,7 +325,7 @@ function generateCardioFocus(workout: WorkoutWithSegments): WorkoutFocus {
 function generatePlyoFocus(workout: WorkoutWithSegments): WorkoutFocus {
   const primaryExercise = getPrimaryExercise(workout.segments)
 
-  let title = 'Explosiv Styrka'
+  const title = 'Explosiv Styrka'
   let description = 'Plyometriska övningar för kraft och snabbhet.'
 
   if (primaryExercise) {
@@ -355,7 +355,7 @@ function generatePlyoFocus(workout: WorkoutWithSegments): WorkoutFocus {
 function generateCoreFocus(workout: WorkoutWithSegments): WorkoutFocus {
   const primaryExercise = getPrimaryExercise(workout.segments)
 
-  let title = 'Core Stabilitet'
+  const title = 'Core Stabilitet'
   let description = 'Stärk din core för bättre löpteknik och stabilitet.'
 
   if (primaryExercise) {

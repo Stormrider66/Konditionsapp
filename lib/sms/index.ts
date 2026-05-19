@@ -100,7 +100,7 @@ export async function sendSMS(options: SendSMSOptions): Promise<SendSMSResult> {
  */
 export function normalizePhoneNumber(phone: string): string | null {
   // Strip whitespace, dashes, parentheses
-  let cleaned = phone.replace(/[\s\-()]/g, '')
+  const cleaned = phone.replace(/[\s\-()]/g, '')
 
   if (!cleaned) return null
 

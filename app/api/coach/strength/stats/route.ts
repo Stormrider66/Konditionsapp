@@ -18,7 +18,7 @@ export async function GET() {
     const lastMonthEnd = startOfMonth(now)
 
     // Build exercise access filter based on role (same logic as /api/exercises)
-    let exerciseAccessWhere: any = {}
+    const exerciseAccessWhere: any = {}
     if (user.role === 'ADMIN') {
       // Admin sees all
     } else if (hasCoachAccess) {

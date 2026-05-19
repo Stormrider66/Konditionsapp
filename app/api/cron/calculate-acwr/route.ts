@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Calculate TSS for yesterday based on existing training load
-        let dailyTSS = existingLoad?.dailyLoad || 0
+        const dailyTSS = existingLoad?.dailyLoad || 0
 
         // Get most recent ACWR entry for this athlete
         const previousEntry = await prisma.trainingLoad.findFirst({
