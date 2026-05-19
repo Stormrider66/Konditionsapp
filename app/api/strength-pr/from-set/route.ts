@@ -34,6 +34,16 @@ interface SectionDataShape {
   exercises?: SessionExerciseShape[]
 }
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
@@ -44,6 +54,7 @@ export async function POST(request: NextRequest) {
       )
     }
     const { clientId } = resolved
+    const locale = resolveLocale(resolved.user.language)
 
     const body = await request.json()
     const {
@@ -125,7 +136,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Inte en ny PR',
+          error: t(locale, 'Not a new PR', 'Inte en ny PR'),
           currentMax: latest.oneRepMax,
         },
         { status: 409 }
@@ -143,7 +154,7 @@ export async function POST(request: NextRequest) {
         // weighted set, which only makes sense in kilograms.
         unit: 'KG',
         bodyWeight: bodyWeight ?? null,
-        notes: 'Auto-detekterad från loggat set',
+        notes: t(locale, 'Auto-detected from logged set', 'Auto-detekterad från loggat set'),
       },
     })
 

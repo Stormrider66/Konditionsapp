@@ -41,9 +41,20 @@ interface BulkPRError {
   message: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale = resolveLocale(user.language)
     const body = await request.json()
     const { teamId, clientId, entries } = body as {
       teamId?: string
@@ -117,16 +128,18 @@ export async function POST(request: NextRequest) {
       if (!entry.clientId || !memberIdSet.has(entry.clientId)) {
         errors.push({
           index,
-          message: teamId ? 'Atleten finns inte i laget' : 'Fel klient-id',
+          message: teamId
+            ? t(locale, 'The athlete is not on the team', 'Atleten finns inte i laget')
+            : t(locale, 'Wrong client ID', 'Fel klient-id'),
         })
         return
       }
       if (!entry.exerciseId || !exerciseIdSet.has(entry.exerciseId)) {
-        errors.push({ index, message: 'Övningen kunde inte matchas' })
+        errors.push({ index, message: t(locale, 'The exercise could not be matched', 'Övningen kunde inte matchas') })
         return
       }
       if (typeof entry.oneRepMax !== 'number' || entry.oneRepMax <= 0) {
-        errors.push({ index, message: 'Vikten måste vara > 0' })
+        errors.push({ index, message: t(locale, 'Weight must be > 0', 'Vikten måste vara > 0') })
         return
       }
       validRows.push({
