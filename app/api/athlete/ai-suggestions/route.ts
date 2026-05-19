@@ -25,6 +25,8 @@ interface Suggestion {
   action: { label: string; href: string } | null
 }
 
+type AppLocale = 'en' | 'sv'
+
 export async function GET() {
   try {
     const resolved = await resolveAthleteClientId()
@@ -34,6 +36,7 @@ export async function GET() {
     }
 
     const { user, clientId } = resolved
+    const locale = getUserLocale(user.language)
     const athleteId = user.id
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -130,9 +133,13 @@ export async function GET() {
       suggestions.push({
         type: 'check-in',
         priority: 'medium',
-        title: 'Daglig incheckning',
-        message: 'Du har inte gjort din dagliga incheckning. Den tar mindre än 2 minuter och hjälper oss anpassa din träning.',
-        action: { label: 'Gör incheckning', href: '/athlete/check-in' },
+        title: t(locale, 'Daily check-in', 'Daglig incheckning'),
+        message: t(
+          locale,
+          'You have not completed your daily check-in. It takes less than 2 minutes and helps us adapt your training.',
+          'Du har inte gjort din dagliga incheckning. Den tar mindre än 2 minuter och hjälper oss anpassa din träning.'
+        ),
+        action: { label: t(locale, 'Check in', 'Gör incheckning'), href: '/athlete/check-in' },
       })
     }
 
@@ -141,8 +148,12 @@ export async function GET() {
       suggestions.push({
         type: 'readiness',
         priority: 'high',
-        title: 'Låg beredskap',
-        message: `Din beredskapspoäng är ${latestCheckIn.readinessScore.toFixed(1)}/10. Överväg lättare träning eller vila idag.`,
+        title: t(locale, 'Low readiness', 'Låg beredskap'),
+        message: t(
+          locale,
+          `Your readiness score is ${latestCheckIn.readinessScore.toFixed(1)}/10. Consider easier training or rest today.`,
+          `Din beredskapspoäng är ${latestCheckIn.readinessScore.toFixed(1)}/10. Överväg lättare träning eller vila idag.`
+        ),
         action: null,
       })
     }
@@ -157,9 +168,13 @@ export async function GET() {
       suggestions.push({
         type: 'workout-adjustment',
         priority: 'high',
-        title: 'Intensivt pass planerat',
-        message: `Du har "${todaysWorkout.name}" planerat, men din beredskap är låg. Överväg att kontakta din coach om anpassning.`,
-        action: { label: 'Visa pass', href: `/athlete/workouts/${todaysWorkout.id}` },
+        title: t(locale, 'Hard workout planned', 'Intensivt pass planerat'),
+        message: t(
+          locale,
+          `You have "${todaysWorkout.name}" planned, but your readiness is low. Consider contacting your coach about an adjustment.`,
+          `Du har "${todaysWorkout.name}" planerat, men din beredskap är låg. Överväg att kontakta din coach om anpassning.`
+        ),
+        action: { label: t(locale, 'View workout', 'Visa pass'), href: `/athlete/workouts/${todaysWorkout.id}` },
       })
     }
 
@@ -170,16 +185,24 @@ export async function GET() {
         suggestions.push({
           type: 'injury',
           priority: 'high',
-          title: 'Skadestatus',
-          message: `Du har ${highSeverity.length} allvarlig skada/begränsning. Glöm inte att rapportera förändringar till din coach.`,
+          title: t(locale, 'Injury status', 'Skadestatus'),
+          message: t(
+            locale,
+            `You have ${highSeverity.length} serious injury/limitation. Remember to report changes to your coach.`,
+            `Du har ${highSeverity.length} allvarlig skada/begränsning. Glöm inte att rapportera förändringar till din coach.`
+          ),
           action: null,
         })
       } else if (activeInjuries.length > 0) {
         suggestions.push({
           type: 'injury',
           priority: 'medium',
-          title: 'Aktiv skada',
-          message: `Du har ${activeInjuries.length} aktiv skada/begränsning. Var uppmärksam under träning.`,
+          title: t(locale, 'Active injury', 'Aktiv skada'),
+          message: t(
+            locale,
+            `You have ${activeInjuries.length} active injury/limitation. Pay close attention during training.`,
+            `Du har ${activeInjuries.length} aktiv skada/begränsning. Var uppmärksam under träning.`
+          ),
           action: null,
         })
       }
@@ -197,8 +220,12 @@ export async function GET() {
           suggestions.push({
             type: 'recovery',
             priority: 'medium',
-            title: 'Sömnbrist',
-            message: `Din genomsnittliga sömn senaste veckan är ${avgSleep.toFixed(1)} timmar. Prioritera sömn för bättre återhämtning och prestation.`,
+            title: t(locale, 'Sleep deficit', 'Sömnbrist'),
+            message: t(
+              locale,
+              `Your average sleep over the last week is ${avgSleep.toFixed(1)} hours. Prioritize sleep for better recovery and performance.`,
+              `Din genomsnittliga sömn senaste veckan är ${avgSleep.toFixed(1)} timmar. Prioritera sömn för bättre återhämtning och prestation.`
+            ),
             action: null,
           })
         }
@@ -212,16 +239,24 @@ export async function GET() {
         suggestions.push({
           type: 'motivation',
           priority: 'low',
-          title: 'Imponerande!',
-          message: `Du har tränat ${streak} dagar i rad! Fortsätt hålla i, men glöm inte återhämtning.`,
+          title: t(locale, 'Impressive!', 'Imponerande!'),
+          message: t(
+            locale,
+            `You have trained ${streak} days in a row. Keep it up, but do not forget recovery.`,
+            `Du har tränat ${streak} dagar i rad! Fortsätt hålla i, men glöm inte återhämtning.`
+          ),
           action: null,
         })
       } else if (streak >= 3) {
         suggestions.push({
           type: 'motivation',
           priority: 'low',
-          title: 'Bra jobbat!',
-          message: `${streak} träningsdagar i rad! Du är på god väg mot dina mål.`,
+          title: t(locale, 'Nice work!', 'Bra jobbat!'),
+          message: t(
+            locale,
+            `${streak} training days in a row. You are well on your way toward your goals.`,
+            `${streak} träningsdagar i rad! Du är på god väg mot dina mål.`
+          ),
           action: null,
         })
       }
@@ -255,8 +290,12 @@ export async function GET() {
         suggestions.push({
           type: 'preparation',
           priority: 'low',
-          title: 'Förbered för imorgon',
-          message: `Du har ett intensivt pass imorgon: "${tomorrowsWorkout.name}". Se till att få bra sömn och äta väl idag.`,
+          title: t(locale, 'Prepare for tomorrow', 'Förbered för imorgon'),
+          message: t(
+            locale,
+            `You have a hard workout tomorrow: "${tomorrowsWorkout.name}". Make sure you get good sleep and eat well today.`,
+            `Du har ett intensivt pass imorgon: "${tomorrowsWorkout.name}". Se till att få bra sömn och äta väl idag.`
+          ),
           action: null,
         })
       }
@@ -280,6 +319,14 @@ export async function GET() {
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**
