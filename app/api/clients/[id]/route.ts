@@ -15,6 +15,16 @@ type RouteParams = {
   }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 // GET /api/clients/[id] - Hämta specifik klient
 export async function GET(
   request: NextRequest,
@@ -237,6 +247,7 @@ export async function PUT(
         { status: 401 }
       )
     }
+    const locale = resolveLocale(user.language)
 
     const { id } = await params
     const scope = getRequestedBusinessScope(request)
@@ -337,7 +348,11 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Klienten har ett aktivt atletkonto och måste ha en e-postadress.',
+          error: t(
+            locale,
+            'The client has an active athlete account and must have an email address.',
+            'Klienten har ett aktivt atletkonto och måste ha en e-postadress.',
+          ),
         },
         { status: 400 }
       )
@@ -357,7 +372,11 @@ export async function PUT(
           return NextResponse.json(
             {
               success: false,
-              error: 'E-postadressen används redan av en annan användare.',
+              error: t(
+                locale,
+                'The email address is already used by another user.',
+                'E-postadressen används redan av en annan användare.',
+              ),
             },
             { status: 409 }
           )
@@ -385,7 +404,11 @@ export async function PUT(
         return NextResponse.json(
           {
             success: false,
-            error: 'Kunde inte uppdatera atletens inloggningsadress.',
+            error: t(
+              locale,
+              "Could not update the athlete's login email address.",
+              'Kunde inte uppdatera atletens inloggningsadress.',
+            ),
           },
           { status: 500 }
         )

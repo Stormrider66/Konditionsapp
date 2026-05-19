@@ -10,6 +10,16 @@ import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 // GET /api/clients - Hämta alla klienter för inloggad användare
 // Supports pagination: ?limit=50&offset=0 (defaults: limit=500, offset=0)
 export async function GET(request: NextRequest) {
@@ -89,6 +99,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/clients - Skapa ny klient
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
 
@@ -101,6 +112,7 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
+    locale = resolveLocale(user.language)
 
     const body = await request.json()
 
@@ -142,7 +154,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Du har nått maxgränsen för antal atleter. Uppgradera din prenumeration för att lägga till fler.',
+            error: t(
+              locale,
+              'You have reached the maximum number of athletes. Upgrade your subscription to add more.',
+              'Du har nått maxgränsen för antal atleter. Uppgradera din prenumeration för att lägga till fler.',
+            ),
           },
           { status: 403 }
         )
@@ -162,7 +178,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'En klient med denna e-postadress finns redan',
+            error: t(
+              locale,
+              'A client with this email address already exists',
+              'En klient med denna e-postadress finns redan',
+            ),
           },
           { status: 409 }
         )
@@ -184,7 +204,7 @@ export async function POST(request: NextRequest) {
             email: user.email,
             name: user.name || user.email.split('@')[0],
             role: 'COACH', // Default role for users creating clients
-            language: user.language || 'sv',
+            language: user.language || 'en',
           },
         })
         logger.info('Created user record for', { email: user.email })
@@ -264,19 +284,40 @@ export async function POST(request: NextRequest) {
       if (error.code === 'P2002') {
         const target = (error.meta?.target as string[])?.join(', ') || 'unknown'
         return NextResponse.json(
-          { success: false, error: `En post med samma värde finns redan (${target}). Kontrollera e-postadressen.` },
+          {
+            success: false,
+            error: t(
+              locale,
+              `A record with the same value already exists (${target}). Check the email address.`,
+              `En post med samma värde finns redan (${target}). Kontrollera e-postadressen.`,
+            ),
+          },
           { status: 409 }
         )
       }
       if (error.code === 'P2003') {
         return NextResponse.json(
-          { success: false, error: 'Referensfel: ett relaterat objekt (lag eller verksamhet) hittades inte.' },
+          {
+            success: false,
+            error: t(
+              locale,
+              'Reference error: a related object (team or business) was not found.',
+              'Referensfel: ett relaterat objekt (lag eller verksamhet) hittades inte.',
+            ),
+          },
           { status: 400 }
         )
       }
       if (error.code === 'P2025') {
         return NextResponse.json(
-          { success: false, error: 'Användarkontot kunde inte hittas. Försök logga ut och in igen.' },
+          {
+            success: false,
+            error: t(
+              locale,
+              'The user account could not be found. Try logging out and in again.',
+              'Användarkontot kunde inte hittas. Försök logga ut och in igen.',
+            ),
+          },
           { status: 404 }
         )
       }
@@ -284,7 +325,14 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof Prisma.PrismaClientInitializationError) {
       return NextResponse.json(
-        { success: false, error: 'Databasanslutningen misslyckades. Försök igen om en stund.' },
+        {
+          success: false,
+          error: t(
+            locale,
+            'The database connection failed. Try again in a moment.',
+            'Databasanslutningen misslyckades. Försök igen om en stund.',
+          ),
+        },
         { status: 503 }
       )
     }
@@ -292,7 +340,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Kunde inte skapa klienten. Försök igen eller kontakta support.',
+        error: t(
+          locale,
+          'Could not create the client. Try again or contact support.',
+          'Kunde inte skapa klienten. Försök igen eller kontakta support.',
+        ),
       },
       { status: 500 }
     )
