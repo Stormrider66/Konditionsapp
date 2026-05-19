@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { useLocale } from '@/i18n/client'
 import {
   Table,
   TableBody,
@@ -68,13 +69,86 @@ type SkillAuditResponse = {
   error?: string
 }
 
-const healthLabels: Record<SkillHealth, string> = {
-  ready: 'Redo',
-  inactive: 'Inaktiv',
-  missing_document: 'Saknar dokument',
-  document_failed: 'Dokumentfel',
-  no_chunks: 'Saknar chunks',
-  missing_embedding: 'Saknar embedding',
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const healthLabels: Record<AppLocale, Record<SkillHealth, string>> = {
+  en: {
+    ready: 'Ready',
+    inactive: 'Inactive',
+    missing_document: 'Missing document',
+    document_failed: 'Document error',
+    no_chunks: 'Missing chunks',
+    missing_embedding: 'Missing embedding',
+  },
+  sv: {
+    ready: 'Redo',
+    inactive: 'Inaktiv',
+    missing_document: 'Saknar dokument',
+    document_failed: 'Dokumentfel',
+    no_chunks: 'Saknar chunks',
+    missing_embedding: 'Saknar embedding',
+  },
+}
+
+const labels = {
+  en: {
+    fallbackLoadError: 'Could not load AI skills.',
+    networkError: 'Could not reach the AI skill audit right now.',
+    noAuditData: 'No audit data was found.',
+    retry: 'Try again',
+    description:
+      'Check that knowledge skills are active, linked to documents, and available to the AI surfaces.',
+    refresh: 'Refresh',
+    activeSkills: 'Active skills',
+    of: 'of',
+    greenHealth: 'green health status',
+    systemDocuments: 'System documents',
+    linkedTotal: 'linked total',
+    knowledgeChunks: 'Knowledge chunks',
+    availableForRetrieval: 'available for retrieval',
+    warnings: 'Warnings',
+    criticalLinksChunks: 'critical links/chunks',
+    connected: 'Connected',
+    separate: 'Separate',
+    library: 'Skill library',
+    libraryDescription:
+      'Search by name, category, or trigger word to see what the AI can retrieve.',
+    searchPlaceholder: 'Search skills...',
+    category: 'Category',
+    documents: 'Documents',
+    triggerWords: 'Trigger words',
+    noMatches: 'No skills match the search.',
+  },
+  sv: {
+    fallbackLoadError: 'Kunde inte läsa AI-skills.',
+    networkError: 'Kunde inte nå AI-skill audit just nu.',
+    noAuditData: 'Ingen auditdata hittades.',
+    retry: 'Försök igen',
+    description:
+      'Kontrollera att kunskapsskills är aktiva, länkade till dokument och tillgängliga för AI-ytorna.',
+    refresh: 'Uppdatera',
+    activeSkills: 'Aktiva skills',
+    of: 'av',
+    greenHealth: 'hälsostatus grön',
+    systemDocuments: 'Systemdokument',
+    linkedTotal: 'länkade totalt',
+    knowledgeChunks: 'Kunskapsbitar',
+    availableForRetrieval: 'tillgängliga för retrieval',
+    warnings: 'Varningar',
+    criticalLinksChunks: 'kritiska länkar/chunks',
+    connected: 'Kopplad',
+    separate: 'Separat',
+    library: 'Skillbibliotek',
+    libraryDescription:
+      'Sök på namn, kategori eller triggerord för att se vad AI:n kan hämta.',
+    searchPlaceholder: 'Sök skills...',
+    category: 'Kategori',
+    documents: 'Dokument',
+    triggerWords: 'Triggerord',
+    noMatches: 'Inga skills matchar sökningen.',
+  },
 }
 
 const healthClasses: Record<SkillHealth, string> = {
@@ -87,6 +161,8 @@ const healthClasses: Record<SkillHealth, string> = {
 }
 
 export function AISkillAuditPanel() {
+  const appLocale = getAppLocale(useLocale())
+  const copy = labels[appLocale]
   const [data, setData] = useState<SkillAuditResponse['data'] | null>(null)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -99,16 +175,16 @@ export function AISkillAuditPanel() {
       const response = await fetch('/api/admin/ai-skills/audit')
       const payload = (await response.json()) as SkillAuditResponse
       if (!response.ok || !payload.success || !payload.data) {
-        setError(payload.error || 'Kunde inte läsa AI-skills.')
+        setError(payload.error || copy.fallbackLoadError)
         return
       }
       setData(payload.data)
     } catch {
-      setError('Kunde inte nå AI-skill audit just nu.')
+      setError(copy.networkError)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [copy.fallbackLoadError, copy.networkError])
 
   useEffect(() => {
     void Promise.resolve().then(fetchAudit)
@@ -142,11 +218,11 @@ export function AISkillAuditPanel() {
         <CardContent className="flex items-center justify-between gap-4 p-6">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <TriangleAlert className="h-5 w-5 text-amber-600" />
-            <span>{error || 'Ingen auditdata hittades.'}</span>
+            <span>{error || copy.noAuditData}</span>
           </div>
           <Button variant="outline" onClick={fetchAudit}>
             <RefreshCw className="mr-2 h-4 w-4" />
-            Försök igen
+            {copy.retry}
           </Button>
         </CardContent>
       </Card>
@@ -170,43 +246,47 @@ export function AISkillAuditPanel() {
                 AI Skills
               </CardTitle>
               <CardDescription>
-                Kontrollera att kunskapsskills är aktiva, länkade till dokument och tillgängliga för AI-ytorna.
+                {copy.description}
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchAudit}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Uppdatera
+              {copy.refresh}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Aktiva skills</p>
+              <p className="text-xs text-muted-foreground">{copy.activeSkills}</p>
               <p className="text-2xl font-bold">{summary.activeSkills}</p>
-              <p className="text-xs text-muted-foreground">av {summary.totalSkills}</p>
+              <p className="text-xs text-muted-foreground">
+                {copy.of} {summary.totalSkills}
+              </p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Redo</p>
+              <p className="text-xs text-muted-foreground">{healthLabels[appLocale].ready}</p>
               <p className="text-2xl font-bold">{summary.readySkills}</p>
-              <p className="text-xs text-muted-foreground">hälsostatus grön</p>
+              <p className="text-xs text-muted-foreground">{copy.greenHealth}</p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Systemdokument</p>
+              <p className="text-xs text-muted-foreground">{copy.systemDocuments}</p>
               <p className="text-2xl font-bold">{summary.linkedSystemDocuments}</p>
-              <p className="text-xs text-muted-foreground">{summary.linkedDocumentIds} länkade totalt</p>
+              <p className="text-xs text-muted-foreground">
+                {summary.linkedDocumentIds} {copy.linkedTotal}
+              </p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Kunskapsbitar</p>
+              <p className="text-xs text-muted-foreground">{copy.knowledgeChunks}</p>
               <p className="text-2xl font-bold">{summary.linkedChunks}</p>
-              <p className="text-xs text-muted-foreground">tillgängliga för retrieval</p>
+              <p className="text-xs text-muted-foreground">{copy.availableForRetrieval}</p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Varningar</p>
+              <p className="text-xs text-muted-foreground">{copy.warnings}</p>
               <p className={`text-2xl font-bold ${hasWarnings ? 'text-amber-700' : 'text-emerald-700'}`}>
                 {summary.skillsWithMissingDocuments + summary.skillsWithoutChunks + summary.failedDocuments}
               </p>
-              <p className="text-xs text-muted-foreground">kritiska länkar/chunks</p>
+              <p className="text-xs text-muted-foreground">{copy.criticalLinksChunks}</p>
             </div>
           </div>
 
@@ -222,7 +302,7 @@ export function AISkillAuditPanel() {
                         : 'bg-slate-100 text-slate-700'
                     }
                   >
-                    {surface.status === 'connected' ? 'Kopplad' : 'Separat'}
+                    {surface.status === 'connected' ? copy.connected : copy.separate}
                   </Badge>
                 </div>
                 <p className="text-xs leading-5 text-muted-foreground">{surface.detail}</p>
@@ -238,17 +318,17 @@ export function AISkillAuditPanel() {
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
                 <BookOpen className="h-4 w-4" />
-                Skillbibliotek
+                {copy.library}
               </CardTitle>
               <CardDescription>
-                Sök på namn, kategori eller triggerord för att se vad AI:n kan hämta.
+                {copy.libraryDescription}
               </CardDescription>
             </div>
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Sök skills..."
+                placeholder={copy.searchPlaceholder}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -261,12 +341,12 @@ export function AISkillAuditPanel() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Skill</TableHead>
-                  <TableHead>Kategori</TableHead>
+                  <TableHead>{copy.category}</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Dokument</TableHead>
+                  <TableHead className="text-right">{copy.documents}</TableHead>
                   <TableHead className="text-right">Chunks</TableHead>
                   <TableHead className="text-right">Max</TableHead>
-                  <TableHead>Triggerord</TableHead>
+                  <TableHead>{copy.triggerWords}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -284,7 +364,7 @@ export function AISkillAuditPanel() {
                     <TableCell>
                       <Badge className={healthClasses[skill.health]}>
                         {skill.health === 'ready' && <CheckCircle2 className="mr-1 h-3 w-3" />}
-                        {healthLabels[skill.health]}
+                        {healthLabels[appLocale][skill.health]}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">{skill.documentCount}</TableCell>
@@ -311,7 +391,7 @@ export function AISkillAuditPanel() {
           </div>
           {filteredSkills.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Inga skills matchar sökningen.
+              {copy.noMatches}
             </p>
           )}
         </CardContent>
