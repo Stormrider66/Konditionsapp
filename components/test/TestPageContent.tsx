@@ -176,6 +176,7 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
       }
 
       const savedTest = saveResult.data
+      const lactateWarnings = Array.isArray(saveResult.warnings) ? saveResult.warnings : []
 
       // Skapa test-objekt för beräkningar med stages
       const testStages: TestStage[] = savedTest.testStages || data.stages.map((stage, index) => ({
@@ -235,8 +236,10 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
       })
       setShowReport(true)
       toast({
-        title: 'Test sparat!',
-        description: 'Testet har sparats och rapporten är klar.',
+        title: lactateWarnings.length > 0 ? 'Test sparat med varning' : 'Test sparat!',
+        description: lactateWarnings.length > 0
+          ? lactateWarnings[0].message || 'Rapporten är klar, men kontrollera laktatkurvan.'
+          : 'Testet har sparats och rapporten är klar.',
       })
     } catch (error) {
       console.error('Fel vid beräkning:', error)

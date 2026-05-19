@@ -178,6 +178,43 @@ export function ReportTemplate({
         </section>
       ))}
 
+      {/* Lactate curve data-quality warnings */}
+      {calculations.warnings?.filter(w => w.type === 'LACTATE_DROP').map((warning, i) => (
+        <section key={`lactate-drop-warning-${i}`} className="mt-6">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 mr-2 mt-0.5 text-amber-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.486 0l6.518 11.59c.75 1.334-.213 2.986-1.742 2.986H3.48c-1.53 0-2.492-1.652-1.742-2.986l6.518-11.59zM11 14a1 1 0 10-2 0 1 1 0 002 0zm-1-2a1 1 0 01-1-1V8a1 1 0 112 0v3a1 1 0 01-1 1z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-900">{t('lactateDropWarning.title')}</p>
+                <p className="text-sm text-amber-800 mt-1">{warning.message}</p>
+                {warning.details?.lactateDrops && warning.details.lactateDrops.length > 0 && (
+                  <table className="mt-2 text-sm text-amber-900">
+                    <thead>
+                      <tr>
+                        <th className="pr-4 text-left font-medium">{t('lactateDropWarning.fromStage')}</th>
+                        <th className="pr-4 text-left font-medium">{t('lactateDropWarning.toStage')}</th>
+                        <th className="text-left font-medium">{t('lactateDropWarning.drop')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {warning.details.lactateDrops.map((drop) => (
+                        <tr key={`${drop.fromStage}-${drop.toStage}`}>
+                          <td className="pr-4">{drop.fromStage}</td>
+                          <td className="pr-4">{drop.toStage}</td>
+                          <td>{drop.drop.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ))}
+
       {/* Testresultat */}
       <section className="mt-6 border-b pb-6" data-pdf-section>
         <h2 className="text-2xl font-semibold mb-4">{t('testResults.title')}</h2>

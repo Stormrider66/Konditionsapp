@@ -961,7 +961,7 @@ export interface TestCalculations {
 }
 
 export interface CalculationWarning {
-  type: 'BASELINE_CORRECTION' | 'LOW_CONFIDENCE' | 'DATA_QUALITY'
+  type: 'BASELINE_CORRECTION' | 'LOW_CONFIDENCE' | 'DATA_QUALITY' | 'LACTATE_DROP'
   severity: 'info' | 'warning'
   message: string
   details?: {
@@ -969,6 +969,7 @@ export interface CalculationWarning {
     trueBaseline?: number
     /** Sequence numbers of stages that were skipped during a calculation (e.g. missing VO2) */
     skippedStages?: number[]
+    lactateDrops?: { fromStage: number; toStage: number; drop: number }[]
   }
 }
 

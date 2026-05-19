@@ -11774,6 +11774,12 @@
         "measured": "Uppmätt (mmol/L)",
         "corrected": "Korrigerat (mmol/L)"
       },
+      "lactateDropWarning": {
+        "title": "Laktatkurvan behöver granskas",
+        "fromStage": "Från steg",
+        "toStage": "Till steg",
+        "drop": "Sänkning (mmol/L)"
+      },
       "testResults": {
         "title": "Testresultat",
         "maxHeartRate": "Max Puls",

@@ -1,5 +1,6 @@
 // lib/validations/schemas.ts
 import { z } from 'zod'
+export { detectLactateDecreases } from '@/lib/lactate/data-quality'
 
 // Helper to convert NaN to undefined for optional number fields
 const optionalNumber = (min: number, max: number) =>
@@ -93,24 +94,6 @@ export const postTestMeasurementApiSchema = z.object({
   lactate: z.number().min(0).max(30),
 })
 
-// Helper to detect significant lactate decreases between stages
-export function detectLactateDecreases(
-  stages: Array<{ lactate: number }>
-): Array<{ fromStage: number; toStage: number; drop: number }> {
-  const warnings: Array<{ fromStage: number; toStage: number; drop: number }> = []
-  for (let i = 1; i < stages.length; i++) {
-    const drop = stages[i - 1].lactate - stages[i].lactate
-    if (drop > 0.3) {
-      warnings.push({
-        fromStage: i,
-        toStage: i + 1,
-        drop: Math.round(drop * 100) / 100,
-      })
-    }
-  }
-  return warnings
-}
-
 // Test-validering (form version)
 export const createTestSchema = z.object({
   clientId: z.string().uuid().optional(),
@@ -130,36 +113,22 @@ export const createTestSchema = z.object({
 })
 
 // Test-validering (API version - for server-side validation)
-export const createTestApiSchema = z
-  .object({
-    clientId: z.string().uuid().optional(),
-    testDate: z.string(),
-    testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
-    location: z.string().optional(),
-    testLeader: z.string().optional(),
-    inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
-    stages: z.array(testStageApiSchema).min(3, 'Minst 3 steg krävs'),
-    notes: z.string().optional(),
-    // Pre-test measurements
-    restingLactate: optionalNumber(0, 10),
-    // Post-test measurements (post-max lactate)
-    postTestMeasurements: z.array(postTestMeasurementApiSchema).optional(),
-    // Recommended next test date
-    recommendedNextTestDate: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    // Reject lactate curves with significant mid-test drops. A progressive
-    // incremental test should show non-decreasing lactate (small noise is
-    // tolerated by detectLactateDecreases, which only flags drops > 0.3 mmol/L).
-    const drops = detectLactateDecreases(data.stages)
-    for (const drop of drops) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['stages', drop.toStage - 1, 'lactate'],
-        message: `Laktat sjönk med ${drop.drop} mmol/L från steg ${drop.fromStage} till steg ${drop.toStage}. En progressiv belastningstest ska ha stigande laktat.`,
-      })
-    }
-  })
+export const createTestApiSchema = z.object({
+  clientId: z.string().uuid().optional(),
+  testDate: z.string(),
+  testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
+  location: z.string().optional(),
+  testLeader: z.string().optional(),
+  inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
+  stages: z.array(testStageApiSchema).min(3, 'Minst 3 steg krävs'),
+  notes: z.string().optional(),
+  // Pre-test measurements
+  restingLactate: optionalNumber(0, 10),
+  // Post-test measurements (post-max lactate)
+  postTestMeasurements: z.array(postTestMeasurementApiSchema).optional(),
+  // Recommended next test date
+  recommendedNextTestDate: z.string().optional(),
+})
 
 // Löptest-specifik validering
 export const runningTestSchema = createTestSchema.extend({

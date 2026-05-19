@@ -4,11 +4,11 @@
  * Covers:
  * - detectLactateDecreases() helper — boundary around the 0.3 mmol
  *   noise tolerance, including exact 0.3 and multi-stage drops
- * - createTestApiSchema.superRefine():
+ * - createTestApiSchema:
  *     * accepts a normal monotonic curve
  *     * accepts small drops under the noise threshold
- *     * rejects a significant drop with an issue anchored at the
- *       correct stages[n].lactate path
+ *     * accepts significant drops so the app can save the test and show a
+ *       data-quality warning instead of blocking report generation
  */
 
 import { describe, it, expect } from 'vitest'
@@ -83,7 +83,7 @@ describe('detectLactateDecreases', () => {
   })
 })
 
-describe('createTestApiSchema — lactate monotonic validation', () => {
+describe('createTestApiSchema — lactate curve validation', () => {
   it('accepts a valid non-decreasing lactate curve', () => {
     const result = createTestApiSchema.safeParse(
       baseTest([
@@ -108,7 +108,7 @@ describe('createTestApiSchema — lactate monotonic validation', () => {
     expect(result.success).toBe(true)
   })
 
-  it('rejects a curve with a significant mid-test lactate drop', () => {
+  it('accepts a curve with a significant mid-test lactate drop', () => {
     const result = createTestApiSchema.safeParse(
       baseTest([
         runningStage({ lactate: 1.2 }),
@@ -117,22 +117,10 @@ describe('createTestApiSchema — lactate monotonic validation', () => {
         runningStage({ lactate: 4.5 }),
       ])
     )
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      const issue = result.error.issues.find(
-        (i) => i.path[0] === 'stages' && i.path[2] === 'lactate'
-      )
-      expect(issue).toBeDefined()
-      // Drop is between stage 2 and stage 3 (1-indexed) → path points at stage
-      // index 2 (0-indexed) in the stages array
-      expect(issue?.path).toEqual(['stages', 2, 'lactate'])
-      expect(issue?.message).toContain('1')
-      expect(issue?.message).toContain('steg 2')
-      expect(issue?.message).toContain('steg 3')
-    }
+    expect(result.success).toBe(true)
   })
 
-  it('reports each offending drop when multiple exist', () => {
+  it('accepts a curve with multiple significant lactate drops', () => {
     const result = createTestApiSchema.safeParse(
       baseTest([
         runningStage({ lactate: 2.0 }),
@@ -142,13 +130,6 @@ describe('createTestApiSchema — lactate monotonic validation', () => {
         runningStage({ lactate: 2.5 }), // drop
       ])
     )
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      const lactateIssues = result.error.issues.filter(
-        (i) => i.path[0] === 'stages' && i.path[2] === 'lactate'
-      )
-      expect(lactateIssues).toHaveLength(2)
-      expect(lactateIssues.map((i) => i.path[1])).toEqual([2, 4])
-    }
+    expect(result.success).toBe(true)
   })
 })

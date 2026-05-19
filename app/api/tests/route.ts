@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from "@/lib/prisma"
 import { createTestApiSchema, type CreateTestApiData } from '@/lib/validations/schemas'
+import { detectLactateDecreases } from '@/lib/lactate/data-quality'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
@@ -123,6 +124,13 @@ export async function POST(request: NextRequest) {
     }
 
     const data: CreateTestApiData = validation.data
+    const lactateDrops = detectLactateDecreases(data.stages)
+    const warnings = lactateDrops.map((drop) => ({
+      type: 'LACTATE_DROP',
+      severity: 'warning',
+      message: `Laktat sjönk med ${drop.drop} mmol/L från steg ${drop.fromStage} till steg ${drop.toStage}. Testet sparades ändå, men kontrollera värdet innan du använder rapporten skarpt.`,
+      details: drop,
+    }))
 
     // Ensure clientId is provided
     if (!data.clientId) {
@@ -235,6 +243,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: test,
         message: 'Test created successfully',
+        ...(warnings.length > 0 ? { warnings } : {}),
       },
       { status: 201 }
     )

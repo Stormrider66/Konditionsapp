@@ -15,6 +15,7 @@ import { calculateAllEconomy } from './economy'
 import { identifyVO2max } from './vo2max'
 import { calculateCyclingData, calculateStageWattsPerKg } from './cycling'
 import { convertToLactateData, classifyAthleteProfile, preprocessDataWithMetadata } from './elite-threshold-detection'
+import { detectLactateDecreases } from '@/lib/lactate/data-quality'
 
 /**
  * Manual threshold overrides set by test leader
@@ -35,6 +36,18 @@ export async function performAllCalculations(
 
   // Run baseline detection on lactate data for warnings
   const warnings: CalculationWarning[] = []
+  const lactateDrops = detectLactateDecreases(stages)
+  if (lactateDrops.length > 0) {
+    warnings.push({
+      type: 'LACTATE_DROP',
+      severity: 'warning',
+      message: `Laktatkurvan innehåller ${lactateDrops.length} tydlig sänkning${lactateDrops.length === 1 ? '' : 'ar'}. Kontrollera provtagning, tidpunkt och värden innan trösklarna används skarpt.`,
+      details: {
+        lactateDrops,
+      },
+    })
+  }
+
   const lactateDataForBaseline = convertToLactateData(stages)
   const baselineResult = preprocessDataWithMetadata(lactateDataForBaseline)
   if (baselineResult.wasApplied) {
