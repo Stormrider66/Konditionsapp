@@ -93,10 +93,12 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
   const form = useForm<StrengthTestFormData>({
     resolver: zodResolver(strengthTestSchema),
     defaultValues: {
+      clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
       exercise: 'SQUAT',
       reps: 1,
       isEstimated: false,
+      bodyWeight: clients[0]?.weight ?? 70,
       formula: 'EPLEY',
     },
   })
@@ -110,6 +112,12 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
   const bodyWeight = form.watch('bodyWeight')
 
   // Auto-fill body weight when client is selected
+  useEffect(() => {
+    if (!form.getValues('clientId') && clients[0]?.id) {
+      form.setValue('clientId', clients[0].id)
+    }
+  }, [clients, form])
+
   useEffect(() => {
     if (selectedClient?.weight) {
       form.setValue('bodyWeight', selectedClient.weight)
@@ -196,11 +204,14 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
 
       onTestSaved?.(resultData.data)
       form.reset({
+        clientId: data.clientId,
         testDate: new Date().toISOString().split('T')[0],
         exercise: 'SQUAT',
         reps: 1,
         isEstimated: false,
+        bodyWeight: data.bodyWeight,
         formula: 'EPLEY',
+        notes: '',
       })
     } catch (err) {
       console.error('Failed to save strength test:', err)
