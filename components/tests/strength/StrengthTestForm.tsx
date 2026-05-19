@@ -7,6 +7,7 @@
  * - Bench Press
  * - Squat
  * - Deadlift
+ * - Power Clean
  * - Leg Press
  * - Overhead Press
  *
@@ -54,7 +55,7 @@ import {
 const strengthTestSchema = z.object({
   clientId: z.string().min(1, 'Välj en klient'),
   testDate: z.string().min(1, 'Välj testdatum'),
-  exercise: z.enum(['BENCH_PRESS', 'SQUAT', 'DEADLIFT', 'LEG_PRESS', 'OVERHEAD_PRESS']),
+  exercise: z.enum(['BENCH_PRESS', 'SQUAT', 'DEADLIFT', 'POWER_CLEAN', 'LEG_PRESS', 'OVERHEAD_PRESS']),
   weight: z.number().min(10).max(500),
   reps: z.number().min(1).max(20),
   isEstimated: z.boolean(),
@@ -81,6 +82,7 @@ const exerciseOptions = [
   { value: 'BENCH_PRESS', label: 'Bänkpress', protocol: 'BENCH_PRESS_1RM' },
   { value: 'SQUAT', label: 'Knäböj', protocol: 'SQUAT_1RM' },
   { value: 'DEADLIFT', label: 'Marklyft', protocol: 'DEADLIFT_1RM' },
+  { value: 'POWER_CLEAN', label: 'Frivändning', protocol: 'POWER_CLEAN_1RM' },
   { value: 'LEG_PRESS', label: 'Benpress', protocol: 'LEG_PRESS_1RM' },
   { value: 'OVERHEAD_PRESS', label: 'Axelpress', protocol: 'OVERHEAD_PRESS_1RM' },
 ]

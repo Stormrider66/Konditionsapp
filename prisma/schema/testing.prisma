@@ -93,6 +93,7 @@ enum SportTestProtocol {
   BENCH_PRESS_1RM // Bench press max
   SQUAT_1RM // Back squat max
   DEADLIFT_1RM // Deadlift max
+  POWER_CLEAN_1RM // Power clean / frivandning max
   LEG_PRESS_1RM // Leg press max
   OVERHEAD_PRESS_1RM // Overhead press max
 

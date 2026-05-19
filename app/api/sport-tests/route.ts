@@ -361,6 +361,7 @@ function calculateDerivedMetrics(
     case 'BENCH_PRESS_1RM':
     case 'SQUAT_1RM':
     case 'DEADLIFT_1RM':
+    case 'POWER_CLEAN_1RM':
     case 'LEG_PRESS_1RM':
     case 'OVERHEAD_PRESS_1RM': {
       let weight = rawData.weight as number

@@ -10,6 +10,7 @@ export type StrengthExercise =
   | 'BENCH_PRESS'
   | 'SQUAT'
   | 'DEADLIFT'
+  | 'POWER_CLEAN'
   | 'LEG_PRESS'
   | 'OVERHEAD_PRESS'
 
@@ -154,6 +155,10 @@ export function classifyStrength(
     DEADLIFT: {
       male: [2.5, 2.0, 1.5],
       female: [2.0, 1.5, 1.0],
+    },
+    POWER_CLEAN: {
+      male: [1.4, 1.15, 0.9],
+      female: [1.0, 0.8, 0.6],
     },
     LEG_PRESS: {
       male: [3.5, 2.75, 2.0],

@@ -4,11 +4,39 @@ const STRENGTH_PROTOCOL_EXERCISE_NAMES: Record<string, string[]> = {
   BENCH_PRESS_1RM: ['Bench Press', 'Bänkpress', 'Bankpress'],
   SQUAT_1RM: ['Back Squat', 'Knäböj', 'Knaboj', 'Squat'],
   DEADLIFT_1RM: ['Deadlift', 'Marklyft'],
+  POWER_CLEAN_1RM: ['Power Clean', 'Frivändning', 'Frivandning', 'Clean'],
   LEG_PRESS_1RM: ['Leg Press', 'Benpress'],
   OVERHEAD_PRESS_1RM: ['Overhead Press', 'Axelpress', 'Shoulder Press'],
 }
 
 export const STRENGTH_PR_SYNC_PROTOCOLS = Object.keys(STRENGTH_PROTOCOL_EXERCISE_NAMES)
+
+const STRENGTH_PROTOCOL_FALLBACK_EXERCISES: Record<
+  string,
+  {
+    name: string
+    nameSv: string
+    nameEn: string
+    muscleGroup: string
+    biomechanicalPillar: 'POSTERIOR_CHAIN'
+    equipment: string
+    description: string
+    instructions: string
+    difficulty: string
+  }
+> = {
+  POWER_CLEAN_1RM: {
+    name: 'Frivändning',
+    nameSv: 'Frivändning',
+    nameEn: 'Power Clean',
+    muscleGroup: 'Posterior chain, ben, rygg, axlar',
+    biomechanicalPillar: 'POSTERIOR_CHAIN',
+    equipment: 'Skivstång',
+    description: 'Explosivt helkroppslyft från golv till rackposition.',
+    instructions: 'Starta med skivstången nära kroppen, sträck höft och knä explosivt och fånga stången stabilt i front rack.',
+    difficulty: 'Advanced',
+  },
+}
 
 export function isStrengthPrSyncProtocol(protocol: string): boolean {
   return protocol in STRENGTH_PROTOCOL_EXERCISE_NAMES
@@ -48,7 +76,7 @@ export async function syncStrengthSportTestToPrHistory({
     return { success: false, reason: 'missing_one_rep_max' }
   }
 
-  const exercise = await prisma.exercise.findFirst({
+  let exercise = await prisma.exercise.findFirst({
     where: {
       category: 'STRENGTH',
       OR: exerciseNames.flatMap((name) => [
@@ -62,7 +90,20 @@ export async function syncStrengthSportTestToPrHistory({
   })
 
   if (!exercise) {
-    return { success: false, reason: 'exercise_not_found' }
+    const fallback = STRENGTH_PROTOCOL_FALLBACK_EXERCISES[protocol]
+    if (!fallback) {
+      return { success: false, reason: 'exercise_not_found' }
+    }
+
+    exercise = await prisma.exercise.create({
+      data: {
+        ...fallback,
+        category: 'STRENGTH',
+        progressionLevel: 'LEVEL_3',
+        isPublic: true,
+      },
+      select: { id: true },
+    })
   }
 
   const source = rawData.isEstimated === true ? 'CALCULATED' : 'TESTED'

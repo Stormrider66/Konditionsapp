@@ -51,6 +51,7 @@ export const sportTestProtocolSchema = z.enum([
   'BENCH_PRESS_1RM',
   'SQUAT_1RM',
   'DEADLIFT_1RM',
+  'POWER_CLEAN_1RM',
   'LEG_PRESS_1RM',
   'OVERHEAD_PRESS_1RM',
   // Swimming Tests
@@ -197,7 +198,7 @@ export const timeTrialSchema = z.object({
 // ==================== Strength Test Schemas ====================
 
 export const oneRepMaxSchema = z.object({
-  protocol: z.enum(['BENCH_PRESS_1RM', 'SQUAT_1RM', 'DEADLIFT_1RM', 'LEG_PRESS_1RM', 'OVERHEAD_PRESS_1RM']),
+  protocol: z.enum(['BENCH_PRESS_1RM', 'SQUAT_1RM', 'DEADLIFT_1RM', 'POWER_CLEAN_1RM', 'LEG_PRESS_1RM', 'OVERHEAD_PRESS_1RM']),
   weight: z.number().min(20).max(500), // kg
   reps: z.number().min(1).max(12).optional(), // For estimated 1RM
   isEstimated: z.boolean().default(false),
