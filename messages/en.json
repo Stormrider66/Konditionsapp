@@ -10172,6 +10172,12 @@
         "saving": "Saving..."
       }
     },
+    "strengthPRFeed": {
+      "title": "Latest PRs",
+      "empty": {
+        "thisWeek": "No new PRs this week"
+      }
+    },
     "businessCoachHeader": {
       "fallbackName": "Coach",
       "brand": {

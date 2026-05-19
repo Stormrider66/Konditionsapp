@@ -10539,6 +10539,12 @@
         "saving": "Sparar..."
       }
     },
+    "strengthPRFeed": {
+      "title": "Senaste PR",
+      "empty": {
+        "thisWeek": "Inga nya PRs denna vecka"
+      }
+    },
     "businessCoachHeader": {
       "fallbackName": "Coach",
       "brand": {
