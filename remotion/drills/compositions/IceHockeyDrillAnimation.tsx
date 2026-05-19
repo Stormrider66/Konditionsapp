@@ -294,8 +294,9 @@ export const IceHockeyDrillAnimation: React.FC<IceHockeyDrillAnimationProps> = (
       const entries = timeline.filter((entry) => entry.startFrame === startFrame);
       const firstType = entries[0]?.movement.type ?? "skate";
       const typeLabel = sportLabels[firstType] || firstType;
+      const movementsLabel = locale === "sv" ? "rörelser" : "movements";
       return {
-        label: entries.length > 1 ? `${i + 1}. ${entries.length} rörelser` : `${i + 1}. ${typeLabel}`,
+        label: entries.length > 1 ? `${i + 1}. ${entries.length} ${movementsLabel}` : `${i + 1}. ${typeLabel}`,
         startFrame,
         endFrame: Math.max(...entries.map((entry) => entry.endFrame)),
       };

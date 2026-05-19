@@ -17,9 +17,9 @@ import { Save, Send, Play, Pencil } from 'lucide-react'
 import { InteractiveDrillEditor } from './InteractiveDrillEditor'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import type { DrillStructure } from './IceHockeyRink'
-import { DRILL_SPORT_OPTIONS, type DrillSportType } from '@/remotion/drills/surfaces'
+import { getDrillSportOptions, type DrillSportType } from '@/remotion/drills/surfaces'
 import { toast } from 'sonner'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Team {
   id: string
@@ -32,6 +32,7 @@ interface DrillEditorPageProps {
 
 export function DrillEditorPage({ teams }: DrillEditorPageProps) {
   const t = useTranslations('components.drills')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [teamId, setTeamId] = useState('')
@@ -52,6 +53,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
   }, [])
 
   const hasContent = structure.players.length > 0 || structure.movements.length > 0
+  const sportOptions = getDrillSportOptions(locale)
 
   const handleSave = async (publish: boolean) => {
     if (!hasContent) {
@@ -119,7 +121,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
         <CardContent className="space-y-4">
           {/* Sport selector */}
           <div className="flex flex-wrap gap-1.5">
-            {DRILL_SPORT_OPTIONS.map((opt) => (
+            {sportOptions.map((opt) => (
               <Button
                 key={opt.value}
                 variant={sportType === opt.value ? 'default' : 'outline'}

@@ -29,7 +29,7 @@ export function DrillAnimationPlayer({
   locale = 'en',
   sportType = 'ICE_HOCKEY',
 }: DrillAnimationPlayerProps) {
-  const sportConfig = useMemo(() => getSportConfig(sportType), [sportType])
+  const sportConfig = useMemo(() => getSportConfig(sportType, locale), [sportType, locale])
   const playerRef = useRef<PlayerRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)

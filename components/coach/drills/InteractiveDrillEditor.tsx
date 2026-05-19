@@ -29,7 +29,7 @@ import {
   getSportConfig,
   type DrillSportType,
 } from '@/remotion/drills/surfaces'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -92,8 +92,8 @@ function nextId(prefix: string) {
 
 const VIEWBOX_PADDING = 2
 
-function getMovementStyles(sportType?: DrillSportType): Record<MovementType, { label: string; color: string; icon: string }> {
-  const config = getSportConfig(sportType)
+function getMovementStyles(sportType?: DrillSportType, locale: 'en' | 'sv' = 'en'): Record<MovementType, { label: string; color: string; icon: string }> {
+  const config = getSportConfig(sportType, locale)
   return {
     skate: { label: config.movementLabels.skate, color: '#1a1a1a', icon: '→' },
     pass: { label: config.movementLabels.pass, color: '#2563eb', icon: '⇢' },
@@ -137,11 +137,12 @@ export function InteractiveDrillEditor({
   sportType = 'ICE_HOCKEY',
 }: InteractiveDrillEditorProps) {
   const t = useTranslations('components.drills')
-  const sportConfig = useMemo(() => getSportConfig(sportType), [sportType])
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const sportConfig = useMemo(() => getSportConfig(sportType, locale), [sportType, locale])
   const SURFACE_W = sportConfig.width
   const SURFACE_H = sportConfig.height
   const PLAYER_LABELS = sportConfig.positionLabels
-  const MOVEMENT_STYLES = useMemo(() => getMovementStyles(sportType), [sportType])
+  const MOVEMENT_STYLES = useMemo(() => getMovementStyles(sportType, locale), [sportType, locale])
   const SurfaceComponent = sportConfig.Surface
 
   // State

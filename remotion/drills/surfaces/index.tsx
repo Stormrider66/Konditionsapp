@@ -23,18 +23,29 @@ export interface SportSurfaceConfig {
   width: number;
   /** viewBox height */
   height: number;
-  /** Swedish label */
+  /** Localized label */
   label: string;
+  /** Swedish label */
+  labelSv?: string;
   /** Surface background color (for composition) */
   bgColor: string;
   /** SVG surface component */
   Surface: React.FC;
   /** Position labels for the sport */
   positionLabels: string[];
-  /** Ball/puck name */
+  /** Localized ball/puck name */
   ballLabel: string;
+  /** Swedish ball/puck name */
+  ballLabelSv?: string;
   /** Movement type labels (override defaults per sport) */
   movementLabels: {
+    skate: string;
+    pass: string;
+    shot: string;
+    puck: string;
+  };
+  /** Swedish movement type labels */
+  movementLabelsSv?: {
     skate: string;
     pass: string;
     shot: string;
@@ -46,12 +57,19 @@ export const SPORT_SURFACES: Record<DrillSportType, SportSurfaceConfig> = {
   ICE_HOCKEY: {
     width: 200,
     height: 85,
-    label: "Ishockey",
+    label: "Ice Hockey",
+    labelSv: "Ishockey",
     bgColor: "#e8f4f8",
     Surface: IceHockeyRinkSurface,
     positionLabels: ["C", "LW", "RW", "LD", "RD", "G"],
     ballLabel: "Puck",
     movementLabels: {
+      skate: "Skate",
+      pass: "Pass",
+      shot: "Shot",
+      puck: "Puck",
+    },
+    movementLabelsSv: {
       skate: "Åkning",
       pass: "Passning",
       shot: "Skott",
@@ -60,10 +78,19 @@ export const SPORT_SURFACES: Record<DrillSportType, SportSurfaceConfig> = {
   },
   FOOTBALL: {
     ...FOOTBALL_PITCH_CONFIG,
+    label: "Football",
+    labelSv: "Fotboll",
     Surface: FootballPitchSurface,
     positionLabels: ["GK", "CB", "LB", "RB", "CDM", "CM", "CAM", "LW", "RW", "ST"],
-    ballLabel: "Boll",
+    ballLabel: "Ball",
+    ballLabelSv: "Boll",
     movementLabels: {
+      skate: "Run",
+      pass: "Pass",
+      shot: "Shot",
+      puck: "Ball",
+    },
+    movementLabelsSv: {
       skate: "Löpning",
       pass: "Passning",
       shot: "Skott",
@@ -72,10 +99,19 @@ export const SPORT_SURFACES: Record<DrillSportType, SportSurfaceConfig> = {
   },
   HANDBALL: {
     ...HANDBALL_COURT_CONFIG,
+    label: "Handball",
+    labelSv: "Handboll",
     Surface: HandballCourtSurface,
     positionLabels: ["MV", "VB", "HB", "VH", "HH", "M9", "M6"],
-    ballLabel: "Boll",
+    ballLabel: "Ball",
+    ballLabelSv: "Boll",
     movementLabels: {
+      skate: "Run",
+      pass: "Pass",
+      shot: "Shot",
+      puck: "Ball",
+    },
+    movementLabelsSv: {
       skate: "Löpning",
       pass: "Passning",
       shot: "Skott",
@@ -84,10 +120,19 @@ export const SPORT_SURFACES: Record<DrillSportType, SportSurfaceConfig> = {
   },
   BASKETBALL: {
     ...BASKETBALL_COURT_CONFIG,
+    label: "Basketball",
+    labelSv: "Basket",
     Surface: BasketballCourtSurface,
     positionLabels: ["PG", "SG", "SF", "PF", "C"],
-    ballLabel: "Boll",
+    ballLabel: "Ball",
+    ballLabelSv: "Boll",
     movementLabels: {
+      skate: "Run",
+      pass: "Pass",
+      shot: "Shot",
+      puck: "Ball",
+    },
+    movementLabelsSv: {
       skate: "Löpning",
       pass: "Passning",
       shot: "Skott",
@@ -96,10 +141,19 @@ export const SPORT_SURFACES: Record<DrillSportType, SportSurfaceConfig> = {
   },
   FLOORBALL: {
     ...FLOORBALL_RINK_CONFIG,
+    label: "Floorball",
+    labelSv: "Innebandy",
     Surface: FloorballRinkSurface,
     positionLabels: ["C", "LW", "RW", "LD", "RD", "G"],
-    ballLabel: "Boll",
+    ballLabel: "Ball",
+    ballLabelSv: "Boll",
     movementLabels: {
+      skate: "Run",
+      pass: "Pass",
+      shot: "Shot",
+      puck: "Ball",
+    },
+    movementLabelsSv: {
       skate: "Löpning",
       pass: "Passning",
       shot: "Skott",
@@ -108,10 +162,19 @@ export const SPORT_SURFACES: Record<DrillSportType, SportSurfaceConfig> = {
   },
   VOLLEYBALL: {
     ...VOLLEYBALL_COURT_CONFIG,
+    label: "Volleyball",
+    labelSv: "Volleyboll",
     Surface: VolleyballCourtSurface,
     positionLabels: ["S", "OH", "OPP", "MB", "L", "RS"],
-    ballLabel: "Boll",
+    ballLabel: "Ball",
+    ballLabelSv: "Boll",
     movementLabels: {
+      skate: "Run",
+      pass: "Pass",
+      shot: "Spike",
+      puck: "Ball",
+    },
+    movementLabelsSv: {
       skate: "Löpning",
       pass: "Passning",
       shot: "Smash",
@@ -123,21 +186,37 @@ export const SPORT_SURFACES: Record<DrillSportType, SportSurfaceConfig> = {
 /**
  * Get sport config, falling back to ICE_HOCKEY for unknown types.
  */
-export function getSportConfig(sportType?: string): SportSurfaceConfig {
-  if (sportType && sportType in SPORT_SURFACES) {
-    return SPORT_SURFACES[sportType as DrillSportType];
-  }
-  return SPORT_SURFACES.ICE_HOCKEY;
+export function getSportConfig(sportType?: string, locale: "en" | "sv" = "en"): SportSurfaceConfig {
+  const config = sportType && sportType in SPORT_SURFACES
+    ? SPORT_SURFACES[sportType as DrillSportType]
+    : SPORT_SURFACES.ICE_HOCKEY;
+
+  if (locale !== "sv") return config;
+
+  return {
+    ...config,
+    label: config.labelSv || config.label,
+    ballLabel: config.ballLabelSv || config.ballLabel,
+    movementLabels: config.movementLabelsSv || config.movementLabels,
+  };
 }
 
 /**
  * All available sport types as array (for selectors).
  */
 export const DRILL_SPORT_OPTIONS: { value: DrillSportType; label: string }[] = [
-  { value: "ICE_HOCKEY", label: "Ishockey" },
-  { value: "FOOTBALL", label: "Fotboll" },
-  { value: "HANDBALL", label: "Handboll" },
-  { value: "BASKETBALL", label: "Basket" },
-  { value: "FLOORBALL", label: "Innebandy" },
-  { value: "VOLLEYBALL", label: "Volleyboll" },
+  { value: "ICE_HOCKEY", label: "Ice Hockey" },
+  { value: "FOOTBALL", label: "Football" },
+  { value: "HANDBALL", label: "Handball" },
+  { value: "BASKETBALL", label: "Basketball" },
+  { value: "FLOORBALL", label: "Floorball" },
+  { value: "VOLLEYBALL", label: "Volleyball" },
 ];
+
+export function getDrillSportOptions(locale: "en" | "sv" = "en"): { value: DrillSportType; label: string }[] {
+  if (locale !== "sv") return DRILL_SPORT_OPTIONS;
+  return DRILL_SPORT_OPTIONS.map((option) => ({
+    value: option.value,
+    label: SPORT_SURFACES[option.value].labelSv || option.label,
+  }));
+}

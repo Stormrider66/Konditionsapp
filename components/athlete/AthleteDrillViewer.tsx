@@ -51,7 +51,7 @@ export function AthleteDrillViewer({
   const drillLocale = locale === 'en' ? 'en' : 'sv'
   const [currentStep, setCurrentStep] = useState(-1) // -1 = overview
   const [showAnimation, setShowAnimation] = useState(false)
-  const sportConfig = useMemo(() => getSportConfig(sportType), [sportType])
+  const sportConfig = useMemo(() => getSportConfig(sportType, drillLocale), [sportType, drillLocale])
   const SurfaceComponent = sportConfig.Surface
 
   const movements = useMemo(() => structure.movements || [], [structure.movements])
