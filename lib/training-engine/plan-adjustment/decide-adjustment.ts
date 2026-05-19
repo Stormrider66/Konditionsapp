@@ -27,6 +27,12 @@ interface RuleMatch {
   triggers: string[]
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Recommend an adjustment for the athlete's next scheduled session.
  *
@@ -34,7 +40,7 @@ interface RuleMatch {
  * PROCEED when there is a concrete signal for doing so. Missing data
  * defaults to PROCEED with hadSufficientSignal=false.
  */
-export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
+export function decideAdjustment(inputs: AdjustmentInputs, locale: AppLocale = 'en'): AdjustmentDecision {
   const {
     acwrZone,
     readinessScore,
@@ -56,9 +62,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'SKIP',
             severity: 'CRITICAL',
-            reason: `Akut smärta rapporterad (${recentPainLevel}/10). Vila idag och gör en smärtbedömning innan nästa pass.`,
-            noteForAthlete:
-              'Passet avbryts pga akut smärta. Vila och notera smärtan i dagboken.',
+            reason: t(
+              locale,
+              `Acute pain reported (${recentPainLevel}/10). Rest today and complete a pain assessment before the next session.`,
+              `Akut smärta rapporterad (${recentPainLevel}/10). Vila idag och gör en smärtbedömning innan nästa pass.`
+            ),
+            noteForAthlete: t(
+              locale,
+              'Session stopped due to acute pain. Rest and log the pain in your diary.',
+              'Passet avbryts pga akut smärta. Vila och notera smärtan i dagboken.'
+            ),
             triggers: ['PAIN_CRITICAL'],
           }
         : null,
@@ -67,10 +80,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'SKIP',
             severity: 'CRITICAL',
-            reason:
-              'ACWR är i kritisk zon (>2.0). Skaderisken är mycket hög — hoppa över passet och lägg in en vilodag.',
-            noteForAthlete:
-              'Passet hoppas över pga kritisk belastningsnivå (ACWR >2.0).',
+            reason: t(
+              locale,
+              'ACWR is in the critical zone (>2.0). Injury risk is very high. Skip the session and add a rest day.',
+              'ACWR är i kritisk zon (>2.0). Skaderisken är mycket hög — hoppa över passet och lägg in en vilodag.'
+            ),
+            noteForAthlete: t(
+              locale,
+              'Session skipped due to a critical workload level (ACWR >2.0).',
+              'Passet hoppas över pga kritisk belastningsnivå (ACWR >2.0).'
+            ),
             triggers: ['ACWR_CRITICAL'],
           }
         : null,
@@ -81,9 +100,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'DEFER_ONE_DAY',
             severity: 'WARNING',
-            reason: `Moderat smärta rapporterad (${recentPainLevel}/10). Flytta passet en dag för återhämtning.`,
-            noteForAthlete:
-              'Passet flyttas en dag pga rapporterad smärta. Utvärdera innan nästa pass.',
+            reason: t(
+              locale,
+              `Moderate pain reported (${recentPainLevel}/10). Move the session one day for recovery.`,
+              `Moderat smärta rapporterad (${recentPainLevel}/10). Flytta passet en dag för återhämtning.`
+            ),
+            noteForAthlete: t(
+              locale,
+              'Session moved one day because pain was reported. Reassess before the next session.',
+              'Passet flyttas en dag pga rapporterad smärta. Utvärdera innan nästa pass.'
+            ),
             triggers: ['PAIN_MODERATE'],
           }
         : null,
@@ -92,10 +118,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'DEFER_ONE_DAY',
             severity: 'WARNING',
-            reason:
-              'ACWR är i farozon (1.5–2.0). Hög skaderisk — skjut passet en dag och låt chronic load fånga upp.',
-            noteForAthlete:
-              'Passet flyttas en dag pga hög belastningsnivå (ACWR i farozon).',
+            reason: t(
+              locale,
+              'ACWR is in the danger zone (1.5-2.0). Injury risk is high. Push the session one day and let chronic load catch up.',
+              'ACWR är i farozon (1.5–2.0). Hög skaderisk — skjut passet en dag och låt chronic load fånga upp.'
+            ),
+            noteForAthlete: t(
+              locale,
+              'Session moved one day due to high workload (ACWR in the danger zone).',
+              'Passet flyttas en dag pga hög belastningsnivå (ACWR i farozon).'
+            ),
             triggers: ['ACWR_DANGER'],
           }
         : null,
@@ -104,10 +136,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'DEFER_ONE_DAY',
             severity: 'WARNING',
-            reason:
-              'Dagens check-in signalerar vila (readinessDecision=REST). Skjut passet en dag.',
-            noteForAthlete:
-              'Passet flyttas en dag baserat på dagens morgon-check-in.',
+            reason: t(
+              locale,
+              'Today’s check-in signals rest (readinessDecision=REST). Push the session one day.',
+              'Dagens check-in signalerar vila (readinessDecision=REST). Skjut passet en dag.'
+            ),
+            noteForAthlete: t(
+              locale,
+              'Session moved one day based on today’s morning check-in.',
+              'Passet flyttas en dag baserat på dagens morgon-check-in.'
+            ),
             triggers: ['READINESS_REST'],
           }
         : null,
@@ -118,9 +156,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'SWAP_TO_EASY',
             severity: 'CAUTION',
-            reason: `ACWR är i varningszon och readiness är låg (${readinessScore}/100). Byt till en lättare variant av samma typ.`,
-            noteForAthlete:
-              'Passet ersätts med en lugn variant pga kombinerad belastning och låg readiness.',
+            reason: t(
+              locale,
+              `ACWR is in the caution zone and readiness is low (${readinessScore}/100). Switch to an easier version of the same type.`,
+              `ACWR är i varningszon och readiness är låg (${readinessScore}/100). Byt till en lättare variant av samma typ.`
+            ),
+            noteForAthlete: t(
+              locale,
+              'Session replaced with an easy variant due to combined workload and low readiness.',
+              'Passet ersätts med en lugn variant pga kombinerad belastning och låg readiness.'
+            ),
             triggers: ['ACWR_CAUTION', 'READINESS_LOW'],
           }
         : null,
@@ -129,10 +174,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'REDUCE_INTENSITY',
             severity: 'CAUTION',
-            reason:
-              'ACWR är i varningszon (1.3–1.5). Sänk intensiteten ett snäpp idag.',
-            noteForAthlete:
-              'Intensiteten sänks pga förhöjd belastningsnivå (ACWR i varningszon).',
+            reason: t(
+              locale,
+              'ACWR is in the caution zone (1.3-1.5). Lower intensity one step today.',
+              'ACWR är i varningszon (1.3–1.5). Sänk intensiteten ett snäpp idag.'
+            ),
+            noteForAthlete: t(
+              locale,
+              'Intensity reduced due to elevated workload (ACWR in the caution zone).',
+              'Intensiteten sänks pga förhöjd belastningsnivå (ACWR i varningszon).'
+            ),
             triggers: ['ACWR_CAUTION'],
           }
         : null,
@@ -141,10 +192,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'REDUCE_INTENSITY',
             severity: 'CAUTION',
-            reason:
-              'Dagens check-in signalerar lätt dag (readinessDecision=EASY).',
-            noteForAthlete:
-              'Intensiteten sänks baserat på dagens morgon-check-in.',
+            reason: t(
+              locale,
+              'Today’s check-in signals an easy day (readinessDecision=EASY).',
+              'Dagens check-in signalerar lätt dag (readinessDecision=EASY).'
+            ),
+            noteForAthlete: t(
+              locale,
+              'Intensity reduced based on today’s morning check-in.',
+              'Intensiteten sänks baserat på dagens morgon-check-in.'
+            ),
             triggers: ['READINESS_EASY'],
           }
         : null,
@@ -153,9 +210,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'REDUCE_INTENSITY',
             severity: 'CAUTION',
-            reason: `Readiness är låg (${readinessScore}/100). Sänk intensiteten ett snäpp.`,
-            noteForAthlete:
-              'Intensiteten sänks baserat på dagens readiness-score.',
+            reason: t(
+              locale,
+              `Readiness is low (${readinessScore}/100). Lower intensity one step.`,
+              `Readiness är låg (${readinessScore}/100). Sänk intensiteten ett snäpp.`
+            ),
+            noteForAthlete: t(
+              locale,
+              'Intensity reduced based on today’s readiness score.',
+              'Intensiteten sänks baserat på dagens readiness-score.'
+            ),
             triggers: ['READINESS_LOW'],
           }
         : null,
@@ -166,10 +230,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'REDUCE_VOLUME',
             severity: 'INFO',
-            reason:
-              'Dagens check-in signalerar reducerad volym (readinessDecision=REDUCE).',
-            noteForAthlete:
-              'Volymen sänks ~20% baserat på dagens morgon-check-in.',
+            reason: t(
+              locale,
+              'Today’s check-in signals reduced volume (readinessDecision=REDUCE).',
+              'Dagens check-in signalerar reducerad volym (readinessDecision=REDUCE).'
+            ),
+            noteForAthlete: t(
+              locale,
+              'Volume reduced by ~20% based on today’s morning check-in.',
+              'Volymen sänks ~20% baserat på dagens morgon-check-in.'
+            ),
             triggers: ['READINESS_REDUCE'],
           }
         : null,
@@ -178,9 +248,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
         ? {
             action: 'REDUCE_VOLUME',
             severity: 'INFO',
-            reason: `Readiness är måttlig (${readinessScore}/100). Sänk volymen ~20%.`,
-            noteForAthlete:
-              'Volymen sänks ~20% baserat på dagens readiness-score.',
+            reason: t(
+              locale,
+              `Readiness is moderate (${readinessScore}/100). Reduce volume by ~20%.`,
+              `Readiness är måttlig (${readinessScore}/100). Sänk volymen ~20%.`
+            ),
+            noteForAthlete: t(
+              locale,
+              'Volume reduced by ~20% based on today’s readiness score.',
+              'Volymen sänks ~20% baserat på dagens readiness-score.'
+            ),
             triggers: ['READINESS_MODERATE'],
           }
         : null,
@@ -205,8 +282,16 @@ export function decideAdjustment(inputs: AdjustmentInputs): AdjustmentDecision {
     action: 'PROCEED',
     severity: 'INFO',
     reason: hadSufficientSignal
-      ? 'Alla belastnings- och readinesssignaler ser bra ut — kör passet som planerat.'
-      : 'Otillräckliga signaler för en rekommendation — kör passet som planerat.',
+      ? t(
+        locale,
+        'All workload and readiness signals look good. Run the session as planned.',
+        'Alla belastnings- och readinesssignaler ser bra ut — kör passet som planerat.'
+      )
+      : t(
+        locale,
+        'Insufficient signals for a recommendation. Run the session as planned.',
+        'Otillräckliga signaler för en rekommendation — kör passet som planerat.'
+      ),
     noteForAthlete: '',
     triggers: [],
     hadSufficientSignal,

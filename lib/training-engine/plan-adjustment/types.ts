@@ -57,7 +57,7 @@ export interface AdjustmentInputs {
 export interface AdjustmentDecision {
   action: AdjustmentAction
   severity: AdjustmentSeverity
-  /** Human-readable explanation in Swedish, suitable for coach UI. */
+  /** Human-readable explanation, suitable for coach UI. */
   reason: string
   /**
    * Machine-readable trigger tags that fired. Useful for analytics

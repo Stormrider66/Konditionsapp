@@ -24,6 +24,12 @@ import { getNextPendingAssignment } from '@/lib/training-engine/plan-adjustment/
 
 export const runtime = 'nodejs'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
 interface RouteContext {
   params: Promise<{ clientId: string }>
 }
@@ -32,6 +38,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   try {
     const { clientId } = await params
     const user = await requireCoach()
+    const locale = getUserLocale(user.language)
 
     const allowed = await canAccessClient(user.id, clientId)
     if (!allowed) {
@@ -90,7 +97,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       readinessScore: latestCheckIn?.readinessScore ?? null,
       readinessDecision: latestCheckIn?.readinessDecision ?? null,
       recentPainLevel,
-    })
+    }, locale)
 
     const nextAssignment = await getNextPendingAssignment(clientId, {
       horizonDays: 7,

@@ -38,6 +38,13 @@ describe('decideAdjustment', () => {
       expect(result.severity).toBe('CRITICAL')
       expect(result.triggers).toContain('PAIN_CRITICAL')
       expect(result.reason).toContain('8/10')
+      expect(result.reason).toContain('Acute pain')
+    })
+
+    it('keeps Swedish copy when locale is sv', () => {
+      const result = decideAdjustment({ recentPainLevel: 8 }, 'sv')
+      expect(result.action).toBe('SKIP')
+      expect(result.reason).toContain('Akut smärta')
     })
 
     it('SKIP when ACWR is CRITICAL', () => {
