@@ -5,12 +5,15 @@ export type UserRole = 'COACH' | 'ATHLETE' | 'PHYSIO' | 'ADMIN'
 
 export interface InfoEntry {
   key: string
-  title: string        // Swedish title
+  title: string        // Localized title
   short: string        // 1-liner for popover
   detailed: string     // Full paragraph for "Läs mer" / AI context
   roles: UserRole[]    // Empty = all roles
   tier: 1 | 2 | 3
 }
+
+type InfoLocale = 'en' | 'sv'
+type InfoEntryText = Pick<InfoEntry, 'title' | 'short' | 'detailed'>
 
 export const INFO_CONTENT: Record<string, InfoEntry> = {
   // ============ TIER 1 - Core concepts (18) ============
@@ -374,18 +377,253 @@ export const INFO_CONTENT: Record<string, InfoEntry> = {
 
 // Helper functions
 
-export function getInfoEntry(key: string): InfoEntry | undefined {
-  return INFO_CONTENT[key]
+const INFO_CONTENT_EN: Record<string, InfoEntryText> = {
+  acwr: {
+    title: 'ACWR (Acute:Chronic Workload Ratio)',
+    short: 'The ratio between your latest weekly training load and your 4-week average.',
+    detailed: 'ACWR compares acute load from the last 7 days with chronic load from a 28-day rolling average. A value around 0.8-1.3 is usually considered optimal. Below 0.8 can indicate undertraining, while above 1.5 indicates a clearly higher injury risk. The platform uses an exponentially weighted moving average (EWMA) for better precision.',
+  },
+  dmax: {
+    title: 'D-max (Threshold Detection)',
+    short: 'A mathematical method for finding anaerobic threshold from lactate test data.',
+    detailed: 'The D-max method identifies anaerobic threshold by finding the point on the lactate curve with the greatest distance from a straight line between the start and end of the curve. Modified D-max (Bishop) uses the 1 mmol/L increase as its starting point. Smart D-max automatically selects the best method based on the available test data.',
+  },
+  trainingZones: {
+    title: 'Training Zones',
+    short: 'Intensity zones based on your threshold values that guide how hard to train.',
+    detailed: 'Training zones are calculated from test results such as lactate threshold, VO2max, and heart rate. Most systems use 5-7 zones from easy aerobic work to maximal intensity. Zones help match intensity to the desired physiological stimulus, and methodologies such as polarized, Norwegian, Canova, and pyramidal distribute training time differently across them.',
+  },
+  readiness: {
+    title: 'Readiness',
+    short: 'A combined 0-100 score for how ready your body is to train today.',
+    detailed: 'The readiness score combines factors such as sleep quality, resting heart rate, HRV, subjective energy, muscle soreness, and stress. Scores above 70 usually indicate good ability to handle higher load. Scores below 40 suggest rest or easy training. The trend over time is more important than a single daily value.',
+  },
+  hrv: {
+    title: 'HRV (Heart Rate Variability)',
+    short: 'Variation in time between heartbeats, indicating recovery and stress status.',
+    detailed: 'HRV measures millisecond variation between heartbeats, commonly using RMSSD. Higher HRV generally indicates better recovery and stronger parasympathetic activity. Trends are analyzed as rolling 7-day averages. A sudden drop, especially more than one standard deviation below baseline, can indicate overload, illness, or insufficient recovery.',
+  },
+  oneRM: {
+    title: '1RM (One-Repetition Maximum)',
+    short: 'The maximum weight you can lift once with correct technique.',
+    detailed: '1RM can be estimated from submaximal testing with formulas such as Epley or Brzycki. It is used to prescribe strength intensity as a percentage of maximum, for example 70% for hypertrophy or 85%+ for maximal strength. Velocity-based training can provide more precise estimates by measuring bar speed at different loads.',
+  },
+  twoForTwo: {
+    title: '2-for-2 Rule',
+    short: 'Increase load when you can do 2 extra reps in the final set across 2 sessions.',
+    detailed: 'The 2-for-2 rule is an evidence-based progression method for strength training. If you complete 2 or more reps beyond the target in your last set, in two sessions in a row, increase load next time. Typical increases are 2.5-5 kg for upper-body lifts and 5-10 kg for lower-body lifts.',
+  },
+  rpe: {
+    title: 'RPE (Rate of Perceived Exertion)',
+    short: 'A 1-10 scale for how hard a session or set felt.',
+    detailed: 'RPE is a subjective effort scale: RPE 6 means about 4 reps in reserve, RPE 8 means about 2 reps in reserve, and RPE 10 means maximal effort. Session RPE multiplied by duration gives a training-load estimate. RPE helps autoregulate training when readiness, fatigue, or recovery differ from plan.',
+  },
+  tss: {
+    title: 'TSS (Training Stress Score)',
+    short: 'A standardized measure of the total stress a training session creates.',
+    detailed: 'TSS combines intensity and duration into a single score. A TSS of 100 represents roughly one hour at threshold. It can be calculated from power, heart rate, or RPE depending on data type. Sudden week-to-week increases above about 30% can increase injury risk.',
+  },
+  vo2max: {
+    title: 'VO2max (Maximal Oxygen Uptake)',
+    short: 'The maximum amount of oxygen your body can use, a key endurance marker.',
+    detailed: 'VO2max is measured in ml/kg/min and is one of the strongest predictors of endurance performance. It is measured with progressive exercise testing to exhaustion and gas analysis. It improves through structured endurance training, especially intervals near VO2max intensity.',
+  },
+  criticalPower: {
+    title: 'Critical Power (CP) / FTP',
+    short: 'The highest power you can sustain aerobically, usually measured in watts.',
+    detailed: 'Critical Power is the asymptote in the power-duration model, representing the highest power that can be sustained without progressive fatigue. FTP is a practical estimate, often around 95% of a 20-minute maximal test. W-prime is the finite anaerobic work capacity above CP.',
+  },
+  periodization: {
+    title: 'Periodization',
+    short: 'Structured planning of training phases to peak at the right time.',
+    detailed: 'Periodization divides the training year into macrocycles, mesocycles, and microcycles. Common phases include base, build, competition, taper, and recovery. Each phase has specific goals for volume, intensity, and frequency so fitness develops without unnecessary overload.',
+  },
+  methodologies: {
+    title: 'Training Methodologies',
+    short: 'Scientific approaches for distributing training intensity: polarized, Norwegian, pyramidal, Canova.',
+    detailed: 'Polarized training places most work at low intensity and a smaller share at high intensity. Norwegian double-threshold emphasizes controlled threshold intervals. Canova is marathon-specific and pace-based. Pyramidal training gradually reduces volume as intensity rises. The best choice depends on sport, level, and competition goal.',
+  },
+  vdot: {
+    title: 'VDOT',
+    short: 'Jack Daniels running index for estimating capacity and training paces.',
+    detailed: 'VDOT is an index based on race performance. It estimates training paces for Easy, Marathon, Threshold, Interval, and Repetition work. A higher VDOT indicates stronger running capacity and helps align workouts with current fitness.',
+  },
+  rehabPhases: {
+    title: 'Rehab Phases',
+    short: 'Injury rehab is divided into phases from acute care to return to sport.',
+    detailed: 'Rehabilitation typically progresses from acute pain control and protection, through gradual range-of-motion and strength restoration, to functional work, sport-specific movement, and return-to-sport testing. Each phase has criteria for progression so loading increases at the right pace.',
+  },
+  soapNotes: {
+    title: 'SOAP Notes',
+    short: 'Clinical documentation format: Subjective, Objective, Assessment, Plan.',
+    detailed: 'SOAP notes structure clinical documentation. Subjective covers the patient report, symptoms, and pain description. Objective includes measurable findings such as ROM, strength tests, palpation, and special tests. Assessment captures clinical reasoning, and Plan defines treatment, exercises, frequency, and goals.',
+  },
+  delawarePain: {
+    title: 'Delaware Pain Rules',
+    short: 'A protocol for deciding whether pain during training is acceptable or needs adjustment.',
+    detailed: 'The Delaware pain rules classify pain on a 0-10 scale: 0-2 is acceptable, 3-4 requires modification, 5-6 is significant and should usually shift to alternate activity, and 7+ means stop and consult. Pain that increases during activity or remains elevated after training requires adjustment regardless of starting level.',
+  },
+  wattsPerKg: {
+    title: 'Watts per Kilogram (W/kg)',
+    short: 'Power relative to body weight, especially important for climbing performance.',
+    detailed: 'W/kg is FTP or Critical Power divided by body weight. It is one of the most relevant cycling metrics for climbs and for comparing riders of different sizes. Improving either power output or body composition can improve W/kg, but the balance matters for health and performance.',
+  },
+  wodFormats: {
+    title: 'WOD Formats',
+    short: 'Workout structures such as AMRAP, EMOM, For Time, Chipper, and Tabata.',
+    detailed: 'AMRAP means as many rounds as possible in a fixed time. EMOM means performing work every minute on the minute. For Time means completing all work as fast as possible. Chipper uses a long list of movements once through, and Tabata uses 20 seconds work with 10 seconds rest across 8 rounds.',
+  },
+  strengthPhases: {
+    title: 'Strength Training Phases',
+    short: 'Five common phases: anatomical adaptation, hypertrophy, maximal strength, power, maintenance.',
+    detailed: 'Strength training phases usually progress from high-repetition technical adaptation, through hypertrophy and maximal strength, into power development and maintenance. Each phase uses different loads, rep ranges, and intent so strength qualities develop without progressing too fast.',
+  },
+  interferenceWarnings: {
+    title: 'Interference Warnings',
+    short: 'When endurance and strength training collide and reduce each other’s effect.',
+    detailed: 'The interference effect is most likely when endurance work is placed close to strength sessions, especially with high running volume. Recommendations often include separating sessions by 6-8 hours, prioritizing strength before endurance on the same day when strength is the main goal, and avoiding hard endurance work before heavy lower-body lifting.',
+  },
+  crossTraining: {
+    title: 'Cross-Training',
+    short: 'Training in another modality to maintain fitness during injury or variation.',
+    detailed: 'Cross-training uses alternative modalities such as cycling, swimming, rowing, elliptical work, or aqua jogging to maintain aerobic capacity. It can preserve much of VO2max during periods when normal sport-specific loading is limited by injury or recovery needs.',
+  },
+  benchmarkTiers: {
+    title: 'Performance Levels',
+    short: 'Classification of performance: beginner, recreational, advanced, elite, world-class.',
+    detailed: 'Performance levels are based on sport-specific reference values. They help set realistic goals, compare athletes to relevant peer groups, and communicate whether a test result is low, typical, advanced, elite, or world-class for that sport and context.',
+  },
+  detraining: {
+    title: 'Detraining',
+    short: 'Loss of training adaptations during time off; different systems decline at different rates.',
+    detailed: 'VO2max can start declining within a couple of weeks without training, while strength is usually retained longer. Plasma volume changes quickly, and mitochondrial or enzymatic adaptations fade over weeks. Minimal maintenance training can preserve a large share of fitness during busy or recovery periods.',
+  },
+  aiModels: {
+    title: 'AI Models',
+    short: 'The platform supports multiple AI providers: Claude, Gemini, and GPT models.',
+    detailed: 'Different AI models have different strengths. Claude is strong for nuanced coaching advice, Gemini has multimodal capability for image and video tasks, and GPT models have broad general reasoning. Coaches can configure model use, and BYOK is supported where applicable.',
+  },
+  ragDocuments: {
+    title: 'Knowledge Documents (RAG)',
+    short: 'Upload your own documents so AI can search and reference them in responses.',
+    detailed: 'Retrieval-Augmented Generation lets you upload PDFs, articles, protocols, and other documents. The content is split into searchable chunks and retrieved when relevant, so AI answers can use your own knowledge base instead of relying only on general model knowledge.',
+  },
+  coachAlerts: {
+    title: 'Coach Alerts',
+    short: 'Automatic notices when athletes need attention: injury risk, missed sessions, or unusual data.',
+    detailed: 'Coach alerts are generated from signals such as ACWR outside the optimal range, HRV deviation, missed check-ins, pain reports, rapid TSS increases, and pain-rule violations. Alerts are prioritized so coaches can focus on the athletes who need follow-up first.',
+  },
+  videoAnalysisScores: {
+    title: 'Video Analysis Scores',
+    short: 'AI-assessed technique score from automatic movement analysis.',
+    detailed: 'Video analysis combines pose detection with AI interpretation. Scores are based on joint angles, symmetry, movement quality, and sport-specific criteria. For running, the analysis may assess cadence, foot strike, hip extension, trunk position, and arm carriage.',
+  },
+  bodyComposition: {
+    title: 'Body Composition',
+    short: 'The relationship between muscle mass, fat mass, and other tissues.',
+    detailed: 'Body composition can be measured with DXA, bioimpedance, skinfolds, or field methods. Relevant metrics include body-fat percentage, fat-free mass, and skeletal muscle index. Performance goals such as W/kg need to balance body composition, health, immunity, and hormonal function.',
+  },
+  liveHrZones: {
+    title: 'Live Heart-Rate Zones',
+    short: 'Real-time monitoring of athletes’ heart rate relative to their individual zones.',
+    detailed: 'Live heart-rate zones show whether an athlete is currently training in easy aerobic, tempo, threshold, VO2max, or maximal ranges. Coaches can monitor multiple athletes at once and detect when someone is underloading or overloading during a group session.',
+  },
+  subscriptionTiers: {
+    title: 'Subscription Tiers',
+    short: 'Features unlock based on subscription tier: Free, Basic, Pro, Enterprise.',
+    detailed: 'Coach tiers control limits and features such as athlete capacity, AI chat, video analysis, RAG, and enterprise functionality. Athlete tiers control access to WOD, AI credits, advanced analysis, and larger usage pools. Trial access gives new accounts time to evaluate the platform.',
+  },
+  workoutSections: {
+    title: 'Workout Sections',
+    short: 'A structured workout is divided into warm-up, main work, cooldown, and accessories.',
+    detailed: 'A good workout structure starts with progressive activation, mobility, or dynamic warm-up. The main section targets the primary training goal. Accessories address supporting qualities such as core, prevention, or weak links, and cooldown gradually lowers intensity.',
+  },
+  splitPace: {
+    title: 'Split Pace',
+    short: 'Pace per kilometer or lap, showing pace distribution through a race or session.',
+    detailed: 'Split pace can show positive splits, negative splits, or even pacing. Negative splitting is often optimal for distance racing, while large variation between splits can indicate pacing problems. Elite runners typically show very small variation in controlled tempo work.',
+  },
+  cadence: {
+    title: 'Cadence',
+    short: 'Steps per minute for running or revolutions per minute for cycling.',
+    detailed: 'Running cadence is often optimized around 170-185 steps per minute, though individual variation matters. Very low cadence can increase impact per stride. Cycling cadence is often effective around 80-100 rpm, with lower cadence loading the legs more and higher cadence stressing the cardiovascular system more.',
+  },
+  rhrDeviation: {
+    title: 'Resting Heart-Rate Deviation',
+    short: 'Difference from your normal morning heart rate, an early signal of illness or overload.',
+    detailed: 'A resting heart-rate increase above baseline can indicate illness, insufficient recovery, dehydration, or stress. Repeated elevated readings should prompt adjusted training. Measure at the same time and in the same position for the most useful trend.',
+  },
+  sleepBreakdown: {
+    title: 'Sleep Breakdown',
+    short: 'Distribution between deep sleep, REM sleep, and light sleep overnight.',
+    detailed: 'Deep sleep supports physical recovery and hormonal signaling, REM supports cognitive recovery and memory, and light sleep connects the sleep stages. Athletes generally need enough total sleep plus extra recovery sleep after hard training. Consistent bedtime improves sleep quality.',
+  },
+  checkinStreak: {
+    title: 'Check-In Streak',
+    short: 'Number of days in a row you have reported morning data.',
+    detailed: 'Daily check-ins give AI and coaches better decision support. A longer streak makes trends and averages more reliable. HRV baselines need enough data, and load metrics such as ACWR require multiple weeks. Missed data reduces confidence in recommendations.',
+  },
+  tokenBudget: {
+    title: 'AI Credits',
+    short: 'Monthly AI allowance used by heavier AI features and topped up when needed.',
+    detailed: 'AI credits are the monthly pool used by features such as food scanning, video analysis, voice coaching, program generation, and AI reports. Different tiers receive different pools, and users can upgrade or add credits when the allowance is exhausted.',
+  },
+  careTeamPriority: {
+    title: 'Care Team Priority',
+    short: 'Thread-based communication between physiotherapist, coach, and athlete with priority levels.',
+    detailed: 'Care-team messages can be prioritized from routine updates to urgent same-day issues. Physiotherapists can set training restrictions that flow into the athlete WOD and coach planning workflows. Everyone involved can see restrictions, progress, and next actions.',
+  },
+  calendarEventTypes: {
+    title: 'Calendar Event Types',
+    short: 'Calendar events such as workouts, races, tests, rest, and rehab.',
+    detailed: 'The calendar combines planned workouts, completed sessions, races, tests, rest days, rehab sessions, and imported sessions from integrations such as Strava or Garmin. Event color, type, and impact help coaches and athletes scan the schedule quickly.',
+  },
+  exportFormats: {
+    title: 'Export Formats',
+    short: 'Data can be exported as PDF reports, CSV files, or shareable links.',
+    detailed: 'PDF reports are used for polished test summaries with charts, lactate curves, and zone tables. CSV exports provide raw data for analysis in spreadsheet tools. Shareable links provide time-limited access for external recipients where appropriate.',
+  },
+  agentConsent: {
+    title: 'AI Consent (GDPR)',
+    short: 'Athlete consent is required before training data can be sent to external AI services.',
+    detailed: 'Under GDPR, health and training data require explicit consent before being processed by external AI services. Athletes must approve data processing and health-data use, and they can withdraw consent at any time. Without consent, AI chat cannot reference athlete data.',
+  },
+  ftp: {
+    title: 'FTP (Functional Threshold Power)',
+    short: 'The power you can hold for roughly one hour, used as a functional threshold.',
+    detailed: 'FTP is commonly estimated as 95% of a 20-minute maximal test, or through ramp and interval-based protocols. It defines cycling training zones and should be retested regularly so zones match current fitness.',
+  },
+  wprime: {
+    title: "W' (W-prime)",
+    short: 'Your anaerobic work reserve above Critical Power, measured in kilojoules.',
+    detailed: "W' represents the limited amount of work you can perform above Critical Power. It is depleted during work above CP and reconstituted below CP. Strategic use of W' matters in racing, climbs, intervals, and sprints.",
+  },
 }
 
-export function getInfoEntriesForRole(role: UserRole): InfoEntry[] {
+function resolveInfoLocale(locale?: string | null): InfoLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function localizeInfoEntry(entry: InfoEntry, locale?: string | null): InfoEntry {
+  if (resolveInfoLocale(locale) === 'sv') return entry
+  const english = INFO_CONTENT_EN[entry.key]
+  return english ? { ...entry, ...english } : entry
+}
+
+export function getInfoEntry(key: string, locale?: string | null): InfoEntry | undefined {
+  const entry = INFO_CONTENT[key]
+  return entry ? localizeInfoEntry(entry, locale) : undefined
+}
+
+export function getInfoEntriesForRole(role: UserRole, locale?: string | null): InfoEntry[] {
   return Object.values(INFO_CONTENT).filter(
     (entry) => entry.roles.length === 0 || entry.roles.includes(role)
-  )
+  ).map((entry) => localizeInfoEntry(entry, locale))
 }
 
-export function getInfoEntriesByKeys(keys: string[]): InfoEntry[] {
+export function getInfoEntriesByKeys(keys: string[], locale?: string | null): InfoEntry[] {
   return keys
     .map((key) => INFO_CONTENT[key])
     .filter((entry): entry is InfoEntry => !!entry)
+    .map((entry) => localizeInfoEntry(entry, locale))
 }

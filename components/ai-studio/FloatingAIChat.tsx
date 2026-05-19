@@ -994,9 +994,11 @@ export function FloatingAIChat({
 
     // Append concept definitions when conceptKeys are available
     if (pageContext.conceptKeys && pageContext.conceptKeys.length > 0) {
-      const entries = getInfoEntriesByKeys(pageContext.conceptKeys)
+      const entries = getInfoEntriesByKeys(pageContext.conceptKeys, locale)
       if (entries.length > 0) {
-        contextStr += `\n### Relevanta begrepp på denna sida:\n`
+        contextStr += locale === 'sv'
+          ? `\n### Relevanta begrepp på denna sida:\n`
+          : `\n### Relevant concepts on this page:\n`
         for (const entry of entries) {
           contextStr += `\n**${entry.title}**: ${entry.detailed}\n`
         }
@@ -1008,9 +1010,11 @@ export function FloatingAIChat({
       const existingKeys = new Set(pageContext.conceptKeys || [])
       const extraKeys = [...visibleConcepts].filter(k => !existingKeys.has(k))
       if (extraKeys.length > 0) {
-        const extraEntries = getInfoEntriesByKeys(extraKeys)
+        const extraEntries = getInfoEntriesByKeys(extraKeys, locale)
         if (extraEntries.length > 0) {
-          contextStr += `\n### Användaren tittar just nu på:\n`
+          contextStr += locale === 'sv'
+            ? `\n### Användaren tittar just nu på:\n`
+            : `\n### The user is currently looking at:\n`
           for (const entry of extraEntries) {
             contextStr += `- **${entry.title}**: ${entry.short}\n`
           }
@@ -1019,7 +1023,7 @@ export function FloatingAIChat({
     }
 
     return contextStr
-  }, [pageContext, isContextEnabled, visibleConcepts])
+  }, [pageContext, isContextEnabled, visibleConcepts, locale])
 
   // Ref to store the current context string - updated when context changes
   const contextStringRef = useRef('')

@@ -348,21 +348,21 @@ export function resolvePageContext(pathname: string): PageContextConfig | undefi
 /**
  * Builds a markdown string from page context config for injection into AI system prompt.
  */
-export function buildPageContextForAI(config: PageContextConfig): string {
-  const entries: InfoEntry[] = getInfoEntriesByKeys(config.concepts)
+export function buildPageContextForAI(config: PageContextConfig, locale: 'en' | 'sv' = 'en'): string {
+  const entries: InfoEntry[] = getInfoEntriesByKeys(config.concepts, locale)
 
-  let md = `## Aktuell sida: ${config.pageTitle}\n`
+  let md = locale === 'sv' ? `## Aktuell sida: ${config.pageTitle}\n` : `## Current page: ${config.pageTitle}\n`
   md += `${config.description}\n`
 
   if (entries.length > 0) {
-    md += `\n### Relevanta begrepp på denna sida:\n`
+    md += locale === 'sv' ? `\n### Relevanta begrepp på denna sida:\n` : `\n### Relevant concepts on this page:\n`
     for (const entry of entries) {
       md += `\n**${entry.title}**: ${entry.detailed}\n`
     }
   }
 
   if (config.cards && config.cards.length > 0) {
-    md += `\n### Synliga kort/sektioner:\n`
+    md += locale === 'sv' ? `\n### Synliga kort/sektioner:\n` : `\n### Visible cards/sections:\n`
     for (const card of config.cards) {
       md += `- ${card.title}\n`
     }

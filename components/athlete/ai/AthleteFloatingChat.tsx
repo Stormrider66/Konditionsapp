@@ -68,7 +68,7 @@ import {
   hasRealtimeUsageTokens,
 } from '@/lib/ai/realtime-voice-client'
 import { AISkillPicker, type AISkillOption } from '@/components/ai/AISkillPicker'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -142,6 +142,7 @@ export function AthleteFloatingChat({
   athleteName,
 }: AthleteFloatingChatProps) {
   const t = useTranslations('components.athleteFloatingChat')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const { toast } = useToast()
   const basePath = useBasePath()
   const {
@@ -733,9 +734,9 @@ export function AthleteFloatingChat({
     if (pc.summary) contextStr += `\n${pc.summary}\n`
 
     if (pc.conceptKeys && pc.conceptKeys.length > 0) {
-      const entries = getInfoEntriesByKeys(pc.conceptKeys)
+      const entries = getInfoEntriesByKeys(pc.conceptKeys, locale)
       if (entries.length > 0) {
-        contextStr += `\n### Relevanta begrepp:\n`
+        contextStr += locale === 'sv' ? `\n### Relevanta begrepp:\n` : `\n### Relevant concepts:\n`
         for (const entry of entries) {
           contextStr += `\n**${entry.title}**: ${entry.detailed}\n`
         }
@@ -752,9 +753,11 @@ export function AthleteFloatingChat({
       const existingKeys = new Set(pc.conceptKeys || [])
       const extraKeys = [...visible].filter(k => !existingKeys.has(k))
       if (extraKeys.length > 0) {
-        const extraEntries = getInfoEntriesByKeys(extraKeys)
+        const extraEntries = getInfoEntriesByKeys(extraKeys, locale)
         if (extraEntries.length > 0) {
-          contextStr += `\n### Användaren tittar just nu på:\n`
+          contextStr += locale === 'sv'
+            ? `\n### Användaren tittar just nu på:\n`
+            : `\n### The user is currently looking at:\n`
           for (const entry of extraEntries) {
             contextStr += `- **${entry.title}**: ${entry.short}\n`
           }
@@ -763,7 +766,7 @@ export function AthleteFloatingChat({
     }
 
     return contextStr
-  }, [pageCtx?.pageContext, pageCtx?.visibleConcepts])
+  }, [pageCtx?.pageContext, pageCtx?.visibleConcepts, locale])
 
   const pageContextRef = useRef('')
   useEffect(() => {

@@ -5,7 +5,7 @@ import { Info } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { getInfoEntry } from '@/lib/info-content'
 import { cn } from '@/lib/utils'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface InfoTooltipProps {
   conceptKey: string
@@ -23,9 +23,10 @@ export function InfoTooltip({
   className,
 }: InfoTooltipProps) {
   const t = useTranslations('components.infoTooltip')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [showDetailed, setShowDetailed] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const entry = getInfoEntry(conceptKey)
+  const entry = getInfoEntry(conceptKey, locale)
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setMounted(true), 0)
