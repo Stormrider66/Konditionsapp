@@ -29,9 +29,13 @@ const quickCreateSchema = z.object({
   notes: z.string().max(1000).optional(),
 })
 
+type AppLocale = 'en' | 'sv'
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
 
     const body = await request.json()
     const validatedData = quickCreateSchema.parse(body)
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, validatedData.clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, error: 'Åtkomst nekad till denna klient' },
+        { success: false, error: t(locale, 'Access denied for this client', 'Åtkomst nekad till denna klient') },
         { status: 403 }
       )
     }
@@ -62,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (!program) {
       return NextResponse.json(
-        { success: false, error: 'Programmet hittades inte' },
+        { success: false, error: t(locale, 'Program not found', 'Programmet hittades inte') },
         { status: 404 }
       )
     }
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Datumet är utanför programmets tidsram',
+          error: t(locale, 'The date is outside the program timeframe', 'Datumet är utanför programmets tidsram'),
         },
         { status: 400 }
       )
@@ -175,7 +179,7 @@ export async function POST(request: NextRequest) {
         date: day.date,
         program: workout.day.week.program,
       },
-      message: 'Passet har skapats',
+      message: t(locale, 'Workout created', 'Passet har skapats'),
     })
   } catch (error) {
     logError('Error creating quick workout:', error)
@@ -184,7 +188,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Ogiltig data',
+          error: t(locale, 'Invalid data', 'Ogiltig data'),
           details: error.errors,
         },
         { status: 400 }
@@ -192,8 +196,16 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Kunde inte skapa passet' },
+      { success: false, error: t(locale, 'Could not create the workout', 'Kunde inte skapa passet') },
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

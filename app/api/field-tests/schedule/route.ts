@@ -20,9 +20,13 @@ const scheduleTestSchema = z.object({
   notes: z.string().max(1000).optional(),
 })
 
+type AppLocale = 'en' | 'sv'
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
 
     const body = await request.json()
     const validatedData = scheduleTestSchema.parse(body)
@@ -31,7 +35,7 @@ export async function POST(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, validatedData.clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, error: 'Åtkomst nekad till denna klient' },
+        { success: false, error: t(locale, 'Access denied for this client', 'Åtkomst nekad till denna klient') },
         { status: 403 }
       )
     }
@@ -44,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Klienten hittades inte' },
+        { success: false, error: t(locale, 'Client not found', 'Klienten hittades inte') },
         { status: 404 }
       )
     }
@@ -67,7 +71,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Det finns redan ett schemalagt test av denna typ för detta datum',
+          error: t(
+            locale,
+            'There is already a scheduled test of this type for this date',
+            'Det finns redan ett schemalagt test av denna typ för detta datum'
+          ),
         },
         { status: 400 }
       )
@@ -93,7 +101,7 @@ export async function POST(request: NextRequest) {
         required: schedule.required,
         notes: schedule.notes,
       },
-      message: 'Testet har schemalagts',
+      message: t(locale, 'Test scheduled', 'Testet har schemalagts'),
     })
   } catch (error) {
     logError('Error scheduling field test:', error)
@@ -102,7 +110,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Ogiltig data',
+          error: t(locale, 'Invalid data', 'Ogiltig data'),
           details: error.errors,
         },
         { status: 400 }
@@ -110,22 +118,24 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Kunde inte schemalägga testet' },
+      { success: false, error: t(locale, 'Could not schedule the test', 'Kunde inte schemalägga testet') },
       { status: 500 }
     )
   }
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
     if (!clientId) {
       return NextResponse.json(
-        { success: false, error: 'clientId krävs' },
+        { success: false, error: t(locale, 'clientId is required', 'clientId krävs') },
         { status: 400 }
       )
     }
@@ -134,7 +144,7 @@ export async function GET(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, error: 'Åtkomst nekad' },
+        { success: false, error: t(locale, 'Access denied', 'Åtkomst nekad') },
         { status: 403 }
       )
     }
@@ -156,8 +166,16 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching scheduled tests:', error)
     return NextResponse.json(
-      { success: false, error: 'Kunde inte hämta schemalagda tester' },
+      { success: false, error: t(locale, 'Could not fetch scheduled tests', 'Kunde inte hämta schemalagda tester') },
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
