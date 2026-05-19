@@ -223,7 +223,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
         </p>
       </div>
 
-      <GlassCard className="mb-6">
+      <GlassCard className="mb-6" glow="blue">
         <GlassCardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -254,7 +254,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                   <div className="space-y-2">
                     <Label>{t('fields.calendarType')}</Label>
                     <Select value={provider} onValueChange={setProvider}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -276,6 +276,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                       placeholder={t('placeholders.name')}
                       value={calendarName}
                       onChange={e => setCalendarName(e.target.value)}
+                      className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
 
@@ -285,6 +286,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                       placeholder="https://..."
                       value={icalUrl}
                       onChange={e => setIcalUrl(e.target.value)}
+                      className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <p className="text-xs text-muted-foreground">
                       {t('icalHelper')}
@@ -323,7 +325,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
               {connections.map(connection => (
                 <div
                   key={connection.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-card"
+                  className="flex items-center justify-between p-4 rounded-xl border border-slate-200/50 dark:border-white/10 bg-white/45 dark:bg-white/5 backdrop-blur-md transition-all"
                 >
                   <div className="flex items-center gap-4">
                     <div
@@ -392,7 +394,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      className="text-red-500 hover:text-red-650 hover:bg-red-500/10"
                       onClick={() => handleDelete(connection.id, connection.calendarName)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -406,7 +408,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
       </GlassCard>
 
       {/* Help section */}
-      <GlassCard>
+      <GlassCard glow="purple">
         <GlassCardHeader>
           <GlassCardTitle className="text-base">{t('help.title')}</GlassCardTitle>
         </GlassCardHeader>

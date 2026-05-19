@@ -10,7 +10,8 @@ import { useState, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -249,18 +250,20 @@ export function CoachSubscriptionClient({
 
   const currentTierInfo = getCurrentTierInfo();
 
+  const currentGlow = currentTier === 'PRO' ? 'purple' : currentTier === 'BASIC' ? 'blue' : 'emerald';
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 text-slate-900 dark:text-white">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md border-b border-slate-200/50 dark:border-white/10 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href={`${basePath}/coach/settings`}>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="hover:bg-slate-100 dark:hover:bg-white/5">
               <ChevronLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
+            <CreditCard className="h-5 w-5 text-slate-700 dark:text-slate-350" />
             <h1 className="text-lg font-semibold">Prenumeration</h1>
           </div>
         </div>
@@ -269,30 +272,30 @@ export function CoachSubscriptionClient({
       {/* Content */}
       <div className="max-w-6xl mx-auto p-4 space-y-6">
         {/* Current Plan Summary */}
-        <Card>
-          <CardHeader>
+        <GlassCard glow={currentGlow}>
+          <GlassCardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <GlassCardTitle className="flex items-center gap-2">
                   Din nuvarande plan
                   <Badge
                     variant={currentTier === 'FREE' ? 'secondary' : 'default'}
                     className={
                       currentTier === 'PRO'
-                        ? 'bg-purple-100 text-purple-700'
+                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300'
                         : currentTier === 'BASIC'
-                        ? 'bg-blue-100 text-blue-700'
-                        : ''
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
+                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                     }
                   >
                     {currentTierInfo.name}
                   </Badge>
-                </CardTitle>
-                <CardDescription>
+                </GlassCardTitle>
+                <GlassCardDescription>
                   {currentTier === 'FREE'
                     ? 'Uppgradera för att få tillgång till fler funktioner'
                     : `Din prenumeration förnyas automatiskt`}
-                </CardDescription>
+                </GlassCardDescription>
               </div>
               <div className="text-right">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -303,11 +306,11 @@ export function CoachSubscriptionClient({
                 </div>
               </div>
             </div>
-          </CardHeader>
+          </GlassCardHeader>
           {subscription?.stripeSubscriptionId && (
-            <CardContent>
+            <GlassCardContent>
               <div className="flex items-center gap-4">
-                <Button variant="outline" onClick={handleManageSubscription} disabled={isLoading === 'manage'}>
+                <Button variant="outline" onClick={handleManageSubscription} disabled={isLoading === 'manage'} className="border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5">
                   {isLoading === 'manage' ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
@@ -316,37 +319,37 @@ export function CoachSubscriptionClient({
                   Hantera betalning
                 </Button>
                 {subscription.stripeCurrentPeriodEnd && (
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
                     Nästa faktura:{' '}
                     {new Date(subscription.stripeCurrentPeriodEnd).toLocaleDateString('sv-SE')}
                   </span>
                 )}
               </div>
-            </CardContent>
+            </GlassCardContent>
           )}
-        </Card>
+        </GlassCard>
 
         {/* Billing Cycle Toggle */}
         <div className="flex justify-center">
-          <div className="bg-white rounded-lg p-1 border inline-flex items-center gap-2">
+          <div className="bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-xl p-1 border border-slate-200/50 dark:border-white/10 inline-flex items-center gap-2">
             <button
               onClick={() => setBillingCycle('MONTHLY')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                billingCycle === 'MONTHLY' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-900'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                billingCycle === 'MONTHLY' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Månadsvis
             </button>
             <button
               onClick={() => setBillingCycle('YEARLY')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                billingCycle === 'YEARLY' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-900'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                billingCycle === 'YEARLY' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Årsvis
             </button>
             {billingCycle === 'YEARLY' && (
-              <Badge variant="secondary" className="bg-green-100 text-green-700 ml-1">
+              <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300 ml-1">
                 Spara 17%
               </Badge>
             )}
@@ -361,70 +364,70 @@ export function CoachSubscriptionClient({
             const price = getPrice(tier);
             const canUpgrade = TIERS.findIndex((t) => t.id === tier.id) > TIERS.findIndex((t) => t.id === currentTier);
 
+            const glowColor = tier.id === 'FREE' ? 'slate' : tier.id === 'BASIC' ? 'blue' : tier.id === 'PRO' ? 'purple' : 'amber';
             return (
-              <Card
+              <GlassCard
                 key={tier.id}
-                className={`relative ${isActive ? 'border-blue-500 ring-2 ring-blue-500' : ''} ${
-                  tier.popular ? 'border-blue-300' : ''
-                }`}
+                glow={glowColor}
+                className={`relative ${isActive ? 'ring-2 ring-blue-500' : ''}`}
               >
                 {tier.popular && !isActive && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
+                    <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full shadow-md font-semibold">
                       Populärast
                     </span>
                   </div>
                 )}
 
-                <CardHeader className="text-center pb-2">
+                <GlassCardHeader className="text-center pb-2">
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${
                       tier.color === 'gray'
-                        ? 'bg-gray-100'
+                        ? 'bg-slate-100 dark:bg-white/5'
                         : tier.color === 'blue'
-                        ? 'bg-blue-100'
+                        ? 'bg-blue-100 dark:bg-blue-500/20'
                         : tier.color === 'purple'
-                        ? 'bg-purple-100'
-                        : 'bg-amber-100'
+                        ? 'bg-purple-100 dark:bg-purple-500/20'
+                        : 'bg-amber-100 dark:bg-amber-500/20'
                     }`}
                   >
                     <Icon
                       className={`h-6 w-6 ${
                         tier.color === 'gray'
-                          ? 'text-gray-600'
+                          ? 'text-slate-600 dark:text-slate-350'
                           : tier.color === 'blue'
-                          ? 'text-blue-600'
+                          ? 'text-blue-600 dark:text-blue-400'
                           : tier.color === 'purple'
-                          ? 'text-purple-600'
-                          : 'text-amber-600'
+                          ? 'text-purple-600 dark:text-purple-400'
+                          : 'text-amber-600 dark:text-amber-400'
                       }`}
                     />
                   </div>
-                  <CardTitle className="text-lg">{tier.name}</CardTitle>
-                  <CardDescription className="text-xs">{tier.description}</CardDescription>
-                </CardHeader>
+                  <GlassCardTitle className="text-lg">{tier.name}</GlassCardTitle>
+                  <GlassCardDescription className="text-xs">{tier.description}</GlassCardDescription>
+                </GlassCardHeader>
 
-                <CardContent className="text-center">
+                <GlassCardContent className="text-center">
                   <div className="mb-4">
                     {price !== null ? (
                       <>
                         <span className="text-3xl font-bold">{price.toLocaleString('sv-SE')}</span>
-                        <span className="text-muted-foreground text-sm">
+                        <span className="text-slate-500 dark:text-slate-400 text-sm">
                           {' '}
                           SEK/{billingCycle === 'MONTHLY' ? 'mån' : 'år'}
                         </span>
                       </>
                     ) : (
-                      <span className="text-xl font-semibold text-muted-foreground">Kontakta oss</span>
+                      <span className="text-xl font-semibold text-slate-500 dark:text-slate-400">Kontakta oss</span>
                     )}
                   </div>
 
-                  <div className="text-xs text-muted-foreground mb-4 flex items-center justify-center gap-1">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center justify-center gap-1">
                     <Users className="h-3 w-3" />
                     {tier.maxAthletes === -1 ? 'Obegränsade atleter' : `Upp till ${tier.maxAthletes} atleter`}
                   </div>
 
-                  <ul className="text-xs text-left space-y-1.5 mb-6">
+                  <ul className="text-xs text-left space-y-1.5 mb-6 text-slate-700 dark:text-slate-300">
                     {tier.features.slice(0, 5).map((feature, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <Check className="h-3 w-3 text-green-500 flex-shrink-0 mt-0.5" />
@@ -432,22 +435,22 @@ export function CoachSubscriptionClient({
                       </li>
                     ))}
                     {tier.features.length > 5 && (
-                      <li className="text-muted-foreground">+ {tier.features.length - 5} fler funktioner</li>
+                      <li className="text-slate-500 dark:text-slate-450">+ {tier.features.length - 5} fler funktioner</li>
                     )}
                   </ul>
 
                   {isActive ? (
-                    <Button variant="outline" className="w-full" disabled size="sm">
+                    <Button variant="outline" className="w-full border-slate-200 dark:border-white/10" disabled size="sm">
                       Nuvarande plan
                     </Button>
                   ) : tier.id === 'FREE' ? (
-                    <Button variant="outline" className="w-full" disabled size="sm">
+                    <Button variant="outline" className="w-full border-slate-200 dark:border-white/10" disabled size="sm">
                       Gratisversion
                     </Button>
                   ) : tier.id === 'ENTERPRISE' ? (
                     <Button
                       variant="outline"
-                      className="w-full"
+                      className="w-full border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                       onClick={() => handleUpgrade(tier.id)}
                       size="sm"
                     >
@@ -457,8 +460,8 @@ export function CoachSubscriptionClient({
                     <Button
                       className={`w-full ${
                         tier.color === 'blue'
-                          ? 'bg-blue-600 hover:bg-blue-700'
-                          : 'bg-purple-600 hover:bg-purple-700'
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-purple-600 hover:bg-purple-700 text-white'
                       }`}
                       onClick={() => handleUpgrade(tier.id)}
                       disabled={isLoading === tier.id}
@@ -468,27 +471,27 @@ export function CoachSubscriptionClient({
                       Uppgradera
                     </Button>
                   ) : (
-                    <Button variant="outline" className="w-full" disabled size="sm">
+                    <Button variant="outline" className="w-full border-slate-200 dark:border-white/10" disabled size="sm">
                       Lägre plan
                     </Button>
                   )}
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             );
           })}
         </div>
 
         {/* Feature Comparison */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Jämför funktioner</CardTitle>
-            <CardDescription>Se vad som ingår i varje plan</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard glow="blue">
+          <GlassCardHeader>
+            <GlassCardTitle>Jämför funktioner</GlassCardTitle>
+            <GlassCardDescription>Se vad som ingår i varje plan</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b">
+                  <tr className="border-b border-slate-200/50 dark:border-white/10">
                     <th className="text-left py-3 px-2">Funktion</th>
                     {TIERS.map((tier) => (
                       <th key={tier.id} className="text-center py-3 px-2">
@@ -497,7 +500,7 @@ export function CoachSubscriptionClient({
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-slate-200/50 dark:divide-white/10">
                   <FeatureRow
                     icon={<Users className="h-4 w-4" />}
                     name="Max atleter"
@@ -536,39 +539,39 @@ export function CoachSubscriptionClient({
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* FAQ */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Vanliga frågor</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <GlassCard glow="purple">
+          <GlassCardHeader>
+            <GlassCardTitle>Vanliga frågor</GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div>
-              <h4 className="font-medium">Kan jag byta plan när som helst?</h4>
-              <p className="text-sm text-muted-foreground">
+              <h4 className="font-semibold">Kan jag byta plan när som helst?</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Ja, du kan uppgradera eller nedgradera din plan när som helst. Vid uppgradering får du
                 tillgång till nya funktioner direkt. Vid nedgradering gäller den nya planen från nästa
                 faktureringsperiod.
               </p>
             </div>
             <div>
-              <h4 className="font-medium">Vad händer om jag har fler atleter än planen tillåter?</h4>
-              <p className="text-sm text-muted-foreground">
+              <h4 className="font-semibold">Vad händer om jag har fler atleter än planen tillåter?</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Du behåller tillgång till alla befintliga atleter, men kan inte lägga till nya förrän du
                 antingen uppgraderar eller tar bort några atleter.
               </p>
             </div>
             <div>
-              <h4 className="font-medium">Hur fungerar betalningen?</h4>
-              <p className="text-sm text-muted-foreground">
-                Vi använder Stripe för säker betalning. Du kan betala med kort och faktureras
+              <h4 className="font-semibold">Hur fungerar betalningen?</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                We använder Stripe för säker betalning. Du kan betala med kort och faktureras
                 automatiskt varje månad eller år beroende på vald betalningsperiod.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     </div>
   );

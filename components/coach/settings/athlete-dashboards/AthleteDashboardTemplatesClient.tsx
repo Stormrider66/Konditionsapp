@@ -16,7 +16,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -340,28 +341,28 @@ export default function AthleteDashboardTemplatesClient({
         </TabsList>
 
         <TabsContent value="BUSINESS_DEFAULT" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Standardmall för verksamheten</CardTitle>
-              <CardDescription>
+          <GlassCard glow="blue">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-base">Standardmall för verksamheten</GlassCardTitle>
+              <GlassCardDescription>
                 Gäller alla atleter i verksamheten som inte har en mer specifik mall (lag eller individ).
                 Påverkar {affectedCount} atlet{affectedCount === 1 ? '' : 'er'}.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              </GlassCardDescription>
+            </GlassCardHeader>
+          </GlassCard>
         </TabsContent>
 
         <TabsContent value="TEAM" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Per lag</CardTitle>
-              <CardDescription>
+          <GlassCard glow="purple">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-base">Per lag</GlassCardTitle>
+              <GlassCardDescription>
                 Bra för lagcoacher: en mall gäller alla lagets medlemmar.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <Select value={targetId} onValueChange={setTargetId}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
                   <SelectValue placeholder={teams.length === 0 ? 'Inga lag funna' : 'Välj lag'} />
                 </SelectTrigger>
                 <SelectContent>
@@ -373,25 +374,25 @@ export default function AthleteDashboardTemplatesClient({
                 </SelectContent>
               </Select>
               {targetId && (
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-slate-500 mt-2">
                   Påverkar {affectedCount} atlet{affectedCount === 1 ? '' : 'er'}.
                 </p>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
 
         <TabsContent value="INDIVIDUAL" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Per atlet</CardTitle>
-              <CardDescription>
+          <GlassCard glow="emerald">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-base">Per atlet</GlassCardTitle>
+              <GlassCardDescription>
                 Bra för PT-coacher: skräddarsy en specifik atlets dashboard.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <Select value={targetId} onValueChange={setTargetId}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
                   <SelectValue placeholder={athletes.length === 0 ? 'Inga atleter funna' : 'Välj atlet'} />
                 </SelectTrigger>
                 <SelectContent>
@@ -402,30 +403,31 @@ export default function AthleteDashboardTemplatesClient({
                   ))}
                 </SelectContent>
               </Select>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </TabsContent>
       </Tabs>
 
       {/* Template name */}
       {(scope === 'BUSINESS_DEFAULT' || targetId) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Mallnamn</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard glow="blue">
+          <GlassCardHeader>
+            <GlassCardTitle className="text-base">Mallnamn</GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
             <Input
               value={templateName}
               onChange={e => { setTemplateName(e.target.value); setHasChanges(true) }}
               placeholder="t.ex. 'Hockey U18 fokus' eller 'Standardmall'"
+              className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
             />
             {currentTemplate && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-slate-500 mt-2">
                 Redigerar befintlig mall — ändringar gäller från sparning.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Widget editor — only shown when a target is selected (or business default) */}
@@ -435,24 +437,24 @@ export default function AthleteDashboardTemplatesClient({
             const items = grouped[category]
             if (!items || items.length === 0) return null
             return (
-              <Card key={category}>
-                <CardHeader>
-                  <CardTitle>{CATEGORY_LABELS[category]}</CardTitle>
-                  <CardDescription>
+              <GlassCard key={category} glow="purple">
+                <GlassCardHeader>
+                  <GlassCardTitle>{CATEGORY_LABELS[category]}</GlassCardTitle>
+                  <GlassCardDescription>
                     {items.length} widget{items.length === 1 ? '' : 's'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                  </GlassCardDescription>
+                </GlassCardHeader>
+                <GlassCardContent className="space-y-3">
                   {items.map((w, idx) => (
                     <div
                       key={w.key}
-                      className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-slate-200/50 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md"
                     >
                       <div className="flex flex-col gap-0.5">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
                           disabled={idx === 0}
                           onClick={() => move(w, 'up')}
                           aria-label="Flytta upp"
@@ -462,7 +464,7 @@ export default function AthleteDashboardTemplatesClient({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
                           disabled={idx === items.length - 1}
                           onClick={() => move(w, 'down')}
                           aria-label="Flytta ner"
@@ -471,7 +473,7 @@ export default function AthleteDashboardTemplatesClient({
                         </Button>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <Label className="text-base font-medium flex items-center gap-2">
+                        <Label className="text-base font-medium flex items-center gap-2 text-slate-900 dark:text-white">
                           {w.definition.name}
                           {w.definition.required && (
                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -479,7 +481,7 @@ export default function AthleteDashboardTemplatesClient({
                             </span>
                           )}
                         </Label>
-                        <p className="text-sm text-muted-foreground">{w.definition.description}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{w.definition.description}</p>
                       </div>
                       <Switch
                         checked={w.definition.required ? true : w.visible}
@@ -488,36 +490,48 @@ export default function AthleteDashboardTemplatesClient({
                       />
                     </div>
                   ))}
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             )
           })}
 
           {/* Save bar */}
-          <div className="flex items-center justify-between sticky bottom-4 bg-background/80 backdrop-blur-sm p-4 rounded-lg border">
+          <div className={cn(
+            "flex items-center justify-between sticky bottom-4 p-4 rounded-2xl border transition-all backdrop-blur-md z-35",
+            hasChanges 
+              ? "bg-amber-500/10 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]" 
+              : "bg-white/80 dark:bg-black/50 border-slate-200/50 dark:border-white/10"
+          )}>
             <div className="flex items-center gap-3">
               {currentTemplate && (
-                <Button variant="outline" size="sm" onClick={remove} disabled={isSaving}>
+                <Button variant="outline" size="sm" onClick={remove} disabled={isSaving} className="border-slate-200 dark:border-white/10 text-red-500 hover:text-red-650 hover:bg-red-500/10 transition-all">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Ta bort mall
                 </Button>
               )}
               {saveMessage && (
                 <p
-                  className={`text-sm ${
+                  className={`text-sm font-semibold ${
                     saveMessage.includes('sparad') || saveMessage.includes('borttagen')
-                      ? 'text-green-600'
-                      : 'text-red-600'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
                   }`}
                 >
                   {saveMessage}
                 </p>
               )}
               {hasChanges && !saveMessage && (
-                <p className="text-sm text-muted-foreground">Osparade ändringar</p>
+                <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">Osparade ändringar</p>
               )}
             </div>
-            <Button onClick={save} disabled={isSaving || !hasChanges}>
+            <Button 
+              onClick={save} 
+              disabled={isSaving || !hasChanges}
+              className={cn(
+                "transition-all",
+                hasChanges && "bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-650 dark:hover:bg-amber-700"
+              )}
+            >
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

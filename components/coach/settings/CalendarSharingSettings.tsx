@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Eye, EyeOff, Users, UserIcon, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 
 interface CalendarSettingsState {
   calendarVisibility: 'FULL_DETAILS' | 'BUSY_ONLY' | 'HIDDEN'
@@ -94,12 +95,12 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
   if (!loaded) return null
   if (!isOwner) {
     return (
-      <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4">
+      <GlassCard glow="slate" className="p-4">
         <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
           <Shield className="w-5 h-5" />
           <p className="text-sm">{t('calendarSharing.permissionMessage')}</p>
         </div>
-      </div>
+      </GlassCard>
     )
   }
 
@@ -116,88 +117,92 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
   return (
     <div className="space-y-4">
       {/* Visibility level */}
-      <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 space-y-3">
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('calendarSharing.visibility.title')}</h4>
-        <p className="text-xs text-slate-500">{t('calendarSharing.visibility.help')}</p>
-        <div className="space-y-2" role="radiogroup" aria-label={t('calendarSharing.visibility.accessibilityLabel')}>
-          {visibilityOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => updateSetting({ calendarVisibility: opt.value })}
-              role="radio"
-              aria-checked={settings.calendarVisibility === opt.value}
-              className={cn(
-                'flex items-center gap-3 w-full p-3 rounded-xl border text-left transition-all',
-                settings.calendarVisibility === opt.value
-                  ? 'border-blue-500/30 bg-blue-500/5 dark:bg-blue-500/10'
-                  : 'border-slate-200/50 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5'
-              )}
-            >
-              <opt.icon className={cn(
-                'w-5 h-5 shrink-0',
-                settings.calendarVisibility === opt.value ? 'text-blue-500' : 'text-slate-400'
-              )} />
-              <div>
-                <div className={cn(
-                  'text-sm font-medium',
-                  settings.calendarVisibility === opt.value ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'
-                )}>
-                  {t(`calendarSharing.visibility.options.${opt.key}.label`)}
+      <GlassCard glow="blue">
+        <GlassCardContent className="p-4 space-y-3">
+          <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('calendarSharing.visibility.title')}</h4>
+          <p className="text-xs text-slate-500">{t('calendarSharing.visibility.help')}</p>
+          <div className="space-y-2" role="radiogroup" aria-label={t('calendarSharing.visibility.accessibilityLabel')}>
+            {visibilityOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => updateSetting({ calendarVisibility: opt.value })}
+                role="radio"
+                aria-checked={settings.calendarVisibility === opt.value}
+                className={cn(
+                  'flex items-center gap-3 w-full p-3 rounded-xl border text-left transition-all',
+                  settings.calendarVisibility === opt.value
+                    ? 'border-blue-500/30 bg-blue-500/5 dark:bg-blue-500/10'
+                    : 'border-slate-200/50 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5'
+                )}
+              >
+                <opt.icon className={cn(
+                  'w-5 h-5 shrink-0',
+                  settings.calendarVisibility === opt.value ? 'text-blue-500' : 'text-slate-400'
+                )} />
+                <div>
+                  <div className={cn(
+                    'text-sm font-medium',
+                    settings.calendarVisibility === opt.value ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'
+                  )}>
+                    {t(`calendarSharing.visibility.options.${opt.key}.label`)}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {t(`calendarSharing.visibility.options.${opt.key}.description`)}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500">
-                  {t(`calendarSharing.visibility.options.${opt.key}.description`)}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+              </button>
+            ))}
+          </div>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* What to share */}
       {settings.calendarVisibility !== 'HIDDEN' && (
-        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 space-y-3">
-          <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('calendarSharing.sharing.title')}</h4>
-          <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
-            <div className="flex items-center gap-3">
-              <Users className="w-5 h-5 text-slate-400" />
-              <div>
-                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t('calendarSharing.eventGroups.team.title')}
-                </div>
-                <div className="text-xs text-slate-500">
-                  {t('calendarSharing.eventGroups.team.description')}
-                </div>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.shareTeamEvents}
-              onChange={(e) => updateSetting({ shareTeamEvents: e.target.checked })}
-              className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
-              aria-label={t('calendarSharing.eventGroups.team.label')}
-            />
-          </label>
-          <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
-            <div className="flex items-center gap-3">
-              <UserIcon className="w-5 h-5 text-slate-400" />
-              <div>
-                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t('calendarSharing.eventGroups.athlete.title')}
-                </div>
-                <div className="text-xs text-slate-500">
-                  {t('calendarSharing.eventGroups.athlete.description')}
+        <GlassCard glow="blue">
+          <GlassCardContent className="p-4 space-y-3">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('calendarSharing.sharing.title')}</h4>
+            <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-slate-400" />
+                <div>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t('calendarSharing.eventGroups.team.title')}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {t('calendarSharing.eventGroups.team.description')}
+                  </div>
                 </div>
               </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.shareAthleteEvents}
-              onChange={(e) => updateSetting({ shareAthleteEvents: e.target.checked })}
-              className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
-              aria-label={t('calendarSharing.eventGroups.athlete.label')}
-            />
-          </label>
-        </div>
+              <input
+                type="checkbox"
+                checked={settings.shareTeamEvents}
+                onChange={(e) => updateSetting({ shareTeamEvents: e.target.checked })}
+                className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
+                aria-label={t('calendarSharing.eventGroups.team.label')}
+              />
+            </label>
+            <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+              <div className="flex items-center gap-3">
+                <UserIcon className="w-5 h-5 text-slate-400" />
+                <div>
+                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t('calendarSharing.eventGroups.athlete.title')}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {t('calendarSharing.eventGroups.athlete.description')}
+                  </div>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.shareAthleteEvents}
+                onChange={(e) => updateSetting({ shareAthleteEvents: e.target.checked })}
+                className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
+                aria-label={t('calendarSharing.eventGroups.athlete.label')}
+              />
+            </label>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Status feedback */}

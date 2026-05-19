@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -25,6 +25,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+import { cn } from '@/lib/utils'
 import {
   getCoachWidgets,
   CATEGORY_LABELS,
@@ -223,16 +224,16 @@ export default function CoachDashboardSettingsPage() {
       </div>
 
       {/* Mode selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Dashboard-läge</CardTitle>
-          <CardDescription>
+      <GlassCard glow="blue">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-base">Dashboard-läge</GlassCardTitle>
+          <GlassCardDescription>
             Du har separata inställningar för varje läge. Byt här för att anpassa ett annat läge.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <Select value={mode} onValueChange={v => setMode(v as CoachMode)}>
-            <SelectTrigger className="w-full max-w-xs">
+            <SelectTrigger className="w-full max-w-xs bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -241,29 +242,29 @@ export default function CoachDashboardSettingsPage() {
               <SelectItem value="GYM">Gym</SelectItem>
             </SelectContent>
           </Select>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Widget groups */}
       {(Object.keys(grouped) as WidgetCategory[]).map(category => {
         const items = grouped[category]
         if (!items || items.length === 0) return null
         return (
-          <Card key={category}>
-            <CardHeader>
-              <CardTitle>{CATEGORY_LABELS[category]}</CardTitle>
-              <CardDescription>
+          <GlassCard key={category} glow="purple">
+            <GlassCardHeader>
+              <GlassCardTitle>{CATEGORY_LABELS[category]}</GlassCardTitle>
+              <GlassCardDescription>
                 {items.length} widget{items.length === 1 ? '' : 's'} {'\u2022'} ändra ordning med pilarna
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-3">
               {items.map((w, idx) => (
-                <div key={w.key} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
+                <div key={w.key} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200/50 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md">
                   <div className="flex flex-col gap-0.5">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
                       disabled={idx === 0}
                       onClick={() => move(w, 'up')}
                       aria-label="Flytta upp"
@@ -273,7 +274,7 @@ export default function CoachDashboardSettingsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
                       disabled={idx === items.length - 1}
                       onClick={() => move(w, 'down')}
                       aria-label="Flytta ner"
@@ -282,7 +283,7 @@ export default function CoachDashboardSettingsPage() {
                     </Button>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <Label className="text-base font-medium flex items-center gap-2">
+                    <Label className="text-base font-medium flex items-center gap-2 text-slate-900 dark:text-white">
                       {w.definition.name}
                       {w.definition.required && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -290,7 +291,7 @@ export default function CoachDashboardSettingsPage() {
                         </span>
                       )}
                     </Label>
-                    <p className="text-sm text-muted-foreground">{w.definition.description}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{w.definition.description}</p>
                   </div>
                   <Switch
                     checked={w.definition.required ? true : w.visible}
@@ -299,34 +300,46 @@ export default function CoachDashboardSettingsPage() {
                   />
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         )
       })}
 
       {/* Sticky save bar */}
-      <div className="flex items-center justify-between sticky bottom-4 bg-background/80 backdrop-blur-sm p-4 rounded-lg border">
+      <div className={cn(
+        "flex items-center justify-between sticky bottom-4 p-4 rounded-2xl border transition-all backdrop-blur-md z-35",
+        hasChanges 
+          ? "bg-amber-500/10 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]" 
+          : "bg-white/80 dark:bg-black/50 border-slate-200/50 dark:border-white/10"
+      )}>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={reset} disabled={isSaving}>
+          <Button variant="outline" size="sm" onClick={reset} disabled={isSaving} className="border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5">
             <RotateCcw className="h-4 w-4 mr-2" />
             Återställ
           </Button>
           {saveMessage && (
             <p
-              className={`text-sm ${
+              className={`text-sm font-semibold ${
                 saveMessage.includes('sparade') || saveMessage.includes('Återställt')
-                  ? 'text-green-600'
-                  : 'text-red-600'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
               }`}
             >
               {saveMessage}
             </p>
           )}
           {hasChanges && !saveMessage && (
-            <p className="text-sm text-muted-foreground">Osparade ändringar</p>
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">Osparade ändringar</p>
           )}
         </div>
-        <Button onClick={save} disabled={isSaving || !hasChanges}>
+        <Button 
+          onClick={save} 
+          disabled={isSaving || !hasChanges}
+          className={cn(
+            "transition-all",
+            hasChanges && "bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-650 dark:hover:bg-amber-700"
+          )}
+        >
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

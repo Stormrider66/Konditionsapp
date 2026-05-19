@@ -65,7 +65,7 @@ export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
             <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Modellöversikt</h3>
           </div>
-          <GlassCard>
+          <GlassCard glow="blue">
             <GlassCardContent className="p-0 pt-0">
               <div className="overflow-x-auto">
                 <Table>
@@ -113,7 +113,7 @@ export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
             <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Kostnad per funktion</h3>
           </div>
-          <GlassCard>
+          <GlassCard glow="purple">
             <GlassCardContent className="p-0 pt-0">
               <div className="overflow-x-auto">
                 <Table>
@@ -164,8 +164,9 @@ export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
             {USAGE_PROFILES.map((profile) => {
               const costFlash = monthlyCostUSD(profile, flashModel)
               const costSonnet = monthlyCostUSD(profile, sonnetModel)
+              const glowColor = profile.id === 'light' ? 'blue' : profile.id === 'normal' ? 'purple' : 'amber'
               return (
-                <GlassCard key={profile.id}>
+                <GlassCard key={profile.id} glow={glowColor}>
                   <GlassCardContent className="p-4 pt-4 space-y-3">
                     <div>
                       <h4 className="font-bold text-sm text-slate-900 dark:text-white">{profile.name}</h4>
@@ -202,7 +203,7 @@ export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
             <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Automatiska kostnader</h3>
           </div>
-          <GlassCard>
+          <GlassCard glow="amber">
             <GlassCardContent className="p-4 pt-4 space-y-3">
               <div className="flex items-start gap-3">
                 <Cog className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
@@ -229,7 +230,7 @@ export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
             <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Tips för kostnadsoptimering</h3>
           </div>
-          <GlassCard>
+          <GlassCard glow="teal">
             <GlassCardContent className="p-4 pt-4 space-y-3">
               <div className="flex items-start gap-3">
                 <Lightbulb className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />

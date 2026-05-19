@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -183,30 +183,31 @@ export function GymPlatformSettings() {
         <>
           {connections.map(conn => {
             const config = providerConfigById[conn.provider]
+            const glowColor = conn.provider === 'ZOEZI' ? 'emerald' : conn.provider === 'WONDR' ? 'blue' : conn.provider === 'BOKADIREKT' ? 'amber' : conn.provider === 'MINDBODY' ? 'purple' : 'blue'
             return (
-              <Card key={conn.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{config?.icon || '📱'}</span>
-                      <div>
-                        <CardTitle className="text-base">{conn.displayName}</CardTitle>
-                        <CardDescription>{config?.label || conn.provider}</CardDescription>
+              <GlassCard key={conn.id} glow={glowColor} className="mb-4">
+                  <GlassCardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{config?.icon || '📱'}</span>
+                        <div>
+                          <GlassCardTitle className="text-base">{conn.displayName}</GlassCardTitle>
+                          <GlassCardDescription>{config?.label || conn.provider}</GlassCardDescription>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={conn.isActive ? 'default' : 'secondary'}>
+                          {conn.isActive ? t('integrations.gymPlatforms.status.active') : t('integrations.gymPlatforms.status.inactive')}
+                        </Badge>
+                        {conn.lastSyncError && (
+                          <Badge variant="destructive" className="text-xs">
+                            {t('integrations.gymPlatforms.status.error')}
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={conn.isActive ? 'default' : 'secondary'}>
-                        {conn.isActive ? t('integrations.gymPlatforms.status.active') : t('integrations.gymPlatforms.status.inactive')}
-                      </Badge>
-                      {conn.lastSyncError && (
-                        <Badge variant="destructive" className="text-xs">
-                          {t('integrations.gymPlatforms.status.error')}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                  </GlassCardHeader>
+                  <GlassCardContent className="space-y-4">
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
@@ -260,8 +261,8 @@ export function GymPlatformSettings() {
                       <Trash2 className="h-3 w-3 mr-1" /> {t('integrations.gymPlatforms.actions.remove')}
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             )
           })}
         </>
@@ -273,13 +274,13 @@ export function GymPlatformSettings() {
           <Plus className="h-4 w-4 mr-2" /> {t('integrations.gymPlatforms.actions.connect')}
         </Button>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
+        <GlassCard glow="blue">
+          <GlassCardHeader>
+            <GlassCardTitle className="text-lg flex items-center gap-2">
               <Plug className="h-5 w-5" /> {t('integrations.gymPlatforms.actions.connectNew')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             {/* Platform selection */}
             <div className="grid grid-cols-2 gap-3">
               {Object.entries(providerConfig).map(([key, config]) => (
@@ -291,10 +292,10 @@ export function GymPlatformSettings() {
                     setAddResult(null)
                   }}
                   className={cn(
-                    'p-3 rounded-lg border text-left transition-all',
+                    'p-3 rounded-xl border text-left transition-all',
                     addProvider === key
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
+                      ? 'border-blue-500 bg-blue-500/5 dark:bg-blue-500/10'
+                      : 'border-slate-200/50 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5'
                   )}
                 >
                   <div className="flex items-center gap-2">
@@ -313,7 +314,7 @@ export function GymPlatformSettings() {
                 <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium">{t('integrations.gymPlatforms.form.nameLabel')}</label>
-                    <Input value={addName} onChange={e => setAddName(e.target.value)} placeholder={t('integrations.gymPlatforms.form.namePlaceholder')} />
+                    <Input value={addName} onChange={e => setAddName(e.target.value)} placeholder={t('integrations.gymPlatforms.form.namePlaceholder')} className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500" />
                   </div>
                   <div>
                     <label className="text-sm font-medium">{t('integrations.gymPlatforms.form.apiKeyLabel')}</label>
@@ -322,6 +323,7 @@ export function GymPlatformSettings() {
                       value={addApiKey}
                       onChange={e => setAddApiKey(e.target.value)}
                       placeholder={t('integrations.gymPlatforms.form.apiKeyPlaceholder')}
+                      className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                   {providerConfigById[addProvider]?.fields.includes('apiSecret') && (
@@ -332,13 +334,14 @@ export function GymPlatformSettings() {
                         value={addApiSecret}
                         onChange={e => setAddApiSecret(e.target.value)}
                         placeholder={t('integrations.gymPlatforms.form.apiSecretPlaceholder')}
+                        className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   )}
                   {providerConfigById[addProvider]?.fields.includes('siteId') && (
                     <div>
                       <label className="text-sm font-medium">{t('integrations.gymPlatforms.form.siteIdLabel')}</label>
-                      <Input value={addSiteId} onChange={e => setAddSiteId(e.target.value)} placeholder={t('integrations.gymPlatforms.form.siteIdPlaceholder')} />
+                      <Input value={addSiteId} onChange={e => setAddSiteId(e.target.value)} placeholder={t('integrations.gymPlatforms.form.siteIdPlaceholder')} className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500" />
                     </div>
                   )}
                 </div>
@@ -376,8 +379,8 @@ export function GymPlatformSettings() {
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
     </div>
   )

@@ -95,8 +95,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                         <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.subscription')}</h3>
                     </div>
-                    <Link href={coachHref('/subscription')}>
-                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+                    <Link href={coachHref('/subscription')} className="block group">
+                        <GlassCard glow="emerald" className="p-4 rounded-2xl cursor-pointer transition-all">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center border border-emerald-200 dark:border-emerald-500/20">
@@ -107,9 +107,9 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{t('subscription.description')}</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-650 dark:group-hover:text-white transition-colors" />
                             </div>
-                        </div>
+                        </GlassCard>
                     </Link>
                 </div>
 
@@ -120,8 +120,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.dashboard')}</h3>
                     </div>
                     <DashboardModeSelector />
-                    <Link href={coachHref('/settings/dashboard')}>
-                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+                    <Link href={coachHref('/settings/dashboard')} className="block group">
+                        <GlassCard glow="blue" className="p-4 rounded-2xl cursor-pointer transition-all">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/10 flex items-center justify-center border border-indigo-200 dark:border-indigo-500/20">
@@ -132,12 +132,12 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.description')}</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-650 dark:group-hover:text-white transition-colors" />
                             </div>
-                        </div>
+                        </GlassCard>
                     </Link>
-                    <Link href={coachHref('/settings/athlete-dashboards')}>
-                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+                    <Link href={coachHref('/settings/athlete-dashboards')} className="block group">
+                        <GlassCard glow="purple" className="p-4 rounded-2xl cursor-pointer transition-all">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-500/10 flex items-center justify-center border border-pink-200 dark:border-pink-500/20">
@@ -148,9 +148,9 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{t('athleteDashboards.description')}</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
                             </div>
-                        </div>
+                        </GlassCard>
                     </Link>
                 </div>
 
@@ -169,8 +169,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                         <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.ai')}</h3>
                     </div>
-                    <Link href={coachHref('/settings/ai')}>
-                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+                    <Link href={coachHref('/settings/ai')} className="block group">
+                        <GlassCard glow="purple" className="p-4 rounded-2xl cursor-pointer transition-all">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center border border-purple-200 dark:border-purple-500/20">
@@ -181,12 +181,12 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{t('aiConfig.description')}</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
                             </div>
-                        </div>
+                        </GlassCard>
                     </Link>
-                    <Link href={coachHref('/settings/ai-kostnader')}>
-                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group mt-3">
+                    <Link href={coachHref('/settings/ai-kostnader')} className="block group mt-3">
+                        <GlassCard glow="emerald" className="p-4 rounded-2xl cursor-pointer transition-all">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-500/10 flex items-center justify-center border border-green-200 dark:border-green-500/20">
@@ -197,9 +197,9 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{t('aiCosts.description')}</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
                             </div>
-                        </div>
+                        </GlassCard>
                     </Link>
                 </div>
 
@@ -209,8 +209,8 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                         <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.integrations')}</h3>
                     </div>
-                    <Link href={coachHref('/settings/calendars')}>
-                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+                    <Link href={coachHref('/settings/calendars')} className="block group">
+                        <GlassCard glow="blue" className="p-4 rounded-2xl cursor-pointer transition-all">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-500/10 flex items-center justify-center border border-cyan-200 dark:border-cyan-500/20">
@@ -221,12 +221,12 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <p className="text-xs text-slate-500 dark:text-slate-400">Google, Outlook, Apple, iCal</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
                             </div>
-                        </div>
+                        </GlassCard>
                     </Link>
-                    <Link href={coachHref('/settings/gym-platform')}>
-                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group mt-3">
+                    <Link href={coachHref('/settings/gym-platform')} className="block group mt-3">
+                        <GlassCard glow="teal" className="p-4 rounded-2xl cursor-pointer transition-all">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-500/10 flex items-center justify-center border border-teal-200 dark:border-teal-500/20">
@@ -237,9 +237,9 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '', bu
                                         <p className="text-xs text-slate-500 dark:text-slate-400">{t('integrations.platforms.description')}</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
                             </div>
-                        </div>
+                        </GlassCard>
                     </Link>
                 </div>
 
