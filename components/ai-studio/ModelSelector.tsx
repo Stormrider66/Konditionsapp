@@ -22,6 +22,7 @@ import { Bot, Brain, Sparkles, Zap, Check, ChevronDown, AlertCircle, FileText, L
 import type { AIProvider } from '@prisma/client'
 import { formatTokenCount, estimateWeeksFromTokens } from '@/types/ai-models'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useLocale } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 interface AIModel {
@@ -58,8 +59,56 @@ interface ModelSelectorProps {
   onModelChange: (model: AIModel) => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY = {
+  en: {
+    selectModel: 'Select model',
+    loading: 'Loading...',
+    programWeeks: (weeks: number) => `(~${weeks} week program)`,
+    price: (input: number, output: number) => `Price: $${input}/1M in, $${output}/1M out`,
+    changeModel: 'Click to change model',
+    selectModelForChat: 'Select an AI model for the chat',
+    availableModels: 'Available models',
+    recommended: 'Recommended',
+    longPrograms: 'Long programs',
+    unavailableModels: 'Unavailable (missing API key)',
+    missingApiKey: (provider: string) => `${provider} - missing API key`,
+    noModels: 'No AI models available',
+  },
+  sv: {
+    selectModel: 'Välj modell',
+    loading: 'Laddar...',
+    programWeeks: (weeks: number) => `(~${weeks} veckors program)`,
+    price: (input: number, output: number) => `Pris: $${input}/1M in, $${output}/1M ut`,
+    changeModel: 'Klicka för att byta modell',
+    selectModelForChat: 'Välj en AI-modell för chatten',
+    availableModels: 'Tillgängliga modeller',
+    recommended: 'Rekommenderad',
+    longPrograms: 'Långa program',
+    unavailableModels: 'Ej tillgängliga (saknar API-nyckel)',
+    missingApiKey: (provider: string) => `${provider} - API-nyckel saknas`,
+    noModels: 'Inga AI-modeller tillgängliga',
+  },
+} satisfies Record<AppLocale, {
+  selectModel: string
+  loading: string
+  programWeeks: (weeks: number) => string
+  price: (input: number, output: number) => string
+  changeModel: string
+  selectModelForChat: string
+  availableModels: string
+  recommended: string
+  longPrograms: string
+  unavailableModels: string
+  missingApiKey: (provider: string) => string
+  noModels: string
+}>
+
 export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: ModelSelectorProps) {
   const pathname = usePathname()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [models, setModels] = useState<AIModel[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -80,7 +129,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
   }, [pathname])
 
   useEffect(() => {
-    fetchModels()
+    void Promise.resolve().then(fetchModels)
   }, [fetchModels])
 
   const getProviderIcon = (provider: AIProvider) => {
@@ -133,7 +182,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
 
   const displayName = currentModel
     ? currentModel.displayName || currentModel.name || currentModel.modelId
-    : 'Välj modell'
+    : copy.selectModel
 
   const maxOutputTokens = currentModel ? getMaxOutputTokens(currentModel) : null
 
@@ -141,7 +190,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
     return (
       <Button variant="outline" size="sm" disabled className="h-9">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        Laddar...
+        {copy.loading}
       </Button>
     )
   }
@@ -167,7 +216,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
                 ) : (
                   <>
                     <Bot className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Välj modell</span>
+                    <span className="text-muted-foreground">{copy.selectModel}</span>
                   </>
                 )}
                 <ChevronDown className="h-3 w-3 text-muted-foreground" />
@@ -182,21 +231,21 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
                   <p className="text-xs text-muted-foreground">
                     Max output: {formatTokenCount(maxOutputTokens)} tokens
                     <span className="text-muted-foreground/70">
-                      {' '}(~{estimateWeeksFromTokens(maxOutputTokens)} veckors program)
+                      {' '}{copy.programWeeks(estimateWeeksFromTokens(maxOutputTokens))}
                     </span>
                   </p>
                 )}
                 {currentModel.pricing && (
                   <p className="text-xs text-muted-foreground">
-                    Pris: ${currentModel.pricing.input}/1M in, ${currentModel.pricing.output}/1M ut
+                    {copy.price(currentModel.pricing.input, currentModel.pricing.output)}
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">
-                  Klicka för att byta modell
+                  {copy.changeModel}
                 </p>
               </div>
             ) : (
-              <p className="text-xs">Välj en AI-modell för chatten</p>
+              <p className="text-xs">{copy.selectModelForChat}</p>
             )}
           </TooltipContent>
         </Tooltip>
@@ -206,7 +255,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
         {availableModels.length > 0 && (
           <>
             <DropdownMenuLabel className="text-xs text-muted-foreground flex items-center gap-1.5">
-              Tillgängliga modeller <InfoTooltip conceptKey="aiModels" />
+              {copy.availableModels} <InfoTooltip conceptKey="aiModels" />
             </DropdownMenuLabel>
             {availableModels.map((model) => {
               const modelMaxTokens = getMaxOutputTokens(model)
@@ -232,12 +281,12 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
                         )}
                         {model.recommended && (
                           <Badge variant="secondary" className="text-[10px] py-0">
-                            Rekommenderad
+                            {copy.recommended}
                           </Badge>
                         )}
                         {model.bestForLongOutput && (
                           <Badge variant="outline" className="text-[10px] py-0 border-green-500 text-green-600">
-                            Långa program
+                            {copy.longPrograms}
                           </Badge>
                         )}
                       </div>
@@ -265,7 +314,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
           <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Ej tillgängliga (saknar API-nyckel)
+              {copy.unavailableModels}
             </DropdownMenuLabel>
             {unavailableModels.map((model) => (
               <DropdownMenuItem
@@ -278,7 +327,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
                   <div className="flex-1 min-w-0">
                     <span className="font-medium">{model.displayName || model.name}</span>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {getProviderLabel(model.provider)} - API-nyckel saknas
+                      {copy.missingApiKey(getProviderLabel(model.provider))}
                     </div>
                   </div>
                 </div>
@@ -289,7 +338,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
 
         {models.length === 0 && (
           <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-            Inga AI-modeller tillgängliga
+            {copy.noModels}
           </div>
         )}
       </DropdownMenuContent>
