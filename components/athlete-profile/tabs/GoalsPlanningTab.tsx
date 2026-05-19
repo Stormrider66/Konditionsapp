@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, differenceInDays } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { Target, Calendar, Flag, Clock, Star, Award, TrendingUp, Plus, Edit2, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -22,6 +22,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
+import { useLocale } from '@/i18n/client'
 
 interface GoalsPlanningTabProps {
   data: AthleteProfileData
@@ -30,7 +31,10 @@ interface GoalsPlanningTabProps {
   basePath?: string
 }
 
-export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath = '' }: GoalsPlanningTabProps) {
+export function GoalsPlanningTab({ data, viewMode, basePath = '' }: GoalsPlanningTabProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const router = useRouter()
   const sportProfile = data.identity.sportProfile
   const { programs } = data.training
@@ -86,13 +90,13 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Kunde inte spara mål')
+        throw new Error(errorData.error || t('Kunde inte spara mål', 'Could not save goal'))
       }
 
       setIsGoalDialogOpen(false)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('Ett fel uppstod', 'An error occurred'))
     } finally {
       setIsSubmitting(false)
     }
@@ -120,12 +124,12 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-blue-600" />
-                Aktuellt mål
+                {t('Aktuellt mål', 'Current goal')}
               </CardTitle>
               {clientId && (
                 <Button size="sm" variant="ghost" onClick={handleOpenGoalDialog}>
                   <Edit2 className="h-4 w-4 mr-2" />
-                  Redigera
+                  {t('Redigera', 'Edit')}
                 </Button>
               )}
             </div>
@@ -135,11 +139,11 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
               {/* Goal Description */}
               <div className="md:col-span-2">
                 <p className="text-2xl font-bold text-gray-900">
-                  {sportProfile?.currentGoal || activeProgram?.goalRace || 'Inget specifikt mål angivet'}
+                  {sportProfile?.currentGoal || activeProgram?.goalRace || t('Inget specifikt mål angivet', 'No specific goal set')}
                 </p>
                 {sportProfile?.targetMetric && (
                   <p className="text-lg text-gray-600 mt-1">
-                    Mål: {sportProfile.targetMetric.value} {sportProfile.targetMetric.unit}
+                    {t('Mål', 'Goal')}: {sportProfile.targetMetric.value} {sportProfile.targetMetric.unit}
                   </p>
                 )}
                 {activeProgram?.name && (
@@ -151,10 +155,10 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
               {daysToGoal !== null && daysToGoal > 0 && (
                 <div className="text-center md:text-right">
                   <p className="text-4xl font-bold text-blue-600">{daysToGoal}</p>
-                  <p className="text-gray-500">dagar kvar</p>
+                  <p className="text-gray-500">{t('dagar kvar', 'days left')}</p>
                   {goalDate && (
                     <p className="text-sm text-gray-400 mt-1">
-                      {format(new Date(goalDate), 'd MMMM yyyy', { locale: sv })}
+                      {format(new Date(goalDate), 'd MMMM yyyy', { locale: dateLocale })}
                     </p>
                   )}
                 </div>
@@ -165,7 +169,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
             {activeProgram && (
               <div className="mt-6 pt-4 border-t border-blue-200">
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-gray-600">Programframsteg</span>
+                  <span className="text-gray-600">{t('Programframsteg', 'Program progress')}</span>
                   <span className="font-medium">
                     {calculateProgramProgress(activeProgram.startDate, activeProgram.endDate).toFixed(0)}%
                   </span>
@@ -175,8 +179,8 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
                   className="h-2"
                 />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>{format(new Date(activeProgram.startDate), 'd MMM', { locale: sv })}</span>
-                  <span>{format(new Date(activeProgram.endDate), 'd MMM', { locale: sv })}</span>
+                  <span>{format(new Date(activeProgram.startDate), 'd MMM', { locale: dateLocale })}</span>
+                  <span>{format(new Date(activeProgram.endDate), 'd MMM', { locale: dateLocale })}</span>
                 </div>
               </div>
             )}
@@ -186,14 +190,14 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
         <Card>
           <CardContent className="py-12 text-center">
             <Target className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Inga mål satta</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('Inga mål satta', 'No goals set')}</h3>
             <p className="text-gray-500 mb-4">
-              Sätt upp träningsmål för att spåra framsteg.
+              {t('Sätt upp träningsmål för att spåra framsteg.', 'Set training goals to track progress.')}
             </p>
             {clientId && (
               <Button onClick={handleOpenGoalDialog}>
                 <Plus className="h-4 w-4 mr-2" />
-                Lägg till mål
+                {t('Lägg till mål', 'Add goal')}
               </Button>
             )}
           </CardContent>
@@ -206,7 +210,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Planerade tävlingar
+              {t('Planerade tävlingar', 'Planned races')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -215,12 +219,12 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
                 .filter((r) => new Date(r.raceDate) > new Date())
                 .slice(0, 5)
                 .map((race) => (
-                  <RaceCard key={race.id} race={race} />
+                  <RaceCard key={race.id} race={race} locale={locale} />
                 ))}
 
               {raceResults.filter((r) => new Date(r.raceDate) > new Date()).length === 0 && (
                 <p className="text-center text-gray-500 py-4">
-                  Inga planerade tävlingar registrerade
+                  {t('Inga planerade tävlingar registrerade', 'No planned races registered')}
                 </p>
               )}
             </div>
@@ -234,7 +238,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Award className="h-5 w-5 text-yellow-500" />
-              Senaste prestationer
+              {t('Senaste prestationer', 'Latest performances')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -253,10 +257,10 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
 
                     <div>
                       <p className="font-medium">
-                        {race.raceName || getDistanceLabel(race.distance)}
+                        {race.raceName || getDistanceLabel(race.distance, locale)}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {format(new Date(race.raceDate), 'd MMMM yyyy', { locale: sv })}
+                        {format(new Date(race.raceDate), 'd MMMM yyyy', { locale: dateLocale })}
                       </p>
                     </div>
                   </div>
@@ -281,13 +285,13 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Träningsprogram
+                {t('Träningsprogram', 'Training programs')}
               </CardTitle>
               <CardDescription>{programs.length} program</CardDescription>
             </div>
             {viewMode === 'coach' && (
               <Link href={`${basePath}/coach/programs/new`}>
-                <Button size="sm">+ Nytt program</Button>
+                <Button size="sm">+ {t('Nytt program', 'New program')}</Button>
               </Link>
             )}
           </div>
@@ -295,7 +299,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
         <CardContent>
           {programs.length === 0 ? (
             <p className="text-center text-gray-500 py-6">
-              Inga träningsprogram skapade
+              {t('Inga träningsprogram skapade', 'No training programs created')}
             </p>
           ) : (
             <div className="space-y-3">
@@ -306,20 +310,20 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{program.name}</p>
-                          {program.isActive && <Badge>Aktiv</Badge>}
+                          {program.isActive && <Badge>{t('Aktiv', 'Active')}</Badge>}
                         </div>
                         <p className="text-sm text-gray-500 mt-1">
-                          {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
-                          {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+                          {format(new Date(program.startDate), 'd MMM', { locale: dateLocale })} -{' '}
+                          {format(new Date(program.endDate), 'd MMM yyyy', { locale: dateLocale })}
                         </p>
                       </div>
                       <div className="text-right">
                         {program.goalType && (
-                          <Badge variant="outline">{getGoalTypeLabel(program.goalType)}</Badge>
+                          <Badge variant="outline">{getGoalTypeLabel(program.goalType, locale)}</Badge>
                         )}
                         {program._count?.weeks && (
                           <p className="text-sm text-gray-400 mt-1">
-                            {program._count.weeks} veckor
+                            {program._count.weeks} {program._count.weeks === 1 ? t('vecka', 'week') : t('veckor', 'weeks')}
                           </p>
                         )}
                       </div>
@@ -328,7 +332,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
                     {program.isActive && (
                       <div className="mt-3 pt-3 border-t">
                         <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                          <span>Framsteg</span>
+                          <span>{t('Framsteg', 'Progress')}</span>
                           <span>
                             {calculateProgramProgress(program.startDate, program.endDate).toFixed(0)}%
                           </span>
@@ -353,7 +357,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Flag className="h-5 w-5" />
-              Tränarens anteckningar
+              {t('Tränarens anteckningar', "Coach's notes")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -361,13 +365,13 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
               <p className="text-gray-700 whitespace-pre-wrap">{data.identity.client.notes}</p>
             ) : (
               <p className="text-gray-500 text-center py-4">
-                Inga anteckningar tillagda ännu
+                {t('Inga anteckningar tillagda ännu', 'No notes added yet')}
               </p>
             )}
             <div className="mt-4 pt-4 border-t">
               <Link href={`${basePath}/coach/clients/${data.identity.client?.id}/edit`}>
                 <Button variant="outline" size="sm">
-                  Redigera anteckningar
+                  {t('Redigera anteckningar', 'Edit notes')}
                 </Button>
               </Link>
             </div>
@@ -379,19 +383,19 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
       <Dialog open={isGoalDialogOpen} onOpenChange={setIsGoalDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Redigera träningsmål</DialogTitle>
+            <DialogTitle>{t('Redigera träningsmål', 'Edit training goal')}</DialogTitle>
             <DialogDescription>
-              Sätt upp ditt huvudmål och måldatum för att spåra framsteg.
+              {t('Sätt upp ditt huvudmål och måldatum för att spåra framsteg.', 'Set your main goal and target date to track progress.')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Goal Description */}
             <div className="space-y-2">
-              <Label htmlFor="currentGoal">Mål</Label>
+              <Label htmlFor="currentGoal">{t('Mål', 'Goal')}</Label>
               <Input
                 id="currentGoal"
-                placeholder="t.ex. Spring Stockholm Marathon under 3:30"
+                placeholder={t('t.ex. Spring Stockholm Marathon under 3:30', 'e.g. Run Stockholm Marathon under 3:30')}
                 value={currentGoal}
                 onChange={(e) => setCurrentGoal(e.target.value)}
               />
@@ -399,7 +403,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
 
             {/* Target Date */}
             <div className="space-y-2">
-              <Label htmlFor="targetDate">Måldatum</Label>
+              <Label htmlFor="targetDate">{t('Måldatum', 'Target date')}</Label>
               <Input
                 id="targetDate"
                 type="date"
@@ -410,16 +414,16 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
 
             {/* Target Metric Type */}
             <div className="space-y-2">
-              <Label htmlFor="metricType">Mätbart mål (valfritt)</Label>
+              <Label htmlFor="metricType">{t('Mätbart mål (valfritt)', 'Measurable goal (optional)')}</Label>
               <Select value={metricType} onValueChange={(v: 'TIME' | 'DISTANCE' | 'WEIGHT' | 'NONE') => setMetricType(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj typ..." />
+                  <SelectValue placeholder={t('Välj typ...', 'Select type...')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NONE">Inget mätbart mål</SelectItem>
-                  <SelectItem value="TIME">Tid</SelectItem>
-                  <SelectItem value="DISTANCE">Distans</SelectItem>
-                  <SelectItem value="WEIGHT">Vikt</SelectItem>
+                  <SelectItem value="NONE">{t('Inget mätbart mål', 'No measurable goal')}</SelectItem>
+                  <SelectItem value="TIME">{t('Tid', 'Time')}</SelectItem>
+                  <SelectItem value="DISTANCE">{t('Distans', 'Distance')}</SelectItem>
+                  <SelectItem value="WEIGHT">{t('Vikt', 'Weight')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -428,7 +432,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
             {metricType !== 'NONE' && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="metricValue">Värde</Label>
+                  <Label htmlFor="metricValue">{t('Värde', 'Value')}</Label>
                   <Input
                     id="metricValue"
                     type="text"
@@ -438,28 +442,28 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="metricUnit">Enhet</Label>
+                  <Label htmlFor="metricUnit">{t('Enhet', 'Unit')}</Label>
                   <Select value={metricUnit} onValueChange={setMetricUnit}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Enhet..." />
+                      <SelectValue placeholder={t('Enhet...', 'Unit...')} />
                     </SelectTrigger>
                     <SelectContent>
                       {metricType === 'TIME' && (
                         <>
                           <SelectItem value="HH:MM:SS">HH:MM:SS</SelectItem>
-                          <SelectItem value="minuter">Minuter</SelectItem>
+                          <SelectItem value="minuter">{t('Minuter', 'Minutes')}</SelectItem>
                         </>
                       )}
                       {metricType === 'DISTANCE' && (
                         <>
-                          <SelectItem value="km">Kilometer</SelectItem>
-                          <SelectItem value="mil">Mil</SelectItem>
-                          <SelectItem value="m">Meter</SelectItem>
+                          <SelectItem value="km">{t('Kilometer', 'Kilometers')}</SelectItem>
+                          <SelectItem value="mil">{t('Mil', 'Swedish miles')}</SelectItem>
+                          <SelectItem value="m">{t('Meter', 'Meters')}</SelectItem>
                         </>
                       )}
                       {metricType === 'WEIGHT' && (
                         <>
-                          <SelectItem value="kg">Kilogram</SelectItem>
+                          <SelectItem value="kg">{t('Kilogram', 'Kilograms')}</SelectItem>
                           <SelectItem value="lb">Pounds</SelectItem>
                         </>
                       )}
@@ -484,16 +488,16 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
               onClick={() => setIsGoalDialogOpen(false)}
               disabled={isSubmitting}
             >
-              Avbryt
+              {t('Avbryt', 'Cancel')}
             </Button>
             <Button onClick={handleSaveGoal} disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sparar...
+                  {t('Sparar...', 'Saving...')}
                 </>
               ) : (
-                'Spara mål'
+                t('Spara mål', 'Save goal')
               )}
             </Button>
           </div>
@@ -504,7 +508,9 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath
 }
 
 // Helper components
-function RaceCard({ race }: { race: AthleteProfileData['performance']['raceResults'][0] }) {
+function RaceCard({ race, locale }: { race: AthleteProfileData['performance']['raceResults'][0]; locale: 'en' | 'sv' }) {
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const daysUntil = differenceInDays(new Date(race.raceDate), new Date())
 
   return (
@@ -526,12 +532,12 @@ function RaceCard({ race }: { race: AthleteProfileData['performance']['raceResul
           )}
         </div>
         <div>
-          <p className="font-medium">{race.raceName || getDistanceLabel(race.distance)}</p>
+          <p className="font-medium">{race.raceName || getDistanceLabel(race.distance, locale)}</p>
           <p className="text-sm text-gray-500">
-            {format(new Date(race.raceDate), 'd MMMM yyyy', { locale: sv })}
+            {format(new Date(race.raceDate), 'd MMMM yyyy', { locale: dateLocale })}
           </p>
           {race.goalTime && (
-            <p className="text-sm text-blue-600">Mål: {race.goalTime}</p>
+            <p className="text-sm text-blue-600">{t('Mål', 'Goal')}: {race.goalTime}</p>
           )}
         </div>
       </div>
@@ -540,7 +546,7 @@ function RaceCard({ race }: { race: AthleteProfileData['performance']['raceResul
         {daysUntil > 0 && (
           <>
             <p className="text-2xl font-bold text-blue-600">{daysUntil}</p>
-            <p className="text-xs text-gray-500">dagar</p>
+            <p className="text-xs text-gray-500">{t('dagar', 'days')}</p>
           </>
         )}
         <Badge
@@ -551,7 +557,7 @@ function RaceCard({ race }: { race: AthleteProfileData['performance']['raceResul
               : 'border-blue-300 text-blue-700'
           }
         >
-          {race.raceType === 'A_RACE' ? 'A-lopp' : 'B-lopp'}
+          {race.raceType === 'A_RACE' ? t('A-lopp', 'A race') : t('B-lopp', 'B race')}
         </Badge>
       </div>
     </div>
@@ -573,28 +579,50 @@ function calculateProgramProgress(startDate: Date, endDate: Date): number {
   return (elapsed / total) * 100
 }
 
-function getDistanceLabel(distance: string): string {
-  const labels: Record<string, string> = {
-    '5K': '5 km',
-    '10K': '10 km',
-    HALF_MARATHON: 'Halvmaraton',
-    MARATHON: 'Maraton',
-    CUSTOM: 'Annan distans',
+function getDistanceLabel(distance: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      '5K': '5 km',
+      '10K': '10 km',
+      HALF_MARATHON: 'Half marathon',
+      MARATHON: 'Marathon',
+      CUSTOM: 'Custom distance',
+    },
+    sv: {
+      '5K': '5 km',
+      '10K': '10 km',
+      HALF_MARATHON: 'Halvmaraton',
+      MARATHON: 'Maraton',
+      CUSTOM: 'Annan distans',
+    },
   }
-  return labels[distance] || distance
+  return labels[locale][distance] || distance
 }
 
-function getGoalTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    marathon: 'Marathon',
-    half_marathon: 'Halvmaraton',
-    '10k': '10K',
-    '5k': '5K',
-    fitness: 'Kondition',
-    cycling: 'Cykling',
-    triathlon: 'Triathlon',
-    skiing: 'Skidåkning',
-    custom: 'Anpassad',
+function getGoalTypeLabel(type: string, locale: 'en' | 'sv'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      marathon: 'Marathon',
+      half_marathon: 'Half marathon',
+      '10k': '10K',
+      '5k': '5K',
+      fitness: 'Fitness',
+      cycling: 'Cycling',
+      triathlon: 'Triathlon',
+      skiing: 'Skiing',
+      custom: 'Custom',
+    },
+    sv: {
+      marathon: 'Marathon',
+      half_marathon: 'Halvmaraton',
+      '10k': '10K',
+      '5k': '5K',
+      fitness: 'Kondition',
+      cycling: 'Cykling',
+      triathlon: 'Triathlon',
+      skiing: 'Skidåkning',
+      custom: 'Anpassad',
+    },
   }
-  return labels[type] || type
+  return labels[locale][type] || type
 }
