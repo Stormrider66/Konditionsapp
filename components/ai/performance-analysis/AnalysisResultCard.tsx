@@ -19,7 +19,6 @@ import {
 import {
   TrendingUp,
   TrendingDown,
-  Minus,
   AlertTriangle,
   Target,
   Lightbulb,
@@ -35,6 +34,7 @@ import type {
   TrainingRecommendation,
 } from '@/lib/ai/performance-analysis/types'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 
 interface AnalysisResultCardProps {
   result: PerformanceAnalysisResult
@@ -42,6 +42,9 @@ interface AnalysisResultCardProps {
 }
 
 export function AnalysisResultCard({ result, className }: AnalysisResultCardProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const [expandedSections, setExpandedSections] = useState<string[]>(['summary'])
 
   const toggleSection = (section: string) => {
@@ -56,15 +59,15 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <CardTitle>AI-analys</CardTitle>
+            <CardTitle>{t('AI-analys', 'AI analysis')}</CardTitle>
           </div>
           <div className="flex gap-2">
-            <ConfidenceBadge confidence={result.confidence} />
-            <DataQualityBadge quality={result.dataQuality} />
+            <ConfidenceBadge confidence={result.confidence} locale={locale} />
+            <DataQualityBadge quality={result.dataQuality} locale={locale} />
           </div>
         </div>
         <CardDescription>
-          Genererad {new Date(result.generatedAt).toLocaleString('sv-SE')}
+          {t('Genererad', 'Generated')} {new Date(result.generatedAt).toLocaleString(dateLocale)}
         </CardDescription>
       </CardHeader>
 
@@ -75,25 +78,25 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
               value="summary"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
             >
-              Sammanfattning
+              {t('Sammanfattning', 'Summary')}
             </TabsTrigger>
             <TabsTrigger
               value="findings"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
             >
-              Fynd ({result.keyFindings.length})
+              {t('Fynd', 'Findings')} ({result.keyFindings.length})
             </TabsTrigger>
             <TabsTrigger
               value="predictions"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
             >
-              Prediktioner
+              {t('Prediktioner', 'Predictions')}
             </TabsTrigger>
             <TabsTrigger
               value="recommendations"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
             >
-              Rekommendationer
+              {t('Rekommendationer', 'Recommendations')}
             </TabsTrigger>
           </TabsList>
 
@@ -101,7 +104,7 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
             {/* Executive Summary */}
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-sm font-medium text-muted-foreground mb-1">
-                Sammanfattning
+                {t('Sammanfattning', 'Summary')}
               </p>
               <p className="text-base">{result.executiveSummary}</p>
             </div>
@@ -113,7 +116,7 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
             >
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="w-full justify-between">
-                  <span>Fullständig analys</span>
+                  <span>{t('Fullständig analys', 'Full analysis')}</span>
                   {expandedSections.includes('narrative') ? (
                     <ChevronUp className="h-4 w-4" />
                   ) : (
@@ -133,7 +136,7 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
               <div className="space-y-2">
                 <h4 className="font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
-                  Styrkor
+                  {t('Styrkor', 'Strengths')}
                 </h4>
                 <ul className="space-y-1">
                   {result.strengths.map((strength, i) => (
@@ -147,7 +150,7 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
               <div className="space-y-2">
                 <h4 className="font-medium text-amber-700 dark:text-amber-400 flex items-center gap-2">
                   <Target className="h-4 w-4" />
-                  Utvecklingsområden
+                  {t('Utvecklingsområden', 'Development areas')}
                 </h4>
                 <ul className="space-y-1">
                   {result.developmentAreas.map((area, i) => (
@@ -164,7 +167,7 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
           <TabsContent value="findings" className="p-4">
             <div className="space-y-3">
               {result.keyFindings.map((finding, i) => (
-                <FindingCard key={i} finding={finding} />
+                <FindingCard key={i} finding={finding} locale={locale} />
               ))}
             </div>
           </TabsContent>
@@ -173,12 +176,12 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
             {result.predictions.length > 0 ? (
               <div className="space-y-3">
                 {result.predictions.map((prediction, i) => (
-                  <PredictionCard key={i} prediction={prediction} />
+                  <PredictionCard key={i} prediction={prediction} locale={locale} />
                 ))}
               </div>
             ) : (
               <p className="text-muted-foreground text-center py-8">
-                Inga prediktioner tillgängliga för denna analys.
+                {t('Inga prediktioner tillgängliga för denna analys.', 'No predictions available for this analysis.')}
               </p>
             )}
           </TabsContent>
@@ -187,12 +190,12 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
             {result.recommendations.length > 0 ? (
               <div className="space-y-3">
                 {result.recommendations.map((rec, i) => (
-                  <RecommendationCard key={i} recommendation={rec} />
+                  <RecommendationCard key={i} recommendation={rec} locale={locale} />
                 ))}
               </div>
             ) : (
               <p className="text-muted-foreground text-center py-8">
-                Inga rekommendationer tillgängliga för denna analys.
+                {t('Inga rekommendationer tillgängliga för denna analys.', 'No recommendations available for this analysis.')}
               </p>
             )}
           </TabsContent>
@@ -202,11 +205,11 @@ export function AnalysisResultCard({ result, className }: AnalysisResultCardProp
   )
 }
 
-function ConfidenceBadge({ confidence }: { confidence: 'HIGH' | 'MEDIUM' | 'LOW' }) {
+function ConfidenceBadge({ confidence, locale }: { confidence: 'HIGH' | 'MEDIUM' | 'LOW'; locale: 'en' | 'sv' }) {
   const variants = {
-    HIGH: { label: 'Hög konfidens', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
-    MEDIUM: { label: 'Medelkonfidens', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
-    LOW: { label: 'Låg konfidens', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
+    HIGH: { label: locale === 'sv' ? 'Hög konfidens' : 'High confidence', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+    MEDIUM: { label: locale === 'sv' ? 'Medelkonfidens' : 'Medium confidence', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
+    LOW: { label: locale === 'sv' ? 'Låg konfidens' : 'Low confidence', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
   }
 
   const variant = variants[confidence]
@@ -218,11 +221,11 @@ function ConfidenceBadge({ confidence }: { confidence: 'HIGH' | 'MEDIUM' | 'LOW'
   )
 }
 
-function DataQualityBadge({ quality }: { quality: 'EXCELLENT' | 'GOOD' | 'LIMITED' }) {
+function DataQualityBadge({ quality, locale }: { quality: 'EXCELLENT' | 'GOOD' | 'LIMITED'; locale: 'en' | 'sv' }) {
   const variants = {
-    EXCELLENT: { label: 'Utmärkt data', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
-    GOOD: { label: 'Bra data', className: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400' },
-    LIMITED: { label: 'Begränsad data', className: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400' },
+    EXCELLENT: { label: locale === 'sv' ? 'Utmärkt data' : 'Excellent data', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' },
+    GOOD: { label: locale === 'sv' ? 'Bra data' : 'Good data', className: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400' },
+    LIMITED: { label: locale === 'sv' ? 'Begränsad data' : 'Limited data', className: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400' },
   }
 
   const variant = variants[quality]
@@ -234,7 +237,7 @@ function DataQualityBadge({ quality }: { quality: 'EXCELLENT' | 'GOOD' | 'LIMITE
   )
 }
 
-function FindingCard({ finding }: { finding: KeyFinding }) {
+function FindingCard({ finding, locale }: { finding: KeyFinding; locale: 'en' | 'sv' }) {
   const categoryConfig = {
     IMPROVEMENT: { icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-950/30' },
     DECLINE: { icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-950/30' },
@@ -254,7 +257,7 @@ function FindingCard({ finding }: { finding: KeyFinding }) {
         <div className="flex-1">
           <div className="flex items-center justify-between gap-2">
             <h4 className="font-medium">{finding.title}</h4>
-            <SignificanceBadge significance={finding.significance} />
+            <SignificanceBadge significance={finding.significance} locale={locale} />
           </div>
           <p className="text-sm text-muted-foreground mt-1">{finding.description}</p>
           {finding.metric && (
@@ -282,14 +285,16 @@ function FindingCard({ finding }: { finding: KeyFinding }) {
   )
 }
 
-function SignificanceBadge({ significance }: { significance: 'HIGH' | 'MEDIUM' | 'LOW' }) {
+function SignificanceBadge({ significance, locale }: { significance: 'HIGH' | 'MEDIUM' | 'LOW'; locale: 'en' | 'sv' }) {
   const variants = {
     HIGH: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     MEDIUM: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
     LOW: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400',
   }
 
-  const labels = { HIGH: 'Hög', MEDIUM: 'Medel', LOW: 'Låg' }
+  const labels = locale === 'sv'
+    ? { HIGH: 'Hög', MEDIUM: 'Medel', LOW: 'Låg' }
+    : { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' }
 
   return (
     <Badge variant="outline" className={cn('text-xs', variants[significance])}>
@@ -298,13 +303,14 @@ function SignificanceBadge({ significance }: { significance: 'HIGH' | 'MEDIUM' |
   )
 }
 
-function PredictionCard({ prediction }: { prediction: PerformancePrediction }) {
+function PredictionCard({ prediction, locale }: { prediction: PerformancePrediction; locale: 'en' | 'sv' }) {
   const typeLabels = {
-    RACE_TIME: 'Tävlingstid',
-    THRESHOLD: 'Tröskel',
+    RACE_TIME: locale === 'sv' ? 'Tävlingstid' : 'Race time',
+    THRESHOLD: locale === 'sv' ? 'Tröskel' : 'Threshold',
     VO2MAX: 'VO2max',
-    FITNESS_PEAK: 'Toppform',
+    FITNESS_PEAK: locale === 'sv' ? 'Toppform' : 'Peak fitness',
   }
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
 
   return (
     <div className="p-4 border rounded-lg">
@@ -316,32 +322,33 @@ function PredictionCard({ prediction }: { prediction: PerformancePrediction }) {
           <h4 className="font-medium">{prediction.title}</h4>
         </div>
         <div className="text-right">
-          <div className="text-sm text-muted-foreground">Konfidens</div>
+          <div className="text-sm text-muted-foreground">{t('Konfidens', 'Confidence')}</div>
           <div className="font-mono text-lg">{(prediction.confidence * 100).toFixed(0)}%</div>
         </div>
       </div>
       <p className="text-sm mt-2">{prediction.prediction}</p>
       <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
         <div className="flex justify-between">
-          <span>Baserat på: {prediction.basis}</span>
-          {prediction.timeframe && <span>Tidshorisont: {prediction.timeframe}</span>}
+          <span>{t('Baserat på', 'Based on')}: {prediction.basis}</span>
+          {prediction.timeframe && <span>{t('Tidshorisont', 'Time horizon')}: {prediction.timeframe}</span>}
         </div>
       </div>
     </div>
   )
 }
 
-function RecommendationCard({ recommendation }: { recommendation: TrainingRecommendation }) {
+function RecommendationCard({ recommendation, locale }: { recommendation: TrainingRecommendation; locale: 'en' | 'sv' }) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   const categoryLabels = {
-    VOLUME: 'Volym',
-    INTENSITY: 'Intensitet',
-    RECOVERY: 'Återhämtning',
-    TECHNIQUE: 'Teknik',
-    STRENGTH: 'Styrka',
-    NUTRITION: 'Kost',
+    VOLUME: locale === 'sv' ? 'Volym' : 'Volume',
+    INTENSITY: locale === 'sv' ? 'Intensitet' : 'Intensity',
+    RECOVERY: locale === 'sv' ? 'Återhämtning' : 'Recovery',
+    TECHNIQUE: locale === 'sv' ? 'Teknik' : 'Technique',
+    STRENGTH: locale === 'sv' ? 'Styrka' : 'Strength',
+    NUTRITION: locale === 'sv' ? 'Kost' : 'Nutrition',
   }
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
 
   const priorityColors = {
     1: 'border-red-300 bg-red-50 dark:bg-red-950/30',
@@ -360,7 +367,7 @@ function RecommendationCard({ recommendation }: { recommendation: TrainingRecomm
             variant={recommendation.priority === 1 ? 'destructive' : 'secondary'}
             className="text-xs"
           >
-            Prioritet {recommendation.priority}
+            {t('Prioritet', 'Priority')} {recommendation.priority}
           </Badge>
         </div>
       </div>
@@ -370,7 +377,7 @@ function RecommendationCard({ recommendation }: { recommendation: TrainingRecomm
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto">
-            {isExpanded ? 'Visa mindre' : 'Visa mer'}
+            {isExpanded ? t('Visa mindre', 'Show less') : t('Visa mer', 'Show more')}
             {isExpanded ? (
               <ChevronUp className="h-4 w-4 ml-1" />
             ) : (
@@ -380,15 +387,15 @@ function RecommendationCard({ recommendation }: { recommendation: TrainingRecomm
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-3 pt-3 border-t space-y-2 text-sm">
           <div>
-            <span className="font-medium">Varför: </span>
+            <span className="font-medium">{t('Varför', 'Why')}: </span>
             <span className="text-muted-foreground">{recommendation.rationale}</span>
           </div>
           <div>
-            <span className="font-medium">Implementering: </span>
+            <span className="font-medium">{t('Implementering', 'Implementation')}: </span>
             <span className="text-muted-foreground">{recommendation.implementation}</span>
           </div>
           <div>
-            <span className="font-medium">Förväntad effekt: </span>
+            <span className="font-medium">{t('Förväntad effekt', 'Expected effect')}: </span>
             <span className="text-muted-foreground">{recommendation.expectedOutcome}</span>
           </div>
         </CollapsibleContent>
