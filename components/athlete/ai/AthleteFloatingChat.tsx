@@ -290,11 +290,15 @@ export function AthleteFloatingChat({
 
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices()
+      const preferredLanguage = locale === 'sv' ? 'sv' : 'en'
+      const fallbackLanguage = locale === 'sv' ? 'en' : 'sv'
+      const preferredNamePattern = locale === 'sv' ? /alva|klara|oskar/i : /samantha|daniel|alex/i
+      const fallbackNamePattern = locale === 'sv' ? /samantha|daniel|alex/i : /alva|klara|oskar/i
       const preferredVoice =
-        voices.find((voice) => voice.lang.toLowerCase().startsWith('sv') && /alva|klara|oskar/i.test(voice.name)) ||
-        voices.find((voice) => voice.lang.toLowerCase().startsWith('sv')) ||
-        voices.find((voice) => voice.lang.toLowerCase().startsWith('en') && /samantha|daniel/i.test(voice.name)) ||
-        voices.find((voice) => voice.lang.toLowerCase().startsWith('en')) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith(preferredLanguage) && preferredNamePattern.test(voice.name)) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith(preferredLanguage)) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith(fallbackLanguage) && fallbackNamePattern.test(voice.name)) ||
+        voices.find((voice) => voice.lang.toLowerCase().startsWith(fallbackLanguage)) ||
         voices[0] ||
         null
 
@@ -308,7 +312,7 @@ export function AthleteFloatingChat({
       window.speechSynthesis.removeEventListener('voiceschanged', pickVoice)
       window.speechSynthesis.cancel()
     }
-  }, [])
+  }, [locale])
 
   const stopAssistantSpeech = useCallback(() => {
     assistantSpeechAbortRef.current?.abort()
@@ -400,7 +404,7 @@ export function AthleteFloatingChat({
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(speakableText)
     const voice = assistantSpeechVoiceRef.current
-    utterance.lang = voice?.lang || 'sv-SE'
+    utterance.lang = voice?.lang || (locale === 'sv' ? 'sv-SE' : 'en-US')
     utterance.voice = voice
     utterance.rate = 1
     utterance.pitch = 1
@@ -418,7 +422,7 @@ export function AthleteFloatingChat({
     }
     window.speechSynthesis.speak(utterance)
     return true
-  }, [isBrowserSpeechSupported, t])
+  }, [isBrowserSpeechSupported, locale, t])
 
   const playPremiumAssistantReply = useCallback(async (text: string): Promise<boolean> => {
     if (premiumVoiceUnavailableRef.current) return false
