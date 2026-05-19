@@ -2612,6 +2612,80 @@
           "printFailed": "Could not open print view"
         }
       },
+      "practiceSheet": {
+        "actions": {
+          "backToCalendar": "Back to calendar"
+        },
+        "audience": {
+          "staff": "Coach version",
+          "player": "Player version"
+        },
+        "labels": {
+          "block": "Blocks",
+          "blockNumber": "Block {number}",
+          "notSet": "Not set",
+          "min": "min",
+          "focus": "Focus",
+          "group": "Group",
+          "equipment": "Equipment",
+          "lineGroups": "Lines / groups",
+          "goalie": "Goalie",
+          "coachingPoints": "Coaching points",
+          "savedDrill": "Saved drill",
+          "untitledBlock": "Untitled block",
+          "iceSession": "Ice session",
+          "blockType": {
+            "warmup": "Warm-up",
+            "technical": "Technique",
+            "tactical": "Tactics",
+            "smallGame": "Small-area play",
+            "specialTeams": "Special teams",
+            "goalie": "Goalie",
+            "cooldown": "Cool down"
+          },
+          "rinkZone": {
+            "fullIce": "Full ice",
+            "offensive": "Offensive zone",
+            "defensive": "Defensive zone",
+            "neutral": "Neutral zone",
+            "halfIce": "Half ice",
+            "stations": "Stations"
+          },
+          "intensity": {
+            "low": "Low",
+            "medium": "Moderate",
+            "high": "High",
+            "game": "Match-like"
+          },
+          "tacticalCategory": {
+            "skills": "Skills",
+            "breakout": "Breakout",
+            "forecheck": "Forecheck",
+            "transition": "Transition",
+            "specialTeams": "Special teams",
+            "smallArea": "Small-area play",
+            "finishing": "Finishing",
+            "goalie": "Goalie"
+          }
+        },
+        "summary": {
+          "focus": "Focus",
+          "zones": "Zones",
+          "version": "Version",
+          "intensity": "Intensity",
+          "notSet": "Not set",
+          "sharedPlayerView": "Shareable player view",
+          "highIntensityBlocks": "{count} high-intensity blocks",
+          "blockCount": "{count} blocks"
+        },
+        "states": {
+          "empty": "No structured practice plan has been saved yet."
+        },
+        "footer": {
+          "createdBy": "Created by {creator} · {audience} · {teamCalendar}",
+          "teamCalendar": "Trainomics team calendar"
+        }
+      },
       "workoutPrint": {
         "preparing": "Preparing print view..."
       },

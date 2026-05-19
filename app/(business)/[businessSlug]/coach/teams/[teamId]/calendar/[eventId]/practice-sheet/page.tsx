@@ -5,6 +5,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { getTranslations } from '@/i18n/server'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PracticeSheetActions } from '@/components/coach/team-calendar/PracticeSheetPrintButton'
@@ -24,42 +25,42 @@ interface PageProps {
 
 type PracticeSheetAudience = 'staff' | 'players'
 
-const BLOCK_TYPE_LABELS: Record<string, string> = {
-  warmup: 'Uppvärmning',
-  technical: 'Teknik',
-  tactical: 'Taktik',
-  small_game: 'Smålagsspel',
-  special_teams: 'Special teams',
-  goalie: 'Målvakt',
-  cooldown: 'Nedvarvning',
-}
+const BLOCK_TYPE_LABEL_KEYS = {
+  warmup: 'labels.blockType.warmup',
+  technical: 'labels.blockType.technical',
+  tactical: 'labels.blockType.tactical',
+  small_game: 'labels.blockType.smallGame',
+  special_teams: 'labels.blockType.specialTeams',
+  goalie: 'labels.blockType.goalie',
+  cooldown: 'labels.blockType.cooldown',
+} as const
 
-const RINK_ZONE_LABELS: Record<string, string> = {
-  full_ice: 'Helplan',
-  offensive_zone: 'Anfallszon',
-  defensive_zone: 'Försvarszon',
-  neutral_zone: 'Mittzon',
-  half_ice: 'Halvplan',
-  stations: 'Stationer',
-}
+const RINK_ZONE_LABEL_KEYS = {
+  full_ice: 'labels.rinkZone.fullIce',
+  offensive_zone: 'labels.rinkZone.offensive',
+  defensive_zone: 'labels.rinkZone.defensive',
+  neutral_zone: 'labels.rinkZone.neutral',
+  half_ice: 'labels.rinkZone.halfIce',
+  stations: 'labels.rinkZone.stations',
+} as const
 
-const INTENSITY_LABELS: Record<string, string> = {
-  low: 'Låg',
-  medium: 'Medel',
-  high: 'Hög',
-  game: 'Matchlik',
-}
+const INTENSITY_LABEL_KEYS = {
+  low: 'labels.intensity.low',
+  medium: 'labels.intensity.medium',
+  high: 'labels.intensity.high',
+  game: 'labels.intensity.game',
+} as const
 
-const TACTICAL_CATEGORY_LABELS: Record<string, string> = {
-  skills: 'Teknik',
-  breakout: 'Uppspel',
-  forecheck: 'Forecheck',
-  transition: 'Omställning',
-  special_teams: 'Special teams',
-  small_area: 'Smålagsspel',
-  finishing: 'Avslut',
-  goalie: 'Målvakt',
-}
+const TACTICAL_CATEGORY_LABEL_KEYS = {
+  skills: 'labels.tacticalCategory.skills',
+  breakout: 'labels.tacticalCategory.breakout',
+  forecheck: 'labels.tacticalCategory.forecheck',
+  transition: 'labels.tacticalCategory.transition',
+  special_teams: 'labels.tacticalCategory.specialTeams',
+  small_area: 'labels.tacticalCategory.smallArea',
+  finishing: 'labels.tacticalCategory.finishing',
+  goalie: 'labels.tacticalCategory.goalie',
+} as const
 
 function isPracticeBlock(value: unknown): value is PracticeBlock {
   return Boolean(value && typeof value === 'object' && 'title' in value)
@@ -95,19 +96,6 @@ function formatTime(date: Date | null) {
   return date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
 }
 
-function fallbackBlocks(description: string | null): PracticeBlock[] {
-  if (!description?.trim()) return []
-  return [{
-    id: 'fallback-plan',
-    type: 'tactical',
-    title: 'Plan och innehåll',
-    duration: 0,
-    focus: '',
-    description,
-    coachingPoints: '',
-  }]
-}
-
 function normalizeAudience(value: string | string[] | undefined): PracticeSheetAudience {
   const audience = Array.isArray(value) ? value[0] : value
   return audience === 'players' ? 'players' : 'staff'
@@ -117,8 +105,17 @@ function uniqueTextValues(values: Array<string | undefined | null>) {
   return Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]))
 }
 
-function summarizeList(values: string[]) {
-  if (values.length === 0) return 'Ej angivet'
+function getMappedLabel<T extends Record<string, string>>(
+  value: string | null | undefined,
+  map: T,
+  fallback: keyof T
+) {
+  if (!value) return fallback
+  return map[value] ?? fallback
+}
+
+function summarizeList(values: string[], emptyValueLabel: string) {
+  if (values.length === 0) return emptyValueLabel
   if (values.length <= 3) return values.join(', ')
   return `${values.slice(0, 3).join(', ')} +${values.length - 3}`
 }
@@ -128,6 +125,7 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
   const audience = normalizeAudience((await searchParams)?.audience)
   const isPlayerVersion = audience === 'players'
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.practiceSheet')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -155,14 +153,31 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
   }
 
   const blocks = parsePracticePlan(event.practicePlan)
-  const practiceBlocks = blocks.length ? blocks : fallbackBlocks(event.description)
+  const practiceBlocks = blocks.length
+    ? blocks
+    : event.description
+      ? [{
+        id: 'fallback-plan',
+        type: 'tactical',
+        title: t('fallback.title'),
+        duration: 0,
+        focus: '',
+        description: event.description,
+        coachingPoints: '',
+      }]
+      : []
   const totalMinutes = practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
   const startTime = event.allDay ? null : formatTime(event.startDate)
   const endTime = event.allDay ? null : formatTime(event.endDate)
   const staffHref = `/${businessSlug}/coach/teams/${teamId}/calendar/${eventId}/practice-sheet`
   const playerHref = `${staffHref}?audience=players`
   const focusAreas = uniqueTextValues(practiceBlocks.map((block) => block.focus))
-  const rinkZones = uniqueTextValues(practiceBlocks.map((block) => block.rinkZone ? RINK_ZONE_LABELS[block.rinkZone] : null))
+  const rinkZones = uniqueTextValues(
+    practiceBlocks.map((block) => {
+      const zoneLabelKey = getMappedLabel(block.rinkZone, RINK_ZONE_LABEL_KEYS, 'labels.notSet')
+      return zoneLabelKey ? t(zoneLabelKey) : null
+    })
+  )
   const highIntensityBlocks = practiceBlocks.filter((block) => block.intensity === 'high' || block.intensity === 'game').length
 
   return (
@@ -172,15 +187,15 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
           <Button asChild variant="ghost" size="sm">
             <Link href={`/${businessSlug}/coach/teams/${teamId}/calendar`}>
               <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Till kalendern
+              {t('actions.backToCalendar')}
             </Link>
           </Button>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant={!isPlayerVersion ? 'default' : 'outline'} size="sm">
-              <Link href={staffHref}>Tränarversion</Link>
+              <Link href={staffHref}>{t('audience.staff')}</Link>
             </Button>
             <Button asChild variant={isPlayerVersion ? 'default' : 'outline'} size="sm">
-              <Link href={playerHref}>Spelarversion</Link>
+              <Link href={playerHref}>{t('audience.player')}</Link>
             </Button>
             <PracticeSheetActions />
           </div>
@@ -190,7 +205,7 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-                {isPlayerVersion ? 'Spelarversion' : 'Tränarversion'} · Ispass
+                {isPlayerVersion ? t('audience.player') : t('audience.staff')} · {t('labels.iceSession')}
               </p>
               <h1 className="mt-1 text-3xl font-bold">{event.title}</h1>
               <p className="mt-2 text-sm text-slate-600">{team.name} · {formatDate(event.startDate)}</p>
@@ -208,26 +223,34 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
                   {event.location}
                 </Badge>
               )}
-              {totalMinutes > 0 && <Badge variant="outline">{totalMinutes} min</Badge>}
+              {totalMinutes > 0 && <Badge variant="outline">{totalMinutes} {t('labels.min')}</Badge>}
             </div>
           </div>
         </header>
 
         <section className="mt-5 grid gap-3 text-sm sm:grid-cols-3 print:grid-cols-3">
           <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
-            <p className="text-xs font-semibold uppercase text-slate-500">Block</p>
-            <p className="mt-1 font-semibold">{practiceBlocks.length} st</p>
-          </div>
-          <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
-            <p className="text-xs font-semibold uppercase text-slate-500">{isPlayerVersion ? 'Fokus' : 'Zoner'}</p>
-            <p className="mt-1 font-semibold">{isPlayerVersion ? summarizeList(focusAreas) : summarizeList(rinkZones)}</p>
+            <p className="text-xs font-semibold uppercase text-slate-500">{t('labels.block')}</p>
+            <p className="mt-1 font-semibold">{t('summary.blockCount', { count: practiceBlocks.length })}</p>
           </div>
           <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
             <p className="text-xs font-semibold uppercase text-slate-500">
-              {isPlayerVersion ? 'Version' : 'Belastning'}
+              {isPlayerVersion ? t('summary.focus') : t('summary.zones')}
             </p>
             <p className="mt-1 font-semibold">
-              {isPlayerVersion ? 'Delningsbar spelarvy' : `${highIntensityBlocks} högintensiva block`}
+              {isPlayerVersion
+                ? summarizeList(focusAreas, t('summary.notSet'))
+                : summarizeList(rinkZones, t('summary.notSet'))}
+            </p>
+          </div>
+          <div className="rounded-md border bg-slate-50 p-3 print:bg-white">
+            <p className="text-xs font-semibold uppercase text-slate-500">
+              {isPlayerVersion ? t('summary.version') : t('summary.intensity')}
+            </p>
+            <p className="mt-1 font-semibold">
+              {isPlayerVersion
+                ? t('summary.sharedPlayerView')
+                : t('summary.highIntensityBlocks', { count: highIntensityBlocks })}
             </p>
           </div>
         </section>
@@ -235,7 +258,7 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
         <section className="mt-6 space-y-3">
           {practiceBlocks.length === 0 ? (
             <div className="rounded-md border border-dashed p-8 text-center text-sm text-slate-500">
-              Ingen strukturerad passplan är sparad ännu.
+              {t('states.empty')}
             </div>
           ) : (
             practiceBlocks.map((block, index) => (
@@ -243,38 +266,48 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-semibold uppercase text-slate-500">Block {index + 1}</span>
-                      <Badge variant="secondary">{BLOCK_TYPE_LABELS[block.type ?? ''] ?? 'Block'}</Badge>
-                      {block.rinkZone && <Badge variant="outline">{RINK_ZONE_LABELS[block.rinkZone] ?? block.rinkZone}</Badge>}
-                      {block.intensity && <Badge variant="outline">{INTENSITY_LABELS[block.intensity] ?? block.intensity}</Badge>}
-                      {block.tacticalCategory && (
-                        <Badge variant="outline">{TACTICAL_CATEGORY_LABELS[block.tacticalCategory] ?? block.tacticalCategory}</Badge>
+                      <span className="text-xs font-semibold uppercase text-slate-500">
+                        {t('labels.blockNumber', { number: index + 1 })}
+                      </span>
+                      <Badge variant="secondary">{t(getMappedLabel(block.type, BLOCK_TYPE_LABEL_KEYS, 'labels.block'))}</Badge>
+                      {block.rinkZone && (
+                        <Badge variant="outline">{t(getMappedLabel(block.rinkZone, RINK_ZONE_LABEL_KEYS, 'labels.notSet'))}</Badge>
                       )}
-                      {block.drillId && <Badge variant="outline">Sparad övning</Badge>}
+                      {block.intensity && (
+                        <Badge variant="outline">{t(getMappedLabel(block.intensity, INTENSITY_LABEL_KEYS, 'labels.notSet'))}</Badge>
+                      )}
+                      {block.tacticalCategory && (
+                        <Badge variant="outline">
+                          {t(getMappedLabel(block.tacticalCategory, TACTICAL_CATEGORY_LABEL_KEYS, 'labels.notSet'))}
+                        </Badge>
+                      )}
+                      {block.drillId && <Badge variant="outline">{t('labels.savedDrill')}</Badge>}
                     </div>
-                    <h2 className="mt-2 text-xl font-semibold">{block.title || 'Namnlöst block'}</h2>
+                    <h2 className="mt-2 text-xl font-semibold">{block.title || t('labels.untitledBlock')}</h2>
                   </div>
                   {Boolean(block.duration) && (
                     <div className="rounded-md bg-slate-100 px-3 py-1 text-sm font-semibold print:border print:bg-white">
-                      {block.duration} min
+                      {block.duration} {t('labels.min')}
                     </div>
                   )}
                 </div>
 
                 {block.focus && (
-                  <p className="mt-3 text-sm font-medium text-slate-700">Fokus: {block.focus}</p>
+                  <p className="mt-3 text-sm font-medium text-slate-700">
+                    {t('labels.focus')}: {block.focus}
+                  </p>
                 )}
                 {!isPlayerVersion && (block.groups || block.equipment) && (
                   <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                     {block.groups && (
                       <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
-                        <span className="font-semibold">Grupp: </span>
+                        <span className="font-semibold">{t('labels.group')}: </span>
                         {block.groups}
                       </div>
                     )}
                     {block.equipment && (
                       <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
-                        <span className="font-semibold">Material: </span>
+                        <span className="font-semibold">{t('labels.equipment')}: </span>
                         {block.equipment}
                       </div>
                     )}
@@ -284,13 +317,13 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
                   <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                     {block.lineGroups && (
                       <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
-                        <span className="font-semibold">Kedjor/roller: </span>
+                        <span className="font-semibold">{t('labels.lineGroups')}: </span>
                         {block.lineGroups}
                       </div>
                     )}
                     {block.goalieNotes && (
                       <div className="rounded-md bg-slate-50 p-2 print:border print:bg-white">
-                        <span className="font-semibold">Målvakt: </span>
+                        <span className="font-semibold">{t('labels.goalie')}: </span>
                         {block.goalieNotes}
                       </div>
                     )}
@@ -306,7 +339,7 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
                 )}
                 {!isPlayerVersion && block.coachingPoints && (
                   <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-950 print:border print:bg-white">
-                    <span className="font-semibold">Coachingpunkter: </span>
+                    <span className="font-semibold">{t('labels.coachingPoints')}: </span>
                     {block.coachingPoints}
                   </div>
                 )}
@@ -316,7 +349,11 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
         </section>
 
         <footer className="mt-8 border-t pt-4 text-xs text-slate-500">
-          Skapad av {event.createdBy.name} · {isPlayerVersion ? 'Spelarversion' : 'Tränarversion'} · Trainomics teamkalender
+          {t('footer.createdBy', {
+            creator: event.createdBy.name,
+            audience: isPlayerVersion ? t('audience.player') : t('audience.staff'),
+            teamCalendar: t('footer.teamCalendar'),
+          })}
         </footer>
       </div>
     </main>

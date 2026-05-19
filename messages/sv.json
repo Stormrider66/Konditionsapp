@@ -2612,6 +2612,80 @@
           "printFailed": "Kunde inte öppna utskriftsvy"
         }
       },
+      "practiceSheet": {
+        "actions": {
+          "backToCalendar": "Till kalendern"
+        },
+        "audience": {
+          "staff": "Tränarversion",
+          "player": "Spelarversion"
+        },
+        "labels": {
+          "block": "Block",
+          "blockNumber": "Block {number}",
+          "notSet": "Ej angivet",
+          "min": "min",
+          "focus": "Fokus",
+          "group": "Grupp",
+          "equipment": "Material",
+          "lineGroups": "Kedjor/roller",
+          "goalie": "Målvakt",
+          "coachingPoints": "Coachingpunkter",
+          "savedDrill": "Sparad övning",
+          "untitledBlock": "Namnlöst block",
+          "iceSession": "Ispass",
+          "blockType": {
+            "warmup": "Uppvärmning",
+            "technical": "Teknik",
+            "tactical": "Taktik",
+            "smallGame": "Smålagsspel",
+            "specialTeams": "Special teams",
+            "goalie": "Målvakt",
+            "cooldown": "Nedvarvning"
+          },
+          "rinkZone": {
+            "fullIce": "Helplan",
+            "offensive": "Anfallszon",
+            "defensive": "Försvarszon",
+            "neutral": "Mittzon",
+            "halfIce": "Halvplan",
+            "stations": "Stationer"
+          },
+          "intensity": {
+            "low": "Låg",
+            "medium": "Medel",
+            "high": "Hög",
+            "game": "Matchlik"
+          },
+          "tacticalCategory": {
+            "skills": "Teknik",
+            "breakout": "Uppspel",
+            "forecheck": "Forecheck",
+            "transition": "Omställning",
+            "specialTeams": "Special teams",
+            "smallArea": "Smålagsspel",
+            "finishing": "Avslut",
+            "goalie": "Målvakt"
+          }
+        },
+        "summary": {
+          "focus": "Fokus",
+          "zones": "Zoner",
+          "version": "Version",
+          "intensity": "Belastning",
+          "notSet": "Ej angivet",
+          "sharedPlayerView": "Delningsbar spelarvy",
+          "highIntensityBlocks": "{count} högintensiva block",
+          "blockCount": "{count} block"
+        },
+        "states": {
+          "empty": "Ingen strukturerad passplan är sparad ännu."
+        },
+        "footer": {
+          "createdBy": "Skapad av {creator} · {audience} · {teamCalendar}",
+          "teamCalendar": "Trainomics teamkalender"
+        }
+      },
       "workoutPrint": {
         "preparing": "Förbereder utskrift..."
       },
