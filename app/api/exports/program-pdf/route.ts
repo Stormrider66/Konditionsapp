@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
 
     const { program, athleteName, coachName, organization, startDate } =
       parsed.data
+    const locale = request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
 
     // react-pdf's renderToStream is typed to accept ReactElement<DocumentProps>,
     // i.e. a <Document> element. ProgramPDFDocument is a wrapper component
@@ -82,6 +83,7 @@ export async function POST(request: NextRequest) {
       coachName,
       organization,
       startDate: startDate ? new Date(startDate) : undefined,
+      locale,
     }) as unknown as ReactElement<DocumentProps>
 
     // renderToStream is typed as Promise<NodeJS.ReadableStream> (the

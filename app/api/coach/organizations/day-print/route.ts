@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger'
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(request)
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
       date,
       organizationId: organizationId || null,
       teamId: teamId || null,
+      locale,
     })
 
     return NextResponse.json({ success: true, data: items })

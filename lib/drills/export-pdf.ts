@@ -23,15 +23,26 @@ interface ExportDrillPDFOptions {
   createdBy?: string
   teamName?: string
   createdAt?: string
+  locale?: 'en' | 'sv'
 }
 
-const SPORT_LABELS: Record<string, string> = {
-  ICE_HOCKEY: 'Ishockey',
-  FOOTBALL: 'Fotboll',
-  HANDBALL: 'Handboll',
-  BASKETBALL: 'Basket',
-  FLOORBALL: 'Innebandy',
-  VOLLEYBALL: 'Volleyboll',
+const SPORT_LABELS: Record<'en' | 'sv', Record<string, string>> = {
+  en: {
+    ICE_HOCKEY: 'Ice hockey',
+    FOOTBALL: 'Football',
+    HANDBALL: 'Handball',
+    BASKETBALL: 'Basketball',
+    FLOORBALL: 'Floorball',
+    VOLLEYBALL: 'Volleyball',
+  },
+  sv: {
+    ICE_HOCKEY: 'Ishockey',
+    FOOTBALL: 'Fotboll',
+    HANDBALL: 'Handboll',
+    BASKETBALL: 'Basket',
+    FLOORBALL: 'Innebandy',
+    VOLLEYBALL: 'Volleyboll',
+  },
 }
 
 const MOVEMENT_TYPE_LABELS: Record<string, string> = {
@@ -108,12 +119,15 @@ export async function exportDrillPDF(
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(100, 100, 100)
-  const metaParts: string[] = [SPORT_LABELS[sportType] || sportType]
+  const locale = options.locale ?? 'en'
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const createdByLabel = locale === 'sv' ? 'Skapad av' : 'Created by'
+  const metaParts: string[] = [SPORT_LABELS[locale][sportType] || sportType]
   if (teamName) metaParts.push(teamName)
-  if (createdBy) metaParts.push(`Skapad av ${createdBy}`)
+  if (createdBy) metaParts.push(`${createdByLabel} ${createdBy}`)
   if (createdAt) {
     metaParts.push(
-      new Date(createdAt).toLocaleDateString('sv-SE', {
+      new Date(createdAt).toLocaleDateString(dateLocale, {
         day: 'numeric',
         month: 'long',
         year: 'numeric',

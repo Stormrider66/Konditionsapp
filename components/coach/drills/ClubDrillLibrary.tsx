@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { exportDrillPDF } from '@/lib/drills/export-pdf'
 import { toast } from 'sonner'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface SharedDrill {
   id: string
@@ -60,6 +60,7 @@ function formatDate(iso: string): string {
 
 export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
   const t = useTranslations('components.drills')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [drills, setDrills] = useState<SharedDrill[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -95,6 +96,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
           createdBy: drill.createdBy.name,
           teamName: drill.team?.name,
           createdAt: drill.createdAt,
+          locale,
         })
         toast.success(t('common.toasts.pdfDownloaded'))
       } catch {

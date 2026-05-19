@@ -7,7 +7,7 @@ import {
   parseDayPrintSelection,
 } from '@/lib/workout-print/day-pack'
 import { PrintableWorkoutPackClient } from '@/components/workouts/print/PrintableWorkoutPackClient'
-import { getTranslations } from '@/i18n/server'
+import { getLocale, getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -37,6 +37,7 @@ export default async function OrganizationDayPrintPage({ params, searchParams }:
   const user = await requireCoach()
   const membership = await validateBusinessMembership(user.id, businessSlug)
   const t = await getTranslations('coach.pages.organizationDayPrint')
+  const locale = (await getLocale()) === 'sv' ? 'sv' : 'en'
 
   if (!membership) {
     notFound()
@@ -58,6 +59,7 @@ export default async function OrganizationDayPrintPage({ params, searchParams }:
     organizationId: query.organizationId || null,
     teamId: query.teamId || null,
     ids: Array.from(selection.keys()),
+    locale,
   })
 
   const entries = dayItems.flatMap((item) => {

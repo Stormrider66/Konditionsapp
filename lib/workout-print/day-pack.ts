@@ -39,8 +39,8 @@ function parseDateOnly(date: string) {
   return new Date(`${date}T00:00:00.000Z`)
 }
 
-function formatDateLabel(date: Date) {
-  return date.toLocaleDateString('sv-SE', {
+function formatDateLabel(date: Date, locale: 'en' | 'sv' = 'en') {
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -159,6 +159,7 @@ export async function getOrganizationDayPrintItems({
   organizationId,
   teamId,
   ids,
+  locale = 'en',
 }: {
   userId: string
   businessSlug?: string
@@ -166,9 +167,10 @@ export async function getOrganizationDayPrintItems({
   organizationId?: string | null
   teamId?: string | null
   ids?: string[]
+  locale?: 'en' | 'sv'
 }): Promise<DayPrintWorkoutItem[]> {
   const parsedDate = parseDateOnly(date)
-  const dateLabel = formatDateLabel(parsedDate)
+  const dateLabel = formatDateLabel(parsedDate, locale)
   const broadcasts = await fetchBroadcasts({
     userId,
     businessSlug,

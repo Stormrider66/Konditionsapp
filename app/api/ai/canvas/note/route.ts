@@ -59,10 +59,11 @@ function isNextRedirectError(error: unknown): boolean {
   )
 }
 
-function buildCoachNote(title: string, blocks: z.infer<typeof canvasBlockSchema>[]): string {
-  const timestamp = new Date().toLocaleString('sv-SE')
-  const markdown = canvasToMarkdown(title, blocks, false).trim()
-  return [`AI Canvas - ${title}`, `Sparad ${timestamp}`, '', markdown].join('\n')
+function buildCoachNote(title: string, blocks: z.infer<typeof canvasBlockSchema>[], locale: 'en' | 'sv'): string {
+  const timestamp = new Date().toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')
+  const savedLabel = locale === 'sv' ? 'Sparad' : 'Saved'
+  const markdown = canvasToMarkdown(title, blocks, false, locale).trim()
+  return [`AI Canvas - ${title}`, `${savedLabel} ${timestamp}`, '', markdown].join('\n')
 }
 
 export async function POST(request: NextRequest) {
@@ -106,7 +107,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Jag kunde inte hitta atleten i den här coachytan.' }, { status: 404 })
     }
 
-    const note = buildCoachNote(parsed.data.title, parsed.data.blocks)
+    const locale = user.language === 'sv' ? 'sv' : 'en'
+    const note = buildCoachNote(parsed.data.title, parsed.data.blocks, locale)
     const nextNotes = [athlete.notes?.trim(), note].filter(Boolean).join('\n\n---\n\n')
 
     await prisma.client.update({

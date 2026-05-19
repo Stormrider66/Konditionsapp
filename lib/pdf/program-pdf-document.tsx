@@ -268,6 +268,7 @@ export interface ProgramPDFDocumentProps {
   coachName?: string
   organization?: string
   startDate?: Date
+  locale?: 'en' | 'sv'
 }
 
 export function ProgramPDFDocument({
@@ -276,15 +277,20 @@ export function ProgramPDFDocument({
   coachName,
   organization = '',
   startDate,
+  locale = 'en',
 }: ProgramPDFDocumentProps) {
-  const generatedDate = new Date().toLocaleDateString('sv-SE')
-  const programStartDate = (startDate ?? new Date()).toLocaleDateString('sv-SE')
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const copy = locale === 'sv'
+    ? { titlePrefix: 'Träningsprogram', subject: 'AI-genererat träningsprogram' }
+    : { titlePrefix: 'Training program', subject: 'AI-generated training program' }
+  const generatedDate = new Date().toLocaleDateString(dateLocale)
+  const programStartDate = (startDate ?? new Date()).toLocaleDateString(dateLocale)
 
   return (
     <Document
-      title={`Träningsprogram - ${program.name}`}
+      title={`${copy.titlePrefix} - ${program.name}`}
       author={coachName || organization || 'AI Studio'}
-      subject="AI-genererat träningsprogram"
+      subject={copy.subject}
       creator={organization || 'AI Studio'}
     >
       <Page size="A4" style={styles.page} wrap>

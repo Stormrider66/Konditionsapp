@@ -55,6 +55,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { AISkillPicker } from '@/components/ai/AISkillPicker'
 import { canvasToMarkdown, slugifyCanvasFilename } from '@/lib/ai-canvas/markdown'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 
 type CanvasBlockType =
   | 'heading'
@@ -662,6 +663,8 @@ export function AICanvasClient({
   coachTier,
   subscriptionStatus,
 }: AICanvasClientProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [canvasId, setCanvasId] = useState<string | null>(null)
   const [savedCanvases, setSavedCanvases] = useState<SavedCanvasSummary[]>(initialCanvases)
   const [title, setTitle] = useState('Untitled coach canvas')
@@ -988,7 +991,7 @@ export function AICanvasClient({
   }
 
   const handleCopyMarkdown = async () => {
-    const markdown = canvasToMarkdown(title, blocks)
+    const markdown = canvasToMarkdown(title, blocks, true, locale)
     try {
       await navigator.clipboard.writeText(markdown)
       addActionReceipt('success', 'Canvas kopierad', 'Jag kopierade canvasen som text.')
@@ -1000,7 +1003,7 @@ export function AICanvasClient({
   const handleDownloadMarkdown = () => {
     setIsExporting(true)
     try {
-      const markdown = canvasToMarkdown(title, blocks)
+      const markdown = canvasToMarkdown(title, blocks, true, locale)
       const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
@@ -1624,7 +1627,7 @@ export function AICanvasClient({
                     >
                       <span className="block truncate text-sm font-medium text-slate-900">{canvas.title}</span>
                       <span className="mt-1 block text-xs text-slate-500">
-                        {canvas.blockCount} block · {new Date(canvas.updatedAt).toLocaleDateString('sv-SE')}
+                        {canvas.blockCount} block · {new Date(canvas.updatedAt).toLocaleDateString(dateLocale)}
                       </span>
                     </button>
                   )

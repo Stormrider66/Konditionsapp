@@ -47,11 +47,20 @@ function escapeMarkdownTableCell(value: string | undefined): string {
   return (value || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')
 }
 
-export function canvasToMarkdown(title: string, blocks: CanvasMarkdownBlock[], includeExportDate = true): string {
+export function canvasToMarkdown(
+  title: string,
+  blocks: CanvasMarkdownBlock[],
+  includeExportDate = true,
+  locale: 'en' | 'sv' = 'en'
+): string {
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const copy = locale === 'sv'
+    ? { exported: 'Exporterad', section: 'Sektion', metric: 'Mätvärde', value: 'Värde', detail: 'Detalj' }
+    : { exported: 'Exported', section: 'Section', metric: 'Metric', value: 'Value', detail: 'Detail' }
   const lines = [
     `# ${title.trim() || 'AI Canvas'}`,
     '',
-    ...(includeExportDate ? [`_Exporterad ${new Date().toLocaleString('sv-SE')}_`, ''] : []),
+    ...(includeExportDate ? [`_${copy.exported} ${new Date().toLocaleString(dateLocale)}_`, ''] : []),
   ]
 
   for (const block of blocks) {
@@ -62,7 +71,7 @@ export function canvasToMarkdown(title: string, blocks: CanvasMarkdownBlock[], i
     }
 
     if (block.type === 'heading') {
-      lines.push(`## ${blockTitle || 'Sektion'}`)
+      lines.push(`## ${blockTitle || copy.section}`)
       if (block.content) lines.push('', block.content)
     }
 
@@ -87,7 +96,7 @@ export function canvasToMarkdown(title: string, blocks: CanvasMarkdownBlock[], i
     }
 
     if (block.type === 'metric-row') {
-      lines.push('| Mätvärde | Värde | Detalj |', '| --- | --- | --- |')
+      lines.push(`| ${copy.metric} | ${copy.value} | ${copy.detail} |`, '| --- | --- | --- |')
       for (const metric of block.metrics || []) {
         lines.push(
           `| ${escapeMarkdownTableCell(metric.label)} | ${escapeMarkdownTableCell(metric.value)} | ${escapeMarkdownTableCell(metric.detail)} |`
