@@ -33,6 +33,7 @@ interface DigestData {
   coachId: string
   coachEmail: string
   coachName: string
+  locale: AppLocale
   pendingModifications: number
   activeInjuries: number
   highRiskAthletes: number
@@ -71,8 +72,19 @@ interface CoachDigestTarget {
   name: string | null
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function generateEmailHTML(data: DigestData): string {
   const s = (value: unknown) => sanitizeForEmail(value == null ? '' : String(value))
+  const locale = data.locale
 
   const hasAnyAlerts =
     data.pendingModifications > 0 ||
@@ -84,11 +96,11 @@ function generateEmailHTML(data: DigestData): string {
     return `
       <html>
         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #10b981;">✅ Inga åtgärder krävs idag</h2>
-          <p>Hej ${s(data.coachName)},</p>
-          <p>Alla dina atleter ser bra ut! Inga skador, modifieringar eller riskvarningar att hantera.</p>
+          <h2 style="color: #10b981;">✅ ${t(locale, 'No actions required today', 'Inga åtgärder krävs idag')}</h2>
+          <p>${t(locale, 'Hi', 'Hej')} ${s(data.coachName)},</p>
+          <p>${t(locale, 'All your athletes look good. There are no injuries, modifications, or risk alerts to handle.', 'Alla dina atleter ser bra ut! Inga skador, modifieringar eller riskvarningar att hantera.')}</p>
           <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-            Detta meddelande skickades automatiskt av konditionstest-appen.
+            ${t(locale, 'This message was sent automatically by Trainomics.', 'Detta meddelande skickades automatiskt av konditionstest-appen.')}
           </p>
         </body>
       </html>
@@ -99,9 +111,9 @@ function generateEmailHTML(data: DigestData): string {
     <html>
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
         <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-          <h1 style="color: #1f2937; margin-top: 0;">Daglig skade- & träningsrapport</h1>
-          <p style="color: #6b7280;">Hej ${s(data.coachName)},</p>
-          <p style="color: #6b7280;">Här är din dagliga sammanfattning av atleter som behöver din uppmärksamhet:</p>
+          <h1 style="color: #1f2937; margin-top: 0;">${t(locale, 'Daily Injury & Training Report', 'Daglig skade- & träningsrapport')}</h1>
+          <p style="color: #6b7280;">${t(locale, 'Hi', 'Hej')} ${s(data.coachName)},</p>
+          <p style="color: #6b7280;">${t(locale, 'Here is your daily summary of athletes who need your attention:', 'Här är din dagliga sammanfattning av atleter som behöver din uppmärksamhet:')}</p>
 
           <!-- Summary Cards -->
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 25px 0;">
@@ -110,7 +122,7 @@ function generateEmailHTML(data: DigestData): string {
                 ? `
             <div style="background-color: #fef3c7; padding: 15px; border-radius: 6px; border-left: 4px solid #f59e0b;">
               <div style="font-size: 24px; font-weight: bold; color: #92400e;">${data.pendingModifications}</div>
-              <div style="font-size: 14px; color: #78350f;">Väntande modifieringar</div>
+              <div style="font-size: 14px; color: #78350f;">${t(locale, 'Pending modifications', 'Väntande modifieringar')}</div>
             </div>
             `
                 : ''
@@ -120,7 +132,7 @@ function generateEmailHTML(data: DigestData): string {
                 ? `
             <div style="background-color: #fee2e2; padding: 15px; border-radius: 6px; border-left: 4px solid #ef4444;">
               <div style="font-size: 24px; font-weight: bold; color: #991b1b;">${data.activeInjuries}</div>
-              <div style="font-size: 14px; color: #7f1d1d;">Aktiva skador</div>
+              <div style="font-size: 14px; color: #7f1d1d;">${t(locale, 'Active injuries', 'Aktiva skador')}</div>
             </div>
             `
                 : ''
@@ -130,7 +142,7 @@ function generateEmailHTML(data: DigestData): string {
                 ? `
             <div style="background-color: #ffedd5; padding: 15px; border-radius: 6px; border-left: 4px solid #f97316;">
               <div style="font-size: 24px; font-weight: bold; color: #9a3412;">${data.highRiskAthletes}</div>
-              <div style="font-size: 14px; color: #7c2d12;">Högriskatleter (ACWR)</div>
+              <div style="font-size: 14px; color: #7c2d12;">${t(locale, 'High-risk athletes (ACWR)', 'Högriskatleter (ACWR)')}</div>
             </div>
             `
                 : ''
@@ -140,7 +152,7 @@ function generateEmailHTML(data: DigestData): string {
                 ? `
             <div style="background-color: #dbeafe; padding: 15px; border-radius: 6px; border-left: 4px solid #3b82f6;">
               <div style="font-size: 24px; font-weight: bold; color: #1e40af;">${data.lowReadinessAthletes}</div>
-              <div style="font-size: 14px; color: #1e3a8a;">Låg beredskap (3+ dagar)</div>
+              <div style="font-size: 14px; color: #1e3a8a;">${t(locale, 'Low readiness (3+ days)', 'Låg beredskap (3+ dagar)')}</div>
             </div>
             `
                 : ''
@@ -153,7 +165,7 @@ function generateEmailHTML(data: DigestData): string {
               ? `
           <div style="margin-top: 30px;">
             <h2 style="color: #1f2937; font-size: 18px; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">
-              ⏳ Väntande träningsmodifieringar
+              ⏳ ${t(locale, 'Pending training modifications', 'Väntande träningsmodifieringar')}
             </h2>
             ${data.details.modifications
               .map(
@@ -164,14 +176,14 @@ function generateEmailHTML(data: DigestData): string {
                   ${s(mod.workoutDate)} • ${s(mod.originalType)} → ${s(mod.modifiedType)}
                 </div>
                 <div style="font-size: 13px; color: #a16207; margin-top: 5px; font-style: italic;">
-                  Anledning: ${s(mod.reason)}
+                  ${t(locale, 'Reason', 'Anledning')}: ${s(mod.reason)}
                 </div>
               </div>
             `
               )
               .join('')}
             <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
-              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/injury/modifications" style="color: #3b82f6;">Granska modifieringar</a>
+              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/injury/modifications" style="color: #3b82f6;">${t(locale, 'Review modifications', 'Granska modifieringar')}</a>
             </p>
           </div>
           `
@@ -184,7 +196,7 @@ function generateEmailHTML(data: DigestData): string {
               ? `
           <div style="margin-top: 30px;">
             <h2 style="color: #1f2937; font-size: 18px; border-bottom: 2px solid #ef4444; padding-bottom: 8px;">
-              🩹 Aktiva skador
+              🩹 ${t(locale, 'Active injuries', 'Aktiva skador')}
             </h2>
             ${data.details.injuries
               .map(
@@ -192,17 +204,17 @@ function generateEmailHTML(data: DigestData): string {
               <div style="background-color: #fef2f2; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid #ef4444;">
                 <div style="font-weight: bold; color: #991b1b;">${s(injury.athleteName)}</div>
                 <div style="font-size: 14px; color: #7f1d1d; margin-top: 5px;">
-                  ${s(injury.injuryType)} • Smärta: ${injury.painLevel}/10 • Fas ${injury.currentPhase}/5
+                  ${s(injury.injuryType)} • ${t(locale, 'Pain', 'Smärta')}: ${injury.painLevel}/10 • ${t(locale, 'Phase', 'Fas')} ${injury.currentPhase}/5
                 </div>
                 <div style="font-size: 13px; color: #b91c1c; margin-top: 5px;">
-                  Aktiv i ${injury.daysActive} dagar
+                  ${t(locale, 'Active for', 'Aktiv i')} ${injury.daysActive} ${t(locale, 'days', 'dagar')}
                 </div>
               </div>
             `
               )
               .join('')}
             <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
-              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/injury/active" style="color: #3b82f6;">Se skadeöversikt</a>
+              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/injury/active" style="color: #3b82f6;">${t(locale, 'View injury overview', 'Se skadeöversikt')}</a>
             </p>
           </div>
           `
@@ -215,7 +227,7 @@ function generateEmailHTML(data: DigestData): string {
               ? `
           <div style="margin-top: 30px;">
             <h2 style="color: #1f2937; font-size: 18px; border-bottom: 2px solid #f97316; padding-bottom: 8px;">
-              ⚠️ Högriskatleter (ACWR >1.3)
+              ⚠️ ${t(locale, 'High-risk athletes (ACWR >1.3)', 'Högriskatleter (ACWR >1.3)')}
             </h2>
             ${data.details.highRisk
               .map(
@@ -223,14 +235,14 @@ function generateEmailHTML(data: DigestData): string {
               <div style="background-color: #fff7ed; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid #f97316;">
                 <div style="font-weight: bold; color: #9a3412;">${s(risk.athleteName)}</div>
                 <div style="font-size: 14px; color: #7c2d12; margin-top: 5px;">
-                  ACWR: ${risk.acwr.toFixed(2)} • Zon: ${s(risk.zone)}
+                  ACWR: ${risk.acwr.toFixed(2)} • ${t(locale, 'Zone', 'Zon')}: ${s(risk.zone)}
                 </div>
               </div>
             `
               )
               .join('')}
             <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
-              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/monitoring" style="color: #3b82f6;">Se ACWR-övervakning</a>
+              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/monitoring" style="color: #3b82f6;">${t(locale, 'View ACWR monitoring', 'Se ACWR-övervakning')}</a>
             </p>
           </div>
           `
@@ -243,7 +255,7 @@ function generateEmailHTML(data: DigestData): string {
               ? `
           <div style="margin-top: 30px;">
             <h2 style="color: #1f2937; font-size: 18px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
-              😴 Låg beredskap (3+ dagar i rad)
+              😴 ${t(locale, 'Low readiness (3+ consecutive days)', 'Låg beredskap (3+ dagar i rad)')}
             </h2>
             ${data.details.lowReadiness
               .map(
@@ -251,14 +263,14 @@ function generateEmailHTML(data: DigestData): string {
               <div style="background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid #3b82f6;">
                 <div style="font-weight: bold; color: #1e40af;">${s(readiness.athleteName)}</div>
                 <div style="font-size: 14px; color: #1e3a8a; margin-top: 5px;">
-                  ${readiness.consecutiveDays} dagar i rad • Senaste poäng: ${readiness.latestScore}
+                  ${readiness.consecutiveDays} ${t(locale, 'consecutive days', 'dagar i rad')} • ${t(locale, 'Latest score', 'Senaste poäng')}: ${readiness.latestScore}
                 </div>
               </div>
             `
               )
               .join('')}
             <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
-              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/monitoring" style="color: #3b82f6;">Se beredskapsöversikt</a>
+              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/monitoring" style="color: #3b82f6;">${t(locale, 'View readiness overview', 'Se beredskapsöversikt')}</a>
             </p>
           </div>
           `
@@ -268,8 +280,8 @@ function generateEmailHTML(data: DigestData): string {
           <!-- Footer -->
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
             <p style="color: #6b7280; font-size: 14px; margin: 0;">
-              Detta meddelande skickades automatiskt kl. 07:00 varje dag.<br>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/settings" style="color: #3b82f6;">Ändra aviseringsinställningar</a>
+              ${t(locale, 'This message is sent automatically at 07:00 every day.', 'Detta meddelande skickades automatiskt kl. 07:00 varje dag.')}<br>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/settings" style="color: #3b82f6;">${t(locale, 'Change notification settings', 'Ändra aviseringsinställningar')}</a>
             </p>
           </div>
         </div>
@@ -282,12 +294,13 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
   // Get coach info
   const coach = await prisma.user.findUnique({
     where: { id: coachId },
-    select: { email: true, name: true },
+    select: { email: true, name: true, language: true },
   })
 
   if (!coach || !coach.email) {
     return null
   }
+  const locale = getUserLocale(coach.language)
 
   // Get coach's athletes
   const athletes = await prisma.client.findMany({
@@ -375,7 +388,7 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
   })
 
   // Group by athlete and check for 3+ consecutive low scores
-  const athleteCheckIns = new Map<string, any[]>()
+  const athleteCheckIns = new Map<string, typeof recentCheckIns>()
   for (const checkIn of recentCheckIns) {
     if (!athleteCheckIns.has(checkIn.clientId)) {
       athleteCheckIns.set(checkIn.clientId, [])
@@ -389,14 +402,14 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
     latestScore: number
   }> = []
 
-  for (const [athleteId, checkIns] of athleteCheckIns.entries()) {
+  for (const checkIns of athleteCheckIns.values()) {
     // Sort by date descending
     checkIns.sort((a, b) => b.date.getTime() - a.date.getTime())
 
     // Count consecutive days with readiness score <55 (FAIR or worse)
     let consecutiveDays = 0
     for (const checkIn of checkIns) {
-      if (checkIn.readinessScore < 55) {
+      if (checkIn.readinessScore !== null && checkIn.readinessScore < 55) {
         consecutiveDays++
       } else {
         break
@@ -407,7 +420,7 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
       lowReadinessAthletes.push({
         athleteName: checkIns[0].client.name,
         consecutiveDays,
-        latestScore: checkIns[0].readinessScore,
+        latestScore: checkIns[0].readinessScore ?? 0,
       })
     }
   }
@@ -417,17 +430,18 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
     coachId,
     coachEmail: coach.email,
     coachName: coach.name || 'Coach',
+    locale,
     pendingModifications: pendingModifications.length,
     activeInjuries: activeInjuries.length,
     highRiskAthletes: highRiskACWR.length,
     lowReadinessAthletes: lowReadinessAthletes.length,
     details: {
       modifications: pendingModifications.map((mod) => ({
-        athleteName: 'See workout', // Workout relation not available in current schema
-        workoutDate: mod.date.toLocaleDateString('sv-SE'),
-        originalType: mod.plannedType || 'Unknown',
-        modifiedType: mod.modifiedType || 'Unknown',
-        reason: mod.reasoning || 'No reason provided',
+        athleteName: t(locale, 'See workout', 'Se pass'), // Workout relation not available in current schema
+        workoutDate: mod.date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US'),
+        originalType: mod.plannedType || t(locale, 'Unknown', 'Okänt'),
+        modifiedType: mod.modifiedType || t(locale, 'Unknown', 'Okänt'),
+        reason: mod.reasoning || t(locale, 'No reason provided', 'Ingen anledning angiven'),
       })),
       injuries: activeInjuries.map((injury) => {
         const daysActive = Math.floor(
@@ -435,16 +449,16 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
         )
         return {
           athleteName: injury.client.name,
-          injuryType: injury.injuryType || 'Unknown',
+          injuryType: injury.injuryType || t(locale, 'Unknown', 'Okänt'),
           painLevel: injury.painLevel,
           daysActive,
           currentPhase: 1, // Default phase number
         }
       }),
       highRisk: highRiskACWR.map((load) => ({
-        athleteName: load.client?.name || 'Unknown',
+        athleteName: load.client?.name || t(locale, 'Unknown', 'Okänt'),
         acwr: load.acwr ?? 0,
-        zone: load.acwrZone ?? 'Unknown',
+        zone: load.acwrZone ?? t(locale, 'Unknown', 'Okänt'),
       })),
       lowReadiness: lowReadinessAthletes,
     },
@@ -653,8 +667,8 @@ async function processCoachDigest(coach: {
       digestData.lowReadinessAthletes > 0
 
     const subject = hasAlerts
-      ? `⚠️ ${digestData.pendingModifications + digestData.activeInjuries + digestData.highRiskAthletes + digestData.lowReadinessAthletes} atleter behöver din uppmärksamhet`
-      : '✅ Daglig rapport - Inga åtgärder krävs'
+      ? `⚠️ ${digestData.pendingModifications + digestData.activeInjuries + digestData.highRiskAthletes + digestData.lowReadinessAthletes} ${t(digestData.locale, 'athletes need your attention', 'atleter behöver din uppmärksamhet')}`
+      : `✅ ${t(digestData.locale, 'Daily report - No actions required', 'Daglig rapport - Inga åtgärder krävs')}`
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
 
