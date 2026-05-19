@@ -8,8 +8,8 @@
  */
 
 import { useMemo, useState } from 'react'
-import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { format, type Locale } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
 import {
   AlertCircle,
   ChevronDown,
@@ -32,11 +32,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   generateReturnProtocol,
   getIntensityColor,
-  getIntensityLabel,
   type IllnessInfo,
   type ReturnProtocol,
   type ReturnPhase,
 } from '@/lib/calendar/illness-protocol'
+import { useLocale } from '@/i18n/client'
 
 interface IllnessProtocolPreviewProps {
   illnessType: string
@@ -57,6 +57,9 @@ export function IllnessProtocolPreview({
   symptomsBelowNeck = false,
   showDetails = true,
 }: IllnessProtocolPreviewProps) {
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const [isExpanded, setIsExpanded] = useState(false)
 
   const protocol = useMemo(() => {
@@ -83,9 +86,10 @@ export function IllnessProtocolPreview({
           <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
         </div>
         <div className="flex-1">
-          <h4 className="font-medium">Återgångsprotokoll</h4>
+          <h4 className="font-medium">{appLocale === 'sv' ? 'Återgångsprotokoll' : 'Return protocol'}</h4>
           <p className="text-sm text-muted-foreground">
-            {protocol.totalDays} dagars gradvis återgång till träning
+            {protocol.totalDays}{' '}
+            {appLocale === 'sv' ? 'dagars gradvis återgång till träning' : 'day gradual return to training'}
           </p>
         </div>
       </div>
@@ -95,7 +99,9 @@ export function IllnessProtocolPreview({
         <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-50 dark:bg-amber-950/30 p-3 text-amber-800 dark:text-amber-200">
           <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-sm">Läkargodkännande krävs</p>
+            <p className="font-medium text-sm">
+              {appLocale === 'sv' ? 'Läkargodkännande krävs' : 'Medical clearance required'}
+            </p>
             <p className="text-xs mt-0.5">{protocol.medicalClearanceReason}</p>
           </div>
         </div>
@@ -106,17 +112,17 @@ export function IllnessProtocolPreview({
         <div className="rounded-md bg-background p-2">
           <p className="text-xs text-muted-foreground">Start</p>
           <p className="font-medium text-sm">
-            {format(protocol.startDate, 'd MMM', { locale: sv })}
+            {format(protocol.startDate, 'd MMM', { locale: dateLocale })}
           </p>
         </div>
         <div className="rounded-md bg-background p-2">
-          <p className="text-xs text-muted-foreground">Dagar</p>
+          <p className="text-xs text-muted-foreground">{appLocale === 'sv' ? 'Dagar' : 'Days'}</p>
           <p className="font-medium text-sm">{protocol.totalDays}</p>
         </div>
         <div className="rounded-md bg-background p-2">
-          <p className="text-xs text-muted-foreground">Normal träning</p>
+          <p className="text-xs text-muted-foreground">{appLocale === 'sv' ? 'Normal träning' : 'Normal training'}</p>
           <p className="font-medium text-sm">
-            {format(protocol.endDate, 'd MMM', { locale: sv })}
+            {format(protocol.endDate, 'd MMM', { locale: dateLocale })}
           </p>
         </div>
       </div>
@@ -126,7 +132,7 @@ export function IllnessProtocolPreview({
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="mt-4">
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="w-full justify-between">
-              <span>Visa detaljerat schema</span>
+              <span>{appLocale === 'sv' ? 'Visa detaljerat schema' : 'Show detailed schedule'}</span>
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4" />
               ) : (
@@ -138,7 +144,7 @@ export function IllnessProtocolPreview({
             <ScrollArea className="mt-3 max-h-[300px]">
               <div className="space-y-3">
                 {protocol.phases.map((phase) => (
-                  <PhaseCard key={phase.day} phase={phase} />
+                  <PhaseCard key={phase.day} phase={phase} locale={appLocale} dateLocale={dateLocale} />
                 ))}
               </div>
             </ScrollArea>
@@ -147,7 +153,7 @@ export function IllnessProtocolPreview({
             <div className="mt-4 rounded-md border p-3">
               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
-                <span>Varningssignaler att bevaka</span>
+                <span>{appLocale === 'sv' ? 'Varningssignaler att bevaka' : 'Warning signs to watch'}</span>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1">
                 {protocol.warningSignsToWatch.slice(0, 4).map((sign, i) => (
@@ -163,7 +169,7 @@ export function IllnessProtocolPreview({
             <div className="mt-3 rounded-md border p-3">
               <div className="flex items-center gap-2 text-sm font-medium mb-2">
                 <Shield className="h-4 w-4 text-blue-500" />
-                <span>Allmänna riktlinjer</span>
+                <span>{appLocale === 'sv' ? 'Allmänna riktlinjer' : 'General guidelines'}</span>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1">
                 {protocol.generalGuidelines.slice(0, 4).map((guideline, i) => (
@@ -181,18 +187,26 @@ export function IllnessProtocolPreview({
   )
 }
 
-function PhaseCard({ phase }: { phase: ReturnPhase }) {
+function PhaseCard({
+  phase,
+  locale,
+  dateLocale,
+}: {
+  phase: ReturnPhase
+  locale: 'en' | 'sv'
+  dateLocale: Locale
+}) {
   return (
     <div className="rounded-md border bg-background p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Dag {phase.day}</span>
+          <span className="text-sm font-medium">{locale === 'sv' ? 'Dag' : 'Day'} {phase.day}</span>
           <span className="text-xs text-muted-foreground">
-            {format(phase.date, 'EEE d MMM', { locale: sv })}
+            {format(phase.date, 'EEE d MMM', { locale: dateLocale })}
           </span>
         </div>
         <Badge className={getIntensityColor(phase.intensity)}>
-          {getIntensityLabel(phase.intensity)}
+          {getReturnIntensityLabel(phase.intensity, locale)}
         </Badge>
       </div>
 
@@ -216,7 +230,9 @@ function PhaseCard({ phase }: { phase: ReturnPhase }) {
         )}
         <div className="flex items-center gap-1">
           <Heart className="h-3 w-3" />
-          <span>Kontroll: {phase.readinessCheck.split('?')[0]}...</span>
+          <span>
+            {locale === 'sv' ? 'Kontroll:' : 'Check:'} {phase.readinessCheck.split('?')[0]}...
+          </span>
         </div>
       </div>
 
@@ -239,4 +255,19 @@ function PhaseCard({ phase }: { phase: ReturnPhase }) {
       )}
     </div>
   )
+}
+
+function getReturnIntensityLabel(intensity: ReturnPhase['intensity'], locale: 'en' | 'sv'): string {
+  switch (intensity) {
+    case 'NONE':
+      return locale === 'sv' ? 'Vila' : 'Rest'
+    case 'VERY_LIGHT':
+      return locale === 'sv' ? 'Mycket lätt' : 'Very light'
+    case 'LIGHT':
+      return locale === 'sv' ? 'Lätt' : 'Light'
+    case 'MODERATE':
+      return locale === 'sv' ? 'Moderat' : 'Moderate'
+    case 'NORMAL':
+      return locale === 'sv' ? 'Normal' : 'Normal'
+  }
 }
