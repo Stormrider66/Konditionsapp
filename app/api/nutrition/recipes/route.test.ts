@@ -99,7 +99,38 @@ describe('nutrition recipes route', () => {
     )
   })
 
-  it('returns a helpful message instead of a generic validation error', async () => {
+  it('returns an English helpful message instead of a generic validation error by default', async () => {
+    const request = new NextRequest('http://localhost/api/nutrition/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Bananbröd / bananfrallor 1',
+        baseServings: 1,
+        source: 'MANUAL',
+        items: [
+          {
+            name: 'Bananbröd',
+            grams: 100,
+            carbsPer100g: 565.8,
+          },
+        ],
+      }),
+    })
+
+    const response = await POST(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body.success).toBe(false)
+    expect(body.error).toBe('Could not save the recipe. Check the nutrition values per 100 g.')
+  })
+
+  it('keeps Swedish validation copy for Swedish athletes', async () => {
+    mockResolveAthleteClientId.mockResolvedValue({
+      clientId: 'client-1',
+      user: { id: 'user-1', language: 'sv' },
+    })
+
     const request = new NextRequest('http://localhost/api/nutrition/recipes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

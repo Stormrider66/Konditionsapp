@@ -38,23 +38,25 @@ export const createRecipeSchema = z.object({
   items: z.array(recipeItemSchema).min(1).max(80),
 })
 
-function recipeValidationMessage(error: z.ZodError) {
+type AppLocale = 'en' | 'sv'
+
+function recipeValidationMessage(error: z.ZodError, locale: AppLocale) {
   const issue = error.issues[0]
   const path = issue?.path.join('.') || ''
 
   if (path.includes('name')) {
-    return 'Kunde inte spara receptet. Kontrollera receptnamnet.'
+    return t(locale, 'Could not save the recipe. Check the recipe name.', 'Kunde inte spara receptet. Kontrollera receptnamnet.')
   }
 
   if (path.includes('items') && path.includes('grams')) {
-    return 'Kunde inte spara receptet. Kontrollera gramangivelserna.'
+    return t(locale, 'Could not save the recipe. Check the gram amounts.', 'Kunde inte spara receptet. Kontrollera gramangivelserna.')
   }
 
   if (path.includes('Per100g')) {
-    return 'Kunde inte spara receptet. Kontrollera näringsvärdena per 100 g.'
+    return t(locale, 'Could not save the recipe. Check the nutrition values per 100 g.', 'Kunde inte spara receptet. Kontrollera näringsvärdena per 100 g.')
   }
 
-  return 'Kunde inte spara receptet. Kontrollera ingredienserna och försök igen.'
+  return t(locale, 'Could not save the recipe. Check the ingredients and try again.', 'Kunde inte spara receptet. Kontrollera ingredienserna och försök igen.')
 }
 
 // GET /api/nutrition/recipes - List saved recipe templates for the athlete.
@@ -88,6 +90,7 @@ export async function POST(request: NextRequest) {
     if (!resolved) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = getUserLocale(resolved.user?.language)
 
     const body = await request.json()
     const validation = createRecipeSchema.safeParse(body)
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: recipeValidationMessage(validation.error),
+          error: recipeValidationMessage(validation.error, locale),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -147,4 +150,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
