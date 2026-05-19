@@ -4,6 +4,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 
+type AppLocale = 'en' | 'sv'
 type WeightUnit = 'kg' | 'percent'
 
 interface SessionFollowUp {
@@ -139,6 +140,7 @@ export async function GET(
       )
     }
     const { clientId } = resolved
+    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
 
     // Get assignment with session and logged sets
     const assignment = await prisma.strengthSessionAssignment.findUnique({
@@ -418,19 +420,19 @@ export async function GET(
     const sections = [
       {
         type: 'WARMUP' as const,
-        name: 'Uppvärmning',
+        name: sectionName('WARMUP', locale),
         notes: warmupData?.notes,
         duration: warmupData?.duration,
         exerciseCount: focusModeExercises.filter((ex) => ex.section === 'WARMUP').length,
       },
       {
         type: 'MAIN' as const,
-        name: 'Huvudpass',
+        name: sectionName('MAIN', locale),
         exerciseCount: focusModeExercises.filter((ex) => ex.section === 'MAIN').length,
       },
       {
         type: 'PREHAB' as const,
-        name: 'Stabilitet / Prehab',
+        name: sectionName('PREHAB', locale),
         notes: prehabData?.notes,
         duration: prehabData?.duration,
         exerciseCount: focusModeExercises.filter((ex) => ex.section === 'PREHAB').length,
@@ -444,7 +446,7 @@ export async function GET(
       },
       {
         type: 'COOLDOWN' as const,
-        name: 'Nedvarvning',
+        name: sectionName('COOLDOWN', locale),
         notes: cooldownData?.notes,
         duration: cooldownData?.duration,
         exerciseCount: focusModeExercises.filter((ex) => ex.section === 'COOLDOWN').length,
@@ -488,6 +490,24 @@ export async function GET(
       { status: 500 }
     )
   }
+}
+
+function sectionName(type: 'WARMUP' | 'MAIN' | 'PREHAB' | 'COOLDOWN', locale: AppLocale): string {
+  const labels = {
+    en: {
+      WARMUP: 'Warm-up',
+      MAIN: 'Main workout',
+      PREHAB: 'Stability / Prehab',
+      COOLDOWN: 'Cool-down',
+    },
+    sv: {
+      WARMUP: 'Uppvärmning',
+      MAIN: 'Huvudpass',
+      PREHAB: 'Stabilitet / Prehab',
+      COOLDOWN: 'Nedvarvning',
+    },
+  }
+  return labels[locale][type]
 }
 
 /**

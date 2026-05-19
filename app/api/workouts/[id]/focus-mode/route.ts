@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
+type AppLocale = 'en' | 'sv'
+
 interface FocusModeExercise {
   id: string
   segmentId: string
@@ -50,6 +52,7 @@ export async function GET(
       )
     }
     const { user, clientId } = resolved
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     // Get workout with segments and exercise details
     const workout = await prisma.workout.findUnique({
@@ -222,10 +225,10 @@ export async function GET(
     }, {} as Record<string, number>)
 
     const sections = [
-      { type: 'WARMUP' as const, name: 'Uppvärmning', exerciseCount: sectionCounts.WARMUP || 0 },
-      { type: 'MAIN' as const, name: 'Huvudpass', exerciseCount: sectionCounts.MAIN || 0 },
+      { type: 'WARMUP' as const, name: sectionName('WARMUP', locale), exerciseCount: sectionCounts.WARMUP || 0 },
+      { type: 'MAIN' as const, name: sectionName('MAIN', locale), exerciseCount: sectionCounts.MAIN || 0 },
       { type: 'CORE' as const, name: 'Core', exerciseCount: sectionCounts.CORE || 0 },
-      { type: 'COOLDOWN' as const, name: 'Nedvarvning', exerciseCount: sectionCounts.COOLDOWN || 0 },
+      { type: 'COOLDOWN' as const, name: sectionName('COOLDOWN', locale), exerciseCount: sectionCounts.COOLDOWN || 0 },
     ].filter((s) => s.exerciseCount > 0)
 
     return NextResponse.json({
@@ -262,4 +265,20 @@ export async function GET(
       { status: 500 }
     )
   }
+}
+
+function sectionName(type: 'WARMUP' | 'MAIN' | 'COOLDOWN', locale: AppLocale): string {
+  const labels = {
+    en: {
+      WARMUP: 'Warm-up',
+      MAIN: 'Main workout',
+      COOLDOWN: 'Cool-down',
+    },
+    sv: {
+      WARMUP: 'Uppvärmning',
+      MAIN: 'Huvudpass',
+      COOLDOWN: 'Nedvarvning',
+    },
+  }
+  return labels[locale][type]
 }
