@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { RehabDayView } from '@/components/athlete/RehabDayView'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface RehabProgram {
   id: string
@@ -80,6 +80,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')
   const t = useTranslations('athletePages.rehab')
+  const locale = useLocale()
 
   useEffect(() => {
     async function fetchPrograms() {
@@ -100,7 +101,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
       }
     }
 
-    fetchPrograms()
+    void fetchPrograms()
   }, [clientId])
 
   const activePrograms = programs.filter((p) => p.status === 'ACTIVE' || p.status === 'PAUSED')
@@ -111,7 +112,7 @@ export function AthleteRehabOverview({ clientId }: AthleteRehabOverviewProps) {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+    return new Date(dateString).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

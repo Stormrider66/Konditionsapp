@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 import { RehabExercisePlayer } from '@/components/athlete/RehabExercisePlayer'
 import { RehabProgressLogger } from '@/components/athlete/RehabProgressLogger'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface RehabExercise {
   id: string
@@ -112,6 +112,7 @@ interface AthleteRehabProgramProps {
 export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
   const router = useRouter()
   const t = useTranslations('athletePages.rehabProgram')
+  const locale = useLocale()
   const [program, setProgram] = useState<RehabProgram | null>(null)
   const [progressLogs, setProgressLogs] = useState<ProgressLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -146,7 +147,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
       }
     }
 
-    fetchProgram()
+    void fetchProgram()
   }, [programId])
 
   const handleExerciseComplete = async (
@@ -157,7 +158,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+    return new Date(dateString).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -247,7 +248,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
           onSuccess={() => {
             setShowProgressLogger(false)
             // Refresh progress logs
-            fetch(`/api/physio/rehab-programs/${programId}/progress?limit=10`)
+            void fetch(`/api/physio/rehab-programs/${programId}/progress?limit=10`)
               .then((res) => res.json())
               .then((data) => setProgressLogs(data.logs || []))
           }}
@@ -400,7 +401,9 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
                   </div>
                   <div>
                     <p className="font-bold text-white">
-                      {exercise.exercise.nameSv || exercise.exercise.name}
+                      {locale === 'sv'
+                        ? exercise.exercise.nameSv || exercise.exercise.name
+                        : exercise.exercise.name || exercise.exercise.nameSv}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                       <span>
