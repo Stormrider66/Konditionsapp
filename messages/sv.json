@@ -14299,6 +14299,40 @@
         "none": "Inga deltagare ännu"
       }
     },
+    "workoutMergeManager": {
+      "toasts": {
+        "fetchFailed": "Kunde inte hämta olänkade pass",
+        "linkSuccess": "Pass länkades",
+        "linkFailed": "Kunde inte länka passen"
+      },
+      "loading": "Laddar olänkade pass...",
+      "empty": {
+        "allLinked": "Inga olänkade pass. Alla pass är redan länkade.",
+        "noDuplicates": "Inga dubbletter hittades."
+      },
+      "sections": {
+        "suggestedMatches": "Föreslagna matchningar",
+        "unlinkedLogged": "{count, plural, one {Olänkat loggat pass} other {Olänkade loggade pass}}",
+        "unlinkedGarmin": "{count, plural, one {Olänkat Garmin-pass} other {Olänkade Garmin-pass}}"
+      },
+      "badges": {
+        "matchPercent": "{percent}% överensstämmelse"
+      },
+      "labels": {
+        "loggedWorkout": "Loggat pass",
+        "garmin": "Garmin",
+        "fallbackWorkout": "Pass"
+      },
+      "inputLabels": {
+        "photo": "Foto",
+        "voice": "Röst",
+        "text": "Text",
+        "manual": "Manuellt"
+      },
+      "actions": {
+        "link": "Länka"
+      }
+    },
     "coachCalendar": {
       "title": "Kalender",
       "subtitle": "Överblick av alla atleters schema och händelser",

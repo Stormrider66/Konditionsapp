@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Link2,
-  Unlink,
   Activity,
   Watch,
   Clock,
@@ -15,6 +14,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -49,15 +49,6 @@ interface Suggestion {
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 function formatDuration(seconds: number | null): string {
   if (!seconds) return '–'
   const m = Math.round(seconds / 60)
@@ -78,20 +69,37 @@ function confidenceColor(c: number): string {
 }
 
 const INPUT_LABELS: Record<string, string> = {
-  PHOTO: 'Foto',
-  VOICE: 'Röst',
-  TEXT: 'Text',
-  MANUAL_FORM: 'Manuell',
+  PHOTO: 'photo',
+  VOICE: 'voice',
+  TEXT: 'text',
+  MANUAL_FORM: 'manual',
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function WorkoutMergeManager() {
+  const t = useTranslations('components.workoutMergeManager')
+  const locale = useLocale()
+
   const [adHocs, setAdHocs] = useState<UnlinkedAdHoc[]>([])
   const [garmins, setGarmins] = useState<UnlinkedGarmin[]>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [loading, setLoading] = useState(true)
   const [linking, setLinking] = useState<string | null>(null)
+
+  const localeCode = locale === 'en' ? 'en-US' : 'sv-SE'
+
+  const formatDateLocalized = useCallback(
+    (iso: string): string => {
+      return new Date(iso).toLocaleDateString(localeCode, {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    },
+    [localeCode],
+  )
 
   const fetchData = useCallback(async () => {
     try {
@@ -103,14 +111,14 @@ export function WorkoutMergeManager() {
         setSuggestions(data.suggestions || [])
       }
     } catch {
-      toast.error('Kunde inte hämta olänkade träningspass')
+      toast.error(t('toasts.fetchFailed'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
-    fetchData()
+    void fetchData()
   }, [fetchData])
 
   const handleLink = useCallback(
@@ -125,26 +133,26 @@ export function WorkoutMergeManager() {
 
         if (!res.ok) {
           const err = await res.json()
-          throw new Error(err.error || 'Failed')
+          throw new Error(err.error || t('toasts.linkFailed'))
         }
 
-        toast.success('Träningspass länkade!')
+        toast.success(t('toasts.linkSuccess'))
         // Refresh data
         await fetchData()
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Kunde inte länka')
+        toast.error(err instanceof Error ? err.message : t('toasts.linkFailed'))
       } finally {
         setLinking(null)
       }
     },
-    [fetchData]
+    [fetchData, t]
   )
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Söker olänkade pass...
+        {t('loading')}
       </div>
     )
   }
@@ -156,8 +164,8 @@ export function WorkoutMergeManager() {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-40" />
-        <p>Alla träningspass är länkade</p>
-        <p className="text-xs mt-1">Inga dubbletter hittades de senaste 14 dagarna</p>
+        <p>{t('empty.allLinked')}</p>
+        <p className="text-xs mt-1">{t('empty.noDuplicates')}</p>
       </div>
     )
   }
@@ -167,7 +175,7 @@ export function WorkoutMergeManager() {
       {/* Suggested matches */}
       {hasSuggestions && (
         <div className="space-y-3">
-          <h3 className="font-semibold text-sm">Föreslagna kopplingar</h3>
+          <h3 className="font-semibold text-sm">{t('sections.suggestedMatches')}</h3>
           {suggestions.map((s) => {
             const adHoc = adHocs.find((a) => a.id === s.adHocId)
             const garmin = garmins.find((g) => g.id === s.garminId)
@@ -181,7 +189,7 @@ export function WorkoutMergeManager() {
                   {/* Confidence badge */}
                   <div className="flex items-center justify-between mb-2">
                     <Badge className={`text-[10px] ${confidenceColor(s.confidence)}`}>
-                      {Math.round(s.confidence * 100)}% match
+                      {t('badges.matchPercent', { percent: Math.round(s.confidence * 100) })}
                     </Badge>
                     <div className="flex gap-1">
                       {s.reasons.map((r, i) => (
@@ -198,17 +206,17 @@ export function WorkoutMergeManager() {
                     <div className="bg-blue-50 rounded-md p-2 space-y-1">
                       <div className="flex items-center gap-1.5">
                         <Activity className="h-3.5 w-3.5 text-blue-600" />
-                        <span className="font-medium text-xs">Loggat pass</span>
+                        <span className="font-medium text-xs">{t('labels.loggedWorkout')}</span>
                       </div>
                       <p className="text-sm font-medium truncate">
-                        {adHoc.workoutName || adHoc.parsedType || 'Träningspass'}
+                        {adHoc.workoutName || adHoc.parsedType || t('labels.fallbackWorkout')}
                       </p>
                       <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {formatDate(adHoc.workoutDate)}
+                        {formatDateLocalized(adHoc.workoutDate)}
                       </div>
                       <Badge variant="outline" className="text-[9px]">
-                        {INPUT_LABELS[adHoc.inputType] || adHoc.inputType}
+                        {t(`inputLabels.${INPUT_LABELS[adHoc.inputType] ?? adHoc.inputType}`)}
                       </Badge>
                     </div>
 
@@ -226,7 +234,7 @@ export function WorkoutMergeManager() {
                         ) : (
                           <>
                             <Link2 className="h-3 w-3 mr-1" />
-                            Länka
+                            {t('actions.link')}
                           </>
                         )}
                       </Button>
@@ -236,14 +244,14 @@ export function WorkoutMergeManager() {
                     <div className="bg-green-50 rounded-md p-2 space-y-1">
                       <div className="flex items-center gap-1.5">
                         <Watch className="h-3.5 w-3.5 text-green-600" />
-                        <span className="font-medium text-xs">Garmin</span>
+                        <span className="font-medium text-xs">{t('labels.garmin')}</span>
                       </div>
                       <p className="text-sm font-medium truncate">
                         {garmin.name || garmin.type}
                       </p>
                       <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {formatDate(garmin.startDate)}
+                        {formatDateLocalized(garmin.startDate)}
                       </div>
                       <div className="flex gap-1.5 text-[10px] text-muted-foreground">
                         {garmin.duration && <span>{formatDuration(garmin.duration)}</span>}
@@ -266,12 +274,12 @@ export function WorkoutMergeManager() {
           <div className="space-y-2">
             <h3 className="font-semibold text-sm flex items-center gap-1.5">
               <Activity className="h-4 w-4 text-blue-600" />
-              Olänkade loggade pass ({adHocs.length})
+              {t('sections.unlinkedLogged', { count: adHocs.length })}
             </h3>
             {adHocs.map((a) => (
               <div key={a.id} className="border rounded-md p-2 text-sm">
-                <p className="font-medium truncate">{a.workoutName || a.parsedType || 'Träningspass'}</p>
-                <p className="text-xs text-muted-foreground">{formatDate(a.workoutDate)}</p>
+                <p className="font-medium truncate">{a.workoutName || a.parsedType || t('labels.fallbackWorkout')}</p>
+                <p className="text-xs text-muted-foreground">{formatDateLocalized(a.workoutDate)}</p>
               </div>
             ))}
           </div>
@@ -282,13 +290,13 @@ export function WorkoutMergeManager() {
           <div className="space-y-2">
             <h3 className="font-semibold text-sm flex items-center gap-1.5">
               <Watch className="h-4 w-4 text-green-600" />
-              Olänkade Garmin-pass ({garmins.length})
+              {t('sections.unlinkedGarmin', { count: garmins.length })}
             </h3>
             {garmins.map((g) => (
               <div key={g.id} className="border rounded-md p-2 text-sm">
                 <p className="font-medium truncate">{g.name || g.type}</p>
                 <div className="flex gap-2 text-xs text-muted-foreground">
-                  <span>{formatDate(g.startDate)}</span>
+                  <span>{formatDateLocalized(g.startDate)}</span>
                   {g.duration && <span>{formatDuration(g.duration)}</span>}
                 </div>
               </div>

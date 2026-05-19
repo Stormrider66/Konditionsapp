@@ -13953,6 +13953,40 @@
         "none": "No participants yet"
       }
     },
+    "workoutMergeManager": {
+      "toasts": {
+        "fetchFailed": "Could not load unlinked workouts",
+        "linkSuccess": "Workouts linked",
+        "linkFailed": "Could not link workouts"
+      },
+      "loading": "Loading unlinked workouts...",
+      "empty": {
+        "allLinked": "No unmatched workouts. Everything is already linked.",
+        "noDuplicates": "No duplicates found."
+      },
+      "sections": {
+        "suggestedMatches": "Suggested matches",
+        "unlinkedLogged": "{count, plural, one {Unlinked logged workout} other {Unlinked logged workouts}}",
+        "unlinkedGarmin": "{count, plural, one {Unlinked Garmin workout} other {Unlinked Garmin workouts}}"
+      },
+      "badges": {
+        "matchPercent": "{percent}% match"
+      },
+      "labels": {
+        "loggedWorkout": "Logged workout",
+        "garmin": "Garmin",
+        "fallbackWorkout": "Workout"
+      },
+      "inputLabels": {
+        "photo": "Photo",
+        "voice": "Voice",
+        "text": "Text",
+        "manual": "Manual"
+      },
+      "actions": {
+        "link": "Link"
+      }
+    },
     "coachCalendar": {
       "title": "Calendar",
       "subtitle": "Overview of all athletes' schedules and events",
