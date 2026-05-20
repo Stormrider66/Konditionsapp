@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useLocale } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +24,9 @@ interface UnitEconomicsPanelProps {
 }
 
 export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
+  const numberLocale = locale === 'sv' ? 'sv-SE' : 'en-US';
+  const formatCurrency = (value: number) => formatSek(value, locale);
   const [summary, setSummary] = useState<UnitEconomicsSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -81,25 +85,25 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           title="Platform MRR"
-          value={formatSek(summary.revenue.platformMrrSek)}
-          detail={`ARPA ${formatSek(summary.revenue.arpaSek)}`}
+          value={formatCurrency(summary.revenue.platformMrrSek)}
+          detail={`ARPA ${formatCurrency(summary.revenue.arpaSek)}`}
           icon={<CreditCard className="h-5 w-5 text-emerald-600" />}
         />
         <MetricCard
           title="Gross margin"
           value={`${summary.margins.grossMarginPercent}%`}
-          detail={`${formatSek(summary.margins.grossProfitSek)} after direct costs`}
+          detail={`${formatCurrency(summary.margins.grossProfitSek)} after direct costs`}
           icon={<TrendingUp className="h-5 w-5 text-blue-600" />}
         />
         <MetricCard
           title="Contribution"
           value={`${summary.margins.contributionMarginPercent}%`}
-          detail={`${formatSek(summary.margins.contributionProfitSek)} after support/onboarding`}
+          detail={`${formatCurrency(summary.margins.contributionProfitSek)} after support/onboarding`}
           icon={<Activity className="h-5 w-5 text-violet-600" />}
         />
         <MetricCard
           title="Revenue accounts"
-          value={summary.customers.activeRevenueAccounts.toLocaleString('sv-SE')}
+          value={summary.customers.activeRevenueAccounts.toLocaleString(numberLocale)}
           detail={`${summary.customers.estimatedLogoChurnPercent}% estimated churn`}
           icon={<Users className="h-5 w-5 text-orange-600" />}
         />
@@ -128,13 +132,13 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <CostLine label="Coach MRR" value={summary.revenue.coachMrrSek} positive />
-              <CostLine label="Athlete platform MRR" value={summary.revenue.athletePlatformMrrSek} positive />
-              <CostLine label="Enterprise MRR" value={summary.revenue.enterpriseMrrSek} positive />
-              <CostLine label="Direct monthly cost" value={summary.costs.directCostSek} />
-              <CostLine label="Provider invoice adjustment" value={summary.costs.providerInvoiceAdjustmentSekMonthlyized} />
-              <CostLine label="AI cost per revenue account" value={summary.usage.aiCostPerActiveRevenueAccountSek} />
-              <CostLine label="Support load" value={summary.costs.supportCostSekMonthlyized} />
+              <CostLine label="Coach MRR" value={summary.revenue.coachMrrSek} locale={locale} positive />
+              <CostLine label="Athlete platform MRR" value={summary.revenue.athletePlatformMrrSek} locale={locale} positive />
+              <CostLine label="Enterprise MRR" value={summary.revenue.enterpriseMrrSek} locale={locale} positive />
+              <CostLine label="Direct monthly cost" value={summary.costs.directCostSek} locale={locale} />
+              <CostLine label="Provider invoice adjustment" value={summary.costs.providerInvoiceAdjustmentSekMonthlyized} locale={locale} />
+              <CostLine label="AI cost per revenue account" value={summary.usage.aiCostPerActiveRevenueAccountSek} locale={locale} />
+              <CostLine label="Support load" value={summary.costs.supportCostSekMonthlyized} locale={locale} />
             </div>
           </CardContent>
         </Card>
@@ -146,11 +150,11 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <Assumption label="USD to SEK" value={summary.assumptions.usdToSek.toFixed(2)} />
-            <Assumption label="Fixed infrastructure" value={formatSek(summary.assumptions.fixedInfraSekPerMonth)} />
-            <Assumption label="Variable infra / user" value={formatSek(summary.assumptions.variableInfraSekPerActiveUser)} />
-            <Assumption label="Payment fee" value={`${summary.assumptions.paymentFeePercent}% + ${formatSek(summary.assumptions.paymentFixedFeeSek)}`} />
+            <Assumption label="Fixed infrastructure" value={formatCurrency(summary.assumptions.fixedInfraSekPerMonth)} />
+            <Assumption label="Variable infra / user" value={formatCurrency(summary.assumptions.variableInfraSekPerActiveUser)} />
+            <Assumption label="Payment fee" value={`${summary.assumptions.paymentFeePercent}% + ${formatCurrency(summary.assumptions.paymentFixedFeeSek)}`} />
             <Assumption label="Support per ticket" value={`${summary.assumptions.supportMinutesPerTicket} min`} />
-            <Assumption label="Internal hourly cost" value={formatSek(summary.assumptions.internalHourlyCostSek)} />
+            <Assumption label="Internal hourly cost" value={formatCurrency(summary.assumptions.internalHourlyCostSek)} />
           </CardContent>
         </Card>
       </div>
@@ -177,14 +181,14 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
                 <TableRow key={segment.segment}>
                   <TableCell className="font-medium">{segment.segment}</TableCell>
                   <TableCell className="text-right">{segment.activeAccounts}</TableCell>
-                  <TableCell className="text-right">{formatSek(segment.mrrSek)}</TableCell>
-                  <TableCell className="text-right">{formatSek(segment.aiCostSekMonthlyized)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(segment.mrrSek)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(segment.aiCostSekMonthlyized)}</TableCell>
                   <TableCell className="text-right">
                     <Badge variant="outline" className={marginClass(segment.grossMarginPercent)}>
                       {segment.grossMarginPercent}%
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">{formatSek(segment.revenuePerAccountSek)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(segment.revenuePerAccountSek)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -200,10 +204,10 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <CostLine label="Google invoice" value={summary.providerCosts.invoiceGoogleCostSek} positive />
-              <CostLine label="Google estimate" value={summary.providerCosts.estimatedGoogleCostSek} />
-              <CostLine label="Uncovered gap" value={summary.providerCosts.invoiceAdjustmentSek} />
-              <CostLine label="Coverage" value={summary.providerCosts.invoiceCoveragePercent} suffix="%" />
+              <CostLine label="Google invoice" value={summary.providerCosts.invoiceGoogleCostSek} locale={locale} positive />
+              <CostLine label="Google estimate" value={summary.providerCosts.estimatedGoogleCostSek} locale={locale} />
+              <CostLine label="Uncovered gap" value={summary.providerCosts.invoiceAdjustmentSek} locale={locale} />
+              <CostLine label="Coverage" value={summary.providerCosts.invoiceCoveragePercent} locale={locale} suffix="%" />
             </div>
 
             <Table>
@@ -224,7 +228,7 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
                   summary.providerCosts.bySku.map((sku) => (
                     <TableRow key={`${sku.provider}-${sku.skuDescription}`}>
                       <TableCell className="text-sm">{sku.skuDescription}</TableCell>
-                      <TableCell className="text-right">{formatSek(sku.costSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(sku.costSek)}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -262,7 +266,7 @@ export function UnitEconomicsPanel({ range }: UnitEconomicsPanelProps) {
                         <div className="text-xs text-muted-foreground">{user.email}</div>
                       </TableCell>
                       <TableCell>{user.segment}</TableCell>
-                      <TableCell className="text-right">{formatSek(user.aiCostSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(user.aiCostSek)}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -343,19 +347,23 @@ function MarginRow({
 function CostLine({
   label,
   value,
+  locale,
   positive = false,
   suffix,
 }: {
   label: string;
   value: number;
+  locale: 'en' | 'sv';
   positive?: boolean;
   suffix?: string;
 }) {
+  const numberLocale = locale === 'sv' ? 'sv-SE' : 'en-US';
+
   return (
     <div className="rounded-lg border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={positive ? 'text-lg font-semibold text-emerald-700' : 'text-lg font-semibold'}>
-        {suffix ? `${value.toLocaleString('sv-SE')}${suffix}` : formatSek(value)}
+        {suffix ? `${value.toLocaleString(numberLocale)}${suffix}` : formatSek(value, locale)}
       </p>
     </div>
   );
@@ -370,8 +378,8 @@ function Assumption({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatSek(value: number): string {
-  return new Intl.NumberFormat('sv-SE', {
+function formatSek(value: number, locale: 'en' | 'sv'): string {
+  return new Intl.NumberFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
     style: 'currency',
     currency: 'SEK',
     maximumFractionDigits: 0,
