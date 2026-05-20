@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AlertTriangle, Bot, Coins, Gauge, Link2, ReceiptText } from 'lucide-react'
+import { useLocale } from 'next-intl'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,6 +20,8 @@ import {
 interface AICostOverviewPanelProps {
   range: string
 }
+
+type AppLocale = 'en' | 'sv'
 
 interface CostBucket {
   key: string
@@ -161,6 +164,8 @@ interface FeatureMixBucket {
 }
 
 export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const numberLocale = getNumberLocale(locale)
   const [overview, setOverview] = useState<AICostOverview | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -216,32 +221,35 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
     overview.totals.costSek > 0
       ? Math.round((overview.totals.athleteLinkedCostSek / overview.totals.costSek) * 100)
       : 0
+  const formatCurrency = (value: number) => formatSek(value, locale)
+  const formatCompactNumber = (value: number) => formatNumber(value, locale)
+  const formatDisplayDate = (value: string) => formatDate(value, locale)
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           title="AI spend"
-          value={formatSek(overview.totals.costSek)}
-          detail={`${overview.totals.calls.toLocaleString('sv-SE')} logged calls`}
+          value={formatCurrency(overview.totals.costSek)}
+          detail={`${overview.totals.calls.toLocaleString(numberLocale)} logged calls`}
           icon={<Coins className="h-5 w-5 text-emerald-600" />}
         />
         <MetricCard
           title="Athlete-linked"
-          value={formatSek(overview.totals.athleteLinkedCostSek)}
+          value={formatCurrency(overview.totals.athleteLinkedCostSek)}
           detail={`${athleteShare}% of logged spend has a client`}
           icon={<Link2 className="h-5 w-5 text-blue-600" />}
         />
         <MetricCard
           title="Average call"
-          value={formatSek(overview.totals.averageCostSek)}
-          detail={`${formatNumber(overview.totals.inputTokens + overview.totals.outputTokens)} tokens total`}
+          value={formatCurrency(overview.totals.averageCostSek)}
+          detail={`${formatCompactNumber(overview.totals.inputTokens + overview.totals.outputTokens)} tokens total`}
           icon={<Gauge className="h-5 w-5 text-violet-600" />}
         />
         <MetricCard
           title="Unattributed"
-          value={formatSek(overview.totals.unattributedCostSek)}
-          detail={`${overview.totals.unattributedCalls.toLocaleString('sv-SE')} calls without user/client`}
+          value={formatCurrency(overview.totals.unattributedCostSek)}
+          detail={`${overview.totals.unattributedCalls.toLocaleString(numberLocale)} calls without user/client`}
           icon={<ReceiptText className="h-5 w-5 text-amber-600" />}
         />
       </div>
@@ -251,7 +259,7 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
           <Bot className="h-4 w-4" />
           <AlertTitle>Top AI cost driver: {topCategory.label}</AlertTitle>
           <AlertDescription>
-            {formatSek(topCategory.costSek)} across {topCategory.calls.toLocaleString('sv-SE')} calls in the last {overview.period.days} days
+            {formatCurrency(topCategory.costSek)} across {topCategory.calls.toLocaleString(numberLocale)} calls in the last {overview.period.days} days
             {overview.featureMix.topCategory ? ` (${overview.featureMix.topCategory.costSharePercent}% of spend).` : '.'}
             Use this as the first place to tune prompts, model choice, caching, or tier policy.
           </AlertDescription>
@@ -270,11 +278,13 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
             <FeatureMixStat
               label="Food scanner"
               bucket={overview.featureMix.foodScanner}
+              formattedCost={formatCurrency(overview.featureMix.foodScanner.costSek)}
               detail="Food scan + memory pass"
             />
             <FeatureMixStat
               label="Voice/video/programs"
               bucket={overview.featureMix.heavyInteractive}
+              formattedCost={formatCurrency(overview.featureMix.heavyInteractive.costSek)}
               detail="Guided coach, video, reports, research"
             />
             <div className="rounded-lg border p-3">
@@ -301,23 +311,23 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <TopUpStat label="Revenue" value={formatSek(overview.topUps.revenueSek)} />
-            <TopUpStat label="Credits sold" value={formatSek(overview.topUps.creditsSoldSek)} />
-            <TopUpStat label="Buyers" value={overview.topUps.activeBuyers.toLocaleString('sv-SE')} />
+            <TopUpStat label="Revenue" value={formatCurrency(overview.topUps.revenueSek)} />
+            <TopUpStat label="Credits sold" value={formatCurrency(overview.topUps.creditsSoldSek)} />
+            <TopUpStat label="Buyers" value={overview.topUps.activeBuyers.toLocaleString(numberLocale)} />
             <TopUpStat label="Conversion" value={`${overview.topUps.conversionPercent}%`} />
           </div>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             <div className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">Active purchases</p>
-              <p className="text-lg font-semibold">{overview.topUps.activePurchases.toLocaleString('sv-SE')}</p>
+              <p className="text-lg font-semibold">{overview.topUps.activePurchases.toLocaleString(numberLocale)}</p>
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">Pending checkouts</p>
-              <p className="text-lg font-semibold">{overview.topUps.pendingPurchases.toLocaleString('sv-SE')}</p>
+              <p className="text-lg font-semibold">{overview.topUps.pendingPurchases.toLocaleString(numberLocale)}</p>
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">Unused top-up credits</p>
-              <p className="text-lg font-semibold">{formatSek(overview.topUps.creditsRemainingSek)}</p>
+              <p className="text-lg font-semibold">{formatCurrency(overview.topUps.creditsRemainingSek)}</p>
             </div>
           </div>
           {overview.topUps.recent.length > 0 && (
@@ -335,11 +345,11 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                   {overview.topUps.recent.map((purchase) => (
                     <TableRow key={`${purchase.clientId}-${purchase.createdAt}`}>
                       <TableCell>
-                        <div className="font-medium">{formatDate(purchase.createdAt)}</div>
+                        <div className="font-medium">{formatDisplayDate(purchase.createdAt)}</div>
                         <div className="text-xs text-muted-foreground">{purchase.clientId}</div>
                       </TableCell>
-                      <TableCell className="text-right">{formatSek(purchase.amountPaidSek)}</TableCell>
-                      <TableCell className="text-right">{formatSek(purchase.creditsSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(purchase.amountPaidSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(purchase.creditsSek)}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline">{purchase.status}</Badge>
                       </TableCell>
@@ -361,9 +371,9 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <TopUpStat label="Google invoice" value={formatSek(overview.reconciliation.googleInvoiceSek)} />
-            <TopUpStat label="Google estimate" value={formatSek(overview.reconciliation.googleEstimatedSek)} />
-            <TopUpStat label="Google gap" value={formatSek(overview.reconciliation.googleGapSek)} />
+            <TopUpStat label="Google invoice" value={formatCurrency(overview.reconciliation.googleInvoiceSek)} />
+            <TopUpStat label="Google estimate" value={formatCurrency(overview.reconciliation.googleEstimatedSek)} />
+            <TopUpStat label="Google gap" value={formatCurrency(overview.reconciliation.googleGapSek)} />
             <TopUpStat
               label="Coverage"
               value={overview.reconciliation.googleCoveragePercent === null
@@ -393,13 +403,17 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                       <TableCell>
                         <div className="font-medium">{provider.label}</div>
                         <div className="text-xs text-muted-foreground">
-                          {provider.rows.toLocaleString('sv-SE')} imported rows
+                          {provider.rows.toLocaleString(numberLocale)} imported rows
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">{formatSek(provider.invoiceSek)}</TableCell>
-                      <TableCell className="text-right">{formatSek(provider.estimatedSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(provider.invoiceSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(provider.estimatedSek)}</TableCell>
                       <TableCell className="text-right">
-                        <InvoiceGapBadge value={provider.gapSek} coverage={provider.coveragePercent} />
+                        <InvoiceGapBadge
+                          value={provider.gapSek}
+                          formattedValue={formatCurrency(provider.gapSek)}
+                          coverage={provider.coveragePercent}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -422,7 +436,7 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                           {[row.provider, row.skuDescription].filter(Boolean).join(' · ')}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">{formatSek(row.costSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(row.costSek)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -464,12 +478,12 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                       <TableCell>
                         <div className="font-medium">{tier.tier}</div>
                         <div className="text-xs text-muted-foreground">
-                          Avg {formatSek(tier.averageCostPerAthleteSek)} / athlete
+                          Avg {formatCurrency(tier.averageCostPerAthleteSek)} / athlete
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">{tier.athletes.toLocaleString('sv-SE')}</TableCell>
-                      <TableCell className="text-right">{formatSek(tier.costSek)}</TableCell>
-                      <TableCell className="text-right">{formatSek(tier.monthlyRevenueSek)}</TableCell>
+                      <TableCell className="text-right">{tier.athletes.toLocaleString(numberLocale)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(tier.costSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(tier.monthlyRevenueSek)}</TableCell>
                       <TableCell className="text-right">
                         <RiskBadge value={tier.costToRevenuePercent} />
                       </TableCell>
@@ -515,8 +529,8 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                           {[user.tier, user.businessName].filter(Boolean).join(' · ')}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">{formatSek(user.costSek)}</TableCell>
-                      <TableCell className="text-right">{formatSek(user.includedAllowanceSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(user.costSek)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(user.includedAllowanceSek)}</TableCell>
                       <TableCell className="text-right">
                         <RiskBadge value={user.costToRevenuePercent ?? user.allowanceUsedPercent} />
                       </TableCell>
@@ -530,7 +544,7 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                           </span>
                           {user.hasActiveTopUp && (
                             <span className="text-xs text-muted-foreground">
-                              Top-ups: {formatSek(user.topUpRevenueSek)}
+                              Top-ups: {formatCurrency(user.topUpRevenueSek)}
                             </span>
                           )}
                         </div>
@@ -577,12 +591,12 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                         <div className="font-medium">{category.label}</div>
                         <div className="text-xs text-muted-foreground">{category.key}</div>
                       </TableCell>
-                      <TableCell className="text-right font-medium">{formatSek(category.costSek)}</TableCell>
-                      <TableCell className="text-right">{category.calls.toLocaleString('sv-SE')}</TableCell>
-                      <TableCell className="text-right">{formatSek(category.averageCostSek)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(category.costSek)}</TableCell>
+                      <TableCell className="text-right">{category.calls.toLocaleString(numberLocale)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(category.averageCostSek)}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline">
-                          {category.athleteLinkedCalls.toLocaleString('sv-SE')} calls
+                          {category.athleteLinkedCalls.toLocaleString(numberLocale)} calls
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -608,10 +622,10 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                     <div>
                       <p className="font-medium">{provider.label}</p>
                       <p className="text-xs text-muted-foreground">
-                        {provider.calls.toLocaleString('sv-SE')} calls
+                        {provider.calls.toLocaleString(numberLocale)} calls
                       </p>
                     </div>
-                    <p className="font-semibold">{formatSek(provider.costSek)}</p>
+                    <p className="font-semibold">{formatCurrency(provider.costSek)}</p>
                   </div>
                 </div>
               ))
@@ -646,8 +660,8 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                   overview.byModel.map((model) => (
                     <TableRow key={model.key}>
                       <TableCell className="font-medium">{model.label}</TableCell>
-                      <TableCell className="text-right">{formatSek(model.costSek)}</TableCell>
-                      <TableCell className="text-right">{model.calls.toLocaleString('sv-SE')}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(model.costSek)}</TableCell>
+                      <TableCell className="text-right">{model.calls.toLocaleString(numberLocale)}</TableCell>
                     </TableRow>
                   ))
                 )}
@@ -674,8 +688,8 @@ export function AICostOverviewPanel({ range }: AICostOverviewPanelProps) {
                 {overview.daily.slice(-10).reverse().map((day) => (
                   <TableRow key={day.date}>
                     <TableCell>{day.date}</TableCell>
-                    <TableCell className="text-right">{formatSek(day.costSek)}</TableCell>
-                    <TableCell className="text-right">{day.calls.toLocaleString('sv-SE')}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(day.costSek)}</TableCell>
+                    <TableCell className="text-right">{day.calls.toLocaleString(numberLocale)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -699,16 +713,18 @@ function TopUpStat({ label, value }: { label: string; value: string }) {
 function FeatureMixStat({
   label,
   bucket,
+  formattedCost,
   detail,
 }: {
   label: string
   bucket: FeatureMixBucket
+  formattedCost: string
   detail: string
 }) {
   return (
     <div className="rounded-lg border p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-lg font-semibold">{formatSek(bucket.costSek)}</p>
+      <p className="text-lg font-semibold">{formattedCost}</p>
       <p className="mt-1 text-xs text-muted-foreground">
         {bucket.costSharePercent}% of spend · {bucket.callSharePercent}% of calls
       </p>
@@ -737,9 +753,11 @@ function RiskBadge({ value }: { value: number | null }) {
 
 function InvoiceGapBadge({
   value,
+  formattedValue,
   coverage,
 }: {
   value: number
+  formattedValue: string
   coverage: number | null
 }) {
   const className = value > 10
@@ -751,7 +769,7 @@ function InvoiceGapBadge({
   return (
     <div className="flex flex-col items-end gap-1">
       <Badge variant="outline" className={className}>
-        {formatSek(value)}
+        {formattedValue}
       </Badge>
       <span className="text-xs text-muted-foreground">
         {coverage === null ? 'No invoice' : `${coverage}% covered`}
@@ -805,23 +823,27 @@ function MetricCard({
   )
 }
 
-function formatSek(value: number): string {
-  return new Intl.NumberFormat('sv-SE', {
+function getNumberLocale(locale: AppLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
+function formatSek(value: number, locale: AppLocale): string {
+  return new Intl.NumberFormat(getNumberLocale(locale), {
     style: 'currency',
     currency: 'SEK',
     maximumFractionDigits: value >= 10 ? 0 : 2,
   }).format(value)
 }
 
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat('sv-SE', {
+function formatNumber(value: number, locale: AppLocale): string {
+  return new Intl.NumberFormat(getNumberLocale(locale), {
     notation: value >= 100_000 ? 'compact' : 'standard',
     maximumFractionDigits: 1,
   }).format(value)
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('sv-SE', {
+function formatDate(value: string, locale: AppLocale): string {
+  return new Intl.DateTimeFormat(getNumberLocale(locale), {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
