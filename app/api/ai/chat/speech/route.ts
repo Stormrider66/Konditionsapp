@@ -66,12 +66,14 @@ function estimateTtsCostUsd(text: string): {
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const body = await request.json().catch(() => null)
     const parsed = requestSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Send the text that should be read aloud.' },
+        { error: t(locale, 'Send the text that should be read aloud.', 'Skicka texten som ska läsas upp.') },
         { status: 400 }
       )
     }
@@ -79,9 +81,9 @@ export async function POST(request: NextRequest) {
     const { text, isAthleteChat, businessSlug } = parsed.data
     const currentUser = await getCurrentUser()
     if (!currentUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = getUserLocale(currentUser.language)
+    locale = getUserLocale(currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-speech', currentUser.id, {
       limit: 30,
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest) {
     if (isAthleteChat) {
       const resolved = await resolveAthleteClientId()
       if (!resolved) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
       }
 
       const access = await checkAthleteFeatureAccess(resolved.clientId, 'ai_chat')
@@ -134,7 +136,7 @@ export async function POST(request: NextRequest) {
       })
       if (!clientRecord?.userId) {
         return NextResponse.json(
-          { error: 'Athlete account not properly linked to coach' },
+          { error: t(locale, 'Athlete account is not properly linked to a coach', 'Atletkontot är inte korrekt kopplat till en coach') },
           { status: 400 }
         )
       }
@@ -222,7 +224,7 @@ export async function POST(request: NextRequest) {
     logger.error('Chat speech generation error', {}, error)
     return NextResponse.json(
       {
-        error: "Could not create the AI voice right now. I can use the browser's voice as a fallback.",
+        error: t(locale, "Could not create the AI voice right now. I can use the browser's voice as a fallback.", 'Kunde inte skapa AI-rösten just nu. Jag kan använda webbläsarens röst som fallback.'),
         fallback: 'browser_speech',
         details:
           process.env.NODE_ENV === 'production'

@@ -57,13 +57,15 @@ async function resolveBusinessId(businessSlug?: string): Promise<string | null> 
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     let formData: FormData
     try {
       formData = await request.formData()
     } catch {
       return NextResponse.json(
-        { error: 'Send the voice message as form data.' },
+        { error: t(locale, 'Send the voice message as form data.', 'Skicka röstmeddelandet som formulärdata.') },
         { status: 400 }
       )
     }
@@ -73,29 +75,29 @@ export async function POST(request: NextRequest) {
     const businessSlug = getFormString(formData, 'businessSlug')
 
     if (!audioFile) {
-      return NextResponse.json({ error: 'No audio file uploaded' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No audio file uploaded', 'Ingen ljudfil uppladdad') }, { status: 400 })
     }
 
     const baseType = audioFile.type.split(';')[0].trim()
     if (!VALID_AUDIO_TYPES.includes(baseType)) {
       return NextResponse.json(
-        { error: 'Invalid audio format. Use WebM, MP4, WAV, OGG, or MP3.' },
+        { error: t(locale, 'Invalid audio format. Use WebM, MP4, WAV, OGG, or MP3.', 'Ogiltigt ljudformat. Använd WebM, MP4, WAV, OGG eller MP3.') },
         { status: 400 }
       )
     }
 
     if (audioFile.size > MAX_AUDIO_SIZE) {
       return NextResponse.json(
-        { error: 'The voice message must not be larger than 5MB.' },
+        { error: t(locale, 'The voice message must not be larger than 5MB.', 'Röstmeddelandet får inte vara större än 5 MB.') },
         { status: 400 }
       )
     }
 
     const currentUser = await getCurrentUser()
     if (!currentUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = getUserLocale(currentUser.language)
+    locale = getUserLocale(currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-voice-transcribe', currentUser.id, {
       limit: 12,
@@ -109,7 +111,7 @@ export async function POST(request: NextRequest) {
     if (isAthleteChat) {
       const resolved = await resolveAthleteClientId()
       if (!resolved) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
       }
 
       const access = await checkAthleteFeatureAccess(resolved.clientId, 'ai_chat')
@@ -146,7 +148,7 @@ export async function POST(request: NextRequest) {
         isCoachInAthleteMode: resolved.isCoachInAthleteMode,
       })
       if (!keyContext) {
-        return NextResponse.json({ error: 'Athlete account not found' }, { status: 400 })
+        return NextResponse.json({ error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') }, { status: 400 })
       }
 
       googleKey = keyContext.googleKey
@@ -205,7 +207,7 @@ export async function POST(request: NextRequest) {
     logger.error('Chat voice transcription error', {}, error)
     return NextResponse.json(
       {
-        error: 'Could not transcribe the voice message',
+        error: t(locale, 'Could not transcribe the voice message', 'Kunde inte transkribera röstmeddelandet'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
