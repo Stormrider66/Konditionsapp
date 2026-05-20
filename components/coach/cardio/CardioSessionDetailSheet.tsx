@@ -42,6 +42,120 @@ import {
 import type { CardioSessionData, CardioSegment, SessionAssignment } from '@/types';
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
+import { useLocale } from '@/i18n/client';
+
+type AppLocale = 'en' | 'sv';
+
+const copy = {
+  en: {
+    sports: {
+      RUNNING: 'Running',
+      CYCLING: 'Cycling',
+      SWIMMING: 'Swimming',
+      SKIING: 'Skiing',
+      TRIATHLON: 'Triathlon',
+      HYROX: 'HYROX',
+      GENERAL_FITNESS: 'General Fitness',
+    },
+    segmentTypes: {
+      WARMUP: 'Warm-up',
+      COOLDOWN: 'Cool-down',
+      INTERVAL: 'Interval',
+      STEADY: 'Steady pace',
+      RECOVERY: 'Recovery',
+      REST: 'Rest',
+      HILL: 'Hill',
+      DRILLS: 'Technique',
+      REPEAT_GROUP: 'Repeat block',
+      CORE: 'Core',
+      PREHAB: 'Stability / Prehab',
+      PLYOMETRIC: 'Plyometric',
+    },
+    status: {
+      PENDING: 'Pending',
+      SCHEDULED: 'Scheduled',
+      COMPLETED: 'Completed',
+      SKIPPED: 'Skipped',
+      MODIFIED: 'Modified',
+    },
+    edit: 'Edit',
+    delete: 'Delete',
+    assign: 'Assign',
+    assignTeam: 'Assign team',
+    zone: 'Zone',
+    totalTime: 'Total time',
+    distance: 'Distance',
+    segments: 'Segments',
+    zoneDistribution: 'Zone distribution',
+    easyZones: 'Z1-2 Easy',
+    mediumZone: 'Z3 Medium',
+    hardZones: 'Z4-5 Hard',
+    repeatBlock: 'Repeat block',
+    rest: 'Rest',
+    betweenRounds: 'between rounds',
+    noSegments: 'No segments added',
+    assignments: 'Assignments',
+    loadingAssignments: 'Loading assignments...',
+    noAssignments: 'No assignments yet',
+    unknown: 'Unknown',
+  },
+  sv: {
+    sports: {
+      RUNNING: 'Löpning',
+      CYCLING: 'Cykling',
+      SWIMMING: 'Simning',
+      SKIING: 'Skidor',
+      TRIATHLON: 'Triathlon',
+      HYROX: 'HYROX',
+      GENERAL_FITNESS: 'Allmän Kondition',
+    },
+    segmentTypes: {
+      WARMUP: 'Uppvärmning',
+      COOLDOWN: 'Nedvarvning',
+      INTERVAL: 'Intervall',
+      STEADY: 'Jämnt tempo',
+      RECOVERY: 'Återhämtning',
+      REST: 'Vila',
+      HILL: 'Backe',
+      DRILLS: 'Teknik',
+      REPEAT_GROUP: 'Repetitionsblock',
+      CORE: 'Core',
+      PREHAB: 'Stabilitet / Prehab',
+      PLYOMETRIC: 'Plyometri',
+    },
+    status: {
+      PENDING: 'Väntande',
+      SCHEDULED: 'Schemalagd',
+      COMPLETED: 'Genomförd',
+      SKIPPED: 'Hoppade över',
+      MODIFIED: 'Modifierad',
+    },
+    edit: 'Redigera',
+    delete: 'Ta bort',
+    assign: 'Tilldela',
+    assignTeam: 'Tilldela lag',
+    zone: 'Zon',
+    totalTime: 'Total tid',
+    distance: 'Distans',
+    segments: 'Segment',
+    zoneDistribution: 'Zonfördelning',
+    easyZones: 'Z1-2 Lätt',
+    mediumZone: 'Z3 Medel',
+    hardZones: 'Z4-5 Hårt',
+    repeatBlock: 'Repetitionsblock',
+    rest: 'Vila',
+    betweenRounds: 'mellan rundor',
+    noSegments: 'Inga segment tillagda',
+    assignments: 'Tilldelningar',
+    loadingAssignments: 'Laddar tilldelningar...',
+    noAssignments: 'Inga tilldelningar än',
+    unknown: 'Okänd',
+  },
+} as const;
+
+function formatDate(date: Date | string, locale: AppLocale) {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US');
+}
 
 interface CardioSessionDetailSheetProps {
   session: CardioSessionData | null;
@@ -53,29 +167,29 @@ interface CardioSessionDetailSheetProps {
   onTeamAssign?: () => void;
 }
 
-const sportLabels: Record<string, { label: string; icon: string }> = {
-  RUNNING: { label: 'Löpning', icon: '🏃' },
-  CYCLING: { label: 'Cykling', icon: '🚴' },
-  SWIMMING: { label: 'Simning', icon: '🏊' },
-  SKIING: { label: 'Skidor', icon: '⛷️' },
-  TRIATHLON: { label: 'Triathlon', icon: '🏊🚴🏃' },
-  HYROX: { label: 'HYROX', icon: '💪' },
-  GENERAL_FITNESS: { label: 'Allmän Kondition', icon: '🏋️' },
+const sportIcons: Record<string, string> = {
+  RUNNING: '🏃',
+  CYCLING: '🚴',
+  SWIMMING: '🏊',
+  SKIING: '⛷️',
+  TRIATHLON: '🏊🚴🏃',
+  HYROX: '💪',
+  GENERAL_FITNESS: '🏋️',
 };
 
-const segmentTypeLabels: Record<string, { label: string; color: string }> = {
-  WARMUP: { label: 'Uppvärmning', color: 'bg-yellow-500' },
-  COOLDOWN: { label: 'Nedvarvning', color: 'bg-blue-300' },
-  INTERVAL: { label: 'Intervall', color: 'bg-red-500' },
-  STEADY: { label: 'Jämnt tempo', color: 'bg-green-500' },
-  RECOVERY: { label: 'Återhämtning', color: 'bg-gray-400' },
-  REST: { label: 'Vila', color: 'bg-gray-400' },
-  HILL: { label: 'Backe', color: 'bg-orange-500' },
-  DRILLS: { label: 'Teknik', color: 'bg-purple-500' },
-  REPEAT_GROUP: { label: 'Repetitionsblock', color: 'bg-indigo-500' },
-  CORE: { label: 'Core', color: 'bg-purple-500' },
-  PREHAB: { label: 'Stabilitet / Prehab', color: 'bg-teal-500' },
-  PLYOMETRIC: { label: 'Plyometri', color: 'bg-amber-500' },
+const segmentTypeColors: Record<string, string> = {
+  WARMUP: 'bg-yellow-500',
+  COOLDOWN: 'bg-blue-300',
+  INTERVAL: 'bg-red-500',
+  STEADY: 'bg-green-500',
+  RECOVERY: 'bg-gray-400',
+  REST: 'bg-gray-400',
+  HILL: 'bg-orange-500',
+  DRILLS: 'bg-purple-500',
+  REPEAT_GROUP: 'bg-indigo-500',
+  CORE: 'bg-purple-500',
+  PREHAB: 'bg-teal-500',
+  PLYOMETRIC: 'bg-amber-500',
 };
 
 const zoneColors: Record<number, string> = {
@@ -86,12 +200,12 @@ const zoneColors: Record<number, string> = {
   5: 'bg-red-500',
 };
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  PENDING: { label: 'Väntande', color: 'bg-yellow-500' },
-  SCHEDULED: { label: 'Schemalagd', color: 'bg-blue-500' },
-  COMPLETED: { label: 'Genomförd', color: 'bg-green-500' },
-  SKIPPED: { label: 'Hoppade över', color: 'bg-gray-500' },
-  MODIFIED: { label: 'Modifierad', color: 'bg-purple-500' },
+const statusColors: Record<string, string> = {
+  PENDING: 'bg-yellow-500',
+  SCHEDULED: 'bg-blue-500',
+  COMPLETED: 'bg-green-500',
+  SKIPPED: 'bg-gray-500',
+  MODIFIED: 'bg-purple-500',
 };
 
 function formatDuration(seconds?: number): string {
@@ -123,49 +237,57 @@ export function CardioSessionDetailSheet({
   onAssign,
   onTeamAssign,
 }: CardioSessionDetailSheetProps) {
+  const locale = useLocale() as AppLocale;
+  const t = copy[locale] ?? copy.en;
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
 
   const [assignments, setAssignments] = useState<SessionAssignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
+  const sessionId = session?.id;
 
   const fetchAssignments = useCallback(async () => {
-    if (!session?.id) return;
+    if (!sessionId) return;
 
     setLoadingAssignments(true);
     try {
-      const response = await fetch(`/api/cardio-sessions/${session.id}/assign`);
+      const response = await fetch(`/api/cardio-sessions/${sessionId}/assign`);
       if (response.ok) {
         const data = await response.json();
         setAssignments(data.assignments || []);
       }
     } catch (error) {
-      logger.error('Failed to fetch assignments', { sessionId: session?.id }, error);
+      logger.error('Failed to fetch assignments', { sessionId }, error);
     } finally {
       setLoadingAssignments(false);
     }
-  }, [session?.id]);
+  }, [sessionId]);
 
   useEffect(() => {
-    if (open && session?.id) {
-      fetchAssignments();
+    if (open && sessionId) {
+      const timeoutId = window.setTimeout(() => {
+        void fetchAssignments();
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
-  }, [open, session?.id, fetchAssignments]);
+  }, [open, sessionId, fetchAssignments]);
 
   if (!session) return null;
 
-  const sportInfo = sportLabels[session.sport] || { label: session.sport, icon: '🏃' };
+  const sportLabel = t.sports[session.sport as keyof typeof t.sports] || session.sport;
+  const sportIcon = sportIcons[session.sport] || '🏃';
   const segments = session.segments || [];
 
   // Prepare export data
   const exportData = {
     sessionName: session.name,
-    sport: sportInfo.label,
+    sport: sportLabel,
     date: new Date(),
     segments: segments.map((s: CardioSegment, i: number) => ({
       order: i + 1,
-      type: segmentTypeLabels[s.type]?.label || s.type,
+      type: t.segmentTypes[s.type as keyof typeof t.segmentTypes] || s.type,
       duration: s.duration,
       distance: s.distance,
       pace: s.pace,
@@ -187,17 +309,17 @@ export function CardioSessionDetailSheet({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
               <SheetTitle className="text-xl flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-                <span>{sportInfo.icon}</span>
+                <span>{sportIcon}</span>
                 {session.name}
               </SheetTitle>
               <SheetDescription className="flex items-center gap-2 mt-1" style={{ color: theme.colors.textMuted }}>
                 <Activity className="h-4 w-4" />
-                {sportInfo.label}
+                {sportLabel}
               </SheetDescription>
             </div>
             {session.avgZone && (
               <Badge className={`${zoneColors[Math.round(session.avgZone)] || 'bg-gray-500'} text-white`}>
-                Zon {session.avgZone.toFixed(1)}
+                {t.zone} {session.avgZone.toFixed(1)}
               </Badge>
             )}
           </div>
@@ -207,20 +329,20 @@ export function CardioSessionDetailSheet({
         <div className="flex flex-wrap gap-2 pb-4">
           <Button variant="outline" size="sm" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-1" />
-            Redigera
+            {t.edit}
           </Button>
           <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive hover:text-destructive">
             <Trash2 className="h-4 w-4 mr-1" />
-            Ta bort
+            {t.delete}
           </Button>
           <Button variant="outline" size="sm" onClick={onAssign}>
             <Users className="h-4 w-4 mr-1" />
-            Tilldela
+            {t.assign}
           </Button>
           {onTeamAssign && (
             <Button variant="outline" size="sm" onClick={onTeamAssign}>
               <Users className="h-4 w-4 mr-1" />
-              Tilldela lag
+              {t.assignTeam}
             </Button>
           )}
           <SessionExportButton
@@ -250,7 +372,7 @@ export function CardioSessionDetailSheet({
               <Clock className="h-4 w-4" />
               {formatDuration(session.totalDuration)}
             </div>
-            <div className="text-xs" style={{ color: theme.colors.textMuted }}>Total tid</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t.totalTime}</div>
           </div>
           <div
             className="text-center p-3 rounded-lg"
@@ -260,14 +382,14 @@ export function CardioSessionDetailSheet({
               <MapPin className="h-4 w-4" />
               {formatDistance(session.totalDistance)}
             </div>
-            <div className="text-xs" style={{ color: theme.colors.textMuted }}>Distans</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t.distance}</div>
           </div>
           <div
             className="text-center p-3 rounded-lg"
             style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
           >
             <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{segments.length}</div>
-            <div className="text-xs" style={{ color: theme.colors.textMuted }}>Segment</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t.segments}</div>
           </div>
         </div>
 
@@ -278,7 +400,7 @@ export function CardioSessionDetailSheet({
           <div className="py-3">
             <div className="text-sm font-medium mb-2 flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Zap className="h-4 w-4" />
-              Zonfördelning
+              {t.zoneDistribution}
             </div>
             <div className="h-4 flex rounded-lg overflow-hidden">
               {segments
@@ -294,15 +416,15 @@ export function CardioSessionDetailSheet({
                       key={i}
                       className={`${zoneColors[s.zone!] || 'bg-gray-400'} transition-all`}
                       style={{ width: `${percentage}%` }}
-                      title={`Zon ${s.zone}: ${formatDuration(s.duration)}`}
+                      title={`${t.zone} ${s.zone}: ${formatDuration(s.duration)}`}
                     />
                   );
                 })}
             </div>
             <div className="flex justify-between text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-              <span>Z1-2 Lätt</span>
-              <span>Z3 Medel</span>
-              <span>Z4-5 Hårt</span>
+              <span>{t.easyZones}</span>
+              <span>{t.mediumZone}</span>
+              <span>{t.hardZones}</span>
             </div>
           </div>
         )}
@@ -314,7 +436,7 @@ export function CardioSessionDetailSheet({
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Activity className="h-4 w-4 text-blue-500" />
-              <span>Segment</span>
+              <span>{t.segments}</span>
               <Badge variant="secondary">{segments.length}</Badge>
             </CardTitle>
           </CardHeader>
@@ -332,18 +454,19 @@ export function CardioSessionDetailSheet({
                       <li key={segment.id || i}>
                         <div className="flex items-center gap-2 mb-2">
                           <Badge className="bg-indigo-500 text-white text-xs">
-                            Repetitionsblock ×{reps}
+                            {t.repeatBlock} ×{reps}
                           </Badge>
                           {restBetween && (
                             <span className="text-xs" style={{ color: theme.colors.textMuted }}>
-                              Vila: {formatDuration(restBetween)} mellan rundor
+                              {t.rest}: {formatDuration(restBetween)} {t.betweenRounds}
                             </span>
                           )}
                         </div>
                         <ul className="ml-4 border-l-2 border-indigo-300 pl-3 space-y-2">
                           {groupSteps.map((step, j) => {
                             const stepType = step.type as string;
-                            const stepInfo = segmentTypeLabels[stepType] || { label: stepType, color: 'bg-gray-500' };
+                            const stepLabel = t.segmentTypes[stepType as keyof typeof t.segmentTypes] || stepType;
+                            const stepColor = segmentTypeColors[stepType] || 'bg-gray-500';
                             return (
                               <li key={(step.id as string) || j} className="flex items-start gap-2 text-sm">
                                 <span className="w-4 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
@@ -351,8 +474,8 @@ export function CardioSessionDetailSheet({
                                 </span>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge className={`${stepInfo.color} text-white text-xs`}>
-                                      {stepInfo.label}
+                                    <Badge className={`${stepColor} text-white text-xs`}>
+                                      {stepLabel}
                                     </Badge>
                                     {step.duration ? (
                                       <span className="text-xs" style={{ color: theme.colors.textMuted }}>
@@ -378,7 +501,8 @@ export function CardioSessionDetailSheet({
                   }
 
                   // Regular flat segment
-                  const typeInfo = segmentTypeLabels[segment.type] || { label: segment.type, color: 'bg-gray-500' };
+                  const typeLabel = t.segmentTypes[segment.type as keyof typeof t.segmentTypes] || segment.type;
+                  const typeColor = segmentTypeColors[segment.type] || 'bg-gray-500';
                   const exercises = Array.isArray(segment.exercises) ? segment.exercises : [];
                   return (
                     <li key={segment.id || i} className="flex items-start gap-3 text-sm">
@@ -387,8 +511,8 @@ export function CardioSessionDetailSheet({
                       </span>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <Badge className={`${typeInfo.color} text-white text-xs`}>
-                            {typeInfo.label}
+                          <Badge className={`${typeColor} text-white text-xs`}>
+                            {typeLabel}
                           </Badge>
                           {segment.zone && (
                             <Badge className={`${zoneColors[segment.zone]} text-white text-xs`}>
@@ -424,7 +548,7 @@ export function CardioSessionDetailSheet({
                 })}
               </ul>
             ) : (
-              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga segment tillagda</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>{t.noSegments}</p>
             )}
           </CardContent>
         </Card>
@@ -450,7 +574,7 @@ export function CardioSessionDetailSheet({
             <Button variant="ghost" className="w-full justify-between p-3 h-auto" style={{ color: theme.colors.textPrimary }}>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                <span className="font-semibold">Tilldelningar</span>
+                <span className="font-semibold">{t.assignments}</span>
                 <Badge variant="secondary">{session._count?.assignments || assignments.length}</Badge>
               </div>
               {assignmentsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -458,23 +582,24 @@ export function CardioSessionDetailSheet({
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 pb-3">
             {loadingAssignments ? (
-              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Laddar tilldelningar...</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>{t.loadingAssignments}</p>
             ) : assignments.length === 0 ? (
-              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga tilldelningar än</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>{t.noAssignments}</p>
             ) : (
               <ul className="space-y-2">
                 {assignments.map((assignment) => {
-                  const statusInfo = statusLabels[assignment.status] || { label: assignment.status, color: 'bg-gray-500' };
+                  const statusLabel = t.status[assignment.status as keyof typeof t.status] || assignment.status;
+                  const statusColor = statusColors[assignment.status] || 'bg-gray-500';
                   return (
                     <li key={assignment.id} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
-                        <span style={{ color: theme.colors.textPrimary }}>{assignment.athlete?.name || 'Okänd'}</span>
-                        <Badge className={`${statusInfo.color} text-white text-xs`}>
-                          {statusInfo.label}
+                        <span style={{ color: theme.colors.textPrimary }}>{assignment.athlete?.name || t.unknown}</span>
+                        <Badge className={`${statusColor} text-white text-xs`}>
+                          {statusLabel}
                         </Badge>
                       </div>
                       <span className="text-xs" style={{ color: theme.colors.textMuted }}>
-                        {new Date(assignment.assignedDate).toLocaleDateString('sv-SE')}
+                        {formatDate(assignment.assignedDate, locale)}
                       </span>
                     </li>
                   );
