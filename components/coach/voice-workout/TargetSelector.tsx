@@ -11,13 +11,16 @@
 
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Users, User, Search, Check, AlertTriangle } from 'lucide-react'
+import { Users, User, Search, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface TargetSelectorProps {
   onSelect: (type: 'ATHLETE' | 'TEAM', id: string, name: string) => void
@@ -42,6 +45,7 @@ export function TargetSelector({
   selectedType,
   selectedId,
 }: TargetSelectorProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [search, setSearch] = useState('')
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [teams, setTeams] = useState<Team[]>([])
@@ -90,7 +94,7 @@ export function TargetSelector({
       }
     }
 
-    fetchData()
+    void fetchData()
   }, [])
 
   // Filter by search
@@ -119,7 +123,7 @@ export function TargetSelector({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Sök atlet eller lag..."
+          placeholder={copy(locale, 'Search athlete or team...', 'Sök atlet eller lag...')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -134,11 +138,11 @@ export function TargetSelector({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="athletes" className="gap-2">
             <User className="h-4 w-4" />
-            Atleter ({filteredAthletes.length})
+            {copy(locale, 'Athletes', 'Atleter')} ({filteredAthletes.length})
           </TabsTrigger>
           <TabsTrigger value="teams" className="gap-2">
             <Users className="h-4 w-4" />
-            Lag ({filteredTeams.length})
+            {copy(locale, 'Teams', 'Lag')} ({filteredTeams.length})
           </TabsTrigger>
         </TabsList>
 
@@ -146,7 +150,7 @@ export function TargetSelector({
           <ScrollArea className="h-48 rounded-md border">
             {filteredAthletes.length === 0 ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
-                Inga atleter hittades
+                {copy(locale, 'No athletes found', 'Inga atleter hittades')}
               </div>
             ) : (
               <div className="p-1">
@@ -193,7 +197,7 @@ export function TargetSelector({
           <ScrollArea className="h-48 rounded-md border">
             {filteredTeams.length === 0 ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
-                Inga lag hittades
+                {copy(locale, 'No teams found', 'Inga lag hittades')}
               </div>
             ) : (
               <div className="p-1">
@@ -214,7 +218,7 @@ export function TargetSelector({
                       <div>
                         <p className="font-medium text-sm">{team.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {team.memberCount} medlemmar
+                          {team.memberCount} {copy(locale, 'members', 'medlemmar')}
                         </p>
                       </div>
                     </div>

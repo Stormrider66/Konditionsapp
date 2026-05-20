@@ -35,6 +35,11 @@ import {
 import { TargetSelector } from './TargetSelector'
 import type { VoiceWorkoutPreview, VoiceWorkoutIntent } from '@/types/voice-workout'
 import { cn } from '@/lib/utils'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface WorkoutIntentPreviewProps {
   preview: VoiceWorkoutPreview
@@ -42,6 +47,7 @@ interface WorkoutIntentPreviewProps {
 }
 
 export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreviewProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const { parsedIntent, generatedWorkout, guardrailWarnings, targetInfo } = preview
   const [isEditingTarget, setIsEditingTarget] = useState(false)
   const [isEditingDate, setIsEditingDate] = useState(false)
@@ -87,12 +93,31 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
 
   const getConfidenceBadge = (confidence: number) => {
     if (confidence >= 0.8) {
-      return <Badge variant="default" className="bg-green-500">Hög säkerhet</Badge>
+      return <Badge variant="default" className="bg-green-500">{copy(locale, 'High confidence', 'Hög säkerhet')}</Badge>
     }
     if (confidence >= 0.5) {
-      return <Badge variant="secondary" className="bg-yellow-500">Medel säkerhet</Badge>
+      return <Badge variant="secondary" className="bg-yellow-500">{copy(locale, 'Medium confidence', 'Medel säkerhet')}</Badge>
     }
-    return <Badge variant="destructive">Låg säkerhet</Badge>
+    return <Badge variant="destructive">{copy(locale, 'Low confidence', 'Låg säkerhet')}</Badge>
+  }
+
+  const getStructureTypeLabel = (type: string) => {
+    switch (type) {
+      case 'warmup':
+        return copy(locale, 'Warm-up', 'Uppvärmning')
+      case 'main':
+        return copy(locale, 'Main set', 'Huvudpass')
+      case 'cooldown':
+        return copy(locale, 'Cool-down', 'Nedvarvning')
+      case 'interval':
+        return copy(locale, 'Interval', 'Intervall')
+      case 'exercise':
+        return copy(locale, 'Exercise', 'Övning')
+      case 'rest':
+        return copy(locale, 'Rest', 'Vila')
+      default:
+        return type
+    }
   }
 
   return (
@@ -101,7 +126,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Transkription
+            {copy(locale, 'Transcription', 'Transkription')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -119,7 +144,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
               ) : (
                 <User className="h-4 w-4" />
               )}
-              Mottagare
+              {copy(locale, 'Recipient', 'Mottagare')}
             </CardTitle>
             {!isEditingTarget && (
               <Button variant="ghost" size="sm" onClick={() => setIsEditingTarget(true)}>
@@ -141,7 +166,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
                 size="sm"
                 onClick={() => setIsEditingTarget(false)}
               >
-                <X className="h-3 w-3 mr-1" /> Avbryt
+                <X className="h-3 w-3 mr-1" /> {copy(locale, 'Cancel', 'Avbryt')}
               </Button>
             </div>
           ) : (
@@ -154,8 +179,8 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {parsedIntent.target.type === 'TEAM'
-                    ? `Lag (${targetInfo.athletes.length} atleter)`
-                    : 'Enskild atlet'}
+                    ? copy(locale, `Team (${targetInfo.athletes.length} athletes)`, `Lag (${targetInfo.athletes.length} atleter)`)
+                    : copy(locale, 'Individual athlete', 'Enskild atlet')}
                 </p>
               </div>
               {getConfidenceBadge(parsedIntent.target.confidence)}
@@ -167,7 +192,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
             parsedIntent.target.confidence < 0.7 &&
             parsedIntent.target.alternatives && (
               <div className="mt-3 pt-3 border-t">
-                <p className="text-xs text-muted-foreground mb-2">Menade du kanske:</p>
+                <p className="text-xs text-muted-foreground mb-2">{copy(locale, 'Did you mean:', 'Menade du kanske:')}</p>
                 <div className="flex flex-wrap gap-2">
                   {parsedIntent.target.alternatives.slice(0, 4).map((alt) => (
                     <Button
@@ -193,7 +218,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              Datum & Tid
+              {copy(locale, 'Date & Time', 'Datum & Tid')}
             </CardTitle>
             {!isEditingDate && (
               <Button variant="ghost" size="sm" onClick={() => setIsEditingDate(true)}>
@@ -208,7 +233,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="date" className="text-xs">
-                    Datum
+                    {copy(locale, 'Date', 'Datum')}
                   </Label>
                   <Input
                     id="date"
@@ -219,7 +244,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
                 </div>
                 <div>
                   <Label htmlFor="time" className="text-xs">
-                    Tid (valfritt)
+                    {copy(locale, 'Time (optional)', 'Tid (valfritt)')}
                   </Label>
                   <Input
                     id="time"
@@ -231,14 +256,14 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleDateSave}>
-                  <Check className="h-3 w-3 mr-1" /> Spara
+                  <Check className="h-3 w-3 mr-1" /> {copy(locale, 'Save', 'Spara')}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsEditingDate(false)}
                 >
-                  <X className="h-3 w-3 mr-1" /> Avbryt
+                  <X className="h-3 w-3 mr-1" /> {copy(locale, 'Cancel', 'Avbryt')}
                 </Button>
               </div>
             </div>
@@ -246,7 +271,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
             <div className="flex items-center gap-4">
               <div>
                 <p className="font-medium">
-                  {parsedIntent.schedule.resolvedDate || 'Ej angivet'}
+                  {parsedIntent.schedule.resolvedDate || copy(locale, 'Not specified', 'Ej angivet')}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {parsedIntent.schedule.dateText}
@@ -271,7 +296,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             {getWorkoutTypeIcon(parsedIntent.workout.type)}
-            Träningspass
+            {copy(locale, 'Workout', 'Träningspass')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -290,7 +315,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
           {/* Structure preview */}
           {parsedIntent.workout.structure.length > 0 && (
             <div className="pt-3 border-t">
-              <p className="text-xs text-muted-foreground mb-2">Struktur:</p>
+              <p className="text-xs text-muted-foreground mb-2">{copy(locale, 'Structure:', 'Struktur:')}</p>
               <div className="space-y-1">
                 {parsedIntent.workout.structure.map((item, i) => (
                   <div
@@ -298,12 +323,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
                     className="flex items-center gap-2 text-sm p-2 bg-muted/50 rounded"
                   >
                     <Badge variant="outline" className="text-xs">
-                      {item.type === 'warmup' && 'Uppvärmning'}
-                      {item.type === 'main' && 'Huvudpass'}
-                      {item.type === 'cooldown' && 'Nedvarvning'}
-                      {item.type === 'interval' && 'Intervall'}
-                      {item.type === 'exercise' && 'Övning'}
-                      {item.type === 'rest' && 'Vila'}
+                      {getStructureTypeLabel(item.type)}
                     </Badge>
                     <span className="flex-1">
                       {item.exerciseName ||
@@ -313,7 +333,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
                     </span>
                     {item.zone && (
                       <Badge variant="secondary" className="text-xs">
-                        Zon {item.zone}
+                        {copy(locale, 'Zone', 'Zon')} {item.zone}
                       </Badge>
                     )}
                     {item.sets && item.repsCount && (
@@ -334,7 +354,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <p className="font-medium mb-1">Varningar:</p>
+            <p className="font-medium mb-1">{copy(locale, 'Warnings:', 'Varningar:')}</p>
             <ul className="list-disc list-inside text-sm space-y-1">
               {guardrailWarnings.map((warning, i) => (
                 <li key={i}>{warning}</li>
@@ -349,7 +369,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <p className="font-medium mb-1">Behöver förtydligas:</p>
+            <p className="font-medium mb-1">{copy(locale, 'Needs clarification:', 'Behöver förtydligas:')}</p>
             <ul className="list-disc list-inside text-sm space-y-1">
               {parsedIntent.ambiguities.map((ambiguity, i) => (
                 <li key={i}>{ambiguity}</li>
@@ -364,7 +384,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <p className="font-medium mb-1">Måste åtgärdas:</p>
+            <p className="font-medium mb-1">{copy(locale, 'Must be fixed:', 'Måste åtgärdas:')}</p>
             <ul className="list-disc list-inside text-sm space-y-1">
               {preview.issues.map((issue, i) => (
                 <li key={i}>{issue}</li>
@@ -376,7 +396,7 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
 
       {/* Overall confidence */}
       <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-        <span className="text-sm text-muted-foreground">Total säkerhet i tolkning</span>
+        <span className="text-sm text-muted-foreground">{copy(locale, 'Overall interpretation confidence', 'Total säkerhet i tolkning')}</span>
         <div className="flex items-center gap-2">
           <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
             <div
