@@ -21,7 +21,33 @@ function outputLanguageInstruction(locale: AppLocale): string {
 // SYSTEM CONTEXT
 // ============================================
 
-const SYSTEM_CONTEXT = `Du är en expert på träningsanalys som kan tolka och strukturera träningspass från olika typer av input.
+const SYSTEM_CONTEXT: Record<AppLocale, string> = {
+  en: `You are an expert in training analysis who can interpret and structure workouts from different input sources.
+
+Your task is to analyze workout descriptions and convert them into structured JSON.
+
+PRINCIPLES:
+1. Be pragmatic - make reasonable assumptions when information is missing
+2. Match exercises - try to match against the provided exercise library
+3. Identify type - classify the workout as CARDIO, STRENGTH, HYBRID, or MIXED
+4. Extract details - capture as much relevant information as possible
+5. Flag uncertainty - use lower confidence when the input is ambiguous
+
+WORKOUT TYPES:
+- CARDIO: Running, cycling, swimming, skiing, rowing, or other endurance training
+- STRENGTH: Strength training with weights, machines, bodyweight, weightlifting (snatch, clean and jerk)
+- HYBRID: Functional fitness, CrossFit-style, AMRAP, EMOM, For Time, HYROX
+- MIXED: Combined sessions (for example running + strength)
+
+SPORT-SPECIFIC METRICS:
+- Running: distance (meters), avgPace (sec/km), avgHeartRate, elevationGain, cadence (steps/min)
+- Cycling: distance (meters), avgPower (watts), maxPower (watts), normalizedPower (watts), avgSpeed (km/h), cadence (rpm), avgHeartRate, elevationGain
+- Cross-country skiing: distance (meters), avgPace (sec/km), avgHeartRate, elevationGain, avgPower (watts if available), technique in notes (classic/skate)
+- Swimming: distance (meters), avgPace (seconds per 100m x 10, i.e. sec/km), avgHeartRate
+- HYROX: type=HYBRID, sport=HYROX, hybridFormat=HYROX_SIM, movements with stations (SkiErg, Sled Push, Sled Pull, Burpee Broad Jump, Rowing, Farmers Carry, Sandbag Lunges, Wall Balls), total distance, duration
+- Strength training/weightlifting: strengthExercises with exerciseName, sets, reps, weight (kg), rpe, weightString (for example "BW", "80% 1RM")
+- Rowing (SkiErg/Concept2): distance (meters), avgPace (sec/500m x 2, i.e. sec/km), avgPower (watts), cadence (strokes/min)`,
+  sv: `Du är en expert på träningsanalys som kan tolka och strukturera träningspass från olika typer av input.
 
 Din uppgift är att analysera beskrivningar av träningspass och konvertera dem till ett strukturerat JSON-format.
 
@@ -45,13 +71,83 @@ SPORTSPECIFIKA MÄTVÄRDEN:
 - Simning: distance (meter), avgPace (sek per 100m × 10, dvs sek/km), avgHeartRate
 - HYROX: type=HYBRID, sport=HYROX, hybridFormat=HYROX_SIM, movements med stationer (SkiErg, Sled Push, Sled Pull, Burpee Broad Jump, Rowing, Farmers Carry, Sandbag Lunges, Wall Balls), total distance, duration
 - Styrketräning/Tyngdlyftning: strengthExercises med exerciseName, sets, reps, weight (kg), rpe, weightString (t.ex. "BW", "80% 1RM")
-- Rodd (SkiErg/Concept2): distance (meter), avgPace (sek/500m × 2, dvs sek/km), avgPower (watt), cadence (slag/min)`
+- Rodd (SkiErg/Concept2): distance (meter), avgPace (sek/500m × 2, dvs sek/km), avgPower (watt), cadence (slag/min)`,
+}
 
 // ============================================
 // OUTPUT FORMAT TEMPLATE
 // ============================================
 
-const JSON_OUTPUT_TEMPLATE = `{
+const JSON_OUTPUT_TEMPLATE: Record<AppLocale, string> = {
+  en: `{
+  "type": "CARDIO" | "STRENGTH" | "HYBRID" | "MIXED",
+  "confidence": 0.0-1.0,
+  "name": "Workout name (optional)",
+  "duration": 45,
+  "distance": 5000,
+  "intensity": "EASY" | "MODERATE" | "THRESHOLD" | "INTERVAL" | "MAX" | "RECOVERY",
+
+  "sport": "RUNNING" | "CYCLING" | "SKIING" | "SWIMMING" | "HYROX" | "STRENGTH" | "GENERAL_FITNESS" | "FUNCTIONAL_FITNESS" | null,
+  "cardioSegments": [
+    {
+      "type": "WARMUP" | "COOLDOWN" | "INTERVAL" | "STEADY" | "RECOVERY" | "HILL" | "DRILLS",
+      "duration": 300,
+      "distance": 1000,
+      "pace": "5:30/km",
+      "zone": 2,
+      "notes": "Easy jog"
+    }
+  ],
+  "avgHeartRate": 145,
+  "maxHeartRate": 175,
+  "avgPace": 330,
+  "elevationGain": 150,
+  "avgPower": 210,
+  "maxPower": 450,
+  "normalizedPower": 225,
+  "cadence": 90,
+  "avgSpeed": 32.5,
+
+  "strengthExercises": [
+    {
+      "exerciseId": "matched-id-or-null",
+      "exerciseName": "Back Squat",
+      "matchConfidence": 0.95,
+      "sets": 3,
+      "reps": 10,
+      "weight": 80,
+      "weightString": "80kg",
+      "rest": 90,
+      "rpe": 7,
+      "notes": "ATG",
+      "isCustom": false
+    }
+  ],
+
+  "hybridFormat": "AMRAP" | "FOR_TIME" | "EMOM" | "TABATA" | "CHIPPER" | "LADDER" | "INTERVALS" | "HYROX_SIM" | "CUSTOM" | null,
+  "timeCap": 1200,
+  "repScheme": "21-15-9",
+  "movements": [
+    {
+      "order": 1,
+      "exerciseId": "matched-id-or-null",
+      "name": "Thrusters",
+      "matchConfidence": 0.9,
+      "reps": 21,
+      "weight": 43,
+      "weightUnit": "kg",
+      "isCustom": false
+    }
+  ],
+
+  "perceivedEffort": 7,
+  "feeling": "GOOD" | "GREAT" | "OKAY" | "TIRED" | "EXHAUSTED" | null,
+  "notes": "Extracted notes from input",
+
+  "rawInterpretation": "Short explanation of what was interpreted",
+  "warnings": ["List of uncertainties or issues"]
+}`,
+  sv: `{
   "type": "CARDIO" | "STRENGTH" | "HYBRID" | "MIXED",
   "confidence": 0.0-1.0,
   "name": "Passnamn (valfritt)",
@@ -118,13 +214,77 @@ const JSON_OUTPUT_TEMPLATE = `{
 
   "rawInterpretation": "Kort förklaring av vad som tolkades",
   "warnings": ["Lista av osäkerheter eller problem"]
-}`
+}`,
+}
 
 // ============================================
 // WORKOUT SHORTHAND DICTIONARY
 // ============================================
 
-const SHORTHAND_DICTIONARY = `
+const SHORTHAND_DICTIONARY: Record<AppLocale, string> = {
+  en: `
+## COMMON ABBREVIATIONS
+
+### Strength
+- BS = Back Squat
+- FS = Front Squat
+- OHS = Overhead Squat
+- DL = Deadlift
+- RDL = Romanian Deadlift
+- BP = Bench Press
+- OHP = Overhead Press
+- BB = Barbell
+- DB = Dumbbell
+- KB = Kettlebell
+- BW = Bodyweight
+- 1RM = One Rep Max
+
+### Reps and Sets
+- 3x10 = 3 sets of 10 reps
+- 5x5 = 5 sets of 5 reps
+- AMRAP = As Many Reps/Rounds As Possible
+- EMOM = Every Minute On the Minute
+- E2MOM = Every 2 Minutes On the Minute
+- RFT = Rounds For Time
+- 21-15-9 = Rep scheme (21 reps, then 15, then 9)
+
+### Cardio
+- E = Easy
+- M = Moderate
+- T = Threshold
+- Z1-Z5 = Zones (1=rest, 5=max)
+- HR = Heart Rate
+- LT = Lactate Threshold
+- TRIMP = Training Impulse
+
+### CrossFit/Functional Fitness
+- WOD = Workout of the Day
+- Rx = Prescribed weight/standard
+- Scaled = Scaled version
+- C2B = Chest to Bar (Pull-ups)
+- T2B = Toes to Bar
+- HSPU = Handstand Push-ups
+- MU = Muscle-ups
+- DU = Double Unders
+- SU = Single Unders
+- C&J = Clean and Jerk
+- PC = Power Clean
+- SC = Squat Clean
+- PS = Power Snatch
+- SS = Squat Snatch
+
+### Tempo
+- 3-1-1 = 3s down, 1s pause, 1s up
+- Eccentric = Negative reps
+- Concentric = Positive reps
+- Isometric = Static hold
+
+### Intensity
+- RPE = Rate of Perceived Exertion (1-10)
+- @6 = RPE 6
+- Max = Maximum effort
+`,
+  sv: `
 ## VANLIGA FÖRKORTNINGAR
 
 ### Styrka
@@ -185,7 +345,8 @@ const SHORTHAND_DICTIONARY = `
 - RPE = Rate of Perceived Exertion (1-10)
 - @6 = RPE 6
 - Max = Maximal ansträngning
-`
+`,
+}
 
 // ============================================
 // TEXT PARSING PROMPT
@@ -199,13 +360,14 @@ export function buildTextParsingPrompt(
   exerciseLibrary: ExerciseLibraryEntry[],
   locale: AppLocale = 'en',
 ): string {
-  const exerciseList = formatExerciseLibrary(exerciseLibrary)
+  const exerciseList = formatExerciseLibrary(exerciseLibrary, locale)
 
-  return `${SYSTEM_CONTEXT}
+  if (locale === 'sv') {
+    return `${SYSTEM_CONTEXT.sv}
 
 ${outputLanguageInstruction(locale)}
 
-${SHORTHAND_DICTIONARY}
+${SHORTHAND_DICTIONARY.sv}
 
 ## ÖVNINGSBIBLIOTEK
 
@@ -241,7 +403,7 @@ ${text}
 Svara ENDAST med JSON i följande format (ingen annan text):
 
 \`\`\`json
-${JSON_OUTPUT_TEMPLATE}
+${JSON_OUTPUT_TEMPLATE.sv}
 \`\`\`
 
 VIKTIGT:
@@ -268,6 +430,75 @@ DISTANSBERÄKNING:
   - Cykling: ~25000m per 60 min
   - Simning: ~2000m per 60 min
 - Summera cardioSegments-distanser till top-level distance om de finns`
+  }
+
+  return `${SYSTEM_CONTEXT.en}
+
+${outputLanguageInstruction(locale)}
+
+${SHORTHAND_DICTIONARY.en}
+
+## EXERCISE LIBRARY
+
+Try to match exercises against this library. Use exerciseId when a match is found.
+If no match exists, set isCustom: true and exerciseId: null.
+
+${exerciseList}
+
+## INPUT TO INTERPRET
+
+The following text describes a workout that an athlete completed:
+
+"""
+${text}
+"""
+
+## INSTRUCTIONS
+
+1. Analyze the text carefully
+2. Identify workout type (CARDIO, STRENGTH, HYBRID, MIXED)
+3. Extract every detail you can find:
+   - Duration/time
+   - Distance (for cardio)
+   - Exercises, sets, reps, weights (for strength)
+   - Format (AMRAP, EMOM, etc. for hybrid)
+   - Intensity and feeling
+4. Match exercises against the library
+5. Set confidence based on how certain you are
+6. Add warnings for unclear information
+
+## OUTPUT
+
+Return ONLY JSON in the following format (no other text):
+
+\`\`\`json
+${JSON_OUTPUT_TEMPLATE.en}
+\`\`\`
+
+IMPORTANT:
+- Return ONLY JSON, no other text
+- duration is in MINUTES — for example 37:16 = 37, 1:05:00 = 65
+- distance is in METERS (not kilometers) — for example 5 km = 5000, 7.14 km = 7140, 400m = 400
+- avgPace is in SECONDS PER KILOMETER — for example 5:13/km = 313, 6:00/km = 360
+- avgHeartRate and maxHeartRate are in BPM — for example 148 bpm = 148
+- estimatedCalories as an integer — for example 533 kcal = 533
+- cardioSegments.duration is in seconds
+- cardioSegments.distance is in meters
+- If you cannot extract a value, omit the field
+- confidence should be lower (0.5-0.7) when input is vague
+- Be generous with interpretation but honest with confidence
+
+DISTANCE CALCULATION:
+- Always calculate total distance from intervals: "10x400m" = 4000 meters
+- Include warm-up/cool-down in total distance when mentioned
+- Estimate distance from duration for cardio sessions without a stated distance:
+  - Walk: ~5000m per 60 min (about 83m/min)
+  - Brisk walk: ~6000m per 60 min (about 100m/min)
+  - Easy running: ~9000m per 60 min (about 150m/min)
+  - Normal running: ~10000m per 60 min
+  - Cycling: ~25000m per 60 min
+  - Swimming: ~2000m per 60 min
+- Sum cardioSegments distances into top-level distance when present`
 }
 
 // ============================================
@@ -281,13 +512,14 @@ export function buildImageParsingPrompt(
   exerciseLibrary: ExerciseLibraryEntry[],
   locale: AppLocale = 'en',
 ): string {
-  const exerciseList = formatExerciseLibrary(exerciseLibrary)
+  const exerciseList = formatExerciseLibrary(exerciseLibrary, locale)
 
-  return `${SYSTEM_CONTEXT}
+  if (locale === 'sv') {
+    return `${SYSTEM_CONTEXT.sv}
 
 ${outputLanguageInstruction(locale)}
 
-${SHORTHAND_DICTIONARY}
+${SHORTHAND_DICTIONARY.sv}
 
 ## ÖVNINGSBIBLIOTEK
 
@@ -315,7 +547,7 @@ Analysera bilden och:
 Svara ENDAST med JSON i följande format (ingen annan text):
 
 \`\`\`json
-${JSON_OUTPUT_TEMPLATE}
+${JSON_OUTPUT_TEMPLATE.sv}
 \`\`\`
 
 VIKTIGT:
@@ -332,6 +564,57 @@ VIKTIGT:
 - SKÄRMDUMPAR FRÅN APPAR (Garmin, Strava, etc.): Läs av ALLA visade värden — distans, puls, tempo, kalorier, höjdmeter etc. Konvertera alltid km till meter (multiplicera med 1000)
 - Om bilden inte innehåller ett träningspass, returnera:
   { "type": "MIXED", "confidence": 0, "rawInterpretation": "Kunde inte identifiera träningspass", "warnings": ["Bilden verkar inte innehålla ett träningspass"] }`
+  }
+
+  return `${SYSTEM_CONTEXT.en}
+
+${outputLanguageInstruction(locale)}
+
+${SHORTHAND_DICTIONARY.en}
+
+## EXERCISE LIBRARY
+
+Try to match exercises against this library:
+
+${exerciseList}
+
+## INSTRUCTIONS
+
+You will receive an image that contains a workout. It may be:
+- A gym whiteboard
+- A paper with a handwritten program
+- A screenshot from an app or website
+- An image of a training program
+
+Analyze the image and:
+1. Read all text you can see
+2. Identify workout type (CARDIO, STRENGTH, HYBRID, MIXED)
+3. Extract exercises, sets, reps, weights, and times
+4. Match exercises against the library
+5. Handle handwriting and abbreviations
+
+## OUTPUT
+
+Return ONLY JSON in the following format (no other text):
+
+\`\`\`json
+${JSON_OUTPUT_TEMPLATE.en}
+\`\`\`
+
+IMPORTANT:
+- Interpret handwriting as well as you can
+- Abbreviations are common (see dictionary above)
+- Whiteboard text may be incomplete
+- Set confidence based on readability
+- Add warnings for text you could not read
+- distance is in METERS (not kilometers) — for example 5 km = 5000, 7.14 km = 7140, 400m = 400
+- duration is in MINUTES — for example 37:16 = 37, 1:05:00 = 65
+- avgPace is in SECONDS PER KILOMETER — for example 5:13/km = 313
+- avgHeartRate and maxHeartRate are in BPM — for example 148 bpm = 148
+- estimatedCalories as an integer — for example 533 kcal = 533
+- APP SCREENSHOTS (Garmin, Strava, etc.): read ALL shown values — distance, heart rate, pace, calories, elevation, etc. Always convert km to meters (multiply by 1000)
+- If the image does not contain a workout, return:
+  { "type": "MIXED", "confidence": 0, "rawInterpretation": "Could not identify a workout", "warnings": ["The image does not appear to contain a workout"] }`
 }
 
 // ============================================
@@ -346,13 +629,14 @@ export function buildVoiceParsingPrompt(
   exerciseLibrary: ExerciseLibraryEntry[],
   locale: AppLocale = 'en',
 ): string {
-  const exerciseList = formatExerciseLibrary(exerciseLibrary)
+  const exerciseList = formatExerciseLibrary(exerciseLibrary, locale)
 
-  return `${SYSTEM_CONTEXT}
+  if (locale === 'sv') {
+    return `${SYSTEM_CONTEXT.sv}
 
 ${outputLanguageInstruction(locale)}
 
-${SHORTHAND_DICTIONARY}
+${SHORTHAND_DICTIONARY.sv}
 
 ## ÖVNINGSBIBLIOTEK
 
@@ -392,7 +676,7 @@ ${transcription}
 Svara ENDAST med JSON i följande format (ingen annan text):
 
 \`\`\`json
-${JSON_OUTPUT_TEMPLATE}
+${JSON_OUTPUT_TEMPLATE.sv}
 \`\`\`
 
 VIKTIGT:
@@ -406,6 +690,66 @@ VIKTIGT:
 - estimatedCalories som heltal — "533 kalorier" = 533
 - Beräkna distans från intervaller: "10x400m" = distance: 4000
 - Uppskatta distans för kardiopass utan angiven distans baserat på duration och typ`
+  }
+
+  return `${SYSTEM_CONTEXT.en}
+
+${outputLanguageInstruction(locale)}
+
+${SHORTHAND_DICTIONARY.en}
+
+## EXERCISE LIBRARY
+
+Try to match exercises against this library:
+
+${exerciseList}
+
+## CONTEXT
+
+The following is a transcript of a voice message where an athlete describes a completed workout.
+
+Keep in mind:
+- Speech can be informal and conversational
+- Numbers can be spoken in different ways ("three times ten" = 3x10)
+- The athlete may not mention every detail
+- Swedish and English terms may be mixed
+
+## TRANSCRIPT
+
+"""
+${transcription}
+"""
+
+## INSTRUCTIONS
+
+1. Interpret the informal speech
+2. Identify workout type (CARDIO, STRENGTH, HYBRID, MIXED)
+3. Extract every detail you can hear/understand:
+   - "ran for half an hour" = duration: 30
+   - "did three sets of ten reps squats" = 3x10 squats
+   - "felt heavy" = perceivedEffort: 8 or feeling: "TIRED"
+4. Match exercises against the library
+5. Be generous with interpretation
+
+## OUTPUT
+
+Return ONLY JSON in the following format (no other text):
+
+\`\`\`json
+${JSON_OUTPUT_TEMPLATE.en}
+\`\`\`
+
+IMPORTANT:
+- Voice input is often vague - make reasonable assumptions
+- If the athlete says "did legs" without details, use lower confidence
+- "Felt good/heavy/easy" maps to feeling and perceivedEffort
+- duration is in MINUTES — "one hour" = 60, "37 minutes" = 37
+- distance is in METERS (not kilometers) — "5 km" or "five kilometers" = 5000, "7.14 km" = 7140
+- avgPace is in SECONDS PER KILOMETER — "5:13 per km" = 313, "six minutes per km" = 360
+- avgHeartRate and maxHeartRate are in BPM — "heart rate 148" = 148
+- estimatedCalories as an integer — "533 calories" = 533
+- Calculate distance from intervals: "10x400m" = distance: 4000
+- Estimate distance for cardio sessions without a stated distance based on duration and type`
 }
 
 // ============================================
@@ -415,9 +759,11 @@ VIKTIGT:
 /**
  * Format exercise library for prompt injection
  */
-function formatExerciseLibrary(exercises: ExerciseLibraryEntry[]): string {
+function formatExerciseLibrary(exercises: ExerciseLibraryEntry[], locale: AppLocale): string {
   if (exercises.length === 0) {
-    return 'Inget övningsbibliotek tillgängligt - markera alla övningar som isCustom: true'
+    return locale === 'sv'
+      ? 'Inget övningsbibliotek tillgängligt - markera alla övningar som isCustom: true'
+      : 'No exercise library available - mark all exercises as isCustom: true'
   }
 
   // Group by category
@@ -438,7 +784,9 @@ function formatExerciseLibrary(exercises: ExerciseLibraryEntry[]): string {
       output += `- ID: ${ex.id} | ${names.join(' / ')}${ex.equipment ? ` [${ex.equipment}]` : ''}\n`
     }
     if (exs.length > 30) {
-      output += `  ... och ${exs.length - 30} fler ${category}-övningar\n`
+      output += locale === 'sv'
+        ? `  ... och ${exs.length - 30} fler ${category}-övningar\n`
+        : `  ... and ${exs.length - 30} more ${category} exercises\n`
     }
   }
 
@@ -481,8 +829,8 @@ Return ONLY the transcription, no other text.`
 /**
  * Get the JSON output schema description for validation
  */
-export function getOutputSchema(): string {
-  return JSON_OUTPUT_TEMPLATE
+export function getOutputSchema(locale: AppLocale = 'en'): string {
+  return JSON_OUTPUT_TEMPLATE[locale]
 }
 
 // ============================================
