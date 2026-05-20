@@ -18,6 +18,11 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import type { DayPrintWorkoutItem } from '@/lib/workout-print/day-pack'
+import { useLocale } from 'next-intl'
+
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface TeamDayPrintButtonProps {
   teamId: string
@@ -39,6 +44,7 @@ function buildItemsParam(copiesById: Record<string, number>) {
 }
 
 export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayPrintButtonProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState(getTodayDateValue)
   const [items, setItems] = useState<DayPrintWorkoutItem[]>([])
@@ -65,7 +71,7 @@ export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayP
         })
         const body = await response.json().catch(() => ({}))
         if (!response.ok || !body.success) {
-          throw new Error(body.error || 'Kunde inte hämta lagets pass.')
+          throw new Error(body.error || copy(locale, 'Could not fetch the team workouts.', 'Kunde inte hämta lagets pass.'))
         }
 
         const data = body.data as DayPrintWorkoutItem[]
@@ -81,7 +87,7 @@ export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayP
         if (cancelled) return
         setItems([])
         setCopiesById({})
-        toast.error(error instanceof Error ? error.message : 'Kunde inte hämta lagets pass.')
+        toast.error(error instanceof Error ? error.message : copy(locale, 'Could not fetch the team workouts.', 'Kunde inte hämta lagets pass.'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -92,7 +98,7 @@ export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayP
     return () => {
       cancelled = true
     }
-  }, [coachBasePath, date, open, teamId])
+  }, [coachBasePath, date, locale, open, teamId])
 
   const handleCopiesChange = (id: string, value: string) => {
     const nextValue = Number.parseInt(value, 10)
@@ -103,7 +109,7 @@ export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayP
   const handleOpenPrint = () => {
     const itemsParam = buildItemsParam(copiesById)
     if (!itemsParam) {
-      toast.error('Välj minst ett pass att skriva ut')
+      toast.error(copy(locale, 'Select at least one workout to print', 'Välj minst ett pass att skriva ut'))
       return
     }
 
@@ -115,20 +121,20 @@ export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayP
     <>
       <Button type="button" variant="outline" onClick={() => setOpen(true)}>
         <Printer className="mr-2 h-4 w-4" />
-        Skriv ut lagpass
+        {copy(locale, 'Print team workouts', 'Skriv ut lagpass')}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Skriv ut lagpass</DialogTitle>
+            <DialogTitle>{copy(locale, 'Print team workouts', 'Skriv ut lagpass')}</DialogTitle>
             <DialogDescription>
-              Välj datum och antal exemplar för {teamName}.
+              {copy(locale, 'Choose date and number of copies for', 'Välj datum och antal exemplar för')} {teamName}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
-            <Label htmlFor="team-day-print-date">Datum</Label>
+            <Label htmlFor="team-day-print-date">{copy(locale, 'Date', 'Datum')}</Label>
             <Input
               id="team-day-print-date"
               type="date"
@@ -144,18 +150,18 @@ export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayP
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
                 {teamName}
               </div>
-              <Badge variant="outline">{totalCopies} utskrifter</Badge>
+              <Badge variant="outline">{totalCopies} {copy(locale, 'prints', 'utskrifter')}</Badge>
             </div>
 
             <ScrollArea className="h-[300px]">
               {loading ? (
                 <div className="flex h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Hämtar lagets pass...
+                  {copy(locale, 'Fetching team workouts...', 'Hämtar lagets pass...')}
                 </div>
               ) : items.length === 0 ? (
                 <div className="flex h-40 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                  Inga lagpass är schemalagda för valt datum.
+                  {copy(locale, 'No team workouts are scheduled for the selected date.', 'Inga lagpass är schemalagda för valt datum.')}
                 </div>
               ) : (
                 <div className="divide-y">
@@ -170,12 +176,12 @@ export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayP
                           {[item.organization?.name, item.scheduleLabel].filter(Boolean).join(' · ')}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {item.totalAssigned || item.team.memberCount} spelare kopplade
+                          {item.totalAssigned || item.team.memberCount} {copy(locale, 'linked players', 'spelare kopplade')}
                         </p>
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor={`team-copies-${item.id}`} className="text-xs text-muted-foreground">
-                          Antal
+                          {copy(locale, 'Copies', 'Antal')}
                         </Label>
                         <Input
                           id={`team-copies-${item.id}`}
@@ -195,11 +201,11 @@ export function TeamDayPrintButton({ teamId, teamName, coachBasePath }: TeamDayP
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Stäng
+              {copy(locale, 'Close', 'Stäng')}
             </Button>
             <Button type="button" onClick={handleOpenPrint} disabled={loading || totalCopies === 0}>
               <Printer className="mr-2 h-4 w-4" />
-              Öppna utskrift
+              {copy(locale, 'Open print view', 'Öppna utskrift')}
             </Button>
           </DialogFooter>
         </DialogContent>
