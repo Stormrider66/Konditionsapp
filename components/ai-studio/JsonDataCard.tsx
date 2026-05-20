@@ -12,42 +12,81 @@ import {
   User,
   MapPin,
 } from 'lucide-react'
+import { useLocale } from 'next-intl'
 
 interface JsonDataCardProps {
   data: Record<string, unknown>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+const copy = {
+  en: {
+    racePrediction: 'Race prediction',
+    prediction: 'Prediction',
+    mostLikely: 'Most likely',
+    possible: 'Possible',
+    bestCase: 'Best case',
+    pace: 'Pace',
+    keyFactors: 'Key factors',
+    recommendations: 'Recommendations',
+    trainingProgram: 'Training program',
+    weeks: 'weeks',
+    athleteData: 'Athlete data',
+  },
+  sv: {
+    racePrediction: 'Tävlingsprognos',
+    prediction: 'Prognos',
+    mostLikely: 'Mest trolig',
+    possible: 'Möjligt',
+    bestCase: 'Bästa fall',
+    pace: 'Tempo',
+    keyFactors: 'Nyckelfaktorer',
+    recommendations: 'Rekommendationer',
+    trainingProgram: 'Träningsprogram',
+    weeks: 'veckor',
+    athleteData: 'Atletdata',
+  },
+} as const
+
 // Try to detect the type of data and render appropriately
 export function JsonDataCard({ data }: JsonDataCardProps) {
+  const locale = getAppLocale(useLocale())
+
   // Race/Marathon prediction
   if (data.event || data.prediction || data.equivalent_paces) {
-    return <RacePredictionCard data={data} />
+    return <RacePredictionCard data={data} locale={locale} />
   }
 
   // Training program
   if (data.program || data.weeks || data.sessions) {
-    return <ProgramCard data={data} />
+    return <ProgramCard data={data} locale={locale} />
   }
 
   // Athlete data
   if (data.athlete || data.vo2max || data.lactate_threshold) {
-    return <AthleteCard data={data} />
+    return <AthleteCard data={data} locale={locale} />
   }
 
   // Generic structured data
   return <GenericDataCard data={data} />
 }
 
-function RacePredictionCard({ data }: { data: Record<string, unknown> }) {
+function RacePredictionCard({ data, locale }: { data: Record<string, unknown>; locale: AppLocale }) {
   const prediction = data.prediction as Record<string, string> | undefined
   const paces = data.equivalent_paces as Record<string, string> | undefined
+  const c = copy[locale]
 
   return (
     <Card className="mt-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Trophy className="h-4 w-4 text-amber-500" />
-          {String(data.event || 'Tävlingsprognos')}
+          {String(data.event || c.racePrediction)}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -70,11 +109,11 @@ function RacePredictionCard({ data }: { data: Record<string, unknown> }) {
         {/* Predictions */}
         {prediction && (
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Prognos</p>
+            <p className="text-xs font-medium text-muted-foreground">{c.prediction}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {prediction.most_likely_time && (
                 <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">Mest trolig</p>
+                  <p className="text-[10px] text-muted-foreground">{c.mostLikely}</p>
                   <p className="font-bold text-green-700 dark:text-green-300">
                     {prediction.most_likely_time || prediction.most_likely_range}
                   </p>
@@ -82,7 +121,7 @@ function RacePredictionCard({ data }: { data: Record<string, unknown> }) {
               )}
               {(prediction.possible_range || prediction.possible_time) && (
                 <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">Möjligt</p>
+                  <p className="text-[10px] text-muted-foreground">{c.possible}</p>
                   <p className="font-bold text-blue-700 dark:text-blue-300">
                     {prediction.possible_range || prediction.possible_time}
                   </p>
@@ -90,7 +129,7 @@ function RacePredictionCard({ data }: { data: Record<string, unknown> }) {
               )}
               {(prediction.best_case_range || prediction.best_case_time) && (
                 <div className="bg-amber-100 dark:bg-amber-900/30 rounded-lg p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground">Bästa fall</p>
+                  <p className="text-[10px] text-muted-foreground">{c.bestCase}</p>
                   <p className="font-bold text-amber-700 dark:text-amber-300">
                     {prediction.best_case_range || prediction.best_case_time}
                   </p>
@@ -103,7 +142,7 @@ function RacePredictionCard({ data }: { data: Record<string, unknown> }) {
         {/* Equivalent paces */}
         {paces && Object.keys(paces).length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Tempo</p>
+            <p className="text-xs font-medium text-muted-foreground">{c.pace}</p>
             <div className="flex flex-wrap gap-1">
               {Object.entries(paces).slice(0, 6).map(([time, pace]) => (
                 <Badge key={time} variant="secondary" className="text-xs">
@@ -117,7 +156,7 @@ function RacePredictionCard({ data }: { data: Record<string, unknown> }) {
         {/* Factors */}
         {Array.isArray(data.key_factors) && data.key_factors.length > 0 && (
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Nyckelfaktorer</p>
+            <p className="text-xs font-medium text-muted-foreground">{c.keyFactors}</p>
             <ul className="text-xs space-y-0.5">
               {(data.key_factors as string[]).slice(0, 4).map((factor, i) => (
                 <li key={i} className="flex items-start gap-1">
@@ -132,7 +171,7 @@ function RacePredictionCard({ data }: { data: Record<string, unknown> }) {
         {/* Recommendations */}
         {Array.isArray(data.recommendations) && data.recommendations.length > 0 && (
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Rekommendationer</p>
+            <p className="text-xs font-medium text-muted-foreground">{c.recommendations}</p>
             <ul className="text-xs space-y-0.5">
               {(data.recommendations as string[]).slice(0, 3).map((rec, i) => (
                 <li key={i} className="flex items-start gap-1">
@@ -148,13 +187,15 @@ function RacePredictionCard({ data }: { data: Record<string, unknown> }) {
   )
 }
 
-function ProgramCard({ data }: { data: Record<string, unknown> }) {
+function ProgramCard({ data, locale }: { data: Record<string, unknown>; locale: AppLocale }) {
+  const c = copy[locale]
+
   return (
     <Card className="mt-3 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-purple-200 dark:border-purple-800">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Calendar className="h-4 w-4 text-purple-500" />
-          {String(data.name || data.program || 'Träningsprogram')}
+          {String(data.name || data.program || c.trainingProgram)}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -167,7 +208,7 @@ function ProgramCard({ data }: { data: Record<string, unknown> }) {
           )}
           {data.weeks !== undefined && data.weeks !== null && (
             <Badge variant="outline" className="gap-1">
-              {String(data.weeks)} veckor
+              {String(data.weeks)} {c.weeks}
             </Badge>
           )}
           {data.goal !== undefined && data.goal !== null && (
@@ -182,13 +223,13 @@ function ProgramCard({ data }: { data: Record<string, unknown> }) {
   )
 }
 
-function AthleteCard({ data }: { data: Record<string, unknown> }) {
+function AthleteCard({ data, locale }: { data: Record<string, unknown>; locale: AppLocale }) {
   return (
     <Card className="mt-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Activity className="h-4 w-4 text-green-500" />
-          {String(data.athlete || data.name || 'Atletdata')}
+          {String(data.athlete || data.name || copy[locale].athleteData)}
         </CardTitle>
       </CardHeader>
       <CardContent>
