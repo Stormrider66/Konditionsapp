@@ -48,6 +48,10 @@ function jsonError(status: number, payload: Record<string, unknown>): Response {
   })
 }
 
+function t(locale: 'en' | 'sv', en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json()
@@ -198,8 +202,16 @@ export async function POST(request: NextRequest) {
     if (!effectiveKeys.anthropicKey && !effectiveKeys.googleKey && !effectiveKeys.openaiKey) {
       const errorMsg = isAthleteChat
         ? (athleteAllowedProviders
-            ? 'Din coach/verksamhet tillåter inte några modeller med tillgängliga API-nycklar just nu.'
-            : 'Din coach har inte konfigurerat AI-nycklar ännu')
+            ? t(
+                responseLocale,
+                'Your coach or organization does not allow any models with available API keys right now.',
+                'Din coach/verksamhet tillåter inte några modeller med tillgängliga API-nycklar just nu.'
+              )
+            : t(
+                responseLocale,
+                'Your coach has not configured AI keys yet.',
+                'Din coach har inte konfigurerat AI-nycklar ännu'
+              ))
         : 'API keys not configured'
       return jsonError(400, { error: errorMsg })
     }
@@ -210,7 +222,11 @@ export async function POST(request: NextRequest) {
       const consentStatus = await getConsentStatus(athleteClientId)
       if (!consentStatus.hasRequiredConsent) {
         return jsonError(403, {
-          error: 'Du måste godkänna databehandling innan du kan använda AI-chatten.',
+          error: t(
+            responseLocale,
+            'You must approve data processing before you can use AI chat.',
+            'Du måste godkänna databehandling innan du kan använda AI-chatten.'
+          ),
           code: 'CONSENT_REQUIRED',
         })
       }
