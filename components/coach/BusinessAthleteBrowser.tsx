@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { UserCircle, Users, Send, Dumbbell } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { useLocale } from 'next-intl'
+import { Users, Send, Dumbbell } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +31,8 @@ interface BusinessAthleteBrowserProps {
 }
 
 export function BusinessAthleteBrowser({ businessId, onInvitationSent }: BusinessAthleteBrowserProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = useCallback((en: string, sv: string) => locale === 'sv' ? sv : en, [locale])
   const [athletes, setAthletes] = useState<UnassignedAthlete[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedAthlete, setSelectedAthlete] = useState<UnassignedAthlete | null>(null)
@@ -43,21 +46,21 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
       try {
         setLoading(true)
         const res = await fetch(`/api/business/${businessId}/athletes/unassigned`)
-        if (!res.ok) throw new Error('Kunde inte hämta atleter')
+        if (!res.ok) throw new Error(copy('Could not load athletes', 'Kunde inte hämta atleter'))
         const json = await res.json()
         setAthletes(json.athletes || [])
       } catch {
         toast({
-          title: 'Fel',
-          description: 'Kunde inte hämta tillgängliga atleter.',
+          title: copy('Error', 'Fel'),
+          description: copy('Could not load available athletes.', 'Kunde inte hämta tillgängliga atleter.'),
           variant: 'destructive',
         })
       } finally {
         setLoading(false)
       }
     }
-    fetchAthletes()
-  }, [businessId, toast])
+    void fetchAthletes()
+  }, [businessId, copy, toast])
 
   const handleOpenDialog = (athlete: UnassignedAthlete) => {
     setSelectedAthlete(athlete)
@@ -79,11 +82,14 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Kunde inte skicka inbjudan')
+        throw new Error(errorData.error || copy('Could not send invitation', 'Kunde inte skicka inbjudan'))
       }
       toast({
-        title: 'Inbjudan skickad',
-        description: `Din inbjudan till ${selectedAthlete.name || selectedAthlete.email} har skickats.`,
+        title: copy('Invitation sent', 'Inbjudan skickad'),
+        description: copy(
+          `Your invitation to ${selectedAthlete.name || selectedAthlete.email} has been sent.`,
+          `Din inbjudan till ${selectedAthlete.name || selectedAthlete.email} har skickats.`,
+        ),
       })
       setDialogOpen(false)
       setSelectedAthlete(null)
@@ -91,10 +97,10 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
       // Remove from list
       setAthletes(prev => prev.filter(a => a.id !== selectedAthlete.id))
       onInvitationSent?.()
-    } catch (err: any) {
+    } catch (err) {
       toast({
-        title: 'Fel',
-        description: err.message || 'Kunde inte skicka inbjudan. Försök igen.',
+        title: copy('Error', 'Fel'),
+        description: err instanceof Error ? err.message : copy('Could not send invitation. Try again.', 'Kunde inte skicka inbjudan. Försök igen.'),
         variant: 'destructive',
       })
     } finally {
@@ -119,7 +125,7 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
             <Users className="w-6 h-6 text-slate-400" />
           </div>
           <p className="text-sm text-slate-400">
-            Det finns inga otilldelade atleter just nu
+            {copy('There are no unassigned athletes right now', 'Det finns inga otilldelade atleter just nu')}
           </p>
         </CardContent>
       </Card>
@@ -161,7 +167,7 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white"
               >
                 <Send className="w-4 h-4 mr-2" />
-                Skicka inbjudan
+                {copy('Send invitation', 'Skicka inbjudan')}
               </Button>
             </CardContent>
           </Card>
@@ -173,15 +179,15 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
         <DialogContent className="bg-slate-950 border-white/10 sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-white">
-              Bjud in {selectedAthlete?.name || selectedAthlete?.email}
+              {copy('Invite', 'Bjud in')} {selectedAthlete?.name || selectedAthlete?.email}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-slate-400">
-              Atleten kommer att kunna acceptera eller avvisa din inbjudan.
+              {copy('The athlete will be able to accept or reject your invitation.', 'Atleten kommer att kunna acceptera eller avvisa din inbjudan.')}
             </p>
             <Textarea
-              placeholder="Skriv ett valfritt meddelande till atleten..."
+              placeholder={copy('Write an optional message to the athlete...', 'Skriv ett valfritt meddelande till atleten...')}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="bg-slate-900 border-white/10 text-white placeholder:text-slate-500 min-h-[100px] resize-none"
@@ -195,7 +201,7 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
               onClick={() => setDialogOpen(false)}
               className="border-white/10 text-slate-300 hover:bg-white/5"
             >
-              Avbryt
+              {copy('Cancel', 'Avbryt')}
             </Button>
             <Button
               onClick={handleSendInvitation}
@@ -203,7 +209,7 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
               className="bg-blue-500 hover:bg-blue-600 text-white"
             >
               <Send className="w-4 h-4 mr-2" />
-              {sending ? 'Skickar...' : 'Skicka'}
+              {sending ? copy('Sending...', 'Skickar...') : copy('Send', 'Skicka')}
             </Button>
           </DialogFooter>
         </DialogContent>
