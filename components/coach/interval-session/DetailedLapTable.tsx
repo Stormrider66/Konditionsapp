@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AnalysisData } from '@/lib/interval-session/analysis-service'
+import { useLocale } from '@/i18n/client'
 
 interface DetailedLapTableProps {
   data: AnalysisData
@@ -24,24 +25,26 @@ function formatSplit(ms: number): string {
 }
 
 export function DetailedLapTable({ data }: DetailedLapTableProps) {
+  const isSv = useLocale() === 'sv'
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Alla varv</CardTitle>
+        <CardTitle>{isSv ? 'Alla varv' : 'All laps'}</CardTitle>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 bg-card z-10">Atlet</TableHead>
+              <TableHead className="sticky left-0 bg-card z-10">{isSv ? 'Atlet' : 'Athlete'}</TableHead>
               {data.intervals.map((interval) => (
                 <TableHead key={interval} className="text-center whitespace-nowrap">
                   Int {interval}
                 </TableHead>
               ))}
-              <TableHead className="text-center">Snitt</TableHead>
-              <TableHead className="text-center">Bästa</TableHead>
-              <TableHead className="text-center">Sämsta</TableHead>
+              <TableHead className="text-center">{isSv ? 'Snitt' : 'Average'}</TableHead>
+              <TableHead className="text-center">{isSv ? 'Bästa' : 'Best'}</TableHead>
+              <TableHead className="text-center">{isSv ? 'Sämsta' : 'Worst'}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

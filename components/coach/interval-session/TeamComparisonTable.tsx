@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AnalysisData } from '@/lib/interval-session/analysis-service'
+import { useLocale } from '@/i18n/client'
 
 interface TeamComparisonTableProps {
   data: AnalysisData
@@ -25,6 +26,7 @@ function formatSplit(ms: number | null): string {
 }
 
 export function TeamComparisonTable({ data }: TeamComparisonTableProps) {
+  const isSv = useLocale() === 'sv'
   // Sort by avg split time (fastest first)
   const sorted = [...data.participants].sort((a, b) => {
     if (a.avgSplitMs === null) return 1
@@ -35,19 +37,19 @@ export function TeamComparisonTable({ data }: TeamComparisonTableProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Lagjämförelse</CardTitle>
+        <CardTitle>{isSv ? 'Lagjämförelse' : 'Team comparison'}</CardTitle>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>#</TableHead>
-              <TableHead>Namn</TableHead>
-              <TableHead className="text-right">Varv</TableHead>
-              <TableHead className="text-right">Snitt</TableHead>
-              <TableHead className="text-right">Bästa</TableHead>
-              <TableHead className="text-right">Sämsta</TableHead>
-              <TableHead className="text-right">Max laktat</TableHead>
+              <TableHead>{isSv ? 'Namn' : 'Name'}</TableHead>
+              <TableHead className="text-right">{isSv ? 'Varv' : 'Laps'}</TableHead>
+              <TableHead className="text-right">{isSv ? 'Snitt' : 'Average'}</TableHead>
+              <TableHead className="text-right">{isSv ? 'Bästa' : 'Best'}</TableHead>
+              <TableHead className="text-right">{isSv ? 'Sämsta' : 'Worst'}</TableHead>
+              <TableHead className="text-right">{isSv ? 'Max laktat' : 'Max lactate'}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
