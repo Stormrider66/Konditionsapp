@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * POST /api/programs/[id]/request-next
  * Athlete requests next program from their coach after completing a program.
@@ -12,11 +18,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Obehörig' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const { id } = await params
 
@@ -45,13 +54,25 @@ export async function POST(
     })
 
     if (!program) {
-      return NextResponse.json({ error: 'Programmet hittades inte' }, { status: 404 })
+      return NextResponse.json(
+        { error: t(locale, 'Program not found', 'Programmet hittades inte') },
+        { status: 404 }
+      )
     }
 
     const coachId = program.client.athleteSubscription?.assignedCoachId
     if (!coachId) {
-      return NextResponse.json({ error: 'Ingen coach kopplad' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'No coach connected', 'Ingen coach kopplad') },
+        { status: 400 }
+      )
     }
+
+    const coach = await prisma.user.findUnique({
+      where: { id: coachId },
+      select: { language: true },
+    })
+    const coachLocale: AppLocale = coach?.language === 'sv' ? 'sv' : 'en'
 
     const businessSlug =
       program.client.business?.slug ?? (await getUserPrimaryBusinessSlug(coachId))
@@ -65,10 +86,14 @@ export async function POST(
         clientId: program.clientId,
         notificationType: 'NEXT_PROGRAM_REQUEST',
         priority: 'HIGH',
-        title: 'Nytt program efterfrågas',
-        message: `${program.client.name} har slutfört "${program.name}" och vill ha ett nytt träningsprogram.`,
+        title: t(coachLocale, 'New program requested', 'Nytt program efterfrågas'),
+        message: t(
+          coachLocale,
+          `${program.client.name} has completed "${program.name}" and wants a new training program.`,
+          `${program.client.name} har slutfört "${program.name}" och vill ha ett nytt träningsprogram.`
+        ),
         actionUrl,
-        actionLabel: 'Visa atlet',
+        actionLabel: t(coachLocale, 'View athlete', 'Visa atlet'),
         triggeredBy: 'event',
         triggerReason: 'program_completed',
         contextData: {
@@ -82,7 +107,7 @@ export async function POST(
   } catch (error) {
     console.error('Error requesting next program:', error)
     return NextResponse.json(
-      { error: 'Kunde inte skicka förfrågan' },
+      { error: t(locale, 'Could not send request', 'Kunde inte skicka förfrågan') },
       { status: 500 }
     )
   }
