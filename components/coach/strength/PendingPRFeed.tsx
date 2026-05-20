@@ -25,6 +25,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Trophy, Check, X, Sparkles } from 'lucide-react'
 import { PR_UNIT_LABELS, isPrUnit, type PrUnit } from '@/lib/strength/units'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = {
+  en: {
+    empty: 'No PRs to confirm.',
+    title: 'PRs to confirm',
+    description: 'Auto-estimated PRs from logged sets. Confirm to move them to "Tested".',
+    confirm: 'Confirm',
+    remove: 'Remove',
+  },
+  sv: {
+    empty: 'Inga PR att bekräfta.',
+    title: 'PR att bekräfta',
+    description: 'Auto-uppskattade PR från loggade set. Bekräfta för att flytta till "Testat".',
+    confirm: 'Bekräfta',
+    remove: 'Ta bort',
+  },
+} as const
 
 interface PendingPR {
   id: string
@@ -48,8 +68,8 @@ interface PendingPRFeedProps {
   title?: string
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
+function formatDate(iso: string, locale: AppLocale): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     month: 'short',
     day: 'numeric',
   })
@@ -59,10 +79,14 @@ export function PendingPRFeed({
   items,
   onChanged,
   basePath,
-  emptyLabel = 'Inga PR att bekräfta.',
-  title = 'PR att bekräfta',
+  emptyLabel,
+  title,
 }: PendingPRFeedProps) {
+  const locale = useLocale() as AppLocale
+  const t = copy[locale] ?? copy.en
   const [busyId, setBusyId] = useState<string | null>(null)
+  const resolvedEmptyLabel = emptyLabel ?? t.empty
+  const resolvedTitle = title ?? t.title
 
   const confirm = async (id: string) => {
     setBusyId(id)
@@ -93,18 +117,18 @@ export function PendingPRFeed({
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-yellow-500" />
-          {title}
+          {resolvedTitle}
           {items.length > 0 && <Badge variant="secondary">{items.length}</Badge>}
         </CardTitle>
         <CardDescription>
-          Auto-uppskattade PR från loggade set. Bekräfta för att flytta till &quot;Testat&quot;.
+          {t.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {items.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground text-sm">
             <Trophy className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            {emptyLabel}
+            {resolvedEmptyLabel}
           </div>
         ) : (
           <div className="divide-y">
@@ -131,7 +155,7 @@ export function PendingPRFeed({
                       {PR_UNIT_LABELS[(isPrUnit(p.unit) ? p.unit : 'KG') as PrUnit]}
                     </span>
                     {' · '}
-                    {formatDate(p.date)}
+                    {formatDate(p.date, locale)}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -147,7 +171,7 @@ export function PendingPRFeed({
                     ) : (
                       <>
                         <Check className="h-3 w-3 mr-1" />
-                        Bekräfta
+                        {t.confirm}
                       </>
                     )}
                   </Button>
@@ -157,7 +181,7 @@ export function PendingPRFeed({
                     onClick={() => remove(p.id)}
                     disabled={busyId === p.id}
                     className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                    title="Ta bort"
+                    title={t.remove}
                   >
                     <X className="h-3 w-3" />
                   </Button>
@@ -197,12 +221,16 @@ export function PendingPRFeedSingle({ clientId }: PendingPRFeedSingleProps) {
   }, [clientId])
 
   useEffect(() => {
-    fetchItems()
+    const timeoutId = window.setTimeout(() => {
+      void fetchItems()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchItems])
 
   // Render nothing while loading OR when nothing pending — keeps the
   // Analys tab clean once the coach has confirmed everything.
   if (isLoading || items.length === 0) return null
 
-  return <PendingPRFeed items={items} onChanged={fetchItems} />
+  return <PendingPRFeed items={items} onChanged={() => void fetchItems()} />
 }
