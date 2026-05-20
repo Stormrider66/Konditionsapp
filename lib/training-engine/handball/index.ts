@@ -17,6 +17,9 @@ export {
   getBenchmarkRating,
   calculateMatchLoadScore,
   getLoadStatus,
+  getHandballLocale,
+  translateHandballText,
+  translateHandballList,
 } from './position-training';
 
 export type {
@@ -28,4 +31,5 @@ export type {
   MatchdayProtocol,
   PhysicalBenchmarks,
   MatchLoadData,
+  HandballLocale,
 } from './position-training';

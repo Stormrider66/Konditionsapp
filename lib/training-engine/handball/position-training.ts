@@ -86,6 +86,128 @@ export interface PhysicalBenchmarks {
   };
 }
 
+export type HandballLocale = 'en' | 'sv';
+
+const ENGLISH_PHRASES: Record<string, string> = {
+  'Sista utposten - reaktionsförmåga, positionering och explosivitet': 'Last line of defense - reaction ability, positioning, and explosiveness',
+  'Snabb och smidig - löpningar, genombrott och avslut från vinkel': 'Fast and agile - runs, breakthroughs, and finishes from wide angles',
+  'Skyttekung - kraftfulla avslut, genombrott och speluppbyggnad': 'Shooter - powerful finishes, breakthroughs, and build-up play',
+  'Spelmotor - dirigerar spelet, skapar lägen och överblick': 'Playmaker - directs play, creates chances, and reads the game',
+  'Murbrytare - spärrar, blockerar och avslutar i trängsel': 'Screen setter - blocks, seals, and finishes in traffic',
+  Reaktionsförmåga: 'Reaction ability',
+  'Lateral rörlighet': 'Lateral mobility',
+  'Explosiv kraft': 'Explosive power',
+  Flexibilitet: 'Flexibility',
+  Sprintsnabbhet: 'Sprint speed',
+  Kvickhet: 'Agility',
+  Hoppkraft: 'Jump power',
+  Uthållighet: 'Endurance',
+  Skottstyrka: 'Shot power',
+  Överkroppsstyrka: 'Upper-body strength',
+  Acceleration: 'Acceleration',
+  Spelsinne: 'Game sense',
+  Beslutsfattande: 'Decision-making',
+  Kroppsstyrka: 'Body strength',
+  Balans: 'Balance',
+  Kontaktstyrka: 'Contact strength',
+  'Snabba fötter': 'Quick feet',
+  'Aerob basträning': 'Aerobic base training',
+  'Maxstyrka uppbyggnad': 'Maximum strength build-up',
+  'Rörlighet och mobilitet': 'Flexibility and mobility',
+  Skaderehabilitering: 'Injury rehabilitation',
+  Teknikutveckling: 'Technique development',
+  'Explosiv styrka och power': 'Explosive strength and power',
+  'Sport-specifik kondition': 'Sport-specific conditioning',
+  'Repeated sprint ability': 'Repeated sprint ability',
+  'Plyometrics och hopp': 'Plyometrics and jumping',
+  'Taktisk träning': 'Tactical training',
+  'Underhåll av styrka och power': 'Strength and power maintenance',
+  Matchförberedelse: 'Match preparation',
+  Återhämtning: 'Recovery',
+  Skadeförebyggande: 'Injury prevention',
+  'Taktisk anpassning': 'Tactical adaptation',
+  'Optimal återhämtning': 'Optimal recovery',
+  'Mental förberedelse': 'Mental preparation',
+  Matchskärpa: 'Match sharpness',
+  'Injury prevention': 'Injury prevention',
+  Lagsammanhållning: 'Team cohesion',
+  'Hypertrofi och maxstyrka (4-8 rep, 70-85% 1RM)': 'Hypertrophy and maximum strength (4-8 reps, 70-85% 1RM)',
+  'Aerob bas (låg-medel intensitet, 30-60 min)': 'Aerobic base (low-medium intensity, 30-60 min)',
+  'Power och explosivitet (3-5 rep, 75-90% 1RM + plyometrics)': 'Power and explosiveness (3-5 reps, 75-90% 1RM + plyometrics)',
+  'Intervaller (15-60 sek arbete, kortare vila)': 'Intervals (15-60 sec work, shorter rest)',
+  'Underhåll (2-4 rep, 80-90% 1RM, låg volym)': 'Maintenance (2-4 reps, 80-90% 1RM, low volume)',
+  'Matchspecifik (korta intervaller, spelsimulering)': 'Match-specific (short intervals, game simulation)',
+  'Aktivering endast (lätt, explosivt)': 'Activation only (light, explosive)',
+  'Minimal - endast aktivering': 'Minimal - activation only',
+  'External Rotation med band': 'Band external rotation',
+  'Calf Raises (raka knän)': 'Calf raises (straight knees)',
+  'Finger Extensions med band': 'Band finger extensions',
+  '3x10 varje position': '3x10 each position',
+  '3x30 sek per arm': '3x30 sec per arm',
+  '3x8 per ben': '3x8 per leg',
+  '3x15 per ben': '3x15 per leg',
+  '3x30 sek per ben': '3x30 sec per leg',
+  '1x A-Z per fot': '1x A-Z per foot',
+  '3x8 per sida': '3x8 per side',
+  '3x12 per sida': '3x12 per side',
+  '3x10 per sida': '3x10 per side',
+  '3x10 sek håll': '3x10 sec hold',
+  '3x6 per sida': '3x6 per side',
+  '8x20m, 30 sek vila': '8x20m, 30 sec rest',
+  '5x genomgång': '5x walkthroughs',
+  'Armbågen fixerad vid sidan, kontrollerad rörelse': 'Elbow fixed at the side, controlled movement',
+  'Liggande på mage, aktivera rotatorkuffen': 'Prone position, activate the rotator cuff',
+  'Dra mot ansiktet, externa rotation i slutposition': 'Pull toward the face, external rotation at end range',
+  'Liggande på sidan, försiktig stretch': 'Side-lying position, gentle stretch',
+  'Kontrollerad excentrisk fas, partner eller maskin': 'Controlled eccentric phase, partner or machine',
+  'Kontrollerad rörelse, aktivera hamstrings': 'Controlled movement, activate hamstrings',
+  'Band runt knä, aktivera VMO': 'Band around knee, activate VMO',
+  'Band runt knä bakom, skjut knäna framåt': 'Band behind knees, drive knees forward',
+  'Full range of motion, kontrollera nedfasen': 'Full range of motion, control the lowering phase',
+  'Progressera till instabil yta': 'Progress to an unstable surface',
+  'Rita alfabetet med tårna': 'Draw the alphabet with your toes',
+  'Gradvis progression, börja med kort hävarm': 'Gradual progression, start with a short lever',
+  'Lyft underbenet, håll kvar i toppen': 'Lift the lower leg, pause at the top',
+  'Bred ställning, aktivera adduktorer': 'Wide stance, activate adductors',
+  'Aktivera core, håll ryggen neutral': 'Activate core, keep the spine neutral',
+  'Pressa ländryggen mot golvet': 'Press the lower back into the floor',
+  'Långsam, kontrollerad rörelse': 'Slow, controlled movement',
+  'Band runt fingrarna, spreta ut': 'Band around fingers, spread them out',
+  'Tennisboll eller grip trainer': 'Tennis ball or grip trainer',
+  'Explosiv sidoförflyttning, stabil landning': 'Explosive lateral movement, stable landing',
+  'Explosiv uppåt, mjuk landning': 'Explosive upward movement, soft landing',
+  'Maximal intensitet, full återhämtning': 'Maximum intensity, full recovery',
+  'Fokus på snabb respons från golvet': 'Focus on quick response from the floor',
+  'Kraftfull rotation från höfterna': 'Powerful rotation from the hips',
+  'Stående, enkelarms press med rotation': 'Standing single-arm press with rotation',
+  'Olika mönster, fokus på snabba fötter': 'Different patterns, focus on quick feet',
+  'Snabba vändningar, simulerar matchrörelser': 'Quick turns, simulates match movements',
+  'Djup position, upprätthåll bålstabilitet': 'Deep position, maintain trunk stability',
+  'Anti-rotation, stabil bål': 'Anti-rotation, stable trunk',
+  strength: 'Strength',
+  power: 'Power',
+  endurance: 'Endurance',
+  agility: 'Agility',
+  mobility: 'Mobility',
+  prevention: 'Prevention',
+  'Låg matchbelastning - överväg extra konditionspass': 'Low match load - consider an extra conditioning session',
+  'Optimal matchbelastning - fortsätt som planerat': 'Optimal match load - continue as planned',
+  'Hög belastning - prioritera återhämtning': 'High load - prioritize recovery',
+  'Mycket hög belastning - extra vila och övervakning': 'Very high load - extra rest and monitoring',
+};
+
+export function getHandballLocale(locale: string): HandballLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+export function translateHandballText(locale: string, value: string): string {
+  return getHandballLocale(locale) === 'sv' ? value : ENGLISH_PHRASES[value] ?? value;
+}
+
+export function translateHandballList(locale: string, values: string[]): string[] {
+  return values.map((value) => translateHandballText(locale, value));
+}
+
 // ==================== POSITION PROFILES ====================
 
 export const HANDBALL_POSITION_PROFILES: Record<HandballPosition, PositionProfile> = {
@@ -732,7 +854,7 @@ export function calculateMatchLoadScore(data: MatchLoadData, position: HandballP
   return Math.round(score);
 }
 
-export function getLoadStatus(score: number): {
+export function getLoadStatus(score: number, locale: string = 'en'): {
   status: 'low' | 'optimal' | 'high' | 'very_high';
   color: string;
   recommendation: string;
@@ -741,25 +863,25 @@ export function getLoadStatus(score: number): {
     return {
       status: 'low',
       color: 'blue',
-      recommendation: 'Låg matchbelastning - överväg extra konditionspass',
+      recommendation: translateHandballText(locale, 'Låg matchbelastning - överväg extra konditionspass'),
     };
   } else if (score <= 100) {
     return {
       status: 'optimal',
       color: 'green',
-      recommendation: 'Optimal matchbelastning - fortsätt som planerat',
+      recommendation: translateHandballText(locale, 'Optimal matchbelastning - fortsätt som planerat'),
     };
   } else if (score <= 130) {
     return {
       status: 'high',
       color: 'yellow',
-      recommendation: 'Hög belastning - prioritera återhämtning',
+      recommendation: translateHandballText(locale, 'Hög belastning - prioritera återhämtning'),
     };
   } else {
     return {
       status: 'very_high',
       color: 'red',
-      recommendation: 'Mycket hög belastning - extra vila och övervakning',
+      recommendation: translateHandballText(locale, 'Mycket hög belastning - extra vila och övervakning'),
     };
   }
 }
@@ -777,6 +899,9 @@ const handballTrainingModule = {
   getBenchmarkRating,
   calculateMatchLoadScore,
   getLoadStatus,
+  getHandballLocale,
+  translateHandballText,
+  translateHandballList,
 };
 
 export default handballTrainingModule;
