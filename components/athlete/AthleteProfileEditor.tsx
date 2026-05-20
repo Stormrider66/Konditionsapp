@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Edit2, Save, X, RefreshCw } from 'lucide-react'
 import { ChangeSportDialog } from './ChangeSportDialog'
@@ -21,30 +21,31 @@ import { TriathlonOnboarding, DEFAULT_TRIATHLON_SETTINGS, type TriathlonSettings
 import { HYROXOnboarding, DEFAULT_HYROX_SETTINGS, type HYROXSettings } from '@/components/onboarding/HYROXOnboarding'
 import { GeneralFitnessOnboarding, DEFAULT_GENERAL_FITNESS_SETTINGS, type GeneralFitnessSettings } from '@/components/onboarding/GeneralFitnessOnboarding'
 
-const SPORT_DISPLAY: Record<string, { icon: string; label: string }> = {
-  RUNNING: { icon: '🏃', label: 'Löpning' },
-  CYCLING: { icon: '🚴', label: 'Cykling' },
-  SKIING: { icon: '⛷️', label: 'Längdskidåkning' },
-  TRIATHLON: { icon: '🏊', label: 'Triathlon' },
-  HYROX: { icon: '💪', label: 'HYROX' },
-  GENERAL_FITNESS: { icon: '🏋️', label: 'Allmän Fitness' },
-  FUNCTIONAL_FITNESS: { icon: '🔥', label: 'Funktionell Fitness' },
-  SWIMMING: { icon: '🏊‍♂️', label: 'Simning' },
-  TEAM_ICE_HOCKEY: { icon: '🏒', label: 'Ishockey' },
-  TEAM_FOOTBALL: { icon: '⚽', label: 'Fotboll' },
-  TEAM_HANDBALL: { icon: '🤾', label: 'Handboll' },
-  TEAM_FLOORBALL: { icon: '🏑', label: 'Innebandy' },
-  TEAM_BASKETBALL: { icon: '🏀', label: 'Basket' },
-  TEAM_VOLLEYBALL: { icon: '🏐', label: 'Volleyboll' },
-  TENNIS: { icon: '🎾', label: 'Tennis' },
-  PADEL: { icon: '🎾', label: 'Padel' },
-}
+type AppLocale = 'en' | 'sv'
 
-const EXPERIENCE_LABELS: Record<string, string> = {
-  BEGINNER: 'Nybörjare',
-  INTERMEDIATE: 'Mellanliggande',
-  ADVANCED: 'Avancerad',
-  ELITE: 'Elit',
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const SPORT_DISPLAY: Record<string, { icon: string; label: Record<AppLocale, string> }> = {
+  RUNNING: { icon: '🏃', label: { sv: 'Löpning', en: 'Running' } },
+  CYCLING: { icon: '🚴', label: { sv: 'Cykling', en: 'Cycling' } },
+  SKIING: { icon: '⛷️', label: { sv: 'Längdskidåkning', en: 'Cross-country skiing' } },
+  TRIATHLON: { icon: '🏊', label: { sv: 'Triathlon', en: 'Triathlon' } },
+  HYROX: { icon: '💪', label: { sv: 'HYROX', en: 'HYROX' } },
+  GENERAL_FITNESS: { icon: '🏋️', label: { sv: 'Allmän Fitness', en: 'General Fitness' } },
+  FUNCTIONAL_FITNESS: { icon: '🔥', label: { sv: 'Funktionell Fitness', en: 'Functional Fitness' } },
+  SWIMMING: { icon: '🏊‍♂️', label: { sv: 'Simning', en: 'Swimming' } },
+  TEAM_ICE_HOCKEY: { icon: '🏒', label: { sv: 'Ishockey', en: 'Ice hockey' } },
+  TEAM_FOOTBALL: { icon: '⚽', label: { sv: 'Fotboll', en: 'Football' } },
+  TEAM_HANDBALL: { icon: '🤾', label: { sv: 'Handboll', en: 'Handball' } },
+  TEAM_FLOORBALL: { icon: '🏑', label: { sv: 'Innebandy', en: 'Floorball' } },
+  TEAM_BASKETBALL: { icon: '🏀', label: { sv: 'Basket', en: 'Basketball' } },
+  TEAM_VOLLEYBALL: { icon: '🏐', label: { sv: 'Volleyboll', en: 'Volleyball' } },
+  TENNIS: { icon: '🎾', label: { sv: 'Tennis', en: 'Tennis' } },
+  PADEL: { icon: '🎾', label: { sv: 'Padel', en: 'Padel' } },
 }
 
 interface SportProfile {
@@ -78,6 +79,7 @@ export function AthleteProfileEditor({
   clientEmail,
   sportProfile,
 }: AthleteProfileEditorProps) {
+  const locale = getAppLocale(useLocale())
   const basePath = useBasePath()
   const router = useRouter()
   const { toast } = useToast()
@@ -144,16 +146,16 @@ export function AthleteProfileEditor({
       }
 
       toast({
-        title: 'Profil uppdaterad!',
-        description: 'Dina inställningar har sparats.',
+        title: t(locale, 'Profil uppdaterad!', 'Profile updated!'),
+        description: t(locale, 'Dina inställningar har sparats.', 'Your settings have been saved.'),
       })
 
       setIsEditing(false)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara profilen. Försök igen.',
+        title: t(locale, 'Fel', 'Error'),
+        description: t(locale, 'Kunde inte spara profilen. Försök igen.', 'Could not save the profile. Try again.'),
         variant: 'destructive',
       })
     } finally {
@@ -181,7 +183,7 @@ export function AthleteProfileEditor({
           <CyclingOnboarding
             value={cyclingSettings}
             onChange={setCyclingSettings}
-            locale="sv"
+            locale={locale}
           />
         )
       case 'SKIING':
@@ -189,7 +191,7 @@ export function AthleteProfileEditor({
           <SkiingOnboarding
             value={skiingSettings}
             onChange={setSkiingSettings}
-            locale="sv"
+            locale={locale}
           />
         )
       case 'SWIMMING':
@@ -197,7 +199,7 @@ export function AthleteProfileEditor({
           <SwimmingOnboarding
             value={swimmingSettings}
             onChange={setSwimmingSettings}
-            locale="sv"
+            locale={locale}
           />
         )
       case 'TRIATHLON':
@@ -205,7 +207,7 @@ export function AthleteProfileEditor({
           <TriathlonOnboarding
             value={triathlonSettings}
             onChange={setTriathlonSettings}
-            locale="sv"
+            locale={locale}
           />
         )
       case 'HYROX':
@@ -225,7 +227,7 @@ export function AthleteProfileEditor({
       default:
         return (
           <p className="text-muted-foreground">
-            Inga sportspecifika inställningar tillgängliga för denna sport.
+            {t(locale, 'Inga sportspecifika inställningar tillgängliga för denna sport.', 'No sport-specific settings are available for this sport.')}
           </p>
         )
     }
@@ -239,46 +241,46 @@ export function AthleteProfileEditor({
         return (
           <div className="space-y-2 text-sm">
             {cyclingSettings.currentFtp && <p><span className="text-muted-foreground">FTP:</span> {cyclingSettings.currentFtp}W</p>}
-            {cyclingSettings.weight && <p><span className="text-muted-foreground">Vikt:</span> {cyclingSettings.weight}kg</p>}
-            {cyclingSettings.primaryDiscipline && <p><span className="text-muted-foreground">Disciplin:</span> {cyclingSettings.primaryDiscipline}</p>}
-            {cyclingSettings.bikeTypes && cyclingSettings.bikeTypes.length > 0 && <p><span className="text-muted-foreground">Cyklar:</span> {cyclingSettings.bikeTypes.join(', ')}</p>}
+            {cyclingSettings.weight && <p><span className="text-muted-foreground">{t(locale, 'Vikt:', 'Weight:')}</span> {cyclingSettings.weight}kg</p>}
+            {cyclingSettings.primaryDiscipline && <p><span className="text-muted-foreground">{t(locale, 'Disciplin:', 'Discipline:')}</span> {cyclingSettings.primaryDiscipline}</p>}
+            {cyclingSettings.bikeTypes && cyclingSettings.bikeTypes.length > 0 && <p><span className="text-muted-foreground">{t(locale, 'Cyklar:', 'Bikes:')}</span> {cyclingSettings.bikeTypes.join(', ')}</p>}
           </div>
         )
       case 'SKIING':
         return (
           <div className="space-y-2 text-sm">
-            {skiingSettings.technique && <p><span className="text-muted-foreground">Teknik:</span> {skiingSettings.technique}</p>}
-            {skiingSettings.primaryDiscipline && <p><span className="text-muted-foreground">Disciplin:</span> {skiingSettings.primaryDiscipline}</p>}
+            {skiingSettings.technique && <p><span className="text-muted-foreground">{t(locale, 'Teknik:', 'Technique:')}</span> {skiingSettings.technique}</p>}
+            {skiingSettings.primaryDiscipline && <p><span className="text-muted-foreground">{t(locale, 'Disciplin:', 'Discipline:')}</span> {skiingSettings.primaryDiscipline}</p>}
           </div>
         )
       case 'SWIMMING':
         return (
           <div className="space-y-2 text-sm">
             {swimmingSettings.currentCss && <p><span className="text-muted-foreground">CSS:</span> {swimmingSettings.currentCss}s/100m</p>}
-            {swimmingSettings.primaryStroke && <p><span className="text-muted-foreground">Primär simtag:</span> {swimmingSettings.primaryStroke}</p>}
-            {swimmingSettings.strokeTypes && swimmingSettings.strokeTypes.length > 0 && <p><span className="text-muted-foreground">Simtag:</span> {swimmingSettings.strokeTypes.join(', ')}</p>}
+            {swimmingSettings.primaryStroke && <p><span className="text-muted-foreground">{t(locale, 'Primär simtag:', 'Primary stroke:')}</span> {swimmingSettings.primaryStroke}</p>}
+            {swimmingSettings.strokeTypes && swimmingSettings.strokeTypes.length > 0 && <p><span className="text-muted-foreground">{t(locale, 'Simtag:', 'Strokes:')}</span> {swimmingSettings.strokeTypes.join(', ')}</p>}
           </div>
         )
       case 'TRIATHLON':
         return (
           <div className="space-y-2 text-sm">
-            {triathlonSettings.targetRaceDistance && <p><span className="text-muted-foreground">Distans:</span> {triathlonSettings.targetRaceDistance}</p>}
-            {triathlonSettings.weakestDiscipline && <p><span className="text-muted-foreground">Svagaste disciplin:</span> {triathlonSettings.weakestDiscipline}</p>}
+            {triathlonSettings.targetRaceDistance && <p><span className="text-muted-foreground">{t(locale, 'Distans:', 'Distance:')}</span> {triathlonSettings.targetRaceDistance}</p>}
+            {triathlonSettings.weakestDiscipline && <p><span className="text-muted-foreground">{t(locale, 'Svagaste disciplin:', 'Weakest discipline:')}</span> {triathlonSettings.weakestDiscipline}</p>}
           </div>
         )
       case 'HYROX':
         return (
           <div className="space-y-2 text-sm">
-            {hyroxSettings.raceCategory && <p><span className="text-muted-foreground">Kategori:</span> {hyroxSettings.raceCategory}</p>}
-            {hyroxSettings.experienceLevel && <p><span className="text-muted-foreground">Nivå:</span> {hyroxSettings.experienceLevel}</p>}
+            {hyroxSettings.raceCategory && <p><span className="text-muted-foreground">{t(locale, 'Kategori:', 'Category:')}</span> {hyroxSettings.raceCategory}</p>}
+            {hyroxSettings.experienceLevel && <p><span className="text-muted-foreground">{t(locale, 'Nivå:', 'Level:')}</span> {hyroxSettings.experienceLevel}</p>}
           </div>
         )
       case 'GENERAL_FITNESS':
         return (
           <div className="space-y-2 text-sm">
-            {generalFitnessSettings.primaryGoal && <p><span className="text-muted-foreground">Mål:</span> {generalFitnessSettings.primaryGoal}</p>}
-            {generalFitnessSettings.fitnessLevel && <p><span className="text-muted-foreground">Nivå:</span> {generalFitnessSettings.fitnessLevel}</p>}
-            {generalFitnessSettings.weeklyWorkouts && <p><span className="text-muted-foreground">Pass/vecka:</span> {generalFitnessSettings.weeklyWorkouts}</p>}
+            {generalFitnessSettings.primaryGoal && <p><span className="text-muted-foreground">{t(locale, 'Mål:', 'Goal:')}</span> {generalFitnessSettings.primaryGoal}</p>}
+            {generalFitnessSettings.fitnessLevel && <p><span className="text-muted-foreground">{t(locale, 'Nivå:', 'Level:')}</span> {generalFitnessSettings.fitnessLevel}</p>}
+            {generalFitnessSettings.weeklyWorkouts && <p><span className="text-muted-foreground">{t(locale, 'Pass/vecka:', 'Sessions/week:')}</span> {generalFitnessSettings.weeklyWorkouts}</p>}
           </div>
         )
       default:
@@ -291,8 +293,8 @@ export function AthleteProfileEditor({
       {/* Basic Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Personlig information</CardTitle>
-          <CardDescription>Dina grundläggande uppgifter</CardDescription>
+          <CardTitle>{t(locale, 'Personlig information', 'Personal information')}</CardTitle>
+          <CardDescription>{t(locale, 'Dina grundläggande uppgifter', 'Your basic details')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -301,7 +303,7 @@ export function AthleteProfileEditor({
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Email</p>
-            <p className="font-medium">{clientEmail || 'Ej angett'}</p>
+            <p className="font-medium">{clientEmail || t(locale, 'Ej angett', 'Not provided')}</p>
           </div>
         </CardContent>
       </Card>
@@ -310,13 +312,13 @@ export function AthleteProfileEditor({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Sportprofil</CardTitle>
-            <CardDescription>Din träningsinriktning och inställningar</CardDescription>
+            <CardTitle>{t(locale, 'Sportprofil', 'Sport profile')}</CardTitle>
+            <CardDescription>{t(locale, 'Din träningsinriktning och inställningar', 'Your training focus and settings')}</CardDescription>
           </div>
           {sportProfile && !isEditing && (
             <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
               <Edit2 className="h-4 w-4 mr-2" />
-              Redigera
+              {t(locale, 'Redigera', 'Edit')}
             </Button>
           )}
         </CardHeader>
@@ -325,13 +327,13 @@ export function AthleteProfileEditor({
             <div className="space-y-6">
               {/* Primary Sport Display */}
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Huvudsport</p>
+                <p className="text-sm text-muted-foreground mb-2">{t(locale, 'Huvudsport', 'Primary sport')}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {sportDisplay && (
                       <>
                         <span className="text-2xl">{sportDisplay.icon}</span>
-                        <span className="font-medium">{sportDisplay.label}</span>
+                        <span className="font-medium">{sportDisplay.label[locale]}</span>
                       </>
                     )}
                   </div>
@@ -341,7 +343,7 @@ export function AthleteProfileEditor({
                     onClick={() => setShowChangeSportDialog(true)}
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Byt sport
+                    {t(locale, 'Byt sport', 'Change sport')}
                   </Button>
                 </div>
               </div>
@@ -349,13 +351,13 @@ export function AthleteProfileEditor({
               {/* Secondary Sports */}
               {sportProfile.secondarySports && sportProfile.secondarySports.length > 0 && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Sekundära sporter</p>
+                  <p className="text-sm text-muted-foreground mb-2">{t(locale, 'Sekundära sporter', 'Secondary sports')}</p>
                   <div className="flex flex-wrap gap-2">
                     {sportProfile.secondarySports.map((sport) => {
                       const display = SPORT_DISPLAY[sport]
                       return (
                         <Badge key={sport} variant="secondary">
-                          {display?.icon} {display?.label}
+                          {display?.icon} {display?.label[locale]}
                         </Badge>
                       )
                     })}
@@ -367,7 +369,7 @@ export function AthleteProfileEditor({
               {isEditing ? (
                 <div className="space-y-4">
                   <div className="border-t pt-4">
-                    <h4 className="font-medium mb-4">Sportspecifika inställningar</h4>
+                    <h4 className="font-medium mb-4">{t(locale, 'Sportspecifika inställningar', 'Sport-specific settings')}</h4>
                     {renderSportSettings()}
                   </div>
 
@@ -375,7 +377,7 @@ export function AthleteProfileEditor({
                   <div className="flex justify-end gap-2 pt-4 border-t">
                     <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                       <X className="h-4 w-4 mr-2" />
-                      Avbryt
+                      {t(locale, 'Avbryt', 'Cancel')}
                     </Button>
                     <Button onClick={handleSave} disabled={isSaving}>
                       {isSaving ? (
@@ -383,13 +385,13 @@ export function AthleteProfileEditor({
                       ) : (
                         <Save className="h-4 w-4 mr-2" />
                       )}
-                      Spara ändringar
+                      {t(locale, 'Spara ändringar', 'Save changes')}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="border-t pt-4">
-                  <h4 className="font-medium mb-2">Aktuella inställningar</h4>
+                  <h4 className="font-medium mb-2">{t(locale, 'Aktuella inställningar', 'Current settings')}</h4>
                   {renderSportSummary()}
                 </div>
               )}
@@ -397,23 +399,23 @@ export function AthleteProfileEditor({
               {/* General Info */}
               {sportProfile.currentGoal && !isEditing && (
                 <div className="border-t pt-4">
-                  <p className="text-sm text-muted-foreground">Nuvarande mål</p>
+                  <p className="text-sm text-muted-foreground">{t(locale, 'Nuvarande mål', 'Current goal')}</p>
                   <p className="font-medium">{sportProfile.currentGoal}</p>
                 </div>
               )}
 
               {sportProfile.preferredSessionLength && !isEditing && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Föredragen passlängd</p>
-                  <p className="font-medium">{sportProfile.preferredSessionLength} minuter</p>
+                  <p className="text-sm text-muted-foreground">{t(locale, 'Föredragen passlängd', 'Preferred session length')}</p>
+                  <p className="font-medium">{sportProfile.preferredSessionLength} {t(locale, 'minuter', 'minutes')}</p>
                 </div>
               )}
             </div>
           ) : (
             <p className="text-muted-foreground">
-              Du har inte slutfört din sportprofil ännu.{' '}
+              {t(locale, 'Du har inte slutfört din sportprofil ännu.', 'You have not completed your sport profile yet.')}{' '}
               <Link href={`${basePath}/athlete/onboarding`} className="text-primary underline">
-                Slutför nu
+                {t(locale, 'Slutför nu', 'Complete now')}
               </Link>
             </p>
           )}
