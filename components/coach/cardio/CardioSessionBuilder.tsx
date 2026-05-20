@@ -43,6 +43,7 @@ import {
 import type { CardioSessionData, CardioSegment as CardioSegmentType } from '@/types'
 import { PatternBlockDialog, type GeneratedPatternStep } from './PatternBlockDialog'
 import { HOCKEY_CARDIO_PRESETS, type HockeyCardioPreset } from '@/lib/hockey/hockey-builder-presets'
+import { useLocale } from '@/i18n/client'
 
 // Types
 type CardioFlatSegment = {
@@ -59,6 +60,12 @@ type CardioFlatSegment = {
   repeats?: number // for intervals
   restDuration?: number // min, for interval repeats
   distanceUnit?: 'km' | 'm'
+}
+
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 type CardioSupplementalExercise = {
@@ -248,11 +255,12 @@ interface CardioSessionBuilderProps {
 }
 
 export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioSessionBuilderProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const searchParams = useSearchParams()
   const workoutId = searchParams.get('workoutId')
   const programId = searchParams.get('programId')
 
-  const [sessionName, setSessionName] = useState('Nytt Konditionspass')
+  const [sessionName, setSessionName] = useState(text(locale, 'Nytt Konditionspass', 'New Cardio Session'))
   const [description, setDescription] = useState('')
   const [sport, setSport] = useState('RUNNING')
   const [segments, setSegments] = useState<CardioSegment[]>([])
@@ -418,8 +426,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       } catch (error) {
         console.error('Error loading workout:', error)
         setSessionName('Error loading workout')
-        toast.error('Fel', {
-          description: 'Kunde inte ladda träningspasset.',
+        toast.error(text(locale, 'Fel', 'Error'), {
+          description: text(locale, 'Kunde inte ladda träningspasset.', 'Could not load the workout.'),
         })
       }
     }
@@ -429,8 +437,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
   const handleSaveToLibrary = async () => {
     if (segments.length === 0) {
-      toast.error('Lägg till segment', {
-        description: 'Du måste lägga till minst ett segment för att spara passet.',
+      toast.error(text(locale, 'Lägg till segment', 'Add segments'), {
+        description: text(locale, 'Du måste lägga till minst ett segment för att spara passet.', 'You need to add at least one segment before saving the session.'),
       })
       return
     }
@@ -514,20 +522,29 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
       if (response.ok) {
         const result = await response.json()
-        toast.success(isEditing ? 'Pass uppdaterat!' : 'Pass sparat!', {
-          description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
-        })
+        toast.success(
+          isEditing
+            ? text(locale, 'Pass uppdaterat!', 'Session updated!')
+            : text(locale, 'Pass sparat!', 'Session saved!'),
+          {
+            description: text(
+              locale,
+              `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
+              `"${sessionName}" has been ${isEditing ? 'updated' : 'saved'}.`
+            ),
+          }
+        )
         onSaved?.(result.id || initialData?.id, sessionName)
       } else {
         const data = await response.json()
-        toast.error('Kunde inte spara', {
-          description: data.error || 'Ett fel uppstod.',
+        toast.error(text(locale, 'Kunde inte spara', 'Could not save'), {
+          description: data.error || text(locale, 'Ett fel uppstod.', 'An error occurred.'),
         })
       }
     } catch (error) {
       console.error('Failed to save session:', error)
-      toast.error('Kunde inte spara', {
-        description: 'Ett oväntat fel uppstod.',
+      toast.error(text(locale, 'Kunde inte spara', 'Could not save'), {
+        description: text(locale, 'Ett oväntat fel uppstod.', 'An unexpected error occurred.'),
       })
     } finally {
       setIsSaving(false)

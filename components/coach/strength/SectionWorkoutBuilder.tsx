@@ -93,11 +93,17 @@ import {
   PREHAB_STABILITY_FILTER,
   matchesStrengthLibraryCategoryFilter,
 } from '@/lib/strength/exercise-library-filters'
+import { useLocale } from '@/i18n/client'
 
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
+type AppLocale = 'en' | 'sv'
 
 const SECTION_ORDER: SectionType[] = ['WARMUP', 'MAIN', 'PREHAB', 'CORE', 'COOLDOWN']
+
+function text(locale: AppLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 type WeightUnit = 'kg' | 'percent'
 
@@ -355,7 +361,8 @@ export function SectionWorkoutBuilder({
   onSaved,
   onCancel,
 }: SectionWorkoutBuilderProps) {
-  const [sessionName, setSessionName] = useState('Nytt Styrkepass')
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const [sessionName, setSessionName] = useState(text(locale, 'Nytt Styrkepass', 'New Strength Session'))
   const [description, setDescription] = useState('')
   const [phase, setPhase] = useState('Base')
   const [saving, setSaving] = useState(false)
@@ -639,7 +646,7 @@ export function SectionWorkoutBuilder({
         else next.delete(exerciseId)
         return next
       })
-      toast.error('Kunde inte ändra favorit')
+      toast.error(text(locale, 'Kunde inte ändra favorit', 'Could not update favorite'))
     }
   }
 
@@ -914,8 +921,8 @@ export function SectionWorkoutBuilder({
   // Save handler
   const handleSave = async () => {
     if (sections.MAIN.exercises.length === 0) {
-      toast.error('Lägg till övningar', {
-        description: 'Du måste lägga till minst en övning i huvudpasset.',
+      toast.error(text(locale, 'Lägg till övningar', 'Add exercises'), {
+        description: text(locale, 'Du måste lägga till minst en övning i huvudpasset.', 'You need to add at least one exercise to the main session.'),
       })
       return
     }
@@ -1062,21 +1069,30 @@ export function SectionWorkoutBuilder({
 
       if (response.ok) {
         const result = await response.json()
-        toast.success(isEditing ? 'Pass uppdaterat!' : 'Pass sparat!', {
-          description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
-        })
+        toast.success(
+          isEditing
+            ? text(locale, 'Pass uppdaterat!', 'Session updated!')
+            : text(locale, 'Pass sparat!', 'Session saved!'),
+          {
+            description: text(
+              locale,
+              `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
+              `"${sessionName}" has been ${isEditing ? 'updated' : 'saved'}.`
+            ),
+          }
+        )
         const savedId = result.id || result.session?.id || initialData?.id
         onSaved?.(savedId, sessionName)
       } else {
         const data = await response.json()
-        toast.error('Kunde inte spara', {
-          description: data.error || 'Ett fel uppstod.',
+        toast.error(text(locale, 'Kunde inte spara', 'Could not save'), {
+          description: data.error || text(locale, 'Ett fel uppstod.', 'An error occurred.'),
         })
       }
     } catch (error) {
       console.error('Failed to save session:', error)
-      toast.error('Kunde inte spara', {
-        description: 'Ett oväntat fel uppstod.',
+      toast.error(text(locale, 'Kunde inte spara', 'Could not save'), {
+        description: text(locale, 'Ett oväntat fel uppstod.', 'An unexpected error occurred.'),
       })
     } finally {
       setSaving(false)
