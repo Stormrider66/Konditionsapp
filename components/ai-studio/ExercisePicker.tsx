@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Search, Check, X } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 type ExerciseRow = {
   id: string
@@ -42,14 +43,56 @@ interface ExercisePickerProps {
   disabled?: boolean
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  placeholder: string
+  selectedExercise: string
+  clearExercise: string
+  title: string
+  description: string
+  searchPlaceholder: string
+  loading: string
+  noMatches: string
+  cancel: string
+  choose: string
+}> = {
+  en: {
+    placeholder: 'Choose exercise...',
+    selectedExercise: 'Selected exercise',
+    clearExercise: 'Clear exercise',
+    title: 'Choose exercise',
+    description: 'Search the exercise library or choose from the list.',
+    searchPlaceholder: 'Search: squat, deadlift, bench...',
+    loading: 'Loading...',
+    noMatches: 'No exercises match the search.',
+    cancel: 'Cancel',
+    choose: 'Choose',
+  },
+  sv: {
+    placeholder: 'Välj övning...',
+    selectedExercise: 'Vald övning',
+    clearExercise: 'Rensa övning',
+    title: 'Välj övning',
+    description: 'Sök i övningsbiblioteket eller välj från listan.',
+    searchPlaceholder: 'Sök: squat, deadlift, bench...',
+    loading: 'Laddar...',
+    noMatches: 'Inga övningar matchar sökningen.',
+    cancel: 'Avbryt',
+    choose: 'Välj',
+  },
+}
+
 export function ExercisePicker({
   value,
   valueName,
   onChange,
-  placeholder = 'Välj övning…',
+  placeholder,
   className,
   disabled,
 }: ExercisePickerProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<ExerciseRow[]>([])
@@ -96,7 +139,7 @@ export function ExercisePicker({
     onChange(null, null)
   }
 
-  const displayName = valueName || (value ? 'Vald övning' : placeholder)
+  const displayName = valueName || (value ? copy.selectedExercise : placeholder ?? copy.placeholder)
 
   return (
     <>
@@ -119,7 +162,7 @@ export function ExercisePicker({
             size="icon"
             className="h-8 w-8"
             onClick={handleClear}
-            title="Rensa övning"
+            title={copy.clearExercise}
           >
             <X className="h-3.5 w-3.5" />
           </Button>
@@ -129,9 +172,9 @@ export function ExercisePicker({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
-            <DialogTitle>Välj övning</DialogTitle>
+            <DialogTitle>{copy.title}</DialogTitle>
             <DialogDescription>
-              Sök i övningsbiblioteket eller välj från listan.
+              {copy.description}
             </DialogDescription>
           </DialogHeader>
 
@@ -141,7 +184,7 @@ export function ExercisePicker({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Sök: squat, deadlift, bench…"
+                placeholder={copy.searchPlaceholder}
                 className="pl-9"
                 autoFocus
               />
@@ -150,11 +193,11 @@ export function ExercisePicker({
             <ScrollArea className="h-[340px] pr-2">
               {loading ? (
                 <div className="text-center py-8 text-sm text-muted-foreground">
-                  Laddar…
+                  {copy.loading}
                 </div>
               ) : results.length === 0 ? (
                 <div className="text-center py-8 text-sm text-muted-foreground">
-                  Inga övningar matchar sökningen.
+                  {copy.noMatches}
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -216,10 +259,10 @@ export function ExercisePicker({
                 setSearch('')
               }}
             >
-              Avbryt
+              {copy.cancel}
             </Button>
             <Button type="button" onClick={handleConfirm} disabled={!selected}>
-              Välj
+              {copy.choose}
             </Button>
           </DialogFooter>
         </DialogContent>
