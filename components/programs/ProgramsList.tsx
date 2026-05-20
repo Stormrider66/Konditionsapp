@@ -4,9 +4,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   GlassCard,
   GlassCardContent,
@@ -47,10 +48,35 @@ import {
 } from 'lucide-react'
 
 interface ProgramsListProps {
-  programs: any[]
+  programs: TrainingProgramListItem[]
 }
 
+interface TrainingProgramListItem {
+  id: string
+  name: string
+  startDate: string | Date
+  endDate: string | Date
+  goalType?: string | null
+  client?: {
+    name?: string | null
+  } | null
+  weeks?: Array<{
+    weekNumber: number
+    phase?: string | null
+  }>
+}
+
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const label = (locale: AppLocale, svText: string, enText: string) =>
+  locale === 'sv' ? svText : enText
+
+const dateFnsLocale = (locale: AppLocale) => (locale === 'sv' ? sv : enUS)
+
 export function ProgramsList({ programs }: ProgramsListProps) {
+  const appLocale = getAppLocale(useLocale())
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
@@ -62,7 +88,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
   const filteredPrograms = programs.filter((program) => {
     const matchesSearch =
       program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      program.client?.name.toLowerCase().includes(searchQuery.toLowerCase())
+      (program.client?.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesGoal =
       goalFilter === 'all' || program.goalType === goalFilter
@@ -79,12 +105,18 @@ export function ProgramsList({ programs }: ProgramsListProps) {
       <GlassCard className="text-center py-12" glow="blue">
         <GlassCardContent>
           <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2 dark:text-white">Inga program än</h3>
+          <h3 className="text-lg font-semibold mb-2 dark:text-white">
+            {label(appLocale, 'Inga program än', 'No programs yet')}
+          </h3>
           <p className="text-muted-foreground mb-6">
-            Kom igång genom att skapa ditt första träningsprogram
+            {label(
+              appLocale,
+              'Kom igång genom att skapa ditt första träningsprogram',
+              'Get started by creating your first training program'
+            )}
           </p>
           <Link href={`${basePath}/coach/programs/new`}>
-            <Button>Skapa program</Button>
+            <Button>{label(appLocale, 'Skapa program', 'Create program')}</Button>
           </Link>
         </GlassCardContent>
       </GlassCard>
@@ -98,7 +130,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Sök program eller atlet..."
+            placeholder={label(appLocale, 'Sök program eller atlet...', 'Search program or athlete...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
@@ -106,43 +138,43 @@ export function ProgramsList({ programs }: ProgramsListProps) {
         </div>
         <Select value={goalFilter} onValueChange={setGoalFilter}>
           <SelectTrigger className="w-full sm:w-[200px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
-            <SelectValue placeholder="Filtrera mål" />
+            <SelectValue placeholder={label(appLocale, 'Filtrera mål', 'Filter goal')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alla mål</SelectItem>
+            <SelectItem value="all">{label(appLocale, 'Alla mål', 'All goals')}</SelectItem>
             <SelectItem value="marathon">Marathon</SelectItem>
-            <SelectItem value="half-marathon">Halvmaraton</SelectItem>
+            <SelectItem value="half-marathon">{label(appLocale, 'Halvmaraton', 'Half marathon')}</SelectItem>
             <SelectItem value="10k">10K</SelectItem>
             <SelectItem value="5k">5K</SelectItem>
-            <SelectItem value="fitness">Kondition</SelectItem>
-            <SelectItem value="cycling">Cykling</SelectItem>
-            <SelectItem value="skiing">Skidåkning</SelectItem>
+            <SelectItem value="fitness">{label(appLocale, 'Kondition', 'Fitness')}</SelectItem>
+            <SelectItem value="cycling">{label(appLocale, 'Cykling', 'Cycling')}</SelectItem>
+            <SelectItem value="skiing">{label(appLocale, 'Skidåkning', 'Skiing')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={phaseFilter} onValueChange={setPhaseFilter}>
           <SelectTrigger className="w-full sm:w-[200px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
-            <SelectValue placeholder="Filtrera fas" />
+            <SelectValue placeholder={label(appLocale, 'Filtrera fas', 'Filter phase')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alla faser</SelectItem>
-            <SelectItem value="BASE">Bas</SelectItem>
-            <SelectItem value="BUILD">Uppbyggnad</SelectItem>
+            <SelectItem value="all">{label(appLocale, 'Alla faser', 'All phases')}</SelectItem>
+            <SelectItem value="BASE">{label(appLocale, 'Bas', 'Base')}</SelectItem>
+            <SelectItem value="BUILD">{label(appLocale, 'Uppbyggnad', 'Build')}</SelectItem>
             <SelectItem value="PEAK">Peak</SelectItem>
             <SelectItem value="TAPER">Taper</SelectItem>
-            <SelectItem value="RECOVERY">Återhämtning</SelectItem>
+            <SelectItem value="RECOVERY">{label(appLocale, 'Återhämtning', 'Recovery')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Results count */}
       <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-        Visar {filteredPrograms.length} av {programs.length} program
+        {label(appLocale, 'Visar', 'Showing')} {filteredPrograms.length} {label(appLocale, 'av', 'of')} {programs.length} {label(appLocale, 'program', 'programs')}
       </p>
 
       {/* Programs grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredPrograms.map((program) => (
-          <ProgramCard key={program.id} program={program} basePath={basePath} businessSlug={pathBusinessSlug} />
+          <ProgramCard key={program.id} program={program} basePath={basePath} businessSlug={pathBusinessSlug} locale={appLocale} />
         ))}
       </div>
 
@@ -150,9 +182,11 @@ export function ProgramsList({ programs }: ProgramsListProps) {
         <GlassCard className="text-center py-12" glow="blue">
           <GlassCardContent>
             <Filter className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2 dark:text-white">Inga matchande program</h3>
+            <h3 className="text-lg font-semibold mb-2 dark:text-white">
+              {label(appLocale, 'Inga matchande program', 'No matching programs')}
+            </h3>
             <p className="text-muted-foreground">
-              Prova att ändra dina filterinställningar
+              {label(appLocale, 'Prova att ändra dina filterinställningar', 'Try changing your filters')}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -165,10 +199,12 @@ function ProgramCard({
   program,
   basePath,
   businessSlug,
+  locale,
 }: {
-  program: any
+  program: TrainingProgramListItem
   basePath: string
   businessSlug: string | null
+  locale: AppLocale
 }) {
   const currentPhase = getCurrentPhase(program)
   const progressPercent = getProgressPercent(program)
@@ -193,18 +229,20 @@ function ProgramCard({
 
       if (data.success) {
         toast({
-          title: 'Program raderat',
-          description: 'Träningsprogrammet har raderats',
+          title: label(locale, 'Program raderat', 'Program deleted'),
+          description: label(locale, 'Träningsprogrammet har raderats', 'The training program has been deleted'),
         })
         router.refresh()
       } else {
-        throw new Error(data.error || 'Misslyckades med att radera program')
+        throw new Error(data.error || label(locale, 'Misslyckades med att radera program', 'Failed to delete program'))
       }
     } catch (error) {
       console.error('Delete error:', error)
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte radera programmet',
+        title: label(locale, 'Fel', 'Error'),
+        description: error instanceof Error
+          ? error.message
+          : label(locale, 'Kunde inte radera programmet', 'Could not delete the program'),
         variant: 'destructive',
       })
     } finally {
@@ -214,7 +252,7 @@ function ProgramCard({
 
   return (
     <GlassCard className="hover:shadow-lg transition-shadow h-full relative group" glow={isActive ? "emerald" : "blue"}>
-      {/* Delete button - positioned at top-right, left of "Aktiv" badge */}
+      {/* Delete button - positioned at top-right, left of the active badge */}
       <div className="absolute top-3 right-20 z-20">
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -228,21 +266,23 @@ function ProgramCard({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Radera träningsprogram?</AlertDialogTitle>
+              <AlertDialogTitle>{label(locale, 'Radera träningsprogram?', 'Delete training program?')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Är du säker på att du vill radera programmet &ldquo;{program.name}&rdquo;?
-                Detta kommer permanent ta bort alla veckor, dagar och pass.
-                Denna åtgärd kan inte ångras.
+                {label(
+                  locale,
+                  `Är du säker på att du vill radera programmet "${program.name}"? Detta kommer permanent ta bort alla veckor, dagar och pass. Denna åtgärd kan inte ångras.`,
+                  `Are you sure you want to delete the program "${program.name}"? This will permanently remove all weeks, days, and sessions. This action cannot be undone.`
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Avbryt</AlertDialogCancel>
+              <AlertDialogCancel>{label(locale, 'Avbryt', 'Cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
                 disabled={isDeleting}
                 className="bg-destructive hover:bg-destructive/90"
               >
-                {isDeleting ? 'Raderar...' : 'Radera'}
+                {isDeleting ? label(locale, 'Raderar...', 'Deleting...') : label(locale, 'Radera', 'Delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -254,12 +294,12 @@ function ProgramCard({
           <div className="flex justify-between items-start mb-2">
             <GlassCardTitle className="text-lg pr-12 text-slate-900 dark:text-white">{program.name}</GlassCardTitle>
             {isActive && (
-              <Badge variant="default" className="bg-green-600 hover:bg-green-700">Aktiv</Badge>
+              <Badge variant="default" className="bg-green-600 hover:bg-green-700">{label(locale, 'Aktiv', 'Active')}</Badge>
             )}
           </div>
           <GlassCardDescription className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
             <User className="h-4 w-4" />
-            {program.client?.name || 'Okänd klient'}
+            {program.client?.name || label(locale, 'Okänd klient', 'Unknown client')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
@@ -268,7 +308,7 @@ function ProgramCard({
             {program.goalType && (
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Target className="h-4 w-4 text-muted-foreground" />
-                <span className="capitalize">{formatGoalType(program.goalType)}</span>
+                <span className="capitalize">{formatGoalType(program.goalType, locale)}</span>
               </div>
             )}
 
@@ -276,18 +316,18 @@ function ProgramCard({
             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span>
-                {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
-                {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+                {format(new Date(program.startDate), 'd MMM', { locale: dateFnsLocale(locale) })} -{' '}
+                {format(new Date(program.endDate), 'd MMM yyyy', { locale: dateFnsLocale(locale) })}
               </span>
             </div>
 
             {/* Current Phase */}
             <div className="flex items-center gap-2">
               <Badge variant="outline" className={getPhaseBadgeClass(currentPhase)}>
-                {formatPhase(currentPhase)}
+                {formatPhase(currentPhase, locale)}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                Vecka {getCurrentWeek(program)} av {program.weeks?.length || 0}
+                {label(locale, 'Vecka', 'Week')} {getCurrentWeek(program)} {label(locale, 'av', 'of')} {program.weeks?.length || 0}
               </span>
             </div>
 
@@ -306,16 +346,16 @@ function ProgramCard({
 }
 
 // Helper functions
-function getCurrentPhase(program: any): string {
+function getCurrentPhase(program: TrainingProgramListItem): string {
   if (!program.weeks || program.weeks.length === 0) return 'BASE'
   const currentWeekNum = getCurrentWeek(program)
   const currentWeek = program.weeks.find(
-    (w: any) => w.weekNumber === currentWeekNum
+    (w) => w.weekNumber === currentWeekNum
   )
   return currentWeek?.phase || 'BASE'
 }
 
-function getCurrentWeek(program: any): number {
+function getCurrentWeek(program: TrainingProgramListItem): number {
   const now = new Date()
   const start = new Date(program.startDate)
   const diffTime = Math.abs(now.getTime() - start.getTime())
@@ -323,43 +363,43 @@ function getCurrentWeek(program: any): number {
   return Math.min(diffWeeks, program.weeks?.length || 1)
 }
 
-function getProgressPercent(program: any): number {
+function getProgressPercent(program: TrainingProgramListItem): number {
   const current = getCurrentWeek(program)
   const total = program.weeks?.length || 1
   return Math.round((current / total) * 100)
 }
 
-function isActiveProgram(program: any): boolean {
+function isActiveProgram(program: TrainingProgramListItem): boolean {
   const now = new Date()
   const start = new Date(program.startDate)
   const end = new Date(program.endDate)
   return now >= start && now <= end
 }
 
-function formatGoalType(goalType: string): string {
-  const types: Record<string, string> = {
-    marathon: 'Marathon',
-    'half-marathon': 'Halvmaraton',
-    '10k': '10K',
-    '5k': '5K',
-    fitness: 'Kondition',
-    cycling: 'Cykling',
-    skiing: 'Skidåkning',
-    custom: 'Anpassad',
+function formatGoalType(goalType: string, locale: AppLocale): string {
+  const types: Record<string, Record<AppLocale, string>> = {
+    marathon: { en: 'Marathon', sv: 'Marathon' },
+    'half-marathon': { en: 'Half marathon', sv: 'Halvmaraton' },
+    '10k': { en: '10K', sv: '10K' },
+    '5k': { en: '5K', sv: '5K' },
+    fitness: { en: 'Fitness', sv: 'Kondition' },
+    cycling: { en: 'Cycling', sv: 'Cykling' },
+    skiing: { en: 'Skiing', sv: 'Skidåkning' },
+    custom: { en: 'Custom', sv: 'Anpassad' },
   }
-  return types[goalType] || goalType
+  return types[goalType]?.[locale] || goalType
 }
 
-function formatPhase(phase: string): string {
-  const phases: Record<string, string> = {
-    BASE: 'Bas',
-    BUILD: 'Uppbyggnad',
-    PEAK: 'Peak',
-    TAPER: 'Taper',
-    RECOVERY: 'Återhämtning',
-    TRANSITION: 'Övergång',
+function formatPhase(phase: string, locale: AppLocale): string {
+  const phases: Record<string, Record<AppLocale, string>> = {
+    BASE: { en: 'Base', sv: 'Bas' },
+    BUILD: { en: 'Build', sv: 'Uppbyggnad' },
+    PEAK: { en: 'Peak', sv: 'Peak' },
+    TAPER: { en: 'Taper', sv: 'Taper' },
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    TRANSITION: { en: 'Transition', sv: 'Övergång' },
   }
-  return phases[phase] || phase
+  return phases[phase]?.[locale] || phase
 }
 
 function getPhaseBadgeClass(phase: string): string {
