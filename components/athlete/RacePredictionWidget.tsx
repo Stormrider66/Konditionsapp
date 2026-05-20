@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useLocale } from 'next-intl'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -70,11 +71,31 @@ interface RacePredictionWidgetProps {
   className?: string
 }
 
-const DISTANCE_LABELS: Record<string, string> = {
-  '5K': '5 km',
-  '10K': '10 km',
-  'HALF': 'Halvmaraton',
-  'MARATHON': 'Maraton',
+type AppLocale = 'en' | 'sv'
+
+const DISTANCE_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    '5K': '5 km',
+    '10K': '10 km',
+    'HALF': 'Half marathon',
+    'MARATHON': 'Marathon',
+  },
+  sv: {
+    '5K': '5 km',
+    '10K': '10 km',
+    'HALF': 'Halvmaraton',
+    'MARATHON': 'Maraton',
+  },
+}
+
+function copy(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function trajectoryLabel(locale: AppLocale, trajectory: 'improving' | 'maintaining' | 'declining'): string {
+  if (trajectory === 'improving') return copy(locale, 'Improving', 'Förbättras')
+  if (trajectory === 'declining') return copy(locale, 'Declining', 'Avtagande')
+  return copy(locale, 'Stable', 'Stabil')
 }
 
 function formatPace(timeStr: string, distanceKm: number): string {
@@ -115,6 +136,7 @@ export function RacePredictionWidget({
   className,
 }: RacePredictionWidgetProps) {
   const basePath = useBasePath()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [data, setData] = useState<PredictionResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -136,18 +158,18 @@ export function RacePredictionWidget({
       if (result.success) {
         setData(result)
       } else {
-        setError(result.error || 'Kunde inte hämta prediktioner')
+        setError(result.error || copy(locale, 'Could not load predictions', 'Kunde inte hämta prediktioner'))
       }
-    } catch (err) {
-      setError('Nätverksfel')
+    } catch {
+      setError(copy(locale, 'Network error', 'Nätverksfel'))
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }, [clientId, goalDistance])
+  }, [clientId, goalDistance, locale])
 
   useEffect(() => {
-    fetchPredictions()
+    void fetchPredictions()
   }, [fetchPredictions])
 
   if (isLoading) {
@@ -156,7 +178,7 @@ export function RacePredictionWidget({
         <GlassCardHeader className="pb-2">
           <GlassCardTitle className="flex items-center gap-2 text-sm">
             <Target className="h-4 w-4 text-blue-500" />
-            Tävlingsprediktioner
+            {copy(locale, 'Race predictions', 'Tävlingsprediktioner')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-3">
@@ -173,7 +195,7 @@ export function RacePredictionWidget({
         <GlassCardHeader className="pb-2">
           <GlassCardTitle className="flex items-center gap-2 text-sm">
             <Target className="h-4 w-4 text-blue-500" />
-            Tävlingsprediktioner
+            {copy(locale, 'Race predictions', 'Tävlingsprediktioner')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -183,11 +205,11 @@ export function RacePredictionWidget({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => fetchPredictions()}
+              onClick={() => void fetchPredictions()}
               className="mt-2"
             >
               <RefreshCw className="h-4 w-4 mr-1" />
-              Försök igen
+              {copy(locale, 'Try again', 'Försök igen')}
             </Button>
           </div>
         </GlassCardContent>
@@ -197,7 +219,6 @@ export function RacePredictionWidget({
 
   const predictions = data?.racePredictions || []
   const readiness = data?.trainingReadiness
-  const goal = data?.goalPrediction
 
   // Find the prediction that matches goalDistance if provided
   const goalPrediction = goalDistance
@@ -210,13 +231,13 @@ export function RacePredictionWidget({
         <div className="flex items-center justify-between">
           <GlassCardTitle className="flex items-center gap-2 text-sm">
             <Target className="h-4 w-4 text-blue-500" />
-            Tävlingsprediktioner
+            {copy(locale, 'Race predictions', 'Tävlingsprediktioner')}
           </GlassCardTitle>
           <Button
             variant="ghost"
             size="icon"
             className="h-6 w-6"
-            onClick={() => fetchPredictions(true)}
+            onClick={() => void fetchPredictions(true)}
             disabled={isRefreshing}
           >
             <RefreshCw className={cn('h-3 w-3', isRefreshing && 'animate-spin')} />
@@ -231,16 +252,16 @@ export function RacePredictionWidget({
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-4 w-4 text-blue-500" />
               <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                {DISTANCE_LABELS[goalPrediction.distance]} Mål
+                {DISTANCE_LABELS[locale][goalPrediction.distance]} {copy(locale, 'Goal', 'Mål')}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-muted-foreground">Ditt mål</p>
+                <p className="text-xs text-muted-foreground">{copy(locale, 'Your goal', 'Ditt mål')}</p>
                 <p className="text-lg font-bold text-slate-900 dark:text-white">{goalTime}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Predicerad tid</p>
+                <p className="text-xs text-muted-foreground">{copy(locale, 'Predicted time', 'Predicerad tid')}</p>
                 <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                   {goalPrediction.currentPrediction}
                 </p>
@@ -252,14 +273,14 @@ export function RacePredictionWidget({
                   <>
                     <TrendingUp className="h-3 w-3 text-green-500" />
                     <span className="text-green-600 dark:text-green-400">
-                      {goalPrediction.improvementPercent.toFixed(1)}% förbättring möjlig med fortsatt träning
+                      {goalPrediction.improvementPercent.toFixed(1)}% {copy(locale, 'improvement possible with continued training', 'förbättring möjlig med fortsatt träning')}
                     </span>
                   </>
                 ) : (
                   <>
                     <TrendingDown className="h-3 w-3 text-orange-500" />
                     <span className="text-orange-600 dark:text-orange-400">
-                      Trendanalys indikerar behov av anpassning
+                      {copy(locale, 'Trend analysis indicates a need for adjustment', 'Trendanalys indikerar behov av anpassning')}
                     </span>
                   </>
                 )}
@@ -271,7 +292,7 @@ export function RacePredictionWidget({
         {/* Race predictions grid */}
         {variant === 'default' && predictions.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium">Predicerade tider</p>
+            <p className="text-xs text-muted-foreground font-medium">{copy(locale, 'Predicted times', 'Predicerade tider')}</p>
             <div className="grid grid-cols-2 gap-2">
               {predictions.slice(0, 4).map((pred) => (
                 <div
@@ -285,7 +306,7 @@ export function RacePredictionWidget({
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-muted-foreground">
-                      {DISTANCE_LABELS[pred.distance]}
+                      {DISTANCE_LABELS[locale][pred.distance]}
                     </span>
                     {pred.improvementPercent > 0 && (
                       <Badge variant="secondary" className="text-[10px] h-4 px-1 bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
@@ -310,7 +331,7 @@ export function RacePredictionWidget({
         {variant === 'compact' && goalPrediction && (
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">{DISTANCE_LABELS[goalPrediction.distance]}</p>
+              <p className="text-xs text-muted-foreground">{DISTANCE_LABELS[locale][goalPrediction.distance]}</p>
               <p className="text-lg font-bold">{goalPrediction.currentPrediction}</p>
             </div>
             {goalPrediction.improvementPercent > 0 && (
@@ -327,24 +348,24 @@ export function RacePredictionWidget({
         {/* Fitness trajectory */}
         {readiness && (
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Konditionstrend</span>
+            <span className="text-muted-foreground">{copy(locale, 'Fitness trend', 'Konditionstrend')}</span>
             <div className="flex items-center gap-1">
               {readiness.fitnessTrajectory === 'improving' && (
                 <>
                   <TrendingUp className="h-3 w-3 text-green-500" />
-                  <span className="text-green-600 dark:text-green-400 font-medium">Förbättras</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">{trajectoryLabel(locale, readiness.fitnessTrajectory)}</span>
                 </>
               )}
               {readiness.fitnessTrajectory === 'maintaining' && (
                 <>
                   <Minus className="h-3 w-3 text-blue-500" />
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">Stabil</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">{trajectoryLabel(locale, readiness.fitnessTrajectory)}</span>
                 </>
               )}
               {readiness.fitnessTrajectory === 'declining' && (
                 <>
                   <TrendingDown className="h-3 w-3 text-orange-500" />
-                  <span className="text-orange-600 dark:text-orange-400 font-medium">Avtagande</span>
+                  <span className="text-orange-600 dark:text-orange-400 font-medium">{trajectoryLabel(locale, readiness.fitnessTrajectory)}</span>
                 </>
               )}
             </div>
@@ -354,7 +375,7 @@ export function RacePredictionWidget({
         {/* VDOT indicator */}
         {predictions[0] && (
           <div className="flex items-center justify-between text-xs border-t pt-2">
-            <span className="text-muted-foreground">VDOT (konditionsnivå)</span>
+            <span className="text-muted-foreground">{copy(locale, 'VDOT (fitness level)', 'VDOT (konditionsnivå)')}</span>
             <div className="flex items-center gap-2">
               <span className="font-bold text-slate-900 dark:text-white">
                 {predictions[0].currentVDOT.toFixed(1)}
@@ -372,8 +393,8 @@ export function RacePredictionWidget({
         {predictions.length === 0 && (
           <div className="text-center py-4 text-muted-foreground">
             <Timer className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inte tillräckligt med träningsdata</p>
-            <p className="text-xs">Logga fler pass för att se prediktioner</p>
+            <p className="text-sm">{copy(locale, 'Not enough training data', 'Inte tillräckligt med träningsdata')}</p>
+            <p className="text-xs">{copy(locale, 'Log more sessions to see predictions', 'Logga fler pass för att se prediktioner')}</p>
           </div>
         )}
 
@@ -385,7 +406,7 @@ export function RacePredictionWidget({
               size="sm"
               className="w-full justify-between text-muted-foreground hover:text-foreground"
             >
-              <span>Visa detaljerad analys</span>
+              <span>{copy(locale, 'View detailed analysis', 'Visa detaljerad analys')}</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </Link>
