@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
-    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { locale, roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
       return NextResponse.json({ error: t(locale, 'No permission', 'Ingen behörighet') }, { status: 403 })
@@ -112,7 +112,7 @@ export async function GET(req: NextRequest) {
       name: m.user.name,
       email: m.user.email,
       role: m.role,
-      roleLabel: roleLabelFor(m.role, businessType),
+      roleLabel: roleLabelFor(m.role, businessType, locale),
       teams: assignmentsByUserId.get(m.userId) ?? [],
       invitedAt: m.invitedAt.toISOString(),
       acceptedAt: m.acceptedAt?.toISOString() ?? null,
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       staff: staffWithTeams,
       businessType,
-      invitableRoles: invitableRolesFor(businessType),
+      invitableRoles: invitableRolesFor(businessType, locale),
     })
   } catch (error) {
     return handleApiError(error)
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
     const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
-    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
+    const permissions = await getStaffPermissions(user.id, scope.businessSlug, { locale, roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
       return NextResponse.json({ error: t(locale, 'No permission to invite staff', 'Ingen behörighet att bjuda in personal') }, { status: 403 })
@@ -169,8 +169,8 @@ export async function POST(req: NextRequest) {
         {
           error: t(
             locale,
-            `The role "${roleLabelFor(parsed.data.role, membership.business.type)}" is not available for this business type`,
-            `Rollen "${roleLabelFor(parsed.data.role, membership.business.type)}" är inte tillgänglig för denna typ av verksamhet`
+            `The role "${roleLabelFor(parsed.data.role, membership.business.type, 'en')}" is not available for this business type`,
+            `Rollen "${roleLabelFor(parsed.data.role, membership.business.type, 'sv')}" är inte tillgänglig för denna typ av verksamhet`
           ),
         },
         { status: 400 },
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       userId: result.userId,
-      roleLabel: roleLabelFor(parsed.data.role, membership.business.type),
+      roleLabel: roleLabelFor(parsed.data.role, membership.business.type, locale),
     }, { status: 201 })
   } catch (error) {
     return handleApiError(error)

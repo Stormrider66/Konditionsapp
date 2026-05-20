@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { invitableRolesFor, isRoleInvitableFor, roleLabelFor } from './assistant-coach'
 
 describe('invitableRolesFor', () => {
-  it('CLUB sees the full team-staff lineup including Sportchef and assistant coach', () => {
+  it('CLUB sees the full team-staff lineup including sport director and assistant coach', () => {
     const roles = invitableRolesFor('CLUB').map((r) => r.value)
     expect(roles).toEqual([
       'COACH',
@@ -14,7 +14,7 @@ describe('invitableRolesFor', () => {
     ])
   })
 
-  it('GYM drops Sportchef (ADMIN) and assistant coach', () => {
+  it('GYM drops sport director (ADMIN) and assistant coach', () => {
     const roles = invitableRolesFor('GYM').map((r) => r.value)
     expect(roles).toEqual(['COACH', 'PHYSICAL_TRAINER', 'PHYSIO'])
     expect(roles).not.toContain('ADMIN')
@@ -34,11 +34,11 @@ describe('invitableRolesFor', () => {
 })
 
 describe('isRoleInvitableFor', () => {
-  it('rejects Sportchef (ADMIN) on a GYM', () => {
+  it('rejects sport director (ADMIN) on a GYM', () => {
     expect(isRoleInvitableFor('ADMIN', 'GYM')).toBe(false)
   })
 
-  it('accepts Huvudtränare (COACH) on every business type', () => {
+  it('accepts head coach (COACH) on every business type', () => {
     expect(isRoleInvitableFor('COACH', 'CLUB')).toBe(true)
     expect(isRoleInvitableFor('COACH', 'GYM')).toBe(true)
     expect(isRoleInvitableFor('COACH', 'INDEPENDENT_COACH')).toBe(true)
@@ -50,16 +50,28 @@ describe('isRoleInvitableFor', () => {
 })
 
 describe('roleLabelFor', () => {
-  it('labels ADMIN as "Sportchef" only on CLUB businesses', () => {
-    expect(roleLabelFor('ADMIN', 'CLUB')).toBe('Sportchef')
-    expect(roleLabelFor('ADMIN', 'GYM')).toBe('Administratör')
-    expect(roleLabelFor('ADMIN', 'INDEPENDENT_COACH')).toBe('Administratör')
+  it('labels ADMIN as "Sport director" only on CLUB businesses by default', () => {
+    expect(roleLabelFor('ADMIN', 'CLUB')).toBe('Sport director')
+    expect(roleLabelFor('ADMIN', 'GYM')).toBe('Administrator')
+    expect(roleLabelFor('ADMIN', 'INDEPENDENT_COACH')).toBe('Administrator')
   })
 
-  it('uses standard labels for non-ADMIN roles regardless of type', () => {
-    expect(roleLabelFor('COACH', 'CLUB')).toBe('Huvudtränare')
-    expect(roleLabelFor('COACH', 'GYM')).toBe('Huvudtränare')
-    expect(roleLabelFor('PHYSIO', 'INDEPENDENT_COACH')).toBe('Fysioterapeut')
+  it('uses English labels for non-ADMIN roles by default', () => {
+    expect(roleLabelFor('COACH', 'CLUB')).toBe('Head coach')
+    expect(roleLabelFor('COACH', 'GYM')).toBe('Head coach')
+    expect(roleLabelFor('PHYSIO', 'INDEPENDENT_COACH')).toBe('Physiotherapist')
+  })
+
+  it('keeps Swedish labels when requested', () => {
+    expect(roleLabelFor('ADMIN', 'CLUB', 'sv')).toBe('Sportchef')
+    expect(roleLabelFor('ADMIN', 'GYM', 'sv')).toBe('Administratör')
+    expect(roleLabelFor('COACH', 'CLUB', 'sv')).toBe('Huvudtränare')
+    expect(roleLabelFor('PHYSIO', 'INDEPENDENT_COACH', 'sv')).toBe('Fysioterapeut')
+  })
+
+  it('returns localized invitable labels', () => {
+    expect(invitableRolesFor('CLUB')[0]?.label).toBe('Head coach')
+    expect(invitableRolesFor('CLUB', 'sv')[0]?.label).toBe('Huvudtränare')
   })
 
   it('falls back to the raw role when unknown', () => {

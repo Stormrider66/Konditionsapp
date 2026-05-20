@@ -6,27 +6,39 @@
  *
  * Role Hierarchy:
  * - OWNER:             Full access, billing
- * - ADMIN (Sportchef): Full view, staff management, no billing
- * - COACH (Huvudtränare): Full coaching, programs, AI, tests
- * - PHYSICAL_TRAINER (Fystränare): Programs, tests, intervals, studios (team-scoped)
- * - ASSISTANT_COACH (Assisterande tränare): Run tests/intervals, view only (team-scoped)
- * - PHYSIO (Fysioterapeut): Medical, restrictions, injury (team-scoped)
+ * - ADMIN (Sport director): Full view, staff management, no billing
+ * - COACH (Head coach): Full coaching, programs, AI, tests
+ * - PHYSICAL_TRAINER (Physical trainer): Programs, tests, intervals, studios (team-scoped)
+ * - ASSISTANT_COACH (Assistant coach): Run tests/intervals, view only (team-scoped)
+ * - PHYSIO (Physiotherapist): Medical, restrictions, injury (team-scoped)
  */
 
 import { prisma } from '@/lib/prisma'
 export type StaffRole = 'OWNER' | 'ADMIN' | 'COACH' | 'PHYSICAL_TRAINER' | 'ASSISTANT_COACH' | 'PHYSIO' | 'MEMBER'
+type AppLocale = 'en' | 'sv'
 
 /** Mirrors prisma BusinessType enum. Kept as a string union to avoid importing @prisma/client into client components. */
 export type BusinessType = 'INDEPENDENT_COACH' | 'GYM' | 'CLUB'
 
-export const ROLE_LABELS: Record<string, string> = {
-  OWNER: 'Ägare',
-  ADMIN: 'Sportchef',
-  COACH: 'Huvudtränare',
-  PHYSICAL_TRAINER: 'Fystränare',
-  ASSISTANT_COACH: 'Assisterande tränare',
-  PHYSIO: 'Fysioterapeut',
-  MEMBER: 'Medlem',
+export const ROLE_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    OWNER: 'Owner',
+    ADMIN: 'Sport director',
+    COACH: 'Head coach',
+    PHYSICAL_TRAINER: 'Physical trainer',
+    ASSISTANT_COACH: 'Assistant coach',
+    PHYSIO: 'Physiotherapist',
+    MEMBER: 'Member',
+  },
+  sv: {
+    OWNER: 'Ägare',
+    ADMIN: 'Sportchef',
+    COACH: 'Huvudtränare',
+    PHYSICAL_TRAINER: 'Fystränare',
+    ASSISTANT_COACH: 'Assisterande tränare',
+    PHYSIO: 'Fysioterapeut',
+    MEMBER: 'Medlem',
+  },
 }
 
 /**
@@ -38,11 +50,12 @@ export const ROLE_LABELS: Record<string, string> = {
 export function roleLabelFor(
   role: StaffRole | string,
   businessType: BusinessType | string | null | undefined,
+  locale: AppLocale = 'en',
 ): string {
   if (role === 'ADMIN' && businessType !== 'CLUB') {
-    return 'Administratör'
+    return locale === 'sv' ? 'Administratör' : 'Administrator'
   }
-  return ROLE_LABELS[role] || role
+  return ROLE_LABELS[locale][role] || role
 }
 
 export interface InvitableRole {
@@ -51,12 +64,21 @@ export interface InvitableRole {
   description: string
 }
 
-const ROLE_DEFINITIONS: Record<Exclude<StaffRole, 'OWNER' | 'MEMBER'>, InvitableRole> = {
-  COACH: { value: 'COACH', label: 'Huvudtränare', description: 'Full tillgång till coaching, program och AI' },
-  PHYSICAL_TRAINER: { value: 'PHYSICAL_TRAINER', label: 'Fystränare', description: 'Träningsprogram, tester, intervaller för tilldelade lag' },
-  ASSISTANT_COACH: { value: 'ASSISTANT_COACH', label: 'Assisterande tränare', description: 'Köra tester och intervaller, visa resultat' },
-  PHYSIO: { value: 'PHYSIO', label: 'Fysioterapeut', description: 'Skadehantering och rehabilitering' },
-  ADMIN: { value: 'ADMIN', label: 'Sportchef', description: 'Personalhantering, full översikt, kalender' },
+const ROLE_DEFINITIONS: Record<AppLocale, Record<Exclude<StaffRole, 'OWNER' | 'MEMBER'>, InvitableRole>> = {
+  en: {
+    COACH: { value: 'COACH', label: 'Head coach', description: 'Full access to coaching, programs, and AI' },
+    PHYSICAL_TRAINER: { value: 'PHYSICAL_TRAINER', label: 'Physical trainer', description: 'Training programs, tests, and intervals for assigned teams' },
+    ASSISTANT_COACH: { value: 'ASSISTANT_COACH', label: 'Assistant coach', description: 'Run tests and intervals, view results' },
+    PHYSIO: { value: 'PHYSIO', label: 'Physiotherapist', description: 'Injury management and rehabilitation' },
+    ADMIN: { value: 'ADMIN', label: 'Sport director', description: 'Staff management, full overview, calendar' },
+  },
+  sv: {
+    COACH: { value: 'COACH', label: 'Huvudtränare', description: 'Full tillgång till coaching, program och AI' },
+    PHYSICAL_TRAINER: { value: 'PHYSICAL_TRAINER', label: 'Fystränare', description: 'Träningsprogram, tester, intervaller för tilldelade lag' },
+    ASSISTANT_COACH: { value: 'ASSISTANT_COACH', label: 'Assisterande tränare', description: 'Köra tester och intervaller, visa resultat' },
+    PHYSIO: { value: 'PHYSIO', label: 'Fysioterapeut', description: 'Skadehantering och rehabilitering' },
+    ADMIN: { value: 'ADMIN', label: 'Sportchef', description: 'Personalhantering, full översikt, kalender' },
+  },
 }
 
 /**
@@ -71,10 +93,10 @@ const ROLES_BY_BUSINESS_TYPE: Record<BusinessType, StaffRole[]> = {
   INDEPENDENT_COACH: ['COACH', 'PHYSIO'],
 }
 
-export function invitableRolesFor(businessType: BusinessType | string | null | undefined): InvitableRole[] {
+export function invitableRolesFor(businessType: BusinessType | string | null | undefined, locale: AppLocale = 'en'): InvitableRole[] {
   const type = (businessType ?? 'CLUB') as BusinessType
   const allowed = ROLES_BY_BUSINESS_TYPE[type] ?? ROLES_BY_BUSINESS_TYPE.CLUB
-  return allowed.map((r) => ROLE_DEFINITIONS[r as keyof typeof ROLE_DEFINITIONS]).filter(Boolean)
+  return allowed.map((r) => ROLE_DEFINITIONS[locale][r as keyof typeof ROLE_DEFINITIONS.en]).filter(Boolean)
 }
 
 export function isRoleInvitableFor(role: StaffRole, businessType: BusinessType | string | null | undefined): boolean {
@@ -173,8 +195,9 @@ const PERMISSION_MATRIX: Record<string, Omit<StaffPermissions, 'role' | 'roleLab
 export async function getStaffPermissions(
   userId: string,
   businessSlug?: string,
-  options?: { roleOverride?: StaffRole | null }
+  options?: { locale?: AppLocale; roleOverride?: StaffRole | null }
 ): Promise<StaffPermissions> {
+  const locale = options?.locale ?? 'en'
   const membership = await prisma.businessMember.findFirst({
     where: {
       userId,
@@ -198,7 +221,7 @@ export async function getStaffPermissions(
       return {
         ...PERMISSION_MATRIX.COACH,
         role: 'COACH',
-        roleLabel: ROLE_LABELS.COACH,
+        roleLabel: ROLE_LABELS[locale].COACH,
         assignedTeamIds: [],
       }
     }
@@ -219,7 +242,7 @@ export async function getStaffPermissions(
   return {
     ...perms,
     role,
-    roleLabel: ROLE_LABELS[role] || role,
+    roleLabel: ROLE_LABELS[locale][role] || role,
     assignedTeamIds,
   }
 }

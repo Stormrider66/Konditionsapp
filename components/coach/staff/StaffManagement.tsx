@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useLocale } from 'next-intl'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -68,10 +69,12 @@ interface StaffManagementProps {
 }
 
 export function StaffManagement({ teams, businessType, businessSlug }: StaffManagementProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = useCallback((en: string, sv: string) => locale === 'sv' ? sv : en, [locale])
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
-  const invitableRoles = invitableRolesFor(businessType)
+  const invitableRoles = invitableRolesFor(businessType, locale)
 
   // Invite form
   const [invName, setInvName] = useState('')
@@ -92,14 +95,14 @@ export function StaffManagement({ teams, businessType, businessSlug }: StaffMana
         setStaff(data.staff || [])
       }
     } catch {
-      toast.error('Kunde inte hämta personal')
+      toast.error(copy('Unable to load staff', 'Kunde inte hämta personal'))
     } finally {
       setLoading(false)
     }
-  }, [businessSlug])
+  }, [businessSlug, copy])
 
   const handleRemove = async (memberId: string, name: string) => {
-    if (!confirm(`Ta bort ${name} från personalen?`)) return
+    if (!confirm(copy(`Remove ${name} from staff?`, `Ta bort ${name} från personalen?`))) return
     try {
       const params = new URLSearchParams()
       if (businessSlug) params.set('businessSlug', businessSlug)
@@ -109,23 +112,23 @@ export function StaffManagement({ teams, businessType, businessSlug }: StaffMana
       })
       if (res.ok) {
         setStaff((prev) => prev.filter((m) => m.id !== memberId))
-        toast.success(`${name} borttagen`)
+        toast.success(copy(`${name} removed`, `${name} borttagen`))
       } else {
         const err = await res.json()
-        toast.error(err.error || 'Kunde inte ta bort')
+        toast.error(err.error || copy('Unable to remove staff member', 'Kunde inte ta bort'))
       }
     } catch {
-      toast.error('Nätverksfel')
+      toast.error(copy('Network error', 'Nätverksfel'))
     }
   }
 
   useEffect(() => {
-    fetchStaff()
+    void fetchStaff()
   }, [fetchStaff])
 
   const handleInvite = async () => {
     if (!invName.trim() || !invEmail.trim() || !invRole) {
-      toast.error('Fyll i alla fält')
+      toast.error(copy('Fill in all fields', 'Fyll i alla fält'))
       return
     }
 
@@ -149,19 +152,19 @@ export function StaffManagement({ teams, businessType, businessSlug }: StaffMana
 
       if (res.ok) {
         const data = await res.json()
-        toast.success(`${data.roleLabel} inbjuden!`)
+        toast.success(copy(`${data.roleLabel} invited`, `${data.roleLabel} inbjuden!`))
         setInviteOpen(false)
         setInvName('')
         setInvEmail('')
         setInvRole('')
         setInvTeamIds([])
-        fetchStaff()
+        await fetchStaff()
       } else {
         const err = await res.json()
-        toast.error(err.error || 'Kunde inte bjuda in')
+        toast.error(err.error || copy('Unable to invite staff member', 'Kunde inte bjuda in'))
       }
     } catch {
-      toast.error('Nätverksfel')
+      toast.error(copy('Network error', 'Nätverksfel'))
     } finally {
       setInviting(false)
     }
@@ -178,36 +181,38 @@ export function StaffManagement({ teams, businessType, businessSlug }: StaffMana
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold">Personal</h2>
-          <p className="text-sm text-muted-foreground">{staff.length} medlemmar</p>
+          <h2 className="text-lg font-bold">{copy('Staff', 'Personal')}</h2>
+          <p className="text-sm text-muted-foreground">
+            {copy(`${staff.length} ${staff.length === 1 ? 'member' : 'members'}`, `${staff.length} medlemmar`)}
+          </p>
         </div>
         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
           <DialogTrigger asChild>
             <Button>
               <UserPlus className="h-4 w-4 mr-1.5" />
-              Bjud in
+              {copy('Invite', 'Bjud in')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Bjud in personal</DialogTitle>
+              <DialogTitle>{copy('Invite staff', 'Bjud in personal')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Namn</Label>
-                <Input value={invName} onChange={(e) => setInvName(e.target.value)} placeholder="Förnamn Efternamn" />
+                <Label>{copy('Name', 'Namn')}</Label>
+                <Input value={invName} onChange={(e) => setInvName(e.target.value)} placeholder={copy('First Last', 'Förnamn Efternamn')} />
               </div>
 
               <div className="space-y-2">
-                <Label>E-post</Label>
+                <Label>{copy('Email', 'E-post')}</Label>
                 <Input value={invEmail} onChange={(e) => setInvEmail(e.target.value)} type="email" placeholder="coach@example.com" />
               </div>
 
               <div className="space-y-2">
-                <Label>Roll</Label>
+                <Label>{copy('Role', 'Roll')}</Label>
                 <Select value={invRole} onValueChange={setInvRole}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Välj roll..." />
+                    <SelectValue placeholder={copy('Select role...', 'Välj roll...')} />
                   </SelectTrigger>
                   <SelectContent>
                     {invitableRoles.map((r) => (
@@ -225,7 +230,7 @@ export function StaffManagement({ teams, businessType, businessSlug }: StaffMana
               {/* Team assignment (for team-scoped roles) */}
               {TEAM_SCOPED_ROLES.includes(invRole) && teams.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Tilldela till lag</Label>
+                  <Label>{copy('Assign to teams', 'Tilldela till lag')}</Label>
                   <div className="space-y-1">
                     {teams.map((team) => (
                       <button
@@ -243,15 +248,15 @@ export function StaffManagement({ teams, businessType, businessSlug }: StaffMana
                     ))}
                   </div>
                   {invTeamIds.length === 0 && (
-                    <p className="text-xs text-amber-600">Välj minst ett lag</p>
+                    <p className="text-xs text-amber-600">{copy('Select at least one team', 'Välj minst ett lag')}</p>
                   )}
                 </div>
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setInviteOpen(false)}>Avbryt</Button>
+                <Button variant="outline" onClick={() => setInviteOpen(false)}>{copy('Cancel', 'Avbryt')}</Button>
                 <Button onClick={handleInvite} disabled={inviting}>
-                  {inviting ? 'Bjuder in...' : 'Bjud in'}
+                  {inviting ? copy('Inviting...', 'Bjuder in...') : copy('Invite', 'Bjud in')}
                 </Button>
               </div>
             </div>
