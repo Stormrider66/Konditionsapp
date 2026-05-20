@@ -16,12 +16,18 @@ import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutD
 import { toCardioSessionData } from '@/components/workouts/import/converters'
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface CardioDashboardProps {
   businessId?: string
 }
 
 export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const [activeTab, setActiveTab] = React.useState('builder')
@@ -54,7 +60,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          throw new Error(body.error || 'Kunde inte öppna konditionspasset')
+          throw new Error(body.error || copy(locale, 'Could not open the cardio session', 'Kunde inte öppna konditionspasset'))
         }
         return res.json()
       })
@@ -65,7 +71,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
       })
       .catch((error) => {
         if (cancelled) return
-        toast.error('Kunde inte öppna passet', {
+        toast.error(copy(locale, 'Could not open session', 'Kunde inte öppna passet'), {
           description: error instanceof Error ? error.message : undefined,
         })
       })
@@ -73,7 +79,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
     return () => {
       cancelled = true
     }
-  }, [editSessionId])
+  }, [editSessionId, locale])
 
   return (
     <div className="container mx-auto py-6 px-4 space-y-8">
@@ -89,15 +95,15 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" onClick={() => setShowImporter(true)} size="sm" className="sm:size-default">
             <FileUp className="mr-2 h-4 w-4" />
-            Importera pass
+            {copy(locale, 'Import session', 'Importera pass')}
           </Button>
           <Button variant="outline" onClick={() => setShowAutoGenerate(true)} size="sm" className="sm:size-default">
             <Sparkles className="mr-2 h-4 w-4" />
-            Auto-Generera
+            {copy(locale, 'Auto-generate', 'Auto-Generera')}
           </Button>
           <Button onClick={() => { setEditSession(null); setActiveTab('builder') }} size="sm" className="sm:size-default">
             <Plus className="mr-2 h-4 w-4" />
-            Nytt Pass
+            {copy(locale, 'New session', 'Nytt Pass')}
           </Button>
         </div>
       </div>
@@ -106,15 +112,15 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
         <TabsList className="bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1">
           <TabsTrigger value="builder" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Timer className="h-4 w-4" />
-            Skapa Pass
+            {copy(locale, 'Create session', 'Skapa Pass')}
           </TabsTrigger>
           <TabsTrigger value="library" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Library className="h-4 w-4" />
-            Mina Pass
+            {copy(locale, 'My sessions', 'Mina Pass')}
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <BookOpen className="h-4 w-4" />
-            Mallar
+            {copy(locale, 'Templates', 'Mallar')}
           </TabsTrigger>
         </TabsList>
 
@@ -200,7 +206,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
           if (workout.workoutType !== 'CARDIO') return
           setEditSession(toCardioSessionData(workout))
           setActiveTab('builder')
-          toast.success('Pass importerat — granska och spara i byggaren')
+          toast.success(copy(locale, 'Session imported - review and save it in the builder', 'Pass importerat - granska och spara i byggaren'))
         }}
       />
 

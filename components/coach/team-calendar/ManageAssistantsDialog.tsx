@@ -10,11 +10,14 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { UserPlus, Trash2, Shield } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface Assistant {
   id: string
@@ -32,9 +35,9 @@ interface ManageAssistantsDialogProps {
 }
 
 export function ManageAssistantsDialog({ teamId, teamName }: ManageAssistantsDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [open, setOpen] = useState(false)
   const [assistants, setAssistants] = useState<Assistant[]>([])
-  const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [adding, setAdding] = useState(false)
 
@@ -51,7 +54,11 @@ export function ManageAssistantsDialog({ teamId, teamName }: ManageAssistantsDia
   }, [teamId])
 
   useEffect(() => {
-    if (open) fetchAssistants()
+    if (!open) return
+    const timeout = window.setTimeout(() => {
+      void fetchAssistants()
+    }, 0)
+    return () => window.clearTimeout(timeout)
   }, [open, fetchAssistants])
 
   const handleAdd = async () => {
@@ -64,22 +71,22 @@ export function ManageAssistantsDialog({ teamId, teamName }: ManageAssistantsDia
         body: JSON.stringify({ email: email.trim() }),
       })
       if (res.ok) {
-        toast.success('Assisterande coach tillagd')
+        toast.success(copy(locale, 'Assistant coach added', 'Assisterande coach tillagd'))
         setEmail('')
-        fetchAssistants()
+        void fetchAssistants()
       } else {
         const err = await res.json()
-        toast.error(err.error || 'Kunde inte lägga till coach')
+        toast.error(err.error || copy(locale, 'Could not add coach', 'Kunde inte lägga till coach'))
       }
     } catch {
-      toast.error('Nätverksfel')
+      toast.error(copy(locale, 'Network error', 'Nätverksfel'))
     } finally {
       setAdding(false)
     }
   }
 
   const handleRemove = async (assignmentId: string) => {
-    if (!confirm('Ta bort denna assisterande coach?')) return
+    if (!confirm(copy(locale, 'Remove this assistant coach?', 'Ta bort denna assisterande coach?'))) return
     try {
       const res = await fetch(`/api/coach/teams/${teamId}/assistants`, {
         method: 'DELETE',
@@ -88,10 +95,10 @@ export function ManageAssistantsDialog({ teamId, teamName }: ManageAssistantsDia
       })
       if (res.ok) {
         setAssistants((prev) => prev.filter((a) => a.id !== assignmentId))
-        toast.success('Coach borttagen')
+        toast.success(copy(locale, 'Coach removed', 'Coach borttagen'))
       }
     } catch {
-      toast.error('Kunde inte ta bort coach')
+      toast.error(copy(locale, 'Could not remove coach', 'Kunde inte ta bort coach'))
     }
   }
 
@@ -100,34 +107,36 @@ export function ManageAssistantsDialog({ teamId, teamName }: ManageAssistantsDia
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Shield className="h-4 w-4 mr-1.5" />
-          Coacher
+          {copy(locale, 'Coaches', 'Coacher')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Assisterande coacher - {teamName}</DialogTitle>
+          <DialogTitle>{copy(locale, 'Assistant coaches', 'Assisterande coacher')} - {teamName}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Add new assistant */}
           <div className="flex gap-2">
             <Input
-              placeholder="E-postadress..."
+              placeholder={copy(locale, 'Email address...', 'E-postadress...')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleAdd()
+              }}
               type="email"
             />
             <Button onClick={handleAdd} disabled={adding || !email.trim()} size="sm" className="shrink-0">
               <UserPlus className="h-4 w-4 mr-1" />
-              Lägg till
+              {copy(locale, 'Add', 'Lägg till')}
             </Button>
           </div>
 
           {/* Current assistants */}
           {assistants.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Inga assisterande coacher ännu
+              {copy(locale, 'No assistant coaches yet', 'Inga assisterande coacher ännu')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -137,9 +146,9 @@ export function ManageAssistantsDialog({ teamId, teamName }: ManageAssistantsDia
                     <p className="font-medium text-sm">{a.name}</p>
                     <p className="text-xs text-muted-foreground">{a.email}</p>
                     <div className="flex gap-1 mt-1">
-                      {a.canRunTests && <Badge variant="outline" className="text-[9px]">Tester</Badge>}
-                      {a.canRunIntervals && <Badge variant="outline" className="text-[9px]">Intervaller</Badge>}
-                      {a.canCreateEvents && <Badge variant="outline" className="text-[9px]">Kalender</Badge>}
+                      {a.canRunTests && <Badge variant="outline" className="text-[9px]">{copy(locale, 'Tests', 'Tester')}</Badge>}
+                      {a.canRunIntervals && <Badge variant="outline" className="text-[9px]">{copy(locale, 'Intervals', 'Intervaller')}</Badge>}
+                      {a.canCreateEvents && <Badge variant="outline" className="text-[9px]">{copy(locale, 'Calendar', 'Kalender')}</Badge>}
                     </div>
                   </div>
                   <Button
@@ -156,8 +165,11 @@ export function ManageAssistantsDialog({ teamId, teamName }: ManageAssistantsDia
           )}
 
           <p className="text-xs text-muted-foreground">
-            Assisterande coacher kan visa atleter, köra tester och intervallsessioner,
-            samt skapa kalenderhändelser. De kan inte redigera program eller inställningar.
+            {copy(
+              locale,
+              'Assistant coaches can view athletes, run tests and interval sessions, and create calendar events. They cannot edit programs or settings.',
+              'Assisterande coacher kan visa atleter, köra tester och intervallsessioner, samt skapa kalenderhändelser. De kan inte redigera program eller inställningar.'
+            )}
           </p>
         </div>
       </DialogContent>
