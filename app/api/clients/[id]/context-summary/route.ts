@@ -10,6 +10,34 @@ import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 
+function getPoseScore(aiPoseAnalysis: unknown): number | null {
+  if (
+    typeof aiPoseAnalysis === 'object' &&
+    aiPoseAnalysis !== null &&
+    !Array.isArray(aiPoseAnalysis) &&
+    typeof (aiPoseAnalysis as { score?: unknown }).score === 'number'
+  ) {
+    return (aiPoseAnalysis as { score: number }).score
+  }
+  return null
+}
+
+function getPoseFindingCount(aiPoseAnalysis: unknown): number {
+  if (typeof aiPoseAnalysis !== 'object' || aiPoseAnalysis === null || Array.isArray(aiPoseAnalysis)) {
+    return 0
+  }
+
+  const pose = aiPoseAnalysis as {
+    technicalFeedback?: unknown
+    patterns?: unknown
+    recommendations?: unknown
+  }
+
+  return [pose.technicalFeedback, pose.patterns, pose.recommendations].reduce<number>((total, value) => {
+    return total + (Array.isArray(value) ? value.length : 0)
+  }, 0)
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -73,6 +101,7 @@ export async function GET(
       select: {
         createdAt: true,
         formScore: true,
+        aiPoseAnalysis: true,
         runningGaitAnalysis: {
           select: {
             injuryRiskLevel: true,
@@ -119,6 +148,9 @@ export async function GET(
         formScore: latestVideoAnalysis.formScore,
         injuryRiskLevel: latestVideoAnalysis.runningGaitAnalysis?.injuryRiskLevel || null,
         asymmetryPercent: latestVideoAnalysis.runningGaitAnalysis?.asymmetryPercent || null,
+        hasPoseContext: Boolean(latestVideoAnalysis.aiPoseAnalysis),
+        poseScore: getPoseScore(latestVideoAnalysis.aiPoseAnalysis),
+        poseFindingCount: getPoseFindingCount(latestVideoAnalysis.aiPoseAnalysis),
       } : null,
     }
 

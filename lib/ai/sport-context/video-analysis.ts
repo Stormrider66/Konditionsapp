@@ -7,202 +7,248 @@ import {
 } from './formatters'
 
 type SportContextLocale = 'en' | 'sv'
+type JsonRecord = Record<string, unknown>
 
 function dateLocale(locale: SportContextLocale): string {
   return locale === 'sv' ? 'sv-SE' : 'en-US'
 }
 
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function textField(record: JsonRecord, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  }
+  return null
+}
+
+function formatJsonItem(item: unknown): string | null {
+  if (typeof item === 'string') return item
+  if (typeof item === 'number' || typeof item === 'boolean') return String(item)
+  if (!isRecord(item)) return null
+
+  const title = textField(item, ['issue', 'title', 'recommendation', 'cue', 'drillName', 'factor', 'pattern', 'area'])
+  const description = textField(item, ['description', 'explanation', 'observation', 'impact', 'significance', 'reason'])
+  const severity = textField(item, ['severity', 'priority', 'riskLevel'])
+
+  const main = [title, description].filter(Boolean).join(': ')
+  if (!main && severity) return severity
+  if (main && severity) return `${main} (${severity})`
+  return main || null
+}
+
+function formatList(items: unknown[] | null | undefined, maxItems = 6): string[] {
+  if (!Array.isArray(items)) return []
+  return items
+    .map(formatJsonItem)
+    .filter((item): item is string => Boolean(item))
+    .slice(0, maxItems)
+}
+
+function hasPoseAnalysis(video: VideoAnalysis): boolean {
+  const pose = video.aiPoseAnalysis
+  return Boolean(
+    pose?.interpretation ||
+    pose?.overallAssessment ||
+    typeof pose?.score === 'number' ||
+    pose?.technicalFeedback?.length ||
+    pose?.patterns?.length ||
+    pose?.recommendations?.length
+  )
+}
+
 /**
- * Build video analysis context from running gait analysis
+ * Build video and pose context for AI decisions.
  */
 export function buildVideoAnalysisContext(
   videoAnalyses: VideoAnalysis[],
   locale: SportContextLocale = 'en'
 ): string {
-  if (!videoAnalyses || videoAnalyses.length === 0) return '';
+  if (!videoAnalyses || videoAnalyses.length === 0) return ''
 
-  let context = `\n## VIDEOANALYSER - LÖPTEKNIK\n`;
-  context += `*Följande data kommer från AI-driven videoanalys av atletens löpteknik:*\n`;
+  const analyses = videoAnalyses.slice(0, 10)
+  const poseCount = analyses.filter(hasPoseAnalysis).length
+  let context = `\n## VIDEO- OCH POSEANALYS: TEKNIK, MOBILITET OCH SKADERISK\n`
+  context += `*Använd detta som viktig helhetskontext för atleten. Pose/Gemini-fynd kan peka på rörlighetsbegränsningar, asymmetrier, kompensationer och tekniska mönster som påverkar belastningstolerans, skadehistorik och träningsval. Detta är coachande beslutsstöd, inte medicinsk diagnos.*\n`
+  context += `- **Antal analyser i kontexten**: ${analyses.length}\n`
+  if (poseCount > 0) {
+    context += `- **Analyser med sparad pose/Gemini-data**: ${poseCount}\n`
+  }
 
-  // Check which camera angles are available for cross-referencing
-  const availableAngles = videoAnalyses
-    .filter(v => v.cameraAngle)
-    .map(v => v.cameraAngle);
-  const hasMultipleViews = new Set(availableAngles).size > 1;
+  const availableAngles = analyses
+    .filter((v) => v.cameraAngle)
+    .map((v) => v.cameraAngle)
+  const hasMultipleViews = new Set(availableAngles).size > 1
 
-  for (const video of videoAnalyses) {
-    const date = new Date(video.createdAt).toLocaleDateString(dateLocale(locale));
-    const angleLabel = translateCameraAngle(video.cameraAngle);
-    const angleInfo = angleLabel ? ` (${angleLabel})` : '';
-    context += `\n### Analys från ${date}${angleInfo}\n`;
+  for (const video of analyses) {
+    const date = new Date(video.createdAt).toLocaleDateString(dateLocale(locale))
+    const angleLabel = translateCameraAngle(video.cameraAngle)
+    const angleInfo = angleLabel ? ` (${angleLabel})` : ''
+    const typeInfo = video.videoType ? ` | Typ: ${video.videoType}` : ''
+    context += `\n### Analys från ${date}${angleInfo}${typeInfo}\n`
 
-    // Add view-specific context
     if (video.cameraAngle) {
-      context += getViewSpecificMetricsLabel(video.cameraAngle);
+      context += getViewSpecificMetricsLabel(video.cameraAngle)
     }
 
-    if (video.formScore) {
-      context += `- **Teknisk formpoäng**: ${video.formScore}/100\n`;
+    if (video.formScore !== null) {
+      context += `- **Teknisk formpoäng**: ${video.formScore}/100\n`
     }
 
-    // Issues and recommendations from general video analysis
-    if (video.issuesDetected && video.issuesDetected.length > 0) {
-      context += `- **Identifierade problem**: ${video.issuesDetected.join(', ')}\n`;
-    }
-    if (video.recommendations && video.recommendations.length > 0) {
-      context += `- **Generella rekommendationer**: ${video.recommendations.join(', ')}\n`;
+    const issues = formatList(video.issuesDetected)
+    if (issues.length > 0) {
+      context += `- **Identifierade problem**: ${issues.join('; ')}\n`
     }
 
-    // Structured AI Pose Analysis from Gemini
-    const poseAnalysis = video.aiPoseAnalysis;
-    if (poseAnalysis) {
-      context += `\n#### AI Poseanalys (Gemini)\n`;
+    const recommendations = formatList(video.recommendations)
+    if (recommendations.length > 0) {
+      context += `- **Generella rekommendationer**: ${recommendations.join('; ')}\n`
+    }
 
+    const poseAnalysis = video.aiPoseAnalysis
+    if (poseAnalysis && hasPoseAnalysis(video)) {
+      context += `\n#### Gemini poseanalys: rörelseprofil\n`
+
+      if (typeof poseAnalysis.score === 'number') {
+        context += `- **Posepoäng**: ${poseAnalysis.score}/100\n`
+      }
       if (poseAnalysis.interpretation) {
-        context += `**Tolkning**: ${poseAnalysis.interpretation}\n\n`;
+        context += `- **Tolkning**: ${poseAnalysis.interpretation}\n`
+      }
+      if (poseAnalysis.overallAssessment) {
+        context += `- **Sammanfattande bedömning**: ${poseAnalysis.overallAssessment}\n`
       }
 
-      if (poseAnalysis.technicalFeedback && poseAnalysis.technicalFeedback.length > 0) {
-        context += `**Teknisk feedback**:\n`;
-        for (const fb of poseAnalysis.technicalFeedback) {
-          context += `- **${fb.area}**: ${fb.observation}\n`;
-          context += `  - Påverkan: ${fb.impact}\n`;
-          context += `  - Förslag: ${fb.suggestion}\n`;
+      if (poseAnalysis.technicalFeedback?.length) {
+        context += `\n**Teknisk feedback att väga mot skador, smärta och belastning:**\n`
+        for (const fb of poseAnalysis.technicalFeedback.slice(0, 6)) {
+          context += `- **${fb.area}**: ${fb.observation}\n`
+          context += `  - Påverkan: ${fb.impact}\n`
+          context += `  - Praktiskt fokus: ${fb.suggestion}\n`
         }
-        context += '\n';
       }
 
-      if (poseAnalysis.patterns && poseAnalysis.patterns.length > 0) {
-        context += `**Identifierade rörelsemönster**:\n`;
-        for (const p of poseAnalysis.patterns) {
-          context += `- **${p.pattern}**: ${p.significance}\n`;
+      if (poseAnalysis.patterns?.length) {
+        context += `\n**Identifierade rörelsemönster:**\n`
+        for (const pattern of poseAnalysis.patterns.slice(0, 6)) {
+          context += `- **${pattern.pattern}**: ${pattern.significance}\n`
         }
-        context += '\n';
       }
 
-      if (poseAnalysis.recommendations && poseAnalysis.recommendations.length > 0) {
-        context += `**AI-rekommendationer (prioritetsordning)**:\n`;
-        const sortedRecs = [...poseAnalysis.recommendations].sort((a, b) => a.priority - b.priority);
-        for (const rec of sortedRecs) {
-          context += `${rec.priority}. **${rec.title}**: ${rec.description}\n`;
-          if (rec.exercises && rec.exercises.length > 0) {
-            context += `   - Övningar: ${rec.exercises.join(', ')}\n`;
+      if (poseAnalysis.recommendations?.length) {
+        context += `\n**Prioriterade åtgärder från poseanalysen:**\n`
+        const sortedRecs = [...poseAnalysis.recommendations].sort((a, b) => a.priority - b.priority)
+        for (const rec of sortedRecs.slice(0, 5)) {
+          context += `${rec.priority}. **${rec.title}**: ${rec.description}\n`
+          if (rec.exercises?.length) {
+            context += `   - Övningar: ${rec.exercises.join(', ')}\n`
           }
         }
-        context += '\n';
-      }
-
-      if (poseAnalysis.overallAssessment) {
-        context += `**Sammanfattande bedömning**: ${poseAnalysis.overallAssessment}\n`;
       }
     }
 
-    // Detailed running gait analysis
-    const gait = video.runningGaitAnalysis;
+    const gait = video.runningGaitAnalysis
     if (gait) {
-      context += `\n#### Biomekanisk löpanalys\n`;
+      context += `\n#### Biomekanisk löpanalys\n`
 
-      // Cadence and timing metrics
       if (gait.cadence) {
         const cadenceStatus = gait.cadence < 170 ? '(låg - kan förbättras)' :
                               gait.cadence > 190 ? '(hög - bra effektivitet)' :
-                              '(normal)';
-        context += `- **Kadans**: ${gait.cadence} steg/min ${cadenceStatus}\n`;
+                              '(normal)'
+        context += `- **Kadans**: ${gait.cadence} steg/min ${cadenceStatus}\n`
       }
       if (gait.groundContactTime) {
         const gctStatus = gait.groundContactTime > 280 ? '(lång - indikerar ineffektivitet)' :
                           gait.groundContactTime < 200 ? '(kort - elitliknande)' :
-                          '(normal)';
-        context += `- **Markkontakttid**: ${gait.groundContactTime} ms ${gctStatus}\n`;
+                          '(normal)'
+        context += `- **Markkontakttid**: ${gait.groundContactTime} ms ${gctStatus}\n`
       }
       if (gait.verticalOscillation) {
         const voStatus = gait.verticalOscillation > 10 ? '(hög - energiläckage)' :
                          gait.verticalOscillation < 6 ? '(låg - effektivt)' :
-                         '(normal)';
-        context += `- **Vertikal oscillation**: ${gait.verticalOscillation} cm ${voStatus}\n`;
+                         '(normal)'
+        context += `- **Vertikal oscillation**: ${gait.verticalOscillation} cm ${voStatus}\n`
       }
       if (gait.strideLength) {
-        context += `- **Steglängd**: ${gait.strideLength} m\n`;
+        context += `- **Steglängd**: ${gait.strideLength} m\n`
       }
       if (gait.footStrikePattern) {
-        context += `- **Fotisättning**: ${translateFootStrike(gait.footStrikePattern)}\n`;
+        context += `- **Fotisättning**: ${translateFootStrike(gait.footStrikePattern)}\n`
       }
 
-      // Asymmetry analysis - critical for injury prevention
       if (gait.asymmetryPercent !== null) {
-        const asymmetryStatus = gait.asymmetryPercent > 8 ? '⚠️ HÖG ASYMMETRI - skaderisk' :
-                                gait.asymmetryPercent > 4 ? '⚡ Måttlig asymmetri' :
-                                '✅ Balanserad';
-        context += `\n#### Asymmetrianalys\n`;
-        context += `- **Asymmetrigrad**: ${gait.asymmetryPercent}% ${asymmetryStatus}\n`;
+        const asymmetryStatus = gait.asymmetryPercent > 8 ? 'hög asymmetri - skaderisk' :
+                                gait.asymmetryPercent > 4 ? 'måttlig asymmetri' :
+                                'balanserad'
+        context += `\n#### Asymmetrianalys\n`
+        context += `- **Asymmetrigrad**: ${gait.asymmetryPercent}% (${asymmetryStatus})\n`
         if (gait.leftContactTime && gait.rightContactTime) {
-          const longerSide = gait.leftContactTime > gait.rightContactTime ? 'vänster' : 'höger';
-          context += `- **Markkontakt vänster/höger**: ${gait.leftContactTime}/${gait.rightContactTime} ms (längre på ${longerSide} sida)\n`;
+          const longerSide = gait.leftContactTime > gait.rightContactTime ? 'vänster' : 'höger'
+          context += `- **Markkontakt vänster/höger**: ${gait.leftContactTime}/${gait.rightContactTime} ms (längre på ${longerSide} sida)\n`
         }
       }
 
-      // Injury risk assessment
       if (gait.injuryRiskLevel) {
-        context += `\n#### Skaderiskbedömning\n`;
-        const riskEmoji = gait.injuryRiskLevel === 'HIGH' ? '🔴' :
-                          gait.injuryRiskLevel === 'MODERATE' ? '🟡' : '🟢';
-        context += `- **Skaderisk**: ${riskEmoji} ${translateRiskLevel(gait.injuryRiskLevel)}`;
+        context += `\n#### Skaderiskbedömning\n`
+        context += `- **Skaderisk**: ${translateRiskLevel(gait.injuryRiskLevel)}`
         if (gait.injuryRiskScore) {
-          context += ` (${gait.injuryRiskScore}/100)`;
+          context += ` (${gait.injuryRiskScore}/100)`
         }
-        context += '\n';
-        if (gait.injuryRiskFactors && gait.injuryRiskFactors.length > 0) {
-          context += `- **Riskfaktorer**: ${gait.injuryRiskFactors.join(', ')}\n`;
+        context += '\n'
+
+        const riskFactors = formatList(gait.injuryRiskFactors)
+        if (riskFactors.length > 0) {
+          context += `- **Riskfaktorer**: ${riskFactors.join('; ')}\n`
         }
       }
 
-      // Efficiency metrics
       if (gait.runningEfficiency) {
-        context += `\n#### Löpeffektivitet\n`;
-        context += `- **Effektivitetspoäng**: ${gait.runningEfficiency}%\n`;
-      }
-      if (gait.energyLeakages && gait.energyLeakages.length > 0) {
-        context += `- **Identifierade energiläckage**: ${gait.energyLeakages.join(', ')}\n`;
+        context += `\n#### Löpeffektivitet\n`
+        context += `- **Effektivitet**: ${gait.runningEfficiency}\n`
       }
 
-      // Coaching recommendations - critical for program design
-      if (gait.coachingCues && gait.coachingCues.length > 0) {
-        context += `\n#### Coachingråd för träningen\n`;
-        for (const cue of gait.coachingCues) {
-          context += `- ${cue}\n`;
+      const energyLeakages = formatList(gait.energyLeakages)
+      if (energyLeakages.length > 0) {
+        context += `- **Identifierade energiläckage**: ${energyLeakages.join('; ')}\n`
+      }
+
+      const coachingCues = formatList(gait.coachingCues)
+      if (coachingCues.length > 0) {
+        context += `\n#### Coachingråd för träningen\n`
+        for (const cue of coachingCues) {
+          context += `- ${cue}\n`
         }
       }
 
-      if (gait.drillRecommendations && gait.drillRecommendations.length > 0) {
-        context += `\n#### Rekommenderade tekniska övningar\n`;
-        for (const drill of gait.drillRecommendations) {
-          context += `- ${drill}\n`;
+      const drillRecommendations = formatList(gait.drillRecommendations)
+      if (drillRecommendations.length > 0) {
+        context += `\n#### Rekommenderade tekniska övningar\n`
+        for (const drill of drillRecommendations) {
+          context += `- ${drill}\n`
         }
       }
 
       if (gait.summary) {
-        context += `\n#### Sammanfattning\n${gait.summary}\n`;
+        context += `\n#### Sammanfattning\n${gait.summary}\n`
       }
     }
   }
 
-  // Add cross-referencing guidance when multiple views are available
   if (hasMultipleViews) {
-    context += `\n### Korsreferens - Flera kameraperspektiv tillgängliga\n`;
-    context += `*Atleten har analyserats från flera vinklar. Korrelera fynd mellan perspektiven:*\n`;
-    context += `- **Front + Sida**: Kontrollera att knäspårning (front) matchar fotisättning (sida)\n`;
-    context += `- **Front + Bak**: Jämför höftfall från båda perspektiv för fullständig symmetrianalys\n`;
-    context += `- **Sida + Bak**: Korrelera gluteal aktivering (bak) med höftextension (sida)\n`;
-    context += `- Vid motsägande data, prioritera sidovyn för sagittalplansmekanik och frontvyn för frontalplansmekanik\n`;
+    context += `\n### Korsreferens - flera kameraperspektiv\n`
+    context += `- Jämför knäspårning, höftkontroll, fotisättning och rotation mellan vinklar innan du drar slutsatser.\n`
+    context += `- Prioritera sidovy för sagittalplansmekanik och front/bak-vy för frontalplanskontroll och asymmetri.\n`
   }
 
-  // Add guidance for using video analysis in program design
-  context += `\n### Hur använda videoanalysdata i programdesign\n`;
-  context += `- Hög asymmetri (>8%) → Inkludera unilaterala styrkeövningar och balansarbete\n`;
-  context += `- Lång markkontakttid → Lägg till plyometriska övningar och kadensdrills\n`;
-  context += `- Hög vertikal oscillation → Fokusera på core-styrka och höftflexibilitet\n`;
-  context += `- Identifierade skaderisker → Anpassa volym och intensitet, lägg till preventionsövningar\n`;
-  context += `- Använd rekommenderade övningar som uppvärmning eller teknikpass\n`;
+  context += `\n### Så ska AI:n använda pose/video i helhetsbilden\n`
+  context += `- Koppla asymmetrier, rörlighetsbegränsningar och kompensationer till rapporterad smärta, skadehistorik, träningsbelastning, styrkepass och readiness innan träningsråd ges.\n`
+  context += `- Om smärta eller återkommande skada finns nära ett område med svag kontroll eller låg rörlighet, behandla det som en hypotes att följa upp med coach/fysio, inte som en diagnos.\n`
+  context += `- Vid tydlig asymmetri eller begränsad rörlighet: föreslå konservativ progression, unilateral styrka, mobilitet, aktivering, teknikdrills och enklare monitorering före stora volym- eller intensitetsökningar.\n`
+  context += `- När posefynden är normala men atletens symtom är höga, prioritera återhämtning, belastningshistorik och medicinsk/fysioterapeutisk bedömning framför tekniska slutsatser.\n`
 
-  return context;
+  return context
 }

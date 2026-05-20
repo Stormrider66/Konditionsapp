@@ -120,8 +120,8 @@ interface VideoAnalysis {
   videoType: string | null;
   cameraAngle: string | null;
   formScore: number | null;
-  issuesDetected: string[] | null;
-  recommendations: string[] | null;
+  issuesDetected: unknown[] | null;
+  recommendations: unknown[] | null;
   aiPoseAnalysis: AIPoseAnalysis | null;
   runningGaitAnalysis: RunningGaitAnalysis | null;
 }
@@ -138,11 +138,11 @@ interface RunningGaitAnalysis {
   rightContactTime: number | null;
   injuryRiskLevel: string | null;
   injuryRiskScore: number | null;
-  injuryRiskFactors: string[] | null;
-  runningEfficiency: number | null;
-  energyLeakages: string[] | null;
-  coachingCues: string[] | null;
-  drillRecommendations: string[] | null;
+  injuryRiskFactors: unknown[] | null;
+  runningEfficiency: string | number | null;
+  energyLeakages: unknown[] | null;
+  coachingCues: unknown[] | null;
+  drillRecommendations: unknown[] | null;
   overallScore: number | null;
   summary: string | null;
 }

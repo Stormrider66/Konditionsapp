@@ -6,6 +6,8 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { buildVideoAnalysisContext } from '@/lib/ai/sport-context/video-analysis'
+import type { VideoAnalysis } from '@/lib/ai/sport-context/types'
 import { SportType, AgentActionStatus } from '@prisma/client'
 
 interface MealLogData {
@@ -530,6 +532,49 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         dislikedFoods: true,
       },
     }),
+
+    // Recent video and pose analyses. Do not fetch raw landmark frames here;
+    // the AI context only needs compact biomechanical findings.
+    prisma.videoAnalysis.findMany({
+      where: {
+        athleteId: clientId,
+        status: 'COMPLETED',
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        createdAt: true,
+        videoType: true,
+        cameraAngle: true,
+        formScore: true,
+        issuesDetected: true,
+        recommendations: true,
+        aiPoseAnalysis: true,
+        runningGaitAnalysis: {
+          select: {
+            id: true,
+            cadence: true,
+            groundContactTime: true,
+            verticalOscillation: true,
+            strideLength: true,
+            footStrikePattern: true,
+            asymmetryPercent: true,
+            leftContactTime: true,
+            rightContactTime: true,
+            injuryRiskLevel: true,
+            injuryRiskScore: true,
+            injuryRiskFactors: true,
+            runningEfficiency: true,
+            energyLeakages: true,
+            coachingCues: true,
+            drillRecommendations: true,
+            overallScore: true,
+            summary: true,
+          },
+        },
+      },
+    }),
   ])
 
   // Unwrap allSettled results — failed queries become null/0/[] instead of crashing
@@ -555,6 +600,7 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   const recentMeals = v(results[17], [] as never[])
   const nutritionGoal = v(results[18], null)
   const dietaryPreferences = v(results[19], null)
+  const videoAnalyses = v(results[20], [] as never[])
 
   if (!client) {
     return 'Ingen atletdata hittades.'
@@ -649,6 +695,12 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   // Injuries section
   if (injuries.length > 0) {
     context += buildInjuryContext(injuries as InjuryData[])
+  }
+
+  // Video/pose findings are important context for linking technique, mobility,
+  // asymmetry, pain patterns, and training-load decisions.
+  if (videoAnalyses.length > 0) {
+    context += buildVideoAnalysisContext(videoAnalyses as unknown as VideoAnalysis[], locale)
   }
 
   // Nutrition context

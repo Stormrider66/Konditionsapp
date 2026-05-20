@@ -137,6 +137,9 @@ interface ContextSummary {
     formScore: number | null
     injuryRiskLevel: string | null
     asymmetryPercent: number | null
+    hasPoseContext: boolean
+    poseScore: number | null
+    poseFindingCount: number
   } | null
 }
 
@@ -504,6 +507,17 @@ export function ContextPanel({
                                   {contextSummary.latestVideoAnalysis?.injuryRiskLevel && (
                                     <p className="text-xs">Skaderisk: {contextSummary.latestVideoAnalysis.injuryRiskLevel}</p>
                                   )}
+                                  {contextSummary.latestVideoAnalysis?.hasPoseContext && (
+                                    <p className="text-xs">
+                                      Pose/Gemini ingår
+                                      {contextSummary.latestVideoAnalysis.poseScore !== null
+                                        ? `: ${contextSummary.latestVideoAnalysis.poseScore}/100`
+                                        : ''}
+                                    </p>
+                                  )}
+                                  {contextSummary.latestVideoAnalysis?.poseFindingCount ? (
+                                    <p className="text-xs">{contextSummary.latestVideoAnalysis.poseFindingCount} posefynd i senaste analysen</p>
+                                  ) : null}
                                 </TooltipContent>
                               </Tooltip>
                             )}

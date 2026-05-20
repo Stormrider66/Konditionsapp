@@ -43,17 +43,9 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
   switch (primarySport) {
     case 'RUNNING':
       context += buildRunningContext(athlete, locale);
-      // Include video analysis for running gait
-      if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
-        context += buildVideoAnalysisContext(athlete.videoAnalyses, locale);
-      }
       break;
     case 'HYROX':
       context += buildHyroxContext(athlete);
-      // Include running video analysis for HYROX (has running component)
-      if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
-        context += buildVideoAnalysisContext(athlete.videoAnalyses, locale);
-      }
       break;
     case 'CYCLING':
       context += buildCyclingContext(athlete);
@@ -66,10 +58,6 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
       context += buildSwimmingContext(athlete); // Include swim data
       context += buildCyclingContext(athlete); // Include cycling data
       context += buildRunningContext(athlete, locale); // Include running data
-      // Include video analysis for the running component
-      if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
-        context += buildVideoAnalysisContext(athlete.videoAnalyses, locale);
-      }
       break;
     case 'SKIING':
       context += buildSkiingContext(athlete);
@@ -97,6 +85,12 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
     case 'TEAM_FLOORBALL':
       // Use generic team sport info for now
       break;
+  }
+
+  // Pose/video findings can explain load tolerance, asymmetry, mobility limits, and injury risk
+  // across sports, not only in running-gait contexts.
+  if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
+    context += buildVideoAnalysisContext(athlete.videoAnalyses, locale);
   }
 
   // Add readiness context if available

@@ -401,11 +401,13 @@ interface VideoAnalysisData {
   videoType: string
   videoUrl: string
   duration: number | null
+  cameraAngle: string | null
   status: string
   formScore: number | null
   issuesDetected: Record<string, unknown>[] | null
   recommendations: Record<string, unknown>[] | null
   aiAnalysis: string | null
+  aiPoseAnalysis: unknown | null
   exercise: {
     id: string
     name: string
@@ -648,7 +650,19 @@ export async function fetchAthleteProfileData(clientId: string): Promise<Athlete
         athleteId: clientId,
         status: 'COMPLETED',
       },
-      include: {
+      select: {
+        id: true,
+        createdAt: true,
+        videoType: true,
+        videoUrl: true,
+        duration: true,
+        cameraAngle: true,
+        status: true,
+        formScore: true,
+        issuesDetected: true,
+        recommendations: true,
+        aiAnalysis: true,
+        aiPoseAnalysis: true,
         exercise: {
           select: { id: true, name: true, nameSv: true },
         },
