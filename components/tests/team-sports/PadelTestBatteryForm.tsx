@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge'
 import { Trophy, CheckCircle, AlertTriangle, Timer, Zap, Target, ArrowLeftRight } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useLocale } from '@/i18n/client'
 
 const padelTestSchema = z.object({
   clientId: z.string().min(1, 'Valj en klient'),
@@ -98,6 +99,8 @@ function getBenchmarkLabel(actual: number | undefined, target: number, lowerIsBe
 }
 
 export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryFormProps) {
+  const locale = useLocale()
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [submitting, setSubmitting] = useState(false)
   const [results, setResults] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -306,7 +309,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>

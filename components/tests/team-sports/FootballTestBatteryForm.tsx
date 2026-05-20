@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge'
 import { Trophy, CheckCircle, AlertTriangle, Activity, Timer, Zap } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useLocale } from '@/i18n/client'
 
 const footballTestSchema = z.object({
   clientId: z.string().min(1, 'Välj en klient'),
@@ -100,6 +101,8 @@ function getBenchmarkLabel(actual: number | undefined, target: number, lowerIsBe
 }
 
 export function FootballTestBatteryForm({ clients, onTestSaved }: FootballTestBatteryFormProps) {
+  const locale = useLocale()
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [submitting, setSubmitting] = useState(false)
   const [results, setResults] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -309,7 +312,7 @@ export function FootballTestBatteryForm({ clients, onTestSaved }: FootballTestBa
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
