@@ -44,9 +44,7 @@ import type {
   WODRequest,
   WODResponse,
 } from '@/types/wod'
-import { WOD_LABELS } from '@/types/wod'
 import type { ModelIntent } from '@/types/ai-models'
-import { INTENT_TIER_LABELS } from '@/types/ai-models'
 import { cn } from '@/lib/utils'
 import {
   type AiAllowanceExhaustedError,
@@ -57,6 +55,7 @@ import {
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
 import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
+import { useLocale } from '@/i18n/client'
 
 interface WODGeneratorModalProps {
   open: boolean
@@ -67,10 +66,128 @@ interface WODGeneratorModalProps {
 }
 
 type Step = 'workoutType' | 'mode' | 'duration' | 'equipment' | 'generating'
+type AppLocale = 'en' | 'sv'
 
 type GenerateWODRequestBody = WODRequest & {
   intent?: string
   locationId?: string | null
+}
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+const WORKOUT_TYPE_LABELS: Record<WODWorkoutType, Record<AppLocale, { title: string; description: string }>> = {
+  strength: {
+    en: {
+      title: 'Strength',
+      description: 'Strength training focused on muscle building and power',
+    },
+    sv: {
+      title: 'Styrka',
+      description: 'Styrketräning med fokus på muskeluppbyggnad och kraft',
+    },
+  },
+  cardio: {
+    en: {
+      title: 'Cardio',
+      description: 'Cardio training with intervals or steady state',
+    },
+    sv: {
+      title: 'Kondition',
+      description: 'Konditionsträning med intervaller eller steady-state',
+    },
+  },
+  mixed: {
+    en: {
+      title: 'Mixed',
+      description: 'CrossFit/HYROX style with both strength and cardio',
+    },
+    sv: {
+      title: 'Mixat',
+      description: 'CrossFit/HYROX-stil med både styrka och kondition',
+    },
+  },
+  core: {
+    en: {
+      title: 'Core',
+      description: 'Stability, trunk strength, and functional core training',
+    },
+    sv: {
+      title: 'Core',
+      description: 'Stabilitet, bålstyrka och funktionell core-träning',
+    },
+  },
+}
+
+const MODE_LABELS: Record<WODMode, Record<AppLocale, { title: string; description: string }>> = {
+  structured: {
+    en: {
+      title: 'Structured',
+      description: 'Science-based workout adapted to your training plan',
+    },
+    sv: {
+      title: 'Strukturerat',
+      description: 'Vetenskapligt baserat pass anpassat efter din träningsplan',
+    },
+  },
+  casual: {
+    en: {
+      title: 'Casual',
+      description: 'Flexible session with no pressure, just show up and move',
+    },
+    sv: {
+      title: 'Avslappnat',
+      description: 'Flexibelt pass utan press - bara visa upp och rör dig',
+    },
+  },
+  fun: {
+    en: {
+      title: 'Just for fun!',
+      description: 'Surprising and varied for days when you want a change',
+    },
+    sv: {
+      title: 'Bara kul!',
+      description: 'Överraskande och varierat - för dig som vill ha omväxling',
+    },
+  },
+}
+
+const INTENT_LABELS: Record<ModelIntent, Record<AppLocale, { label: string; description: string }>> = {
+  fast: {
+    en: {
+      label: 'Fast',
+      description: 'Fast answers, ideal for simple questions and daily help.',
+    },
+    sv: {
+      label: 'Snabb',
+      description: 'Snabba svar, perfekt för enkla frågor och daglig hjälp.',
+    },
+  },
+  balanced: {
+    en: {
+      label: 'Balanced',
+      description: 'Good quality and speed. Recommended for most tasks.',
+    },
+    sv: {
+      label: 'Balanserad',
+      description: 'Bra kvalitet och hastighet. Rekommenderas för de flesta uppgifter.',
+    },
+  },
+  powerful: {
+    en: {
+      label: 'Powerful',
+      description: 'Best quality. Ideal for training programs and deep analysis.',
+    },
+    sv: {
+      label: 'Kraftfull',
+      description: 'Bästa kvalitet. Perfekt för träningsprogram och djup analys.',
+    },
+  },
 }
 
 // Workout type config
@@ -96,53 +213,53 @@ const WORKOUT_TYPE_ACCENT: Record<WODWorkoutType, string> = {
 }
 
 // Equipment per workout type
-const EQUIPMENT_BY_TYPE: Record<WODWorkoutType, { value: WODEquipment; label: string; icon: string }[]> = {
+const EQUIPMENT_BY_TYPE: Record<WODWorkoutType, { value: WODEquipment; label: Record<AppLocale, string>; icon: string }[]> = {
   strength: [
-    { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
-    { value: 'dumbbells', label: 'Hantlar', icon: '🏋️' },
-    { value: 'barbell', label: 'Skivstång', icon: '💪' },
-    { value: 'kettlebell', label: 'Kettlebell', icon: '🔔' },
-    { value: 'cable_machine', label: 'Kabelmaskin', icon: '🔧' },
-    { value: 'ez_curl_bar', label: 'EZ-stång', icon: '🏋️' },
-    { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
-    { value: 'pull_up_bar', label: 'Räcke', icon: '🔩' },
-    { value: 'rings', label: 'Ringar', icon: '⭕' },
+    { value: 'none', label: { en: 'No equipment', sv: 'Ingen utrustning' }, icon: '🏃' },
+    { value: 'dumbbells', label: { en: 'Dumbbells', sv: 'Hantlar' }, icon: '🏋️' },
+    { value: 'barbell', label: { en: 'Barbell', sv: 'Skivstång' }, icon: '💪' },
+    { value: 'kettlebell', label: { en: 'Kettlebell', sv: 'Kettlebell' }, icon: '🔔' },
+    { value: 'cable_machine', label: { en: 'Cable machine', sv: 'Kabelmaskin' }, icon: '🔧' },
+    { value: 'ez_curl_bar', label: { en: 'EZ curl bar', sv: 'EZ-stång' }, icon: '🏋️' },
+    { value: 'resistance_band', label: { en: 'Resistance band', sv: 'Gummiband' }, icon: '〰️' },
+    { value: 'pull_up_bar', label: { en: 'Pull-up bar', sv: 'Räcke' }, icon: '🔩' },
+    { value: 'rings', label: { en: 'Rings', sv: 'Ringar' }, icon: '⭕' },
   ],
   cardio: [
-    { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
-    { value: 'treadmill', label: 'Löpband', icon: '🏃‍♂️' },
-    { value: 'rower', label: 'Roddmaskin', icon: '🚣' },
-    { value: 'bike', label: 'Cykel', icon: '🚴' },
-    { value: 'skierg', label: 'SkiErg', icon: '⛷️' },
-    { value: 'airbike', label: 'Airbike', icon: '💨' },
-    { value: 'crosstrainer', label: 'Crosstrainer', icon: '🔄' },
-    { value: 'step_machine', label: 'Trappmaskin', icon: '🪜' },
-    { value: 'jump_rope', label: 'Hopprep', icon: '🪢' },
+    { value: 'none', label: { en: 'No equipment', sv: 'Ingen utrustning' }, icon: '🏃' },
+    { value: 'treadmill', label: { en: 'Treadmill', sv: 'Löpband' }, icon: '🏃‍♂️' },
+    { value: 'rower', label: { en: 'Rower', sv: 'Roddmaskin' }, icon: '🚣' },
+    { value: 'bike', label: { en: 'Bike', sv: 'Cykel' }, icon: '🚴' },
+    { value: 'skierg', label: { en: 'SkiErg', sv: 'SkiErg' }, icon: '⛷️' },
+    { value: 'airbike', label: { en: 'Airbike', sv: 'Airbike' }, icon: '💨' },
+    { value: 'crosstrainer', label: { en: 'Crosstrainer', sv: 'Crosstrainer' }, icon: '🔄' },
+    { value: 'step_machine', label: { en: 'Stair machine', sv: 'Trappmaskin' }, icon: '🪜' },
+    { value: 'jump_rope', label: { en: 'Jump rope', sv: 'Hopprep' }, icon: '🪢' },
   ],
   mixed: [
-    { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
-    { value: 'dumbbells', label: 'Hantlar', icon: '🏋️' },
-    { value: 'barbell', label: 'Skivstång', icon: '💪' },
-    { value: 'kettlebell', label: 'Kettlebell', icon: '🔔' },
-    { value: 'cable_machine', label: 'Kabelmaskin', icon: '🔧' },
-    { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
-    { value: 'pull_up_bar', label: 'Räcke', icon: '🔩' },
-    { value: 'rings', label: 'Ringar', icon: '⭕' },
-    { value: 'rower', label: 'Roddmaskin', icon: '🚣' },
-    { value: 'bike', label: 'Cykel', icon: '🚴' },
-    { value: 'skierg', label: 'SkiErg', icon: '⛷️' },
-    { value: 'airbike', label: 'Airbike', icon: '💨' },
-    { value: 'wall_ball', label: 'Wall Ball', icon: '⚽' },
-    { value: 'box', label: 'Plyo-box', icon: '📦' },
-    { value: 'sled', label: 'Släde', icon: '🛷' },
-    { value: 'sandbag', label: 'Sandsäck', icon: '🎒' },
-    { value: 'jump_rope', label: 'Hopprep', icon: '🪢' },
+    { value: 'none', label: { en: 'No equipment', sv: 'Ingen utrustning' }, icon: '🏃' },
+    { value: 'dumbbells', label: { en: 'Dumbbells', sv: 'Hantlar' }, icon: '🏋️' },
+    { value: 'barbell', label: { en: 'Barbell', sv: 'Skivstång' }, icon: '💪' },
+    { value: 'kettlebell', label: { en: 'Kettlebell', sv: 'Kettlebell' }, icon: '🔔' },
+    { value: 'cable_machine', label: { en: 'Cable machine', sv: 'Kabelmaskin' }, icon: '🔧' },
+    { value: 'resistance_band', label: { en: 'Resistance band', sv: 'Gummiband' }, icon: '〰️' },
+    { value: 'pull_up_bar', label: { en: 'Pull-up bar', sv: 'Räcke' }, icon: '🔩' },
+    { value: 'rings', label: { en: 'Rings', sv: 'Ringar' }, icon: '⭕' },
+    { value: 'rower', label: { en: 'Rower', sv: 'Roddmaskin' }, icon: '🚣' },
+    { value: 'bike', label: { en: 'Bike', sv: 'Cykel' }, icon: '🚴' },
+    { value: 'skierg', label: { en: 'SkiErg', sv: 'SkiErg' }, icon: '⛷️' },
+    { value: 'airbike', label: { en: 'Airbike', sv: 'Airbike' }, icon: '💨' },
+    { value: 'wall_ball', label: { en: 'Wall ball', sv: 'Wall Ball' }, icon: '⚽' },
+    { value: 'box', label: { en: 'Plyo box', sv: 'Plyo-box' }, icon: '📦' },
+    { value: 'sled', label: { en: 'Sled', sv: 'Släde' }, icon: '🛷' },
+    { value: 'sandbag', label: { en: 'Sandbag', sv: 'Sandsäck' }, icon: '🎒' },
+    { value: 'jump_rope', label: { en: 'Jump rope', sv: 'Hopprep' }, icon: '🪢' },
   ],
   core: [
-    { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
-    { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
-    { value: 'medicine_ball', label: 'Medicinboll', icon: '🏐' },
-    { value: 'stability_ball', label: 'Pilatesboll', icon: '🔵' },
+    { value: 'none', label: { en: 'No equipment', sv: 'Ingen utrustning' }, icon: '🏃' },
+    { value: 'resistance_band', label: { en: 'Resistance band', sv: 'Gummiband' }, icon: '〰️' },
+    { value: 'medicine_ball', label: { en: 'Medicine ball', sv: 'Medicinboll' }, icon: '🏐' },
+    { value: 'stability_ball', label: { en: 'Stability ball', sv: 'Pilatesboll' }, icon: '🔵' },
   ],
 }
 
@@ -210,6 +327,7 @@ export function WODGeneratorModal({
   remainingWODs,
   isUnlimited,
 }: WODGeneratorModalProps) {
+  const locale = getAppLocale(useLocale())
   const [step, setStep] = useState<Step>('workoutType')
   const [selectedWorkoutType, setSelectedWorkoutType] = useState<WODWorkoutType>('strength')
   const [selectedMode, setSelectedMode] = useState<WODMode>('structured')
@@ -397,7 +515,7 @@ export function WODGeneratorModal({
       handleOpenChange(false)
     } catch (err) {
       console.error('WOD generation error:', err)
-      const message = err instanceof Error ? err.message : 'Något gick fel'
+      const message = err instanceof Error ? err.message : text(locale, 'Something went wrong', 'Något gick fel')
       if (isAiAllowanceExhaustedError(err)) {
         showAiAllowanceError(err)
       } else {
@@ -432,7 +550,7 @@ export function WODGeneratorModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-orange-500" />
-            Skapa Dagens Pass
+            {text(locale, 'Create Daily Workout', 'Skapa Dagens Pass')}
           </DialogTitle>
         </DialogHeader>
 
@@ -440,7 +558,7 @@ export function WODGeneratorModal({
         {!isUnlimited && (
           <div className="flex justify-center">
             <Badge variant="secondary" className="text-xs">
-              {remainingWODs} pass kvar denna vecka
+              {text(locale, `${remainingWODs} workouts left this week`, `${remainingWODs} pass kvar denna vecka`)}
             </Badge>
           </div>
         )}
@@ -460,14 +578,14 @@ export function WODGeneratorModal({
         {step === 'workoutType' && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-1.5">
-              Vilken typ av träning vill du göra? <InfoTooltip conceptKey="wodFormats" />
+              {text(locale, 'What type of training do you want to do?', 'Vilken typ av träning vill du göra?')} <InfoTooltip conceptKey="wodFormats" />
             </p>
 
             <div className="grid grid-cols-2 gap-3">
               {(['strength', 'cardio', 'mixed', 'core'] as WODWorkoutType[]).map(type => {
                 const Icon = WORKOUT_TYPE_ICONS[type]
                 const isSelected = selectedWorkoutType === type
-                const typeInfo = WOD_LABELS.workoutTypes[type]
+                const typeInfo = WORKOUT_TYPE_LABELS[type][locale]
                 const accent = WORKOUT_TYPE_ACCENT[type]
 
                 return (
@@ -503,14 +621,14 @@ export function WODGeneratorModal({
         {step === 'mode' && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground text-center">
-              Välj vilken typ av pass du vill ha
+              {text(locale, 'Choose the type of session you want', 'Välj vilken typ av pass du vill ha')}
             </p>
 
             <div className="grid gap-3">
               {(['structured', 'casual', 'fun'] as WODMode[]).map(mode => {
                 const Icon = MODE_ICONS[mode]
                 const isSelected = selectedMode === mode
-                const modeInfo = WOD_LABELS.modes[mode]
+                const modeInfo = MODE_LABELS[mode][locale]
 
                 return (
                   <button
@@ -558,7 +676,7 @@ export function WODGeneratorModal({
         {step === 'duration' && (
           <div className="space-y-6 py-4">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Hur lång tid har du?</p>
+              <p className="text-sm text-muted-foreground mb-2">{text(locale, 'How much time do you have?', 'Hur lång tid har du?')}</p>
               <div className="flex items-center justify-center gap-2">
                 <Timer className="h-5 w-5 text-orange-500" />
                 <span className="text-4xl font-bold text-orange-600">{duration}</span>
@@ -601,7 +719,7 @@ export function WODGeneratorModal({
         {step === 'equipment' && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground text-center">
-              Vilken utrustning har du tillgång till?
+              {text(locale, 'What equipment do you have access to?', 'Vilken utrustning har du tillgång till?')}
             </p>
 
             {/* Gym Location Selector */}
@@ -609,7 +727,7 @@ export function WODGeneratorModal({
               <div className="pb-3 border-b">
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Välj gym</span>
+                  <span className="text-sm font-medium">{text(locale, 'Select gym', 'Välj gym')}</span>
                 </div>
                 <Select
                   value={selectedLocationId || 'none'}
@@ -619,13 +737,13 @@ export function WODGeneratorModal({
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Inget gym valt" />
+                    <SelectValue placeholder={text(locale, 'No gym selected', 'Inget gym valt')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Inget gym valt</SelectItem>
+                    <SelectItem value="none">{text(locale, 'No gym selected', 'Inget gym valt')}</SelectItem>
                     {locations.map(loc => (
                       <SelectItem key={loc.id} value={loc.id}>
-                        {loc.name}{loc.city ? ` (${loc.city})` : ''} - {loc.equipmentCount} utr.
+                        {loc.name}{loc.city ? ` (${loc.city})` : ''} - {text(locale, `${loc.equipmentCount} items`, `${loc.equipmentCount} utr.`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -650,7 +768,7 @@ export function WODGeneratorModal({
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{icon}</span>
-                      <span className="text-sm font-medium">{label}</span>
+                      <span className="text-sm font-medium">{label[locale]}</span>
                     </div>
                   </button>
                 )
@@ -667,7 +785,9 @@ export function WODGeneratorModal({
                 >
                   <div className="flex items-center gap-2">
                     <Bot className="h-4 w-4" />
-                    <span>AI-kvalitet: {INTENT_TIER_LABELS[selectedIntent]?.label || 'Balanserad'}</span>
+                    <span>
+                      {text(locale, 'AI quality', 'AI-kvalitet')}: {INTENT_LABELS[selectedIntent]?.[locale].label || INTENT_LABELS.balanced[locale].label}
+                    </span>
                   </div>
                   <ChevronDown
                     className={cn(
@@ -684,16 +804,16 @@ export function WODGeneratorModal({
                       onValueChange={(v) => setSelectedIntent(v as ModelIntent)}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Välj kvalitetsnivå" />
+                        <SelectValue placeholder={text(locale, 'Select quality level', 'Välj kvalitetsnivå')} />
                       </SelectTrigger>
                       <SelectContent>
                         {availableIntents.map(intent => (
                           <SelectItem key={intent} value={intent}>
                             <div className="flex items-center gap-2">
-                              <span>{INTENT_TIER_LABELS[intent].label}</span>
+                              <span>{INTENT_LABELS[intent][locale].label}</span>
                               {intent === 'balanced' && (
                                 <Badge variant="outline" className="text-xs">
-                                  Rekommenderad
+                                  {text(locale, 'Recommended', 'Rekommenderad')}
                                 </Badge>
                               )}
                             </div>
@@ -702,7 +822,7 @@ export function WODGeneratorModal({
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      {INTENT_TIER_LABELS[selectedIntent]?.description}
+                      {INTENT_LABELS[selectedIntent]?.[locale].description}
                     </p>
                   </div>
                 )}
@@ -721,12 +841,12 @@ export function WODGeneratorModal({
               <Loader2 className="h-12 w-12 text-orange-500 animate-spin" />
             </div>
             <div className="text-center">
-              <h3 className="font-semibold">Skapar ditt pass...</h3>
+              <h3 className="font-semibold">{text(locale, 'Creating your session...', 'Skapar ditt pass...')}</h3>
               <p className="text-sm text-muted-foreground">
-                AI analyserar din profil och skapar ett perfekt anpassat pass
+                {text(locale, 'AI is analyzing your profile and creating a tailored session', 'AI analyserar din profil och skapar ett perfekt anpassat pass')}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Använder {INTENT_TIER_LABELS[selectedIntent]?.label || 'Balanserad'}
+                {text(locale, 'Using', 'Använder')} {INTENT_LABELS[selectedIntent]?.[locale].label || INTENT_LABELS.balanced[locale].label}
               </p>
             </div>
           </div>
@@ -741,7 +861,7 @@ export function WODGeneratorModal({
               disabled={step === 'workoutType'}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Tillbaka
+              {text(locale, 'Back', 'Tillbaka')}
             </Button>
 
             <Button
@@ -752,11 +872,11 @@ export function WODGeneratorModal({
               {step === 'equipment' ? (
                 <>
                   <Sparkles className="h-4 w-4 mr-1" />
-                  Generera
+                  {text(locale, 'Generate', 'Generera')}
                 </>
               ) : (
                 <>
-                  Nästa
+                  {text(locale, 'Next', 'Nästa')}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </>
               )}
