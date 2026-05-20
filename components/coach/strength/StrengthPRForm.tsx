@@ -8,7 +8,33 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Search } from 'lucide-react'
-import { PR_UNITS, PR_UNIT_LABELS, PR_UNIT_DESCRIPTIONS, type PrUnit } from '@/lib/strength/units'
+import { PR_UNITS, PR_UNIT_LABELS, type PrUnit } from '@/lib/strength/units'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
+const getPillarLabels = (locale: AppLocale): Record<string, string> => ({
+  POSTERIOR_CHAIN: copy(locale, 'Posterior chain', 'Bakkedja'),
+  KNEE_DOMINANCE: copy(locale, 'Knee dominant', 'Knädominant'),
+  UNILATERAL: 'Unilateral',
+  FOOT_ANKLE: copy(locale, 'Foot/Ankle', 'Fot/Ankel'),
+  CORE: 'Core',
+  UPPER_BODY: copy(locale, 'Upper body', 'Överkropp'),
+  PLYOMETRIC: copy(locale, 'Plyometric', 'Plyometri'),
+  OTHER: copy(locale, 'Other', 'Övrigt'),
+})
+
+const getPrUnitDescriptions = (locale: AppLocale): Record<PrUnit, string> => ({
+  KG: copy(locale, 'Kilograms (1RM lift)', 'Kilogram (1RM-lyft)'),
+  CM: copy(locale, 'Centimeters (height, e.g. box jump)', 'Centimeter (höjd, t.ex. box jump)'),
+  M: copy(locale, 'Meters (distance, e.g. broad jump)', 'Meter (avstånd, t.ex. längdhopp)'),
+  S: copy(locale, 'Seconds (time, e.g. sprint, plank)', 'Sekunder (tid, t.ex. sprint, plank)'),
+  W: copy(locale, 'Watts (power, e.g. FTP)', 'Watt (effekt, t.ex. FTP)'),
+  COUNT: copy(locale, 'Rep count (e.g. max push-ups)', 'Antal reps (t.ex. max push-ups)'),
+  KMH: copy(locale, 'Kilometers/hour (speed)', 'Kilometer/timme (hastighet)'),
+})
 
 interface Exercise {
   id: string
@@ -24,7 +50,8 @@ interface StrengthPRFormProps {
   onCancel?: () => void
 }
 
-export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: StrengthPRFormProps) {
+export function StrengthPRForm({ clientId, clientName: _clientName, onSuccess, onCancel }: StrengthPRFormProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingExercises, setIsLoadingExercises] = useState(true)
@@ -41,9 +68,6 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
   const [rpe, setRpe] = useState('')
   const [unit, setUnit] = useState<PrUnit>('KG')
 
-  // Calculated 1RM preview
-  const [estimated1RM, setEstimated1RM] = useState<number | null>(null)
-
   // Fetch exercises on mount
   useEffect(() => {
     async function fetchExercises() {
@@ -59,21 +83,20 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
         setIsLoadingExercises(false)
       }
     }
-    fetchExercises()
+    void fetchExercises()
   }, [])
 
   // Calculate 1RM when load or reps change (Epley formula)
-  useEffect(() => {
+  const estimated1RM = useMemo(() => {
     const loadNum = parseFloat(load)
     const repsNum = parseInt(reps)
 
     if (loadNum > 0 && repsNum > 0 && repsNum <= 12) {
       // Epley formula: 1RM = weight × (1 + reps/30)
       const epley1RM = loadNum * (1 + repsNum / 30)
-      setEstimated1RM(Math.round(epley1RM * 10) / 10)
-    } else {
-      setEstimated1RM(null)
+      return Math.round(epley1RM * 10) / 10
     }
+    return null
   }, [load, reps])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,13 +105,13 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
     setError(null)
 
     if (!exerciseId) {
-      setError('Välj en övning')
+      setError(copy(locale, 'Select an exercise', 'Välj en övning'))
       setIsSubmitting(false)
       return
     }
 
     if (!load || parseFloat(load) <= 0) {
-      setError('Ange en giltig belastning')
+      setError(copy(locale, 'Enter a valid load', 'Ange en giltig belastning'))
       setIsSubmitting(false)
       return
     }
@@ -116,7 +139,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
         throw new Error(errorData.error || 'Failed to create strength PR')
       }
 
-      const result = await response.json()
+      await response.json()
 
       if (onSuccess) {
         onSuccess()
@@ -148,26 +171,18 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
     return acc
   }, {} as Record<string, Exercise[]>)
 
-  const pillarLabels: Record<string, string> = {
-    POSTERIOR_CHAIN: 'Bakkedja',
-    KNEE_DOMINANCE: 'Knädominant',
-    UNILATERAL: 'Unilateral',
-    FOOT_ANKLE: 'Fot/Ankel',
-    CORE: 'Core',
-    UPPER_BODY: 'Överkropp',
-    PLYOMETRIC: 'Plyometri',
-    OTHER: 'Övrigt',
-  }
+  const pillarLabels = getPillarLabels(locale)
+  const prUnitDescriptions = getPrUnitDescriptions(locale)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Exercise Selection */}
       <div className="space-y-2">
-        <Label htmlFor="exercise">Övning *</Label>
+        <Label htmlFor="exercise">{copy(locale, 'Exercise', 'Övning')} *</Label>
         {isLoadingExercises ? (
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Laddar övningar...
+            {copy(locale, 'Loading exercises...', 'Laddar övningar...')}
           </div>
         ) : (
           <div className="space-y-2">
@@ -176,7 +191,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Sök övning..."
+                placeholder={copy(locale, 'Search exercise...', 'Sök övning...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -184,12 +199,12 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
             </div>
             <Select value={exerciseId} onValueChange={setExerciseId}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj övning..." />
+                <SelectValue placeholder={copy(locale, 'Select exercise...', 'Välj övning...')} />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {Object.keys(groupedExercises).length === 0 ? (
                   <div className="px-2 py-3 text-sm text-gray-500 text-center">
-                    Inga övningar matchar sökningen
+                    {copy(locale, 'No exercises match the search', 'Inga övningar matchar sökningen')}
                   </div>
                 ) : (
                   Object.entries(groupedExercises).map(([pillar, exs]) => (
@@ -199,7 +214,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
                       </div>
                       {exs.map((ex) => (
                         <SelectItem key={ex.id} value={ex.id}>
-                          {ex.nameSv || ex.name}
+                          {locale === 'sv' ? ex.nameSv || ex.name : ex.name}
                         </SelectItem>
                       ))}
                     </div>
@@ -213,7 +228,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
 
       {/* Date */}
       <div className="space-y-2">
-        <Label htmlFor="date">Datum</Label>
+        <Label htmlFor="date">{copy(locale, 'Date', 'Datum')}</Label>
         <Input
           id="date"
           type="date"
@@ -250,7 +265,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
 
         <div className="space-y-2">
           <Label htmlFor="load">
-            Belastning ({PR_UNIT_LABELS[unit]}) *
+            {copy(locale, 'Load', 'Belastning')} ({PR_UNIT_LABELS[unit]}) *
           </Label>
           <Input
             id="load"
@@ -270,7 +285,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
           jump cm, sprint seconds, etc.) — those entries don't feed
           into the runner's % av 1RM resolution. */}
       <div className="space-y-2">
-        <Label htmlFor="pr-unit">Enhet</Label>
+        <Label htmlFor="pr-unit">{copy(locale, 'Unit', 'Enhet')}</Label>
         <Select value={unit} onValueChange={(v) => setUnit(v as PrUnit)}>
           <SelectTrigger id="pr-unit">
             <SelectValue />
@@ -280,7 +295,7 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
               <SelectItem key={u} value={u}>
                 <span className="font-mono mr-2">{PR_UNIT_LABELS[u]}</span>
                 <span className="text-muted-foreground text-xs">
-                  {PR_UNIT_DESCRIPTIONS[u]}
+                  {prUnitDescriptions[u]}
                 </span>
               </SelectItem>
             ))}
@@ -288,24 +303,24 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
         </Select>
         {unit !== 'KG' && (
           <p className="text-[11px] text-muted-foreground">
-            Icke-KG värden används inte för &quot;% av 1RM&quot;-beräkning i pass.
+            {copy(locale, 'Non-KG values are not used for "% of 1RM" calculations in workouts.', 'Icke-KG värden används inte för "% av 1RM"-beräkning i pass.')}
           </p>
         )}
       </div>
 
       {/* RPE (optional) */}
       <div className="space-y-2">
-        <Label htmlFor="rpe">RPE (valfritt)</Label>
+        <Label htmlFor="rpe">RPE ({copy(locale, 'optional', 'valfritt')})</Label>
         <Select value={rpe} onValueChange={setRpe}>
           <SelectTrigger>
-            <SelectValue placeholder="Välj RPE..." />
+            <SelectValue placeholder={copy(locale, 'Select RPE...', 'Välj RPE...')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="6">6 - Lätt</SelectItem>
-            <SelectItem value="7">7 - Medel</SelectItem>
-            <SelectItem value="8">8 - Tungt</SelectItem>
-            <SelectItem value="9">9 - Mycket tungt</SelectItem>
-            <SelectItem value="10">10 - Maximal</SelectItem>
+            <SelectItem value="6">6 - {copy(locale, 'Easy', 'Lätt')}</SelectItem>
+            <SelectItem value="7">7 - {copy(locale, 'Moderate', 'Medel')}</SelectItem>
+            <SelectItem value="8">8 - {copy(locale, 'Heavy', 'Tungt')}</SelectItem>
+            <SelectItem value="9">9 - {copy(locale, 'Very heavy', 'Mycket tungt')}</SelectItem>
+            <SelectItem value="10">10 - {copy(locale, 'Maximal', 'Maximal')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -314,10 +329,10 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
       {estimated1RM && unit === 'KG' && (
         <div className="p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-blue-800">
-            Estimerad 1RM: <strong>{estimated1RM} kg</strong>
+            {copy(locale, 'Estimated 1RM', 'Estimerad 1RM')}: <strong>{estimated1RM} kg</strong>
           </p>
           <p className="text-xs text-blue-600 mt-1">
-            Baserat på {reps} reps @ {load} kg (Epley formel)
+            {copy(locale, 'Based on', 'Baserat på')} {reps} reps @ {load} kg ({copy(locale, 'Epley formula', 'Epley formel')})
           </p>
         </div>
       )}
@@ -332,17 +347,17 @@ export function StrengthPRForm({ clientId, clientName, onSuccess, onCancel }: St
       <div className="flex justify-end gap-3 pt-2">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Avbryt
+            {copy(locale, 'Cancel', 'Avbryt')}
           </Button>
         )}
         <Button type="submit" disabled={isSubmitting || !exerciseId || !load}>
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Sparar...
+              {copy(locale, 'Saving...', 'Sparar...')}
             </>
           ) : (
-            'Spara styrke-PR'
+            copy(locale, 'Save strength PR', 'Spara styrke-PR')
           )}
         </Button>
       </div>
