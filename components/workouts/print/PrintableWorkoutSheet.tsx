@@ -20,12 +20,22 @@ import {
 import { Button } from '@/components/ui/button'
 import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
 import type { PrintableWorkout } from '@/lib/workout-print/normalize'
+import { useLocale } from '@/i18n/client'
 
 interface PrintableWorkoutSheetProps {
   workout: PrintableWorkout
 }
 
 type PdfOrientation = 'portrait' | 'landscape'
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
 
 function getWorkoutTotals(workout: PrintableWorkout) {
   const sectionCount = workout.sections.length
@@ -69,7 +79,7 @@ function StatCard({ icon: Icon, label, value, brandColor }: StatCardProps) {
 }
 
 
-function buildPdfFilename(title: string, orientation: PdfOrientation) {
+function buildPdfFilename(title: string, orientation: PdfOrientation, locale: AppLocale) {
   const safeTitle = title
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -77,7 +87,9 @@ function buildPdfFilename(title: string, orientation: PdfOrientation) {
     .trim()
     .replace(/\s+/g, '_')
     .slice(0, 60) || 'workout'
-  return orientation === 'landscape' ? `${safeTitle}_liggande.pdf` : `${safeTitle}.pdf`
+  return orientation === 'landscape'
+    ? `${safeTitle}_${text(locale, 'liggande', 'landscape')}.pdf`
+    : `${safeTitle}.pdf`
 }
 
 interface PrintableWorkoutDocumentProps {
@@ -87,8 +99,9 @@ interface PrintableWorkoutDocumentProps {
 }
 
 export function PrintableWorkoutDocument({ workout, sheetRef, footer }: PrintableWorkoutDocumentProps) {
+  const locale = getAppLocale(useLocale())
   const branding = useBusinessBrandingOptional()
-  const printedDate = new Date().toLocaleDateString('sv-SE', {
+  const printedDate = new Date().toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -129,35 +142,35 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
             </h1>
           </div>
           <div className="shrink-0 justify-self-end text-right text-xs text-slate-500">
-            <p className="font-semibold uppercase tracking-wide">Utskriven</p>
+            <p className="font-semibold uppercase tracking-wide">{text(locale, 'Utskriven', 'Printed')}</p>
             <p className="mt-1 text-slate-900">{printedDate}</p>
             {workout.dateLabel && (
               <>
-                <p className="mt-2 font-semibold uppercase tracking-wide">Planerat</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">{text(locale, 'Planerat', 'Planned')}</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.dateLabel}</p>
               </>
             )}
             {workout.scheduleLabel && (
               <>
-                <p className="mt-2 font-semibold uppercase tracking-wide">Tid/plats</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">{text(locale, 'Tid/plats', 'Time/place')}</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.scheduleLabel}</p>
               </>
             )}
             {workout.organizationName && (
               <>
-                <p className="mt-2 font-semibold uppercase tracking-wide">Organisation</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">{text(locale, 'Organisation', 'Organization')}</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.organizationName}</p>
               </>
             )}
             {workout.teamName && (
               <>
-                <p className="mt-2 font-semibold uppercase tracking-wide">Lag</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">{text(locale, 'Lag', 'Team')}</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.teamName}</p>
               </>
             )}
             {workout.athleteName && (
               <>
-                <p className="mt-2 font-semibold uppercase tracking-wide">Aktiv</p>
+                <p className="mt-2 font-semibold uppercase tracking-wide">{text(locale, 'Aktiv', 'Athlete')}</p>
                 <p className="mt-1 max-w-32 text-slate-900">{workout.athleteName}</p>
               </>
             )}
@@ -165,22 +178,22 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 print:mt-3 print:grid-cols-4">
-          <StatCard icon={Dumbbell} label="Typ" value={workout.kindLabel} brandColor={brandColor} />
+          <StatCard icon={Dumbbell} label={text(locale, 'Typ', 'Type')} value={workout.kindLabel} brandColor={brandColor} />
           <StatCard
             icon={Clock}
-            label="Tid"
+            label={text(locale, 'Tid', 'Time')}
             value={workout.durationLabel || '—'}
             brandColor={brandColor}
           />
           <StatCard
             icon={ListChecks}
-            label="Moment"
+            label={text(locale, 'Moment', 'Items')}
             value={String(exerciseCount)}
             brandColor={brandColor}
           />
           <StatCard
             icon={Layers}
-            label="Sektioner"
+            label={text(locale, 'Sektioner', 'Sections')}
             value={String(sectionCount)}
             brandColor={brandColor}
           />
@@ -211,7 +224,7 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
 
       <div className="print-page-tight mt-6 space-y-6 print:mt-3">
         {workout.sections.length === 0 ? (
-          <p className="text-sm text-slate-500">Det finns inget detaljerat passinnehåll att skriva ut ännu.</p>
+          <p className="text-sm text-slate-500">{text(locale, 'Det finns inget detaljerat passinnehåll att skriva ut ännu.', 'There is no detailed workout content to print yet.')}</p>
         ) : (
           workout.sections.map((section) => {
             const SectionIcon = getSectionIcon(section.title)
@@ -228,7 +241,7 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
                     )}
                   </div>
                   <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white print-small">
-                    {section.items.length} moment
+                    {section.items.length} {text(locale, 'moment', 'items')}
                   </span>
                 </div>
                 {section.notes && (
@@ -239,9 +252,9 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
                 <div className="divide-y divide-slate-200 rounded-b-md border-x border-b border-slate-200">
                   <div className="hidden grid-cols-[32px_minmax(0,1.2fr)_minmax(150px,0.95fr)_minmax(0,1fr)] gap-3 bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 sm:grid print:grid print:px-2 print:py-1 print-small">
                     <span>#</span>
-                    <span>Moment</span>
-                    <span>Dosering</span>
-                    <span>Instruktion</span>
+                    <span>{text(locale, 'Moment', 'Item')}</span>
+                    <span>{text(locale, 'Dosering', 'Dose')}</span>
+                    <span>{text(locale, 'Instruktion', 'Instruction')}</span>
                   </div>
                   {section.items.map((item, index) => (
                     <div
@@ -289,6 +302,7 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
 }
 
 export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
+  const locale = getAppLocale(useLocale())
   const sheetRef = useRef<HTMLElement | null>(null)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [pdfOrientation, setPdfOrientation] = useState<PdfOrientation>('portrait')
@@ -365,7 +379,7 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
         author: businessName,
         creator: businessName,
       })
-      pdf.save(buildPdfFilename(workout.title, pdfOrientation))
+      pdf.save(buildPdfFilename(workout.title, pdfOrientation, locale))
     } finally {
       setIsExportingPdf(false)
     }
@@ -442,8 +456,8 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
 
       <div className="print-hidden mx-auto mb-4 flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4">
         <div>
-          <p className="text-sm font-medium text-slate-900">Förhandsgranskning</p>
-          <p className="text-xs text-slate-500">Använd ren PDF om webbläsaren lägger till adress, datum eller sidnummer.</p>
+          <p className="text-sm font-medium text-slate-900">{text(locale, 'Förhandsgranskning', 'Preview')}</p>
+          <p className="text-xs text-slate-500">{text(locale, 'Använd ren PDF om webbläsaren lägger till adress, datum eller sidnummer.', 'Use clean PDF if the browser adds an address, date, or page numbers.')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center rounded-md border border-slate-200 bg-white p-1 text-sm shadow-sm" aria-label="PDF-layout">
@@ -455,7 +469,7 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
               aria-pressed={pdfOrientation === 'portrait'}
               onClick={() => setPdfOrientation('portrait')}
             >
-              Stående
+              {text(locale, 'Stående', 'Portrait')}
             </Button>
             <Button
               type="button"
@@ -465,7 +479,7 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
               aria-pressed={pdfOrientation === 'landscape'}
               onClick={() => setPdfOrientation('landscape')}
             >
-              Liggande
+              {text(locale, 'Liggande', 'Landscape')}
             </Button>
           </div>
           <Button
@@ -476,11 +490,11 @@ export function PrintableWorkoutSheet({ workout }: PrintableWorkoutSheetProps) {
             className="gap-2"
           >
             {isExportingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Ren PDF
+            {text(locale, 'Ren PDF', 'Clean PDF')}
           </Button>
           <Button onClick={() => window.print()} className="gap-2">
             <Printer className="h-4 w-4" />
-            Skriv ut
+            {text(locale, 'Skriv ut', 'Print')}
           </Button>
         </div>
       </div>
