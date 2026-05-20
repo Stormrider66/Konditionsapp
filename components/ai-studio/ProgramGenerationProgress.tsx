@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import type { ProgressEvent, MergedProgram, ProgramOutline } from '@/lib/ai/program-generator'
+import { useTranslations } from '@/i18n/client'
 
 // ============================================
 // Types
@@ -48,12 +49,13 @@ export function ProgramGenerationProgress({
   onError,
   onCancel,
 }: ProgramGenerationProgressProps) {
+  const t = useTranslations('components.chatProgramProgressCard')
   const [progress, setProgress] = useState<ProgressState>({
     status: 'PENDING',
     currentPhase: 0,
     totalPhases: 1,
     percent: 0,
-    message: 'Startar...',
+    message: t('status.starting'),
     completedPhases: [],
   })
   const [isConnected, setIsConnected] = useState(false)
@@ -62,6 +64,7 @@ export function ProgramGenerationProgress({
   const retryCountRef = useRef(0)
   const eventSourceRef = useRef<EventSource | null>(null)
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const connectRef = useRef<() => void>(() => {})
 
   // Store callbacks in refs to avoid recreating connect function
   const onCompleteRef = useRef(onComplete)
@@ -148,11 +151,15 @@ export function ProgramGenerationProgress({
         const delay = 2000 * (retryCountRef.current + 1)
         retryCountRef.current += 1
         retryTimeoutRef.current = setTimeout(() => {
-          connect()
+          connectRef.current()
         }, delay)
       }
     }
   }, [sessionId]) // Only depends on sessionId, not on callbacks or retryCount
+
+  useEffect(() => {
+    connectRef.current = connect
+  }, [connect])
 
   useEffect(() => {
     connect()
@@ -191,17 +198,20 @@ export function ProgramGenerationProgress({
   const getStatusLabel = () => {
     switch (progress.status) {
       case 'PENDING':
-        return 'Väntar...'
+        return t('status.pending')
       case 'GENERATING_OUTLINE':
-        return 'Skapar programstruktur'
+        return t('status.generatingOutline')
       case 'GENERATING_PHASE':
-        return `Genererar fas ${progress.currentPhase}/${progress.totalPhases}`
+        return t('status.generatingPhaseShort', {
+          current: progress.currentPhase,
+          total: progress.totalPhases,
+        })
       case 'MERGING':
-        return 'Sammanställer programmet'
+        return t('status.mergingShort')
       case 'COMPLETED':
-        return 'Klart!'
+        return t('status.completed')
       case 'FAILED':
-        return 'Misslyckades'
+        return t('status.failed')
       default:
         return progress.status
     }
@@ -213,12 +223,12 @@ export function ProgramGenerationProgress({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {getStatusIcon()}
-            <CardTitle className="text-lg">Genererar program</CardTitle>
+            <CardTitle className="text-lg">{t('title')}</CardTitle>
           </div>
           {!isConnected && progress.status !== 'COMPLETED' && progress.status !== 'FAILED' && (
             <Badge variant="outline" className="text-amber-600 border-amber-300">
               <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-              Återansluter...
+              {t('reconnecting')}
             </Badge>
           )}
         </div>
@@ -242,7 +252,7 @@ export function ProgramGenerationProgress({
         {/* Phase indicators */}
         {progress.totalPhases > 1 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium">Faser</p>
+            <p className="text-xs text-muted-foreground font-medium">{t('phases')}</p>
             <div className="flex gap-2 flex-wrap">
               {Array.from({ length: progress.totalPhases }).map((_, i) => {
                 const phaseNum = i + 1
@@ -262,7 +272,7 @@ export function ProgramGenerationProgress({
                   >
                     {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
                     {isCurrent && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                    Fas {phaseNum}
+                    {t('phaseLabel', { number: phaseNum })}
                     {progress.outline?.phases[i]?.name && (
                       <span className="ml-1 opacity-70">
                         ({progress.outline.phases[i].name})
@@ -280,9 +290,9 @@ export function ProgramGenerationProgress({
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
             <p className="text-sm font-medium">{progress.outline.programName}</p>
             <div className="flex gap-2 text-xs text-muted-foreground">
-              <span>{progress.outline.totalWeeks} veckor</span>
+              <span>{t('weeks', { count: progress.outline.totalWeeks })}</span>
               <span>•</span>
-              <span>{progress.outline.phases.length} faser</span>
+              <span>{t('phaseCount', { count: progress.outline.phases.length })}</span>
               {progress.outline.methodology && (
                 <>
                   <span>•</span>
@@ -304,14 +314,14 @@ export function ProgramGenerationProgress({
         {progress.status === 'FAILED' && onCancel && (
           <div className="flex gap-2">
             <Button variant="outline" onClick={onCancel} className="flex-1">
-              Avbryt
+              {t('actions.cancel')}
             </Button>
             <Button
               onClick={() => window.location.reload()}
               className="flex-1"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Försök igen
+              {t('actions.retry')}
             </Button>
           </div>
         )}
@@ -319,7 +329,7 @@ export function ProgramGenerationProgress({
         {/* Cancel button during generation */}
         {!['COMPLETED', 'FAILED'].includes(progress.status) && onCancel && (
           <Button variant="ghost" onClick={onCancel} className="w-full">
-            Avbryt
+            {t('actions.cancel')}
           </Button>
         )}
       </CardContent>

@@ -13660,8 +13660,20 @@
         "pending": "Förbereder generering...",
         "generatingOutline": "Skapar programstruktur...",
         "generatingPhase": "Genererar fas {current} av {total}...",
+        "generatingPhaseShort": "Genererar fas {current}/{total}",
         "merging": "Slår ihop alla faser...",
-        "generating": "Genererar..."
+        "mergingShort": "Sammanställer programmet",
+        "generating": "Genererar...",
+        "completed": "Klart!",
+        "failed": "Misslyckades"
+      },
+      "reconnecting": "Återansluter...",
+      "phases": "Faser",
+      "phaseLabel": "Fas {number}",
+      "phaseCount": "{count} faser",
+      "actions": {
+        "cancel": "Avbryt",
+        "retry": "Försök igen"
       },
       "errors": {
         "title": "Programgenereringen misslyckades",

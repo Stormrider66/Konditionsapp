@@ -13300,8 +13300,20 @@
         "pending": "Preparing generation...",
         "generatingOutline": "Creating program structure...",
         "generatingPhase": "Generating phase {current} of {total}...",
+        "generatingPhaseShort": "Generating phase {current}/{total}",
         "merging": "Merging all phases...",
-        "generating": "Generating..."
+        "mergingShort": "Assembling the program",
+        "generating": "Generating...",
+        "completed": "Done!",
+        "failed": "Failed"
+      },
+      "reconnecting": "Reconnecting...",
+      "phases": "Phases",
+      "phaseLabel": "Phase {number}",
+      "phaseCount": "{count} phases",
+      "actions": {
+        "cancel": "Cancel",
+        "retry": "Try again"
       },
       "errors": {
         "title": "Program generation failed",
