@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Bike } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface CyclingPerformanceFormProps {
   clientId: string
@@ -22,12 +23,22 @@ interface CyclingPerformanceFormProps {
   onCancel?: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 const EVENT_TYPES = [
-  { value: 'FTP_TEST', label: 'FTP-test (20 min)' },
-  { value: 'RAMP_TEST', label: 'Ramp-test' },
-  { value: 'TIME_TRIAL', label: 'Tempo' },
-  { value: 'RACE', label: 'Tävling' },
-  { value: 'GRAN_FONDO', label: 'Gran Fondo / Motionslopp' },
+  { value: 'FTP_TEST', label: { sv: 'FTP-test (20 min)', en: 'FTP test (20 min)' } },
+  { value: 'RAMP_TEST', label: { sv: 'Ramp-test', en: 'Ramp test' } },
+  { value: 'TIME_TRIAL', label: { sv: 'Tempo', en: 'Time trial' } },
+  { value: 'RACE', label: { sv: 'Tävling', en: 'Race' } },
+  { value: 'GRAN_FONDO', label: { sv: 'Gran Fondo / Motionslopp', en: 'Gran Fondo / sportive' } },
 ]
 
 export function CyclingPerformanceForm({
@@ -36,6 +47,7 @@ export function CyclingPerformanceForm({
   onSuccess,
   onCancel,
 }: CyclingPerformanceFormProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -102,7 +114,7 @@ export function CyclingPerformanceForm({
     setError(null)
 
     if (!eventDate) {
-      setError('Ange datum')
+      setError(text(locale, 'Ange datum', 'Enter a date'))
       setIsSubmitting(false)
       return
     }
@@ -134,7 +146,7 @@ export function CyclingPerformanceForm({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte spara')
+        throw new Error(data.error || text(locale, 'Kunde inte spara', 'Could not save'))
       }
 
       if (onSuccess) {
@@ -143,7 +155,7 @@ export function CyclingPerformanceForm({
         router.refresh()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : text(locale, 'Ett fel uppstod', 'An error occurred'))
     } finally {
       setIsSubmitting(false)
     }
@@ -153,13 +165,13 @@ export function CyclingPerformanceForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center gap-2 text-blue-600 mb-4">
         <Bike className="h-5 w-5" />
-        <span className="font-medium">Cykling - Prestationslogg</span>
+        <span className="font-medium">{text(locale, 'Cykling - Prestationslogg', 'Cycling - Performance log')}</span>
       </div>
 
       {/* Event Type & Date */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Typ av test/tävling *</Label>
+          <Label>{text(locale, 'Typ av test/tävling *', 'Test/race type *')}</Label>
           <Select value={eventType} onValueChange={setEventType}>
             <SelectTrigger>
               <SelectValue />
@@ -167,7 +179,7 @@ export function CyclingPerformanceForm({
             <SelectContent>
               {EVENT_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
-                  {type.label}
+                  {type.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -175,7 +187,7 @@ export function CyclingPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Datum *</Label>
+          <Label>{text(locale, 'Datum *', 'Date *')}</Label>
           <Input
             type="date"
             value={eventDate}
@@ -188,16 +200,16 @@ export function CyclingPerformanceForm({
       {/* Event Name & Distance */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Namn (valfritt)</Label>
+          <Label>{text(locale, 'Namn (valfritt)', 'Name (optional)')}</Label>
           <Input
-            placeholder="Vätternrundan, Zwift Race..."
+            placeholder={text(locale, 'Vätternrundan, Zwift Race...', 'Gran Fondo, Zwift Race...')}
             value={eventName}
             onChange={(e) => setEventName(e.target.value)}
           />
         </div>
 
         <div className="space-y-2">
-          <Label>Distans (km)</Label>
+          <Label>{text(locale, 'Distans (km)', 'Distance (km)')}</Label>
           <Input
             type="number"
             step="0.1"
@@ -210,10 +222,10 @@ export function CyclingPerformanceForm({
 
       {/* Time */}
       <div className="space-y-2">
-        <Label>Tid</Label>
+        <Label>{text(locale, 'Tid', 'Time')}</Label>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground">Timmar</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Timmar', 'Hours')}</Label>
             <Input
               type="number"
               min="0"
@@ -223,7 +235,7 @@ export function CyclingPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Minuter</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
             <Input
               type="number"
               min="0"
@@ -234,7 +246,7 @@ export function CyclingPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Sekunder</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
             <Input
               type="number"
               min="0"
@@ -249,10 +261,10 @@ export function CyclingPerformanceForm({
 
       {/* Power */}
       <div className="space-y-2">
-        <Label>Effekt (Watt)</Label>
+        <Label>{text(locale, 'Effekt (Watt)', 'Power (watts)')}</Label>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <Label className="text-xs text-muted-foreground">Snitt *</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Snitt *', 'Average *')}</Label>
             <Input
               type="number"
               placeholder="280"
@@ -283,7 +295,7 @@ export function CyclingPerformanceForm({
 
       {/* Weight for W/kg */}
       <div className="space-y-2">
-        <Label>Vikt (kg) - för W/kg beräkning</Label>
+        <Label>{text(locale, 'Vikt (kg) - för W/kg beräkning', 'Weight (kg) - for W/kg calculation')}</Label>
         <Input
           type="number"
           step="0.1"
@@ -298,7 +310,7 @@ export function CyclingPerformanceForm({
         <div className="p-4 bg-blue-50 rounded-lg space-y-2">
           {eventType === 'FTP_TEST' && calculatedFTP && (
             <p className="text-sm">
-              <span className="text-muted-foreground">Beräknad FTP (95%):</span>{' '}
+              <span className="text-muted-foreground">{text(locale, 'Beräknad FTP (95%):', 'Estimated FTP (95%):')}</span>{' '}
               <strong className="text-blue-700">{calculatedFTP} W</strong>
               {ftpWattsPerKg && (
                 <span className="text-muted-foreground ml-2">({ftpWattsPerKg} W/kg)</span>
@@ -307,7 +319,7 @@ export function CyclingPerformanceForm({
           )}
           {wattsPerKg && (
             <p className="text-sm">
-              <span className="text-muted-foreground">Snitt W/kg:</span>{' '}
+              <span className="text-muted-foreground">{text(locale, 'Snitt W/kg:', 'Average W/kg:')}</span>{' '}
               <strong>{wattsPerKg} W/kg</strong>
             </p>
           )}
@@ -317,7 +329,7 @@ export function CyclingPerformanceForm({
       {/* Heart Rate */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Snitt puls (bpm)</Label>
+          <Label>{text(locale, 'Snitt puls (bpm)', 'Average heart rate (bpm)')}</Label>
           <Input
             type="number"
             placeholder="165"
@@ -326,7 +338,7 @@ export function CyclingPerformanceForm({
           />
         </div>
         <div className="space-y-2">
-          <Label>Max puls (bpm)</Label>
+          <Label>{text(locale, 'Max puls (bpm)', 'Max heart rate (bpm)')}</Label>
           <Input
             type="number"
             placeholder="185"
@@ -338,9 +350,9 @@ export function CyclingPerformanceForm({
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label>Anteckningar</Label>
+        <Label>{text(locale, 'Anteckningar', 'Notes')}</Label>
         <Textarea
-          placeholder="Känsla, väder, utrustning..."
+          placeholder={text(locale, 'Känsla, väder, utrustning...', 'Feeling, weather, equipment...')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
@@ -357,17 +369,17 @@ export function CyclingPerformanceForm({
       <div className="flex justify-end gap-3">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Avbryt
+            {text(locale, 'Avbryt', 'Cancel')}
           </Button>
         )}
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {text(locale, 'Sparar...', 'Saving...')}
             </>
           ) : (
-            'Spara resultat'
+            text(locale, 'Spara resultat', 'Save result')
           )}
         </Button>
       </div>
