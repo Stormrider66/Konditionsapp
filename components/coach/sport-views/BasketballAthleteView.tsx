@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -60,58 +61,72 @@ interface BasketballAthleteViewProps {
   settings?: Record<string, unknown>
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  point_guard: 'Playmaker (1)',
-  shooting_guard: 'Shooting Guard (2)',
-  small_forward: 'Small Forward (3)',
-  power_forward: 'Power Forward (4)',
-  center: 'Center (5)',
+type LocalizedText = { sv: string; en: string }
+
+function t(locale: string, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  playoffs: 'Slutspel',
+function localized(locale: string, text: LocalizedText): string {
+  return locale === 'sv' ? text.sv : text.en
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Korpen/Motion',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  basketligan: 'Basketligan',
-  sbl: 'SBL',
+function labelFor(labels: Record<string, LocalizedText>, key: string, locale: string): string {
+  return labels[key] ? localized(locale, labels[key]) : key
 }
 
-const PLAY_STYLE_LABELS: Record<string, string> = {
-  scoring: 'Poänggörare',
-  playmaking: 'Speluppbyggare',
-  defense: 'Försvarare',
-  rebounding: 'Reboundare',
-  allround: 'Allround',
+const POSITION_LABELS: Record<string, LocalizedText> = {
+  point_guard: { sv: 'Playmaker (1)', en: 'Point guard (1)' },
+  shooting_guard: { sv: 'Shooting Guard (2)', en: 'Shooting guard (2)' },
+  small_forward: { sv: 'Small Forward (3)', en: 'Small forward (3)' },
+  power_forward: { sv: 'Power Forward (4)', en: 'Power forward (4)' },
+  center: { sv: 'Center (5)', en: 'Center (5)' },
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  vertical_jump: 'Vertikal hoppförmåga',
-  speed: 'Snabbhet',
-  agility: 'Kvickhet',
-  strength: 'Styrka',
-  endurance: 'Uthållighet',
-  shooting: 'Skottförmåga',
-  court_vision: 'Spelförståelse',
-  defense: 'Försvarsspel',
+const PHASE_LABELS: Record<string, LocalizedText> = {
+  off_season: { sv: 'Off-season', en: 'Off-season' },
+  pre_season: { sv: 'Försäsong', en: 'Pre-season' },
+  in_season: { sv: 'Säsong', en: 'In-season' },
+  playoffs: { sv: 'Slutspel', en: 'Playoffs' },
 }
 
-const INJURY_LABELS: Record<string, string> = {
-  ankle: 'Fotledsskada',
-  knee_acl: 'Knäskada (ACL/MCL)',
-  patellar: 'Hopparknä',
-  back: 'Ryggproblem',
-  shoulder: 'Axelskada',
-  groin: 'Ljumskskada',
-  hamstring: 'Hamstringsskada',
-  finger: 'Fingerskada',
+const LEAGUE_LABELS: Record<string, LocalizedText> = {
+  recreational: { sv: 'Korpen/Motion', en: 'Recreational' },
+  division_3: { sv: 'Division 3', en: 'Division 3' },
+  division_2: { sv: 'Division 2', en: 'Division 2' },
+  division_1: { sv: 'Division 1', en: 'Division 1' },
+  basketligan: { sv: 'Basketligan', en: 'Basketligan' },
+  sbl: { sv: 'SBL', en: 'SBL' },
+}
+
+const PLAY_STYLE_LABELS: Record<string, LocalizedText> = {
+  scoring: { sv: 'Poänggörare', en: 'Scorer' },
+  playmaking: { sv: 'Speluppbyggare', en: 'Playmaker' },
+  defense: { sv: 'Försvarare', en: 'Defender' },
+  rebounding: { sv: 'Reboundare', en: 'Rebounder' },
+  allround: { sv: 'Allround', en: 'All-round' },
+}
+
+const STRENGTH_LABELS: Record<string, LocalizedText> = {
+  vertical_jump: { sv: 'Vertikal hoppförmåga', en: 'Vertical jump ability' },
+  speed: { sv: 'Snabbhet', en: 'Speed' },
+  agility: { sv: 'Kvickhet', en: 'Agility' },
+  strength: { sv: 'Styrka', en: 'Strength' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  shooting: { sv: 'Skottförmåga', en: 'Shooting ability' },
+  court_vision: { sv: 'Spelförståelse', en: 'Court vision' },
+  defense: { sv: 'Försvarsspel', en: 'Defense' },
+}
+
+const INJURY_LABELS: Record<string, LocalizedText> = {
+  ankle: { sv: 'Fotledsskada', en: 'Ankle injury' },
+  knee_acl: { sv: 'Knäskada (ACL/MCL)', en: 'Knee injury (ACL/MCL)' },
+  patellar: { sv: 'Hopparknä', en: 'Jumper knee' },
+  back: { sv: 'Ryggproblem', en: 'Back issue' },
+  shoulder: { sv: 'Axelskada', en: 'Shoulder injury' },
+  groin: { sv: 'Ljumskskada', en: 'Groin injury' },
+  hamstring: { sv: 'Hamstringsskada', en: 'Hamstring injury' },
+  finger: { sv: 'Fingerskada', en: 'Finger injury' },
 }
 
 export function BasketballAthleteView({
@@ -119,6 +134,7 @@ export function BasketballAthleteView({
   clientName,
   settings: rawSettings,
 }: BasketballAthleteViewProps) {
+  const locale = useLocale()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -128,7 +144,7 @@ export function BasketballAthleteView({
         <CardHeader>
           <CardTitle style={{ color: theme.colors.textPrimary }}>Basket</CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Ingen basketprofil hittades för {clientName}
+            {t(locale, 'Ingen basketprofil hittades för', 'No basketball profile found for')} {clientName}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -198,15 +214,15 @@ export function BasketballAthleteView({
                 {clientName} - {settings.teamName || 'Basket'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2">
-                <Badge variant="outline">{POSITION_LABELS[position]}</Badge>
-                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel] || settings.leagueLevel}</Badge>
-                <Badge className="bg-orange-500">{PHASE_LABELS[settings.seasonPhase]}</Badge>
-                <Badge variant="outline">{PLAY_STYLE_LABELS[settings.playStyle] || settings.playStyle}</Badge>
+                <Badge variant="outline">{labelFor(POSITION_LABELS, position, locale)}</Badge>
+                <Badge variant="secondary">{labelFor(LEAGUE_LABELS, settings.leagueLevel, locale)}</Badge>
+                <Badge className="bg-orange-500">{labelFor(PHASE_LABELS, settings.seasonPhase, locale)}</Badge>
+                <Badge variant="outline">{labelFor(PLAY_STYLE_LABELS, settings.playStyle, locale)}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{settings.yearsPlaying}</div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>års erfarenhet</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'års erfarenhet', 'years experience')}</div>
             </div>
           </div>
         </CardHeader>
@@ -215,27 +231,27 @@ export function BasketballAthleteView({
             <div className="text-center">
               <Timer className="h-4 w-4 mx-auto mb-1 text-orange-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.avgMinutesPerMatch ?? '-'}</div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>min/match</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'min/match', 'min/game')}</div>
             </div>
             <div className="text-center">
               <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.matchesPerWeek}</div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>matcher/v</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'matcher/v', 'games/wk')}</div>
             </div>
             <div className="text-center">
               <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.weeklyTrainingSessions}</div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>träning/v</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'träning/v', 'training/wk')}</div>
             </div>
             <div className="text-center">
               <Ruler className="h-4 w-4 mx-auto mb-1 text-purple-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.height ?? '-'}</div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>cm längd</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'cm längd', 'cm height')}</div>
             </div>
             <div className="text-center">
               <Target className="h-4 w-4 mx-auto mb-1 text-blue-500" />
-              <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.shootingHand === 'right' ? 'Höger' : 'Vänster'}</div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>skotthand</div>
+              <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.shootingHand === 'right' ? t(locale, 'Höger', 'Right') : t(locale, 'Vänster', 'Left')}</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'skotthand', 'shooting hand')}</div>
             </div>
           </div>
         </CardContent>
@@ -246,13 +262,13 @@ export function BasketballAthleteView({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Calendar className="h-4 w-4" />
-            {PHASE_LABELS[settings.seasonPhase]} - Träningsfokus
+            {labelFor(PHASE_LABELS, settings.seasonPhase, locale)} - {t(locale, 'Träningsfokus', 'Training focus')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div>
-              <h4 className="text-sm font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Fokusområden:</h4>
+              <h4 className="text-sm font-medium mb-2" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Fokusområden:', 'Focus areas:')}</h4>
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
@@ -263,11 +279,11 @@ export function BasketballAthleteView({
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 rounded-lg" style={{ backgroundColor: theme.colors.backgroundAccent }}>
-                <div className="text-xs mb-1" style={{ color: theme.colors.textMuted }}>Styrka</div>
+                <div className="text-xs mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Styrka', 'Strength')}</div>
                 <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{seasonPhase.strengthEmphasis}</div>
               </div>
               <div className="p-3 rounded-lg" style={{ backgroundColor: theme.colors.backgroundAccent }}>
-                <div className="text-xs mb-1" style={{ color: theme.colors.textMuted }}>Kondition</div>
+                <div className="text-xs mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Kondition', 'Conditioning')}</div>
                 <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{seasonPhase.conditioningEmphasis}</div>
               </div>
             </div>
@@ -280,16 +296,16 @@ export function BasketballAthleteView({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Activity className="h-4 w-4 text-red-500" />
-            Fysiska tester - {POSITION_LABELS[position]}
+            {t(locale, 'Fysiska tester', 'Physical tests')} - {labelFor(POSITION_LABELS, position, locale)}
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Resultat jämfört med elitnivå</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t(locale, 'Resultat jämfört med elitnivå', 'Results compared with elite level')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {/* Vertical Jump */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span style={{ color: theme.colors.textPrimary }}>Vertikalhopp</span>
+                <span style={{ color: theme.colors.textPrimary }}>{t(locale, 'Vertikalhopp', 'Vertical jump')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.verticalJump,
                   benchmarks.elite.verticalJump!,
@@ -302,7 +318,7 @@ export function BasketballAthleteView({
                 value={getBenchmarkPercentage(settings.benchmarks.verticalJump, benchmarks.elite.verticalJump!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>Elit: {benchmarks.elite.verticalJump} cm</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'Elit:', 'Elite:')} {benchmarks.elite.verticalJump} cm</div>
             </div>
 
             {/* 3/4 Court Sprint */}
@@ -322,7 +338,7 @@ export function BasketballAthleteView({
                 value={getBenchmarkPercentage(settings.benchmarks.sprint3_4Court, benchmarks.elite.sprint3_4Court!, true) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>Elit: {benchmarks.elite.sprint3_4Court} s</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'Elit:', 'Elite:')} {benchmarks.elite.sprint3_4Court} s</div>
             </div>
 
             {/* Lane Agility */}
@@ -342,13 +358,13 @@ export function BasketballAthleteView({
                 value={getBenchmarkPercentage(settings.benchmarks.laneAgility, benchmarks.elite.laneAgility!, true) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>Elit: {benchmarks.elite.laneAgility} s</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'Elit:', 'Elite:')} {benchmarks.elite.laneAgility} s</div>
             </div>
 
             {/* Bench Press */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span style={{ color: theme.colors.textPrimary }}>Bänkpress</span>
+                <span style={{ color: theme.colors.textPrimary }}>{t(locale, 'Bänkpress', 'Bench press')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.benchPress,
                   benchmarks.elite.benchPress!,
@@ -361,13 +377,13 @@ export function BasketballAthleteView({
                 value={getBenchmarkPercentage(settings.benchmarks.benchPress, benchmarks.elite.benchPress!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>Elit: {benchmarks.elite.benchPress} kg</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'Elit:', 'Elite:')} {benchmarks.elite.benchPress} kg</div>
             </div>
 
             {/* Squat */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span style={{ color: theme.colors.textPrimary }}>Knäböj</span>
+                <span style={{ color: theme.colors.textPrimary }}>{t(locale, 'Knäböj', 'Back squat')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.squat,
                   benchmarks.elite.squat!,
@@ -380,7 +396,7 @@ export function BasketballAthleteView({
                 value={getBenchmarkPercentage(settings.benchmarks.squat, benchmarks.elite.squat!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>Elit: {benchmarks.elite.squat} kg</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'Elit:', 'Elite:')} {benchmarks.elite.squat} kg</div>
             </div>
 
             {/* Yo-Yo IR1 */}
@@ -399,7 +415,7 @@ export function BasketballAthleteView({
                 value={getBenchmarkPercentage(settings.benchmarks.yoyoIR1Level, benchmarks.elite.yoyoIR1Level!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>Elit: {benchmarks.elite.yoyoIR1Level}</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'Elit:', 'Elite:')} {benchmarks.elite.yoyoIR1Level}</div>
             </div>
           </div>
         </CardContent>
@@ -410,32 +426,32 @@ export function BasketballAthleteView({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <TrendingUp className="h-4 w-4" />
-            Positionsprofil: {positionProfile.displayName}
+            {t(locale, 'Positionsprofil:', 'Position profile:')} {positionProfile.displayName}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>{positionProfile.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <div className="text-sm mb-1" style={{ color: theme.colors.textMuted }}>Matchdistans</div>
+              <div className="text-sm mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Matchdistans', 'Match distance')}</div>
               <div className="font-medium" style={{ color: theme.colors.textPrimary }}>
                 {positionProfile.avgMatchDistanceKm.min}-{positionProfile.avgMatchDistanceKm.max} km
               </div>
             </div>
             <div>
-              <div className="text-sm mb-1" style={{ color: theme.colors.textMuted }}>Sprints/match</div>
+              <div className="text-sm mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Sprints/match', 'Sprints/game')}</div>
               <div className="font-medium" style={{ color: theme.colors.textPrimary }}>
                 {positionProfile.avgSprintsPerMatch.min}-{positionProfile.avgSprintsPerMatch.max}
               </div>
             </div>
             <div>
-              <div className="text-sm mb-1" style={{ color: theme.colors.textMuted }}>Hopp/match</div>
+              <div className="text-sm mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Hopp/match', 'Jumps/game')}</div>
               <div className="font-medium" style={{ color: theme.colors.textPrimary }}>
                 {positionProfile.avgJumpsPerMatch.min}-{positionProfile.avgJumpsPerMatch.max}
               </div>
             </div>
             <div>
-              <div className="text-sm mb-1" style={{ color: theme.colors.textMuted }}>Speltid</div>
+              <div className="text-sm mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Speltid', 'Playing time')}</div>
               <div className="font-medium" style={{ color: theme.colors.textPrimary }}>
                 {positionProfile.avgMinutesPerMatch.min}-{positionProfile.avgMinutesPerMatch.max} min
               </div>
@@ -443,7 +459,7 @@ export function BasketballAthleteView({
           </div>
 
           <div className="mt-4">
-            <div className="text-sm font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Nyckelegenskaper:</div>
+            <div className="text-sm font-medium mb-2" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Nyckelegenskaper:', 'Key attributes:')}</div>
             <div className="flex flex-wrap gap-1">
               {positionProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
@@ -460,9 +476,9 @@ export function BasketballAthleteView({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Dumbbell className="h-4 w-4" />
-            Rekommenderade övningar
+            {t(locale, 'Rekommenderade övningar', 'Recommended exercises')}
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Baserat på position och skadehistorik</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t(locale, 'Baserat på position och skadehistorik', 'Based on position and injury history')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -491,14 +507,14 @@ export function BasketballAthleteView({
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
                 <Zap className="h-4 w-4 text-yellow-500" />
-                Styrkor
+                {t(locale, 'Styrkor', 'Strengths')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {settings.strengthFocus.map((strength) => (
                   <Badge key={strength} variant="secondary">
-                    {STRENGTH_LABELS[strength] || strength}
+                    {STRENGTH_LABELS[strength] ? localized(locale, STRENGTH_LABELS[strength]) : strength}
                   </Badge>
                 ))}
               </div>
@@ -511,14 +527,14 @@ export function BasketballAthleteView({
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
                 <Target className="h-4 w-4 text-blue-500" />
-                Utvecklingsområden
+                {t(locale, 'Utvecklingsområden', 'Development areas')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {settings.weaknesses.map((weakness) => (
                   <Badge key={weakness} variant="outline">
-                    {STRENGTH_LABELS[weakness] || weakness}
+                    {STRENGTH_LABELS[weakness] ? localized(locale, STRENGTH_LABELS[weakness]) : weakness}
                   </Badge>
                 ))}
               </div>
@@ -533,17 +549,17 @@ export function BasketballAthleteView({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
               <AlertTriangle className="h-4 w-4 text-amber-500" />
-              Skadehistorik
+              {t(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
             <CardDescription style={{ color: theme.colors.textMuted }}>
-              Tidigare skador att ta hänsyn till i träningsplaneringen
+              {t(locale, 'Tidigare skador att ta hänsyn till i träningsplaneringen', 'Previous injuries to account for in training planning')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {settings.injuryHistory.map((injury) => (
                 <Badge key={injury} variant="destructive" className="bg-amber-100 text-amber-800 hover:bg-amber-200">
-                  {INJURY_LABELS[injury] || injury}
+                  {INJURY_LABELS[injury] ? localized(locale, INJURY_LABELS[injury]) : injury}
                 </Badge>
               ))}
             </div>
@@ -555,23 +571,23 @@ export function BasketballAthleteView({
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-            Träningsrekommendationer
+            {t(locale, 'Träningsrekommendationer', 'Training recommendations')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm" style={{ color: theme.colors.textMuted }}>
             <p>
-              <strong style={{ color: theme.colors.textPrimary }}>Position:</strong> Som {positionProfile.displayName.toLowerCase()} bör {clientName} fokusera på{' '}
+              <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Position:', 'Position:')}</strong> {t(locale, 'Som', 'As')} {positionProfile.displayName.toLowerCase()} {t(locale, 'bör', 'should')} {clientName} {t(locale, 'fokusera på', 'focus on')}{' '}
               {positionProfile.keyPhysicalAttributes.slice(0, 3).join(', ').toLowerCase()}.
             </p>
             <p>
-              <strong style={{ color: theme.colors.textPrimary }}>Säsongsfas:</strong> Under {PHASE_LABELS[settings.seasonPhase].toLowerCase()} rekommenderas{' '}
-              {seasonPhase.weeklyStructure.strengthSessions} styrkepass och {seasonPhase.weeklyStructure.conditioningSessions} konditionspass per vecka.
+              <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Säsongsfas:', 'Season phase:')}</strong> {t(locale, 'Under', 'During')} {labelFor(PHASE_LABELS, settings.seasonPhase, locale).toLowerCase()} {t(locale, 'rekommenderas', 'we recommend')}{' '}
+              {seasonPhase.weeklyStructure.strengthSessions} {t(locale, 'styrkepass och', 'strength sessions and')} {seasonPhase.weeklyStructure.conditioningSessions} {t(locale, 'konditionspass per vecka.', 'conditioning sessions per week.')}
             </p>
             {settings.injuryHistory.length > 0 && (
               <p>
-                <strong style={{ color: theme.colors.textPrimary }}>Skadeprevention:</strong> Med tanke på tidigare{' '}
-                {settings.injuryHistory.map(i => INJURY_LABELS[i]?.toLowerCase() || i).join(', ')}, inkludera alltid skadeförebyggande övningar.
+                <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Skadeprevention:', 'Injury prevention:')}</strong> {t(locale, 'Med tanke på tidigare', 'Given previous')}{' '}
+                {settings.injuryHistory.map(i => INJURY_LABELS[i] ? localized(locale, INJURY_LABELS[i]).toLowerCase() : i).join(', ')}, {t(locale, 'inkludera alltid skadeförebyggande övningar.', 'always include preventive exercises.')}
               </p>
             )}
           </div>
@@ -582,7 +598,7 @@ export function BasketballAthleteView({
       <SportTestHistory
         clientId={clientId}
         sport="TEAM_BASKETBALL"
-        title="Testhistorik - Basket"
+        title={t(locale, 'Testhistorik - Basket', 'Test history - Basketball')}
         protocolLabels={{
           YOYO_IR1: 'Yo-Yo IR1',
           VERTICAL_JUMP_CMJ: 'CMJ',
