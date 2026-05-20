@@ -20,6 +20,9 @@ export {
   getLoadStatus,
   calculateWeeklyJumpLoad,
   getJumpLoadRecommendation,
+  getVolleyballLocale,
+  translateVolleyballText,
+  translateVolleyballList,
 } from './position-training';
 
 export type {
@@ -32,4 +35,5 @@ export type {
   PhysicalBenchmarks,
   SetData,
   MatchLoadData,
+  VolleyballLocale,
 } from './position-training';

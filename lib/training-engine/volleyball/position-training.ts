@@ -66,6 +66,151 @@ export interface PhysicalBenchmarks {
   powerClean: number | null; // kg
 }
 
+export type VolleyballLocale = 'en' | 'sv';
+
+const ENGLISH_PHRASES: Record<string, string> = {
+  Passare: 'Setter',
+  Vänsterspiker: 'Outside hitter',
+  'Diagonal/Högerspiker': 'Opposite hitter',
+  Centerblockare: 'Middle blocker',
+  Libero: 'Libero',
+  'Spelets dirigent som sätter upp bollar för anfall. Kräver utmärkt bollkänsla, snabb reaktion och god spelförståelse.': 'The floor leader who sets up attacks. Requires excellent ball feel, quick reactions, and strong court vision.',
+  'Primär anfallare från vänster sida. Allsidig spelare som både anfaller och försvarar. Kräver explosiv hoppkraft och stark axel.': 'Primary attacker from the left side. A versatile player who attacks and defends. Requires explosive jump power and a strong shoulder.',
+  'Kraftfull anfallare från höger sida. Ofta lagets främsta poängplockare med fokus på anfall snarare än försvar.': "Powerful attacker from the right side. Often the team's top scorer, with more focus on attack than defense.",
+  'Specialist på block och snabba anfall i mitten. Kräver timing, reaktionssnabbhet och maximal vertikal kraft.': 'Specialist in blocks and quick middle attacks. Requires timing, reaction speed, and maximal vertical power.',
+  'Defensiv specialist som inte hoppar för anfall. Fokus på mottagning och försvar. Kräver utmärkt läsförmåga och reaktionssnabbhet.': 'Defensive specialist who does not jump to attack. Focuses on reception and defense. Requires excellent reading ability and reaction speed.',
+  Kvickhet: 'Agility',
+  Fingerflexibilitet: 'Finger flexibility',
+  Reaktionssnabbhet: 'Reaction speed',
+  Balans: 'Balance',
+  Uthållighet: 'Endurance',
+  'Vertikal hoppförmåga': 'Vertical jump ability',
+  Axelstyrka: 'Shoulder strength',
+  Explosivitet: 'Explosiveness',
+  Mottagningsförmåga: 'Reception ability',
+  'Maximal hoppkraft': 'Maximal jump power',
+  Slagstyrka: 'Spike power',
+  Blockförmåga: 'Blocking ability',
+  'Core-styrka': 'Core strength',
+  Timing: 'Timing',
+  Sidledssnabbhet: 'Lateral speed',
+  Räckvidd: 'Reach',
+  Läsförmåga: 'Reading ability',
+  Smidighet: 'Mobility',
+  Sidledsförflyttning: 'Lateral movement',
+  'Korta sprints': 'Short sprints',
+  Hopppassningar: 'Jump sets',
+  'Snabba riktningsändringar': 'Fast direction changes',
+  Ansatser: 'Approaches',
+  'Vertikala hopp': 'Vertical jumps',
+  Landningar: 'Landings',
+  Försvarsrörelser: 'Defensive movements',
+  'Kraftfulla ansatser': 'Powerful approaches',
+  'Höga hopp': 'High jumps',
+  Block: 'Block',
+  Serve: 'Serve',
+  Blockhopp: 'Block jumps',
+  'Snabba anfall': 'Quick attacks',
+  Reaktionsrörelser: 'Reaction movements',
+  Dykningar: 'Dives',
+  'Låga positioner': 'Low positions',
+  'Snabba starter': 'Fast starts',
+  Maxstyrka: 'Maximum strength',
+  'Vertikal kraft': 'Vertical power',
+  'Aerob bas': 'Aerobic base',
+  Skadeförebyggande: 'Injury prevention',
+  Teknikutveckling: 'Technique development',
+  'Explosiv kraft': 'Explosive power',
+  Hoppträning: 'Jump training',
+  'Volleybollspecifik kondition': 'Volleyball-specific conditioning',
+  Lagspel: 'Team play',
+  Styrkeunderhåll: 'Strength maintenance',
+  Hoppunderhåll: 'Jump maintenance',
+  Återhämtning: 'Recovery',
+  Matchprestation: 'Match performance',
+  'Maximal återhämtning': 'Maximum recovery',
+  'Peak performance': 'Peak performance',
+  'Mental förberedelse': 'Mental preparation',
+  'Taktisk perfektion': 'Tactical precision',
+  'Hypertrofi och maxstyrka med fokus på benpress och olympiska lyft': 'Hypertrophy and maximum strength with a focus on leg press and Olympic lifts',
+  'Aerob basträning och gradvis uppbyggnad av hoppkapacitet': 'Aerobic base training and gradual jump-capacity build-up',
+  'Kraftutveckling och plyometrics för maximal hoppförmåga': 'Power development and plyometrics for maximal jumping ability',
+  'Intervallträning och volleybollspecifika övningar': 'Interval training and volleyball-specific drills',
+  'Underhåll av styrka och explosivitet med låg volym': 'Strength and explosiveness maintenance with low volume',
+  'Matchspecifik kondition genom träning och matcher': 'Match-specific conditioning through practices and matches',
+  'Minimalt underhåll för att bevara explosivitet': 'Minimal maintenance to preserve explosiveness',
+  'Endast matchspecifik aktivitet och aktiv återhämtning': 'Only match-specific activity and active recovery',
+  Styrka: 'Strength',
+  Rotatorkuff: 'Rotator cuff',
+  Stabilitet: 'Stability',
+  Mobilitet: 'Mobility',
+  Rehab: 'Rehab',
+  Kontroll: 'Control',
+  Excentrisk: 'Eccentric',
+  Reaktion: 'Reaction',
+  Teknik: 'Technique',
+  Power: 'Power',
+  Plyometrics: 'Plyometrics',
+  '3x12 per arm': '3x12 per arm',
+  '2x10 per position': '2x10 per position',
+  '3x30s per sida': '3x30s per side',
+  '3x8 per ben': '3x8 per leg',
+  '3x10 per ben': '3x10 per leg',
+  '3x30s per ben': '3x30s per leg',
+  '2 set per fot': '2 sets per foot',
+  '3x12 per riktning': '3x12 per direction',
+  '3x15 per ben': '3x15 per leg',
+  '2x10s per finger': '2x10s per finger',
+  '2x10 per hand': '2x10 per hand',
+  '3x8 per sida': '3x8 per side',
+  'Fokus på skulderbladsretraction': 'Focus on scapular retraction',
+  'Med band eller lätt vikt': 'With a band or light weight',
+  'Liggande på mage': 'Prone position',
+  'Försiktig stretch': 'Gentle stretch',
+  'Kontrollerad excentrisk fas': 'Controlled eccentric phase',
+  'Fokus på knäkontroll': 'Focus on knee control',
+  'Med band runt knät': 'With band around the knee',
+  'Långsam kontrollerad rörelse': 'Slow controlled movement',
+  'Progression: blunda, instabil yta': 'Progression: eyes closed, unstable surface',
+  'Rita alla bokstäver': 'Draw every letter',
+  'Knäna över tårna': 'Knees over toes',
+  'Vid 70 graders knävinkel': 'At a 70-degree knee angle',
+  'Med band runt knäna': 'With band around the knees',
+  'Långsam excentrisk fas': 'Slow eccentric phase',
+  '3s upp, 3s ner': '3s up, 3s down',
+  'Med gummiband runt fingrarna': 'With a rubber band around the fingers',
+  'Med tennisboll': 'With a tennis ball',
+  'Flexion och extension': 'Flexion and extension',
+  'Med boll och partner': 'With ball and partner',
+  'Fokus på snabb reaktion': 'Focus on quick reaction',
+  'Med full ansats': 'With full approach',
+  Rotationskast: 'Rotational throws',
+  'Minimal markkontakttid': 'Minimal ground-contact time',
+  'Laterala blockhopp': 'Lateral block jumps',
+  'Sidledes sedan hopp': 'Shuffle then jump',
+  'Minimal vila mellan hopp': 'Minimal rest between jumps',
+  'Kontrollerade dykningar': 'Controlled dives',
+  'Stege eller konor': 'Ladder or cones',
+  'I defensiv position': 'In defensive position',
+  Reaktionsträning: 'Reaction training',
+  Dykträning: 'Dive training',
+  'Låg hoppbelastning - kan öka volymen': 'Low jump load - can increase volume',
+  'Hög hoppbelastning - överväg att minska volymen': 'High jump load - consider reducing volume',
+  'Optimal hoppbelastning': 'Optimal jump load',
+};
+
+export function getVolleyballLocale(locale: string): VolleyballLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+export function translateVolleyballText(locale: string, value: string): string {
+  return getVolleyballLocale(locale) === 'sv' ? value : ENGLISH_PHRASES[value] ?? value;
+}
+
+export function translateVolleyballList(locale: string, values: string[]): string[] {
+  return values.map((value) => translateVolleyballText(locale, value));
+}
+
 // Set data interface
 export interface SetData {
   setNumber: number;
@@ -522,7 +667,7 @@ export function calculateWeeklyJumpLoad(matches: MatchLoadData[], trainingJumps:
 }
 
 // Get jump load recommendation
-export function getJumpLoadRecommendation(weeklyJumps: number, position: VolleyballPosition): string {
+export function getJumpLoadRecommendation(weeklyJumps: number, position: VolleyballPosition, locale: string = 'en'): string {
   const thresholds: Record<VolleyballPosition, { low: number; high: number }> = {
     setter: { low: 200, high: 400 },
     outside_hitter: { low: 300, high: 600 },
@@ -533,9 +678,9 @@ export function getJumpLoadRecommendation(weeklyJumps: number, position: Volleyb
 
   const { low, high } = thresholds[position];
 
-  if (weeklyJumps < low) return 'Låg hoppbelastning - kan öka volymen';
-  if (weeklyJumps > high) return 'Hög hoppbelastning - överväg att minska volymen';
-  return 'Optimal hoppbelastning';
+  if (weeklyJumps < low) return translateVolleyballText(locale, 'Låg hoppbelastning - kan öka volymen');
+  if (weeklyJumps > high) return translateVolleyballText(locale, 'Hög hoppbelastning - överväg att minska volymen');
+  return translateVolleyballText(locale, 'Optimal hoppbelastning');
 }
 
 const volleyballTrainingModule = {
@@ -553,6 +698,9 @@ const volleyballTrainingModule = {
   getLoadStatus,
   calculateWeeklyJumpLoad,
   getJumpLoadRecommendation,
+  getVolleyballLocale,
+  translateVolleyballText,
+  translateVolleyballList,
 };
 
 export default volleyballTrainingModule;

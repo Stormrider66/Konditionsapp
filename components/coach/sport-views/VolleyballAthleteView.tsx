@@ -21,6 +21,7 @@ import {
   VOLLEYBALL_SEASON_PHASES,
   VOLLEYBALL_BENCHMARKS,
   getPositionRecommendations,
+  translateVolleyballText,
   type VolleyballPosition,
 } from '@/lib/training-engine/volleyball'
 import { SportTestHistory } from '@/components/tests/shared'
@@ -271,7 +272,7 @@ export function VolleyballAthleteView({
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
-                    {item}
+                    {translateVolleyballText(locale, item)}
                   </Badge>
                 ))}
               </div>
@@ -279,11 +280,11 @@ export function VolleyballAthleteView({
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 rounded-lg" style={{ backgroundColor: theme.colors.backgroundAccent }}>
                 <div className="text-xs mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Styrka', 'Strength')}</div>
-                <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{seasonPhase.strengthEmphasis}</div>
+                <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{translateVolleyballText(locale, seasonPhase.strengthEmphasis)}</div>
               </div>
               <div className="p-3 rounded-lg" style={{ backgroundColor: theme.colors.backgroundAccent }}>
                 <div className="text-xs mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Kondition', 'Conditioning')}</div>
-                <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{seasonPhase.conditioningEmphasis}</div>
+                <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{translateVolleyballText(locale, seasonPhase.conditioningEmphasis)}</div>
               </div>
             </div>
           </div>
@@ -424,9 +425,9 @@ export function VolleyballAthleteView({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <TrendingUp className="h-4 w-4" />
-            {t(locale, 'Positionsprofil:', 'Position profile:')} {positionProfile.displayName}
+            {t(locale, 'Positionsprofil:', 'Position profile:')} {translateVolleyballText(locale, positionProfile.displayName)}
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>{positionProfile.description}</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{translateVolleyballText(locale, positionProfile.description)}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -457,7 +458,7 @@ export function VolleyballAthleteView({
             <div className="flex flex-wrap gap-1">
               {positionProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
-                  {attr}
+                  {translateVolleyballText(locale, attr)}
                 </Badge>
               ))}
             </div>
@@ -480,14 +481,14 @@ export function VolleyballAthleteView({
               <div key={i} className="p-3 border rounded-lg" style={{ borderColor: theme.colors.border }}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>{exercise.name}</div>
-                    <div className="text-xs" style={{ color: theme.colors.textMuted }}>{exercise.setsReps}</div>
+                    <div className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>{translateVolleyballText(locale, exercise.name)}</div>
+                    <div className="text-xs" style={{ color: theme.colors.textMuted }}>{translateVolleyballText(locale, exercise.setsReps)}</div>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {exercise.category}
+                    {translateVolleyballText(locale, exercise.category)}
                   </Badge>
                 </div>
-                <div className="text-xs mt-2" style={{ color: theme.colors.textMuted }}>{exercise.notes}</div>
+                <div className="text-xs mt-2" style={{ color: theme.colors.textMuted }}>{translateVolleyballText(locale, exercise.notes)}</div>
               </div>
             ))}
           </div>
@@ -571,8 +572,8 @@ export function VolleyballAthleteView({
         <CardContent>
           <div className="space-y-2 text-sm" style={{ color: theme.colors.textMuted }}>
             <p>
-              <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Position:', 'Position:')}</strong> {t(locale, 'Som', 'As')} {positionProfile.displayName.toLowerCase()} {t(locale, 'bör', 'should')} {clientName} {t(locale, 'fokusera på', 'focus on')}{' '}
-              {positionProfile.keyPhysicalAttributes.slice(0, 3).join(', ').toLowerCase()}.
+              <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Position:', 'Position:')}</strong> {t(locale, 'Som', 'As')} {translateVolleyballText(locale, positionProfile.displayName).toLowerCase()} {t(locale, 'bör', 'should')} {clientName} {t(locale, 'fokusera på', 'focus on')}{' '}
+              {positionProfile.keyPhysicalAttributes.map((attr) => translateVolleyballText(locale, attr)).slice(0, 3).join(', ').toLowerCase()}.
             </p>
             <p>
               <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Hoppbelastning:', 'Jump load:')}</strong> {t(locale, 'Typisk hoppbelastning för positionen är', 'Typical jump load for the position is')}{' '}

@@ -20,6 +20,7 @@ import {
   VOLLEYBALL_SEASON_PHASES,
   VOLLEYBALL_BENCHMARKS,
   getPositionRecommendations,
+  translateVolleyballText,
 } from '@/lib/training-engine/volleyball'
 import { MatchScheduleWidget } from './MatchScheduleWidget'
 
@@ -104,115 +105,6 @@ const STRENGTH_LABELS: Record<AppLocale, Record<string, string>> = {
     agility: 'Kvickhet',
   },
 }
-
-const ENGLISH_PHRASES: Record<string, string> = {
-  'Spelets dirigent som sätter upp bollar för anfall. Kräver utmärkt bollkänsla, snabb reaktion och god spelförståelse.': 'The floor leader who sets up attacks. Requires excellent ball feel, quick reactions, and strong court vision.',
-  'Primär anfallare från vänster sida. Allsidig spelare som både anfaller och försvarar. Kräver explosiv hoppkraft och stark axel.': 'Primary attacker from the left side. A versatile player who attacks and defends. Requires explosive jump power and a strong shoulder.',
-  'Kraftfull anfallare från höger sida. Ofta lagets främsta poängplockare med fokus på anfall snarare än försvar.': "Powerful attacker from the right side. Often the team's top scorer, with more focus on attack than defense.",
-  'Specialist på block och snabba anfall i mitten. Kräver timing, reaktionssnabbhet och maximal vertikal kraft.': 'Specialist in blocks and quick middle attacks. Requires timing, reaction speed, and maximal vertical power.',
-  'Defensiv specialist som inte hoppar för anfall. Fokus på mottagning och försvar. Kräver utmärkt läsförmåga och reaktionssnabbhet.': 'Defensive specialist who does not jump to attack. Focuses on reception and defense. Requires excellent reading ability and reaction speed.',
-  Kvickhet: 'Agility',
-  Fingerflexibilitet: 'Finger flexibility',
-  Reaktionssnabbhet: 'Reaction speed',
-  Balans: 'Balance',
-  Uthållighet: 'Endurance',
-  'Vertikal hoppförmåga': 'Vertical jump ability',
-  Axelstyrka: 'Shoulder strength',
-  Explosivitet: 'Explosiveness',
-  Mottagningsförmåga: 'Reception ability',
-  'Maximal hoppkraft': 'Maximal jump power',
-  Slagstyrka: 'Spike power',
-  Blockförmåga: 'Blocking ability',
-  'Core-styrka': 'Core strength',
-  Timing: 'Timing',
-  Sidledssnabbhet: 'Lateral speed',
-  Räckvidd: 'Reach',
-  Läsförmåga: 'Reading ability',
-  Smidighet: 'Mobility',
-  Maxstyrka: 'Maximum strength',
-  'Vertikal kraft': 'Vertical power',
-  'Aerob bas': 'Aerobic base',
-  Skadeförebyggande: 'Injury prevention',
-  Teknikutveckling: 'Technique development',
-  'Explosiv kraft': 'Explosive power',
-  Hoppträning: 'Jump training',
-  'Volleybollspecifik kondition': 'Volleyball-specific conditioning',
-  Lagspel: 'Team play',
-  Styrkeunderhåll: 'Strength maintenance',
-  Hoppunderhåll: 'Jump maintenance',
-  Återhämtning: 'Recovery',
-  Matchprestation: 'Match performance',
-  'Maximal återhämtning': 'Maximal recovery',
-  'Peak performance': 'Peak performance',
-  'Mental förberedelse': 'Mental preparation',
-  'Taktisk perfektion': 'Tactical precision',
-  'Hypertrofi och maxstyrka med fokus på benpress och olympiska lyft': 'Hypertrophy and maximum strength with a focus on leg press and Olympic lifts',
-  'Aerob basträning och gradvis uppbyggnad av hoppkapacitet': 'Aerobic base training and gradual jump-capacity build-up',
-  'Kraftutveckling och plyometrics för maximal hoppförmåga': 'Power development and plyometrics for maximal jumping ability',
-  'Intervallträning och volleybollspecifika övningar': 'Interval training and volleyball-specific drills',
-  'Underhåll av styrka och explosivitet med låg volym': 'Strength and explosiveness maintenance with low volume',
-  'Matchspecifik kondition genom träning och matcher': 'Match-specific conditioning through practices and matches',
-  'Minimalt underhåll för att bevara explosivitet': 'Minimal maintenance to preserve explosiveness',
-  'Endast matchspecifik aktivitet och aktiv återhämtning': 'Only match-specific activity and active recovery',
-  Styrka: 'Strength',
-  Rotatorkuff: 'Rotator cuff',
-  Stabilitet: 'Stability',
-  Mobilitet: 'Mobility',
-  Rehab: 'Rehab',
-  Kontroll: 'Control',
-  Excentrisk: 'Eccentric',
-  Reaktion: 'Reaction',
-  Teknik: 'Technique',
-  Power: 'Power',
-  Plyometrics: 'Plyometrics',
-  '3x12 per arm': '3x12 per arm',
-  '2x10 per position': '2x10 per position',
-  '3x30s per sida': '3x30s per side',
-  '3x8 per ben': '3x8 per leg',
-  '3x10 per ben': '3x10 per leg',
-  '3x30s per ben': '3x30s per leg',
-  '2 set per fot': '2 sets per foot',
-  '3x12 per riktning': '3x12 per direction',
-  '3x15 per ben': '3x15 per leg',
-  '2x10s per finger': '2x10s per finger',
-  '2x10 per hand': '2x10 per hand',
-  '3x8 per sida': '3x8 per side',
-  'Fokus på skulderbladsretraction': 'Focus on scapular retraction',
-  'Med band eller lätt vikt': 'With a band or light weight',
-  'Liggande på mage': 'Prone position',
-  'Försiktig stretch': 'Gentle stretch',
-  'Kontrollerad excentrisk fas': 'Controlled eccentric phase',
-  'Fokus på knäkontroll': 'Focus on knee control',
-  'Med band runt knät': 'With band around the knee',
-  'Långsam kontrollerad rörelse': 'Slow controlled movement',
-  'Progression: blunda, instabil yta': 'Progression: eyes closed, unstable surface',
-  'Rita alla bokstäver': 'Draw every letter',
-  'Knäna över tårna': 'Knees over toes',
-  'Vid 70 graders knävinkel': 'At a 70-degree knee angle',
-  'Med band runt knäna': 'With band around the knees',
-  'Långsam excentrisk fas': 'Slow eccentric phase',
-  '3s upp, 3s ner': '3s up, 3s down',
-  'Med gummiband runt fingrarna': 'With a rubber band around the fingers',
-  'Med tennisboll': 'With a tennis ball',
-  'Flexion och extension': 'Flexion and extension',
-  'Med boll och partner': 'With ball and partner',
-  'Fokus på snabb reaktion': 'Focus on quick reaction',
-  'Med full ansats': 'With full approach',
-  Rotationskast: 'Rotational throws',
-  'Minimal markkontakttid': 'Minimal ground-contact time',
-  'Laterala blockhopp': 'Lateral block jumps',
-  'Sidledes sedan hopp': 'Shuffle then jump',
-  'Minimal vila mellan hopp': 'Minimal rest between jumps',
-  'Kontrollerade dykningar': 'Controlled dives',
-  'Stege eller konor': 'Ladder or cones',
-  'I defensiv position': 'In defensive position',
-  Reaktionsträning: 'Reaction training',
-  Dykträning: 'Dive training',
-}
-
-const phrase = (locale: AppLocale, value: string) => (
-  locale === 'sv' ? value : ENGLISH_PHRASES[value] ?? value
-)
 
 export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
   const t = useTranslations('components.athleteDashboard')
@@ -350,7 +242,7 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
-                    {phrase(locale, item)}
+                    {translateVolleyballText(locale, item)}
                   </Badge>
                 ))}
               </div>
@@ -358,11 +250,11 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 bg-muted rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">{text('Styrka', 'Strength')}</div>
-                <div className="text-sm">{phrase(locale, seasonPhase.strengthEmphasis)}</div>
+                <div className="text-sm">{translateVolleyballText(locale, seasonPhase.strengthEmphasis)}</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">{text('Kondition', 'Conditioning')}</div>
-                <div className="text-sm">{phrase(locale, seasonPhase.conditioningEmphasis)}</div>
+                <div className="text-sm">{translateVolleyballText(locale, seasonPhase.conditioningEmphasis)}</div>
               </div>
             </div>
           </div>
@@ -503,9 +395,9 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4" />
-            {text('Positionsprofil', 'Position profile')}: {positionLabels[position] || positionProfile.displayName}
+            {text('Positionsprofil', 'Position profile')}: {positionLabels[position] || translateVolleyballText(locale, positionProfile.displayName)}
           </CardTitle>
-          <CardDescription>{phrase(locale, positionProfile.description)}</CardDescription>
+          <CardDescription>{translateVolleyballText(locale, positionProfile.description)}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -536,7 +428,7 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
             <div className="flex flex-wrap gap-1">
               {positionProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
-                  {phrase(locale, attr)}
+                  {translateVolleyballText(locale, attr)}
                 </Badge>
               ))}
             </div>
@@ -559,14 +451,14 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
               <div key={i} className="p-3 border rounded-lg">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium text-sm">{phrase(locale, exercise.name)}</div>
-                    <div className="text-xs text-muted-foreground">{phrase(locale, exercise.setsReps)}</div>
+                    <div className="font-medium text-sm">{translateVolleyballText(locale, exercise.name)}</div>
+                    <div className="text-xs text-muted-foreground">{translateVolleyballText(locale, exercise.setsReps)}</div>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {phrase(locale, exercise.category)}
+                    {translateVolleyballText(locale, exercise.category)}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">{phrase(locale, exercise.notes)}</div>
+                <div className="text-xs text-muted-foreground mt-2">{translateVolleyballText(locale, exercise.notes)}</div>
               </div>
             ))}
           </div>
