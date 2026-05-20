@@ -84,6 +84,116 @@ export interface PhysicalBenchmarks {
   };
 }
 
+export type FloorballLocale = 'en' | 'sv';
+
+const ENGLISH_PHRASES: Record<string, string> = {
+  'Sista utposten - reaktion, positionering och benarbete utan klubba': 'Last line of defense - reactions, positioning, and leg work without a stick',
+  'Defensiv stabilitet - täcker ytor, bryter spel och startar anfall': 'Defensive stability - covers space, breaks up play, and starts attacks',
+  'Spelmotor - täcker hela planen, defensivt och offensivt arbete': 'Engine room - covers the whole court with defensive and offensive work',
+  'Offensiv spets - skapar lägen, avslutar och pressar högt': 'Attacking threat - creates chances, finishes, and presses high',
+  Reaktionsförmåga: 'Reaction ability',
+  'Lateral rörlighet': 'Lateral mobility',
+  Flexibilitet: 'Flexibility',
+  Benarbete: 'Footwork',
+  Positionering: 'Positioning',
+  Tacklingsstyrka: 'Tackling strength',
+  Speluppbyggnad: 'Build-up play',
+  Uthållighet: 'Endurance',
+  Arbetskapacitet: 'Work capacity',
+  Teknik: 'Technique',
+  Spelsinne: 'Game sense',
+  Snabbhet: 'Speed',
+  Avslut: 'Finishing',
+  Kreativitet: 'Creativity',
+  'Aerob basträning': 'Aerobic base training',
+  Maxstyrka: 'Maximum strength',
+  'Rörlighet och mobilitet': 'Flexibility and mobility',
+  Skaderehabilitering: 'Injury rehabilitation',
+  'Teknisk utveckling': 'Technical development',
+  'Explosiv styrka': 'Explosive strength',
+  Intervallträning: 'Interval training',
+  'Snabbhet och agility': 'Speed and agility',
+  'Sport-specifik kondition': 'Sport-specific conditioning',
+  'Taktisk träning': 'Tactical training',
+  'Underhåll av fysik': 'Physical maintenance',
+  Matchförberedelse: 'Match preparation',
+  Återhämtning: 'Recovery',
+  Skadeförebyggande: 'Injury prevention',
+  'Taktiska justeringar': 'Tactical adjustments',
+  'Optimal återhämtning': 'Optimal recovery',
+  'Mental skärpa': 'Mental sharpness',
+  Matchskärpa: 'Match sharpness',
+  Skadehantering: 'Injury management',
+  Lagsammanhållning: 'Team cohesion',
+  'Hypertrofi och maxstyrka (4-8 rep, 70-85% 1RM)': 'Hypertrophy and maximum strength (4-8 reps, 70-85% 1RM)',
+  'Aerob bas (låg-medel intensitet, 30-60 min löpning/cykel)': 'Aerobic base (low-medium intensity, 30-60 min running/bike)',
+  'Power och explosivitet (3-5 rep, 75-90% 1RM + plyometrics)': 'Power and explosiveness (3-5 reps, 75-90% 1RM + plyometrics)',
+  'Intervaller (20-60 sek arbete, matchsimulering)': 'Intervals (20-60 sec work, match simulation)',
+  'Underhåll (2-4 rep, 80-90% 1RM, låg volym)': 'Maintenance (2-4 reps, 80-90% 1RM, low volume)',
+  'Matchspecifik (korta intervaller vid behov)': 'Match-specific (short intervals as needed)',
+  'Aktivering endast (lätt, explosivt)': 'Activation only (light, explosive)',
+  'Minimal - endast aktivering': 'Minimal - activation only',
+  '3x8 per sida': '3x8 per side',
+  '3x12 per sida': '3x12 per side',
+  '3x10 per sida': '3x10 per side',
+  '3x8 per ben': '3x8 per leg',
+  '3x10 per ben': '3x10 per leg',
+  '3x15 per ben': '3x15 per leg',
+  '3x30 sek per ben': '3x30 sec per leg',
+  '2x10 per riktning': '2x10 per direction',
+  '3x30 sek per sida': '3x30 sec per side',
+  '3x6 per sida': '3x6 per side',
+  'Gradvis progression, börja med kort hävarm': 'Gradual progression, start with a short lever',
+  'Lyft underbenet, håll kvar i toppen': 'Lift the lower leg, pause at the top',
+  'Kontrollerad rörelse, aktivera adduktorer': 'Controlled movement, activate adductors',
+  'Kontrollerad excentrisk fas, partner eller maskin': 'Controlled eccentric phase, partner or machine',
+  'Håll ryggen rak, aktivera hamstrings': 'Keep the back straight, activate hamstrings',
+  'Höften stabil, aktivera gluteus': 'Keep hips stable, activate glutes',
+  'Band runt knä, aktivera VMO': 'Band around knee, activate VMO',
+  'Kontrollera knäposition, låt inte knät falla inåt': 'Control knee position, do not let the knee collapse inward',
+  'Långsam kontrollerad rörelse': 'Slow controlled movement',
+  'Full range of motion, båda raka och böjda knän': 'Full range of motion, both straight and bent knees',
+  'Progressera till instabil yta och stängda ögon': 'Progress to an unstable surface and closed eyes',
+  'Stor cirkelrörelse': 'Large circular movement',
+  'Håll ryggen rak': 'Keep the back straight',
+  'Aktivera gluteus medius': 'Activate gluteus medius',
+  'Knästående, pressa höften framåt': 'Kneeling, press hips forward',
+  'Aktivera core, håll ryggen neutral': 'Activate core, keep the spine neutral',
+  'Pressa ländryggen mot golvet': 'Press the lower back into the floor',
+  'Långsam, kontrollerad rörelse': 'Slow, controlled movement',
+  'Lätt vikt, full rörelseomfång': 'Light weight, full range of motion',
+  'Med lätt vikt eller klubba': 'With light weight or stick',
+  'Explosiv sidoförflyttning, stabil landning': 'Explosive lateral movement, stable landing',
+  'Låg position, simulerar målvaktsställning': 'Low position, simulates goalkeeper stance',
+  'Låg position, snabba fötter': 'Low position, quick feet',
+  'Djup position för spelarbete': 'Deep position for floorball work',
+  'Snabba vändningar, låg position': 'Quick turns, low position',
+  'Fokus på snabb respons från golvet': 'Focus on quick response from the floor',
+  'Explosiv start från stående': 'Explosive start from standing',
+  'Simulerar skottrörelse': 'Simulates shooting motion',
+  prevention: 'Prevention',
+  strength: 'Strength',
+  mobility: 'Mobility',
+  power: 'Power',
+  agility: 'Agility',
+  'Låg matchbelastning - överväg extra konditionspass': 'Low match load - consider an extra conditioning session',
+  'Optimal matchbelastning - fortsätt som planerat': 'Optimal match load - continue as planned',
+  'Hög belastning - prioritera återhämtning': 'High load - prioritize recovery',
+  'Mycket hög belastning - extra vila och övervakning': 'Very high load - extra rest and monitoring',
+};
+
+export function getFloorballLocale(locale: string): FloorballLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+export function translateFloorballText(locale: string, value: string): string {
+  return getFloorballLocale(locale) === 'sv' ? value : ENGLISH_PHRASES[value] ?? value;
+}
+
+export function translateFloorballList(locale: string, values: string[]): string[] {
+  return values.map((value) => translateFloorballText(locale, value));
+}
+
 // ==================== POSITION PROFILES ====================
 
 export const FLOORBALL_POSITION_PROFILES: Record<FloorballPosition, PositionProfile> = {
@@ -684,7 +794,7 @@ export function calculateMatchLoadScore(data: MatchLoadData, position: Floorball
   return Math.round(score);
 }
 
-export function getLoadStatus(score: number): {
+export function getLoadStatus(score: number, locale: string = 'en'): {
   status: 'low' | 'optimal' | 'high' | 'very_high';
   color: string;
   recommendation: string;
@@ -693,25 +803,25 @@ export function getLoadStatus(score: number): {
     return {
       status: 'low',
       color: 'blue',
-      recommendation: 'Låg matchbelastning - överväg extra konditionspass',
+      recommendation: translateFloorballText(locale, 'Låg matchbelastning - överväg extra konditionspass'),
     };
   } else if (score <= 100) {
     return {
       status: 'optimal',
       color: 'green',
-      recommendation: 'Optimal matchbelastning - fortsätt som planerat',
+      recommendation: translateFloorballText(locale, 'Optimal matchbelastning - fortsätt som planerat'),
     };
   } else if (score <= 130) {
     return {
       status: 'high',
       color: 'yellow',
-      recommendation: 'Hög belastning - prioritera återhämtning',
+      recommendation: translateFloorballText(locale, 'Hög belastning - prioritera återhämtning'),
     };
   } else {
     return {
       status: 'very_high',
       color: 'red',
-      recommendation: 'Mycket hög belastning - extra vila och övervakning',
+      recommendation: translateFloorballText(locale, 'Mycket hög belastning - extra vila och övervakning'),
     };
   }
 }
@@ -729,6 +839,9 @@ const floorballTrainingModule = {
   getBenchmarkRating,
   calculateMatchLoadScore,
   getLoadStatus,
+  getFloorballLocale,
+  translateFloorballText,
+  translateFloorballList,
 };
 
 export default floorballTrainingModule;

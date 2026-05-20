@@ -17,6 +17,9 @@ export {
   getBenchmarkRating,
   calculateMatchLoadScore,
   getLoadStatus,
+  getFloorballLocale,
+  translateFloorballText,
+  translateFloorballList,
 } from './position-training';
 
 export type {
@@ -29,4 +32,5 @@ export type {
   PhysicalBenchmarks,
   ShiftData,
   MatchLoadData,
+  FloorballLocale,
 } from './position-training';
