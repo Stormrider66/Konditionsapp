@@ -16,6 +16,11 @@ export interface PageContextConfig {
   cards?: CardContext[]
 }
 
+type AppLocale = 'en' | 'sv'
+type PageContextText = Pick<PageContextConfig, 'pageTitle' | 'description'> & {
+  cards?: Pick<CardContext, 'id' | 'title'>[]
+}
+
 export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
   // ============ COACH ROUTES ============
   'coach/dashboard': {
@@ -309,11 +314,276 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
   },
 }
 
+const PAGE_CONTEXT_EN: Record<string, PageContextText> = {
+  'coach/dashboard': {
+    pageTitle: 'Coach Dashboard',
+    description: 'Overview of athlete readiness, active alerts, training load, and upcoming activity.',
+    cards: [
+      { id: 'readiness-overview', title: 'Readiness today' },
+      { id: 'alerts', title: 'Alerts' },
+      { id: 'training-load', title: 'Training load' },
+    ],
+  },
+  'coach/monitoring': {
+    pageTitle: 'Athlete Monitoring',
+    description: 'Detailed monitoring of athlete HRV, resting heart rate, readiness, and training trends.',
+    cards: [
+      { id: 'hrv-trend', title: 'HRV trend' },
+      { id: 'readiness', title: 'Readiness' },
+      { id: 'training-load', title: 'Load' },
+      { id: 'acwr', title: 'ACWR' },
+    ],
+  },
+  'coach/athletes': {
+    pageTitle: 'Athletes',
+    description: 'List and manage coach athletes with a quick status overview.',
+  },
+  'coach/athletes/[id]': {
+    pageTitle: 'Athlete Profile',
+    description: 'Detailed profile with test results, training history, programs, and readiness data.',
+  },
+  'coach/tests': {
+    pageTitle: 'Tests',
+    description: 'Lactate and VO2max tests with threshold detection and zone calculations.',
+  },
+  'coach/tests/[id]': {
+    pageTitle: 'Test Result',
+    description: 'Detailed test result with lactate curve, threshold values, and calculated zones.',
+  },
+  'coach/hockey-tests': {
+    pageTitle: 'Hockey Test Cockpit',
+    description: 'Hockey-specific test entry for ice sprint, 5-10-5, 7x40 m, MuscleLab/VBT, Wingate, strength, jumps, grip, beep test, and VO2max/ramp data.',
+    cards: [
+      { id: 'hockey-ice-tests', title: 'Ice tests' },
+      { id: 'hockey-musclelab', title: 'MuscleLab / VBT' },
+      { id: 'hockey-aerobic-lab', title: 'VO2max / ramp' },
+      { id: 'hockey-strength', title: 'Strength' },
+    ],
+  },
+  'coach/teams/[id]/tests': {
+    pageTitle: 'Hockey Team Tests',
+    description: 'Team testing view with hockey matrix, rankings, percentiles, quality flags, development pathway, coach action plan, reports, and SIMCA-ready CSV export.',
+    cards: [
+      { id: 'hockey-test-matrix', title: 'Hockey test matrix' },
+      { id: 'hockey-action-plan', title: 'Coach action plan' },
+      { id: 'hockey-pathway', title: 'Development pathway' },
+      { id: 'hockey-simca-export', title: 'SIMCA export' },
+      { id: 'hockey-aerobic-profile', title: 'Aerobic profile' },
+    ],
+  },
+  'coach/teams/[id]/multivariate': {
+    pageTitle: 'Hockey Multivariate Analysis',
+    description: 'MVA/SIMCA view for team data, including PCA/PLS/SIMCA workflows, outliers, score/loadings, VIP, position clusters, and analysis artifact import/export.',
+  },
+  'coach/programs': {
+    pageTitle: 'Programs',
+    description: 'Overview of training programs with periodization and methodology choices.',
+  },
+  'coach/programs/[id]': {
+    pageTitle: 'Program Details',
+    description: 'Detailed program view with weekly plan, phases, and workouts.',
+  },
+  'coach/strength': {
+    pageTitle: 'Strength Training',
+    description: 'Strength Studio with exercise library, workout and weekly program generation, athlete-aware restrictions, periodization, 1RM, and 2-for-2 progression tracking.',
+    cards: [
+      { id: '1rm-overview', title: '1RM overview' },
+      { id: 'progression', title: 'Progression' },
+      { id: 'phases', title: 'Training phases' },
+      { id: 'auto-generate', title: 'Auto-generation' },
+      { id: 'pillars', title: 'Biomechanical pillars' },
+    ],
+  },
+  'coach/injury-prevention': {
+    pageTitle: 'Injury Prevention',
+    description: 'ACWR monitoring, injury-risk assessment, and Delaware pain rules.',
+    cards: [
+      { id: 'acwr-monitor', title: 'ACWR risk' },
+      { id: 'pain-rules', title: 'Pain rules' },
+    ],
+  },
+  'coach/ai-studio': {
+    pageTitle: 'AI Studio',
+    description: 'AI-assisted program generation with document knowledge and multimodal support.',
+  },
+  'coach/video-analysis': {
+    pageTitle: 'Video Analysis',
+    description: 'AI-driven movement technique analysis with MediaPipe and Gemini.',
+  },
+  'coach/video-analysis/[id]': {
+    pageTitle: 'Video Analysis Result',
+    description: 'Detailed video analysis result with technique score and improvement suggestions.',
+  },
+  'coach/settings/ai': {
+    pageTitle: 'AI Settings',
+    description: 'Configure AI models, API keys, and AI cost budgets.',
+  },
+  'coach/documents': {
+    pageTitle: 'Knowledge Documents',
+    description: 'Manage knowledge documents that AI can reference through RAG.',
+  },
+  'coach/live-hr': {
+    pageTitle: 'Live Heart-Rate Monitoring',
+    description: 'Real-time monitoring of athlete heart rate during group sessions.',
+    cards: [
+      { id: 'live-grid', title: 'Live HR grid' },
+      { id: 'zones', title: 'Heart-rate zone distribution' },
+    ],
+  },
+  'coach/body-composition': {
+    pageTitle: 'Body Composition',
+    description: 'Track athlete weight, body-fat percentage, and muscle-mass changes over time.',
+  },
+  'coach/cross-training': {
+    pageTitle: 'Cross-Training',
+    description: 'Plan alternative training with modality equivalents and fitness projection.',
+  },
+  'coach/subscription': {
+    pageTitle: 'Subscription',
+    description: 'Manage your coach subscription and view available features by tier.',
+  },
+  'coach/wod': {
+    pageTitle: 'WOD Generator',
+    description: 'Create Workout of the Day sessions adapted to athlete readiness.',
+  },
+  'coach/calculators': {
+    pageTitle: 'Calculators',
+    description: 'VDOT calculator, zone calculations, and other training calculators.',
+  },
+  'athlete/dashboard': {
+    pageTitle: 'Athlete Dashboard',
+    description: 'Personal overview of readiness, weekly training, load, and upcoming sessions.',
+    cards: [
+      { id: 'readiness', title: 'Readiness' },
+      { id: 'training-load', title: 'Weekly load' },
+      { id: 'zones', title: 'Zone distribution' },
+    ],
+  },
+  'athlete/training': {
+    pageTitle: 'Training',
+    description: 'Training log with completed sessions, RPE reporting, and progression tracking.',
+  },
+  'athlete/tests': {
+    pageTitle: 'My Tests',
+    description: 'Test results with lactate curves, VO2max, and calculated training zones.',
+  },
+  'athlete/programs': {
+    pageTitle: 'My Programs',
+    description: 'Active and previous training programs with weekly schedules.',
+  },
+  'athlete/wod': {
+    pageTitle: 'Workout of the Day',
+    description: 'Your adapted daily workout based on readiness and program context.',
+  },
+  'athlete/injury-prevention': {
+    pageTitle: 'Injury Prevention',
+    description: 'Your personal injury risk, ACWR status, and pain reporting.',
+    cards: [
+      { id: 'acwr-gauge', title: 'ACWR' },
+      { id: 'pain-rules', title: 'Pain rules' },
+    ],
+  },
+  'athlete/readiness': {
+    pageTitle: 'Readiness',
+    description: 'Detailed readiness status with HRV, sleep, muscle soreness, and trend analysis.',
+    cards: [
+      { id: 'readiness-score', title: 'Readiness score' },
+      { id: 'hrv', title: 'HRV' },
+      { id: 'sleep', title: 'Sleep' },
+    ],
+  },
+  'athlete/ergometer': {
+    pageTitle: 'Ergometer',
+    description: "Ergometer tests and results with CP/FTP calculations and W'.",
+  },
+  'athlete/cycling': {
+    pageTitle: 'Cycling',
+    description: 'Cycling performance with FTP, W/kg, zone distribution, and training history.',
+  },
+  'athlete/strength': {
+    pageTitle: 'Strength Training',
+    description: 'Strength training log with 1RM progression, VBT, and periodization.',
+  },
+  'athlete/calendar': {
+    pageTitle: 'Calendar',
+    description: 'Training calendar with planned and completed sessions, tests, and races.',
+  },
+  'athlete/video-analysis': {
+    pageTitle: 'Video Analysis',
+    description: 'Your video analyses with technique scores and AI feedback.',
+  },
+  'athlete/settings': {
+    pageTitle: 'Settings',
+    description: 'Profile settings, integration connections, and data export.',
+  },
+  'athlete/chat': {
+    pageTitle: 'AI Chat',
+    description: 'Chat with your AI coach about training, nutrition, and recovery.',
+  },
+  'athlete/body-composition': {
+    pageTitle: 'Body Composition',
+    description: 'Track your weight, body-fat percentage, and muscle-mass changes.',
+  },
+  'physio/dashboard': {
+    pageTitle: 'Physiotherapist Dashboard',
+    description: 'Overview of active patients, rehabilitation programs, and restrictions.',
+  },
+  'physio/patients': {
+    pageTitle: 'Patients',
+    description: 'Patient list with injury status and rehabilitation progress.',
+  },
+  'physio/patients/[id]': {
+    pageTitle: 'Patient Record',
+    description: 'Detailed patient view with treatment history, SOAP notes, and restrictions.',
+  },
+  'physio/treatments': {
+    pageTitle: 'Treatments',
+    description: 'Treatment sessions with SOAP documentation.',
+  },
+  'physio/care-team': {
+    pageTitle: 'Care Team',
+    description: 'Thread-based communication between physiotherapist, coach, and athlete with priority levels.',
+  },
+  'admin/ai-models': {
+    pageTitle: 'AI Model Management',
+    description: 'Administer AI models, providers, and access control.',
+  },
+  'admin/pricing': {
+    pageTitle: 'Pricing Management',
+    description: 'Manage subscription tiers and feature gating.',
+  },
+}
+
+function localizePageContext(
+  key: string,
+  config: PageContextConfig,
+  locale: AppLocale = 'en'
+): PageContextConfig {
+  if (locale === 'sv') return config
+  const english = PAGE_CONTEXT_EN[key]
+  if (!english) return config
+
+  const cards = config.cards?.map((card) => {
+    const override = english.cards?.find((candidate) => candidate.id === card.id)
+    return override ? { ...card, title: override.title } : card
+  })
+
+  return {
+    ...config,
+    pageTitle: english.pageTitle,
+    description: english.description,
+    ...(cards ? { cards } : {}),
+  }
+}
+
 /**
  * Resolves page context from a pathname by stripping the business slug
  * and matching against the registry.
  */
-export function resolvePageContext(pathname: string): PageContextConfig | undefined {
+export function resolvePageContext(
+  pathname: string,
+  locale: AppLocale = 'en'
+): PageContextConfig | undefined {
   // Strip leading slash
   let path = pathname.replace(/^\//, '')
 
@@ -326,7 +596,7 @@ export function resolvePageContext(pathname: string): PageContextConfig | undefi
 
   // Direct match first
   if (PAGE_CONTEXT_REGISTRY[path]) {
-    return PAGE_CONTEXT_REGISTRY[path]
+    return localizePageContext(path, PAGE_CONTEXT_REGISTRY[path], locale)
   }
 
   // Try dynamic segment matching: replace UUIDs/IDs with [id]
@@ -339,7 +609,7 @@ export function resolvePageContext(pathname: string): PageContextConfig | undefi
   )
 
   if (PAGE_CONTEXT_REGISTRY[dynamicPath]) {
-    return PAGE_CONTEXT_REGISTRY[dynamicPath]
+    return localizePageContext(dynamicPath, PAGE_CONTEXT_REGISTRY[dynamicPath], locale)
   }
 
   return undefined
@@ -349,10 +619,12 @@ export function resolvePageContext(pathname: string): PageContextConfig | undefi
  * Builds a markdown string from page context config for injection into AI system prompt.
  */
 export function buildPageContextForAI(config: PageContextConfig, locale: 'en' | 'sv' = 'en'): string {
-  const entries: InfoEntry[] = getInfoEntriesByKeys(config.concepts, locale)
+  const configKey = Object.entries(PAGE_CONTEXT_REGISTRY).find(([, value]) => value === config)?.[0] ?? ''
+  const localizedConfig = locale === 'sv' ? config : localizePageContext(configKey, config, locale)
+  const entries: InfoEntry[] = getInfoEntriesByKeys(localizedConfig.concepts, locale)
 
-  let md = locale === 'sv' ? `## Aktuell sida: ${config.pageTitle}\n` : `## Current page: ${config.pageTitle}\n`
-  md += `${config.description}\n`
+  let md = locale === 'sv' ? `## Aktuell sida: ${localizedConfig.pageTitle}\n` : `## Current page: ${localizedConfig.pageTitle}\n`
+  md += `${localizedConfig.description}\n`
 
   if (entries.length > 0) {
     md += locale === 'sv' ? `\n### Relevanta begrepp på denna sida:\n` : `\n### Relevant concepts on this page:\n`
@@ -361,9 +633,9 @@ export function buildPageContextForAI(config: PageContextConfig, locale: 'en' | 
     }
   }
 
-  if (config.cards && config.cards.length > 0) {
+  if (localizedConfig.cards && localizedConfig.cards.length > 0) {
     md += locale === 'sv' ? `\n### Synliga kort/sektioner:\n` : `\n### Visible cards/sections:\n`
-    for (const card of config.cards) {
+    for (const card of localizedConfig.cards) {
       md += `- ${card.title}\n`
     }
   }

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { type PageContext } from './FloatingAIChat'
 import { resolvePageContext } from '@/lib/page-context-registry'
 import { useVisibleCards } from '@/hooks/use-visible-cards'
+import { useLocale } from '@/i18n/client'
 
 interface PageContextValue {
   pageContext: PageContext | undefined
@@ -21,11 +22,12 @@ export function PageContextProvider({ children }: { children: ReactNode }) {
   const [pageContext, setPageContextState] = useState<PageContext | undefined>()
   const isManuallySet = useRef(false)
   const pathname = usePathname()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const visibleConcepts = useVisibleCards()
 
   // Auto-resolve page context from pathname on navigation
   useEffect(() => {
-    const config = resolvePageContext(pathname)
+    const config = resolvePageContext(pathname, locale)
     if (config) {
       // Only override if context was not manually set (e.g. video analysis with rich data)
       if (!isManuallySet.current) {
@@ -45,7 +47,7 @@ export function PageContextProvider({ children }: { children: ReactNode }) {
     }
     // Reset manual flag on navigation
     isManuallySet.current = false
-  }, [pathname])
+  }, [pathname, locale])
 
   const setPageContext = useCallback((context: PageContext | undefined) => {
     isManuallySet.current = !!context
