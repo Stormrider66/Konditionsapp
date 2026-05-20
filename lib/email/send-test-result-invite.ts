@@ -73,6 +73,10 @@ function getCopy(locale: EmailLocale) {
       signature: 'Med vänliga hälsningar',
       title: 'Ditt testresultat är klart',
       fromTestLeader: 'din testledare',
+      testNotFound: 'Testet hittades inte',
+      missingEmail: 'Klienten har ingen e-postadress',
+      missingBusiness: 'Klienten är inte kopplad till en verksamhet — kan inte bygga djuplänk',
+      accountCreateFailed: 'Kunde inte skapa atletkonto',
     }
     : {
       header: 'Hi',
@@ -88,6 +92,10 @@ function getCopy(locale: EmailLocale) {
       signature: 'Best regards',
       title: 'Your test result is ready',
       fromTestLeader: 'your test leader',
+      testNotFound: 'Test not found',
+      missingEmail: 'The client does not have an email address',
+      missingBusiness: 'The client is not connected to a business, so a deep link cannot be created',
+      accountCreateFailed: 'Could not create athlete account',
     }
 }
 
@@ -111,6 +119,9 @@ function escapeHtml(value: string): string {
 export async function sendTestResultInvite(
   opts: SendOptions,
 ): Promise<SendTestResultInviteResult> {
+  const locale = opts.locale || 'en'
+  const copy = getCopy(locale)
+
   // 1. Load the test + client + business + tester + coach
   const test = await prisma.test.findUnique({
     where: { id: opts.testId },
@@ -137,22 +148,20 @@ export async function sendTestResultInvite(
     },
   })
 
-  if (!test) return { success: false, error: 'Testet hittades inte' }
+  if (!test) return { success: false, error: copy.testNotFound }
   if (!test.client.email) {
-    return { success: false, error: 'Klienten har ingen e-postadress' }
+    return { success: false, error: copy.missingEmail }
   }
   if (!test.client.business?.slug) {
     return {
       success: false,
-      error: 'Klienten är inte kopplad till en verksamhet — kan inte bygga djuplänk',
+      error: copy.missingBusiness,
     }
   }
 
   const businessSlug = test.client.business.slug
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
   const testPath = `/${businessSlug}/athlete/tests/${test.id}`
-  const locale = opts.locale || 'en'
-  const copy = getCopy(locale)
 
   // 2. Ensure the athlete has an AthleteAccount. Create on-demand if not.
   let athleteAccountCreated = false
@@ -163,7 +172,7 @@ export async function sendTestResultInvite(
     if (!created.success) {
       return {
         success: false,
-        error: created.error || 'Kunde inte skapa atletkonto',
+        error: created.error || copy.accountCreateFailed,
       }
     }
     athleteAccountCreated = true

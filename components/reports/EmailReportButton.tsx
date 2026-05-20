@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface EmailReportButtonProps {
   reportData: ReportData
@@ -34,6 +34,7 @@ export function EmailReportButton({
   className = '',
 }: EmailReportButtonProps) {
   const t = useTranslations('components.emailReportButton')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const { toast } = useToast()
   const [showDialog, setShowDialog] = useState(false)
   const [isSending, setIsSending] = useState(false)
@@ -91,6 +92,7 @@ export function EmailReportButton({
           organization: reportData.organization,
           pdfBase64: pdfBase64,
           customMessage: customMessage || undefined,
+          locale,
         }),
       })
 

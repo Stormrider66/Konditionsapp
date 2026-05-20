@@ -87,6 +87,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       testId,
       coachUserId: coach.id,
       message: parsed.data.message,
+      locale,
     })
 
     if (!result.success) {
