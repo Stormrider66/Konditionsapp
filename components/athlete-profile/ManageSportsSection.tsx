@@ -11,6 +11,27 @@ import { SportType } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import { useLocale, useTranslations } from '@/i18n/client'
 
+const COPY = {
+  en: {
+    mySports: 'My sports',
+    primarySport: 'Primary sport',
+    noSecondarySports: 'No secondary sports selected',
+    addSports: 'Add sports',
+    manageSports: 'Manage sports',
+    helper:
+      'You can choose one primary sport and up to 2 secondary sports. Secondary sports let you quickly switch between different training views from the navigation dropdown.',
+  },
+  sv: {
+    mySports: 'Mina sporter',
+    primarySport: 'Huvudsport',
+    noSecondarySports: 'Inga sekundära sporter valda',
+    addSports: 'Lägg till sporter',
+    manageSports: 'Hantera sporter',
+    helper:
+      'Du kan välja en huvudsport och upp till 2 sekundära sporter. Sekundära sporter låter dig snabbt växla mellan olika träningsvyer via dropdown-menyn i navigeringen.',
+  },
+} as const
+
 interface ManageSportsSectionProps {
   clientId: string
   sportProfile: {
@@ -24,6 +45,7 @@ export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSect
   const locale = useLocale()
   const tSport = useTranslations('components.sportSelector')
   const localeKey = locale === 'en' ? 'en' : 'sv'
+  const copy = COPY[localeKey]
 
   const primarySportInfo = SPORT_OPTIONS.find(s => s.value === sportProfile.primarySport)
   const secondarySports = (sportProfile.secondarySports || []) as SportType[]
@@ -46,7 +68,7 @@ export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSect
               <div className="flex items-center gap-2 mb-3">
                 <Settings2 className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Mina sporter
+                  {copy.mySports}
                 </h3>
               </div>
 
@@ -60,7 +82,7 @@ export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSect
                         {getSportLabel(primarySportInfo?.value as SportType)}
                       </p>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                        Huvudsport
+                        {copy.primarySport}
                       </p>
                     </div>
                   </div>
@@ -90,7 +112,7 @@ export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSect
                   <>
                     <div className="hidden sm:block h-8 w-px bg-slate-200 dark:bg-white/10 mx-2" />
                     <p className="text-xs text-slate-400 dark:text-slate-500 italic">
-                      Inga sekundära sporter valda
+                      {copy.noSecondarySports}
                     </p>
                   </>
                 )}
@@ -111,12 +133,12 @@ export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSect
               {secondarySportsInfo.length === 0 ? (
                 <>
                   <Plus className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-wide">Lägg till sporter</span>
+                  <span className="text-xs font-bold uppercase tracking-wide">{copy.addSports}</span>
                 </>
               ) : (
                 <>
                   <Settings2 className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-wide">Hantera sporter</span>
+                  <span className="text-xs font-bold uppercase tracking-wide">{copy.manageSports}</span>
                   <ChevronRight className="h-4 w-4" />
                 </>
               )}
@@ -125,8 +147,7 @@ export function ManageSportsSection({ clientId, sportProfile }: ManageSportsSect
 
           {/* Helper text */}
           <p className="mt-4 text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed">
-            Du kan välja en huvudsport och upp till 2 sekundära sporter. Sekundära sporter låter dig snabbt växla mellan
-            olika träningsvyer via dropdown-menyn i navigeringen.
+            {copy.helper}
           </p>
         </GlassCardContent>
       </GlassCard>
