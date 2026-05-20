@@ -16,7 +16,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface GymConnection {
   id: string
@@ -80,6 +80,7 @@ const providerConfigById = Object.fromEntries(
 
 export function GymPlatformSettings() {
   const t = useTranslations('components.settings.coach')
+  const locale = useLocale()
   const [connections, setConnections] = useState<GymConnection[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState<string | null>(null)
@@ -105,7 +106,12 @@ export function GymPlatformSettings() {
     }
   }, [])
 
-  useEffect(() => { void fetchConnections() }, [fetchConnections])
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchConnections()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [fetchConnections])
 
   const addConnection = async () => {
     if (!addProvider || !addApiKey) return
@@ -222,7 +228,7 @@ export function GymPlatformSettings() {
                       <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                         <Clock className="h-3 w-3" />
                         {conn.lastSyncAt
-                          ? new Date(conn.lastSyncAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+                          ? new Date(conn.lastSyncAt).toLocaleTimeString(locale === 'sv' ? 'sv-SE' : 'en-US', { hour: '2-digit', minute: '2-digit' })
                           : t('integrations.gymPlatforms.stats.never')
                         }
                       </p>
