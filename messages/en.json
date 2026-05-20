@@ -14015,7 +14015,7 @@
     },
     "teamCoachActionDialog": {
       "fallbackTitle": "Quick action",
-      "actions": {
+      "actionDetails": {
         "workout": {
           "title": "Create team workout",
           "description": "Choose a team and what type of workout you want to build."
@@ -14056,7 +14056,7 @@
         "missedWorkouts": "Missed workouts",
         "injured": "Injury flags"
       },
-      "actions": {
+      "buttons": {
         "cancel": "Cancel",
         "continue": "Continue",
         "book": "Book",

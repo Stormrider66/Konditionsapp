@@ -35,18 +35,18 @@ interface TeamCoachActionDialogProps {
 
 const actionCopy = {
   workout: {
-    titleKey: 'actions.workout.title',
-    descriptionKey: 'actions.workout.description',
+    titleKey: 'actionDetails.workout.title',
+    descriptionKey: 'actionDetails.workout.description',
     icon: Dumbbell,
   },
   test: {
-    titleKey: 'actions.test.title',
-    descriptionKey: 'actions.test.description',
+    titleKey: 'actionDetails.test.title',
+    descriptionKey: 'actionDetails.test.description',
     icon: CalendarClock,
   },
   message: {
-    titleKey: 'actions.message.title',
-    descriptionKey: 'actions.message.description',
+    titleKey: 'actionDetails.message.title',
+    descriptionKey: 'actionDetails.message.description',
     icon: MessageSquare,
   },
 }
@@ -175,20 +175,20 @@ export function TeamCoachActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Icon className="h-5 w-5" />
-            {copy ? t(copy.titleKey) : t('fallbackTitle')}
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md overflow-hidden">
+        <DialogHeader className="min-w-0">
+          <DialogTitle className="flex min-w-0 items-center gap-2 pr-6">
+            <Icon className="h-5 w-5 shrink-0" />
+            <span className="min-w-0 truncate">{copy ? t(copy.titleKey) : t('fallbackTitle')}</span>
           </DialogTitle>
           <DialogDescription>{copy ? t(copy.descriptionKey) : undefined}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="min-w-0 space-y-4 py-2">
           <div className="space-y-2">
             <Label>{t('fields.team')}</Label>
             <Select value={teamId} onValueChange={setTeamId}>
-              <SelectTrigger>
+              <SelectTrigger className="min-w-0">
                 <SelectValue placeholder={t('fields.teamPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -205,7 +205,7 @@ export function TeamCoachActionDialog({
             <div className="space-y-2">
               <Label>{t('fields.workoutType')}</Label>
               <Select value={workoutType} onValueChange={setWorkoutType}>
-                <SelectTrigger>
+                <SelectTrigger className="min-w-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -226,11 +226,11 @@ export function TeamCoachActionDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="team-test-date">{t('fields.date')}</Label>
-                  <Input id="team-test-date" type="date" value={date} onChange={event => setDate(event.target.value)} />
+                  <Input id="team-test-date" className="min-w-0" type="date" value={date} onChange={event => setDate(event.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="team-test-time">{t('fields.time')}</Label>
-                  <Input id="team-test-time" type="time" value={time} onChange={event => setTime(event.target.value)} />
+                  <Input id="team-test-time" className="min-w-0" type="time" value={time} onChange={event => setTime(event.target.value)} />
                 </div>
               </div>
               <div className="space-y-2">
@@ -245,7 +245,7 @@ export function TeamCoachActionDialog({
               <div className="space-y-2">
                 <Label>{t('fields.recipients')}</Label>
                 <Select value={messageTarget} onValueChange={setMessageTarget}>
-                  <SelectTrigger>
+                  <SelectTrigger className="min-w-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -274,7 +274,7 @@ export function TeamCoachActionDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t('actions.cancel')}
+            {t('buttons.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={disabled}>
             {submitting ? (
@@ -282,7 +282,7 @@ export function TeamCoachActionDialog({
             ) : action === 'message' ? (
               <Send className="h-4 w-4 mr-2" />
             ) : null}
-            {action === 'workout' ? t('actions.continue') : action === 'test' ? t('actions.book') : t('actions.send')}
+            {action === 'workout' ? t('buttons.continue') : action === 'test' ? t('buttons.book') : t('buttons.send')}
           </Button>
         </DialogFooter>
       </DialogContent>

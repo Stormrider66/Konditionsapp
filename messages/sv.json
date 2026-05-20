@@ -14375,7 +14375,21 @@
     },
     "teamCoachActionDialog": {
       "fallbackTitle": "Snabbåtgärd",
-      "actions": {
+      "actionDetails": {
+        "workout": {
+          "title": "Skapa lagpass",
+          "description": "Välj lag och vilken typ av pass du vill bygga."
+        },
+        "test": {
+          "title": "Boka lagtest",
+          "description": "Lägg till ett test i lagets kalender."
+        },
+        "message": {
+          "title": "Skicka lagmeddelande",
+          "description": "Skicka ett snabbt meddelande till hela laget eller en smart grupp."
+        }
+      },
+      "buttons": {
         "cancel": "Avbryt",
         "continue": "Fortsätt",
         "book": "Boka",
