@@ -19,7 +19,19 @@ interface RouteContext {
   params: Promise<{ code: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getRequestLocale(req: NextRequest): AppLocale {
+  return req.nextUrl.searchParams.get('locale') === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(_req: NextRequest, context: RouteContext) {
+  const locale = getRequestLocale(_req)
+
   try {
     const { code } = await context.params
 
@@ -28,19 +40,19 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     })
 
     if (!invite) {
-      return NextResponse.json({ error: 'Ogiltig inbjudningskod' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Invalid invitation code', 'Ogiltig inbjudningskod') }, { status: 404 })
     }
 
     if (invite.type !== 'ATHLETE_SIGNUP') {
-      return NextResponse.json({ error: 'Ogiltig inbjudningstyp' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid invitation type', 'Ogiltig inbjudningstyp') }, { status: 400 })
     }
 
     if (invite.expiresAt && invite.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'Inbjudan har gått ut' }, { status: 410 })
+      return NextResponse.json({ error: t(locale, 'The invitation has expired', 'Inbjudan har gått ut') }, { status: 410 })
     }
 
     if (invite.currentUses >= invite.maxUses) {
-      return NextResponse.json({ error: 'Inbjudan är full' }, { status: 410 })
+      return NextResponse.json({ error: t(locale, 'The invitation is full', 'Inbjudan är full') }, { status: 410 })
     }
 
     const meta = invite.metadata as { teamId?: string; teamName?: string } | null
@@ -61,13 +73,17 @@ const joinSchema = z.object({
   name: z.string().min(2),
   birthDate: z.string().optional(),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
+  language: z.enum(['en', 'sv']).optional(),
 })
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale = getRequestLocale(req)
+
   try {
     const { code } = await context.params
     const body = await req.json()
     const data = joinSchema.parse(body)
+    locale = data.language === 'sv' ? 'sv' : 'en'
 
     // Validate invite
     const invite = await prisma.invitation.findUnique({
@@ -75,15 +91,15 @@ export async function POST(req: NextRequest, context: RouteContext) {
     })
 
     if (!invite || invite.type !== 'ATHLETE_SIGNUP') {
-      return NextResponse.json({ error: 'Ogiltig inbjudningskod' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Invalid invitation code', 'Ogiltig inbjudningskod') }, { status: 404 })
     }
 
     if (invite.expiresAt && invite.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'Inbjudan har gått ut' }, { status: 410 })
+      return NextResponse.json({ error: t(locale, 'The invitation has expired', 'Inbjudan har gått ut') }, { status: 410 })
     }
 
     if (invite.currentUses >= invite.maxUses) {
-      return NextResponse.json({ error: 'Inbjudan är full' }, { status: 410 })
+      return NextResponse.json({ error: t(locale, 'The invitation is full', 'Inbjudan är full') }, { status: 410 })
     }
 
     const meta = invite.metadata as
@@ -125,7 +141,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
 
     if (!coachUserId) {
-      return NextResponse.json({ error: 'Laget hittades inte' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     // Create Supabase auth account
@@ -137,9 +153,15 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     if (authError || !authData.user) {
       if (authError?.message?.includes('already registered')) {
-        return NextResponse.json({ error: 'E-postadressen är redan registrerad. Logga in istället.' }, { status: 409 })
+        return NextResponse.json(
+          { error: t(locale, 'The email address is already registered. Sign in instead.', 'E-postadressen är redan registrerad. Logga in istället.') },
+          { status: 409 }
+        )
       }
-      return NextResponse.json({ error: authError?.message || 'Registrering misslyckades' }, { status: 400 })
+      return NextResponse.json(
+        { error: authError?.message || t(locale, 'Registration failed', 'Registrering misslyckades') },
+        { status: 400 }
+      )
     }
 
     const supabaseUserId = authData.user.id
@@ -153,6 +175,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
           email: data.email,
           name: data.name,
           role: 'ATHLETE',
+          language: locale,
         },
       })
 
@@ -222,6 +245,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
     }
     console.error('Join error:', error)
-    return NextResponse.json({ error: 'Registrering misslyckades' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Registration failed', 'Registrering misslyckades') }, { status: 500 })
   }
 }
