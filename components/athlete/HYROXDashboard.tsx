@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Target,
   Timer,
@@ -45,6 +45,14 @@ interface HYROXDashboardProps {
   gender?: 'MALE' | 'FEMALE'
 }
 
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const text = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
 const CATEGORY_LABELS: Record<string, string> = {
   open: 'HYROX Open',
   pro: 'HYROX Pro',
@@ -52,22 +60,22 @@ const CATEGORY_LABELS: Record<string, string> = {
   relay: 'HYROX Relay',
 }
 
-const EXPERIENCE_LABELS: Record<string, string> = {
-  beginner: 'Nybörjare',
-  intermediate: 'Medel',
-  advanced: 'Avancerad',
-  elite: 'Elit',
+const EXPERIENCE_LABELS: Record<string, Record<AppLocale, string>> = {
+  beginner: { sv: 'Nybörjare', en: 'Beginner' },
+  intermediate: { sv: 'Medel', en: 'Intermediate' },
+  advanced: { sv: 'Avancerad', en: 'Advanced' },
+  elite: { sv: 'Elit', en: 'Elite' },
 }
 
-const STATION_LABELS: Record<string, string> = {
-  skierg: 'SkiErg',
-  sled_push: 'Sled Push',
-  sled_pull: 'Sled Pull',
-  burpee_broad_jump: 'Burpee Broad Jump',
-  rowing: 'Rodd',
-  farmers_carry: 'Farmers Carry',
-  sandbag_lunge: 'Sandbag Lunge',
-  wall_balls: 'Wall Balls',
+const STATION_LABELS: Record<string, Record<AppLocale, string>> = {
+  skierg: { sv: 'SkiErg', en: 'SkiErg' },
+  sled_push: { sv: 'Sled Push', en: 'Sled Push' },
+  sled_pull: { sv: 'Sled Pull', en: 'Sled Pull' },
+  burpee_broad_jump: { sv: 'Burpee Broad Jump', en: 'Burpee Broad Jump' },
+  rowing: { sv: 'Rodd', en: 'Row' },
+  farmers_carry: { sv: 'Farmers Carry', en: "Farmer's Carry" },
+  sandbag_lunge: { sv: 'Sandbag Lunge', en: 'Sandbag Lunge' },
+  wall_balls: { sv: 'Wall Balls', en: 'Wall Balls' },
 }
 
 // Target times for different levels (in seconds) - used for progress visualization
@@ -188,9 +196,10 @@ function getStationProgress(time: number | null, targetTime: number): number {
 }
 
 export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
+  const locale = getAppLocale(useLocale())
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
-  const t = useTranslations('components.athleteDashboard')
+  const dashboardT = useTranslations('components.athleteDashboard')
 
   // Computed client-side to avoid SSR/client timezone mismatch
   const [daysUntilRace, setDaysUntilRace] = useState<number | null>(null)
@@ -206,7 +215,7 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
         <CardHeader>
           <CardTitle>HYROX</CardTitle>
           <CardDescription>
-            {t('hyroxNoSettings')}
+            {dashboardT('hyroxNoSettings')}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -237,19 +246,19 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
             HYROX Dashboard
           </h2>
           <p style={{ color: theme.colors.textMuted }}>
-            {CATEGORY_LABELS[settings.raceCategory]} • {EXPERIENCE_LABELS[settings.experienceLevel]}
+            {CATEGORY_LABELS[settings.raceCategory]} • {EXPERIENCE_LABELS[settings.experienceLevel]?.[locale]}
           </p>
         </div>
 
         <div className="flex gap-2">
           {daysUntilRace !== null && daysUntilRace > 0 && (
             <Badge variant="outline" className="text-lg px-4 py-2">
-              {daysUntilRace} dagar till tävling
+              {daysUntilRace} {text(locale, 'dagar till tävling', 'days until race')}
             </Badge>
           )}
           {estimatedTotal && (
             <Badge variant="secondary" className="text-lg px-4 py-2">
-              Est. tid: {estimatedTotal}
+              {text(locale, 'Est. tid:', 'Est. time:')} {estimatedTotal}
             </Badge>
           )}
         </div>
@@ -279,10 +288,10 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Footprints className="h-5 w-5 text-green-500" />
-            Löpkapacitet
+            {text(locale, 'Löpkapacitet', 'Running capacity')}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            8km total löpning (8 x 1km mellan stationer)
+            {text(locale, '8km total löpning (8 x 1km mellan stationer)', '8km total running (8 x 1km between stations)')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -297,7 +306,7 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
             </div>
             <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
               <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{settings.currentWeeklyRunKm}</div>
-              <div className="text-sm" style={{ color: theme.colors.textMuted }}>km/vecka</div>
+              <div className="text-sm" style={{ color: theme.colors.textMuted }}>{text(locale, 'km/vecka', 'km/week')}</div>
             </div>
           </div>
         </CardContent>
@@ -308,10 +317,10 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Timer className="h-5 w-5 text-blue-500" />
-            Stationsöversikt
+            {text(locale, 'Stationsöversikt', 'Station overview')}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Dina tider vs måltider för {EXPERIENCE_LABELS[settings.experienceLevel].toLowerCase()}-nivå
+            {text(locale, 'Dina tider vs måltider för', 'Your times vs target times for')} {EXPERIENCE_LABELS[settings.experienceLevel]?.[locale].toLowerCase()}-{text(locale, 'nivå', 'level')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -326,17 +335,17 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Icon className={`h-4 w-4 ${color}`} />
-                      <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{STATION_LABELS[key]}</span>
+                      <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{STATION_LABELS[key]?.[locale]}</span>
                       {isStrong && (
-                        <Badge variant="default" className="bg-green-500 text-xs">Starkast</Badge>
+                        <Badge variant="default" className="bg-green-500 text-xs">{text(locale, 'Starkast', 'Strongest')}</Badge>
                       )}
                       {isWeak && (
-                        <Badge variant="destructive" className="text-xs">Fokusområde</Badge>
+                        <Badge variant="destructive" className="text-xs">{text(locale, 'Fokusområde', 'Focus area')}</Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-4 text-sm">
                       <span style={{ color: theme.colors.textMuted }}>
-                        Mål: {formatTime(targets[key])}
+                        {text(locale, 'Mål:', 'Target:')} {formatTime(targets[key])}
                       </span>
                       <span className="font-medium w-16 text-right" style={{ color: theme.colors.textPrimary }}>
                         {formatTime(time)}
@@ -358,26 +367,26 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle className="text-lg" style={{ color: theme.colors.textPrimary }}>Träningsfördelning</CardTitle>
+            <CardTitle className="text-lg" style={{ color: theme.colors.textPrimary }}>{text(locale, 'Träningsfördelning', 'Training distribution')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>Löppass</span>
-                <Badge variant="outline">{settings.runningSessionsPerWeek}/vecka</Badge>
+                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>{text(locale, 'Löppass', 'Run sessions')}</span>
+                <Badge variant="outline">{settings.runningSessionsPerWeek}/{text(locale, 'vecka', 'week')}</Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>Styrkepass</span>
-                <Badge variant="outline">{settings.strengthSessionsPerWeek}/vecka</Badge>
+                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>{text(locale, 'Styrkepass', 'Strength sessions')}</span>
+                <Badge variant="outline">{settings.strengthSessionsPerWeek}/{text(locale, 'vecka', 'week')}</Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>HYROX-specifikt</span>
-                <Badge variant="outline">{settings.hyroxSpecificSessionsPerWeek}/vecka</Badge>
+                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>{text(locale, 'HYROX-specifikt', 'HYROX-specific')}</span>
+                <Badge variant="outline">{settings.hyroxSpecificSessionsPerWeek}/{text(locale, 'vecka', 'week')}</Badge>
               </div>
               <div className="border-t pt-3 mt-3" style={{ borderColor: theme.colors.border }}>
                 <div className="flex justify-between items-center font-medium" style={{ color: theme.colors.textPrimary }}>
-                  <span>Total tid</span>
-                  <span>{settings.weeklyTrainingHours} tim/vecka</span>
+                  <span>{text(locale, 'Total tid', 'Total time')}</span>
+                  <span>{settings.weeklyTrainingHours} {text(locale, 'tim/vecka', 'h/week')}</span>
                 </div>
               </div>
             </div>
@@ -388,7 +397,7 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-5 w-5 text-green-500" />
-              Träningstips
+              {text(locale, 'Träningstips', 'Training tips')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -396,23 +405,23 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
               {settings.weakestStation && (
                 <li className="flex items-start gap-2">
                   <span className="text-orange-500">•</span>
-                  Fokusera extra på {STATION_LABELS[settings.weakestStation]} - din svagaste station
+                  {text(locale, 'Fokusera extra på', 'Focus extra on')} {STATION_LABELS[settings.weakestStation]?.[locale]} - {text(locale, 'din svagaste station', 'your weakest station')}
                 </li>
               )}
               {settings.currentWeeklyRunKm < 30 && (
                 <li className="flex items-start gap-2">
                   <span className="text-blue-500">•</span>
-                  Öka gradvis löpvolymen mot 30+ km/vecka för bättre uthållighet
+                  {text(locale, 'Öka gradvis löpvolymen mot 30+ km/vecka för bättre uthållighet', 'Gradually increase running volume toward 30+ km/week for better endurance')}
                 </li>
               )}
               <li className="flex items-start gap-2">
                 <span className="text-green-500">•</span>
-                Träna övergångar - simulera att växla mellan löpning och stationer
+                {text(locale, 'Träna övergångar - simulera att växla mellan löpning och stationer', 'Train transitions - simulate switching between running and stations')}
               </li>
               {settings.experienceLevel === 'beginner' && (
                 <li className="flex items-start gap-2">
                   <span className="text-purple-500">•</span>
-                  Prioritera teknik på alla stationer före fart
+                  {text(locale, 'Prioritera teknik på alla stationer före fart', 'Prioritize technique on every station before speed')}
                 </li>
               )}
             </ul>
@@ -438,14 +447,14 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
                 HYROX-format
               </h3>
               <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-                8 x 1km löpning med 8 funktionella stationer emellan:
+                {text(locale, '8 x 1km löpning med 8 funktionella stationer emellan:', '8 x 1km running with 8 functional stations between:')}
               </p>
               <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                 <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>1. SkiErg 1km</span>
                 <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>2. Sled Push 50m</span>
                 <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>3. Sled Pull 50m</span>
                 <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>4. Burpee BJ 80m</span>
-                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>5. Rodd 1km</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>5. {text(locale, 'Rodd', 'Row')} 1km</span>
                 <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>6. Farmers 200m</span>
                 <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>7. Lunges 100m</span>
                 <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>8. Wall Balls</span>
