@@ -69,7 +69,7 @@ function groupWeeksByPhase(weeks: WeekWithDays[]): Map<string, WeekWithDays[]> {
   const phaseMap = new Map<string, WeekWithDays[]>();
 
   for (const week of weeks) {
-    const phaseName = week.phase || 'Träning';
+    const phaseName = week.phase || 'Training';
     if (!phaseMap.has(phaseName)) {
       phaseMap.set(phaseName, []);
     }
