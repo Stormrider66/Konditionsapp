@@ -9,8 +9,9 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
-import { Play, Pause, RotateCcw, ArrowLeftRight, TrendingUp, TrendingDown, Minus, ChevronDown } from 'lucide-react'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale } from 'next-intl'
+import { Play, Pause, RotateCcw, ArrowLeftRight, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -40,10 +41,98 @@ interface VideoComparisonViewProps {
   title?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+const labels: Record<AppLocale, {
+  defaultTitle: string
+  notEnoughTitle: string
+  notEnoughDescription: string
+  description: string
+  pointsImprovement: string
+  points: string
+  noChange: string
+  before: string
+  after: string
+  chooseVideo: string
+  noVideoSelected: string
+  reset: string
+  pause: string
+  play: string
+  syncedPlayback: string
+  issuesDetected: string
+  high: string
+  medium: string
+  low: string
+  noIssues: string
+  summary: string
+  timePeriod: string
+  days: string
+  scoreChange: string
+  issuesResolved: string
+}> = {
+  en: {
+    defaultTitle: 'Video comparison',
+    notEnoughTitle: 'Not enough videos',
+    notEnoughDescription: 'Upload at least two video analyses to compare technique progress.',
+    description: 'Compare technique from different dates to see progress',
+    pointsImprovement: 'points improvement',
+    points: 'points',
+    noChange: 'No change',
+    before: 'Before (older)',
+    after: 'After (newer)',
+    chooseVideo: 'Choose video',
+    noVideoSelected: 'No video selected',
+    reset: 'Reset',
+    pause: 'Pause',
+    play: 'Play',
+    syncedPlayback: 'Synced playback',
+    issuesDetected: 'Issues detected',
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+    noIssues: 'No issues detected',
+    summary: 'Summary',
+    timePeriod: 'Time period',
+    days: 'days',
+    scoreChange: 'Score change',
+    issuesResolved: 'Issues resolved',
+  },
+  sv: {
+    defaultTitle: 'Videojamforelse',
+    notEnoughTitle: 'Inte tillrackligt med videor',
+    notEnoughDescription: 'Ladda upp minst tva videoanalyser for att kunna jamfora teknikutveckling.',
+    description: 'Jamfor teknik fran olika tidpunkter for att se utveckling',
+    pointsImprovement: 'poang forbattring',
+    points: 'poang',
+    noChange: 'Ingen forandring',
+    before: 'Fore (aldre)',
+    after: 'Efter (nyare)',
+    chooseVideo: 'Valj video',
+    noVideoSelected: 'Ingen video vald',
+    reset: 'Aterstall',
+    pause: 'Pausa',
+    play: 'Spela',
+    syncedPlayback: 'Synkad uppspelning',
+    issuesDetected: 'Problem identifierade',
+    high: 'Hog',
+    medium: 'Medel',
+    low: 'Lag',
+    noIssues: 'Inga problem identifierade',
+    summary: 'Sammanfattning',
+    timePeriod: 'Tidsperiod',
+    days: 'dagar',
+    scoreChange: 'Poangforandring',
+    issuesResolved: 'Problem lost',
+  },
+}
+
 export function VideoComparisonView({
   analyses,
-  title = 'Videojamforelse',
+  title,
 }: VideoComparisonViewProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = labels[locale]
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [leftVideoId, setLeftVideoId] = useState<string | null>(null)
   const [rightVideoId, setRightVideoId] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -69,6 +158,10 @@ export function VideoComparisonView({
 
   const leftVideo = sortedAnalyses.find((a) => a.id === leftVideoId)
   const rightVideo = sortedAnalyses.find((a) => a.id === rightVideoId)
+  const getExerciseName = (analysis: VideoAnalysis) =>
+    locale === 'sv'
+      ? analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType
+      : analysis.exercise?.name || analysis.videoType
 
   // Calculate improvement
   const improvement = useMemo(() => {
@@ -82,9 +175,9 @@ export function VideoComparisonView({
       leftVideoRef.current?.pause()
       rightVideoRef.current?.pause()
     } else {
-      leftVideoRef.current?.play()
+      void leftVideoRef.current?.play()
       if (syncPlayback) {
-        rightVideoRef.current?.play()
+        void rightVideoRef.current?.play()
       }
     }
     setIsPlaying(!isPlaying)
@@ -119,9 +212,9 @@ export function VideoComparisonView({
       <Card>
         <CardContent className="py-12 text-center">
           <ArrowLeftRight className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Inte tillrackligt med videor</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{copy.notEnoughTitle}</h3>
           <p className="text-gray-500">
-            Ladda upp minst tva videoanalyser for att kunna jamfora teknikutveckling.
+            {copy.notEnoughDescription}
           </p>
         </CardContent>
       </Card>
@@ -133,9 +226,9 @@ export function VideoComparisonView({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>{title}</CardTitle>
+            <CardTitle>{title ?? copy.defaultTitle}</CardTitle>
             <CardDescription>
-              Jamfor teknik fran olika tidpunkter for att se utveckling
+              {copy.description}
             </CardDescription>
           </div>
           {improvement !== null && (
@@ -151,17 +244,17 @@ export function VideoComparisonView({
               {improvement > 0 ? (
                 <>
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  +{improvement} poang forbattring
+                  +{improvement} {copy.pointsImprovement}
                 </>
               ) : improvement < 0 ? (
                 <>
                   <TrendingDown className="h-3 w-3 mr-1" />
-                  {improvement} poang
+                  {improvement} {copy.points}
                 </>
               ) : (
                 <>
                   <Minus className="h-3 w-3 mr-1" />
-                  Ingen forandring
+                  {copy.noChange}
                 </>
               )}
             </Badge>
@@ -173,17 +266,17 @@ export function VideoComparisonView({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-muted-foreground mb-2 block">
-              Fore (aldre)
+              {copy.before}
             </label>
             <Select value={leftVideoId || ''} onValueChange={setLeftVideoId}>
               <SelectTrigger>
-                <SelectValue placeholder="Valj video" />
+                <SelectValue placeholder={copy.chooseVideo} />
               </SelectTrigger>
               <SelectContent>
                 {sortedAnalyses.map((analysis) => (
                   <SelectItem key={analysis.id} value={analysis.id}>
-                    {format(new Date(analysis.createdAt), 'd MMM yyyy', { locale: sv })} -{' '}
-                    {analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType}
+                    {format(new Date(analysis.createdAt), 'd MMM yyyy', { locale: dateLocale })} -{' '}
+                    {getExerciseName(analysis)}
                     {analysis.formScore && ` (${analysis.formScore}/100)`}
                   </SelectItem>
                 ))}
@@ -192,17 +285,17 @@ export function VideoComparisonView({
           </div>
           <div>
             <label className="text-sm font-medium text-muted-foreground mb-2 block">
-              Efter (nyare)
+              {copy.after}
             </label>
             <Select value={rightVideoId || ''} onValueChange={setRightVideoId}>
               <SelectTrigger>
-                <SelectValue placeholder="Valj video" />
+                <SelectValue placeholder={copy.chooseVideo} />
               </SelectTrigger>
               <SelectContent>
                 {sortedAnalyses.map((analysis) => (
                   <SelectItem key={analysis.id} value={analysis.id}>
-                    {format(new Date(analysis.createdAt), 'd MMM yyyy', { locale: sv })} -{' '}
-                    {analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType}
+                    {format(new Date(analysis.createdAt), 'd MMM yyyy', { locale: dateLocale })} -{' '}
+                    {getExerciseName(analysis)}
                     {analysis.formScore && ` (${analysis.formScore}/100)`}
                   </SelectItem>
                 ))}
@@ -227,7 +320,7 @@ export function VideoComparisonView({
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-500">
-                  Ingen video vald
+                  {copy.noVideoSelected}
                 </div>
               )}
             </div>
@@ -235,10 +328,10 @@ export function VideoComparisonView({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-sm">
-                    {format(new Date(leftVideo.createdAt), 'd MMMM yyyy', { locale: sv })}
+                    {format(new Date(leftVideo.createdAt), 'd MMMM yyyy', { locale: dateLocale })}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {leftVideo.exercise?.nameSv || leftVideo.exercise?.name || leftVideo.videoType}
+                    {getExerciseName(leftVideo)}
                   </p>
                 </div>
                 {leftVideo.formScore !== null && (
@@ -273,7 +366,7 @@ export function VideoComparisonView({
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-500">
-                  Ingen video vald
+                  {copy.noVideoSelected}
                 </div>
               )}
             </div>
@@ -281,10 +374,10 @@ export function VideoComparisonView({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-sm">
-                    {format(new Date(rightVideo.createdAt), 'd MMMM yyyy', { locale: sv })}
+                    {format(new Date(rightVideo.createdAt), 'd MMMM yyyy', { locale: dateLocale })}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {rightVideo.exercise?.nameSv || rightVideo.exercise?.name || rightVideo.videoType}
+                    {getExerciseName(rightVideo)}
                   </p>
                 </div>
                 {rightVideo.formScore !== null && (
@@ -310,18 +403,18 @@ export function VideoComparisonView({
         <div className="flex items-center justify-center gap-4">
           <Button variant="outline" size="sm" onClick={handleReset}>
             <RotateCcw className="h-4 w-4 mr-2" />
-            Aterstall
+            {copy.reset}
           </Button>
           <Button onClick={handlePlayPause} disabled={!leftVideo?.videoUrl || !rightVideo?.videoUrl}>
             {isPlaying ? (
               <>
                 <Pause className="h-4 w-4 mr-2" />
-                Pausa
+                {copy.pause}
               </>
             ) : (
               <>
                 <Play className="h-4 w-4 mr-2" />
-                Spela
+                {copy.play}
               </>
             )}
           </Button>
@@ -331,7 +424,7 @@ export function VideoComparisonView({
             onClick={() => setSyncPlayback(!syncPlayback)}
           >
             <ArrowLeftRight className="h-4 w-4 mr-2" />
-            Synkad uppspelning
+            {copy.syncedPlayback}
           </Button>
         </div>
 
@@ -340,7 +433,7 @@ export function VideoComparisonView({
           <div className="grid grid-cols-2 gap-4 pt-4 border-t">
             {/* Left Video Details */}
             <div className="space-y-3">
-              <h4 className="font-medium text-sm text-muted-foreground">Problem identifierade</h4>
+              <h4 className="font-medium text-sm text-muted-foreground">{copy.issuesDetected}</h4>
               {leftVideo.issuesDetected && leftVideo.issuesDetected.length > 0 ? (
                 <ul className="space-y-1">
                   {leftVideo.issuesDetected.slice(0, 3).map((issue, idx) => (
@@ -355,20 +448,20 @@ export function VideoComparisonView({
                             : 'border-gray-300'
                         }
                       >
-                        {issue.severity === 'HIGH' ? 'Hog' : issue.severity === 'MEDIUM' ? 'Medel' : 'Lag'}
+                        {issue.severity === 'HIGH' ? copy.high : issue.severity === 'MEDIUM' ? copy.medium : copy.low}
                       </Badge>
                       <span className="text-gray-700">{issue.issue}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500">Inga problem identifierade</p>
+                <p className="text-sm text-gray-500">{copy.noIssues}</p>
               )}
             </div>
 
             {/* Right Video Details */}
             <div className="space-y-3">
-              <h4 className="font-medium text-sm text-muted-foreground">Problem identifierade</h4>
+              <h4 className="font-medium text-sm text-muted-foreground">{copy.issuesDetected}</h4>
               {rightVideo.issuesDetected && rightVideo.issuesDetected.length > 0 ? (
                 <ul className="space-y-1">
                   {rightVideo.issuesDetected.slice(0, 3).map((issue, idx) => (
@@ -383,14 +476,14 @@ export function VideoComparisonView({
                             : 'border-gray-300'
                         }
                       >
-                        {issue.severity === 'HIGH' ? 'Hog' : issue.severity === 'MEDIUM' ? 'Medel' : 'Lag'}
+                        {issue.severity === 'HIGH' ? copy.high : issue.severity === 'MEDIUM' ? copy.medium : copy.low}
                       </Badge>
                       <span className="text-gray-700">{issue.issue}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500">Inga problem identifierade</p>
+                <p className="text-sm text-gray-500">{copy.noIssues}</p>
               )}
             </div>
           </div>
@@ -399,31 +492,31 @@ export function VideoComparisonView({
         {/* Improvement Summary */}
         {leftVideo && rightVideo && improvement !== null && (
           <div className="p-4 rounded-lg bg-gray-50">
-            <h4 className="font-medium mb-2">Sammanfattning</h4>
+            <h4 className="font-medium mb-2">{copy.summary}</h4>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-xs text-muted-foreground">Tidsperiod</p>
+                <p className="text-xs text-muted-foreground">{copy.timePeriod}</p>
                 <p className="font-medium">
                   {Math.round(
                     (new Date(rightVideo.createdAt).getTime() - new Date(leftVideo.createdAt).getTime()) /
                       (1000 * 60 * 60 * 24)
                   )}{' '}
-                  dagar
+                  {copy.days}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Poangforandring</p>
+                <p className="text-xs text-muted-foreground">{copy.scoreChange}</p>
                 <p
                   className={`font-medium ${
                     improvement > 0 ? 'text-green-600' : improvement < 0 ? 'text-red-600' : ''
                   }`}
                 >
                   {improvement > 0 ? '+' : ''}
-                  {improvement} poang
+                  {improvement} {copy.points}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Problem lost</p>
+                <p className="text-xs text-muted-foreground">{copy.issuesResolved}</p>
                 <p className="font-medium">
                   {Math.max(
                     0,
