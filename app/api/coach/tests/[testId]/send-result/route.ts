@@ -37,7 +37,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const parsed = bodySchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid body', details: parsed.error.flatten() },
+        {
+          success: false,
+          error: t(locale, 'Invalid request body', 'Ogiltig begäran'),
+          details: parsed.error.flatten(),
+        },
         { status: 400 },
       )
     }
