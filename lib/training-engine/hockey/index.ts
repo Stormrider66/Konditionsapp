@@ -12,6 +12,8 @@ export {
   getSeasonPhaseTraining,
   calculateTrainingLoad,
   getInjuryPreventionExercises,
+  translateHockeyText,
+  translateHockeyList,
 } from './position-training';
 
 export type {
@@ -23,4 +25,5 @@ export type {
   WeeklyTrainingTemplate,
   DayPlan,
   SessionPlan,
+  HockeyLocale,
 } from './position-training';

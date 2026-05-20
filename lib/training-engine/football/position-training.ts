@@ -61,6 +61,245 @@ export interface MatchdayProtocol {
   mdPlus2: string;
 }
 
+export type FootballLocale = 'en' | 'sv';
+
+const getFootballLocale = (locale: string): FootballLocale => (locale === 'sv' ? 'sv' : 'en');
+
+const FOOTBALL_TRANSLATIONS: Record<string, string> = {
+  'Specialist med fokus på reflexer, positionering och bollhantering. Kräver explosivitet och mental styrka.': 'Specialist focused on reflexes, positioning, and ball handling. Requires explosiveness and mental strength.',
+  'Explosiv lateral rörelse': 'Explosive lateral movement',
+  'Vertikal hoppkraft': 'Vertical jump power',
+  'Reaktionsförmåga': 'Reaction ability',
+  'Mental fokus och koncentration': 'Mental focus and concentration',
+  'Flexibilitet och rörlighet': 'Flexibility and mobility',
+  'Explosiv benkraft': 'Explosive leg power',
+  'Core-stabilitet': 'Core stability',
+  'Axel- och armstyrka': 'Shoulder and arm strength',
+  'Handstyrka och grepp': 'Hand strength and grip',
+  'Korta explosiva intervaller': 'Short explosive intervals',
+  'Reaktionsträning': 'Reaction training',
+  'Uthållighet för hela matcher': 'Endurance for full matches',
+  'Axelskador': 'Shoulder injuries',
+  'Handledsskador': 'Wrist injuries',
+  'Knäskador (ACL/menisk)': 'Knee injuries (ACL/meniscus)',
+  'Höftflexor': 'Hip flexor',
+  'Ryggproblem': 'Back problems',
+  'Explosiv vertikal kraft': 'Explosive vertical power',
+  'Lateral explosivitet': 'Lateral explosiveness',
+  'Utkastsstyrka': 'Throwing strength',
+  'Balans och hamstrings': 'Balance and hamstrings',
+  '30-45 sek': '30-45 sec',
+  '2-3x/vecka': '2-3x/week',
+  'Vertikalt hopp': 'Vertical jump',
+  'Reaktionstidstest': 'Reaction time test',
+  'Defensiv spelare med fokus på positionering, duellstyrka och speluppbyggnad. Kräver uthållighet och fysisk styrka.': 'Defensive player focused on positioning, duel strength, and build-up play. Requires endurance and physical strength.',
+  'Hög aerob kapacitet': 'High aerobic capacity',
+  'Duellstyrka i luften och på marken': 'Duel strength in the air and on the ground',
+  'Acceleration och dekceleration': 'Acceleration and deceleration',
+  'Positioneringsförmåga': 'Positioning ability',
+  'Bollspel och speluppbyggnad': 'Ball play and build-up play',
+  'Benstyrka för hopp': 'Leg strength for jumping',
+  'Core för stabilitet': 'Core for stability',
+  'Aerob uthållighet': 'Aerobic endurance',
+  'Hamstringsskador': 'Hamstring injuries',
+  'Ljumskskador': 'Groin injuries',
+  'Fotledsskador': 'Ankle injuries',
+  'Knäskador': 'Knee injuries',
+  'Huvudskador (nickar)': 'Head injuries (headers)',
+  'Helkroppsstyrka': 'Full-body strength',
+  'Unilateral benstyrka': 'Unilateral leg strength',
+  'Hamstring excentriskt': 'Eccentric hamstring strength',
+  'Överkroppsstyrka': 'Upper-body strength',
+  'Adduktorstyrka': 'Adductor strength',
+  '20 sek/sida': '20 sec/side',
+  'Vertikalt hopp (CMJ)': 'Vertical jump (CMJ)',
+  'Box-to-box spelare med högst fysiska krav. Ansvarar för både defensivt och offensivt spel med mycket löpning.': 'Box-to-box player with the highest physical demands. Responsible for both defensive and attacking play with heavy running volume.',
+  'Högsta aeroba kapaciteten': 'Highest aerobic capacity',
+  'Mest löpdistans per match': 'Highest running distance per match',
+  'Snabba riktningsförändringar': 'Fast changes of direction',
+  'Uthållighet för 90+ minuter': 'Endurance for 90+ minutes',
+  'Uthållighetsstyrka': 'Strength endurance',
+  'Core-stabilitet för dueller': 'Core stability for duels',
+  'Benstyrka för löpning': 'Leg strength for running',
+  'Skottsstyrka': 'Shooting power',
+  'Maximal aerob kapacitet': 'Maximum aerobic capacity',
+  'Hög-intensiva intervaller': 'High-intensity intervals',
+  'Snabb återhämtning': 'Fast recovery',
+  'Hamstringsskador (vanligast)': 'Hamstring injuries (most common)',
+  'Överbelastningsskador': 'Overuse injuries',
+  'Gluteal styrka för sprint': 'Glute strength for sprinting',
+  'Kondition + styrka': 'Conditioning + strength',
+  'Core-rotation för skott': 'Core rotation for shooting',
+  '8/sida': '8/side',
+  'Aerob kapacitet': 'Aerobic capacity',
+  'Offensiv spelare med fokus på målskytte och assistspel. Kräver maximal sprintförmåga och explosivitet.': 'Attacking player focused on scoring and assisting. Requires maximum sprint ability and explosiveness.',
+  'Maximal sprintförmåga': 'Maximum sprint ability',
+  'Explosiv acceleration': 'Explosive acceleration',
+  'Skottstyrka': 'Shooting power',
+  'Hoppkraft för nickdueller': 'Jump power for aerial duels',
+  'Duellstyrka med försvarare': 'Duel strength against defenders',
+  'Sprintaccelerration': 'Sprint acceleration',
+  'Skottstyrka (rotation)': 'Shooting power (rotation)',
+  'Överkroppsstyrka för dueller': 'Upper-body strength for duels',
+  'Sprint-uthållighet': 'Sprint endurance',
+  'Anaerob kapacitet': 'Anaerobic capacity',
+  'Hamstringsskador (hög risk vid sprint)': 'Hamstring injuries (high sprint risk)',
+  'Quadriceps-skador': 'Quadriceps injuries',
+  'Muskelfiber-skador': 'Muscle fiber injuries',
+  'Explosiv kraft': 'Explosive power',
+  'Maxstyrka ben': 'Maximum leg strength',
+  '10-40m max sprint': '10-40m max sprint',
+  'Vertikal explosivitet': 'Vertical explosiveness',
+  'Rotationsstyrka för skott': 'Rotational strength for shooting',
+  '10/sida': '10/side',
+  'Sprint-rörlighet': 'Sprint mobility',
+  'Dagligen': 'Daily',
+  '4-6 veckor (juni-juli)': '4-6 weeks (June-July)',
+  'Bygga aerob baskapacitet': 'Build aerobic base capacity',
+  'Maxstyrka och hypertrofi': 'Maximum strength and hypertrophy',
+  'Åtgärda skador och obalanser': 'Address injuries and imbalances',
+  'Mental vila': 'Mental rest',
+  'Maxstyrka': 'Maximum strength',
+  'Hypertrofi': 'Hypertrophy',
+  'Obalanser': 'Imbalances',
+  'Rörlighet': 'Mobility',
+  'Aerob bas (löpning)': 'Aerobic base (running)',
+  'Cross-training': 'Cross-training',
+  'Låg-intensiv intervall': 'Low-intensity interval training',
+  'Styrkepass (hög volym)': 'Strength session (high volume)',
+  'Konditionspass': 'Conditioning session',
+  'Teknisk träning': 'Technical training',
+  'Vila eller lätt aktivitet': 'Rest or light activity',
+  'Ingen match': 'No match',
+  'Aktiv återhämtning': 'Active recovery',
+  'Styrkepass': 'Strength session',
+  '4-6 veckor (juli-augusti)': '4-6 weeks (July-August)',
+  'Fotbollsspecifik kondition': 'Football-specific conditioning',
+  'Explosivitet och power': 'Explosiveness and power',
+  'Taktisk inlärning': 'Tactical learning',
+  'Höja anaerob kapacitet': 'Increase anaerobic capacity',
+  'Explosivitet': 'Explosiveness',
+  'Skadeförebyggande': 'Injury prevention',
+  'Small-sided games': 'Small-sided games',
+  'Sprint-träning': 'Sprint training',
+  'Hög-intensiv träning': 'High-intensity training',
+  'Taktik + kondition': 'Tactics + conditioning',
+  'Medel intensitet': 'Moderate intensity',
+  'Aktivering': 'Activation',
+  'Träningsmatch': 'Friendly match',
+  'Analys + styrka': 'Analysis + strength',
+  'Augusti-maj (10 månader)': 'August-May (10 months)',
+  'Underhålla fysisk kapacitet': 'Maintain physical capacity',
+  'Optimal återhämtning': 'Optimal recovery',
+  'Matchförberedelse': 'Match preparation',
+  'Underhåll': 'Maintenance',
+  'Underhåll via matcher': 'Maintenance through matches',
+  'Kompletterande intervaller': 'Supplemental intervals',
+  'Hög intensitet, lägre volym': 'High intensity, lower volume',
+  'Taktik + set pieces': 'Tactics + set pieces',
+  'Reducerad volym': 'Reduced volume',
+  'Aktivering + taktik': 'Activation + tactics',
+  'Aktiv återhämtning (de som spelade)': 'Active recovery (players who played)',
+  'Styrka (de som inte spelade) + lätt för startande': 'Strength (players who did not play) + light work for starters',
+  'Slutspel/avgörande matcher': 'Playoffs/decisive matches',
+  'Maximal återhämtning': 'Maximum recovery',
+  'Mental förberedelse': 'Mental preparation',
+  'Underhålla toppform': 'Maintain peak form',
+  'Minimera skaderisk': 'Minimize injury risk',
+  'Mobilitet': 'Mobility',
+  'Taktik': 'Tactics',
+  'Lätt träning': 'Light training',
+  'Aktivering endast': 'Activation only',
+  'Återhämtning prioritet': 'Recovery priority',
+  'Lätt aktivering': 'Light activation',
+  'Hög belastning - prioritera återhämtning': 'High load - prioritize recovery',
+  'Reducera träningsvolym nästa dag': 'Reduce training volume the next day',
+  'Överväg extra vila eller lätt pass': 'Consider extra rest or a light session',
+  'Måttlig belastning - normal återhämtning': 'Moderate load - normal recovery',
+  'Undvik högintensiv träning dagen efter': 'Avoid high-intensity training the following day',
+  'Normal belastning': 'Normal load',
+  'Kan genomföra planerad träning': 'Can complete planned training',
+  'Låg belastning - kan öka intensiteten': 'Low load - intensity can increase',
+  'Överväg kompletterande konditionsträning': 'Consider supplemental conditioning',
+  'Otillräcklig data för ACWR-beräkning': 'Insufficient data for ACWR calculation',
+  'Belastningen är för låg - öka träningsvolymen gradvis': 'Load is too low - gradually increase training volume',
+  'Optimal belastningsbalans - fortsätt nuvarande plan': 'Optimal workload balance - continue the current plan',
+  'Varning: Hög akut belastning - var uppmärksam på skaderisk': 'Warning: high acute load - monitor injury risk closely',
+  'Fara: Mycket hög skaderisk - reducera belastningen omedelbart': 'Danger: very high injury risk - reduce load immediately',
+  'Hamstring excentriskt - #1 skadeförebyggande': 'Eccentric hamstring strength - #1 injury prevention exercise',
+  'Adduktorstyrka - ljumskförebyggande': 'Adductor strength - groin injury prevention',
+  'Gluteal aktivering': 'Glute activation',
+  'Komplett uppvärmningsprogram': 'Complete warm-up program',
+  'Före varje träning': 'Before every training session',
+  'Rotatorkuff-styrka': 'Rotator cuff strength',
+  'Höftrörlighet för kast': 'Hip mobility for throwing',
+  'Nackstyrka för nickdueller': 'Neck strength for aerial duels',
+  'Landningsteknik': 'Landing mechanics',
+  '2x/vecka': '2x/week',
+  'Mot överbelastning': 'For overuse prevention',
+  'Achilles-förebyggande': 'Achilles injury prevention',
+  'Dynamisk uppvärmning': 'Dynamic warm-up',
+  'Före sprint-träning': 'Before sprint training',
+  'Extra hamstring-fokus': 'Extra hamstring focus',
+};
+
+export function translateFootballText(locale: string, value: string): string {
+  return getFootballLocale(locale) === 'sv' ? value : FOOTBALL_TRANSLATIONS[value] || value;
+}
+
+export function translateFootballList(locale: string, values: string[]): string[] {
+  return values.map((value) => translateFootballText(locale, value));
+}
+
+function translateFootballExercise(locale: string, exercise: ExerciseRecommendation): ExerciseRecommendation {
+  return {
+    ...exercise,
+    description: translateFootballText(locale, exercise.description),
+    sets: exercise.sets ? translateFootballText(locale, exercise.sets) : exercise.sets,
+    reps: exercise.reps ? translateFootballText(locale, exercise.reps) : exercise.reps,
+    intensity: exercise.intensity ? translateFootballText(locale, exercise.intensity) : exercise.intensity,
+    frequency: exercise.frequency ? translateFootballText(locale, exercise.frequency) : exercise.frequency,
+  };
+}
+
+function translateFootballProfile(locale: string, profile: PositionProfile): PositionProfile {
+  return {
+    ...profile,
+    description: translateFootballText(locale, profile.description),
+    physicalDemands: translateFootballList(locale, profile.physicalDemands),
+    primaryStrengthFocus: translateFootballList(locale, profile.primaryStrengthFocus),
+    primaryConditioningFocus: translateFootballList(locale, profile.primaryConditioningFocus),
+    commonInjuryRisks: translateFootballList(locale, profile.commonInjuryRisks),
+    keyExercises: profile.keyExercises.map((exercise) => translateFootballExercise(locale, exercise)),
+    recommendedTestProtocols: translateFootballList(locale, profile.recommendedTestProtocols),
+  };
+}
+
+function translateFootballSeasonPhase(locale: string, phase: SeasonPhaseTraining): SeasonPhaseTraining {
+  return {
+    ...phase,
+    duration: translateFootballText(locale, phase.duration),
+    primaryGoals: translateFootballList(locale, phase.primaryGoals),
+    strengthFocus: {
+      ...phase.strengthFocus,
+      focusAreas: translateFootballList(locale, phase.strengthFocus.focusAreas),
+    },
+    conditioningFocus: {
+      ...phase.conditioningFocus,
+      type: translateFootballList(locale, phase.conditioningFocus.type),
+    },
+    matchdayProtocol: {
+      mdMinus4: translateFootballText(locale, phase.matchdayProtocol.mdMinus4),
+      mdMinus3: translateFootballText(locale, phase.matchdayProtocol.mdMinus3),
+      mdMinus2: translateFootballText(locale, phase.matchdayProtocol.mdMinus2),
+      mdMinus1: translateFootballText(locale, phase.matchdayProtocol.mdMinus1),
+      matchday: translateFootballText(locale, phase.matchdayProtocol.matchday),
+      mdPlus1: translateFootballText(locale, phase.matchdayProtocol.mdPlus1),
+      mdPlus2: translateFootballText(locale, phase.matchdayProtocol.mdPlus2),
+    },
+  };
+}
+
 // ==================== POSITION PROFILES ====================
 
 export const FOOTBALL_POSITION_PROFILES: Record<FootballPosition, PositionProfile> = {
@@ -429,15 +668,15 @@ export const GPS_LOAD_THRESHOLDS: Record<FootballPosition, GPSLoadThresholds> = 
 /**
  * Get position-specific training recommendations
  */
-export function getPositionRecommendations(position: FootballPosition): PositionProfile {
-  return FOOTBALL_POSITION_PROFILES[position];
+export function getPositionRecommendations(position: FootballPosition, locale: string = 'en'): PositionProfile {
+  return translateFootballProfile(locale, FOOTBALL_POSITION_PROFILES[position]);
 }
 
 /**
  * Get season phase training guidelines
  */
-export function getSeasonPhaseTraining(phase: SeasonPhase): SeasonPhaseTraining {
-  return FOOTBALL_SEASON_PHASES[phase];
+export function getSeasonPhaseTraining(phase: SeasonPhase, locale: string = 'en'): SeasonPhaseTraining {
+  return translateFootballSeasonPhase(locale, FOOTBALL_SEASON_PHASES[phase]);
 }
 
 /**
@@ -451,7 +690,8 @@ export function calculateGPSLoadStatus(
     sprintDistanceM: number;
     accelerations: number;
     decelerations: number;
-  }
+  },
+  locale: string = 'en',
 ): {
   overall: 'low' | 'moderate' | 'high' | 'very_high';
   metrics: Record<string, { value: number; status: string }>;
@@ -510,18 +750,18 @@ export function calculateGPSLoadStatus(
   // Generate recommendations
   const recommendations: string[] = [];
   if (overall === 'very_high') {
-    recommendations.push('Hög belastning - prioritera återhämtning');
-    recommendations.push('Reducera träningsvolym nästa dag');
-    recommendations.push('Överväg extra vila eller lätt pass');
+    recommendations.push(translateFootballText(locale, 'Hög belastning - prioritera återhämtning'));
+    recommendations.push(translateFootballText(locale, 'Reducera träningsvolym nästa dag'));
+    recommendations.push(translateFootballText(locale, 'Överväg extra vila eller lätt pass'));
   } else if (overall === 'high') {
-    recommendations.push('Måttlig belastning - normal återhämtning');
-    recommendations.push('Undvik högintensiv träning dagen efter');
+    recommendations.push(translateFootballText(locale, 'Måttlig belastning - normal återhämtning'));
+    recommendations.push(translateFootballText(locale, 'Undvik högintensiv träning dagen efter'));
   } else if (overall === 'moderate') {
-    recommendations.push('Normal belastning');
-    recommendations.push('Kan genomföra planerad träning');
+    recommendations.push(translateFootballText(locale, 'Normal belastning'));
+    recommendations.push(translateFootballText(locale, 'Kan genomföra planerad träning'));
   } else {
-    recommendations.push('Låg belastning - kan öka intensiteten');
-    recommendations.push('Överväg kompletterande konditionsträning');
+    recommendations.push(translateFootballText(locale, 'Låg belastning - kan öka intensiteten'));
+    recommendations.push(translateFootballText(locale, 'Överväg kompletterande konditionsträning'));
   }
 
   return { overall, metrics, recommendations };
@@ -532,6 +772,7 @@ export function calculateGPSLoadStatus(
  */
 export function calculateACWR(
   weeklyLoads: number[], // Last 4 weeks, newest first
+  locale: string = 'en',
 ): {
   ratio: number;
   zone: 'undertraining' | 'optimal' | 'caution' | 'danger';
@@ -541,7 +782,7 @@ export function calculateACWR(
     return {
       ratio: 1.0,
       zone: 'optimal',
-      recommendation: 'Otillräcklig data för ACWR-beräkning',
+      recommendation: translateFootballText(locale, 'Otillräcklig data för ACWR-beräkning'),
     };
   }
 
@@ -554,16 +795,16 @@ export function calculateACWR(
 
   if (ratio < 0.8) {
     zone = 'undertraining';
-    recommendation = 'Belastningen är för låg - öka träningsvolymen gradvis';
+    recommendation = translateFootballText(locale, 'Belastningen är för låg - öka träningsvolymen gradvis');
   } else if (ratio <= 1.3) {
     zone = 'optimal';
-    recommendation = 'Optimal belastningsbalans - fortsätt nuvarande plan';
+    recommendation = translateFootballText(locale, 'Optimal belastningsbalans - fortsätt nuvarande plan');
   } else if (ratio <= 1.5) {
     zone = 'caution';
-    recommendation = 'Varning: Hög akut belastning - var uppmärksam på skaderisk';
+    recommendation = translateFootballText(locale, 'Varning: Hög akut belastning - var uppmärksam på skaderisk');
   } else {
     zone = 'danger';
-    recommendation = 'Fara: Mycket hög skaderisk - reducera belastningen omedelbart';
+    recommendation = translateFootballText(locale, 'Fara: Mycket hög skaderisk - reducera belastningen omedelbart');
   }
 
   return { ratio: Math.round(ratio * 100) / 100, zone, recommendation };
@@ -572,7 +813,7 @@ export function calculateACWR(
 /**
  * Generate injury prevention exercises for position
  */
-export function getInjuryPreventionExercises(position: FootballPosition): ExerciseRecommendation[] {
+export function getInjuryPreventionExercises(position: FootballPosition, locale: string = 'en'): ExerciseRecommendation[] {
   const commonExercises: ExerciseRecommendation[] = [
     { name: 'Nordic Hamstring Curl', category: 'strength', description: 'Hamstring excentriskt - #1 skadeförebyggande', sets: '3', reps: '5-8' },
     { name: 'Copenhagen Plank', category: 'strength', description: 'Adduktorstyrka - ljumskförebyggande', sets: '3', reps: '15-20 sek/sida' },
@@ -599,7 +840,7 @@ export function getInjuryPreventionExercises(position: FootballPosition): Exerci
     ],
   };
 
-  return [...commonExercises, ...(positionSpecific[position] || [])];
+  return [...commonExercises, ...(positionSpecific[position] || [])].map((exercise) => translateFootballExercise(locale, exercise));
 }
 
 const footballTrainingModule = {
@@ -611,6 +852,8 @@ const footballTrainingModule = {
   calculateGPSLoadStatus,
   calculateACWR,
   getInjuryPreventionExercises,
+  translateFootballText,
+  translateFootballList,
 };
 
 export default footballTrainingModule;

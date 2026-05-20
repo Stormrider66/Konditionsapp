@@ -49,6 +49,241 @@ export interface SeasonPhaseTraining {
   avoidActivities: string[];
 }
 
+export type HockeyLocale = 'en' | 'sv';
+
+const getHockeyLocale = (locale: string): HockeyLocale => (locale === 'sv' ? 'sv' : 'en');
+
+const HOCKEY_TRANSLATIONS: Record<string, string> = {
+  'Tvåvägsspelare med ansvar i båda zonerna. Spelar tekningar, backcheckar aktivt, och driver offensivt spel.': 'Two-way player responsible in both zones. Takes faceoffs, backchecks actively, and drives offensive play.',
+  'Hög aerob kapacitet för kontinuerligt spel': 'High aerobic capacity for continuous play',
+  'Explosiv acceleration för tekningar och breakaways': 'Explosive acceleration for faceoffs and breakaways',
+  'Styrka i överkroppen för tekningar och dueller': 'Upper-body strength for faceoffs and battles',
+  'Snabb riktningsförändring': 'Fast change of direction',
+  'Mental uthållighet för spel i alla zoner': 'Mental endurance for play in all zones',
+  'Core-stabilitet för tekningar': 'Core stability for faceoffs',
+  'Överkroppsstyrka för dueller': 'Upper-body strength for battles',
+  'Benstyrka för acceleration': 'Leg strength for acceleration',
+  'Rotationsstyrka för skott': 'Rotational strength for shooting',
+  'Intervalltolerans (30-60 sek byten)': 'Interval tolerance (30-60 sec shifts)',
+  'Aerob baskapacitet': 'Aerobic base capacity',
+  'Sprint-uthållighet': 'Sprint endurance',
+  'Snabb återhämtning mellan byten': 'Fast recovery between shifts',
+  'Ljumskskador': 'Groin injuries',
+  'Höftflexor-problematik': 'Hip flexor issues',
+  'Axelskador från kollisioner': 'Shoulder injuries from collisions',
+  'Handleds-/handskador från tekningar': 'Wrist/hand injuries from faceoffs',
+  'Rotationsstyrka för tekningar och skott': 'Rotational strength for faceoffs and shooting',
+  'Helkroppsstyrka och acceleration': 'Full-body strength and acceleration',
+  'Anti-rotation core-styrka': 'Anti-rotation core strength',
+  'Unilateral benstyrka': 'Unilateral leg strength',
+  'Explosiv kraft': 'Explosive power',
+  '30/30 sek arbete/vila': '30/30 sec work/rest',
+  'intervaller': 'intervals',
+  'Vertikalt hopp': 'Vertical jump',
+  'Offensiv spelare med fokus på målskytte och playmaking. Kräver hög toppfart och skottechnik.': 'Offensive player focused on scoring and playmaking. Requires high top speed and shooting technique.',
+  'Maximal sprintkapacitet': 'Maximum sprint capacity',
+  'Explosiv skottstyrka': 'Explosive shooting power',
+  'Kvickhet i trånga utrymmen': 'Quickness in tight spaces',
+  'Uthållighet för forecheck': 'Endurance for forechecking',
+  'Skottstyrka (rotation och handleder)': 'Shooting power (rotation and wrists)',
+  'Explosiv benkraft': 'Explosive leg power',
+  'Handleds-/underarmsstyrka': 'Wrist/forearm strength',
+  'Sprint-återhämtning': 'Sprint recovery',
+  'Anaerob kapacitet': 'Anaerobic capacity',
+  'Acceleration/dekceleration': 'Acceleration/deceleration',
+  'Hamstringsskador': 'Hamstring injuries',
+  'Handledsskador': 'Wrist injuries',
+  'Axelskador från kroppscheck': 'Shoulder injuries from body checks',
+  'Explosiv rotationskraft för skott': 'Explosive rotational power for shooting',
+  'Explosiv acceleration': 'Explosive acceleration',
+  'Hamstring och balans': 'Hamstring strength and balance',
+  'Sidorörelse och explosivitet': 'Lateral movement and explosiveness',
+  '10-20 sek max, 40-60 sek vila': '10-20 sec max, 40-60 sec rest',
+  'Lateralt hopp': 'Lateral jump',
+  'Defensiv ankare med fokus på positionering, fysiskt spel och puckflytt. Längre istid kräver hög uthållighet.': 'Defensive anchor focused on positioning, physical play, and puck movement. Longer ice time requires high endurance.',
+  'Hög aerob kapacitet för långa byten': 'High aerobic capacity for long shifts',
+  'Stark baklängesåkning': 'Strong backward skating',
+  'Fysisk styrka för dueller': 'Physical strength for battles',
+  'Skottprecision och kraft från blålinjen': 'Shot precision and power from the blue line',
+  'Snabb vändning och pivotering': 'Fast turns and pivots',
+  'Överkroppsstyrka för dueller i hörn': 'Upper-body strength for corner battles',
+  'Core-stabilitet för balans': 'Core stability for balance',
+  'Gluteal och höftstyrka': 'Glute and hip strength',
+  'Axelstyrka och stabilitet': 'Shoulder strength and stability',
+  'Aerob uthållighet för längre byten': 'Aerobic endurance for longer shifts',
+  'Återhämtning mellan intensiva moment': 'Recovery between intense efforts',
+  'Baklänges-skridskospecifik kondition': 'Backward-skating-specific conditioning',
+  'Höftimpingement': 'Hip impingement',
+  'Axelskador': 'Shoulder injuries',
+  'Knäskador (MCL/ACL)': 'Knee injuries (MCL/ACL)',
+  'Ryggproblem': 'Back problems',
+  'Lateral rörlighet och styrka': 'Lateral mobility and strength',
+  'Axelstabilitet och hållning': 'Shoulder stability and posture',
+  'Höftrörlighet': 'Hip mobility',
+  'Dagligen': 'Daily',
+  'Adduktorstyrka för skadeförebyggande': 'Adductor strength for injury prevention',
+  'Aerob bas, 20-30 min steady state': 'Aerobic base, 20-30 min steady state',
+  'Specialist med unika krav på reaktionsförmåga, flexibilitet och mental fokus. Korta explosiva rörelser.': 'Specialist with unique demands for reaction ability, flexibility, and mental focus. Short explosive movements.',
+  'Extrem höftflexibilitet (butterfly)': 'Extreme hip flexibility (butterfly)',
+  'Explosiv lateral kraft': 'Explosive lateral power',
+  'Snabb reaktionsförmåga': 'Fast reaction ability',
+  'Core-stabilitet i alla positioner': 'Core stability in all positions',
+  'Mental uthållighet och fokus': 'Mental endurance and focus',
+  'Höft- och glutealstyrka': 'Hip and glute strength',
+  'Quadriceps för butterfly-push': 'Quadriceps for butterfly push',
+  'Core-stabilitet i roterade positioner': 'Core stability in rotated positions',
+  'Korta explosiva intervaller': 'Short explosive intervals',
+  'Reaktionsträning': 'Reaction training',
+  'Mental kondition': 'Mental conditioning',
+  'Höftflexor-tendinopati': 'Hip flexor tendinopathy',
+  'Knäskador (menisk, patella)': 'Knee injuries (meniscus, patella)',
+  'Höftlabrum-skador': 'Hip labrum injuries',
+  'Rygg-/bålskador': 'Back/trunk injuries',
+  'Höftrörlighet i butterfly-position': 'Hip mobility in butterfly position',
+  'Lateral push-kraft': 'Lateral push power',
+  '30 sek': '30 sec',
+  'Djup huk med god teknik': 'Deep squat with good technique',
+  'Core-kontroll': 'Core control',
+  'Gluteus medius aktivering': 'Gluteus medius activation',
+  'Reaktionstid och handkoordination': 'Reaction time and hand coordination',
+  'minuter': 'minutes',
+  '8-12 veckor (maj-juli)': '8-12 weeks (May-July)',
+  'Bygga aerob baskapacitet': 'Build aerobic base capacity',
+  'Maxstyrka och hypertrofi': 'Maximum strength and hypertrophy',
+  'Åtgärda skador och obalanser': 'Address injuries and imbalances',
+  'Rörlighet och mobilitet': 'Mobility and range of motion',
+  'Maxstyrka': 'Maximum strength',
+  'Hypertrofi': 'Hypertrophy',
+  'Rörlighet': 'Mobility',
+  'Obalanser': 'Imbalances',
+  'Aerob bas (löpning, cykling)': 'Aerobic base (running, cycling)',
+  'Låg-intensiv intervall': 'Low-intensity intervals',
+  'Cross-training': 'Cross-training',
+  'Löpning (gradvis uppbyggnad)': 'Running (gradual build)',
+  'Cykling (indoor/outdoor)': 'Cycling (indoor/outdoor)',
+  'Simning': 'Swimming',
+  'Styrketräning med fokus på maxstyrka': 'Strength training focused on maximum strength',
+  'Yoga/rörlighet': 'Yoga/mobility',
+  'Hög-intensiv sprint tidigt': 'High-intensity sprinting early',
+  'Maximal is-träning': 'Maximum on-ice training',
+  '4-6 veckor (augusti-september)': '4-6 weeks (August-September)',
+  'Sport-specifik kondition': 'Sport-specific conditioning',
+  'Explosivitet och power': 'Explosiveness and power',
+  'Is-specifik träning': 'Ice-specific training',
+  'Höja anaerob kapacitet': 'Increase anaerobic capacity',
+  'Explosivitet': 'Explosiveness',
+  'Sport-specifik styrka': 'Sport-specific strength',
+  'Bytessimulering (30-60 sek)': 'Shift simulation (30-60 sec)',
+  'Sprint-intervaller': 'Sprint intervals',
+  'On-ice kondition': 'On-ice conditioning',
+  'Is-träning (ökar gradvis)': 'On-ice training (gradual increase)',
+  'Intervallträning på cykel/löpning': 'Interval training on bike/running',
+  'Agility och snabbhetsdrills': 'Agility and speed drills',
+  'Styrketräning med power-fokus': 'Strength training with power focus',
+  'Långdistans steady-state': 'Long-distance steady-state',
+  'Hög volym styrketräning': 'High-volume strength training',
+  'September-mars/april': 'September-March/April',
+  'Underhålla styrka och power': 'Maintain strength and power',
+  'Optimal återhämtning': 'Optimal recovery',
+  'Matchförberedelse': 'Match preparation',
+  'Skadeförebyggande': 'Injury prevention',
+  'Underhåll': 'Maintenance',
+  'Underhåll via matcher och träning': 'Maintenance through matches and practice',
+  'Lätt cardio för återhämtning': 'Light cardio for recovery',
+  'Korta styrkepass (30-40 min)': 'Short strength sessions (30-40 min)',
+  'Aktiv återhämtning (pool, cykel)': 'Active recovery (pool, bike)',
+  'Mobilitet och stretching': 'Mobility and stretching',
+  'Mental träning': 'Mental training',
+  'Hög volym off-ice träning': 'High-volume off-ice training',
+  'Nya/okända övningar': 'New/unknown exercises',
+  'Långdistans kondition': 'Long-distance conditioning',
+  '2-8 veckor (mars-maj)': '2-8 weeks (March-May)',
+  'Maximal återhämtning': 'Maximum recovery',
+  'Mental förberedelse': 'Mental preparation',
+  'Underhålla topp-form': 'Maintain peak form',
+  'Minimera skaderisk': 'Minimize injury risk',
+  'Aktivering': 'Activation',
+  'Mobilitet': 'Mobility',
+  'Aktivering endast': 'Activation only',
+  'Lätt cykel/promenad': 'Light bike/walk',
+  'Aktivering före matcher': 'Activation before matches',
+  'Pool-återhämtning': 'Pool recovery',
+  'Massage och behandling': 'Massage and treatment',
+  'Sömnoptimering': 'Sleep optimization',
+  'Styrketräning (mer än lätt aktivering)': 'Strength training (more than light activation)',
+  'Off-ice kondition': 'Off-ice conditioning',
+  'Nya aktiviteter': 'New activities',
+  'Allt som kan orsaka trötthet eller skada': 'Anything that can cause fatigue or injury',
+  'Hög matchbelastning - minimera off-ice träning': 'High match load - minimize off-ice training',
+  'Normal matchbelastning - fokus på återhämtning': 'Normal match load - focus on recovery',
+  'Prioritera höftrörlighet och reaktionsträning': 'Prioritize hip mobility and reaction training',
+  'Undvik hög volym styrketräning som kan påverka rörlighet': 'Avoid high-volume strength training that can affect mobility',
+  'Längre istid kräver god aerob kapacitet': 'Longer ice time requires strong aerobic capacity',
+  'Fokusera på höft- och ljumskförebyggande': 'Focus on hip and groin injury prevention',
+  'Adduktorstyrka - ljumskförebyggande': 'Adductor strength - groin injury prevention',
+  'Hamstring excentriskt - skadeförebyggande': 'Eccentric hamstring strength - injury prevention',
+  '15-20 sek/sida': '15-20 sec/side',
+  '10/sida': '10/side',
+  'Axelstabilitet': 'Shoulder stability',
+  'Core för tekningar': 'Core for faceoffs',
+  'Handledsstyrka för skott': 'Wrist strength for shooting',
+  'Höftstabilitet': 'Hip stability',
+  '15/sida': '15/side',
+  'Adduktor-rörlighet': 'Adductor mobility',
+  '60-90 sek': '60-90 sec',
+  'Specifik rörlighet för butterfly': 'Specific mobility for butterfly',
+};
+
+export function translateHockeyText(locale: string, value: string): string {
+  return getHockeyLocale(locale) === 'sv' ? value : HOCKEY_TRANSLATIONS[value] || value;
+}
+
+export function translateHockeyList(locale: string, values: string[]): string[] {
+  return values.map((value) => translateHockeyText(locale, value));
+}
+
+function translateHockeyExercise(locale: string, exercise: ExerciseRecommendation): ExerciseRecommendation {
+  return {
+    ...exercise,
+    description: translateHockeyText(locale, exercise.description),
+    sets: exercise.sets ? translateHockeyText(locale, exercise.sets) : exercise.sets,
+    reps: exercise.reps ? translateHockeyText(locale, exercise.reps) : exercise.reps,
+    intensity: exercise.intensity ? translateHockeyText(locale, exercise.intensity) : exercise.intensity,
+    frequency: exercise.frequency ? translateHockeyText(locale, exercise.frequency) : exercise.frequency,
+  };
+}
+
+function translateHockeyProfile(locale: string, profile: PositionProfile): PositionProfile {
+  return {
+    ...profile,
+    description: translateHockeyText(locale, profile.description),
+    physicalDemands: translateHockeyList(locale, profile.physicalDemands),
+    primaryStrengthFocus: translateHockeyList(locale, profile.primaryStrengthFocus),
+    primaryConditioningFocus: translateHockeyList(locale, profile.primaryConditioningFocus),
+    commonInjuryRisks: translateHockeyList(locale, profile.commonInjuryRisks),
+    keyExercises: profile.keyExercises.map((exercise) => translateHockeyExercise(locale, exercise)),
+    recommendedTestProtocols: translateHockeyList(locale, profile.recommendedTestProtocols),
+  };
+}
+
+function translateHockeySeasonPhase(locale: string, phase: SeasonPhaseTraining): SeasonPhaseTraining {
+  return {
+    ...phase,
+    duration: translateHockeyText(locale, phase.duration),
+    primaryGoals: translateHockeyList(locale, phase.primaryGoals),
+    strengthFocus: {
+      ...phase.strengthFocus,
+      focusAreas: translateHockeyList(locale, phase.strengthFocus.focusAreas),
+    },
+    conditioningFocus: {
+      ...phase.conditioningFocus,
+      type: translateHockeyList(locale, phase.conditioningFocus.type),
+    },
+    recommendedActivities: translateHockeyList(locale, phase.recommendedActivities),
+    avoidActivities: translateHockeyList(locale, phase.avoidActivities),
+  };
+}
+
 // ==================== POSITION PROFILES ====================
 
 export const HOCKEY_POSITION_PROFILES: Record<HockeyPosition, PositionProfile> = {
@@ -394,15 +629,15 @@ export interface SessionPlan {
 /**
  * Get position-specific training recommendations
  */
-export function getPositionRecommendations(position: HockeyPosition): PositionProfile {
-  return HOCKEY_POSITION_PROFILES[position];
+export function getPositionRecommendations(position: HockeyPosition, locale: string = 'en'): PositionProfile {
+  return translateHockeyProfile(locale, HOCKEY_POSITION_PROFILES[position]);
 }
 
 /**
  * Get season phase training guidelines
  */
-export function getSeasonPhaseTraining(phase: SeasonPhase): SeasonPhaseTraining {
-  return HOCKEY_SEASON_PHASES[phase];
+export function getSeasonPhaseTraining(phase: SeasonPhase, locale: string = 'en'): SeasonPhaseTraining {
+  return translateHockeySeasonPhase(locale, HOCKEY_SEASON_PHASES[phase]);
 }
 
 /**
@@ -411,7 +646,8 @@ export function getSeasonPhaseTraining(phase: SeasonPhase): SeasonPhaseTraining 
 export function calculateTrainingLoad(
   position: HockeyPosition,
   phase: SeasonPhase,
-  matchesThisWeek: number
+  matchesThisWeek: number,
+  locale: string = 'en',
 ): {
   strengthSessions: number;
   conditioningSessions: number;
@@ -419,8 +655,6 @@ export function calculateTrainingLoad(
   notes: string[];
 } {
   const phaseConfig = HOCKEY_SEASON_PHASES[phase];
-  const positionProfile = HOCKEY_POSITION_PROFILES[position];
-
   let strengthSessions = phaseConfig.strengthFocus.sessionsPerWeek;
   let conditioningSessions = phaseConfig.conditioningFocus.sessionsPerWeek;
   const notes: string[] = [];
@@ -429,23 +663,23 @@ export function calculateTrainingLoad(
   if (matchesThisWeek >= 3) {
     strengthSessions = Math.max(0, strengthSessions - 2);
     conditioningSessions = 0;
-    notes.push('Hög matchbelastning - minimera off-ice träning');
+    notes.push(translateHockeyText(locale, 'Hög matchbelastning - minimera off-ice träning'));
   } else if (matchesThisWeek === 2) {
     strengthSessions = Math.max(1, strengthSessions - 1);
     conditioningSessions = Math.max(0, conditioningSessions - 1);
-    notes.push('Normal matchbelastning - fokus på återhämtning');
+    notes.push(translateHockeyText(locale, 'Normal matchbelastning - fokus på återhämtning'));
   }
 
   // Goalie-specific adjustments
   if (position === 'goalie') {
-    notes.push('Prioritera höftrörlighet och reaktionsträning');
-    notes.push('Undvik hög volym styrketräning som kan påverka rörlighet');
+    notes.push(translateHockeyText(locale, 'Prioritera höftrörlighet och reaktionsträning'));
+    notes.push(translateHockeyText(locale, 'Undvik hög volym styrketräning som kan påverka rörlighet'));
   }
 
   // Defense-specific for longer ice time
   if (position === 'defense') {
-    notes.push('Längre istid kräver god aerob kapacitet');
-    notes.push('Fokusera på höft- och ljumskförebyggande');
+    notes.push(translateHockeyText(locale, 'Längre istid kräver god aerob kapacitet'));
+    notes.push(translateHockeyText(locale, 'Fokusera på höft- och ljumskförebyggande'));
   }
 
   return {
@@ -459,7 +693,7 @@ export function calculateTrainingLoad(
 /**
  * Generate injury prevention exercises for position
  */
-export function getInjuryPreventionExercises(position: HockeyPosition): ExerciseRecommendation[] {
+export function getInjuryPreventionExercises(position: HockeyPosition, locale: string = 'en'): ExerciseRecommendation[] {
   const commonExercises: ExerciseRecommendation[] = [
     { name: 'Copenhagen Plank', category: 'strength', description: 'Adduktorstyrka - ljumskförebyggande', sets: '3', reps: '15-20 sek/sida' },
     { name: 'Nordic Hamstring Curl', category: 'strength', description: 'Hamstring excentriskt - skadeförebyggande', sets: '3', reps: '5-8' },
@@ -483,7 +717,7 @@ export function getInjuryPreventionExercises(position: HockeyPosition): Exercise
     ],
   };
 
-  return [...commonExercises, ...(positionSpecific[position] || [])];
+  return [...commonExercises, ...(positionSpecific[position] || [])].map((exercise) => translateHockeyExercise(locale, exercise));
 }
 
 const hockeyTrainingModule = {
@@ -493,6 +727,8 @@ const hockeyTrainingModule = {
   getSeasonPhaseTraining,
   calculateTrainingLoad,
   getInjuryPreventionExercises,
+  translateHockeyText,
+  translateHockeyList,
 };
 
 export default hockeyTrainingModule;

@@ -14,6 +14,8 @@ export {
   calculateGPSLoadStatus,
   calculateACWR,
   getInjuryPreventionExercises,
+  translateFootballText,
+  translateFootballList,
 } from './position-training';
 
 export type {
@@ -24,4 +26,5 @@ export type {
   SeasonPhaseTraining,
   MatchdayProtocol,
   GPSLoadThresholds,
+  FootballLocale,
 } from './position-training';
