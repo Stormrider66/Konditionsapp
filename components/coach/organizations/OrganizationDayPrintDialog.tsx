@@ -25,6 +25,11 @@ import {
 } from '@/components/ui/select'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import type { DayPrintWorkoutItem } from '@/lib/workout-print/day-pack'
+import { useLocale } from 'next-intl'
+
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface Organization {
   id: string
@@ -59,6 +64,7 @@ export function OrganizationDayPrintDialog({
   basePath,
   selectedOrganizationId,
 }: OrganizationDayPrintDialogProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [date, setDate] = useState(getTodayDateValue)
   const [organizationId, setOrganizationId] = useState('all')
   const [items, setItems] = useState<DayPrintWorkoutItem[]>([])
@@ -93,7 +99,7 @@ export function OrganizationDayPrintDialog({
         })
         const body = await response.json().catch(() => ({}))
         if (!response.ok || !body.success) {
-          throw new Error(body.error || 'Kunde inte hämta dagens pass.')
+          throw new Error(body.error || copy(locale, 'Could not fetch today\'s workouts.', 'Kunde inte hämta dagens pass.'))
         }
 
         const data = body.data as DayPrintWorkoutItem[]
@@ -109,7 +115,7 @@ export function OrganizationDayPrintDialog({
         if (cancelled) return
         setItems([])
         setCopiesById({})
-        toast.error(error instanceof Error ? error.message : 'Kunde inte hämta dagens pass.')
+        toast.error(error instanceof Error ? error.message : copy(locale, 'Could not fetch today\'s workouts.', 'Kunde inte hämta dagens pass.'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -120,7 +126,7 @@ export function OrganizationDayPrintDialog({
     return () => {
       cancelled = true
     }
-  }, [basePath, date, open, organizationId])
+  }, [basePath, date, locale, open, organizationId])
 
   const handleCopiesChange = (id: string, value: string) => {
     const nextValue = Number.parseInt(value, 10)
@@ -131,7 +137,7 @@ export function OrganizationDayPrintDialog({
   const handleOpenPrint = () => {
     const itemsParam = buildItemsParam(copiesById)
     if (!itemsParam) {
-      toast.error('Välj minst ett pass att skriva ut')
+      toast.error(copy(locale, 'Select at least one workout to print', 'Välj minst ett pass att skriva ut'))
       return
     }
 
@@ -144,15 +150,15 @@ export function OrganizationDayPrintDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Dagens utskriftspaket</DialogTitle>
+          <DialogTitle>{copy(locale, 'Today\'s print package', 'Dagens utskriftspaket')}</DialogTitle>
           <DialogDescription>
-            Välj datum, filtrera på organisation och ange hur många exemplar som ska skrivas ut av varje lagpass.
+            {copy(locale, 'Choose a date, filter by organization, and set how many copies to print for each team workout.', 'Välj datum, filtrera på organisation och ange hur många exemplar som ska skrivas ut av varje lagpass.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
           <div className="space-y-2">
-            <Label htmlFor="day-print-date">Datum</Label>
+            <Label htmlFor="day-print-date">{copy(locale, 'Date', 'Datum')}</Label>
             <Input
               id="day-print-date"
               type="date"
@@ -161,13 +167,13 @@ export function OrganizationDayPrintDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label>Organisation</Label>
+            <Label>{copy(locale, 'Organization', 'Organisation')}</Label>
             <Select value={organizationId} onValueChange={setOrganizationId}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj organisation" />
+                <SelectValue placeholder={copy(locale, 'Choose organization', 'Välj organisation')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alla organisationer</SelectItem>
+                <SelectItem value="all">{copy(locale, 'All organizations', 'Alla organisationer')}</SelectItem>
                 {organizations.map((organization) => (
                   <SelectItem key={organization.id} value={organization.id}>
                     {organization.name}
@@ -182,20 +188,20 @@ export function OrganizationDayPrintDialog({
           <div className="flex items-center justify-between border-b px-4 py-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              Pass denna dag
+              {copy(locale, 'Workouts this day', 'Pass denna dag')}
             </div>
-            <Badge variant="outline">{totalCopies} utskrifter</Badge>
+            <Badge variant="outline">{totalCopies} {copy(locale, 'prints', 'utskrifter')}</Badge>
           </div>
 
           <ScrollArea className="h-[360px]">
             {loading ? (
               <div className="flex h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Hämtar dagens pass...
+                {copy(locale, 'Fetching today\'s workouts...', 'Hämtar dagens pass...')}
               </div>
             ) : items.length === 0 ? (
               <div className="flex h-48 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                Inga lagpass är schemalagda för valt datum.
+                {copy(locale, 'No team workouts are scheduled for the selected date.', 'Inga lagpass är schemalagda för valt datum.')}
               </div>
             ) : (
               <div className="divide-y">
@@ -212,12 +218,12 @@ export function OrganizationDayPrintDialog({
                           .join(' · ')}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {item.totalAssigned || item.team.memberCount} spelare kopplade
+                        {item.totalAssigned || item.team.memberCount} {copy(locale, 'linked players', 'spelare kopplade')}
                       </p>
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor={`copies-${item.id}`} className="text-xs text-muted-foreground">
-                        Antal
+                        {copy(locale, 'Copies', 'Antal')}
                       </Label>
                       <Input
                         id={`copies-${item.id}`}
@@ -237,11 +243,11 @@ export function OrganizationDayPrintDialog({
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Stäng
+            {copy(locale, 'Close', 'Stäng')}
           </Button>
           <Button type="button" onClick={handleOpenPrint} disabled={loading || totalCopies === 0}>
             <Printer className="mr-2 h-4 w-4" />
-            Öppna utskrift
+            {copy(locale, 'Open print view', 'Öppna utskrift')}
           </Button>
         </DialogFooter>
       </DialogContent>
