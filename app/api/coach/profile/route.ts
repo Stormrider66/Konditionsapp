@@ -9,6 +9,12 @@ import { z } from 'zod'
 import { SportType } from '@prisma/client'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // Validation schema for profile updates
 const profileUpdateSchema = z.object({
   headline: z.string().max(150).optional(),
@@ -30,20 +36,23 @@ const profileUpdateSchema = z.object({
  * GET /api/coach/profile
  * Get current coach's marketplace profile
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Obehörig' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Endast coacher kan ha en profil' },
+        { success: false, error: t(locale, 'Only coaches can have a profile', 'Endast coacher kan ha en profil') },
         { status: 403 }
       )
     }
@@ -59,7 +68,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching coach profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att hämta profil' },
+      { success: false, error: t(locale, 'Failed to fetch profile', 'Misslyckades med att hämta profil') },
       { status: 500 }
     )
   }
@@ -70,19 +79,22 @@ export async function GET(request: NextRequest) {
  * Update or create coach's marketplace profile
  */
 export async function PUT(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Obehörig' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Endast coacher kan ha en profil' },
+        { success: false, error: t(locale, 'Only coaches can have a profile', 'Endast coacher kan ha en profil') },
         { status: 403 }
       )
     }
@@ -137,7 +149,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Ogiltiga data',
+          error: t(locale, 'Invalid data', 'Ogiltiga data'),
           details: error.errors,
         },
         { status: 400 }
@@ -146,7 +158,7 @@ export async function PUT(request: NextRequest) {
 
     logger.error('Error updating coach profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att uppdatera profil' },
+      { success: false, error: t(locale, 'Failed to update profile', 'Misslyckades med att uppdatera profil') },
       { status: 500 }
     )
   }

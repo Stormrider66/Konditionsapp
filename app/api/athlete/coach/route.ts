@@ -4,6 +4,12 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/athlete/coach
  * Get the coach for the currently authenticated athlete
@@ -13,17 +19,20 @@ import { logger } from '@/lib/logger'
  * 2. Client.userId (the coach who created the client)
  */
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Obehörig' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     // Get client with coach info
     const client = await prisma.client.findUnique({
@@ -58,7 +67,7 @@ export async function GET() {
 
     if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Inget atletkonto hittat' },
+        { success: false, error: t(locale, 'No athlete account found', 'Inget atletkonto hittat') },
         { status: 404 }
       )
     }
@@ -74,7 +83,7 @@ export async function GET() {
 
     if (!coach) {
       return NextResponse.json(
-        { success: false, error: 'Ingen coach hittad' },
+        { success: false, error: t(locale, 'No coach found', 'Ingen coach hittad') },
         { status: 404 }
       )
     }
@@ -91,7 +100,7 @@ export async function GET() {
   } catch (error: unknown) {
     logger.error('Error fetching athlete coach', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att hämta coach' },
+      { success: false, error: t(locale, 'Failed to fetch coach', 'Misslyckades med att hämta coach') },
       { status: 500 }
     )
   }
