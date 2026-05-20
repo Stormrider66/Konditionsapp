@@ -71,6 +71,7 @@ import { SectionEditor } from './SectionEditor';
 import type { HybridMetconData, HybridSectionData } from '@/types';
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton';
 import { HOCKEY_HYBRID_PRESETS, type HockeyHybridPreset } from '@/lib/hockey/hockey-builder-presets';
+import { useLocale } from '@/i18n/client';
 
 interface Exercise {
   id: string;
@@ -143,15 +144,19 @@ interface HybridWorkoutBuilderProps {
   initialData?: HybridWorkoutBuilderInitialData;
 }
 
+type AppLocale = 'en' | 'sv';
+type LocationItem = { id: string; name: string; city: string | null };
+type EquipmentItem = { enablesExercises?: string[] };
+
 const formatOptions = [
-  { value: 'EMOM', label: 'EMOM', labelSv: 'EMOM', icon: Clock, description: 'Varje minut på minuten' },
-  { value: 'AMRAP', label: 'AMRAP', labelSv: 'AMRAP', icon: Repeat, description: 'Så många rundor som möjligt på given tid' },
-  { value: 'FOR_TIME', label: 'For Time', labelSv: 'På Tid', icon: Timer, description: 'Slutför arbetet så snabbt som möjligt' },
-  { value: 'TABATA', label: 'Tabata', labelSv: 'Tabata', icon: Zap, description: '20s arbete / 10s vila × 8 rundor' },
-  { value: 'CHIPPER', label: 'Chipper', labelSv: 'Chipper', icon: Target, description: 'Lång sekvens av rörelser, en gång' },
-  { value: 'LADDER', label: 'Ladder', labelSv: 'Stege', icon: Dumbbell, description: 'Stigande/fallande rep-schema' },
-  { value: 'INTERVALS', label: 'Intervals', labelSv: 'Intervaller', icon: Zap, description: 'Arbete/vila intervaller' },
-  { value: 'HYROX_SIM', label: 'HYROX Sim', labelSv: 'HYROX Sim', icon: Trophy, description: 'HYROX-simulering (löpning + stationer)' },
+  { value: 'EMOM', label: { en: 'EMOM', sv: 'EMOM' }, icon: Clock, description: { en: 'Every minute on the minute', sv: 'Varje minut på minuten' } },
+  { value: 'AMRAP', label: { en: 'AMRAP', sv: 'AMRAP' }, icon: Repeat, description: { en: 'As many rounds as possible in the given time', sv: 'Så många rundor som möjligt på given tid' } },
+  { value: 'FOR_TIME', label: { en: 'For Time', sv: 'På Tid' }, icon: Timer, description: { en: 'Finish the work as fast as possible', sv: 'Slutför arbetet så snabbt som möjligt' } },
+  { value: 'TABATA', label: { en: 'Tabata', sv: 'Tabata' }, icon: Zap, description: { en: '20s work / 10s rest x 8 rounds', sv: '20s arbete / 10s vila x 8 rundor' } },
+  { value: 'CHIPPER', label: { en: 'Chipper', sv: 'Chipper' }, icon: Target, description: { en: 'Long sequence of movements, once through', sv: 'Lång sekvens av rörelser, en gång' } },
+  { value: 'LADDER', label: { en: 'Ladder', sv: 'Stege' }, icon: Dumbbell, description: { en: 'Ascending or descending rep scheme', sv: 'Stigande/fallande rep-schema' } },
+  { value: 'INTERVALS', label: { en: 'Intervals', sv: 'Intervaller' }, icon: Zap, description: { en: 'Work/rest intervals', sv: 'Arbete/vila intervaller' } },
+  { value: 'HYROX_SIM', label: { en: 'HYROX Sim', sv: 'HYROX Sim' }, icon: Trophy, description: { en: 'HYROX simulation with running and stations', sv: 'HYROX-simulering (löpning + stationer)' } },
 ];
 
 const DEFAULT_EMOM_INTERVAL_SECONDS = 60;
@@ -183,16 +188,226 @@ function expandEquipmentTypes(types: string[]) {
   return normalized;
 }
 
-const categoryLabels: Record<string, string> = {
-  OLYMPIC_LIFT: 'Tyngdlyftning',
-  POWERLIFTING: 'Styrkelyft',
-  GYMNASTICS: 'Gymnastik',
-  MONOSTRUCTURAL: 'Kondition',
-  KETTLEBELL_WORK: 'Kettlebell',
-  STRONGMAN: 'Strongman',
-  CORE_WORK: 'Core',
-  ACCESSORY: 'Tillbehör',
-  HYROX_STATION: 'HYROX',
+const categoryLabels: Record<string, Record<AppLocale, string>> = {
+  OLYMPIC_LIFT: { en: 'Olympic lifting', sv: 'Tyngdlyftning' },
+  POWERLIFTING: { en: 'Powerlifting', sv: 'Styrkelyft' },
+  GYMNASTICS: { en: 'Gymnastics', sv: 'Gymnastik' },
+  MONOSTRUCTURAL: { en: 'Conditioning', sv: 'Kondition' },
+  KETTLEBELL_WORK: { en: 'Kettlebell', sv: 'Kettlebell' },
+  STRONGMAN: { en: 'Strongman', sv: 'Strongman' },
+  CORE_WORK: { en: 'Core', sv: 'Core' },
+  ACCESSORY: { en: 'Accessory', sv: 'Tillbehör' },
+  HYROX_STATION: { en: 'HYROX', sv: 'HYROX' },
+};
+
+const COPY: Record<AppLocale, {
+  hockeyTemplates: string;
+  chooseFormat: string;
+  workoutDetails: string;
+  name: string;
+  namePlaceholder: string;
+  scalingLevel: string;
+  rx: string;
+  scaled: string;
+  foundations: string;
+  description: string;
+  descriptionPlaceholder: string;
+  totalTimeMinutes: string;
+  timeCapSeconds: string;
+  totalRounds: string;
+  workTimeSeconds: string;
+  restTimeSeconds: string;
+  repScheme: string;
+  customRepSchemePlaceholder: string;
+  rounds: string;
+  reps: string;
+  total: string;
+  repsPerExercise: string;
+  sameRepsHint: string;
+  content: string;
+  contentDescription: string;
+  warmup: string;
+  strength: string;
+  cooldown: string;
+  exercises: string;
+  gym: string;
+  allEquipment: string;
+  available: string;
+  required: string;
+  movements: string;
+  sameRepsPerRound: string;
+  block: string;
+  newBlock: string;
+  blockName: string;
+  duplicateBlock: string;
+  removeBlock: string;
+  format: string;
+  intervals: string;
+  custom: string;
+  startEverySeconds: string;
+  restBetween: string;
+  addRestAfterBlock: string;
+  noRest: string;
+  add: string;
+  blockNotesPlaceholder: string;
+  searchMovements: string;
+  noMovementsFound: string;
+  addMovementsFor: string;
+  cancel: string;
+  back: string;
+  print: string;
+  next: string;
+  saving: string;
+  saveWorkout: string;
+  repsPlaceholder: string;
+  distanceMeters: string;
+  maleWeightKg: string;
+  femaleWeightKg: string;
+  count: string;
+  typeLabels: Record<RepSchemeInfo['type'], string>;
+}> = {
+  en: {
+    hockeyTemplates: 'Hockey templates',
+    chooseFormat: 'Choose Format',
+    workoutDetails: 'Workout Details',
+    name: 'Name *',
+    namePlaceholder: 'e.g. Fran, Murph, Custom WOD',
+    scalingLevel: 'Scaling Level',
+    rx: 'Rx (prescribed)',
+    scaled: 'Scaled',
+    foundations: 'Foundations (beginner)',
+    description: 'Description',
+    descriptionPlaceholder: 'Describe the workout...',
+    totalTimeMinutes: 'Total Time (minutes)',
+    timeCapSeconds: 'Time Cap (seconds)',
+    totalRounds: 'Total Rounds',
+    workTimeSeconds: 'Work time (seconds)',
+    restTimeSeconds: 'Rest time (seconds)',
+    repScheme: 'Rep scheme',
+    customRepSchemePlaceholder: 'Or enter a custom scheme...',
+    rounds: 'rounds',
+    reps: 'reps',
+    total: 'Total',
+    repsPerExercise: 'reps/exercise',
+    sameRepsHint: 'rounds with the same reps - enter reps per exercise in step 3',
+    content: 'Workout Content',
+    contentDescription: 'Add sections for this workout. Metcon is required, the others are optional.',
+    warmup: 'Warm-up',
+    strength: 'Strength',
+    cooldown: 'Cool-down',
+    exercises: 'exercises',
+    gym: 'Gym:',
+    allEquipment: 'All equipment',
+    available: 'available',
+    required: 'Required',
+    movements: 'movements',
+    sameRepsPerRound: 'rounds with the same reps per round',
+    block: 'Block',
+    newBlock: 'New block',
+    blockName: 'Block name',
+    duplicateBlock: 'Duplicate block',
+    removeBlock: 'Remove block',
+    format: 'Format',
+    intervals: 'Intervals',
+    custom: 'Custom',
+    startEverySeconds: 'Start every (s)',
+    restBetween: 'Rest between',
+    addRestAfterBlock: 'Add rest after block',
+    noRest: 'No rest',
+    add: 'Add',
+    blockNotesPlaceholder: 'Block notes, tempo, or coach cues...',
+    searchMovements: 'Search movements...',
+    noMovementsFound: 'No movements found.',
+    addMovementsFor: 'Add movements for',
+    cancel: 'Cancel',
+    back: 'Back',
+    print: 'Print',
+    next: 'Next',
+    saving: 'Saving...',
+    saveWorkout: 'Save Workout',
+    repsPlaceholder: 'Count',
+    distanceMeters: 'Distance (m)',
+    maleWeightKg: 'Weight Men (kg)',
+    femaleWeightKg: 'Weight Women (kg)',
+    count: 'Count',
+    typeLabels: {
+      descending: 'descending',
+      ascending: 'ascending',
+      variable: 'variable',
+      fixed: 'fixed',
+    },
+  },
+  sv: {
+    hockeyTemplates: 'Hockeymallar',
+    chooseFormat: 'Välj Format',
+    workoutDetails: 'Passets Detaljer',
+    name: 'Namn *',
+    namePlaceholder: 't.ex. Fran, Murph, Custom WOD',
+    scalingLevel: 'Scaling Level',
+    rx: 'Rx (Förskriven)',
+    scaled: 'Scaled (Anpassad)',
+    foundations: 'Foundations (Nybörjare)',
+    description: 'Beskrivning',
+    descriptionPlaceholder: 'Beskriv passet...',
+    totalTimeMinutes: 'Total Tid (minuter)',
+    timeCapSeconds: 'Time Cap (sekunder)',
+    totalRounds: 'Antal Rundor',
+    workTimeSeconds: 'Arbetstid (sekunder)',
+    restTimeSeconds: 'Vilotid (sekunder)',
+    repScheme: 'Rep-schema',
+    customRepSchemePlaceholder: 'Eller skriv eget schema...',
+    rounds: 'rundor',
+    reps: 'reps',
+    total: 'Totalt',
+    repsPerExercise: 'reps/övning',
+    sameRepsHint: 'rundor med samma reps - ange antal reps per övning i steg 3',
+    content: 'Passinnehåll',
+    contentDescription: 'Lägg till sektioner för ditt pass. Metcon är obligatoriskt, övriga är valfria.',
+    warmup: 'Uppvärmning',
+    strength: 'Styrka',
+    cooldown: 'Nedvarvning',
+    exercises: 'övningar',
+    gym: 'Gym:',
+    allEquipment: 'All utrustning',
+    available: 'tillgängliga',
+    required: 'Obligatorisk',
+    movements: 'rörelser',
+    sameRepsPerRound: 'rundor med samma reps per runda',
+    block: 'Block',
+    newBlock: 'Nytt block',
+    blockName: 'Blocknamn',
+    duplicateBlock: 'Duplicera block',
+    removeBlock: 'Ta bort block',
+    format: 'Format',
+    intervals: 'Intervaller',
+    custom: 'Anpassad',
+    startEverySeconds: 'Start var (s)',
+    restBetween: 'Vila mellan',
+    addRestAfterBlock: 'Lägg till vila efter blocket',
+    noRest: 'Ingen vila',
+    add: 'Lägg till',
+    blockNotesPlaceholder: 'Blockanteckningar, tempo eller coach cues...',
+    searchMovements: 'Sök rörelser...',
+    noMovementsFound: 'Inga rörelser hittades.',
+    addMovementsFor: 'Lägg till rörelser för',
+    cancel: 'Avbryt',
+    back: 'Tillbaka',
+    print: 'Skriv ut',
+    next: 'Nästa',
+    saving: 'Sparar...',
+    saveWorkout: 'Spara Pass',
+    repsPlaceholder: 'Antal',
+    distanceMeters: 'Distans (m)',
+    maleWeightKg: 'Vikt Herr (kg)',
+    femaleWeightKg: 'Vikt Dam (kg)',
+    count: 'Antal',
+    typeLabels: {
+      descending: 'fallande',
+      ascending: 'stigande',
+      variable: 'varierande',
+      fixed: 'fasta',
+    },
+  },
 };
 
 // Parse rep schemes to extract round info and per-round reps
@@ -255,11 +470,15 @@ function formatSecondsLabel(seconds?: number) {
   return `${seconds}s`;
 }
 
-function movementToMetconPayload(movement: WorkoutMovement, order: number) {
+function getExerciseDisplayName(exercise: Exercise, locale: AppLocale) {
+  return (locale === 'sv' ? exercise.nameSv : null) || exercise.name;
+}
+
+function movementToMetconPayload(movement: WorkoutMovement, order: number, locale: AppLocale) {
   return {
     id: movement.id,
     exerciseId: movement.exerciseId,
-    exerciseName: movement.exercise.nameSv || movement.exercise.name,
+    exerciseName: getExerciseDisplayName(movement.exercise, locale),
     order,
     reps: movement.reps,
     calories: movement.calories,
@@ -402,9 +621,19 @@ interface SortableMovementCardProps {
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<WorkoutMovement>) => void;
   repSchemeInfo?: RepSchemeInfo | null;
+  locale: AppLocale;
+  copy: (typeof COPY)[AppLocale];
 }
 
-function SortableMovementCard({ movement, index, onRemove, onUpdate, repSchemeInfo }: SortableMovementCardProps) {
+function SortableMovementCard({
+  movement,
+  index,
+  onRemove,
+  onUpdate,
+  repSchemeInfo,
+  locale,
+  copy,
+}: SortableMovementCardProps) {
   const {
     attributes,
     listeners,
@@ -439,7 +668,7 @@ function SortableMovementCard({ movement, index, onRemove, onUpdate, repSchemeIn
           <div className="flex items-center justify-between">
             <div>
               <span className="font-medium">
-                {movement.exercise.nameSv || movement.exercise.name}
+                {getExerciseDisplayName(movement.exercise, locale)}
               </span>
               {movement.exercise.standardAbbreviation && (
                 <span className="text-muted-foreground ml-2 text-sm">
@@ -472,12 +701,12 @@ function SortableMovementCard({ movement, index, onRemove, onUpdate, repSchemeIn
                       reps: e.target.value ? parseInt(e.target.value) : undefined,
                     })
                   }
-                  placeholder="Antal"
+                  placeholder={copy.count}
                 />
               )}
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Distans (m)</Label>
+              <Label className="text-xs">{copy.distanceMeters}</Label>
               <Input
                 type="number"
                 value={movement.distance || ''}
@@ -490,7 +719,7 @@ function SortableMovementCard({ movement, index, onRemove, onUpdate, repSchemeIn
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Vikt Herr (kg)</Label>
+              <Label className="text-xs">{copy.maleWeightKg}</Label>
               <Input
                 type="number"
                 value={movement.weightMale || ''}
@@ -503,7 +732,7 @@ function SortableMovementCard({ movement, index, onRemove, onUpdate, repSchemeIn
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Vikt Dam (kg)</Label>
+              <Label className="text-xs">{copy.femaleWeightKg}</Label>
               <Input
                 type="number"
                 value={movement.weightFemale || ''}
@@ -523,6 +752,8 @@ function SortableMovementCard({ movement, index, onRemove, onUpdate, repSchemeIn
 }
 
 export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWorkoutBuilderProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = COPY[locale];
   const [step, setStep] = useState(1);
   const [name, setName] = useState(initialData?.name || '');
   const [description, setDescription] = useState(initialData?.description || '');
@@ -599,7 +830,21 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   }
 
   useEffect(() => {
-    fetchExercises();
+    async function loadExercises() {
+      try {
+        const response = await fetch('/api/hybrid-movements?limit=1000');
+        if (response.ok) {
+          const data = await response.json() as { movements?: Exercise[] };
+          setExercises(data.movements || []);
+        } else {
+          console.error('Failed to fetch exercises, status:', response.status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch exercises:', error);
+      }
+    }
+
+    void loadExercises();
   }, []);
 
   // Fetch locations
@@ -608,53 +853,38 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
       try {
         const res = await fetch('/api/locations');
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as LocationItem[] | { locations?: LocationItem[] };
           const locs = Array.isArray(data) ? data : (data.locations || []);
-          setLocations(locs.map((l: any) => ({ id: l.id, name: l.name, city: l.city })));
+          setLocations(locs.map((l) => ({ id: l.id, name: l.name, city: l.city })));
         }
       } catch {
         // Locations not available
       }
     }
-    fetchLocations();
+    void fetchLocations();
   }, []);
 
   // Fetch equipment when location changes
   useEffect(() => {
     if (selectedLocationId === 'ALL') {
-      setLocationEquipmentTypes([]);
       return;
     }
     async function fetchEquipment() {
       try {
         const res = await fetch(`/api/locations/${selectedLocationId}/equipment`);
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as { equipment?: EquipmentItem[] };
           const equipment = data.equipment || [];
           // Collect all enablesExercises types from equipment
-          const types = equipment.flatMap((e: any) => e.enablesExercises || []);
+          const types = equipment.flatMap((e) => e.enablesExercises || []);
           setLocationEquipmentTypes([...new Set(types)] as string[]);
         }
       } catch {
         setLocationEquipmentTypes([]);
       }
     }
-    fetchEquipment();
+    void fetchEquipment();
   }, [selectedLocationId]);
-
-  async function fetchExercises() {
-    try {
-      const response = await fetch('/api/hybrid-movements?limit=1000');
-      if (response.ok) {
-        const data = await response.json();
-        setExercises(data.movements || []);
-      } else {
-        console.error('Failed to fetch exercises, status:', response.status);
-      }
-    } catch (error) {
-      console.error('Failed to fetch exercises:', error);
-    }
-  }
 
   function addMetconBlock() {
     const blockNumber = metconBlocks.length + 1;
@@ -680,7 +910,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
       {
         ...source,
         id: createTempId('block'),
-        title: `${source.title} kopia`,
+        title: `${source.title} ${locale === 'sv' ? 'kopia' : 'copy'}`,
         movements: source.movements.map((movement, index) => ({
           ...movement,
           id: createTempId('movement'),
@@ -835,7 +1065,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
           restAfterSeconds: block.restAfterSeconds,
           notes: block.notes,
           movements: block.movements.map((movement, index) =>
-            movementToMetconPayload(movement, index + 1)
+            movementToMetconPayload(movement, index + 1, locale)
           ),
         })),
       };
@@ -959,7 +1189,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
             <CardContent className="p-4">
               <div className="mb-3 flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold">Hockeymallar</h3>
+                <h3 className="font-semibold">{copy.hockeyTemplates}</h3>
               </div>
               <div className="grid gap-3 md:grid-cols-3">
                 {HOCKEY_HYBRID_PRESETS.map((preset) => {
@@ -985,7 +1215,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
             </CardContent>
           </Card>
 
-          <h3 className="text-lg font-semibold">Välj Format</h3>
+          <h3 className="text-lg font-semibold">{copy.chooseFormat}</h3>
           <div className="grid gap-3 md:grid-cols-2">
             {formatOptions.map((option) => (
               <Card
@@ -1021,8 +1251,8 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                     <option.icon className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-medium">{option.labelSv}</h4>
-                    <p className="text-sm text-muted-foreground">{option.description}</p>
+                    <h4 className="font-medium">{option.label[locale]}</h4>
+                    <p className="text-sm text-muted-foreground">{option.description[locale]}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1034,41 +1264,41 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
       {/* Step 2: Workout Details */}
       {step === 2 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Passets Detaljer</h3>
+          <h3 className="text-lg font-semibold">{copy.workoutDetails}</h3>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Namn *</Label>
+              <Label htmlFor="name">{copy.name}</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="t.ex. Fran, Murph, Custom WOD"
+                placeholder={copy.namePlaceholder}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="scaling">Scaling Level</Label>
+              <Label htmlFor="scaling">{copy.scalingLevel}</Label>
               <Select value={scalingLevel} onValueChange={setScalingLevel}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="RX">Rx (Förskriven)</SelectItem>
-                  <SelectItem value="SCALED">Scaled (Anpassad)</SelectItem>
-                  <SelectItem value="FOUNDATIONS">Foundations (Nybörjare)</SelectItem>
+                  <SelectItem value="RX">{copy.rx}</SelectItem>
+                  <SelectItem value="SCALED">{copy.scaled}</SelectItem>
+                  <SelectItem value="FOUNDATIONS">{copy.foundations}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Beskrivning</Label>
+            <Label htmlFor="description">{copy.description}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Beskriv passet..."
+              placeholder={copy.descriptionPlaceholder}
               rows={3}
             />
           </div>
@@ -1076,13 +1306,13 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
           {/* Format-specific fields */}
           {format === 'AMRAP' && (
             <div className="space-y-2">
-              <Label htmlFor="totalMinutes">Total Tid (minuter)</Label>
+              <Label htmlFor="totalMinutes">{copy.totalTimeMinutes}</Label>
               <Input
                 id="totalMinutes"
                 type="number"
                 value={totalMinutes || ''}
                 onChange={(e) => setTotalMinutes(e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder="t.ex. 20"
+                placeholder={locale === 'sv' ? 't.ex. 20' : 'e.g. 20'}
               />
             </div>
           )}
@@ -1090,23 +1320,23 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
           {format === 'FOR_TIME' && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="timeCap">Time Cap (sekunder)</Label>
+                <Label htmlFor="timeCap">{copy.timeCapSeconds}</Label>
                 <Input
                   id="timeCap"
                   type="number"
                   value={timeCap || ''}
                   onChange={(e) => setTimeCap(e.target.value ? parseInt(e.target.value) : undefined)}
-                  placeholder="t.ex. 1200 (20 min)"
+                  placeholder={locale === 'sv' ? 't.ex. 1200 (20 min)' : 'e.g. 1200 (20 min)'}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="totalRounds">Antal Rundor</Label>
+                <Label htmlFor="totalRounds">{copy.totalRounds}</Label>
                 <Input
                   id="totalRounds"
                   type="number"
                   value={totalRounds || ''}
                   onChange={(e) => setTotalRounds(e.target.value ? parseInt(e.target.value) : undefined)}
-                  placeholder="t.ex. 3"
+                  placeholder={locale === 'sv' ? 't.ex. 3' : 'e.g. 3'}
                 />
               </div>
             </div>
@@ -1115,23 +1345,23 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
           {(format === 'TABATA' || format === 'INTERVALS') && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="workTime">Arbetstid (sekunder)</Label>
+                <Label htmlFor="workTime">{copy.workTimeSeconds}</Label>
                 <Input
                   id="workTime"
                   type="number"
                   value={workTime || ''}
                   onChange={(e) => setWorkTime(e.target.value ? parseInt(e.target.value) : undefined)}
-                  placeholder="t.ex. 20"
+                  placeholder={locale === 'sv' ? 't.ex. 20' : 'e.g. 20'}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="restTime">Vilotid (sekunder)</Label>
+                <Label htmlFor="restTime">{copy.restTimeSeconds}</Label>
                 <Input
                   id="restTime"
                   type="number"
                   value={restTime || ''}
                   onChange={(e) => setRestTime(e.target.value ? parseInt(e.target.value) : undefined)}
-                  placeholder="t.ex. 10"
+                  placeholder={locale === 'sv' ? 't.ex. 10' : 'e.g. 10'}
                 />
               </div>
             </div>
@@ -1139,7 +1369,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
 
           {(format === 'FOR_TIME' || format === 'CHIPPER' || format === 'LADDER') && (
             <div className="space-y-3">
-              <Label>Rep-schema</Label>
+              <Label>{copy.repScheme}</Label>
               {/* Preset buttons */}
               <div className="flex flex-wrap gap-2">
                 {[
@@ -1148,10 +1378,10 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                   { label: '10-9-8-7-6-5-4-3-2-1', value: '10-9-8-7-6-5-4-3-2-1' },
                   { label: '50-40-30-20-10', value: '50-40-30-20-10' },
                   { label: '1-2-3-4-5-6-7-8-9-10', value: '1-2-3-4-5-6-7-8-9-10' },
-                  { label: '5 Rundor', value: '5 rounds' },
-                  { label: '3 Rundor', value: '3 rounds' },
-                  { label: '7 Rundor', value: '7 rounds' },
-                  { label: '10 Rundor', value: '10 rounds' },
+                  { label: `5 ${copy.rounds}`, value: '5 rounds' },
+                  { label: `3 ${copy.rounds}`, value: '3 rounds' },
+                  { label: `7 ${copy.rounds}`, value: '7 rounds' },
+                  { label: `10 ${copy.rounds}`, value: '10 rounds' },
                 ].map((preset) => (
                   <Button
                     key={preset.value}
@@ -1183,26 +1413,19 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                     setTotalRounds(parsed.rounds);
                   }
                 }}
-                placeholder="Eller skriv eget schema..."
+                placeholder={copy.customRepSchemePlaceholder}
               />
               {/* Show rep scheme explanation */}
               {(() => {
                 const parsed = parseRepScheme(repScheme);
                 if (!parsed) return null;
 
-                const typeLabels = {
-                  descending: 'fallande',
-                  ascending: 'stigande',
-                  variable: 'varierande',
-                  fixed: 'fasta'
-                };
-
                 return (
                   <div className="p-3 bg-muted/50 rounded-lg text-sm">
                     {parsed.repsPerRound.length > 0 ? (
                       <div className="space-y-2">
                         <p className="font-medium">
-                          {parsed.rounds} rundor ({typeLabels[parsed.type]} reps) • Totalt: {parsed.totalReps} reps/övning
+                          {parsed.rounds} {copy.rounds} ({copy.typeLabels[parsed.type]} {copy.reps}) • {copy.total}: {parsed.totalReps} {copy.repsPerExercise}
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {parsed.repsPerRound.map((reps, i) => (
@@ -1216,7 +1439,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                         </div>
                       </div>
                     ) : (
-                      <p>{parsed.rounds} rundor med samma reps - ange antal reps per övning i steg 3</p>
+                      <p>{parsed.rounds} {copy.sameRepsHint}</p>
                     )}
                   </div>
                 );
@@ -1229,9 +1452,9 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
       {/* Step 3: Sections & Movements */}
       {step === 3 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Passinnehåll</h3>
+          <h3 className="text-lg font-semibold">{copy.content}</h3>
           <p className="text-sm text-muted-foreground">
-            Lägg till sektioner för ditt pass. Metcon är obligatoriskt, övriga är valfria.
+            {copy.contentDescription}
           </p>
 
           {/* WARMUP SECTION */}
@@ -1252,7 +1475,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                   />
                   <Activity className="h-4 w-4 text-orange-500" />
                   <Label htmlFor="warmup-toggle" className="font-medium cursor-pointer">
-                    Uppvärmning
+                    {copy.warmup}
                   </Label>
                   {warmupData?.duration && (
                     <Badge variant="outline" className="text-xs">
@@ -1299,11 +1522,11 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                   />
                   <Dumbbell className="h-4 w-4 text-red-500" />
                   <Label htmlFor="strength-toggle" className="font-medium cursor-pointer">
-                    Styrka
+                    {copy.strength}
                   </Label>
                   {strengthData?.movements && strengthData.movements.length > 0 && (
                     <Badge variant="outline" className="text-xs">
-                      {strengthData.movements.length} övningar
+                      {strengthData.movements.length} {copy.exercises}
                     </Badge>
                   )}
                 </div>
@@ -1333,14 +1556,14 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
             <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                <span>Gym:</span>
+                <span>{copy.gym}</span>
               </div>
               <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
                 <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="All equipment" />
+                  <SelectValue placeholder={copy.allEquipment} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All utrustning</SelectItem>
+                  <SelectItem value="ALL">{copy.allEquipment}</SelectItem>
                   {locations.map(loc => (
                     <SelectItem key={loc.id} value={loc.id}>
                       {loc.name}{loc.city ? ` (${loc.city})` : ''}
@@ -1350,7 +1573,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
               </Select>
               {selectedLocationId !== 'ALL' && (
                 <Badge variant="secondary" className="text-xs">
-                  {filteredExercises.length} av {searchFilteredExercises.length} tillgängliga
+                  {filteredExercises.length} / {searchFilteredExercises.length} {copy.available}
                 </Badge>
               )}
             </div>
@@ -1362,7 +1585,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-primary" />
                 <span className="font-medium">Metcon</span>
-                <Badge variant="secondary" className="text-xs">Obligatorisk</Badge>
+                <Badge variant="secondary" className="text-xs">{copy.required}</Badge>
                 <Badge variant="outline" className="text-xs">
                   {metconBlocks.length} block
                 </Badge>
@@ -1373,7 +1596,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 )}
                 {metconMovements.length > 0 && (
                   <Badge variant="outline" className="text-xs ml-auto">
-                    {metconMovements.length} rörelser
+                    {metconMovements.length} {copy.movements}
                   </Badge>
                 )}
               </div>
@@ -1383,13 +1606,13 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 if (parsed.repsPerRound.length > 0) {
                   return (
                     <p className="text-xs text-muted-foreground mt-2">
-                      {parsed.rounds} rundor: {parsed.repsPerRound.join(' → ')} reps • Totalt {parsed.totalReps} reps/övning
+                      {parsed.rounds} {copy.rounds}: {parsed.repsPerRound.join(' -> ')} {copy.reps} • {copy.total} {parsed.totalReps} {copy.repsPerExercise}
                     </p>
                   );
                 }
                 return (
                   <p className="text-xs text-muted-foreground mt-2">
-                    {parsed.rounds} rundor med samma reps per runda
+                    {parsed.rounds} {copy.sameRepsPerRound}
                   </p>
                 );
               })()}
@@ -1397,10 +1620,10 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
             <CardContent className="pt-4">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Block</Label>
+                  <Label className="text-sm font-medium">{copy.block}</Label>
                   <Button type="button" size="sm" variant="outline" onClick={addMetconBlock}>
                     <Plus className="mr-1 h-3.5 w-3.5" />
-                    Nytt block
+                    {copy.newBlock}
                   </Button>
                 </div>
 
@@ -1422,7 +1645,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                             value={block.title}
                             onChange={(e) => updateMetconBlock(block.id, { title: e.target.value })}
                             className="h-9 w-44 font-medium"
-                            placeholder="Blocknamn"
+                            placeholder={copy.blockName}
                           />
                           {block.format === 'EMOM' && block.rounds && block.intervalSeconds && (
                             <Badge variant="outline" className="text-xs">
@@ -1441,7 +1664,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                             size="icon"
                             variant="ghost"
                             onClick={() => duplicateMetconBlock(block.id)}
-                            title="Duplicera block"
+                            title={copy.duplicateBlock}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
@@ -1451,7 +1674,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                             variant="ghost"
                             onClick={() => removeMetconBlock(block.id)}
                             disabled={metconBlocks.length === 1}
-                            title="Ta bort block"
+                            title={copy.removeBlock}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -1460,7 +1683,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
 
                       <div className="grid gap-3 md:grid-cols-5">
                         <div className="space-y-1">
-                          <Label className="text-xs">Format</Label>
+                          <Label className="text-xs">{copy.format}</Label>
                           <Select
                             value={block.format}
                             onValueChange={(value) =>
@@ -1479,13 +1702,13 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                               <SelectItem value="EMOM">EMOM/E2MOM</SelectItem>
                               <SelectItem value="AMRAP">AMRAP</SelectItem>
                               <SelectItem value="FOR_TIME">For Time</SelectItem>
-                              <SelectItem value="INTERVALS">Intervaller</SelectItem>
-                              <SelectItem value="CUSTOM">Anpassad</SelectItem>
+                              <SelectItem value="INTERVALS">{copy.intervals}</SelectItem>
+                              <SelectItem value="CUSTOM">{copy.custom}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Start var (s)</Label>
+                          <Label className="text-xs">{copy.startEverySeconds}</Label>
                           <Input
                             type="number"
                             className="h-9"
@@ -1499,7 +1722,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Rundor</Label>
+                          <Label className="text-xs">{copy.rounds}</Label>
                           <Input
                             type="number"
                             className="h-9"
@@ -1514,7 +1737,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                         </div>
                         <div className="space-y-1">
                           <div className="flex h-4 items-center justify-between gap-2">
-                            <Label className="text-xs">Vila mellan</Label>
+                            <Label className="text-xs">{copy.restBetween}</Label>
                             <Switch
                               checked={hasRestAfter}
                               onCheckedChange={(checked) =>
@@ -1522,7 +1745,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                                   restAfterSeconds: checked ? (block.restAfterSeconds || 180) : undefined,
                                 })
                               }
-                              aria-label="Lägg till vila efter blocket"
+                              aria-label={copy.addRestAfterBlock}
                               className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3"
                             />
                           </div>
@@ -1540,12 +1763,12 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                             />
                           ) : (
                             <div className="flex h-9 items-center rounded-md border bg-muted/30 px-3">
-                              <span className="text-xs text-muted-foreground">Ingen vila</span>
+                              <span className="text-xs text-muted-foreground">{copy.noRest}</span>
                             </div>
                           )}
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Rörelser</Label>
+                          <Label className="text-xs">{copy.movements}</Label>
                           <Button
                             type="button"
                             size="sm"
@@ -1558,7 +1781,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                             }}
                           >
                             <Plus className="mr-1 h-3.5 w-3.5" />
-                            Lägg till
+                            {copy.add}
                           </Button>
                         </div>
                       </div>
@@ -1567,25 +1790,25 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                         value={block.notes || ''}
                         onChange={(e) => updateMetconBlock(block.id, { notes: e.target.value || undefined })}
                         rows={2}
-                        placeholder="Blockanteckningar, tempo eller coach cues..."
+                        placeholder={copy.blockNotesPlaceholder}
                       />
 
                       {exercisePopoverOpen && exercisePickerBlockId === block.id && (
                         <div className="rounded-lg border border-dashed p-3">
                           <Input
-                            placeholder="Sök rörelser..."
+                            placeholder={copy.searchMovements}
                             value={exerciseSearch}
                             onChange={(e) => setExerciseSearch(e.target.value)}
                             className="mb-3 h-9"
                           />
                           <div className="max-h-[200px] overflow-y-auto">
                             {filteredExercises.length === 0 ? (
-                              <p className="text-sm text-muted-foreground text-center py-3">Inga rörelser hittades.</p>
+                              <p className="text-sm text-muted-foreground text-center py-3">{copy.noMovementsFound}</p>
                             ) : (
                               Object.entries(groupedExercises).map(([category, exs]) => (
                                 <div key={category} className="mb-3">
                                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                                    {categoryLabels[category] || category}
+                                    {categoryLabels[category]?.[locale] || category}
                                   </p>
                                   <div className="grid grid-cols-2 gap-1.5">
                                     {exs.slice(0, 8).map((exercise) => (
@@ -1598,7 +1821,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                                         onClick={() => addMovement(exercise)}
                                         title={exercise.name}
                                       >
-                                        {exercise.nameSv || exercise.name}
+                                        {getExerciseDisplayName(exercise, locale)}
                                       </Button>
                                     ))}
                                   </div>
@@ -1620,7 +1843,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                         >
                           <Dumbbell className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                           <p className="text-sm text-muted-foreground">
-                            Lägg till rörelser för {block.title.toLowerCase()}.
+                            {copy.addMovementsFor} {block.title.toLowerCase()}.
                           </p>
                         </button>
                       ) : (
@@ -1642,6 +1865,8 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                                   onRemove={removeMovement}
                                   onUpdate={updateMovement}
                                   repSchemeInfo={parseRepScheme(repScheme)}
+                                  locale={locale}
+                                  copy={copy}
                                 />
                               ))}
                             </div>
@@ -1673,7 +1898,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                   />
                   <Activity className="h-4 w-4 text-blue-500" />
                   <Label htmlFor="cooldown-toggle" className="font-medium cursor-pointer">
-                    Nedvarvning
+                    {copy.cooldown}
                   </Label>
                   {cooldownData?.duration && (
                     <Badge variant="outline" className="text-xs">
@@ -1708,7 +1933,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
       <div className="flex justify-between pt-4 border-t">
         <Button variant="outline" onClick={step === 1 ? onCancel : () => setStep(step - 1)}>
           <ChevronLeft className="mr-2 h-4 w-4" />
-          {step === 1 ? 'Avbryt' : 'Tillbaka'}
+          {step === 1 ? copy.cancel : copy.back}
         </Button>
 
         <div className="flex gap-2">
@@ -1716,7 +1941,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
             <PrintWorkoutButton
               kind="hybrid"
               workoutId={initialData.id}
-              label="Skriv ut"
+              label={copy.print}
             />
           )}
           {step < 3 ? (
@@ -1724,12 +1949,12 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
               onClick={() => setStep(step + 1)}
               disabled={step === 1 ? !canProceedStep1 : !canProceedStep2}
             >
-              Nästa
+              {copy.next}
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
             <Button onClick={handleSave} disabled={!canSave || saving}>
-              {saving ? 'Sparar...' : 'Spara Pass'}
+              {saving ? copy.saving : copy.saveWorkout}
             </Button>
           )}
         </div>
