@@ -17,7 +17,7 @@
 import React, { useState } from 'react'
 import useSWR from 'swr'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { AlertTriangle, CheckCircle, XCircle, RefreshCw, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,13 +32,175 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { Textarea } from '@/components/ui/textarea'
+import { useLocale } from '@/i18n/client'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-interface ValidationDashboardProps {}
+type AppLocale = 'en' | 'sv'
 
-export default function ValidationDashboard({}: ValidationDashboardProps) {
+interface FieldTestValidationItem {
+  id: string
+  athleteName: string
+  testType: string
+  testDate: string | Date
+  confidence: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | string
+  valid: boolean
+  validationErrors?: string[]
+}
+
+const copy = {
+  en: {
+    approveSuccessTitle: 'Test approved',
+    approveSuccessDescription: 'The test has been marked as valid.',
+    errorTitle: 'Error',
+    approveFailed: 'Could not approve test.',
+    rejectSuccessTitle: 'Test rejected',
+    rejectSuccessDescription: 'The test has been marked as invalid.',
+    rejectFailed: 'Could not reject test.',
+    deleteConfirm: 'Are you sure you want to delete this test?',
+    deleteSuccessTitle: 'Test deleted',
+    deleteSuccessDescription: 'The test has been permanently deleted.',
+    deleteFailed: 'Could not delete test.',
+    loading: 'Loading validation overview...',
+    loadFailed: 'Could not load field tests.',
+    title: 'Test validation',
+    subtitle: 'Review field tests with validation issues',
+    allTestTypes: 'All test types',
+    allConfidence: 'All confidence levels',
+    totalTests: 'Total tests',
+    valid: 'Valid',
+    invalid: 'Invalid',
+    validStatus: 'Valid',
+    invalidStatus: 'Invalid',
+    validityRate: 'Validity rate',
+    commonErrorsTitle: 'Most common validation errors',
+    commonErrorsDescription: 'The 5 most frequent issues',
+    testsWithIssues: 'Tests with validation issues',
+    requiresReview: (count: number) => `${count} tests require review`,
+    testsCount: (count: number) => `${count} tests`,
+    validationErrors: 'Validation errors:',
+    recommendation: 'Recommendation:',
+    lowConfidenceRecommendation: 'The test has low confidence. Recommend retesting under better controlled conditions.',
+    manyErrorsRecommendation: 'Multiple validation errors detected. Check test technique and consider retesting.',
+    defaultRecommendation: 'Review the errors and approve or reject the test.',
+    coachNotes: 'Coach notes:',
+    coachNotesPlaceholder: 'Add notes...',
+    review: 'Review',
+    approve: 'Approve',
+    reject: 'Reject',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    scheduleRetest: 'Schedule retest',
+    empty: 'No tests require review. All tests are valid with good confidence.',
+    confidence: {
+      VERY_HIGH: 'Very high',
+      HIGH: 'High',
+      MEDIUM: 'Medium',
+      LOW: 'Low',
+    },
+  },
+  sv: {
+    approveSuccessTitle: 'Test godkänt',
+    approveSuccessDescription: 'Testet har markerats som giltigt.',
+    errorTitle: 'Fel',
+    approveFailed: 'Kunde inte godkänna test.',
+    rejectSuccessTitle: 'Test avvisat',
+    rejectSuccessDescription: 'Testet har markerats som ogiltigt.',
+    rejectFailed: 'Kunde inte avvisa test.',
+    deleteConfirm: 'Är du säker på att du vill ta bort detta test?',
+    deleteSuccessTitle: 'Test borttaget',
+    deleteSuccessDescription: 'Testet har tagits bort permanent.',
+    deleteFailed: 'Kunde inte ta bort test.',
+    loading: 'Laddar valideringsöversikt...',
+    loadFailed: 'Kunde inte ladda fälttester.',
+    title: 'Testvalidering',
+    subtitle: 'Granska fälttester med valideringsproblem',
+    allTestTypes: 'Alla testtyper',
+    allConfidence: 'Alla tillförlitligheter',
+    totalTests: 'Totalt tester',
+    valid: 'Giltiga',
+    invalid: 'Ogiltiga',
+    validStatus: 'Giltig',
+    invalidStatus: 'Ogiltig',
+    validityRate: 'Giltighetsprocent',
+    commonErrorsTitle: 'Vanligaste valideringsfelen',
+    commonErrorsDescription: 'De 5 mest förekommande problemen',
+    testsWithIssues: 'Tester med valideringsproblem',
+    requiresReview: (count: number) => `${count} tester kräver granskning`,
+    testsCount: (count: number) => `${count} tester`,
+    validationErrors: 'Valideringsfel:',
+    recommendation: 'Rekommendation:',
+    lowConfidenceRecommendation: 'Testet har låg tillförlitlighet. Rekommenderar omtest med bättre kontrollerade förhållanden.',
+    manyErrorsRecommendation: 'Flera valideringsfel upptäckta. Kontrollera testteknik och överväg omtest.',
+    defaultRecommendation: 'Granska felen och godkänn eller avvisa testet.',
+    coachNotes: 'Coachanteckningar:',
+    coachNotesPlaceholder: 'Lägg till anteckningar...',
+    review: 'Granska',
+    approve: 'Godkänn',
+    reject: 'Avvisa',
+    cancel: 'Avbryt',
+    delete: 'Ta bort',
+    scheduleRetest: 'Schemalägg omtest',
+    empty: 'Inga tester kräver granskning! Alla tester är giltiga med god tillförlitlighet.',
+    confidence: {
+      VERY_HIGH: 'Mycket hög',
+      HIGH: 'Hög',
+      MEDIUM: 'Medel',
+      LOW: 'Låg',
+    },
+  },
+} satisfies Record<AppLocale, {
+  approveSuccessTitle: string
+  approveSuccessDescription: string
+  errorTitle: string
+  approveFailed: string
+  rejectSuccessTitle: string
+  rejectSuccessDescription: string
+  rejectFailed: string
+  deleteConfirm: string
+  deleteSuccessTitle: string
+  deleteSuccessDescription: string
+  deleteFailed: string
+  loading: string
+  loadFailed: string
+  title: string
+  subtitle: string
+  allTestTypes: string
+  allConfidence: string
+  totalTests: string
+  valid: string
+  invalid: string
+  validStatus: string
+  invalidStatus: string
+  validityRate: string
+  commonErrorsTitle: string
+  commonErrorsDescription: string
+  testsWithIssues: string
+  requiresReview: (count: number) => string
+  testsCount: (count: number) => string
+  validationErrors: string
+  recommendation: string
+  lowConfidenceRecommendation: string
+  manyErrorsRecommendation: string
+  defaultRecommendation: string
+  coachNotes: string
+  coachNotesPlaceholder: string
+  review: string
+  approve: string
+  reject: string
+  cancel: string
+  delete: string
+  scheduleRetest: string
+  empty: string
+  confidence: Record<'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW', string>
+}>
+
+export default function ValidationDashboard() {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const text = copy[locale]
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const dateFormat = locale === 'sv' ? 'd MMMM yyyy' : 'MMMM d, yyyy'
 
   const [filterTestType, setFilterTestType] = useState<string>('ALL')
   const [filterConfidence, setFilterConfidence] = useState<string>('ALL')
@@ -47,7 +209,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
   const [isActioning, setIsActioning] = useState(false)
 
   // Fetch all field tests
-  const { data: tests, error, isLoading, mutate } = useSWR<any[]>(
+  const { data: tests, error, isLoading, mutate } = useSWR<FieldTestValidationItem[]>(
     '/api/field-tests',
     fetcher,
     { refreshInterval: 30000 }
@@ -70,17 +232,17 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
       }
 
       toast({
-        title: 'Test godkänt',
-        description: 'Testet har markerats som giltigt.',
+        title: text.approveSuccessTitle,
+        description: text.approveSuccessDescription,
       })
 
       setSelectedTest(null)
       setCoachNotes('')
-      mutate()
-    } catch (error) {
+      void mutate()
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte godkänna test.',
+        title: text.errorTitle,
+        description: text.approveFailed,
         variant: 'destructive',
       })
     } finally {
@@ -105,17 +267,17 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
       }
 
       toast({
-        title: 'Test avvisat',
-        description: 'Testet har markerats som ogiltigt.',
+        title: text.rejectSuccessTitle,
+        description: text.rejectSuccessDescription,
       })
 
       setSelectedTest(null)
       setCoachNotes('')
-      mutate()
-    } catch (error) {
+      void mutate()
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte avvisa test.',
+        title: text.errorTitle,
+        description: text.rejectFailed,
         variant: 'destructive',
       })
     } finally {
@@ -124,7 +286,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
   }
 
   const handleDelete = async (testId: string) => {
-    if (!confirm('Är du säker på att du vill ta bort detta test?')) return
+    if (!confirm(text.deleteConfirm)) return
 
     setIsActioning(true)
     try {
@@ -137,16 +299,16 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
       }
 
       toast({
-        title: 'Test borttaget',
-        description: 'Testet har tagits bort permanent.',
+        title: text.deleteSuccessTitle,
+        description: text.deleteSuccessDescription,
       })
 
       setSelectedTest(null)
-      mutate()
-    } catch (error) {
+      void mutate()
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ta bort test.',
+        title: text.errorTitle,
+        description: text.deleteFailed,
         variant: 'destructive',
       })
     } finally {
@@ -155,14 +317,14 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
   }
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Laddar valideringsöversikt...</div>
+    return <div className="text-muted-foreground">{text.loading}</div>
   }
 
   if (error) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>Kunde inte ladda fälttester.</AlertDescription>
+        <AlertDescription>{text.loadFailed}</AlertDescription>
       </Alert>
     )
   }
@@ -196,9 +358,9 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Testvalidering</h2>
+          <h2 className="text-2xl font-bold">{text.title}</h2>
           <p className="text-sm text-muted-foreground">
-            Granska fälttester med valideringsproblem
+            {text.subtitle}
           </p>
         </div>
 
@@ -208,7 +370,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Alla testtyper</SelectItem>
+              <SelectItem value="ALL">{text.allTestTypes}</SelectItem>
               <SelectItem value="30_MIN_TT">30-Min TT</SelectItem>
               <SelectItem value="CRITICAL_VELOCITY">Critical Velocity</SelectItem>
               <SelectItem value="HR_DRIFT">HR Drift</SelectItem>
@@ -220,11 +382,11 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Alla tillförlitligheter</SelectItem>
-              <SelectItem value="VERY_HIGH">Mycket hög</SelectItem>
-              <SelectItem value="HIGH">Hög</SelectItem>
-              <SelectItem value="MEDIUM">Medel</SelectItem>
-              <SelectItem value="LOW">Låg</SelectItem>
+              <SelectItem value="ALL">{text.allConfidence}</SelectItem>
+              <SelectItem value="VERY_HIGH">{text.confidence.VERY_HIGH}</SelectItem>
+              <SelectItem value="HIGH">{text.confidence.HIGH}</SelectItem>
+              <SelectItem value="MEDIUM">{text.confidence.MEDIUM}</SelectItem>
+              <SelectItem value="LOW">{text.confidence.LOW}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -235,7 +397,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="text-3xl font-bold">{totalTests}</div>
-            <div className="text-sm text-muted-foreground">Totalt tester</div>
+            <div className="text-sm text-muted-foreground">{text.totalTests}</div>
           </CardContent>
         </Card>
 
@@ -244,7 +406,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-green-600">{validTests}</div>
-                <div className="text-sm text-muted-foreground">Giltiga</div>
+                <div className="text-sm text-muted-foreground">{text.valid}</div>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -256,7 +418,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-red-600">{invalidTests}</div>
-                <div className="text-sm text-muted-foreground">Ogiltiga</div>
+                <div className="text-sm text-muted-foreground">{text.invalid}</div>
               </div>
               <XCircle className="h-8 w-8 text-red-500" />
             </div>
@@ -266,7 +428,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="text-3xl font-bold">{validPercent}%</div>
-            <div className="text-sm text-muted-foreground">Giltighetsprocent</div>
+            <div className="text-sm text-muted-foreground">{text.validityRate}</div>
           </CardContent>
         </Card>
       </div>
@@ -275,8 +437,8 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
       {mostCommonErrors.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Vanligaste valideringsfelen</CardTitle>
-            <CardDescription>De 5 mest förekommande problemen</CardDescription>
+            <CardTitle>{text.commonErrorsTitle}</CardTitle>
+            <CardDescription>{text.commonErrorsDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -286,7 +448,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                   className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"
                 >
                   <span className="text-sm">{error}</span>
-                  <Badge variant="destructive">{count} tester</Badge>
+                  <Badge variant="destructive">{text.testsCount(count)}</Badge>
                 </div>
               ))}
             </div>
@@ -297,10 +459,9 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
       {/* Invalid Tests List */}
       <Card>
         <CardHeader>
-          <CardTitle>Tester med valideringsproblem</CardTitle>
+          <CardTitle>{text.testsWithIssues}</CardTitle>
           <CardDescription>
-            {filteredTests?.filter((t) => !t.valid || t.confidence === 'LOW').length || 0} tester
-            kräver granskning
+            {text.requiresReview(filteredTests?.filter((t) => !t.valid || t.confidence === 'LOW').length || 0)}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -320,7 +481,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                     <div className="font-semibold text-lg">{test.athleteName}</div>
                     <div className="text-sm text-muted-foreground">
                       {test.testType} •{' '}
-                      {format(new Date(test.testDate), 'd MMMM yyyy', { locale: sv })}
+                      {format(new Date(test.testDate), dateFormat, { locale: dateLocale })}
                     </div>
                   </div>
 
@@ -334,10 +495,10 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                           : 'destructive'
                       }
                     >
-                      {test.confidence}
+                      {text.confidence[test.confidence as keyof typeof text.confidence] || test.confidence}
                     </Badge>
                     <Badge variant={test.valid ? 'default' : 'destructive'}>
-                      {test.valid ? 'Giltig' : 'Ogiltig'}
+                      {test.valid ? text.validStatus : text.invalidStatus}
                     </Badge>
                   </div>
                 </div>
@@ -345,7 +506,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                 {/* Validation Errors */}
                 {test.validationErrors && test.validationErrors.length > 0 && (
                   <div className="mb-3">
-                    <div className="text-sm font-semibold mb-1">Valideringsfel:</div>
+                    <div className="text-sm font-semibold mb-1">{text.validationErrors}</div>
                     <ul className="list-disc list-inside space-y-1">
                       {test.validationErrors.map((error: string, index: number) => (
                         <li key={index} className="text-sm text-red-700">
@@ -360,12 +521,12 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                 <Alert className="mb-3">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Rekommendation:</strong>{' '}
-                    {test.confidence === 'LOW'
-                      ? 'Testet har låg tillförlitlighet. Rekommenderar omtest med bättre kontrollerade förhållanden.'
-                      : test.validationErrors?.length > 2
-                      ? 'Flera valideringsfel upptäckta. Kontrollera testteknik och överväg omtest.'
-                      : 'Granska felen och godkänn eller avvisa testet.'}
+                    <strong>{text.recommendation}</strong>{' '}
+                      {test.confidence === 'LOW'
+                      ? text.lowConfidenceRecommendation
+                      : (test.validationErrors?.length ?? 0) > 2
+                      ? text.manyErrorsRecommendation
+                      : text.defaultRecommendation}
                   </AlertDescription>
                 </Alert>
 
@@ -373,12 +534,12 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                 {selectedTest === test.id && (
                   <div className="mb-3">
                     <label className="text-sm font-semibold mb-1 block">
-                      Coachanteckningar:
+                      {text.coachNotes}
                     </label>
                     <Textarea
                       value={coachNotes}
                       onChange={(e) => setCoachNotes(e.target.value)}
-                      placeholder="Lägg till anteckningar..."
+                      placeholder={text.coachNotesPlaceholder}
                       rows={3}
                     />
                   </div>
@@ -392,7 +553,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                       size="sm"
                       onClick={() => setSelectedTest(test.id)}
                     >
-                      Granska
+                      {text.review}
                     </Button>
                   ) : (
                     <>
@@ -403,7 +564,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                         disabled={isActioning}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
-                        Godkänn
+                        {text.approve}
                       </Button>
                       <Button
                         variant="outline"
@@ -412,7 +573,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                         disabled={isActioning}
                       >
                         <XCircle className="h-4 w-4 mr-1" />
-                        Avvisa
+                        {text.reject}
                       </Button>
                       <Button
                         variant="outline"
@@ -423,7 +584,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                         }}
                         disabled={isActioning}
                       >
-                        Avbryt
+                        {text.cancel}
                       </Button>
                       <Button
                         variant="destructive"
@@ -432,14 +593,14 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
                         disabled={isActioning}
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
-                        Ta bort
+                        {text.delete}
                       </Button>
                     </>
                   )}
 
                   <Button variant="ghost" size="sm" disabled>
                     <RefreshCw className="h-4 w-4 mr-1" />
-                    Schemalägg omtest
+                    {text.scheduleRetest}
                   </Button>
                 </div>
               </div>
@@ -449,7 +610,7 @@ export default function ValidationDashboard({}: ValidationDashboardProps) {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Inga tester kräver granskning! Alla tester är giltiga med god tillförlitlighet.
+                {text.empty}
               </AlertDescription>
             </Alert>
           )}
