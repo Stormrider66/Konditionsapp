@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 export type BenchmarkTier = 'WORLD_CLASS' | 'ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'BEGINNER'
@@ -56,6 +57,7 @@ export function TestBenchmarkBadge({
   showLabel = true,
   className,
 }: TestBenchmarkBadgeProps) {
+  const locale = useLocale()
   const config = tierConfig[tier]
 
   return (
@@ -68,11 +70,11 @@ export function TestBenchmarkBadge({
         className
       )}
     >
-      {showLabel ? config.labelSv : tier}
+      {showLabel ? (locale === 'sv' ? config.labelSv : config.label) : tier}
     </span>
   )
 }
 
-export function getTierLabel(tier: BenchmarkTier, locale: 'sv' | 'en' = 'sv'): string {
+export function getTierLabel(tier: BenchmarkTier, locale: 'sv' | 'en' = 'en'): string {
   return locale === 'sv' ? tierConfig[tier].labelSv : tierConfig[tier].label
 }

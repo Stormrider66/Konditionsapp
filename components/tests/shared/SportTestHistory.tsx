@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -57,13 +58,13 @@ const DEFAULT_PROTOCOL_LABELS: Record<string, string> = {
   VERTICAL_JUMP_CMJ: 'CMJ',
   VERTICAL_JUMP_SJ: 'SJ',
   VERTICAL_JUMP_DJ: 'DJ',
-  STANDING_LONG_JUMP: 'Längdhopp',
-  MEDICINE_BALL_THROW: 'Medicinboll',
+  STANDING_LONG_JUMP: 'Standing Long Jump',
+  MEDICINE_BALL_THROW: 'Medicine Ball',
   T_TEST: 'T-Test',
   ILLINOIS_AGILITY: 'Illinois',
   PRO_AGILITY_5_10_5: '5-10-5',
   LANE_AGILITY: 'Lane Agility',
-  SERVE_SPEED: 'Serve hastighet',
+  SERVE_SPEED: 'Serve Speed',
   RSA_6X30M: 'RSA 6x30m',
   SPIKE_JUMP: 'Spike Jump',
 }
@@ -77,6 +78,20 @@ const TIER_COLORS: Record<string, string> = {
 }
 
 const TIER_LABELS: Record<string, string> = {
+  WORLD_CLASS: 'World Class',
+  ELITE: 'Elite',
+  ADVANCED: 'Advanced',
+  INTERMEDIATE: 'Intermediate',
+  BEGINNER: 'Beginner',
+}
+
+const SV_PROTOCOL_LABELS: Partial<Record<string, string>> = {
+  STANDING_LONG_JUMP: 'Längdhopp',
+  MEDICINE_BALL_THROW: 'Medicinboll',
+  SERVE_SPEED: 'Serve hastighet',
+}
+
+const SV_TIER_LABELS: Record<string, string> = {
   WORLD_CLASS: 'Världsklass',
   ELITE: 'Elit',
   ADVANCED: 'Avancerad',
@@ -84,8 +99,8 @@ const TIER_LABELS: Record<string, string> = {
   BEGINNER: 'Nybörjare',
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('sv-SE', {
+function formatDate(dateString: string, dateLocale: string): string {
+  return new Date(dateString).toLocaleDateString(dateLocale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -112,19 +127,26 @@ function getProgressIndicator(current: number, previous: number, lowerIsBetter =
 export function SportTestHistory({
   clientId,
   sport,
-  title = 'Testhistorik',
+  title,
   limit = 5,
   showExpandButton = true,
   protocolLabels = {},
   benchmarks = {},
 }: SportTestHistoryProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [tests, setTests] = useState<SportTest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
 
   const displayLimit = expanded ? 20 : limit
-  const mergedLabels = { ...DEFAULT_PROTOCOL_LABELS, ...protocolLabels }
+  const mergedLabels = {
+    ...DEFAULT_PROTOCOL_LABELS,
+    ...(locale === 'sv' ? SV_PROTOCOL_LABELS : {}),
+    ...protocolLabels,
+  }
+  const resolvedTitle = title || (locale === 'sv' ? 'Testhistorik' : 'Test history')
 
   useEffect(() => {
     async function fetchTests() {
@@ -140,14 +162,14 @@ export function SportTestHistory({
         setTests(data.data || [])
       } catch (err) {
         console.error('Failed to fetch sport tests:', err)
-        setError('Kunde inte hämta testhistorik')
+        setError(locale === 'sv' ? 'Kunde inte hämta testhistorik' : 'Could not load test history')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchTests()
-  }, [clientId, sport, displayLimit])
+    void fetchTests()
+  }, [clientId, displayLimit, locale, sport])
 
   // Group tests by protocol for progress comparison
   const testsByProtocol = tests.reduce(
@@ -167,7 +189,7 @@ export function SportTestHistory({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            {title}
+            {resolvedTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -187,7 +209,7 @@ export function SportTestHistory({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            {title}
+            {resolvedTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -203,13 +225,17 @@ export function SportTestHistory({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            {title}
+            {resolvedTitle}
           </CardTitle>
-          <CardDescription>Inga tester registrerade än</CardDescription>
+          <CardDescription>
+            {locale === 'sv' ? 'Inga tester registrerade än' : 'No tests registered yet'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Registrera tester under Tester-fliken för att se historik här.
+            {locale === 'sv'
+              ? 'Registrera tester under Tester-fliken för att se historik här.'
+              : 'Register tests under the Tests tab to see history here.'}
           </p>
         </CardContent>
       </Card>
@@ -221,10 +247,12 @@ export function SportTestHistory({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5" />
-          {title}
+          {resolvedTitle}
         </CardTitle>
         <CardDescription>
-          {tests.length} senaste test{tests.length !== 1 ? 'en' : 'et'}
+          {locale === 'sv'
+            ? `${tests.length} senaste test${tests.length !== 1 ? 'en' : 'et'}`
+            : `${tests.length} latest test${tests.length !== 1 ? 's' : ''}`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -232,11 +260,11 @@ export function SportTestHistory({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Datum</TableHead>
+                <TableHead>{locale === 'sv' ? 'Datum' : 'Date'}</TableHead>
                 <TableHead>Test</TableHead>
-                <TableHead className="text-right">Resultat</TableHead>
-                <TableHead className="text-center">Förändring</TableHead>
-                <TableHead className="text-center">Nivå</TableHead>
+                <TableHead className="text-right">{locale === 'sv' ? 'Resultat' : 'Result'}</TableHead>
+                <TableHead className="text-center">{locale === 'sv' ? 'Förändring' : 'Change'}</TableHead>
+                <TableHead className="text-center">{locale === 'sv' ? 'Nivå' : 'Level'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -260,7 +288,7 @@ export function SportTestHistory({
                     <TableCell className="whitespace-nowrap">
                       <div className="flex items-center gap-1 text-sm">
                         <Clock className="h-3 w-3 text-muted-foreground" />
-                        {formatDate(test.testDate)}
+                        {formatDate(test.testDate, dateLocale)}
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
@@ -287,7 +315,7 @@ export function SportTestHistory({
                     <TableCell className="text-center">
                       {test.benchmarkTier ? (
                         <Badge className={`${TIER_COLORS[test.benchmarkTier]} text-white text-xs`}>
-                          {TIER_LABELS[test.benchmarkTier] || test.benchmarkTier}
+                          {(locale === 'sv' ? SV_TIER_LABELS : TIER_LABELS)[test.benchmarkTier] || test.benchmarkTier}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
@@ -311,12 +339,12 @@ export function SportTestHistory({
               {expanded ? (
                 <>
                   <ChevronUp className="h-4 w-4" />
-                  Visa mindre
+                  {locale === 'sv' ? 'Visa mindre' : 'Show less'}
                 </>
               ) : (
                 <>
                   <ChevronDown className="h-4 w-4" />
-                  Visa fler
+                  {locale === 'sv' ? 'Visa fler' : 'Show more'}
                 </>
               )}
             </Button>
