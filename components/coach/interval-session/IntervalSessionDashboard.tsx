@@ -13,6 +13,11 @@ import type {
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, RefreshCw, BarChart3 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface AvailableClient {
   id: string
@@ -32,6 +37,7 @@ export function IntervalSessionDashboard({
   initialData,
   initialAvailableClients,
 }: IntervalSessionDashboardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const router = useRouter()
   const [data, setData] = useState<IntervalSessionStreamData>(initialData)
   const [availableClients, setAvailableClients] = useState(initialAvailableClients)
@@ -68,18 +74,18 @@ export function IntervalSessionDashboard({
     eventSource.addEventListener('error', () => {
       eventSource.close()
       setIsConnected(false)
-      setConnectionError('Anslutningen brots')
+      setConnectionError(copy(locale, 'Connection interrupted', 'Anslutningen bröts'))
     })
 
     eventSource.onerror = () => {
       setIsConnected(false)
-      setConnectionError('Anslutningen brots')
+      setConnectionError(copy(locale, 'Connection interrupted', 'Anslutningen bröts'))
     }
 
     return () => {
       eventSource.close()
     }
-  }, [sessionId, data.status])
+  }, [sessionId, data.status, locale])
 
   // Refresh available clients
   const refreshAvailableClients = useCallback(async () => {
@@ -99,9 +105,9 @@ export function IntervalSessionDashboard({
     try {
       await fetch(`/api/coach/interval-sessions/${sessionId}/advance`, { method: 'POST' })
     } catch {
-      toast.error('Kunde inte avancera automatiskt')
+      toast.error(copy(locale, 'Could not auto-advance', 'Kunde inte avancera automatiskt'))
     }
-  }, [sessionId])
+  }, [sessionId, locale])
 
   // Auto-end session when all athletes complete all intervals (INDIVIDUAL mode)
   useEffect(() => {
@@ -111,15 +117,15 @@ export function IntervalSessionDashboard({
     const allDone = data.participants.every((p) => p.allIntervalsCompleted)
     if (allDone) {
       // End the session
-      fetch(`/api/coach/interval-sessions/${sessionId}`, {
+      void fetch(`/api/coach/interval-sessions/${sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'ENDED' }),
       }).then(() => {
-        toast.success('Alla atleter klara - session avslutad')
+        toast.success(copy(locale, 'All athletes done - session ended', 'Alla atleter klara - session avslutad'))
       }).catch(() => {})
     }
-  }, [data.restMode, data.status, data.participants, sessionId])
+  }, [data.restMode, data.status, data.participants, sessionId, locale])
 
   // Handle tap — record lap with client-side cumulative time
   const handleTap = useCallback(
@@ -137,13 +143,13 @@ export function IntervalSessionDashboard({
 
         if (!res.ok) {
           const err = await res.json()
-          toast.error(err.error || 'Kunde inte registrera varv')
+          toast.error(err.error || copy(locale, 'Could not register lap', 'Kunde inte registrera varv'))
         }
       } catch {
-        toast.error('Nätverksfel')
+        toast.error(copy(locale, 'Network error', 'Nätverksfel'))
       }
     },
-    [sessionId, data.timerStartedAt]
+    [sessionId, data.timerStartedAt, locale]
   )
 
   // Handle undo
@@ -157,13 +163,13 @@ export function IntervalSessionDashboard({
         })
 
         if (res.ok) {
-          toast.success('Varv återkallat')
+          toast.success(copy(locale, 'Lap undone', 'Varv återkallat'))
         }
       } catch {
-        toast.error('Kunde inte återkalla varv')
+        toast.error(copy(locale, 'Could not undo lap', 'Kunde inte återkalla varv'))
       }
     },
-    [sessionId]
+    [sessionId, locale]
   )
 
   const handleStatusChange = useCallback(() => {
@@ -183,14 +189,14 @@ export function IntervalSessionDashboard({
         )
 
         if (res.ok) {
-          toast.success('Atlet tillagd')
-          refreshAvailableClients()
+          toast.success(copy(locale, 'Athlete added', 'Atlet tillagd'))
+          void refreshAvailableClients()
         }
       } catch {
-        toast.error('Kunde inte lagga till atlet')
+        toast.error(copy(locale, 'Could not add athlete', 'Kunde inte lägga till atlet'))
       }
     },
-    [sessionId, refreshAvailableClients]
+    [sessionId, refreshAvailableClients, locale]
   )
 
   const isTimingActive = data.status === 'ACTIVE'
@@ -212,7 +218,7 @@ export function IntervalSessionDashboard({
           </Button>
           <div className="min-w-0">
             <h1 className="text-lg sm:text-xl font-bold dark:text-white truncate">
-              {data.sessionName || 'Intervallsession'}
+              {data.sessionName || copy(locale, 'Interval session', 'Intervallsession')}
             </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               {isConnected && (
@@ -223,7 +229,7 @@ export function IntervalSessionDashboard({
               )}
               {data.restMode !== 'NONE' && (
                 <span className="text-xs">
-                  {data.restMode === 'INDIVIDUAL' ? 'Individuell vila' : 'Gruppvila'}
+                  {data.restMode === 'INDIVIDUAL' ? copy(locale, 'Individual rest', 'Individuell vila') : copy(locale, 'Group rest', 'Gruppvila')}
                 </span>
               )}
               {connectionError && (
@@ -245,7 +251,7 @@ export function IntervalSessionDashboard({
               }
             >
               <BarChart3 className="h-4 w-4 mr-2" />
-              Analys
+              {copy(locale, 'Analysis', 'Analys')}
             </Button>
           )}
           {!isEnded && (
