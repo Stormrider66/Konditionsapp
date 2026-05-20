@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useLocale } from 'next-intl';
 import {
   GlassCard,
   GlassCardContent,
@@ -11,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   BarChart3,
   Users,
@@ -24,12 +25,9 @@ import {
   Crown,
   RefreshCw,
   ArrowUpRight,
-  ArrowDownRight,
 } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -89,12 +87,10 @@ interface AnalyticsData {
   };
 }
 
-export function AnalyticsDashboardClient({
-  userId,
-  userName,
-}: AnalyticsDashboardClientProps) {
+export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) {
+  const locale = useLocale();
   const t = useTranslations('analytics');
-  const tCommon = useTranslations('common');
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('30');
@@ -120,12 +116,12 @@ export function AnalyticsDashboardClient({
   }, [range]);
 
   useEffect(() => {
-    fetchAnalytics();
+    void fetchAnalytics();
   }, [fetchAnalytics]);
 
   const formatChartDate = (dateStr: string) => {
     try {
-      return format(parseISO(dateStr), 'd MMM', { locale: sv });
+      return format(parseISO(dateStr), 'd MMM', { locale: dateLocale });
     } catch {
       return dateStr;
     }
@@ -208,7 +204,7 @@ export function AnalyticsDashboardClient({
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {data.subscription.currentPeriodEnd && (
-                      <>{t('renewsOn')} {format(parseISO(data.subscription.currentPeriodEnd), 'PPP', { locale: sv })}</>
+                      <>{t('renewsOn')} {format(parseISO(data.subscription.currentPeriodEnd), 'PPP', { locale: dateLocale })}</>
                     )}
                   </p>
                 </div>
@@ -390,7 +386,7 @@ export function AnalyticsDashboardClient({
         <GlassCardHeader className="pb-2">
           <GlassCardTitle className="text-base">{t('periodSummary')}</GlassCardTitle>
           <GlassCardDescription>
-            {format(parseISO(data.period.start), 'PPP', { locale: sv })} - {format(parseISO(data.period.end), 'PPP', { locale: sv })}
+            {format(parseISO(data.period.start), 'PPP', { locale: dateLocale })} - {format(parseISO(data.period.end), 'PPP', { locale: dateLocale })}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
