@@ -17,8 +17,8 @@
 
 import React, { useState } from 'react'
 import useSWR from 'swr'
-import { format, addWeeks, startOfWeek, differenceInDays } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { format, addWeeks, differenceInDays } from 'date-fns'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Calendar,
   CheckCircle,
@@ -47,32 +47,78 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useLocale } from '@/i18n/client'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
+function dateFnsLocale(locale: AppLocale) {
+  return locale === 'sv' ? sv : enUS
+}
+
+function formatDays(locale: AppLocale, days: number): string {
+  return text(locale, `${days} dagar`, `${days} days`)
+}
+
+function statusLabel(locale: AppLocale, status: 'OVERDUE' | 'DUE_SOON' | 'UPCOMING' | 'NO_TEST') {
+  const labels = {
+    OVERDUE: { sv: 'FÖRSENAD', en: 'OVERDUE' },
+    DUE_SOON: { sv: 'SNART DAGS', en: 'DUE SOON' },
+    UPCOMING: { sv: 'KOMMANDE', en: 'UPCOMING' },
+    NO_TEST: { sv: 'INGET TEST', en: 'NO TEST' },
+  }
+  return labels[status][locale]
+}
 
 interface TestScheduleProps {
   highlightedClientId?: string
   sourceLabel?: string
 }
 
+interface ScheduleClient {
+  id: string
+  name: string
+  latestReadinessScore?: number
+  lastHardWorkout?: string | Date | null
+}
+
+interface ScheduledFieldTest {
+  id: string
+  scheduledDate: string
+  testType: string
+  athleteName: string
+  completed?: boolean
+}
+
+interface FieldTestHistoryItem {
+  clientId: string
+  testDate: string
+}
+
 export default function TestSchedule({ highlightedClientId, sourceLabel }: TestScheduleProps) {
   const { toast } = useToast()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const appDateLocale = dateFnsLocale(locale)
 
   const [selectedWeeks, setSelectedWeeks] = useState<number>(12)
 
   // Fetch all clients
-  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher)
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: ScheduleClient[] }>('/api/clients', fetcher)
   const clients = clientsResponse?.data || []
 
   // Fetch scheduled tests
-  const { data: scheduledTests, mutate } = useSWR<any[]>(
+  const { data: scheduledTests, mutate } = useSWR<ScheduledFieldTest[]>(
     '/api/field-tests/schedule',
     fetcher,
     { refreshInterval: 30000 }
   )
 
   // Fetch field test history for recommendations
-  const { data: testHistory } = useSWR<any[]>('/api/field-tests', fetcher)
+  const { data: testHistory } = useSWR<FieldTestHistoryItem[]>('/api/field-tests', fetcher)
 
   const handleScheduleTest = async (clientId: string, date: Date, testType: string) => {
     try {
@@ -91,15 +137,19 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
       }
 
       toast({
-        title: 'Test schemalagt',
-        description: `${testType} schemalagt för ${format(date, 'd MMMM yyyy', { locale: sv })}`,
+        title: text(locale, 'Test schemalagt', 'Test scheduled'),
+        description: text(
+          locale,
+          `${testType} schemalagt för ${format(date, 'd MMMM yyyy', { locale: appDateLocale })}`,
+          `${testType} scheduled for ${format(date, 'MMMM d, yyyy', { locale: appDateLocale })}`,
+        ),
       })
 
-      mutate()
-    } catch (error) {
+      void mutate()
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte schemalägga test.',
+        title: text(locale, 'Fel', 'Error'),
+        description: text(locale, 'Kunde inte schemalägga test.', 'Could not schedule test.'),
         variant: 'destructive',
       })
     }
@@ -116,13 +166,13 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
       }
 
       toast({
-        title: 'Påminnelse skickad',
-        description: 'E-postpåminnelse har skickats till atleten.',
+        title: text(locale, 'Påminnelse skickad', 'Reminder sent'),
+        description: text(locale, 'E-postpåminnelse har skickats till atleten.', 'The email reminder has been sent to the athlete.'),
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte skicka påminnelse.',
+        title: text(locale, 'Fel', 'Error'),
+        description: text(locale, 'Kunde inte skicka påminnelse.', 'Could not send reminder.'),
         variant: 'destructive',
       })
     }
@@ -172,14 +222,14 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
       daysSinceLastTest,
       recommendedDate,
       status,
-      readiness: {
-        score: readinessScore,
-        isReady,
-        reason: !isReady
-          ? readinessScore < 75
-            ? 'Låg beredskap'
-            : 'Hårt pass för nyligen'
-          : 'Redo för test',
+        readiness: {
+          score: readinessScore,
+          isReady,
+          reason: !isReady
+            ? readinessScore < 75
+              ? text(locale, 'Låg beredskap', 'Low readiness')
+              : text(locale, 'Hårt pass för nyligen', 'Hard session too recently')
+          : text(locale, 'Redo för test', 'Ready for test'),
       },
     }
   })
@@ -198,9 +248,9 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Testschemaläggning</h2>
+          <h2 className="text-2xl font-bold">{text(locale, 'Testschemaläggning', 'Test scheduling')}</h2>
           <p className="text-sm text-muted-foreground">
-            Planera och följ upp fälttester för alla atleter
+            {text(locale, 'Planera och följ upp fälttester för alla atleter', 'Plan and follow up field tests for all athletes')}
           </p>
         </div>
 
@@ -213,15 +263,15 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="4">4 veckor</SelectItem>
-              <SelectItem value="8">8 veckor</SelectItem>
-              <SelectItem value="12">12 veckor</SelectItem>
+              <SelectItem value="4">{text(locale, '4 veckor', '4 weeks')}</SelectItem>
+              <SelectItem value="8">{text(locale, '8 veckor', '8 weeks')}</SelectItem>
+              <SelectItem value="12">{text(locale, '12 veckor', '12 weeks')}</SelectItem>
             </SelectContent>
           </Select>
 
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            Schemalägg batch
+            {text(locale, 'Schemalägg batch', 'Schedule batch')}
           </Button>
         </div>
       </div>
@@ -233,11 +283,11 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
             {highlightedRecommendation
               ? (
                   <>
-                    Öppnat från AI Canvas för <strong>{highlightedRecommendation.client.name}</strong>
-                    {sourceLabel ? `: ${sourceLabel}` : ''}. Välj testtyp i atletens rad för att schemalägga.
+                    {text(locale, 'Öppnat från AI Canvas för', 'Opened from AI Canvas for')} <strong>{highlightedRecommendation.client.name}</strong>
+                    {sourceLabel ? `: ${sourceLabel}` : ''}. {text(locale, 'Välj testtyp i atletens rad för att schemalägga.', 'Choose a test type in the athlete row to schedule.')}
                   </>
                 )
-              : 'Öppnat från AI Canvas. Atleten kunde inte matchas i listan just nu.'}
+              : text(locale, 'Öppnat från AI Canvas. Atleten kunde inte matchas i listan just nu.', 'Opened from AI Canvas. The athlete could not be matched in the list right now.')}
           </AlertDescription>
         </Alert>
       )}
@@ -249,7 +299,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-red-600">{overdueTests.length}</div>
-                <div className="text-sm text-muted-foreground">Försenade</div>
+                <div className="text-sm text-muted-foreground">{text(locale, 'Försenade', 'Overdue')}</div>
               </div>
               <AlertCircle className="h-8 w-8 text-red-500" />
             </div>
@@ -261,7 +311,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-orange-600">{dueSoonTests.length}</div>
-                <div className="text-sm text-muted-foreground">Snart dags</div>
+                <div className="text-sm text-muted-foreground">{text(locale, 'Snart dags', 'Due soon')}</div>
               </div>
               <Calendar className="h-8 w-8 text-orange-500" />
             </div>
@@ -273,7 +323,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold text-blue-600">{upcomingTests.length}</div>
-                <div className="text-sm text-muted-foreground">Kommande</div>
+                <div className="text-sm text-muted-foreground">{text(locale, 'Kommande', 'Upcoming')}</div>
               </div>
               <Calendar className="h-8 w-8 text-blue-500" />
             </div>
@@ -285,7 +335,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-bold">{noTests.length}</div>
-                <div className="text-sm text-muted-foreground">Aldrig testat</div>
+                <div className="text-sm text-muted-foreground">{text(locale, 'Aldrig testat', 'Never tested')}</div>
               </div>
               <XCircle className="h-8 w-8 text-gray-500" />
             </div>
@@ -296,20 +346,20 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
       {/* Athlete Test Status Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Atletstatus</CardTitle>
-          <CardDescription>Testhistorik och beredskap för nästa test</CardDescription>
+          <CardTitle>{text(locale, 'Atletstatus', 'Athlete status')}</CardTitle>
+          <CardDescription>{text(locale, 'Testhistorik och beredskap för nästa test', 'Test history and readiness for the next test')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Atlet</TableHead>
-                <TableHead>Senaste test</TableHead>
-                <TableHead>Dagar sedan</TableHead>
+                <TableHead>{text(locale, 'Atlet', 'Athlete')}</TableHead>
+                <TableHead>{text(locale, 'Senaste test', 'Latest test')}</TableHead>
+                <TableHead>{text(locale, 'Dagar sedan', 'Days since')}</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Beredskap</TableHead>
-                <TableHead>Rekommenderat datum</TableHead>
-                <TableHead>Åtgärd</TableHead>
+                <TableHead>{text(locale, 'Beredskap', 'Readiness')}</TableHead>
+                <TableHead>{text(locale, 'Rekommenderat datum', 'Recommended date')}</TableHead>
+                <TableHead>{text(locale, 'Åtgärd', 'Action')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -321,10 +371,10 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                   <TableCell className="font-semibold">{rec.client.name}</TableCell>
                   <TableCell>
                     {rec.lastTest
-                      ? format(new Date(rec.lastTest.testDate), 'd MMM yyyy', { locale: sv })
+                      ? format(new Date(rec.lastTest.testDate), locale === 'sv' ? 'd MMM yyyy' : 'MMM d, yyyy', { locale: appDateLocale })
                       : '-'}
                   </TableCell>
-                  <TableCell>{rec.daysSinceLastTest || '-'} dagar</TableCell>
+                  <TableCell>{rec.daysSinceLastTest ? formatDays(locale, rec.daysSinceLastTest) : '-'}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -335,13 +385,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                           : 'default'
                       }
                     >
-                      {rec.status === 'OVERDUE'
-                        ? 'FÖRSENAD'
-                        : rec.status === 'DUE_SOON'
-                        ? 'SNART DAGS'
-                        : rec.status === 'UPCOMING'
-                        ? 'KOMMANDE'
-                        : 'INGET TEST'}
+                      {statusLabel(locale, rec.status)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -359,7 +403,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                   </TableCell>
                   <TableCell>
                     {rec.recommendedDate
-                      ? format(rec.recommendedDate, 'd MMM yyyy', { locale: sv })
+                      ? format(rec.recommendedDate, locale === 'sv' ? 'd MMM yyyy' : 'MMM d, yyyy', { locale: appDateLocale })
                       : '-'}
                   </TableCell>
                   <TableCell>
@@ -367,12 +411,12 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                       <Select
                         onValueChange={(testType) => {
                           if (rec.recommendedDate) {
-                            handleScheduleTest(rec.client.id, rec.recommendedDate, testType)
+                            void handleScheduleTest(rec.client.id, rec.recommendedDate, testType)
                           }
                         }}
                       >
                         <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Schemalägg..." />
+                          <SelectValue placeholder={text(locale, 'Schemalägg...', 'Schedule...')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="30_MIN_TT">30-Min TT</SelectItem>
@@ -390,7 +434,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
           {!recommendations || recommendations.length === 0 && (
             <Alert className="mt-4">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>Inga atleter ännu. Lägg till atleter för att schemalägga tester.</AlertDescription>
+              <AlertDescription>{text(locale, 'Inga atleter ännu. Lägg till atleter för att schemalägga tester.', 'No athletes yet. Add athletes to schedule tests.')}</AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -400,8 +444,8 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
       {scheduledTests && scheduledTests.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Schemalagda tester</CardTitle>
-            <CardDescription>Kommande {selectedWeeks} veckor</CardDescription>
+            <CardTitle>{text(locale, 'Schemalagda tester', 'Scheduled tests')}</CardTitle>
+            <CardDescription>{text(locale, `Kommande ${selectedWeeks} veckor`, `Next ${selectedWeeks} weeks`)}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -439,10 +483,10 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                           <div className="font-semibold">{test.athleteName}</div>
                           <div className="text-sm text-muted-foreground">
                             {test.testType} •{' '}
-                            {format(new Date(test.scheduledDate), 'd MMMM yyyy', {
-                              locale: sv,
+                            {format(new Date(test.scheduledDate), locale === 'sv' ? 'd MMMM yyyy' : 'MMMM d, yyyy', {
+                              locale: appDateLocale,
                             })}{' '}
-                            ({daysUntil} dagar)
+                            ({formatDays(locale, daysUntil)})
                           </div>
                         </div>
 
@@ -450,14 +494,14 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                           {isCritical && (
                             <Badge variant="destructive">
                               <AlertCircle className="h-3 w-3 mr-1" />
-                              &lt;7 dagar
+                              {text(locale, '<7 dagar', '<7 days')}
                             </Badge>
                           )}
 
                           {test.completed && (
                             <Badge variant="default">
                               <CheckCircle className="h-3 w-3 mr-1" />
-                              Genomfört
+                              {text(locale, 'Genomfört', 'Completed')}
                             </Badge>
                           )}
 
@@ -468,7 +512,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                               onClick={() => handleSendReminder(test.id)}
                             >
                               <Mail className="h-4 w-4 mr-1" />
-                              Påminn
+                              {text(locale, 'Påminn', 'Remind')}
                             </Button>
                           )}
                         </div>
@@ -486,8 +530,12 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>{overdueTests.length} atleter</strong> har inte testat på över 12 veckor.
-            Schemalägg tester för att hålla zoner uppdaterade.
+            <strong>{text(locale, `${overdueTests.length} atleter`, `${overdueTests.length} ${overdueTests.length === 1 ? 'athlete' : 'athletes'}`)}</strong>
+            {text(
+              locale,
+              ` har inte testat på över 12 veckor. Schemalägg tester för att hålla zoner uppdaterade.`,
+              ` ${overdueTests.length === 1 ? 'athlete has' : 'athletes have'} not tested in over 12 weeks. Schedule tests to keep zones up to date.`,
+            )}
           </AlertDescription>
         </Alert>
       )}
