@@ -20,6 +20,7 @@ import {
   Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface CommunityComment {
   id: string
@@ -41,33 +42,24 @@ interface CommunityPostData {
   comments: CommunityComment[]
 }
 
-const typeConfig: Record<string, { label: string; icon: typeof Megaphone; color: string }> = {
-  ANNOUNCEMENT: { label: 'Nyhet', icon: Megaphone, color: 'text-blue-500' },
-  MOTIVATION: { label: 'Motivation', icon: Zap, color: 'text-yellow-500' },
-  ACHIEVEMENT: { label: 'Prestation', icon: Trophy, color: 'text-green-500' },
-  GENERAL: { label: 'Inlägg', icon: Users, color: 'text-slate-500' },
+const typeConfig: Record<string, { labelKey: string; icon: typeof Megaphone; color: string }> = {
+  ANNOUNCEMENT: { labelKey: 'types.announcement', icon: Megaphone, color: 'text-blue-500' },
+  MOTIVATION: { labelKey: 'types.motivation', icon: Zap, color: 'text-yellow-500' },
+  ACHIEVEMENT: { labelKey: 'types.achievement', icon: Trophy, color: 'text-green-500' },
+  GENERAL: { labelKey: 'types.general', icon: Users, color: 'text-slate-500' },
 }
 
 function getInitials(name: string): string {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
-function formatTimeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Just nu'
-  if (mins < 60) return `${mins}m sedan`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h sedan`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d sedan`
-  return new Date(dateStr).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
-}
-
 export function CommunityFeed() {
+  const t = useTranslations('coach.pages.community.feed')
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [posts, setPosts] = useState<CommunityPostData[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentUserId, setCurrentUserId] = useState<string>('')
+  const [now, setNow] = useState(() => Date.now())
 
   // New post
   const [newContent, setNewContent] = useState('')
@@ -86,7 +78,7 @@ export function CommunityFeed() {
       if (res.ok) {
         const data = await res.json()
         setPosts(data.posts || [])
-        setCurrentUserId(data.currentUserId || '')
+        setNow(Date.now())
       }
     } catch {
       // ignore
@@ -95,7 +87,19 @@ export function CommunityFeed() {
     }
   }, [])
 
-  useEffect(() => { fetchPosts() }, [fetchPosts])
+  useEffect(() => { void fetchPosts() }, [fetchPosts])
+
+  const formatTimeAgo = (dateStr: string): string => {
+    const diff = now - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return t('time.now')
+    if (mins < 60) return t('time.minutesAgo', { count: mins })
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return t('time.hoursAgo', { count: hours })
+    const days = Math.floor(hours / 24)
+    if (days < 7) return t('time.daysAgo', { count: days })
+    return new Date(dateStr).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })
+  }
 
   const createPost = async () => {
     if (!newContent.trim()) return
@@ -116,7 +120,7 @@ export function CommunityFeed() {
         setNewType('GENERAL')
         setNotifyInApp(false)
         setNotifyEmail(false)
-        fetchPosts()
+        void fetchPosts()
       }
     } catch {
       // ignore
@@ -136,9 +140,9 @@ export function CommunityFeed() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'like', postId }),
       })
-      fetchPosts()
+      void fetchPosts()
     } catch {
-      fetchPosts()
+      void fetchPosts()
     }
   }
 
@@ -152,7 +156,7 @@ export function CommunityFeed() {
       })
       setCommentText('')
       setCommentingOn(null)
-      fetchPosts()
+      void fetchPosts()
     } catch {
       // ignore
     }
@@ -164,7 +168,7 @@ export function CommunityFeed() {
       <Card>
         <CardContent className="p-4 space-y-3">
           <Textarea
-            placeholder="Dela en nyhet, motivationspost eller prestation..."
+            placeholder={t('newPostPlaceholder')}
             value={newContent}
             onChange={e => setNewContent(e.target.value)}
             rows={3}
@@ -182,19 +186,19 @@ export function CommunityFeed() {
                     onClick={() => setNewType(key)}
                   >
                     <Icon className={cn('h-3 w-3 mr-1', newType !== key && config.color)} />
-                    {config.label}
+                    {t(config.labelKey)}
                   </Button>
                 )
               })}
             </div>
             <Button onClick={createPost} disabled={posting || !newContent.trim()} size="sm" className="shrink-0 self-end">
               {posting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
-              Publicera
+              {t('publish')}
             </Button>
           </div>
           {/* Notification toggles */}
           <div className="flex items-center gap-3 pt-1 border-t">
-            <span className="text-xs text-muted-foreground">Notifiera:</span>
+            <span className="text-xs text-muted-foreground">{t('notify')}</span>
             <button
               type="button"
               onClick={() => setNotifyInApp(!notifyInApp)}
@@ -206,7 +210,7 @@ export function CommunityFeed() {
               )}
             >
               <Bell className="h-3 w-3" />
-              I appen
+              {t('inApp')}
             </button>
             <button
               type="button"
@@ -219,7 +223,7 @@ export function CommunityFeed() {
               )}
             >
               <Mail className="h-3 w-3" />
-              E-post
+              {t('email')}
             </button>
           </div>
         </CardContent>
@@ -233,8 +237,8 @@ export function CommunityFeed() {
       ) : posts.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p className="text-lg font-medium">Tomt här ännu</p>
-          <p className="text-sm mt-1">Dela det första inlägget med dina medlemmar!</p>
+          <p className="text-lg font-medium">{t('emptyTitle')}</p>
+          <p className="text-sm mt-1">{t('emptyDescription')}</p>
         </div>
       ) : (
         posts.map(post => {
@@ -254,7 +258,7 @@ export function CommunityFeed() {
                       {post.type !== 'GENERAL' && (
                         <Badge variant="secondary" className="text-[10px] h-4">
                           <TypeIcon className={cn('h-2.5 w-2.5 mr-0.5', config.color)} />
-                          {config.label}
+                          {t(config.labelKey)}
                         </Badge>
                       )}
                       {post.isPinned && <Pin className="h-3 w-3 text-yellow-500" />}
@@ -301,7 +305,7 @@ export function CommunityFeed() {
                 {commentingOn === post.id && (
                   <div className="mt-3 flex gap-2">
                     <Input
-                      placeholder="Skriv en kommentar..."
+                      placeholder={t('commentPlaceholder')}
                       value={commentText}
                       onChange={e => setCommentText(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addComment(post.id)}

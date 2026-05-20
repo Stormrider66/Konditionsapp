@@ -2487,7 +2487,29 @@
       },
       "community": {
         "title": "Community",
-        "description": "Posts, news, and updates for your members"
+        "description": "Posts, news, and updates for your members",
+        "feed": {
+          "types": {
+            "announcement": "News",
+            "motivation": "Motivation",
+            "achievement": "Achievement",
+            "general": "Post"
+          },
+          "time": {
+            "now": "Just now",
+            "minutesAgo": "{count}m ago",
+            "hoursAgo": "{count}h ago",
+            "daysAgo": "{count}d ago"
+          },
+          "newPostPlaceholder": "Share news, motivation, or an achievement...",
+          "publish": "Publish",
+          "notify": "Notify:",
+          "inApp": "In app",
+          "email": "Email",
+          "emptyTitle": "Nothing here yet",
+          "emptyDescription": "Share the first post with your members!",
+          "commentPlaceholder": "Write a comment..."
+        }
       },
       "drills": {
         "title": "Tactics board",

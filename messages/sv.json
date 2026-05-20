@@ -2487,7 +2487,29 @@
       },
       "community": {
         "title": "Community",
-        "description": "Inlägg, nyheter och uppdateringar för dina medlemmar"
+        "description": "Inlägg, nyheter och uppdateringar för dina medlemmar",
+        "feed": {
+          "types": {
+            "announcement": "Nyhet",
+            "motivation": "Motivation",
+            "achievement": "Prestation",
+            "general": "Inlägg"
+          },
+          "time": {
+            "now": "Just nu",
+            "minutesAgo": "{count}m sedan",
+            "hoursAgo": "{count}h sedan",
+            "daysAgo": "{count}d sedan"
+          },
+          "newPostPlaceholder": "Dela en nyhet, motivationspost eller prestation...",
+          "publish": "Publicera",
+          "notify": "Notifiera:",
+          "inApp": "I appen",
+          "email": "E-post",
+          "emptyTitle": "Tomt här ännu",
+          "emptyDescription": "Dela det första inlägget med dina medlemmar!",
+          "commentPlaceholder": "Skriv en kommentar..."
+        }
       },
       "drills": {
         "title": "Taktiktavla",
