@@ -55,8 +55,8 @@ export function canvasToMarkdown(
 ): string {
   const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const copy = locale === 'sv'
-    ? { exported: 'Exporterad', section: 'Sektion', metric: 'Mätvärde', value: 'Värde', detail: 'Detalj' }
-    : { exported: 'Exported', section: 'Section', metric: 'Metric', value: 'Value', detail: 'Detail' }
+    ? { exported: 'Exporterad', section: 'Sektion', metric: 'Mätvärde', value: 'Värde', detail: 'Detalj', point: 'Punkt' }
+    : { exported: 'Exported', section: 'Section', metric: 'Metric', value: 'Value', detail: 'Detail', point: 'Point' }
   const lines = [
     `# ${title.trim() || 'AI Canvas'}`,
     '',
@@ -120,7 +120,7 @@ export function canvasToMarkdown(
 
     if (block.type === 'chart') {
       if (block.content) lines.push(block.content, '')
-      lines.push('| Punkt | Värde | Detalj |', '| --- | --- | --- |')
+      lines.push(`| ${copy.point} | ${copy.value} | ${copy.detail} |`, '| --- | --- | --- |')
       for (const point of block.points || []) {
         lines.push(
           `| ${escapeMarkdownTableCell(point.label)} | ${point.value}${block.unit ? ` ${escapeMarkdownTableCell(block.unit)}` : ''} | ${escapeMarkdownTableCell(point.detail)} |`
