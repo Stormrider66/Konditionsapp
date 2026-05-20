@@ -4,8 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { enUS } from 'date-fns/locale'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -381,7 +380,7 @@ export default function CoachMessagesPage() {
                               <div className="flex flex-wrap items-center gap-2 mt-2">
                                 <Clock className={`h-3 w-3 flex-shrink-0 ${isCoach ? 'text-blue-200' : 'text-muted-foreground'}`} />
                                 <p className={`text-xs ${isCoach ? 'text-blue-200' : 'text-muted-foreground'}`}>
-                                  {format(new Date(msg.createdAt), 'PPp', { locale: sv })}
+                                  {format(new Date(msg.createdAt), 'PPp', { locale: dateLocale })}
                                 </p>
                                 {isCoach && msg.isRead && (
                                   <MailOpen className="h-3 w-3 text-blue-200 flex-shrink-0" />
