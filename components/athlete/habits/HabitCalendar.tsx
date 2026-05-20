@@ -22,13 +22,23 @@ interface HabitCalendarProps {
   habits: Habit[]
   currentMonth: Date
   onMonthChange: (date: Date) => void
+  locale?: AppLocale
 }
 
-const DAYS_OF_WEEK = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
-const MONTHS = [
-  'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
-  'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'
-]
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
+const DAYS_OF_WEEK: Record<AppLocale, string[]> = {
+  sv: ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+}
+const MONTHS: Record<AppLocale, string[]> = {
+  sv: ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni', 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+}
 
 function getDaysInMonth(year: number, month: number): Date[] {
   const days: Date[] = []
@@ -51,7 +61,8 @@ type CompletionStatus = 'all' | 'partial' | 'none' | 'future'
 export function HabitCalendar({
   habits,
   currentMonth,
-  onMonthChange
+  onMonthChange,
+  locale = 'en',
 }: HabitCalendarProps) {
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -129,7 +140,7 @@ export function HabitCalendar({
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{MONTHS[month]} {year}</CardTitle>
+          <CardTitle className="text-lg">{MONTHS[locale][month]} {year}</CardTitle>
           <div className="flex gap-1">
             <Button variant="outline" size="icon" onClick={handlePrevMonth}>
               <ChevronLeft className="h-4 w-4" />
@@ -143,7 +154,7 @@ export function HabitCalendar({
       <CardContent>
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-1 mb-2">
-          {DAYS_OF_WEEK.map(day => (
+          {DAYS_OF_WEEK[locale].map(day => (
             <div
               key={day}
               className="text-center text-xs font-medium text-muted-foreground py-1"
@@ -184,15 +195,15 @@ export function HabitCalendar({
         <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded bg-green-500" />
-            <span>Alla klara</span>
+            <span>{text(locale, 'Alla klara', 'All done')}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded bg-yellow-500" />
-            <span>Delvis</span>
+            <span>{text(locale, 'Delvis', 'Partial')}</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded bg-red-100 dark:bg-red-900/30" />
-            <span>Inga</span>
+            <span>{text(locale, 'Inga', 'None')}</span>
           </div>
         </div>
       </CardContent>

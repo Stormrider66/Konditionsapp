@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Plus,
@@ -20,6 +19,17 @@ import { HabitCard } from './HabitCard'
 import { HabitCalendar } from './HabitCalendar'
 import { AddHabitModal } from './AddHabitModal'
 import { HabitCategory, HabitFrequency } from '@prisma/client'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
 
 interface HabitLog {
   id: string
@@ -57,6 +67,7 @@ interface HabitFormData {
 }
 
 export function HabitTracker() {
+  const locale = getAppLocale(useLocale())
   const [habits, setHabits] = useState<Habit[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -76,18 +87,18 @@ export function HabitTracker() {
       if (result.success) {
         setHabits(result.data)
       } else {
-        setError(result.error || 'Kunde inte hämta vanor')
+        setError(result.error || text(locale, 'Kunde inte hämta vanor', 'Could not load habits'))
       }
     } catch (err) {
-      setError('Något gick fel')
+      setError(text(locale, 'Något gick fel', 'Something went wrong'))
       console.error('Error fetching habits:', err)
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [locale])
 
   useEffect(() => {
-    fetchHabits()
+    void fetchHabits()
   }, [fetchHabits])
 
   const handleToggleHabit = async (habitId: string, completed: boolean) => {
@@ -151,12 +162,12 @@ export function HabitTracker() {
     if (result.success) {
       setHabits(prev => [...prev, { ...result.data, logs: [] }])
     } else {
-      throw new Error(result.error || 'Kunde inte skapa vana')
+      throw new Error(result.error || text(locale, 'Kunde inte skapa vana', 'Could not create habit'))
     }
   }
 
   const handleDeleteHabit = async (habitId: string) => {
-    if (!confirm('Är du säker på att du vill ta bort denna vana?')) return
+    if (!confirm(text(locale, 'Är du säker på att du vill ta bort denna vana?', 'Are you sure you want to delete this habit?'))) return
 
     try {
       const response = await fetch(`/api/habits/${habitId}`, {
@@ -207,12 +218,12 @@ export function HabitTracker() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Dagliga vanor</h2>
-          <p className="text-muted-foreground">Bygg hälsosamma rutiner</p>
+          <h2 className="text-2xl font-bold">{text(locale, 'Dagliga vanor', 'Daily habits')}</h2>
+          <p className="text-muted-foreground">{text(locale, 'Bygg hälsosamma rutiner', 'Build healthy routines')}</p>
         </div>
         <Button onClick={() => setShowAddModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Lägg till vana
+          {text(locale, 'Lägg till vana', 'Add habit')}
         </Button>
       </div>
 
@@ -233,7 +244,7 @@ export function HabitTracker() {
                 <Target className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Idag</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Idag', 'Today')}</p>
                 <p className="text-2xl font-bold">
                   {completedToday} / {totalHabits}
                 </p>
@@ -249,8 +260,8 @@ export function HabitTracker() {
                 <Flame className="h-5 w-5 text-orange-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Längsta streak</p>
-                <p className="text-2xl font-bold">{longestStreak} dagar</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Längsta streak', 'Longest streak')}</p>
+                <p className="text-2xl font-bold">{longestStreak} {text(locale, 'dagar', 'days')}</p>
               </div>
             </div>
           </CardContent>
@@ -263,7 +274,7 @@ export function HabitTracker() {
                 <TrendingUp className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Färdigställt idag</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Färdigställt idag', 'Completed today')}</p>
                 <p className="text-2xl font-bold">{completionRate}%</p>
               </div>
             </div>
@@ -277,7 +288,7 @@ export function HabitTracker() {
                 <CalendarIcon className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Totala vanor</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Totala vanor', 'Total habits')}</p>
                 <p className="text-2xl font-bold">{totalHabits}</p>
               </div>
             </div>
@@ -290,11 +301,11 @@ export function HabitTracker() {
         <TabsList>
           <TabsTrigger value="list">
             <LayoutGrid className="h-4 w-4 mr-2" />
-            Lista
+            {text(locale, 'Lista', 'List')}
           </TabsTrigger>
           <TabsTrigger value="calendar">
             <CalendarIcon className="h-4 w-4 mr-2" />
-            Kalender
+            {text(locale, 'Kalender', 'Calendar')}
           </TabsTrigger>
         </TabsList>
 
@@ -303,13 +314,13 @@ export function HabitTracker() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold mb-2">Inga vanor än</h3>
+                <h3 className="font-semibold mb-2">{text(locale, 'Inga vanor än', 'No habits yet')}</h3>
                 <p className="text-muted-foreground mb-4">
-                  Börja bygga hälsosamma vanor genom att lägga till din första.
+                  {text(locale, 'Börja bygga hälsosamma vanor genom att lägga till din första.', 'Start building healthy habits by adding your first one.')}
                 </p>
                 <Button onClick={() => setShowAddModal(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Lägg till din första vana
+                  {text(locale, 'Lägg till din första vana', 'Add your first habit')}
                 </Button>
               </CardContent>
             </Card>
@@ -321,6 +332,7 @@ export function HabitTracker() {
                 todayCompleted={isCompletedToday(habit)}
                 onToggle={handleToggleHabit}
                 onDelete={handleDeleteHabit}
+                locale={locale}
               />
             ))
           )}
@@ -331,6 +343,7 @@ export function HabitTracker() {
             habits={habits}
             currentMonth={currentMonth}
             onMonthChange={setCurrentMonth}
+            locale={locale}
           />
         </TabsContent>
       </Tabs>

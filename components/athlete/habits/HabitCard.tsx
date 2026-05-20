@@ -50,21 +50,28 @@ interface HabitCardProps {
   onToggle: (habitId: string, completed: boolean) => void
   onEdit?: (habit: Habit) => void
   onDelete?: (habitId: string) => void
+  locale?: AppLocale
 }
 
-const CATEGORY_CONFIG: Record<HabitCategory, { icon: typeof Flame; label: string; color: string }> = {
-  NUTRITION: { icon: Droplet, label: 'Kost', color: 'bg-blue-500' },
-  SLEEP: { icon: Moon, label: 'Somn', color: 'bg-purple-500' },
-  MOVEMENT: { icon: Footprints, label: 'Rorelse', color: 'bg-green-500' },
-  MINDFULNESS: { icon: Brain, label: 'Mental', color: 'bg-yellow-500' },
-  TRAINING: { icon: Dumbbell, label: 'Traning', color: 'bg-orange-500' },
-  RECOVERY: { icon: Heart, label: 'Aterhamt', color: 'bg-pink-500' },
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
-function formatStreak(days: number): string {
-  if (days === 0) return 'Ingen streak'
-  if (days === 1) return '1 dag'
-  return `${days} dagar`
+const CATEGORY_CONFIG: Record<HabitCategory, { icon: typeof Flame; label: Record<AppLocale, string>; color: string }> = {
+  NUTRITION: { icon: Droplet, label: { sv: 'Kost', en: 'Nutrition' }, color: 'bg-blue-500' },
+  SLEEP: { icon: Moon, label: { sv: 'Sömn', en: 'Sleep' }, color: 'bg-purple-500' },
+  MOVEMENT: { icon: Footprints, label: { sv: 'Rörelse', en: 'Movement' }, color: 'bg-green-500' },
+  MINDFULNESS: { icon: Brain, label: { sv: 'Mental', en: 'Mindfulness' }, color: 'bg-yellow-500' },
+  TRAINING: { icon: Dumbbell, label: { sv: 'Träning', en: 'Training' }, color: 'bg-orange-500' },
+  RECOVERY: { icon: Heart, label: { sv: 'Återhämtning', en: 'Recovery' }, color: 'bg-pink-500' },
+}
+
+function formatStreak(days: number, locale: AppLocale): string {
+  if (days === 0) return text(locale, 'Ingen streak', 'No streak')
+  if (days === 1) return text(locale, '1 dag', '1 day')
+  return `${days} ${text(locale, 'dagar', 'days')}`
 }
 
 export function HabitCard({
@@ -72,7 +79,8 @@ export function HabitCard({
   todayCompleted,
   onToggle,
   onEdit,
-  onDelete
+  onDelete,
+  locale = 'en',
 }: HabitCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const categoryConfig = CATEGORY_CONFIG[habit.category] || CATEGORY_CONFIG.TRAINING
@@ -134,12 +142,12 @@ export function HabitCard({
               {habit.currentStreak > 0 && (
                 <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                   <Flame className="h-3 w-3 text-orange-500" />
-                  {formatStreak(habit.currentStreak)}
+                  {formatStreak(habit.currentStreak, locale)}
                 </Badge>
               )}
               {/* Category badge */}
               <Badge variant="outline" className="text-xs">
-                {categoryConfig.label}
+                {categoryConfig.label[locale]}
               </Badge>
             </div>
           </div>
@@ -168,7 +176,7 @@ export function HabitCard({
               {onEdit && (
                 <DropdownMenuItem onClick={() => onEdit(habit)}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Redigera
+                  {text(locale, 'Redigera', 'Edit')}
                 </DropdownMenuItem>
               )}
               {onDelete && (
@@ -177,7 +185,7 @@ export function HabitCard({
                   className="text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Ta bort
+                  {text(locale, 'Ta bort', 'Delete')}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

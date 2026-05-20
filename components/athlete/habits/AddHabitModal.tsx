@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Droplet,
   Moon,
@@ -31,6 +30,7 @@ import {
 } from 'lucide-react'
 import { HabitCategory, HabitFrequency } from '@prisma/client'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 
 interface AddHabitModalProps {
   open: boolean
@@ -49,79 +49,78 @@ interface HabitFormData {
   reward?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 const CATEGORY_OPTIONS = [
-  { value: 'NUTRITION', label: 'Kost & Naring', icon: Droplet, color: 'bg-blue-500' },
-  { value: 'SLEEP', label: 'Somn', icon: Moon, color: 'bg-purple-500' },
-  { value: 'MOVEMENT', label: 'Rorelse', icon: Footprints, color: 'bg-green-500' },
-  { value: 'MINDFULNESS', label: 'Mental halsa', icon: Brain, color: 'bg-yellow-500' },
-  { value: 'TRAINING', label: 'Traning', icon: Dumbbell, color: 'bg-orange-500' },
-  { value: 'RECOVERY', label: 'Aterhamt', icon: Heart, color: 'bg-pink-500' },
+  { value: 'NUTRITION', label: { sv: 'Kost & Näring', en: 'Nutrition' }, icon: Droplet, color: 'bg-blue-500' },
+  { value: 'SLEEP', label: { sv: 'Sömn', en: 'Sleep' }, icon: Moon, color: 'bg-purple-500' },
+  { value: 'MOVEMENT', label: { sv: 'Rörelse', en: 'Movement' }, icon: Footprints, color: 'bg-green-500' },
+  { value: 'MINDFULNESS', label: { sv: 'Mental hälsa', en: 'Mindfulness' }, icon: Brain, color: 'bg-yellow-500' },
+  { value: 'TRAINING', label: { sv: 'Träning', en: 'Training' }, icon: Dumbbell, color: 'bg-orange-500' },
+  { value: 'RECOVERY', label: { sv: 'Återhämtning', en: 'Recovery' }, icon: Heart, color: 'bg-pink-500' },
 ]
 
 const FREQUENCY_OPTIONS = [
-  { value: 'DAILY', label: 'Dagligen' },
-  { value: 'WEEKDAYS', label: 'Vardagar (mån-fre)' },
-  { value: 'SPECIFIC_DAYS', label: 'Specifika dagar' },
-  { value: 'X_TIMES_WEEK', label: 'X gånger per vecka' },
+  { value: 'DAILY', label: { sv: 'Dagligen', en: 'Daily' } },
+  { value: 'WEEKDAYS', label: { sv: 'Vardagar (mån-fre)', en: 'Weekdays (Mon-Fri)' } },
+  { value: 'SPECIFIC_DAYS', label: { sv: 'Specifika dagar', en: 'Specific days' } },
+  { value: 'X_TIMES_WEEK', label: { sv: 'X gånger per vecka', en: 'X times per week' } },
 ]
 
 const DAYS_OF_WEEK = [
-  { value: 1, label: 'Mån' },
-  { value: 2, label: 'Tis' },
-  { value: 3, label: 'Ons' },
-  { value: 4, label: 'Tor' },
-  { value: 5, label: 'Fre' },
-  { value: 6, label: 'Lör' },
-  { value: 0, label: 'Sön' },
+  { value: 1, label: { sv: 'Mån', en: 'Mon' } },
+  { value: 2, label: { sv: 'Tis', en: 'Tue' } },
+  { value: 3, label: { sv: 'Ons', en: 'Wed' } },
+  { value: 4, label: { sv: 'Tor', en: 'Thu' } },
+  { value: 5, label: { sv: 'Fre', en: 'Fri' } },
+  { value: 6, label: { sv: 'Lör', en: 'Sat' } },
+  { value: 0, label: { sv: 'Sön', en: 'Sun' } },
 ]
 
 const TIME_OPTIONS = [
-  { value: 'morning', label: 'Morgon' },
-  { value: 'afternoon', label: 'Eftermiddag' },
-  { value: 'evening', label: 'Kväll' },
-  { value: 'anytime', label: 'Hela dagen' },
+  { value: 'morning', label: { sv: 'Morgon', en: 'Morning' } },
+  { value: 'afternoon', label: { sv: 'Eftermiddag', en: 'Afternoon' } },
+  { value: 'evening', label: { sv: 'Kväll', en: 'Evening' } },
+  { value: 'anytime', label: { sv: 'Hela dagen', en: 'Any time' } },
 ]
 
-const HABIT_SUGGESTIONS: Record<HabitCategory, string[]> = {
-  NUTRITION: [
-    'Drick 2 liter vatten',
-    'Ät protein till frukost',
-    'Ät 5 portioner grönsaker',
-    'Ta vitaminer',
-  ],
-  SLEEP: [
-    'Lägg mig före 23:00',
-    'Ingen skärm efter 22:00',
-    'Sov minst 7 timmar',
-    'Kvällsrutin 15 min',
-  ],
-  MOVEMENT: [
-    '10 min morgonsträck',
-    'Kvällspromenad',
-    '10 000 steg',
-    'Ta trapporna',
-  ],
-  MINDFULNESS: [
-    '5 min meditation',
-    'Tacksamhetsdagbok',
-    'Djupandning',
-    'Digital detox 1h',
-  ],
-  TRAINING: [
-    'Gå till gymmet',
-    'Hemmaträning',
-    'Löptur',
-    'Mobility-pass',
-  ],
-  RECOVERY: [
-    'Foam rolling',
-    'Kall dusch',
-    'Stretching 10 min',
-    'Massera stela muskler',
-  ],
+const HABIT_SUGGESTIONS: Record<HabitCategory, Record<AppLocale, string[]>> = {
+  NUTRITION: {
+    sv: ['Drick 2 liter vatten', 'Ät protein till frukost', 'Ät 5 portioner grönsaker', 'Ta vitaminer'],
+    en: ['Drink 2 liters of water', 'Eat protein with breakfast', 'Eat 5 servings of vegetables', 'Take vitamins'],
+  },
+  SLEEP: {
+    sv: ['Lägg mig före 23:00', 'Ingen skärm efter 22:00', 'Sov minst 7 timmar', 'Kvällsrutin 15 min'],
+    en: ['Go to bed before 11 PM', 'No screens after 10 PM', 'Sleep at least 7 hours', '15 min evening routine'],
+  },
+  MOVEMENT: {
+    sv: ['10 min morgonsträck', 'Kvällspromenad', '10 000 steg', 'Ta trapporna'],
+    en: ['10 min morning stretch', 'Evening walk', '10,000 steps', 'Take the stairs'],
+  },
+  MINDFULNESS: {
+    sv: ['5 min meditation', 'Tacksamhetsdagbok', 'Djupandning', 'Digital detox 1h'],
+    en: ['5 min meditation', 'Gratitude journal', 'Deep breathing', '1h digital detox'],
+  },
+  TRAINING: {
+    sv: ['Gå till gymmet', 'Hemmaträning', 'Löptur', 'Mobility-pass'],
+    en: ['Go to the gym', 'Home workout', 'Run', 'Mobility session'],
+  },
+  RECOVERY: {
+    sv: ['Foam rolling', 'Kall dusch', 'Stretching 10 min', 'Massera stela muskler'],
+    en: ['Foam rolling', 'Cold shower', '10 min stretching', 'Massage tight muscles'],
+  },
 }
 
 export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
+  const locale = getAppLocale(useLocale())
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<Partial<HabitFormData>>({
@@ -181,14 +180,14 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {step === 1 && 'Välj kategori'}
-            {step === 2 && 'Beskriv din vana'}
-            {step === 3 && 'Vanans trigger (valfritt)'}
+            {step === 1 && text(locale, 'Välj kategori', 'Choose category')}
+            {step === 2 && text(locale, 'Beskriv din vana', 'Describe your habit')}
+            {step === 3 && text(locale, 'Vanans trigger (valfritt)', 'Habit trigger (optional)')}
           </DialogTitle>
           <DialogDescription>
-            {step === 1 && 'Vilken typ av vana vill du skapa?'}
-            {step === 2 && 'Vad vill du göra varje dag?'}
-            {step === 3 && 'Vad triggar din vana? Detta hjälper dig att komma ihåg.'}
+            {step === 1 && text(locale, 'Vilken typ av vana vill du skapa?', 'What type of habit do you want to create?')}
+            {step === 2 && text(locale, 'Vad vill du göra varje dag?', 'What do you want to do regularly?')}
+            {step === 3 && text(locale, 'Vad triggar din vana? Detta hjälper dig att komma ihåg.', 'What triggers your habit? This helps you remember.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -215,7 +214,7 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
                   <div className={cn("p-3 rounded-full text-white", category.color)}>
                     <Icon className="h-6 w-6" />
                   </div>
-                  <span className="font-medium text-sm">{category.label}</span>
+                  <span className="font-medium text-sm">{category.label[locale]}</span>
                 </button>
               )
             })}
@@ -227,9 +226,9 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
           <div className="space-y-4 py-4">
             {/* Suggestions */}
             <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Förslag</Label>
+              <Label className="text-sm text-muted-foreground">{text(locale, 'Förslag', 'Suggestions')}</Label>
               <div className="flex flex-wrap gap-2">
-                {HABIT_SUGGESTIONS[formData.category].map((suggestion) => (
+                {HABIT_SUGGESTIONS[formData.category][locale].map((suggestion) => (
                   <Button
                     key={suggestion}
                     variant="outline"
@@ -247,18 +246,18 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
 
             {/* Name input */}
             <div className="space-y-2">
-              <Label htmlFor="name">Vananamn</Label>
+              <Label htmlFor="name">{text(locale, 'Vananamn', 'Habit name')}</Label>
               <Input
                 id="name"
                 value={formData.name || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="T.ex. Drick 2 liter vatten"
+                placeholder={text(locale, 'T.ex. Drick 2 liter vatten', 'E.g. Drink 2 liters of water')}
               />
             </div>
 
             {/* Frequency */}
             <div className="space-y-2">
-              <Label>Frekvens</Label>
+              <Label>{text(locale, 'Frekvens', 'Frequency')}</Label>
               <Select
                 value={formData.frequency}
                 onValueChange={(v) => handleFrequencyChange(v as HabitFrequency)}
@@ -269,7 +268,7 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
                 <SelectContent>
                   {FREQUENCY_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {option.label[locale]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -279,7 +278,7 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
             {/* Specific days selection */}
             {formData.frequency === 'SPECIFIC_DAYS' && (
               <div className="space-y-2">
-                <Label>Vilka dagar?</Label>
+                <Label>{text(locale, 'Vilka dagar?', 'Which days?')}</Label>
                 <div className="flex gap-2">
                   {DAYS_OF_WEEK.map((day) => (
                     <button
@@ -292,7 +291,7 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
                           : "bg-secondary hover:bg-secondary/80"
                       )}
                     >
-                      {day.label}
+                      {day.label[locale]}
                     </button>
                   ))}
                 </div>
@@ -301,7 +300,7 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
 
             {/* Target time */}
             <div className="space-y-2">
-              <Label>Tid på dagen (valfritt)</Label>
+              <Label>{text(locale, 'Tid på dagen (valfritt)', 'Time of day (optional)')}</Label>
               <Select
                 value={formData.targetTime || 'anytime'}
                 onValueChange={(v) => setFormData(prev => ({ ...prev, targetTime: v }))}
@@ -312,7 +311,7 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
                 <SelectContent>
                   {TIME_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {option.label[locale]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -325,33 +324,33 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
         {step === 3 && (
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="trigger">Trigger (vad påminner dig?)</Label>
+              <Label htmlFor="trigger">{text(locale, 'Trigger (vad påminner dig?)', 'Trigger (what reminds you?)')}</Label>
               <Input
                 id="trigger"
                 value={formData.trigger || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, trigger: e.target.value }))}
-                placeholder="T.ex. Efter frukost, När jag vaknar"
+                placeholder={text(locale, 'T.ex. Efter frukost, När jag vaknar', 'E.g. After breakfast, when I wake up')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="routine">Rutin (vad gör du exakt?)</Label>
+              <Label htmlFor="routine">{text(locale, 'Rutin (vad gör du exakt?)', 'Routine (what exactly do you do?)')}</Label>
               <Textarea
                 id="routine"
                 value={formData.routine || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, routine: e.target.value }))}
-                placeholder="T.ex. Fyller upp vattenflaskan direkt"
+                placeholder={text(locale, 'T.ex. Fyller upp vattenflaskan direkt', 'E.g. Fill my water bottle right away')}
                 rows={2}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reward">Belöning (hur känns det?)</Label>
+              <Label htmlFor="reward">{text(locale, 'Belöning (hur känns det?)', 'Reward (how does it feel?)')}</Label>
               <Input
                 id="reward"
                 value={formData.reward || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, reward: e.target.value }))}
-                placeholder="T.ex. Mer energi, Kryssa av i appen"
+                placeholder={text(locale, 'T.ex. Mer energi, Kryssa av i appen', 'E.g. More energy, check it off in the app')}
               />
             </div>
           </div>
@@ -360,7 +359,7 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
         <DialogFooter>
           {step > 1 && (
             <Button variant="outline" onClick={() => setStep(step - 1)}>
-              Tillbaka
+              {text(locale, 'Tillbaka', 'Back')}
             </Button>
           )}
           {step === 2 && (
@@ -370,19 +369,19 @@ export function AddHabitModal({ open, onClose, onAdd }: AddHabitModalProps) {
                 onClick={() => setStep(3)}
                 disabled={!formData.name}
               >
-                Lägg till trigger
+                {text(locale, 'Lägg till trigger', 'Add trigger')}
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={!formData.name || isLoading}
               >
-                {isLoading ? 'Skapar...' : 'Skapa vana'}
+                {isLoading ? text(locale, 'Skapar...', 'Creating...') : text(locale, 'Skapa vana', 'Create habit')}
               </Button>
             </>
           )}
           {step === 3 && (
             <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading ? 'Skapar...' : 'Skapa vana'}
+              {isLoading ? text(locale, 'Skapar...', 'Creating...') : text(locale, 'Skapa vana', 'Create habit')}
             </Button>
           )}
         </DialogFooter>
