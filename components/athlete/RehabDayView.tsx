@@ -23,14 +23,13 @@ import {
   GlassCardDescription,
 } from '@/components/ui/GlassCard'
 import {
-  Dumbbell,
   Play,
   CheckCircle2,
-  Clock,
   Loader2,
   ChevronRight,
   Stethoscope,
 } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface RehabExercise {
   id: string
@@ -68,12 +67,22 @@ interface RehabDayViewProps {
   compact?: boolean
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  ACUTE: 'Akut',
-  SUBACUTE: 'Subakut',
-  REMODELING: 'Remodellering',
-  FUNCTIONAL: 'Funktionell',
-  RETURN_TO_SPORT: 'Återgång till idrott',
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale.startsWith('sv') ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
+const PHASE_LABELS: Record<string, Record<AppLocale, string>> = {
+  ACUTE: { sv: 'Akut', en: 'Acute' },
+  SUBACUTE: { sv: 'Subakut', en: 'Subacute' },
+  REMODELING: { sv: 'Remodellering', en: 'Remodeling' },
+  FUNCTIONAL: { sv: 'Funktionell', en: 'Functional' },
+  RETURN_TO_SPORT: { sv: 'Återgång till idrott', en: 'Return to sport' },
 }
 
 export function RehabDayView({
@@ -83,6 +92,7 @@ export function RehabDayView({
   variant = 'glass',
   compact = false,
 }: RehabDayViewProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const basePath = useBasePath()
   const isGlass = variant === 'glass'
@@ -109,7 +119,7 @@ export function RehabDayView({
       }
     }
 
-    fetchPrograms()
+    queueMicrotask(() => void fetchPrograms())
   }, [clientId])
 
   const handleExerciseComplete = (exerciseId: string) => {
@@ -159,11 +169,11 @@ export function RehabDayView({
           <div>
             <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2">
               <Stethoscope className="h-5 w-5 text-teal-500" />
-              Dagens rehabilitering
+              {text(locale, 'Dagens rehabilitering', "Today's rehabilitation")}
             </GlassCardTitle>
             {!compact && (
               <GlassCardDescription className="text-slate-400">
-                {totalExercises} övningar att genomföra
+                {totalExercises} {text(locale, 'övningar att genomföra', 'exercises to complete')}
               </GlassCardDescription>
             )}
           </div>
@@ -173,7 +183,7 @@ export function RehabDayView({
                 {completedCount}/{totalExercises}
               </span>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
-                Klara
+                {text(locale, 'Klara', 'Done')}
               </p>
             </div>
           )}
@@ -204,7 +214,7 @@ export function RehabDayView({
                   variant="outline"
                   className="text-[10px] border-teal-500/30 text-teal-400 mt-1"
                 >
-                  {PHASE_LABELS[program.currentPhase] || program.currentPhase}
+                  {PHASE_LABELS[program.currentPhase]?.[locale] || program.currentPhase}
                 </Badge>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-500" />
@@ -244,7 +254,7 @@ export function RehabDayView({
                         <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                           <span>{ex.sets} set</span>
                           {ex.reps && <span>× {ex.reps} reps</span>}
-                          {ex.holdSeconds && <span>× {ex.holdSeconds}s håll</span>}
+                          {ex.holdSeconds && <span>× {ex.holdSeconds}s {text(locale, 'håll', 'hold')}</span>}
                         </div>
                       </div>
 
@@ -281,7 +291,7 @@ export function RehabDayView({
             className="w-full border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Markera alla som klara
+            {text(locale, 'Markera alla som klara', 'Mark all as done')}
           </Button>
         )}
 
@@ -289,8 +299,8 @@ export function RehabDayView({
         {!compact && totalExercises > 0 && completedCount === totalExercises && (
           <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-center">
             <CheckCircle2 className="h-8 w-8 text-teal-500 mx-auto mb-2" />
-            <p className="font-bold text-teal-400">Bra jobbat!</p>
-            <p className="text-sm text-slate-400">Du har slutfört alla övningar för idag.</p>
+            <p className="font-bold text-teal-400">{text(locale, 'Bra jobbat!', 'Good work!')}</p>
+            <p className="text-sm text-slate-400">{text(locale, 'Du har slutfört alla övningar för idag.', 'You have completed all exercises for today.')}</p>
           </div>
         )}
       </GlassCardContent>
