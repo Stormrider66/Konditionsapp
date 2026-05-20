@@ -11,7 +11,8 @@
  */
 
 import { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useLocale } from 'next-intl';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ErgometerTestProtocol } from '@prisma/client';
@@ -38,10 +39,13 @@ interface WattbikeTestFormProps {
 
 // ==================== ZOD SCHEMAS ====================
 
-const peakPower6sSchema = z.object({
+const athleteRequired = (locale: string) => locale === 'sv' ? 'Välj en atlet' : 'Select an athlete';
+const testDateRequired = (locale: string) => locale === 'sv' ? 'Ange testdatum' : 'Enter a test date';
+
+const createPeakPower6sSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.PEAK_POWER_6S),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   airResistance: z.number().min(1).max(10).optional(),
   magnetResistance: z.number().min(1).max(4).optional(),
   rawData: z.object({
@@ -57,10 +61,10 @@ const peakPower6sSchema = z.object({
   notes: z.string().optional(),
 });
 
-const peakPower30sSchema = z.object({
+const createPeakPower30sSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.PEAK_POWER_30S),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   airResistance: z.number().min(1).max(10).optional(),
   magnetResistance: z.number().min(1).max(4).optional(),
   rawData: z.object({
@@ -77,10 +81,10 @@ const peakPower30sSchema = z.object({
   notes: z.string().optional(),
 });
 
-const tt20MinSchema = z.object({
+const createTt20MinSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.TT_20MIN),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   airResistance: z.number().min(1).max(10).optional(),
   magnetResistance: z.number().min(1).max(4).optional(),
   rawData: z.object({
@@ -96,10 +100,10 @@ const tt20MinSchema = z.object({
   notes: z.string().optional(),
 });
 
-const mapRampSchema = z.object({
+const createMapRampSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.MAP_RAMP),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   airResistance: z.number().min(1).max(10).optional(),
   rawData: z.object({
     startPower: z.number().min(50).max(200),
@@ -122,12 +126,14 @@ const mapRampSchema = z.object({
   notes: z.string().optional(),
 });
 
-type PeakPower6sData = z.infer<typeof peakPower6sSchema>;
-type PeakPower30sData = z.infer<typeof peakPower30sSchema>;
-type TT20MinData = z.infer<typeof tt20MinSchema>;
-type MAPRampData = z.infer<typeof mapRampSchema>;
+type PeakPower6sData = z.infer<ReturnType<typeof createPeakPower6sSchema>>;
+type PeakPower30sData = z.infer<ReturnType<typeof createPeakPower30sSchema>>;
+type TT20MinData = z.infer<ReturnType<typeof createTt20MinSchema>>;
+type MAPRampData = z.infer<ReturnType<typeof createMapRampSchema>>;
 
 export function WattbikeTestForm({ athletes, onSubmit, submitting }: WattbikeTestFormProps) {
+  const locale = useLocale();
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en;
   const [protocol, setProtocol] = useState<'6S' | '30S' | 'FTP' | 'MAP'>('FTP');
 
   return (
@@ -135,7 +141,7 @@ export function WattbikeTestForm({ athletes, onSubmit, submitting }: WattbikeTes
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Wattbike ar perfekt for cykelspecifika tester. Peak power for kraft, FTP for uthallighet.
+          {t('Wattbike är perfekt för cykelspecifika tester. Peak power för kraft, FTP för uthållighet.', 'Wattbike is ideal for cycling-specific tests. Peak power for force, FTP for endurance.')}
         </AlertDescription>
       </Alert>
 
@@ -160,19 +166,19 @@ export function WattbikeTestForm({ athletes, onSubmit, submitting }: WattbikeTes
         </TabsList>
 
         <TabsContent value="6S">
-          <PeakPower6sForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <PeakPower6sForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="30S">
-          <PeakPower30sForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <PeakPower30sForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="FTP">
-          <FTP20MinForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <FTP20MinForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="MAP">
-          <MAPRampForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <MAPRampForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
       </Tabs>
     </div>
@@ -185,13 +191,16 @@ function PeakPower6sForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en;
   const form = useForm<PeakPower6sData>({
-    resolver: zodResolver(peakPower6sSchema),
+    resolver: zodResolver(createPeakPower6sSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.PEAK_POWER_6S,
       testDate: new Date().toISOString().split('T')[0],
@@ -213,7 +222,7 @@ function PeakPower6sForm({
       <CardHeader>
         <CardTitle>6-Second Peak Power Test</CardTitle>
         <CardDescription>
-          Maximal neuromuskulär krafttest. Mäter explosiv kraft och snabbhet.
+          {t('Maximalt neuromuskulärt krafttest. Mäter explosiv kraft och snabbhet.', 'Maximal neuromuscular power test. Measures explosive power and speed.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -225,11 +234,11 @@ function PeakPower6sForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -250,7 +259,7 @@ function PeakPower6sForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -264,7 +273,7 @@ function PeakPower6sForm({
                 name="airResistance"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Luftmotstand (1-10)</FormLabel>
+                    <FormLabel>{t('Luftmotstånd (1-10)', 'Air resistance (1-10)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -274,7 +283,7 @@ function PeakPower6sForm({
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>Hogt for peak power (8-10)</FormDescription>
+                    <FormDescription>{t('Högt för peak power (8-10)', 'High for peak power (8-10)')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -287,7 +296,7 @@ function PeakPower6sForm({
                 name="rawData.peakPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Toppeffekt (W)</FormLabel>
+                    <FormLabel>{t('Toppeffekt (W)', 'Peak power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -307,7 +316,7 @@ function PeakPower6sForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -347,7 +356,7 @@ function PeakPower6sForm({
                 name="rawData.bodyWeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kroppsvikt (kg)</FormLabel>
+                    <FormLabel>{t('Kroppsvikt (kg)', 'Body weight (kg)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -389,10 +398,10 @@ function PeakPower6sForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -408,13 +417,16 @@ function PeakPower30sForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en;
   const form = useForm<PeakPower30sData>({
-    resolver: zodResolver(peakPower30sSchema),
+    resolver: zodResolver(createPeakPower30sSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.PEAK_POWER_30S,
       testDate: new Date().toISOString().split('T')[0],
@@ -436,7 +448,7 @@ function PeakPower30sForm({
       <CardHeader>
         <CardTitle>30-Second Sprint Test (Wingate)</CardTitle>
         <CardDescription>
-          Anaerob kapacitetstest. Mäter peak power, snitteffekt och fatigue index.
+          {t('Anaerobt kapacitetstest. Mäter peak power, snitteffekt och fatigue index.', 'Anaerobic capacity test. Measures peak power, average power, and fatigue index.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -448,11 +460,11 @@ function PeakPower30sForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -473,7 +485,7 @@ function PeakPower30sForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -487,7 +499,7 @@ function PeakPower30sForm({
                 name="airResistance"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Luftmotstand (1-10)</FormLabel>
+                    <FormLabel>{t('Luftmotstånd (1-10)', 'Air resistance (1-10)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -509,7 +521,7 @@ function PeakPower30sForm({
                 name="rawData.peakPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Toppeffekt (W)</FormLabel>
+                    <FormLabel>{t('Toppeffekt (W)', 'Peak power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -529,7 +541,7 @@ function PeakPower30sForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -549,7 +561,7 @@ function PeakPower30sForm({
                 name="rawData.minPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lägsta effekt (W)</FormLabel>
+                    <FormLabel>{t('Lägsta effekt (W)', 'Lowest power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -570,7 +582,7 @@ function PeakPower30sForm({
                 name="rawData.bodyWeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kroppsvikt (kg)</FormLabel>
+                    <FormLabel>{t('Kroppsvikt (kg)', 'Body weight (kg)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -611,10 +623,10 @@ function PeakPower30sForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -630,13 +642,16 @@ function FTP20MinForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en;
   const form = useForm<TT20MinData>({
-    resolver: zodResolver(tt20MinSchema),
+    resolver: zodResolver(createTt20MinSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.TT_20MIN,
       testDate: new Date().toISOString().split('T')[0],
@@ -657,7 +672,7 @@ function FTP20MinForm({
       <CardHeader>
         <CardTitle>20-Minute FTP Test</CardTitle>
         <CardDescription>
-          Standard FTP-test. Cykla i jämn hög intensitet i 20 minuter. FTP = 95% av snitteffekt.
+          {t('Standard FTP-test. Cykla i jämn hög intensitet i 20 minuter. FTP = 95% av snitteffekt.', 'Standard FTP test. Ride at steady high intensity for 20 minutes. FTP = 95% of average power.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -669,11 +684,11 @@ function FTP20MinForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -694,7 +709,7 @@ function FTP20MinForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -708,7 +723,7 @@ function FTP20MinForm({
                 name="airResistance"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Luftmotstand (1-10)</FormLabel>
+                    <FormLabel>{t('Luftmotstånd (1-10)', 'Air resistance (1-10)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -730,7 +745,7 @@ function FTP20MinForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -760,7 +775,7 @@ function FTP20MinForm({
                         onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       />
                     </FormControl>
-                    <FormDescription>Valfritt</FormDescription>
+                    <FormDescription>{t('Valfritt', 'Optional')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -771,7 +786,7 @@ function FTP20MinForm({
                 name="rawData.avgCadence"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittkadens</FormLabel>
+                    <FormLabel>{t('Snittkadens', 'Average cadence')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -791,7 +806,7 @@ function FTP20MinForm({
                 name="rawData.correctionFactor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Korrektionsfaktor</FormLabel>
+                    <FormLabel>{t('Korrektionsfaktor', 'Correction factor')}</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(parseFloat(v))}
                       defaultValue={field.value?.toString()}
@@ -803,7 +818,7 @@ function FTP20MinForm({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="0.95">0.95 (Standard)</SelectItem>
-                        <SelectItem value="0.90">0.90 (Ej cyklister)</SelectItem>
+                        <SelectItem value="0.90">{t('0.90 (Ej cyklister)', '0.90 (non-cyclists)')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -815,7 +830,7 @@ function FTP20MinForm({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Uppskattad FTP: {estimatedFTP}W</strong>
+                <strong>{t('Uppskattad FTP', 'Estimated FTP')}: {estimatedFTP}W</strong>
               </AlertDescription>
             </Alert>
 
@@ -825,7 +840,7 @@ function FTP20MinForm({
                 name="avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average heart rate')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -845,7 +860,7 @@ function FTP20MinForm({
                 name="maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max heart rate')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -885,10 +900,10 @@ function FTP20MinForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -904,13 +919,16 @@ function MAPRampForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en;
   const form = useForm<MAPRampData>({
-    resolver: zodResolver(mapRampSchema),
+    resolver: zodResolver(createMapRampSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.MAP_RAMP,
       testDate: new Date().toISOString().split('T')[0],
@@ -953,7 +971,7 @@ function MAPRampForm({
       <CardHeader>
         <CardTitle>MAP Ramp Test</CardTitle>
         <CardDescription>
-          Progressiv ramptest till utmattning. Öka effekten varje minut tills du inte kan hålla tempot.
+          {t('Progressivt ramptest till utmattning. Öka effekten varje minut tills du inte kan hålla tempot.', 'Progressive ramp test to exhaustion. Increase power every minute until you cannot hold the pace.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -965,11 +983,11 @@ function MAPRampForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -990,7 +1008,7 @@ function MAPRampForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -1004,7 +1022,7 @@ function MAPRampForm({
                 name="airResistance"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Luftmotstand (1-10)</FormLabel>
+                    <FormLabel>{t('Luftmotstånd (1-10)', 'Air resistance (1-10)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -1026,7 +1044,7 @@ function MAPRampForm({
                 name="rawData.startPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Starteffekt (W)</FormLabel>
+                    <FormLabel>{t('Starteffekt (W)', 'Start power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -1036,7 +1054,7 @@ function MAPRampForm({
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>Börja lättare än tröskeln</FormDescription>
+                    <FormDescription>{t('Börja lättare än tröskeln', 'Start easier than threshold')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -1047,7 +1065,7 @@ function MAPRampForm({
                 name="rawData.increment"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ökning/minut (W)</FormLabel>
+                    <FormLabel>{t('Ökning/minut (W)', 'Increase/minute (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -1057,14 +1075,14 @@ function MAPRampForm({
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>20W är standard</FormDescription>
+                    <FormDescription>{t('20W är standard', '20 W is standard')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Antal fullbordade minuter</label>
+                <label className="text-sm font-medium">{t('Antal fullbordade minuter', 'Number of completed minutes')}</label>
                 <Input
                   type="number"
                   min={5}
@@ -1073,7 +1091,7 @@ function MAPRampForm({
                   onChange={(e) => setCompletedMinutes(parseInt(e.target.value) || 0)}
                 />
                 <Button type="button" variant="outline" size="sm" onClick={generateStages}>
-                  Beräkna MAP
+                  {t('Beräkna MAP', 'Calculate MAP')}
                 </Button>
               </div>
             </div>
@@ -1082,7 +1100,7 @@ function MAPRampForm({
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>MAP: {mapWatts}W</strong> (senast slutförda minut)
+                  <strong>MAP: {mapWatts}W</strong> {t('(senast slutförda minut)', '(last completed minute)')}
                 </AlertDescription>
               </Alert>
             )}
@@ -1093,7 +1111,7 @@ function MAPRampForm({
                 name="maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max heart rate')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -1133,9 +1151,9 @@ function MAPRampForm({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Anledning till stopp..." />
+                      <Input {...field} placeholder={t('Anledning till stopp...', 'Reason for stopping...')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1147,10 +1165,10 @@ function MAPRampForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
