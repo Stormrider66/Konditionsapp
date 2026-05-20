@@ -19,6 +19,8 @@ import { logger } from '@/lib/logger'
 type AppLocale = 'en' | 'sv'
 
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     // Authenticate user
     const supabase = await createClient()
@@ -27,7 +29,7 @@ export async function GET() {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Get user from database
@@ -36,17 +38,17 @@ export async function GET() {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = getUserLocale(dbUser.language)
 
     // Only coaches can access ACWR warnings
     if (dbUser.role !== 'COACH') {
       return NextResponse.json(
-        { error: 'Access denied. Coach role required.' },
+        { error: t(locale, 'Access denied. Coach role required.', 'Åtkomst nekad. Coachroll krävs.') },
         { status: 403 }
       )
     }
-    const locale = getUserLocale(dbUser.language)
 
     // Get all athletes for this coach
     const athletes = await prisma.client.findMany({
@@ -152,7 +154,7 @@ export async function GET() {
     logger.error('Error fetching ACWR warnings', {}, error)
     return NextResponse.json(
       {
-        error: 'Failed to fetch ACWR warnings',
+        error: t(locale, 'Failed to fetch ACWR warnings', 'Kunde inte hämta ACWR-varningar'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
