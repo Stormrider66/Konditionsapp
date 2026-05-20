@@ -26,8 +26,10 @@ import {
   ChevronLeft,
   Check,
 } from 'lucide-react'
+import { useLocale } from 'next-intl'
 
 type GoalType = 'RACE_RESULT' | 'TIME_TRIAL' | 'HR_DRIFT' | 'LOOSE_GOAL'
+type AppLocale = 'en' | 'sv'
 
 interface TrainingZones {
   vdot: number
@@ -53,17 +55,20 @@ interface GoalZoneWizardProps {
   clientId?: string
 }
 
-const DISTANCES = [
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
+const getDistances = (locale: AppLocale) => [
   { value: '5K', label: '5 km' },
   { value: '10K', label: '10 km' },
   { value: '15K', label: '15 km' },
   { value: '20K', label: '20 km' },
-  { value: 'HALF_MARATHON', label: 'Halvmaraton (21.1 km)' },
+  { value: 'HALF_MARATHON', label: copy(locale, 'Half marathon (21.1 km)', 'Halvmaraton (21.1 km)') },
   { value: '30K', label: '30 km' },
-  { value: 'MARATHON', label: 'Maraton (42.2 km)' },
+  { value: 'MARATHON', label: copy(locale, 'Marathon (42.2 km)', 'Maraton (42.2 km)') },
 ]
 
-export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
+export function GoalZoneWizard({ onComplete, clientId: _clientId }: GoalZoneWizardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [step, setStep] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<TrainingZones | null>(null)
@@ -88,28 +93,29 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
     {
       id: 'RACE_RESULT' as GoalType,
       icon: Target,
-      title: 'Loppsresultat',
-      description: 'Använd ett tidigare loppsresultat för att beräkna VDOT',
+      title: copy(locale, 'Race result', 'Loppsresultat'),
+      description: copy(locale, 'Use a previous race result to calculate VDOT', 'Använd ett tidigare loppsresultat för att beräkna VDOT'),
     },
     {
       id: 'TIME_TRIAL' as GoalType,
       icon: Timer,
-      title: 'Tidstest',
-      description: 'Använd ett solo-tidstest (5K, 10K, halvmaraton)',
+      title: copy(locale, 'Time trial', 'Tidstest'),
+      description: copy(locale, 'Use a solo time trial (5K, 10K, half marathon)', 'Använd ett solo-tidstest (5K, 10K, halvmaraton)'),
     },
     {
       id: 'HR_DRIFT' as GoalType,
       icon: Heart,
       title: 'HR Drift Test',
-      description: 'Använd ett pulsdrifttest för att uppskatta tröskel',
+      description: copy(locale, 'Use a heart-rate drift test to estimate threshold', 'Använd ett pulsdrifttest för att uppskatta tröskel'),
     },
     {
       id: 'LOOSE_GOAL' as GoalType,
       icon: TrendingUp,
-      title: 'Målbeskrivning',
-      description: 'Beskriv ditt mål (t.ex. "sub-4 maraton")',
+      title: copy(locale, 'Goal description', 'Målbeskrivning'),
+      description: copy(locale, 'Describe your goal (e.g. "sub-4 marathon")', 'Beskriv ditt mål (t.ex. "sub-4 maraton")'),
     },
   ]
+  const distances = getDistances(locale)
 
   const calculateZones = async () => {
     if (!goalType) return
@@ -153,15 +159,15 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
       if (response.ok) {
         setResult(data.zones)
         setStep(2)
-        toast.success('Zonberäkning slutförd!')
+        toast.success(copy(locale, 'Zone calculation completed!', 'Zonberäkning slutförd!'))
         if (onComplete) {
           onComplete(data.zones)
         }
       } else {
-        toast.error(data.error || 'Kunde inte beräkna zoner')
+        toast.error(data.error || copy(locale, 'Could not calculate zones', 'Kunde inte beräkna zoner'))
       }
-    } catch (error) {
-      toast.error('Kunde inte beräkna zoner')
+    } catch {
+      toast.error(copy(locale, 'Could not calculate zones', 'Kunde inte beräkna zoner'))
     } finally {
       setIsLoading(false)
     }
@@ -175,7 +181,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
 
   const renderStep0 = () => (
     <div className="space-y-4">
-      <h3 className="font-semibold text-center text-slate-900 dark:text-white mb-6">Välj typ av indata</h3>
+      <h3 className="font-semibold text-center text-slate-900 dark:text-white mb-6">{copy(locale, 'Choose input type', 'Välj typ av indata')}</h3>
       <div className="grid sm:grid-cols-2 gap-4">
         {goalTypes.map((type) => {
           const Icon = type.icon
@@ -208,7 +214,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
         disabled={!goalType}
         onClick={() => setStep(1)}
       >
-        Fortsätt
+        {copy(locale, 'Continue', 'Fortsätt')}
         <ChevronRight className="h-4 w-4 ml-2" />
       </Button>
     </div>
@@ -218,19 +224,19 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => setStep(0)} className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
         <ChevronLeft className="h-4 w-4 mr-2" />
-        Tillbaka
+        {copy(locale, 'Back', 'Tillbaka')}
       </Button>
 
       {goalType === 'RACE_RESULT' || goalType === 'TIME_TRIAL' ? (
         <>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Distans</label>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">{copy(locale, 'Distance', 'Distans')}</label>
             <select
               className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
               value={formData.distance}
               onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
             >
-              {DISTANCES.map((d) => (
+              {distances.map((d) => (
                 <option key={d.value} value={d.value} className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
                   {d.label}
                 </option>
@@ -239,10 +245,10 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Tid</label>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">{copy(locale, 'Time', 'Tid')}</label>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-xs text-slate-500 dark:text-slate-450 font-medium">Timmar</label>
+                <label className="text-xs text-slate-500 dark:text-slate-450 font-medium">{copy(locale, 'Hours', 'Timmar')}</label>
                 <input
                   type="number"
                   min="0"
@@ -255,7 +261,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500 dark:text-slate-455 font-medium">Minuter</label>
+                <label className="text-xs text-slate-500 dark:text-slate-455 font-medium">{copy(locale, 'Minutes', 'Minuter')}</label>
                 <input
                   type="number"
                   min="0"
@@ -268,7 +274,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500 dark:text-slate-455 font-medium">Sekunder</label>
+                <label className="text-xs text-slate-500 dark:text-slate-455 font-medium">{copy(locale, 'Seconds', 'Sekunder')}</label>
                 <input
                   type="number"
                   min="0"
@@ -301,7 +307,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Snittpuls (bpm)</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">{copy(locale, 'Average HR', 'Snittpuls')} (bpm)</label>
               <input
                 type="number"
                 min="60"
@@ -314,7 +320,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Varaktighet (min)</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">{copy(locale, 'Duration', 'Varaktighet')} (min)</label>
               <input
                 type="number"
                 min="10"
@@ -327,7 +333,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Snittpace (min/km)</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">{copy(locale, 'Average pace', 'Snittpace')} (min/km)</label>
               <input
                 type="number"
                 min="2"
@@ -344,10 +350,10 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
         </>
       ) : goalType === 'LOOSE_GOAL' ? (
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Beskriv ditt mål</label>
+          <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">{copy(locale, 'Describe your goal', 'Beskriv ditt mål')}</label>
           <textarea
             className="w-full rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white min-h-[100px] focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="T.ex. 'sub-4 maraton', 'under 25 minuter på 5K', 'klara halvmaraton'"
+            placeholder={copy(locale, 'E.g. "sub-4 marathon", "under 25 minutes for 5K", "finish a half marathon"', 'T.ex. "sub-4 maraton", "under 25 minuter på 5K", "klara halvmaraton"')}
             value={formData.goalDescription}
             onChange={(e) => setFormData({ ...formData, goalDescription: e.target.value })}
           />
@@ -356,10 +362,10 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
 
       {/* Optional HR data */}
       <div className="border-t border-slate-200 dark:border-white/5 pt-4 mt-4">
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Valfritt: Pulsdata för HR-zoner</h4>
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">{copy(locale, 'Optional: Heart-rate data for HR zones', 'Valfritt: Pulsdata för HR-zoner')}</h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm text-slate-500 dark:text-slate-450 font-medium">Max-puls</label>
+            <label className="text-sm text-slate-500 dark:text-slate-450 font-medium">{copy(locale, 'Max HR', 'Max-puls')}</label>
             <input
               type="number"
               min="100"
@@ -373,7 +379,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-slate-500 dark:text-slate-450 font-medium">Vilopuls</label>
+            <label className="text-sm text-slate-500 dark:text-slate-450 font-medium">{copy(locale, 'Resting HR', 'Vilopuls')}</label>
             <input
               type="number"
               min="30"
@@ -395,7 +401,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
         ) : (
           <Check className="h-4 w-4 mr-2" />
         )}
-        Beräkna zoner
+        {copy(locale, 'Calculate zones', 'Beräkna zoner')}
       </Button>
     </div>
   )
@@ -409,29 +415,29 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
           <div className="w-16 h-16 bg-emerald-500/10 dark:bg-emerald-500/25 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <Check className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Träningszoner beräknade</h3>
+          <h3 className="font-semibold text-lg text-slate-900 dark:text-white">{copy(locale, 'Training zones calculated', 'Träningszoner beräknade')}</h3>
           <p className="text-sm text-slate-500 dark:text-slate-450 mt-1 font-medium">
-            VDOT: {result.vdot.toFixed(1)} • Konfidens: {result.confidenceLevel}
+            VDOT: {result.vdot.toFixed(1)} • {copy(locale, 'Confidence', 'Konfidens')}: {result.confidenceLevel}
           </p>
         </div>
 
         <div className="p-4 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg">
-          <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-4">Nyckeltempo (min/km)</h4>
+          <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-4">{copy(locale, 'Key paces', 'Nyckeltempo')} (min/km)</h4>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5">
-              <span className="text-slate-500 dark:text-slate-450 font-medium">Lugnt</span>
+              <span className="text-slate-500 dark:text-slate-450 font-medium">{copy(locale, 'Easy', 'Lugnt')}</span>
               <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.easy)}</span>
             </div>
             <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5">
-              <span className="text-slate-500 dark:text-slate-450 font-medium">Maraton</span>
+              <span className="text-slate-500 dark:text-slate-450 font-medium">{copy(locale, 'Marathon', 'Maraton')}</span>
               <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.marathon)}</span>
             </div>
             <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5">
-              <span className="text-slate-500 dark:text-slate-450 font-medium">Tröskel</span>
+              <span className="text-slate-500 dark:text-slate-450 font-medium">{copy(locale, 'Threshold', 'Tröskel')}</span>
               <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.threshold)}</span>
             </div>
             <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5">
-              <span className="text-slate-500 dark:text-slate-450 font-medium">Intervall</span>
+              <span className="text-slate-500 dark:text-slate-450 font-medium">{copy(locale, 'Interval', 'Intervall')}</span>
               <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.interval)}</span>
             </div>
             <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5 col-span-2">
@@ -442,7 +448,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
         </div>
 
         <Button variant="outline" className="w-full border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-900" onClick={() => setStep(0)}>
-          Beräkna nya zoner
+          {copy(locale, 'Calculate new zones', 'Beräkna nya zoner')}
         </Button>
       </div>
     )
@@ -453,10 +459,10 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
       <GlassCardHeader>
         <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
           <Target className="h-5 w-5 text-blue-500" />
-          Målbaserad zonberäkning
+          {copy(locale, 'Goal-based zone calculation', 'Målbaserad zonberäkning')}
         </GlassCardTitle>
         <GlassCardDescription className="text-slate-650 dark:text-slate-400">
-          Beräkna träningszoner utan utrustning baserat på lopp, tidstest eller mål
+          {copy(locale, 'Calculate training zones without equipment based on a race, time trial, or goal', 'Beräkna träningszoner utan utrustning baserat på lopp, tidstest eller mål')}
         </GlassCardDescription>
       </GlassCardHeader>
       <GlassCardContent>
