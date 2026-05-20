@@ -7,10 +7,11 @@
  */
 
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
+import { useLocale } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Trophy, TrendingUp, Zap, Timer, X, Info, ArrowRight } from 'lucide-react';
 import { BenchmarkBadge, InlineBenchmarkBadge } from './BenchmarkBadge';
 
@@ -70,6 +71,16 @@ const PROTOCOL_LABELS: Record<ErgometerTestProtocol, string> = {
 };
 
 const ERGOMETER_LABELS: Record<ErgometerType, string> = {
+  CONCEPT2_ROW: 'Concept2 RowErg',
+  CONCEPT2_SKIERG: 'Concept2 SkiErg',
+  CONCEPT2_BIKEERG: 'Concept2 BikeErg',
+  WATTBIKE: 'Wattbike',
+  ASSAULT_BIKE: 'Air Bike',
+};
+
+type AppLocale = 'en' | 'sv';
+
+const ERGOMETER_LABELS_SV: Record<ErgometerType, string> = {
   CONCEPT2_ROW: 'Concept2 Roddmaskin',
   CONCEPT2_SKIERG: 'Concept2 SkiErg',
   CONCEPT2_BIKEERG: 'Concept2 BikeErg',
@@ -77,12 +88,9 @@ const ERGOMETER_LABELS: Record<ErgometerType, string> = {
   ASSAULT_BIKE: 'Air Bike',
 };
 
-const TIER_COLORS: Record<string, string> = {
-  ELITE: 'bg-purple-500',
-  ADVANCED: 'bg-blue-500',
-  INTERMEDIATE: 'bg-green-500',
-  BEGINNER: 'bg-gray-500',
-};
+function copy(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
 
 const CONFIDENCE_COLORS: Record<string, string> = {
   VERY_HIGH: 'bg-green-600',
@@ -99,6 +107,8 @@ function formatPace(seconds: number): string {
 
 export function ErgometerTestResults({ result, ergometerType, onClose }: ErgometerTestResultsProps) {
   const { test, analysis, benchmark, recommendations } = result;
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const ergometerLabels = locale === 'sv' ? ERGOMETER_LABELS_SV : ERGOMETER_LABELS;
 
   return (
     <Card className="border-green-200 bg-green-50/30">
@@ -107,13 +117,13 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
           <div className="flex items-center gap-2">
             <CheckCircle className="h-6 w-6 text-green-600" />
             <div>
-              <CardTitle>Testresultat</CardTitle>
+              <CardTitle>{copy(locale, 'Test results', 'Testresultat')}</CardTitle>
               <CardDescription>
-                {ERGOMETER_LABELS[ergometerType]} - {PROTOCOL_LABELS[test.testProtocol]}
+                {ergometerLabels[ergometerType]} - {PROTOCOL_LABELS[test.testProtocol]}
               </CardDescription>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Stäng">
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label={copy(locale, 'Close', 'Stäng')}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -125,14 +135,14 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
           {test.avgPower && (
             <MetricCard
               icon={<Zap className="h-4 w-4 text-yellow-600" />}
-              label="Snitteffekt"
+              label={copy(locale, 'Average power', 'Snitteffekt')}
               value={`${test.avgPower}W`}
             />
           )}
           {test.peakPower && (
             <MetricCard
               icon={<TrendingUp className="h-4 w-4 text-red-600" />}
-              label="Toppeffekt"
+              label={copy(locale, 'Peak power', 'Toppeffekt')}
               value={`${test.peakPower}W`}
             />
           )}
@@ -146,7 +156,7 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
           {test.wPrime && (
             <MetricCard
               icon={<Zap className="h-4 w-4 text-purple-600" />}
-              label="W' (Anaerob)"
+              label={copy(locale, "W' (anaerobic)", "W' (Anaerob)")}
               value={`${(test.wPrime / 1000).toFixed(1)}kJ`}
             />
           )}
@@ -155,7 +165,7 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
         {/* Confidence */}
         {test.confidence && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Konfidens:</span>
+            <span className="text-sm text-muted-foreground">{copy(locale, 'Confidence:', 'Konfidens:')}</span>
             <Badge className={CONFIDENCE_COLORS[test.confidence] || 'bg-gray-500'}>
               {test.confidence}
             </Badge>
@@ -165,13 +175,13 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
         {/* Detailed Analysis */}
         {Object.keys(analysis).length > 0 && (
           <div className="space-y-3">
-            <h4 className="font-medium text-sm">Detaljerad analys</h4>
+            <h4 className="font-medium text-sm">{copy(locale, 'Detailed analysis', 'Detaljerad analys')}</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
               {Object.entries(analysis).map(([key, value]) => {
                 if (typeof value === 'object' || key === 'warnings') return null;
                 return (
                   <div key={key} className="flex justify-between bg-muted/50 px-3 py-2 rounded">
-                    <span className="text-muted-foreground">{formatAnalysisKey(key)}</span>
+                    <span className="text-muted-foreground">{formatAnalysisKey(key, locale)}</span>
                     <span className="font-medium">{formatAnalysisValue(key, value)}</span>
                   </div>
                 );
@@ -185,7 +195,7 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
           <div className="space-y-2">
             <h4 className="font-medium text-sm flex items-center gap-2">
               <Trophy className="h-4 w-4 text-amber-500" />
-              Benchmark-klassificering
+              {copy(locale, 'Benchmark classification', 'Benchmark-klassificering')}
             </h4>
             {benchmark.tier && isFullBenchmark(benchmark) ? (
               <BenchmarkBadge benchmark={benchmark} showDetails={true} />
@@ -197,7 +207,7 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
                 />
                 {benchmark.comparedTo && (
                   <span className="text-sm text-muted-foreground">
-                    jamfort med {benchmark.comparedTo}
+                    {copy(locale, 'compared with', 'jämfört med')} {benchmark.comparedTo}
                   </span>
                 )}
               </div>
@@ -213,7 +223,7 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
         {/* Recommendations */}
         {recommendations && recommendations.length > 0 && (
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Rekommendationer</h4>
+            <h4 className="font-medium text-sm">{copy(locale, 'Recommendations', 'Rekommendationer')}</h4>
             <ul className="space-y-1">
               {recommendations.map((rec, index) => (
                 <li key={index} className="flex items-start gap-2 text-sm">
@@ -228,10 +238,10 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
 
       <CardFooter className="flex gap-2">
         <Button variant="outline" onClick={onClose}>
-          Stang
+          {copy(locale, 'Close', 'Stäng')}
         </Button>
         <Button variant="default">
-          Berakna zoner
+          {copy(locale, 'Calculate zones', 'Beräkna zoner')}
         </Button>
       </CardFooter>
     </Card>
@@ -275,37 +285,37 @@ function isFullBenchmark(benchmark: unknown): benchmark is BenchmarkResult {
 
 // ==================== FORMATTING HELPERS ====================
 
-function formatAnalysisKey(key: string): string {
-  const labels: Record<string, string> = {
-    avgPower: 'Snitteffekt',
-    peakPower: 'Toppeffekt',
-    criticalPower: 'Critical Power',
-    wPrime: "W'",
-    wPrimeKJ: "W' (kJ)",
-    consistency: 'Konsistens',
-    decoupling: 'Decoupling',
-    hrDrift: 'Pulsdrift',
-    estimatedCP: 'Uppskattad CP',
-    estimatedThreshold: 'Uppskattad tröskel',
-    fatigueIndex: 'Utmattningsindex',
-    fatigueRating: 'Utmattningsgrad',
-    anaerobicCapacity: 'Anaerob kapacitet',
-    totalWork: 'Totalt arbete',
-    quality: 'Testkvalitet',
-    peakStroke: 'Bästa tag',
-    powerProfile: 'Effektprofil',
-    peakToAvgRatio: 'Peak/Avg ratio',
-    powerDecay: 'Effektavfall',
-    avgPace: 'Snitttempo',
-    splits: 'Splittider',
-    totalCalories: 'Kalorier',
-    calsPerMinute: 'Cal/min',
-    avgRPM: 'Snitt RPM',
-    peakRPM: 'Topp RPM',
-    mapWatts: 'MAP',
-    completedStages: 'Avklarade steg',
+function formatAnalysisKey(key: string, locale: AppLocale): string {
+  const labels: Record<string, { en: string; sv: string }> = {
+    avgPower: { en: 'Average power', sv: 'Snitteffekt' },
+    peakPower: { en: 'Peak power', sv: 'Toppeffekt' },
+    criticalPower: { en: 'Critical Power', sv: 'Critical Power' },
+    wPrime: { en: "W'", sv: "W'" },
+    wPrimeKJ: { en: "W' (kJ)", sv: "W' (kJ)" },
+    consistency: { en: 'Consistency', sv: 'Konsistens' },
+    decoupling: { en: 'Decoupling', sv: 'Decoupling' },
+    hrDrift: { en: 'HR drift', sv: 'Pulsdrift' },
+    estimatedCP: { en: 'Estimated CP', sv: 'Uppskattad CP' },
+    estimatedThreshold: { en: 'Estimated threshold', sv: 'Uppskattad tröskel' },
+    fatigueIndex: { en: 'Fatigue index', sv: 'Utmattningsindex' },
+    fatigueRating: { en: 'Fatigue rating', sv: 'Utmattningsgrad' },
+    anaerobicCapacity: { en: 'Anaerobic capacity', sv: 'Anaerob kapacitet' },
+    totalWork: { en: 'Total work', sv: 'Totalt arbete' },
+    quality: { en: 'Test quality', sv: 'Testkvalitet' },
+    peakStroke: { en: 'Best stroke', sv: 'Bästa tag' },
+    powerProfile: { en: 'Power profile', sv: 'Effektprofil' },
+    peakToAvgRatio: { en: 'Peak/Avg ratio', sv: 'Peak/Avg ratio' },
+    powerDecay: { en: 'Power decay', sv: 'Effektavfall' },
+    avgPace: { en: 'Average pace', sv: 'Snitttempo' },
+    splits: { en: 'Splits', sv: 'Splittider' },
+    totalCalories: { en: 'Calories', sv: 'Kalorier' },
+    calsPerMinute: { en: 'Cal/min', sv: 'Cal/min' },
+    avgRPM: { en: 'Avg RPM', sv: 'Snitt RPM' },
+    peakRPM: { en: 'Peak RPM', sv: 'Topp RPM' },
+    mapWatts: { en: 'MAP', sv: 'MAP' },
+    completedStages: { en: 'Completed stages', sv: 'Avklarade steg' },
   };
-  return labels[key] || key;
+  return labels[key]?.[locale] || key;
 }
 
 function formatAnalysisValue(key: string, value: unknown): string {
