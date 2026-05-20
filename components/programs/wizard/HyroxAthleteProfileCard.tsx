@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -10,7 +11,6 @@ import {
   Dumbbell,
   Target,
   TrendingUp,
-  TrendingDown,
   Scale,
   Lightbulb,
   CheckCircle,
@@ -45,6 +45,7 @@ interface HyroxAthleteProfileCardProps {
 type AthleteType = 'FAST_WEAK' | 'SLOW_STRONG' | 'BALANCED' | 'NEEDS_BOTH'
 type RunnerType = 'FAST_RUNNER' | 'AVERAGE_RUNNER' | 'SLOW_RUNNER'
 type StationType = 'STRONG_STATIONS' | 'AVERAGE_STATIONS' | 'WEAK_STATIONS'
+type AppLocale = 'en' | 'sv'
 
 interface ProfileAnalysis {
   athleteType: AthleteType
@@ -82,6 +83,10 @@ const WEEKLY_KM_RECOMMENDATIONS = {
   BALANCED: { min: 45, max: 60 },
   NEEDS_BOTH: { min: 40, max: 55 },
 }
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
 
 // Helper functions
 function parseTimeToSeconds(timeStr?: string): number | null {
@@ -138,6 +143,7 @@ export function HyroxAthleteProfileCard({
   currentWeeklyKm,
   goalTime,
 }: HyroxAthleteProfileCardProps) {
+  const locale = getAppLocale(useLocale())
   const analysis = useMemo((): ProfileAnalysis | null => {
     // Calculate VDOT and paces from race result
     let vdot: number | null = null
@@ -227,35 +233,75 @@ export function HyroxAthleteProfileCard({
     }
 
     // Generate profile description
-    const descriptions: Record<AthleteType, string> = {
-      FAST_WEAK: 'Din löpkapacitet är stark, men stationerna bromsar dig. Fokusera på stationsträning och "kompromisslöpning" efter stationer.',
-      SLOW_STRONG: 'Dina stationer är effektiva, men löpningen begränsar din totaltid. Öka löpvolymen och laktattröskelträning.',
-      BALANCED: 'Du har en balanserad profil. Fortsätt utveckla båda områdena parallellt.',
-      NEEDS_BOTH: 'Både löpning och stationer behöver utvecklas. Bygg gradvis upp kapacitet på båda fronterna.',
+    const descriptions: Record<AthleteType, Record<AppLocale, string>> = {
+      FAST_WEAK: {
+        en: 'Your running capacity is strong, but the stations slow you down. Focus on station training and compromised running after stations.',
+        sv: 'Din löpkapacitet är stark, men stationerna bromsar dig. Fokusera på stationsträning och "kompromisslöpning" efter stationer.',
+      },
+      SLOW_STRONG: {
+        en: 'Your stations are efficient, but running limits your total time. Increase running volume and lactate-threshold work.',
+        sv: 'Dina stationer är effektiva, men löpningen begränsar din totaltid. Öka löpvolymen och laktattröskelträning.',
+      },
+      BALANCED: {
+        en: 'You have a balanced profile. Keep developing both areas in parallel.',
+        sv: 'Du har en balanserad profil. Fortsätt utveckla båda områdena parallellt.',
+      },
+      NEEDS_BOTH: {
+        en: 'Both running and stations need development. Build capacity gradually on both fronts.',
+        sv: 'Både löpning och stationer behöver utvecklas. Bygg gradvis upp kapacitet på båda fronterna.',
+      },
     }
 
     // Generate training focus
-    const focusAreas: Record<AthleteType, string[]> = {
-      FAST_WEAK: [
-        'Stationsspecifik uthållighetsträning',
-        'Kompromisslöpning (löpning direkt efter stationer)',
-        'Sled push/pull teknik och styrka',
-      ],
-      SLOW_STRONG: [
-        'Öka löpvolym gradvis (+15-20%)',
-        'Tröskelintervaller (4-8 x 1km @ LT2)',
-        'Långpass med ökad distans',
-      ],
-      BALANCED: [
-        'Fortsätt balanserad träning',
-        'Race-simuleringar för HYROX-formatet',
-        'Fokusera på övergångar (roxzone-effektivitet)',
-      ],
-      NEEDS_BOTH: [
-        'Bygg aerob bas (Zone 2 löpning)',
-        'Grundläggande styrka för stationer',
-        'Fokusera på teknik innan intensitet',
-      ],
+    const focusAreas: Record<AthleteType, Record<AppLocale, string[]>> = {
+      FAST_WEAK: {
+        en: [
+          'Station-specific endurance training',
+          'Compromised running (running directly after stations)',
+          'Sled push/pull technique and strength',
+        ],
+        sv: [
+          'Stationsspecifik uthållighetsträning',
+          'Kompromisslöpning (löpning direkt efter stationer)',
+          'Sled push/pull teknik och styrka',
+        ],
+      },
+      SLOW_STRONG: {
+        en: [
+          'Increase running volume gradually (+15-20%)',
+          'Threshold intervals (4-8 x 1 km @ LT2)',
+          'Long runs with increased distance',
+        ],
+        sv: [
+          'Öka löpvolym gradvis (+15-20%)',
+          'Tröskelintervaller (4-8 x 1km @ LT2)',
+          'Långpass med ökad distans',
+        ],
+      },
+      BALANCED: {
+        en: [
+          'Continue balanced training',
+          'Race simulations for the HYROX format',
+          'Focus on transitions (roxzone efficiency)',
+        ],
+        sv: [
+          'Fortsätt balanserad träning',
+          'Race-simuleringar för HYROX-formatet',
+          'Fokusera på övergångar (roxzone-effektivitet)',
+        ],
+      },
+      NEEDS_BOTH: {
+        en: [
+          'Build an aerobic base (Zone 2 running)',
+          'Basic strength for stations',
+          'Focus on technique before intensity',
+        ],
+        sv: [
+          'Bygg aerob bas (Zone 2 löpning)',
+          'Grundläggande styrka för stationer',
+          'Fokusera på teknik innan intensitet',
+        ],
+      },
     }
 
     // Goal analysis
@@ -276,15 +322,31 @@ export function HyroxAthleteProfileCard({
         timeGapSeconds = currentEstimatedTime - goalTimeSeconds
 
         if (timeGapSeconds <= 0) {
-          goalAssessment = `Du är redan ${formatTime(Math.abs(timeGapSeconds))} under måltiden!`
+          goalAssessment = t(
+            locale,
+            `Du är redan ${formatTime(Math.abs(timeGapSeconds))} under måltiden!`,
+            `You are already ${formatTime(Math.abs(timeGapSeconds))} under target time!`
+          )
         } else {
           const improvementPercent = (timeGapSeconds / currentEstimatedTime) * 100
           if (improvementPercent <= 5) {
-            goalAssessment = `Nåbart mål - ${formatTime(timeGapSeconds)} att förbättra`
+            goalAssessment = t(
+              locale,
+              `Nåbart mål - ${formatTime(timeGapSeconds)} att förbättra`,
+              `Reachable goal - ${formatTime(timeGapSeconds)} to improve`
+            )
           } else if (improvementPercent <= 10) {
-            goalAssessment = `Ambitiöst mål - ${formatTime(timeGapSeconds)} att förbättra`
+            goalAssessment = t(
+              locale,
+              `Ambitiöst mål - ${formatTime(timeGapSeconds)} att förbättra`,
+              `Ambitious goal - ${formatTime(timeGapSeconds)} to improve`
+            )
           } else {
-            goalAssessment = `Mycket ambitiöst - ${formatTime(timeGapSeconds)} att förbättra`
+            goalAssessment = t(
+              locale,
+              `Mycket ambitiöst - ${formatTime(timeGapSeconds)} att förbättra`,
+              `Very ambitious - ${formatTime(timeGapSeconds)} to improve`
+            )
             isGoalRealistic = false
           }
         }
@@ -308,32 +370,34 @@ export function HyroxAthleteProfileCard({
       paceDegradation,
       volumeScaleFactor,
       recommendedWeeklyKm: Math.round(recommendedWeeklyKm),
-      profileDescription: descriptions[athleteType],
-      trainingFocus: focusAreas[athleteType],
+      profileDescription: descriptions[athleteType][locale],
+      trainingFocus: focusAreas[athleteType][locale],
       goalAssessment,
       isGoalRealistic,
       currentEstimatedTime,
       goalTimeSeconds,
       timeGapSeconds,
     }
-  }, [recentRaceDistance, recentRaceTime, hyroxAverageRunPace, stationTimes, gender, experienceLevel, currentWeeklyKm, goalTime])
+  }, [recentRaceDistance, recentRaceTime, hyroxAverageRunPace, stationTimes, gender, experienceLevel, currentWeeklyKm, goalTime, locale])
 
   if (!analysis) {
     return (
       <Card className="border-dashed border-muted-foreground/30">
         <CardContent className="py-8 text-center text-muted-foreground">
           <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Ange löptempo eller stationstider för att se din atletprofil</p>
+          <p className="text-sm">
+            {t(locale, 'Ange löptempo eller stationstider för att se din atletprofil', 'Enter running pace or station times to see your athlete profile')}
+          </p>
         </CardContent>
       </Card>
     )
   }
 
-  const athleteTypeLabels: Record<AthleteType, { label: string; color: string; icon: typeof User }> = {
-    FAST_WEAK: { label: 'Stark löpare', color: 'bg-blue-500', icon: Footprints },
-    SLOW_STRONG: { label: 'Stark stationsutövare', color: 'bg-orange-500', icon: Dumbbell },
-    BALANCED: { label: 'Balanserad', color: 'bg-green-500', icon: Scale },
-    NEEDS_BOTH: { label: 'Under utveckling', color: 'bg-purple-500', icon: TrendingUp },
+  const athleteTypeLabels: Record<AthleteType, { label: Record<AppLocale, string>; color: string; icon: typeof User }> = {
+    FAST_WEAK: { label: { en: 'Strong runner', sv: 'Stark löpare' }, color: 'bg-blue-500', icon: Footprints },
+    SLOW_STRONG: { label: { en: 'Strong station athlete', sv: 'Stark stationsutövare' }, color: 'bg-orange-500', icon: Dumbbell },
+    BALANCED: { label: { en: 'Balanced', sv: 'Balanserad' }, color: 'bg-green-500', icon: Scale },
+    NEEDS_BOTH: { label: { en: 'Developing', sv: 'Under utveckling' }, color: 'bg-purple-500', icon: TrendingUp },
   }
 
   const typeInfo = athleteTypeLabels[analysis.athleteType]
@@ -344,7 +408,7 @@ export function HyroxAthleteProfileCard({
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <User className="h-5 w-5" />
-          Atletprofil
+          {t(locale, 'Atletprofil', 'Athlete profile')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -356,7 +420,7 @@ export function HyroxAthleteProfileCard({
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <Badge className={`${typeInfo.color} text-white`}>
-                {typeInfo.label}
+                {typeInfo.label[locale]}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -378,7 +442,7 @@ export function HyroxAthleteProfileCard({
           {/* Pace Degradation */}
           {analysis.paceDegradation !== null && (
             <div className={`p-3 rounded-lg ${analysis.paceDegradation <= 10 ? 'bg-green-50 dark:bg-green-950' : 'bg-amber-50 dark:bg-amber-950'}`}>
-              <p className="text-xs text-muted-foreground">Tempotapp i HYROX</p>
+              <p className="text-xs text-muted-foreground">{t(locale, 'Tempotapp i HYROX', 'Pace drop in HYROX')}</p>
               <p className={`text-xl font-bold ${analysis.paceDegradation <= 10 ? 'text-green-600' : 'text-amber-600'}`}>
                 +{Math.round(analysis.paceDegradation)}%
               </p>
@@ -388,7 +452,7 @@ export function HyroxAthleteProfileCard({
           {/* Pure Running Pace */}
           {analysis.pureRunPacePerKm && (
             <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <p className="text-xs text-muted-foreground">Löptempo (ren löpning)</p>
+              <p className="text-xs text-muted-foreground">{t(locale, 'Löptempo (ren löpning)', 'Running pace (pure running)')}</p>
               <p className="text-lg font-semibold">{formatPace(analysis.pureRunPacePerKm)} /km</p>
             </div>
           )}
@@ -396,7 +460,7 @@ export function HyroxAthleteProfileCard({
           {/* HYROX Running Pace */}
           {analysis.hyroxRunPacePerKm && (
             <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <p className="text-xs text-muted-foreground">Löptempo (HYROX)</p>
+              <p className="text-xs text-muted-foreground">{t(locale, 'Löptempo (HYROX)', 'Running pace (HYROX)')}</p>
               <p className="text-lg font-semibold">{formatPace(analysis.hyroxRunPacePerKm)} /km</p>
             </div>
           )}
@@ -406,20 +470,20 @@ export function HyroxAthleteProfileCard({
         {analysis.volumeScaleFactor !== 1.0 && (
           <Alert className={analysis.volumeScaleFactor < 1 ? 'border-amber-500' : 'border-green-500'}>
             <Scale className="h-4 w-4" />
-            <AlertTitle>Volymjustering</AlertTitle>
+            <AlertTitle>{t(locale, 'Volymjustering', 'Volume adjustment')}</AlertTitle>
             <AlertDescription>
               {analysis.volumeScaleFactor < 1 ? (
                 <>
-                  Programmet skalas ner till {Math.round(analysis.volumeScaleFactor * 100)}% av standardvolym.
+                  {t(locale, 'Programmet skalas ner till', 'Program volume is scaled down to')} {Math.round(analysis.volumeScaleFactor * 100)}% {t(locale, 'av standardvolym.', 'of standard volume.')}
                   <span className="block text-xs mt-1">
-                    Rekommenderad veckovolym: {analysis.recommendedWeeklyKm} km
+                    {t(locale, 'Rekommenderad veckovolym', 'Recommended weekly volume')}: {analysis.recommendedWeeklyKm} km
                   </span>
                 </>
               ) : (
                 <>
-                  Programmet skalas upp till {Math.round(analysis.volumeScaleFactor * 100)}% av standardvolym.
+                  {t(locale, 'Programmet skalas upp till', 'Program volume is scaled up to')} {Math.round(analysis.volumeScaleFactor * 100)}% {t(locale, 'av standardvolym.', 'of standard volume.')}
                   <span className="block text-xs mt-1">
-                    Din kapacitet stödjer högre volym!
+                    {t(locale, 'Din kapacitet stödjer högre volym!', 'Your capacity supports higher volume!')}
                   </span>
                 </>
               )}
@@ -443,11 +507,11 @@ export function HyroxAthleteProfileCard({
             {analysis.currentEstimatedTime && analysis.goalTimeSeconds && (
               <div className="text-sm text-muted-foreground mt-2 grid grid-cols-2 gap-2">
                 <div>
-                  <span className="text-xs">Nuvarande:</span>
+                  <span className="text-xs">{t(locale, 'Nuvarande', 'Current')}:</span>
                   <span className="block font-medium">{formatTime(analysis.currentEstimatedTime)}</span>
                 </div>
                 <div>
-                  <span className="text-xs">Mål:</span>
+                  <span className="text-xs">{t(locale, 'Mål', 'Goal')}:</span>
                   <span className="block font-medium">{formatTime(analysis.goalTimeSeconds)}</span>
                 </div>
               </div>
@@ -459,7 +523,7 @@ export function HyroxAthleteProfileCard({
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Lightbulb className="h-4 w-4 text-amber-500" />
-            Träningsfokus
+            {t(locale, 'Träningsfokus', 'Training focus')}
           </div>
           <ul className="space-y-1">
             {analysis.trainingFocus.map((focus, index) => (
@@ -475,8 +539,11 @@ export function HyroxAthleteProfileCard({
         <div className="flex items-start gap-2 text-xs text-muted-foreground pt-2 border-t">
           <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
           <p>
-            Profilen baseras på dina angivna tider och används för att anpassa programmet.
-            Mer data ger bättre analys.
+            {t(
+              locale,
+              'Profilen baseras på dina angivna tider och används för att anpassa programmet. Mer data ger bättre analys.',
+              'The profile is based on your entered times and is used to adapt the program. More data gives a better analysis.'
+            )}
           </p>
         </div>
       </CardContent>
