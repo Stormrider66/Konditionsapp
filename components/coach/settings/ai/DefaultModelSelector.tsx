@@ -21,6 +21,11 @@ import { Loader2, Check, Brain, Sparkles, Zap, Bot, AlertCircle, FileText, Dolla
 import type { AIProvider } from '@prisma/client';
 import { formatTokenCount, estimateWeeksFromTokens } from '@/types/ai-models';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
+import { useLocale } from 'next-intl';
+
+type AppLocale = 'en' | 'sv';
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en;
 
 interface AIModel {
   id: string;
@@ -50,6 +55,7 @@ interface ApiKeyStatus {
 }
 
 export function DefaultModelSelector() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const pathname = usePathname();
   const [models, setModels] = useState<AIModel[]>([]);
   const [defaultModel, setDefaultModel] = useState<AIModel | null>(null);
@@ -91,7 +97,7 @@ export function DefaultModelSelector() {
   }, [pathname]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   async function handleModelChange(modelId: string) {
@@ -113,10 +119,10 @@ export function DefaultModelSelector() {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setError(data.error || 'Kunde inte spara inställningen');
+        setError(data.error || copy(locale, 'Could not save the setting', 'Kunde inte spara inställningen'));
       }
-    } catch (err) {
-      setError('Nätverksfel. Försök igen.');
+    } catch {
+      setError(copy(locale, 'Network error. Try again.', 'Nätverksfel. Försök igen.'));
     } finally {
       setSaving(false);
     }
@@ -177,16 +183,16 @@ export function DefaultModelSelector() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">🤖</span>
             <div>
-              <GlassCardTitle className="text-lg">Standard AI-modell</GlassCardTitle>
+              <GlassCardTitle className="text-lg">{copy(locale, 'Default AI model', 'Standard AI-modell')}</GlassCardTitle>
               <GlassCardDescription>
-                Välj vilken AI-modell som ska användas som standard i alla AI-funktioner
+                {copy(locale, 'Choose which AI model should be used as the default across all AI features', 'Välj vilken AI-modell som ska användas som standard i alla AI-funktioner')}
               </GlassCardDescription>
             </div>
           </div>
           {defaultModel && (
             <Badge variant="default" className="bg-blue-500">
               <Check className="h-3 w-3 mr-1" />
-              Konfigurerad
+              {copy(locale, 'Configured', 'Konfigurerad')}
             </Badge>
           )}
         </div>
@@ -199,7 +205,7 @@ export function DefaultModelSelector() {
             disabled={saving}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Välj standardmodell">
+              <SelectValue placeholder={copy(locale, 'Choose default model', 'Välj standardmodell')}>
                 {defaultModel && (
                   <div className="flex items-center gap-2">
                     {getProviderIcon(defaultModel.provider)}
@@ -214,7 +220,7 @@ export function DefaultModelSelector() {
             <SelectContent className="max-w-[500px]">
               {availableModels.length > 0 && (
                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                  Tillgängliga modeller
+                  {copy(locale, 'Available models', 'Tillgängliga modeller')}
                 </div>
               )}
               {availableModels.map((model) => (
@@ -226,13 +232,13 @@ export function DefaultModelSelector() {
                         <span className="font-medium">{model.displayName || model.name}</span>
                         {model.recommended && (
                           <Badge variant="secondary" className="text-xs py-0">
-                            Rekommenderad
+                            {copy(locale, 'Recommended', 'Rekommenderad')}
                           </Badge>
                         )}
                         {model.bestForLongOutput && (
                           <Badge variant="outline" className="text-xs py-0 border-green-500 text-green-600">
                             <FileText className="h-3 w-3 mr-1" />
-                            Långa program
+                            {copy(locale, 'Long programs', 'Långa program')}
                           </Badge>
                         )}
                       </div>
@@ -241,7 +247,7 @@ export function DefaultModelSelector() {
                           <FileText className="h-3 w-3" />
                           {formatTokenCount(model.capabilities?.maxOutputTokens)} output
                           <span className="text-muted-foreground/70">
-                            (~{estimateWeeksFromTokens(model.capabilities?.maxOutputTokens)} veckor)
+                            (~{estimateWeeksFromTokens(model.capabilities?.maxOutputTokens)} {copy(locale, 'weeks', 'veckor')})
                           </span>
                         </span>
                         <span className="flex items-center gap-1">
@@ -262,7 +268,7 @@ export function DefaultModelSelector() {
               {unavailableModels.length > 0 && (
                 <>
                   <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
-                    Ej tillgängliga (saknar API-nyckel)
+                    {copy(locale, 'Unavailable (missing API key)', 'Ej tillgängliga (saknar API-nyckel)')}
                   </div>
                   {unavailableModels.map((model) => (
                     <SelectItem key={model.id} value={model.id} disabled className="py-3">
@@ -275,7 +281,7 @@ export function DefaultModelSelector() {
                             <span>${model.pricing?.output}/1M</span>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {getProviderLabel(model.provider)} - API-nyckel saknas
+                            {getProviderLabel(model.provider)} - {copy(locale, 'API key missing', 'API-nyckel saknas')}
                           </span>
                         </div>
                       </div>
@@ -286,7 +292,7 @@ export function DefaultModelSelector() {
 
               {models.length === 0 && (
                 <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                  Inga AI-modeller tillgängliga
+                  {copy(locale, 'No AI models available', 'Inga AI-modeller tillgängliga')}
                 </div>
               )}
             </SelectContent>
@@ -295,14 +301,14 @@ export function DefaultModelSelector() {
           {saving && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Sparar...
+              {copy(locale, 'Saving...', 'Sparar...')}
             </div>
           )}
 
           {success && (
             <p className="text-sm text-green-600 flex items-center gap-2">
               <Check className="h-4 w-4" />
-              Standardmodell sparad!
+              {copy(locale, 'Default model saved!', 'Standardmodell sparad!')}
             </p>
           )}
 
@@ -312,10 +318,10 @@ export function DefaultModelSelector() {
           {defaultModel && (
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Vald modell: {defaultModel.displayName || defaultModel.name}</span>
+                <span className="text-sm font-medium">{copy(locale, 'Selected model', 'Vald modell')}: {defaultModel.displayName || defaultModel.name}</span>
                 {defaultModel.bestForLongOutput && (
                   <Badge variant="outline" className="border-green-500 text-green-600">
-                    Bra för långa program
+                    {copy(locale, 'Good for long programs', 'Bra för långa program')}
                   </Badge>
                 )}
               </div>
@@ -325,15 +331,15 @@ export function DefaultModelSelector() {
                   <span className="font-medium">{formatTokenCount(defaultModel.capabilities?.maxOutputTokens)} tokens</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Uppskattad kapacitet:</span>{' '}
-                  <span className="font-medium">~{estimateWeeksFromTokens(defaultModel.capabilities?.maxOutputTokens)} veckors program</span>
+                  <span className="text-muted-foreground">{copy(locale, 'Estimated capacity', 'Uppskattad kapacitet')}:</span>{' '}
+                  <span className="font-medium">~{estimateWeeksFromTokens(defaultModel.capabilities?.maxOutputTokens)} {copy(locale, 'weeks of programming', 'veckors program')}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Input-pris:</span>{' '}
+                  <span className="text-muted-foreground">{copy(locale, 'Input price', 'Input-pris')}:</span>{' '}
                   <span className="font-medium">${defaultModel.pricing?.input}/1M tokens</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Output-pris:</span>{' '}
+                  <span className="text-muted-foreground">{copy(locale, 'Output price', 'Output-pris')}:</span>{' '}
                   <span className="font-medium">${defaultModel.pricing?.output}/1M tokens</span>
                 </div>
               </div>
@@ -343,21 +349,20 @@ export function DefaultModelSelector() {
           {/* Long program recommendation */}
           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
             <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-              Tips för långa träningsprogram
+              {copy(locale, 'Tips for long training programs', 'Tips för långa träningsprogram')}
             </p>
             <p className="text-xs text-blue-800 dark:text-blue-200 mb-2">
-              För att generera 6-9 månaders program, välj en modell med hög output-kapacitet:
+              {copy(locale, 'To generate 6-9 month programs, choose a model with high output capacity:', 'För att generera 6-9 månaders program, välj en modell med hög output-kapacitet:')}
             </p>
             <ul className="text-xs text-blue-750 dark:text-blue-350 space-y-1">
-              <li>• <strong>GPT-5.4</strong> - 128K output (~32 veckor) - Bäst för längre program</li>
-              <li>• <strong>Gemini 3.1 Pro / Claude Sonnet 4.6</strong> - 64K output (~16 veckor) - Bra balans</li>
-              <li>• <strong>Haiku / Nano</strong> - 8-16K output (~2-4 veckor) - Snabbt för korta program</li>
+              <li>• <strong>GPT-5.4</strong> - 128K output (~32 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Best for longer programs', 'Bäst för längre program')}</li>
+              <li>• <strong>Gemini 3.1 Pro / Claude Sonnet 4.6</strong> - 64K output (~16 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Good balance', 'Bra balans')}</li>
+              <li>• <strong>Haiku / Nano</strong> - 8-16K output (~2-4 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Fast for short programs', 'Snabbt för korta program')}</li>
             </ul>
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Denna modell används automatiskt i AI Studio, programgenerering, och andra AI-funktioner
-            om du inte väljer en annan modell specifikt.
+            {copy(locale, 'This model is used automatically in AI Studio, program generation, and other AI features unless you choose another model explicitly.', 'Denna modell används automatiskt i AI Studio, programgenerering, och andra AI-funktioner om du inte väljer en annan modell specifikt.')}
           </p>
         </div>
       </GlassCardContent>
