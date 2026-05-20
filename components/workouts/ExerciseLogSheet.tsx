@@ -29,6 +29,7 @@ import {
 import { cn } from '@/lib/utils'
 import type { LoggedSetPayload, PreviewExercise, PreviewSetLog } from './types'
 import type { UseRestTimerResult } from './useRestTimer'
+import { useLocale } from '@/i18n/client'
 
 interface ExerciseLogSheetProps {
   open: boolean
@@ -36,6 +37,16 @@ interface ExerciseLogSheetProps {
   exercise: PreviewExercise | null
   restTimer: UseRestTimerResult
   onLogSet: (payload: LoggedSetPayload) => Promise<PreviewSetLog>
+}
+
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
 function parseTargetReps(reps: number | string): number {
@@ -56,6 +67,7 @@ export function ExerciseLogSheet({
   restTimer,
   onLogSet,
 }: ExerciseLogSheetProps) {
+  const locale = getAppLocale(useLocale())
   const [localLogs, setLocalLogs] = useState<PreviewSetLog[]>([])
   const [weight, setWeight] = useState(0)
   const [reps, setReps] = useState(0)
@@ -169,6 +181,7 @@ export function ExerciseLogSheet({
   }
 
   const heroImage = exercise.imageUrls?.[0]
+  const exerciseName = locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -188,7 +201,7 @@ export function ExerciseLogSheet({
                 />
                 <img
                   src={heroImage}
-                  alt={exercise.nameSv || exercise.name}
+                  alt={exerciseName}
                   className="relative mx-auto block h-auto max-h-[60vh] w-full object-contain"
                 />
               </div>
@@ -201,7 +214,7 @@ export function ExerciseLogSheet({
             <SheetHeader className="border-b px-4 pb-4 pt-3 text-left sm:px-6">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                  Set {Math.min(nextSetNumber, exercise.sets)} av {exercise.sets}
+                  {text(locale, 'Set', 'Set')} {Math.min(nextSetNumber, exercise.sets)} {text(locale, 'av', 'of')} {exercise.sets}
                 </Badge>
                 {exercise.tempo && (
                   <Badge variant="outline" className="text-[10px]">
@@ -210,11 +223,11 @@ export function ExerciseLogSheet({
                 )}
               </div>
               <SheetTitle className="text-xl">
-                {exercise.nameSv || exercise.name}
+                {exerciseName}
               </SheetTitle>
               <SheetDescription>
-                Mål: {exercise.sets} × {targetRepsText}
-                {exercise.weight ? ` · ${exercise.weight} kg` : ''} · vila{' '}
+                {text(locale, 'Mål', 'Target')}: {exercise.sets} × {targetRepsText}
+                {exercise.weight ? ` · ${exercise.weight} kg` : ''} · {text(locale, 'vila', 'rest')}{' '}
                 {exercise.restSeconds}s
               </SheetDescription>
               {exercise.notes && (
@@ -228,7 +241,7 @@ export function ExerciseLogSheet({
             {localLogs.length > 0 && (
               <div className="mb-4 space-y-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Loggade set
+                  {text(locale, 'Loggade set', 'Logged sets')}
                 </p>
                 <ul className="divide-y rounded-lg border bg-card">
                   {localLogs.map((log) => (
@@ -262,19 +275,19 @@ export function ExerciseLogSheet({
             )}
 
             {restActiveForThis ? (
-              <RestPanel restTimer={restTimer} />
+              <RestPanel restTimer={restTimer} locale={locale} />
             ) : allSetsDone ? (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
                 <Check className="mx-auto mb-2 h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-                <p className="font-medium">Alla set klara!</p>
+                <p className="font-medium">{text(locale, 'Alla set klara!', 'All sets done!')}</p>
                 <p className="text-xs text-muted-foreground">
-                  Stäng för att gå tillbaka till passet.
+                  {text(locale, 'Stäng för att gå tillbaka till passet.', 'Close to return to the workout.')}
                 </p>
               </div>
             ) : (
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Belastning</Label>
+                  <Label className="text-sm font-medium text-foreground">{text(locale, 'Belastning', 'Load')}</Label>
                   <NumberStepper
                     value={weight}
                     onChange={setWeight}
@@ -300,8 +313,8 @@ export function ExerciseLogSheet({
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground">
-                    Repetitioner{' '}
-                    <span className="text-muted-foreground">(mål: {targetRepsText})</span>
+                    {text(locale, 'Repetitioner', 'Reps')}{' '}
+                    <span className="text-muted-foreground">({text(locale, 'mål', 'target')}: {targetRepsText})</span>
                   </Label>
                   <NumberStepper value={reps} onChange={setReps} step={1} unit="reps" />
                 </div>
@@ -337,7 +350,7 @@ export function ExerciseLogSheet({
                     step={0.5}
                   />
                   <div className="flex justify-between text-[11px] text-muted-foreground">
-                    <span>Lätt</span>
+                    <span>{text(locale, 'Lätt', 'Easy')}</span>
                     <span>Max</span>
                   </div>
                 </div>
@@ -349,7 +362,7 @@ export function ExerciseLogSheet({
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-foreground"
                   >
                     <Gauge className="h-4 w-4 text-muted-foreground" />
-                    Hastighet / kraft / tid
+                    {text(locale, 'Hastighet / kraft / tid', 'Velocity / power / time')}
                     <ChevronDown
                       className={cn(
                         'ml-auto h-4 w-4 text-muted-foreground transition-transform',
@@ -360,7 +373,7 @@ export function ExerciseLogSheet({
                   {showMetrics && (
                     <div className="space-y-4 border-t border-border px-3 pb-3 pt-3">
                       <MetricRow
-                        label="Hastighet"
+                        label={text(locale, 'Hastighet', 'Velocity')}
                         unit="m/s"
                         meanValue={meanVelocityValue}
                         onMeanChange={setMeanVelocityValue}
@@ -369,7 +382,7 @@ export function ExerciseLogSheet({
                         placeholder="0.75"
                       />
                       <MetricRow
-                        label="Effekt"
+                        label={text(locale, 'Effekt', 'Power')}
                         unit="W"
                         meanValue={meanPowerValue}
                         onMeanChange={setMeanPowerValue}
@@ -378,7 +391,7 @@ export function ExerciseLogSheet({
                         placeholder="450"
                       />
                       <MetricRow
-                        label="Tid"
+                        label={text(locale, 'Tid', 'Time')}
                         unit="s"
                         meanValue={meanTimeValue}
                         onMeanChange={setMeanTimeValue}
@@ -401,7 +414,7 @@ export function ExerciseLogSheet({
                 className="h-12 flex-1 text-foreground"
                 onClick={handleDone}
               >
-                {allSetsDone ? 'Klar' : 'Stäng'}
+                {allSetsDone ? text(locale, 'Klar', 'Done') : text(locale, 'Stäng', 'Close')}
               </Button>
               {!allSetsDone && !restActiveForThis && (
                 <Button
@@ -414,7 +427,7 @@ export function ExerciseLogSheet({
                   ) : justSaved ? (
                     <Check className="mr-2 h-4 w-4" />
                   ) : null}
-                  Logga set {nextSetNumber}
+                  {text(locale, 'Logga set', 'Log set')} {nextSetNumber}
                 </Button>
               )}
               {restActiveForThis && (
@@ -424,7 +437,7 @@ export function ExerciseLogSheet({
                   onClick={() => restTimer.skip()}
                 >
                   <SkipForward className="mr-2 h-4 w-4" />
-                  Hoppa över vila
+                  {text(locale, 'Hoppa över vila', 'Skip rest')}
                 </Button>
               )}
             </div>
@@ -444,7 +457,7 @@ function LoggedSetMetric({ label, value }: { label: string; value: string | null
   )
 }
 
-function RestPanel({ restTimer }: { restTimer: UseRestTimerResult }) {
+function RestPanel({ restTimer, locale }: { restTimer: UseRestTimerResult; locale: AppLocale }) {
   const { active, remaining, isPaused, togglePause, adjust } = restTimer
   if (!active) return null
   const pct = active.totalSeconds > 0 ? (remaining / active.totalSeconds) * 100 : 0
@@ -475,7 +488,7 @@ function RestPanel({ restTimer }: { restTimer: UseRestTimerResult }) {
           <span className={cn('text-4xl font-bold tabular-nums', color)}>
             {mm}:{ss.toString().padStart(2, '0')}
           </span>
-          <span className="text-xs text-muted-foreground">Vila</span>
+          <span className="text-xs text-muted-foreground">{text(locale, 'Vila', 'Rest')}</span>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -572,6 +585,7 @@ function MetricRow({
   onPeakChange: (v: string) => void
   placeholder?: string
 }) {
+  const locale = getAppLocale(useLocale())
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
@@ -581,7 +595,7 @@ function MetricRow({
       <div className="grid grid-cols-2 gap-2">
         <div>
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Medel
+            {text(locale, 'Medel', 'Mean')}
           </span>
           <Input
             type="number"
@@ -595,7 +609,7 @@ function MetricRow({
         </div>
         <div>
           <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Topp
+            {text(locale, 'Topp', 'Peak')}
           </span>
           <Input
             type="number"
