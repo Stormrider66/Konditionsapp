@@ -34,7 +34,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { parseAIProgram, extractProgramMetadata, type ParsedProgram } from '@/lib/ai/program-parser'
+import { parseAIProgram } from '@/lib/ai/program-parser'
 import { generateProgramPDFFromElement, downloadProgramPDF, generateProgramPDFFilename } from '@/lib/exports/program-pdf-export'
 import { ProgramPDFContent } from '@/components/exports/ProgramPDFContent'
 
@@ -57,12 +57,101 @@ const workoutTypeIcons: Record<string, React.ReactNode> = {
   HYROX: <Flame className="h-4 w-4 text-amber-500" />,
 }
 
-// Intensity to color mapping
-const intensityColors: Record<string, string> = {
-  easy: 'bg-green-100 text-green-800',
-  moderate: 'bg-yellow-100 text-yellow-800',
-  hard: 'bg-red-100 text-red-800',
-  race_pace: 'bg-purple-100 text-purple-800',
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  chooseAthleteTitle: string
+  chooseAthleteDescription: string
+  savedTitle: string
+  saveErrorTitle: string
+  unknownError: string
+  excelExportedTitle: string
+  excelExportedDescription: string
+  pdfExportedTitle: string
+  pdfExportedDescription: string
+  exportErrorTitle: string
+  weeksLower: string
+  weeks: string
+  phases: string
+  sessionsPerWeek: string
+  week: string
+  keyWorkouts: string
+  weeklySchedule: string
+  rest: string
+  volumeGuidance: string
+  exporting: string
+  export: string
+  exportExcel: string
+  exportPdf: string
+  programSaved: string
+  viewProgram: string
+  saving: string
+  saveProgram: string
+  selectAthleteHint: string
+  dayLabels: string[]
+}> = {
+  en: {
+    chooseAthleteTitle: 'Choose an athlete',
+    chooseAthleteDescription: 'You need to choose an athlete before saving the program.',
+    savedTitle: 'Program saved!',
+    saveErrorTitle: 'Could not save program',
+    unknownError: 'Unknown error',
+    excelExportedTitle: 'Excel exported!',
+    excelExportedDescription: 'The training program has been downloaded as an Excel file.',
+    pdfExportedTitle: 'PDF exported!',
+    pdfExportedDescription: 'The training program has been downloaded as a PDF.',
+    exportErrorTitle: 'Could not export',
+    weeksLower: 'weeks',
+    weeks: 'Weeks',
+    phases: 'Phases',
+    sessionsPerWeek: 'Sessions/week',
+    week: 'Week',
+    keyWorkouts: 'key workouts',
+    weeklySchedule: 'Weekly schedule:',
+    rest: 'Rest',
+    volumeGuidance: 'Volume guidance:',
+    exporting: 'Exporting...',
+    export: 'Export',
+    exportExcel: 'Export to Excel',
+    exportPdf: 'Export to PDF',
+    programSaved: 'Program saved!',
+    viewProgram: 'View program',
+    saving: 'Saving...',
+    saveProgram: 'Save program',
+    selectAthleteHint: 'Choose an athlete in the context panel before saving the program',
+    dayLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  },
+  sv: {
+    chooseAthleteTitle: 'Välj en atlet',
+    chooseAthleteDescription: 'Du måste välja en atlet innan du kan spara programmet.',
+    savedTitle: 'Program sparat!',
+    saveErrorTitle: 'Kunde inte spara program',
+    unknownError: 'Okänt fel',
+    excelExportedTitle: 'Excel exporterad!',
+    excelExportedDescription: 'Träningsprogrammet har laddats ner som Excel-fil.',
+    pdfExportedTitle: 'PDF exporterad!',
+    pdfExportedDescription: 'Träningsprogrammet har laddats ner som PDF.',
+    exportErrorTitle: 'Kunde inte exportera',
+    weeksLower: 'veckor',
+    weeks: 'Veckor',
+    phases: 'Faser',
+    sessionsPerWeek: 'Pass/vecka',
+    week: 'Vecka',
+    keyWorkouts: 'nyckelpass',
+    weeklySchedule: 'Veckoschema:',
+    rest: 'Vila',
+    volumeGuidance: 'Volymvägledning:',
+    exporting: 'Exporterar...',
+    export: 'Exportera',
+    exportExcel: 'Exportera till Excel',
+    exportPdf: 'Exportera till PDF',
+    programSaved: 'Program sparat!',
+    viewProgram: 'Visa program',
+    saving: 'Sparar...',
+    saveProgram: 'Spara program',
+    selectAthleteHint: 'Välj en atlet i kontextpanelen för att kunna spara programmet',
+    dayLabels: ['mån', 'tis', 'ons', 'tor', 'fre', 'lör', 'sön'],
+  },
 }
 
 export function ProgramPreview({
@@ -74,7 +163,8 @@ export function ProgramPreview({
   onProgramSaved,
 }: ProgramPreviewProps) {
   const { toast } = useToast()
-  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [savedProgramId, setSavedProgramId] = useState<string | null>(null)
@@ -84,7 +174,6 @@ export function ProgramPreview({
 
   // Try to parse program from content
   const parseResult = parseAIProgram(content)
-  const metadata = extractProgramMetadata(content)
 
   // If no program found, don't render anything
   if (!parseResult.success || !parseResult.program) {
@@ -104,8 +193,8 @@ export function ProgramPreview({
   const handleSaveProgram = async () => {
     if (!athleteId) {
       toast({
-        title: 'Välj en atlet',
-        description: 'Du måste välja en atlet innan du kan spara programmet.',
+        title: copy.chooseAthleteTitle,
+        description: copy.chooseAthleteDescription,
         variant: 'destructive',
       })
       return
@@ -132,7 +221,7 @@ export function ProgramPreview({
       setSaved(true)
       setSavedProgramId(data.program.id)
       toast({
-        title: 'Program sparat!',
+        title: copy.savedTitle,
         description: data.message,
       })
 
@@ -141,8 +230,8 @@ export function ProgramPreview({
       }
     } catch (error) {
       toast({
-        title: 'Kunde inte spara program',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.saveErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
     } finally {
@@ -162,13 +251,13 @@ export function ProgramPreview({
         locale,
       })
       toast({
-        title: 'Excel exporterad!',
-        description: 'Träningsprogrammet har laddats ner som Excel-fil.',
+        title: copy.excelExportedTitle,
+        description: copy.excelExportedDescription,
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte exportera',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.exportErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
     } finally {
@@ -201,13 +290,13 @@ export function ProgramPreview({
       downloadProgramPDF(pdfBlob, filename)
 
       toast({
-        title: 'PDF exporterad!',
-        description: 'Träningsprogrammet har laddats ner som PDF.',
+        title: copy.pdfExportedTitle,
+        description: copy.pdfExportedDescription,
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte exportera',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.exportErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
     } finally {
@@ -225,7 +314,7 @@ export function ProgramPreview({
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="outline">
-              {program.totalWeeks} veckor
+              {program.totalWeeks} {copy.weeksLower}
             </Badge>
             {program.methodology && (
               <Badge variant="secondary">
@@ -247,19 +336,19 @@ export function ProgramPreview({
             <div className="text-2xl font-bold text-blue-600">
               {program.totalWeeks}
             </div>
-            <div className="text-xs text-muted-foreground">Veckor</div>
+            <div className="text-xs text-muted-foreground">{copy.weeks}</div>
           </div>
           <div className="text-center p-3 bg-white rounded-lg border">
             <div className="text-2xl font-bold text-blue-600">
               {program.phases.length}
             </div>
-            <div className="text-xs text-muted-foreground">Faser</div>
+            <div className="text-xs text-muted-foreground">{copy.phases}</div>
           </div>
           <div className="text-center p-3 bg-white rounded-lg border">
             <div className="text-2xl font-bold text-blue-600">
               {program.weeklySchedule?.sessionsPerWeek || '?'}
             </div>
-            <div className="text-xs text-muted-foreground">Pass/vecka</div>
+            <div className="text-xs text-muted-foreground">{copy.sessionsPerWeek}</div>
           </div>
         </div>
 
@@ -283,13 +372,13 @@ export function ProgramPreview({
                       <div className="text-left">
                         <div className="font-medium">{phase.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          Vecka {phase.weeks} - {phase.focus}
+                          {copy.week} {phase.weeks} - {phase.focus}
                         </div>
                       </div>
                     </div>
                     {phase.keyWorkouts && phase.keyWorkouts.length > 0 && (
                       <Badge variant="outline" className="text-xs">
-                        {phase.keyWorkouts.length} nyckelpass
+                        {phase.keyWorkouts.length} {copy.keyWorkouts}
                       </Badge>
                     )}
                   </button>
@@ -299,9 +388,9 @@ export function ProgramPreview({
                     {/* Weekly Template */}
                     {phase.weeklyTemplate && (
                       <div>
-                        <div className="text-sm font-medium mb-2">Veckoschema:</div>
+                        <div className="text-sm font-medium mb-2">{copy.weeklySchedule}</div>
                         <div className="grid grid-cols-7 gap-1 text-xs">
-                          {['mån', 'tis', 'ons', 'tor', 'fre', 'lör', 'sön'].map(
+                          {copy.dayLabels.map(
                             (day, dayIndex) => {
                               const dayNames = [
                                 'monday',
@@ -330,7 +419,7 @@ export function ProgramPreview({
                                       )}
                                       <div className="truncate mt-0.5">
                                         {workout.type === 'REST'
-                                          ? 'Vila'
+                                          ? copy.rest
                                           : 'name' in workout
                                           ? workout.name
                                           : workout.type}
@@ -348,7 +437,7 @@ export function ProgramPreview({
                     {/* Key Workouts */}
                     {phase.keyWorkouts && phase.keyWorkouts.length > 0 && (
                       <div>
-                        <div className="text-sm font-medium mb-2">Nyckelpass:</div>
+                        <div className="text-sm font-medium mb-2">{copy.keyWorkouts}:</div>
                         <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                           {phase.keyWorkouts.map((workout, i) => (
                             <li key={i}>{workout}</li>
@@ -360,7 +449,7 @@ export function ProgramPreview({
                     {/* Volume Guidance */}
                     {phase.volumeGuidance && (
                       <div className="text-sm">
-                        <span className="font-medium">Volymvägledning: </span>
+                        <span className="font-medium">{copy.volumeGuidance} </span>
                         <span className="text-muted-foreground">
                           {phase.volumeGuidance}
                         </span>
@@ -399,12 +488,12 @@ export function ProgramPreview({
                 {exporting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Exporterar...
+                    {copy.exporting}
                   </>
                 ) : (
                   <>
                     <Download className="h-4 w-4 mr-2" />
-                    Exportera
+                    {copy.export}
                   </>
                 )}
               </Button>
@@ -412,11 +501,11 @@ export function ProgramPreview({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleExportExcel} disabled={exporting !== null}>
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Exportera till Excel
+                {copy.exportExcel}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportPDF} disabled={exporting !== null}>
                 <FileText className="h-4 w-4 mr-2" />
-                Exportera till PDF
+                {copy.exportPdf}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -426,14 +515,14 @@ export function ProgramPreview({
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
               <span className="text-sm text-green-600 font-medium">
-                Program sparat!
+                {copy.programSaved}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.open(`/coach/programs/${savedProgramId}`, '_blank')}
               >
-                Visa program
+                {copy.viewProgram}
               </Button>
             </div>
           ) : (
@@ -445,12 +534,12 @@ export function ProgramPreview({
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sparar...
+                  {copy.saving}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Spara program
+                  {copy.saveProgram}
                 </>
               )}
             </Button>
@@ -459,7 +548,7 @@ export function ProgramPreview({
 
         {!athleteId && (
           <p className="text-xs text-muted-foreground text-center mt-2">
-            Välj en atlet i kontextpanelen för att kunna spara programmet
+            {copy.selectAthleteHint}
           </p>
         )}
 
