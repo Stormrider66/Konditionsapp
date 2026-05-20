@@ -9,23 +9,30 @@ import { requireCoach } from '@/lib/auth-utils'
 import { generateDrillFromText } from '@/lib/drills/generate-from-text'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const { prompt, sportType } = body
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 5) {
       return NextResponse.json(
-        { error: 'Beskriv övningen med minst några ord' },
+        { error: t(locale, 'Describe the drill in at least a few words', 'Beskriv övningen med minst några ord') },
         { status: 400 },
       )
     }
 
     if (prompt.length > 2000) {
       return NextResponse.json(
-        { error: 'Beskrivningen är för lång (max 2000 tecken)' },
+        { error: t(locale, 'The description is too long (max 2000 characters)', 'Beskrivningen är för lång (max 2000 tecken)') },
         { status: 400 },
       )
     }
