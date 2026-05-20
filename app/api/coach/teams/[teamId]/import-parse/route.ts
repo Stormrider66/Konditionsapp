@@ -39,6 +39,7 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_CHARS = 200_000
 
 const VALID_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+type AppLocale = 'en' | 'sv'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
@@ -61,6 +62,7 @@ type NormalizedInput =
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(request)
 
@@ -155,7 +157,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         {
           error:
             normalized.kind === 'image'
-              ? 'Ingen bildkapabel AI-modell är konfigurerad. Lägg till en Google, Anthropic eller OpenAI API-nyckel i inställningarna.'
+              ? t(locale, 'No image-capable AI model is configured. Add a Google, Anthropic, or OpenAI API key in settings.', 'Ingen bildkapabel AI-modell är konfigurerad. Lägg till en Google, Anthropic eller OpenAI API-nyckel i inställningarna.')
               : 'No AI provider configured. Add an API key in settings to use the roster importer.',
         },
         { status: 400 }
@@ -205,7 +207,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (!parsedRows.ok) {
       warnings.push(`Model output was not valid roster JSON: ${parsedRows.error}`)
     } else if (parsedRows.rows.length === 0) {
-      warnings.push('AI hittade inga spelare i källan.')
+      warnings.push(t(locale, 'AI found no players in the source.', 'AI hittade inga spelare i källan.'))
     }
 
     return NextResponse.json({
@@ -224,6 +226,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const msg = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 // ─── Pre-processing (same pattern as program importer) ──────────────────────
