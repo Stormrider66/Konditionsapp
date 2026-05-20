@@ -31,6 +31,9 @@ import {
   X,
   AlertTriangle,
 } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
@@ -45,6 +48,10 @@ const REPORT_TYPE_INFO: Record<string, { label: string; icon: React.ElementType;
   BI_WEEKLY: { label: 'Business Intelligence', icon: BarChart3, color: '#14b8a6' },
   COMPETITOR: { label: 'Competitor Intel', icon: Eye, color: '#ef4444' },
   MARKETING_WEEKLY: { label: 'Marketing', icon: Megaphone, color: '#ec4899' },
+}
+
+function formatDate(value: string, locale: AppLocale): string {
+  return new Date(value).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
 }
 
 interface ReportSummary {
@@ -76,6 +83,7 @@ interface FullReport {
 }
 
 export function WeeklyReportsPanel() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -203,7 +211,7 @@ export function WeeklyReportsPanel() {
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                        <span>Week of {new Date(report.weekStart).toLocaleDateString('sv-SE')}</span>
+                        <span>Week of {formatDate(report.weekStart, locale)}</span>
                         {report.emailedAt && (
                           <span className="flex items-center gap-1">
                             <Mail className="h-3 w-3" />
@@ -229,7 +237,7 @@ export function WeeklyReportsPanel() {
                 <CardTitle className="text-base sm:text-lg break-words">{selectedData.report.title}</CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
                   {REPORT_TYPE_INFO[selectedData.report.reportType]?.label} ·
-                  Week of {new Date(selectedData.report.weekStart).toLocaleDateString('sv-SE')}
+                  Week of {formatDate(selectedData.report.weekStart, locale)}
                 </CardDescription>
               </div>
               <Button
@@ -238,7 +246,7 @@ export function WeeklyReportsPanel() {
                 className="flex-shrink-0"
                 onClick={() => {
                   setSelectedId(null)
-                  mutate() // Refresh list to update readAt state
+                  void mutate() // Refresh list to update readAt state
                 }}
               >
                 <X className="h-4 w-4" />
