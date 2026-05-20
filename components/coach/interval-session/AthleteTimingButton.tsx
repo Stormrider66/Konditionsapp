@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Check } from 'lucide-react'
 import type { IntervalLapData, RestMode } from '@/lib/interval-session/types'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface AthleteTimingButtonProps {
   clientId: string
@@ -57,6 +62,7 @@ export function AthleteTimingButton({
   athleteCurrentInterval,
   allIntervalsCompleted = false,
 }: AthleteTimingButtonProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   // In INDIVIDUAL mode, use per-athlete interval; otherwise session-wide
   const effectiveInterval = restMode === 'INDIVIDUAL' && athleteCurrentInterval
     ? athleteCurrentInterval
@@ -104,7 +110,7 @@ export function AthleteTimingButton({
     const interval = setInterval(tick, 100)
 
     return () => clearInterval(interval)
-  }, [restMode, restStartedAt, restDurationSeconds, latestLap, disabled])
+  }, [restMode, restStartedAt, restDurationSeconds, latestLap, disabled, allIntervalsCompleted])
 
   // States
   const hasCompletedALap = latestLap !== undefined && laps.length > 0
@@ -226,7 +232,7 @@ export function AthleteTimingButton({
       {/* Content area */}
       {allIntervalsCompleted && !tapped && !isResting ? (
         <>
-          <span className="text-xs text-muted-foreground mt-1">Klar</span>
+          <span className="text-xs text-muted-foreground mt-1">{copy(locale, 'Done', 'Klar')}</span>
           {latestLap && (
             <span className="font-mono text-[10px] text-muted-foreground">
               {formatSplit(latestLap.splitTimeMs)}
@@ -246,7 +252,7 @@ export function AthleteTimingButton({
           )} style={restAlmostDone ? {} : { color }}>
             {formatCountdown(restRemaining)}
           </span>
-          <span className="text-[10px] opacity-60">vila</span>
+          <span className="text-[10px] opacity-60">{copy(locale, 'rest', 'vila')}</span>
         </>
       ) : restDone ? (
         <>
@@ -254,7 +260,7 @@ export function AthleteTimingButton({
           <span className="font-mono text-lg font-bold text-green-600 dark:text-green-400">
             {intervalElapsed !== null ? formatElapsed(intervalElapsed) : ''}
           </span>
-          <span className="text-[10px] text-green-600/70 dark:text-green-400/70">löpande</span>
+          <span className="text-[10px] text-green-600/70 dark:text-green-400/70">{copy(locale, 'running', 'löpande')}</span>
         </>
       ) : tapped ? (
         <span className="font-mono text-sm text-white/90 mt-1">
@@ -262,7 +268,7 @@ export function AthleteTimingButton({
         </span>
       ) : (
         <span className={cn('text-xs mt-1', isDisabled ? 'text-muted-foreground' : 'opacity-60')}>
-          {isDisabled ? '-' : 'Väntar'}
+          {isDisabled ? '-' : copy(locale, 'Waiting', 'Väntar')}
         </span>
       )}
 
@@ -273,7 +279,7 @@ export function AthleteTimingButton({
           tapped && !isResting && !restDone ? 'text-white/70' : 'opacity-70',
           restDone && 'text-green-700 dark:text-green-300',
         )}>
-          {laps.length} varv
+          {laps.length} {copy(locale, 'laps', 'varv')}
         </span>
       )}
     </button>

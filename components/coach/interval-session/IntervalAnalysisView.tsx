@@ -11,12 +11,18 @@ import { GarminSyncPanel } from './GarminSyncPanel'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { AnalysisData } from '@/lib/interval-session/analysis-service'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
 
 interface IntervalAnalysisViewProps {
   sessionId: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
 export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [data, setData] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('')
@@ -36,14 +42,14 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
           }
         }
       } catch {
-        toast.error('Kunde inte hämta analysdata')
+        toast.error(copy(locale, 'Could not fetch analysis data', 'Kunde inte hämta analysdata'))
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
-  }, [sessionId])
+    void fetchData()
+  }, [sessionId, locale])
 
   if (loading) {
     return (
@@ -58,7 +64,7 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
   if (!data || data.participants.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        Ingen data att visa
+        {copy(locale, 'No data to show', 'Ingen data att visa')}
       </div>
     )
   }
@@ -69,11 +75,11 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
 
       <Tabs defaultValue="splits" className="space-y-4">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="splits">Splittider</TabsTrigger>
+          <TabsTrigger value="splits">{copy(locale, 'Splits', 'Splittider')}</TabsTrigger>
           <TabsTrigger value="lactate">Laktat</TabsTrigger>
-          <TabsTrigger value="comparison">Lagjämförelse</TabsTrigger>
-          <TabsTrigger value="laps">Alla varv</TabsTrigger>
-          <TabsTrigger value="history">Historik</TabsTrigger>
+          <TabsTrigger value="comparison">{copy(locale, 'Team comparison', 'Lagjämförelse')}</TabsTrigger>
+          <TabsTrigger value="laps">{copy(locale, 'All laps', 'Alla varv')}</TabsTrigger>
+          <TabsTrigger value="history">{copy(locale, 'History', 'Historik')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="splits">
@@ -97,7 +103,7 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
             {data.participants.length > 1 && (
               <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
                 <SelectTrigger className="w-full sm:w-64">
-                  <SelectValue placeholder="Välj atlet..." />
+                  <SelectValue placeholder={copy(locale, 'Select athlete...', 'Välj atlet...')} />
                 </SelectTrigger>
                 <SelectContent>
                   {data.participants.map((p) => (
