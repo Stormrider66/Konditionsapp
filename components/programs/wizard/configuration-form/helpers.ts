@@ -1,5 +1,9 @@
 import type { SportType } from '@prisma/client'
 
+export type AppLocale = 'en' | 'sv'
+
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
+
 export function getDefaultDuration(sport: SportType, goal: string): number {
   const durations: Record<string, Record<string, number>> = {
     RUNNING: {
@@ -59,18 +63,18 @@ export function getDefaultDuration(sport: SportType, goal: string): number {
   return durations[sport]?.[goal] || 12
 }
 
-export function getSportLabel(sport: SportType): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    SKIING: 'Skidåkning',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-    GENERAL_FITNESS: 'Allmän Fitness',
+export function getSportLabel(sport: SportType, locale: AppLocale = 'en'): string {
+  const labels: Record<string, Record<AppLocale, string>> = {
+    RUNNING: { en: 'Running', sv: 'Löpning' },
+    CYCLING: { en: 'Cycling', sv: 'Cykling' },
+    STRENGTH: { en: 'Strength', sv: 'Styrka' },
+    SKIING: { en: 'Skiing', sv: 'Skidåkning' },
+    SWIMMING: { en: 'Swimming', sv: 'Simning' },
+    TRIATHLON: { en: 'Triathlon', sv: 'Triathlon' },
+    HYROX: { en: 'HYROX', sv: 'HYROX' },
+    GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
   }
-  return labels[sport] || sport
+  return labels[sport]?.[locale] || sport
 }
 
 /**
@@ -78,14 +82,15 @@ export function getSportLabel(sport: SportType): string {
  */
 export function getSuggestedMethodology(
   experienceLevel: string | undefined,
-  goalType: string
+  goalType: string,
+  locale: AppLocale = 'en'
 ): { method: string; name: string; reason: string } {
   // Beginners should use Polarized (simplest, safest)
   if (experienceLevel === 'beginner') {
     return {
       method: 'POLARIZED',
       name: 'Polarized (80/20)',
-      reason: 'Enklaste och säkraste metoden för nybörjare. 80% lätt träning, 20% hård träning.',
+      reason: t(locale, 'Enklaste och säkraste metoden för nybörjare. 80% lätt träning, 20% hård träning.', 'The simplest and safest method for beginners. 80% easy training, 20% hard training.'),
     }
   }
 
@@ -94,7 +99,7 @@ export function getSuggestedMethodology(
     return {
       method: 'PYRAMIDAL',
       name: 'Pyramidal',
-      reason: 'Balanserad metod med mer tröskelträning. Passar dig som har grundläggande kondition.',
+      reason: t(locale, 'Balanserad metod med mer tröskelträning. Passar dig som har grundläggande kondition.', 'Balanced method with more threshold work. Suits athletes with a basic endurance foundation.'),
     }
   }
 
@@ -106,20 +111,20 @@ export function getSuggestedMethodology(
         return {
           method: 'CANOVA',
           name: 'Canova (Marathon-specialist)',
-          reason: 'Marathon-specialist metodik med fokus på specifik uthållighet för längre distanser.',
+          reason: t(locale, 'Marathon-specialist metodik med fokus på specifik uthållighet för längre distanser.', 'Marathon-specialist methodology focused on specific endurance for longer distances.'),
         }
       case '10k':
       case '5k':
         return {
           method: 'NORWEGIAN_SINGLE',
           name: 'Norwegian Singles',
-          reason: 'Mer tröskelträning för kortare distanser. Effektivt för 5K och 10K.',
+          reason: t(locale, 'Mer tröskelträning för kortare distanser. Effektivt för 5K och 10K.', 'More threshold work for shorter distances. Effective for 5K and 10K.'),
         }
       default:
         return {
           method: 'POLARIZED',
           name: 'Polarized (80/20)',
-          reason: 'Klassisk och beprövad metod som fungerar för alla nivåer.',
+          reason: t(locale, 'Klassisk och beprövad metod som fungerar för alla nivåer.', 'Classic, proven method that works across levels.'),
         }
     }
   }
@@ -128,6 +133,6 @@ export function getSuggestedMethodology(
   return {
     method: 'POLARIZED',
     name: 'Polarized (80/20)',
-    reason: 'Klassisk och beprövad metod som fungerar för alla nivåer.',
+    reason: t(locale, 'Klassisk och beprövad metod som fungerar för alla nivåer.', 'Classic, proven method that works across levels.'),
   }
 }

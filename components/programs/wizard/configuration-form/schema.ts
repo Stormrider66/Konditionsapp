@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const configSchema = z.object({
-  clientId: z.string().min(1, 'Välj en atlet'),
+  clientId: z.string().min(1, 'Choose an athlete'),
   testId: z.string().optional(),
   durationWeeks: z.coerce.number().min(4).max(52),
   targetRaceDate: z.date().optional(),

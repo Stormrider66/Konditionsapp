@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { SportType } from '@prisma/client'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Form,
   FormControl,
@@ -44,18 +44,60 @@ import {
 } from '@/lib/ai/program-context-builder'
 import { addWeeks } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { DataSourceType } from './DataSourceSelector'
 import {
   configSchema,
   type ConfigFormData,
-  type Client,
   type CalendarConstraintsResponse,
   type ConfigurationFormProps,
 } from './configuration-form/schema'
-import { getDefaultDuration, getSportLabel, getSuggestedMethodology } from './configuration-form/helpers'
+import { getDefaultDuration, getSuggestedMethodology, type AppLocale } from './configuration-form/helpers'
 import { HyroxStationTimes } from './configuration-form/HyroxStationTimes'
 import { StrengthPRs } from './configuration-form/StrengthPRs'
 import { StrengthCoreIntegration } from './configuration-form/StrengthCoreIntegration'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const getDateLocale = (locale: AppLocale) => (locale === 'sv' ? sv : enUS)
+
+const getSportProgramLabel = (sport: SportType, locale: AppLocale) => {
+  switch (sport) {
+    case 'RUNNING':
+      return t(locale, 'löpprogram', 'running program')
+    case 'CYCLING':
+      return t(locale, 'cykelprogram', 'cycling program')
+    case 'SKIING':
+      return t(locale, 'skidprogram', 'skiing program')
+    case 'SWIMMING':
+      return t(locale, 'simprogram', 'swimming program')
+    case 'TRIATHLON':
+      return t(locale, 'triathlonprogram', 'triathlon program')
+    case 'HYROX':
+      return t(locale, 'HYROX-program', 'HYROX program')
+    case 'STRENGTH':
+      return t(locale, 'styrkeprogram', 'strength program')
+    case 'GENERAL_FITNESS':
+      return t(locale, 'träningsprogram', 'general fitness program')
+    default:
+      return t(locale, 'träningsprogram', 'training program')
+  }
+}
+
+const getSessionDescription = (sport: SportType, locale: AppLocale) => {
+  if (sport === 'RUNNING') return t(locale, 'Löppass per vecka', 'Runs per week')
+  if (sport === 'CYCLING') return t(locale, 'Cykelpass per vecka', 'Cycling sessions per week')
+  return t(locale, 'Träningspass per vecka', 'Training sessions per week')
+}
+
+const getImpactLabel = (impact: string, locale: AppLocale) => {
+  if (impact === 'NO_TRAINING') return t(locale, 'Ingen träning', 'No training')
+  if (impact === 'REDUCED') return t(locale, 'Reducerad', 'Reduced')
+  if (impact === 'MODIFIED') return t(locale, 'Anpassad', 'Modified')
+  return impact
+}
 
 export function ConfigurationForm({
   sport,
@@ -67,6 +109,7 @@ export function ConfigurationForm({
   onSubmit,
   isSubmitting,
 }: ConfigurationFormProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
@@ -131,7 +174,6 @@ export function ConfigurationForm({
   const watchTargetDate = form.watch('targetRaceDate')
   const watchIncludeStrength = form.watch('includeStrength')
   const watchRaceDistance = form.watch('recentRaceDistance')
-  const watchMethodology = form.watch('methodology')
   const watchExperienceLevel = form.watch('experienceLevel')
 
   // Check if sport needs running-specific fields
@@ -175,7 +217,7 @@ export function ConfigurationForm({
             setCalendarData(null)
             return
           }
-          throw new Error('Kunde inte hämta kalenderdata')
+          throw new Error(t(locale, 'Kunde inte hämta kalenderdata', 'Could not fetch calendar data'))
         }
 
         const constraintsData = await constraintsRes.json()
@@ -209,8 +251,8 @@ export function ConfigurationForm({
       }
     }
 
-    fetchCalendarConstraints()
-  }, [watchClientId, watchTargetDate, watchDurationWeeks])
+    void fetchCalendarConstraints()
+  }, [locale, watchClientId, watchTargetDate, watchDurationWeeks])
 
   // Auto-calculate duration from target date
   useEffect(() => {
@@ -245,7 +287,7 @@ export function ConfigurationForm({
         })),
       } : undefined,
     }
-    return onSubmit(submissionData as any)
+    return onSubmit(submissionData)
   })
 
   // Handle "Continue with AI Studio" button
@@ -259,7 +301,7 @@ export function ConfigurationForm({
       goal,
       dataSource,
       clientId: formData.clientId,
-      clientName: selectedClient?.name || 'Okänd atlet',
+      clientName: selectedClient?.name || t(locale, 'Okänd atlet', 'Unknown athlete'),
       testId: formData.testId,
       durationWeeks: formData.durationWeeks,
       targetRaceDate: formData.targetRaceDate,
@@ -309,9 +351,9 @@ export function ConfigurationForm({
     <Form {...form}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold mb-2">Konfigurera program</h2>
+          <h2 className="text-2xl font-bold mb-2">{t(locale, 'Konfigurera program', 'Configure program')}</h2>
           <p className="text-muted-foreground">
-            Finjustera inställningarna för ditt {getSportLabel(sport).toLowerCase()}program
+            {t(locale, 'Finjustera inställningarna för ditt', 'Fine-tune settings for your')} {getSportProgramLabel(sport, locale)}
           </p>
         </div>
 
@@ -322,11 +364,11 @@ export function ConfigurationForm({
             name="clientId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Atlet *</FormLabel>
+                <FormLabel>{t(locale, 'Atlet *', 'Athlete *')}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Välj atlet" />
+                      <SelectValue placeholder={t(locale, 'Välj atlet', 'Choose athlete')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -349,17 +391,17 @@ export function ConfigurationForm({
               name="testId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Konditionstest *</FormLabel>
+                  <FormLabel>{t(locale, 'Konditionstest *', 'Fitness test *')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Välj test" />
+                        <SelectValue placeholder={t(locale, 'Välj test', 'Choose test')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {selectedClient.tests.map((test) => (
                         <SelectItem key={test.id} value={test.id}>
-                          {format(new Date(test.testDate), 'PPP', { locale: sv })} -{' '}
+                          {format(new Date(test.testDate), 'PPP', { locale: getDateLocale(locale) })} -{' '}
                           {test.testType}
                         </SelectItem>
                       ))}
@@ -382,7 +424,7 @@ export function ConfigurationForm({
                   <FormControl>
                     <Input
                       type="number"
-                      placeholder="t.ex. 280"
+                      placeholder={t(locale, 't.ex. 280', 'e.g. 280')}
                       value={field.value ?? ''}
                       onChange={(e) => {
                         const val = e.target.value
@@ -390,7 +432,7 @@ export function ConfigurationForm({
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Watt vid tröskel (1 timmes max)</FormDescription>
+                  <FormDescription>{t(locale, 'Watt vid tröskel (1 timmes max)', 'Watts at threshold (1-hour max)')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -406,12 +448,12 @@ export function ConfigurationForm({
                   <FormLabel>CSS (Critical Swim Speed) *</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="t.ex. 1:45"
+                      placeholder={t(locale, 't.ex. 1:45', 'e.g. 1:45')}
                       value={field.value ?? ''}
                       onChange={(e) => field.onChange(e.target.value || undefined)}
                     />
                   </FormControl>
-                  <FormDescription>Tid per 100m (MM:SS)</FormDescription>
+                  <FormDescription>{t(locale, 'Tid per 100m (MM:SS)', 'Time per 100m (MM:SS)')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -428,7 +470,7 @@ export function ConfigurationForm({
                   <FormControl>
                     <Input
                       type="number"
-                      placeholder="t.ex. 45"
+                      placeholder={t(locale, 't.ex. 45', 'e.g. 45')}
                       value={field.value ?? ''}
                       onChange={(e) => {
                         const val = e.target.value
@@ -436,7 +478,7 @@ export function ConfigurationForm({
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Daniels VDOT (valfritt)</FormDescription>
+                  <FormDescription>{t(locale, 'Daniels VDOT (valfritt)', 'Daniels VDOT (optional)')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -449,7 +491,7 @@ export function ConfigurationForm({
             name="targetRaceDate"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Måldatum (valfritt)</FormLabel>
+                <FormLabel>{t(locale, 'Måldatum (valfritt)', 'Target date (optional)')}</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -461,9 +503,9 @@ export function ConfigurationForm({
                         )}
                       >
                         {field.value ? (
-                          format(field.value, 'PPP', { locale: sv })
+                          format(field.value, 'PPP', { locale: getDateLocale(locale) })
                         ) : (
-                          <span>Välj datum</span>
+                          <span>{t(locale, 'Välj datum', 'Choose date')}</span>
                         )}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
@@ -480,7 +522,7 @@ export function ConfigurationForm({
                   </PopoverContent>
                 </Popover>
                 <FormDescription>
-                  Programlängden beräknas automatiskt
+                  {t(locale, 'Programlängden beräknas automatiskt', 'Program length is calculated automatically')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -494,7 +536,7 @@ export function ConfigurationForm({
               name="targetTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Måltid för tävling</FormLabel>
+                  <FormLabel>{t(locale, 'Måltid för tävling', 'Race goal time')}</FormLabel>
                   <FormControl>
                     <Input
                       placeholder={
@@ -508,7 +550,7 @@ export function ConfigurationForm({
                     />
                   </FormControl>
                   <FormDescription>
-                    Programmet bygger gradvis upp tempo från nuvarande form till måltempo
+                    {t(locale, 'Programmet bygger gradvis upp tempo från nuvarande form till måltempo', 'The program gradually builds pace from current fitness to goal pace')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -522,7 +564,7 @@ export function ConfigurationForm({
             name="durationWeeks"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Antal veckor *</FormLabel>
+                <FormLabel>{t(locale, 'Antal veckor *', 'Number of weeks *')}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -547,7 +589,7 @@ export function ConfigurationForm({
             name="sessionsPerWeek"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Pass per vecka *</FormLabel>
+                <FormLabel>{t(locale, 'Pass per vecka *', 'Sessions per week *')}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -562,7 +604,7 @@ export function ConfigurationForm({
                   />
                 </FormControl>
                 <FormDescription>
-                  {sport === 'RUNNING' ? 'Löppass' : sport === 'CYCLING' ? 'Cykelpass' : 'Träningspass'} per vecka
+                  {getSessionDescription(sport, locale)}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -576,7 +618,7 @@ export function ConfigurationForm({
               name="methodology"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Träningsmetodik</FormLabel>
+                  <FormLabel>{t(locale, 'Träningsmetodik', 'Training methodology')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -584,10 +626,10 @@ export function ConfigurationForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="AUTO">Automatiskt val</SelectItem>
+                      <SelectItem value="AUTO">{t(locale, 'Automatiskt val', 'Automatic choice')}</SelectItem>
                       <SelectItem value="POLARIZED">Polarized (80/20)</SelectItem>
-                      <SelectItem value="NORWEGIAN">Norwegian (Dubbel tröskel)</SelectItem>
-                      <SelectItem value="NORWEGIAN_SINGLES">Norwegian Singles (Enkel tröskel)</SelectItem>
+                      <SelectItem value="NORWEGIAN">Norwegian ({t(locale, 'Dubbel tröskel', 'Double threshold')})</SelectItem>
+                      <SelectItem value="NORWEGIAN_SINGLES">Norwegian Singles ({t(locale, 'Enkel tröskel', 'Single threshold')})</SelectItem>
                       <SelectItem value="CANOVA">Canova (Marathon-specialist)</SelectItem>
                       <SelectItem value="PYRAMIDAL">Pyramidal</SelectItem>
                     </SelectContent>
@@ -599,10 +641,10 @@ export function ConfigurationForm({
                         <Sparkles className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                         <div className="text-sm">
                           <span className="font-medium text-blue-800">
-                            Rekommendation: {getSuggestedMethodology(watchExperienceLevel, goal).name}
+                            {t(locale, 'Rekommendation:', 'Recommendation:')} {getSuggestedMethodology(watchExperienceLevel, goal, locale).name}
                           </span>
                           <p className="text-blue-700 mt-1">
-                            {getSuggestedMethodology(watchExperienceLevel, goal).reason}
+                            {getSuggestedMethodology(watchExperienceLevel, goal, locale).reason}
                           </p>
                         </div>
                       </div>
@@ -621,42 +663,42 @@ export function ConfigurationForm({
               name="experienceLevel"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Prestationsnivå</FormLabel>
+                  <FormLabel>{t(locale, 'Prestationsnivå', 'Performance level')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Välj nivå" />
+                        <SelectValue placeholder={t(locale, 'Välj nivå', 'Choose level')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="recreational">
                         <div className="flex flex-col">
-                          <span>Motionär</span>
-                          <span className="text-xs text-muted-foreground">Maraton 4:30+, tröskel &gt;6:00/km</span>
+                          <span>{t(locale, 'Motionär', 'Recreational')}</span>
+                          <span className="text-xs text-muted-foreground">{t(locale, 'Maraton 4:30+, tröskel >6:00/km', 'Marathon 4:30+, threshold >6:00/km')}</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="intermediate">
                         <div className="flex flex-col">
-                          <span>Medel</span>
-                          <span className="text-xs text-muted-foreground">Maraton 3:30-4:30, tröskel 4:37-6:00/km</span>
+                          <span>{t(locale, 'Medel', 'Intermediate')}</span>
+                          <span className="text-xs text-muted-foreground">{t(locale, 'Maraton 3:30-4:30, tröskel 4:37-6:00/km', 'Marathon 3:30-4:30, threshold 4:37-6:00/km')}</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="advanced">
                         <div className="flex flex-col">
-                          <span>Avancerad</span>
-                          <span className="text-xs text-muted-foreground">Maraton 3:00-3:30, tröskel 3:45-4:37/km</span>
+                          <span>{t(locale, 'Avancerad', 'Advanced')}</span>
+                          <span className="text-xs text-muted-foreground">{t(locale, 'Maraton 3:00-3:30, tröskel 3:45-4:37/km', 'Marathon 3:00-3:30, threshold 3:45-4:37/km')}</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="elite">
                         <div className="flex flex-col">
-                          <span>Elit</span>
-                          <span className="text-xs text-muted-foreground">Maraton sub-3h, tröskel &lt;3:45/km</span>
+                          <span>{t(locale, 'Elit', 'Elite')}</span>
+                          <span className="text-xs text-muted-foreground">{t(locale, 'Maraton sub-3h, tröskel <3:45/km', 'Marathon sub-3h, threshold <3:45/km')}</span>
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Påverkar tempo och progressionshastighet i programmet
+                    {t(locale, 'Påverkar tempo och progressionshastighet i programmet', 'Affects pace and progression rate in the program')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -671,11 +713,11 @@ export function ConfigurationForm({
               name="currentWeeklyVolume"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nuvarande veckodistans (km)</FormLabel>
+                  <FormLabel>{t(locale, 'Nuvarande veckodistans (km)', 'Current weekly distance (km)')}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
-                      placeholder="t.ex. 40"
+                      placeholder={t(locale, 't.ex. 40', 'e.g. 40')}
                       value={field.value ?? ''}
                       onChange={(e) => {
                         const val = e.target.value
@@ -683,7 +725,7 @@ export function ConfigurationForm({
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Genomsnittlig km/vecka senaste månaden</FormDescription>
+                  <FormDescription>{t(locale, 'Genomsnittlig km/vecka senaste månaden', 'Average km/week over the past month')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -696,7 +738,7 @@ export function ConfigurationForm({
           <div className="border rounded-lg p-4 mt-6">
             <div className="flex items-center gap-2 mb-3">
               <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-              <h3 className="font-medium">Kalenderinformation</h3>
+              <h3 className="font-medium">{t(locale, 'Kalenderinformation', 'Calendar information')}</h3>
               {calendarLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             </div>
 
@@ -707,19 +749,19 @@ export function ConfigurationForm({
                   {calendarData.availability.blockedCount > 0 && (
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 text-red-700 rounded-md">
                       <AlertTriangle className="h-3.5 w-3.5" />
-                      <span>{calendarData.availability.blockedCount} blockerade dagar</span>
+                      <span>{calendarData.availability.blockedCount} {t(locale, 'blockerade dagar', 'blocked days')}</span>
                     </div>
                   )}
                   {calendarData.availability.reducedCount > 0 && (
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded-md">
                       <Info className="h-3.5 w-3.5" />
-                      <span>{calendarData.availability.reducedCount} reducerade dagar</span>
+                      <span>{calendarData.availability.reducedCount} {t(locale, 'reducerade dagar', 'reduced days')}</span>
                     </div>
                   )}
                   {calendarData.constraints.altitudePeriods.length > 0 && (
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-md">
                       <Mountain className="h-3.5 w-3.5" />
-                      <span>{calendarData.constraints.altitudePeriods.length} höghöjdsläger</span>
+                      <span>{calendarData.constraints.altitudePeriods.length} {t(locale, 'höghöjdsläger', 'altitude camps')}</span>
                     </div>
                   )}
                 </div>
@@ -727,7 +769,7 @@ export function ConfigurationForm({
                 {/* Upcoming events list */}
                 {calendarData.upcomingEvents && calendarData.upcomingEvents.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Kommande händelser:</p>
+                    <p className="text-sm text-muted-foreground">{t(locale, 'Kommande händelser:', 'Upcoming events:')}</p>
                     <div className="space-y-1.5">
                       {calendarData.upcomingEvents.slice(0, 5).map((event, idx) => (
                         <div key={idx} className="flex items-center gap-2 text-sm pl-2 border-l-2 border-muted">
@@ -740,8 +782,8 @@ export function ConfigurationForm({
                           )}
                           <span className="font-medium">{event.title}</span>
                           <span className="text-muted-foreground">
-                            {format(new Date(event.startDate), 'd MMM', { locale: sv })}
-                            {event.startDate !== event.endDate && ` - ${format(new Date(event.endDate), 'd MMM', { locale: sv })}`}
+                            {format(new Date(event.startDate), 'd MMM', { locale: getDateLocale(locale) })}
+                            {event.startDate !== event.endDate && ` - ${format(new Date(event.endDate), 'd MMM', { locale: getDateLocale(locale) })}`}
                           </span>
                           <span className={cn(
                             'text-xs px-1.5 py-0.5 rounded',
@@ -749,9 +791,7 @@ export function ConfigurationForm({
                             event.impact === 'REDUCED' && 'bg-amber-100 text-amber-700',
                             event.impact === 'MODIFIED' && 'bg-blue-100 text-blue-700'
                           )}>
-                            {event.impact === 'NO_TRAINING' && 'Ingen träning'}
-                            {event.impact === 'REDUCED' && 'Reducerad'}
-                            {event.impact === 'MODIFIED' && 'Anpassad'}
+                            {getImpactLabel(event.impact, locale)}
                           </span>
                         </div>
                       ))}
@@ -762,17 +802,16 @@ export function ConfigurationForm({
                 <Alert className="bg-blue-50 border-blue-200">
                   <Info className="h-4 w-4 text-blue-600" />
                   <AlertDescription className="text-blue-800">
-                    Programmet kommer automatiskt anpassas efter dessa kalenderbegränsningar.
-                    Träningspass schemaläggs inte på blockerade dagar.
+                    {t(locale, 'Programmet kommer automatiskt anpassas efter dessa kalenderbegränsningar. Träningspass schemaläggs inte på blockerade dagar.', 'The program will automatically adapt to these calendar constraints. Training sessions will not be scheduled on blocked days.')}
                   </AlertDescription>
                 </Alert>
               </div>
             ) : !calendarLoading ? (
               <div className="text-sm text-muted-foreground">
-                <p>Inga kalenderbegränsningar hittades för denna period.</p>
+                <p>{t(locale, 'Inga kalenderbegränsningar hittades för denna period.', 'No calendar constraints were found for this period.')}</p>
                 <p className="mt-1">
-                  Atleten kan lägga till resor, semester och andra blockerare i sin kalender under{' '}
-                  <span className="font-medium">Atlet &rarr; Kalender</span>.
+                  {t(locale, 'Atleten kan lägga till resor, semester och andra blockerare i sin kalender under', 'The athlete can add travel, vacation, and other blockers in their calendar under')}{' '}
+                  <span className="font-medium">{t(locale, 'Atlet', 'Athlete')} &rarr; {t(locale, 'Kalender', 'Calendar')}</span>.
                 </p>
               </div>
             ) : null}
@@ -782,13 +821,13 @@ export function ConfigurationForm({
         {/* Race Results Section (for VDOT calculation) */}
         {needsRunningFields && (
           <div className="border rounded-lg p-4 mt-6">
-            <h3 className="font-medium mb-3">Tävlingsresultat för tempokalkylering</h3>
+            <h3 className="font-medium mb-3">{t(locale, 'Tävlingsresultat för tempokalkylering', 'Race result for pace calculation')}</h3>
             <Alert className="mb-4">
               <Info className="h-4 w-4" />
               <AlertDescription>
                 {sport === 'HYROX'
-                  ? 'Ange ett resultat från en ren löptävling (5K, 10K, etc.) - EJ HYROX-tid. HYROX-tid inkluderar stationstider och kan inte användas för löptempo.'
-                  : 'Ange ditt bästa tävlingsresultat från de senaste 12 månaderna för att beräkna VDOT och optimala träningstempo.'}
+                  ? t(locale, 'Ange ett resultat från en ren löptävling (5K, 10K, etc.) - EJ HYROX-tid. HYROX-tid inkluderar stationstider och kan inte användas för löptempo.', 'Enter a result from a pure running race (5K, 10K, etc.), not a HYROX time. HYROX time includes station times and cannot be used for running pace.')
+                  : t(locale, 'Ange ditt bästa tävlingsresultat från de senaste 12 månaderna för att beräkna VDOT och optimala träningstempo.', 'Enter your best race result from the past 12 months to calculate VDOT and optimal training paces.')}
               </AlertDescription>
             </Alert>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -797,19 +836,19 @@ export function ConfigurationForm({
                 name="recentRaceDistance"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tävlingsdistans</FormLabel>
+                    <FormLabel>{t(locale, 'Tävlingsdistans', 'Race distance')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Välj distans" />
+                          <SelectValue placeholder={t(locale, 'Välj distans', 'Choose distance')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="NONE">Inget tävlingsresultat</SelectItem>
+                        <SelectItem value="NONE">{t(locale, 'Inget tävlingsresultat', 'No race result')}</SelectItem>
                         <SelectItem value="5K">5 km</SelectItem>
                         <SelectItem value="10K">10 km</SelectItem>
-                        <SelectItem value="HALF">Halvmaraton (21,1 km)</SelectItem>
-                        <SelectItem value="MARATHON">Maraton (42,2 km)</SelectItem>
+                        <SelectItem value="HALF">{t(locale, 'Halvmaraton (21,1 km)', 'Half marathon (21.1 km)')}</SelectItem>
+                        <SelectItem value="MARATHON">{t(locale, 'Maraton (42,2 km)', 'Marathon (42.2 km)')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -823,7 +862,7 @@ export function ConfigurationForm({
                   name="recentRaceTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sluttid</FormLabel>
+                      <FormLabel>{t(locale, 'Sluttid', 'Finish time')}</FormLabel>
                       <FormControl>
                         <Input
                           placeholder={watchRaceDistance === '5K' || watchRaceDistance === '10K' ? 'MM:SS' : 'H:MM:SS'}
@@ -861,22 +900,22 @@ export function ConfigurationForm({
               name="weeklyHours"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Veckotimmar</FormLabel>
+                  <FormLabel>{t(locale, 'Veckotimmar', 'Weekly hours')}</FormLabel>
                   <Select
                     onValueChange={(v) => field.onChange(parseInt(v))}
                     value={field.value?.toString()}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Välj timmar" />
+                        <SelectValue placeholder={t(locale, 'Välj timmar', 'Choose hours')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="6">6 timmar</SelectItem>
-                      <SelectItem value="8">8 timmar</SelectItem>
-                      <SelectItem value="10">10 timmar</SelectItem>
-                      <SelectItem value="12">12 timmar</SelectItem>
-                      <SelectItem value="15">15 timmar</SelectItem>
+                      <SelectItem value="6">6 {t(locale, 'timmar', 'hours')}</SelectItem>
+                      <SelectItem value="8">8 {t(locale, 'timmar', 'hours')}</SelectItem>
+                      <SelectItem value="10">10 {t(locale, 'timmar', 'hours')}</SelectItem>
+                      <SelectItem value="12">12 {t(locale, 'timmar', 'hours')}</SelectItem>
+                      <SelectItem value="15">15 {t(locale, 'timmar', 'hours')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -892,7 +931,7 @@ export function ConfigurationForm({
               name="technique"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Teknik</FormLabel>
+                  <FormLabel>{t(locale, 'Teknik', 'Technique')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -900,9 +939,9 @@ export function ConfigurationForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="classic">Klassisk</SelectItem>
+                      <SelectItem value="classic">{t(locale, 'Klassisk', 'Classic')}</SelectItem>
                       <SelectItem value="skating">Skating</SelectItem>
-                      <SelectItem value="both">Båda</SelectItem>
+                      <SelectItem value="both">{t(locale, 'Båda', 'Both')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -918,7 +957,7 @@ export function ConfigurationForm({
               name="poolLength"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bassänglängd</FormLabel>
+                  <FormLabel>{t(locale, 'Bassänglängd', 'Pool length')}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -926,8 +965,8 @@ export function ConfigurationForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="25">25 meter</SelectItem>
-                      <SelectItem value="50">50 meter</SelectItem>
+                      <SelectItem value="25">25 {t(locale, 'meter', 'meters')}</SelectItem>
+                      <SelectItem value="50">50 {t(locale, 'meter', 'meters')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -946,13 +985,13 @@ export function ConfigurationForm({
         {/* Cross-training / Alternative Training */}
         {needsRunningFields && (
           <div className="border-t pt-6 mt-6">
-            <h3 className="font-medium mb-4">Alternativ träning</h3>
+            <h3 className="font-medium mb-4">{t(locale, 'Alternativ träning', 'Alternative training')}</h3>
             <FormField
               control={form.control}
               name="alternativeTrainingSessionsPerWeek"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pass per vecka med annan sport</FormLabel>
+                  <FormLabel>{t(locale, 'Pass per vecka med annan sport', 'Sessions per week with another sport')}</FormLabel>
                   <Select
                     onValueChange={(v) => field.onChange(parseInt(v))}
                     value={field.value?.toString() || '0'}
@@ -969,7 +1008,7 @@ export function ConfigurationForm({
                       <SelectItem value="3">3</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Cykling, skidåkning, simning, etc. för variation och aktiv återhämtning</FormDescription>
+                  <FormDescription>{t(locale, 'Cykling, skidåkning, simning, etc. för variation och aktiv återhämtning', 'Cycling, skiing, swimming, etc. for variety and active recovery')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -980,7 +1019,7 @@ export function ConfigurationForm({
         {/* Equipment - Lactate Meter (Running only, enables Norwegian method) */}
         {sport === 'RUNNING' && (
           <div className="border-t pt-6 mt-6">
-            <h3 className="font-medium mb-4">Utrustning</h3>
+            <h3 className="font-medium mb-4">{t(locale, 'Utrustning', 'Equipment')}</h3>
             <FormField
               control={form.control}
               name="hasLactateMeter"
@@ -993,9 +1032,9 @@ export function ConfigurationForm({
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>Har laktatmätare</FormLabel>
+                    <FormLabel>{t(locale, 'Har laktatmätare', 'Has lactate meter')}</FormLabel>
                     <FormDescription>
-                      Möjliggör Norwegian-metoden med tröskelträning baserad på laktatvärden
+                      {t(locale, 'Möjliggör Norwegian-metoden med tröskelträning baserad på laktatvärden', 'Enables the Norwegian method with threshold training based on lactate values')}
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -1007,7 +1046,7 @@ export function ConfigurationForm({
         {/* Power Meter (Cycling/Triathlon only) */}
         {needsPowerMeter && (
           <div className="border-t pt-6 mt-6">
-            <h3 className="font-medium mb-4">Utrustning</h3>
+            <h3 className="font-medium mb-4">{t(locale, 'Utrustning', 'Equipment')}</h3>
             <FormField
               control={form.control}
               name="hasPowerMeter"
@@ -1020,9 +1059,9 @@ export function ConfigurationForm({
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>Har wattmätare</FormLabel>
+                    <FormLabel>{t(locale, 'Har wattmätare', 'Has power meter')}</FormLabel>
                     <FormDescription>
-                      Aktiverar wattbaserad träning och power zones
+                      {t(locale, 'Aktiverar wattbaserad träning och power zones', 'Enables watt-based training and power zones')}
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -1037,10 +1076,10 @@ export function ConfigurationForm({
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Anteckningar</FormLabel>
+              <FormLabel>{t(locale, 'Anteckningar', 'Notes')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Eventuella anteckningar om programmet..."
+                  placeholder={t(locale, 'Eventuella anteckningar om programmet...', 'Any notes about the program...')}
                   rows={3}
                   {...field}
                 />
@@ -1060,11 +1099,11 @@ export function ConfigurationForm({
             disabled={!watchClientId || isSubmitting}
           >
             <Sparkles className="mr-2 h-4 w-4" />
-            Fortsätt med AI Studio
+            {t(locale, 'Fortsätt med AI Studio', 'Continue with AI Studio')}
           </Button>
           <Button type="submit" size="lg" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Generera program
+            {t(locale, 'Generera program', 'Generate program')}
           </Button>
         </div>
       </form>
