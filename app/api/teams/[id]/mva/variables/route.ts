@@ -3,10 +3,26 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { collectTeamData, computeVariableCoverage } from '@/lib/mva/data-collector'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+async function getUserLocale(userId: string): Promise<AppLocale> {
+  const appUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return appUser?.language === 'sv' ? 'sv' : 'en'
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: teamId } = await params
 
@@ -16,6 +32,7 @@ export async function GET(
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    locale = await getUserLocale(user.id)
 
     // Verify team ownership + get sport type
     const team = await prisma.team.findFirst({
@@ -32,7 +49,7 @@ export async function GET(
     })
     if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
       return NextResponse.json(
-        { success: false, error: 'PRO-prenumeration krävs för multivariat analys' },
+        { success: false, error: t(locale, 'A PRO subscription is required for multivariate analysis', 'PRO-prenumeration krävs för multivariat analys') },
         { status: 403 }
       )
     }
@@ -52,7 +69,7 @@ export async function GET(
   } catch (error) {
     console.error('MVA variables error:', error)
     return NextResponse.json(
-      { success: false, error: 'Serverfel vid hämtning av variabler' },
+      { success: false, error: t(locale, 'Server error while fetching variables', 'Serverfel vid hämtning av variabler') },
       { status: 500 }
     )
   }

@@ -6,6 +6,20 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+async function getUserLocale(userId: string): Promise<AppLocale> {
+  const appUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return appUser?.language === 'sv' ? 'sv' : 'en'
+}
+
 function csvEscapeFilename(value: string): string {
   return value.replace(/["\r\n]/g, '').slice(0, 160) || 'simca-result.txt'
 }
@@ -40,25 +54,29 @@ async function authorizeTeam(teamId: string) {
   })
 
   if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
+    const locale = await getUserLocale(user.id)
     return {
       error: NextResponse.json(
-        { success: false, error: 'PRO-prenumeration krävs för SIMCA-import' },
+        { success: false, error: t(locale, 'A PRO subscription is required for SIMCA import', 'PRO-prenumeration krävs för SIMCA-import') },
         { status: 403 }
       ),
     }
   }
 
-  return { user, team }
+  return { user, team, locale: await getUserLocale(user.id) }
 }
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string; importId: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: teamId, importId } = await params
     const auth = await authorizeTeam(teamId)
     if (auth.error) return auth.error
+    locale = auth.locale
 
     const model = await prisma.mVAModel.findFirst({
       where: {
@@ -73,7 +91,7 @@ export async function GET(
     })
 
     if (!model) {
-      return NextResponse.json({ success: false, error: 'SIMCA-import hittades inte' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'SIMCA import not found', 'SIMCA-import hittades inte') }, { status: 404 })
     }
 
     const modelData = model.modelData as {
@@ -95,7 +113,7 @@ export async function GET(
   } catch (error) {
     console.error('SIMCA import download error:', error)
     return NextResponse.json(
-      { success: false, error: 'Serverfel vid nedladdning av SIMCA-import' },
+      { success: false, error: t(locale, 'Server error while downloading SIMCA import', 'Serverfel vid nedladdning av SIMCA-import') },
       { status: 500 }
     )
   }
@@ -105,10 +123,13 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string; importId: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: teamId, importId } = await params
     const auth = await authorizeTeam(teamId)
     if (auth.error) return auth.error
+    locale = auth.locale
 
     const model = await prisma.mVAModel.findFirst({
       where: {
@@ -121,7 +142,7 @@ export async function DELETE(
     })
 
     if (!model) {
-      return NextResponse.json({ success: false, error: 'SIMCA-import hittades inte' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'SIMCA import not found', 'SIMCA-import hittades inte') }, { status: 404 })
     }
 
     await prisma.mVAModel.delete({
@@ -132,7 +153,7 @@ export async function DELETE(
   } catch (error) {
     console.error('SIMCA import delete error:', error)
     return NextResponse.json(
-      { success: false, error: 'Serverfel vid borttagning av SIMCA-import' },
+      { success: false, error: t(locale, 'Server error while deleting SIMCA import', 'Serverfel vid borttagning av SIMCA-import') },
       { status: 500 }
     )
   }

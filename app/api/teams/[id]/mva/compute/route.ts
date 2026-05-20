@@ -7,10 +7,26 @@ import type { SportType } from '@prisma/client'
 
 export const maxDuration = 60
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+async function getUserLocale(userId: string): Promise<AppLocale> {
+  const appUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return appUser?.language === 'sv' ? 'sv' : 'en'
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: teamId } = await params
 
@@ -20,6 +36,7 @@ export async function POST(
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    locale = await getUserLocale(user.id)
 
     // Verify team ownership + get sport type
     const team = await prisma.team.findFirst({
@@ -36,7 +53,7 @@ export async function POST(
     })
     if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
       return NextResponse.json(
-        { success: false, error: 'PRO-prenumeration krävs för multivariat analys' },
+        { success: false, error: t(locale, 'A PRO subscription is required for multivariate analysis', 'PRO-prenumeration krävs för multivariat analys') },
         { status: 403 }
       )
     }
@@ -96,7 +113,7 @@ export async function POST(
     })
   } catch (error) {
     console.error('MVA compute error:', error)
-    const message = error instanceof Error ? error.message : 'Serverfel vid beräkning'
+    const message = error instanceof Error ? error.message : t(locale, 'Server error during calculation', 'Serverfel vid beräkning')
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 }
