@@ -8,6 +8,7 @@
  */
 
 import { useMemo } from 'react';
+import { useLocale } from 'next-intl';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +24,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface ErgometerTest {
@@ -46,12 +47,38 @@ interface ErgometerProgressionChartProps {
 }
 
 const ERGOMETER_LABELS: Record<ErgometerType, string> = {
-  CONCEPT2_ROW: 'Roddmaskin',
+  CONCEPT2_ROW: 'RowErg',
   CONCEPT2_SKIERG: 'SkiErg',
   CONCEPT2_BIKEERG: 'BikeErg',
   WATTBIKE: 'Wattbike',
   ASSAULT_BIKE: 'Air Bike',
 };
+
+const SV_ERGOMETER_LABELS: Partial<Record<ErgometerType, string>> = {
+  CONCEPT2_ROW: 'Roddmaskin',
+};
+
+const UI = {
+  noData: { en: 'No test data available', sv: 'Ingen testdata tillgänglig' },
+  noDataHelp: {
+    en: 'Complete tests to see progression',
+    sv: 'Genomför tester för att se progression',
+  },
+  tests: { en: 'tests', sv: 'tester' },
+  avgPower: { en: 'Average power', sv: 'Snitteffekt' },
+  peakPower: { en: 'Peak power', sv: 'Toppeffekt' },
+  avgPace: { en: 'Average pace', sv: 'Snitttempo' },
+  threshold: { en: 'Threshold', sv: 'Tröskel' },
+  latestPower: { en: 'Latest CP/Avg', sv: 'Senaste CP/Avg' },
+  highestPower: { en: 'Highest power', sv: 'Högsta effekt' },
+  testCount: { en: 'Number of tests', sv: 'Antal tester' },
+  unitCount: { en: 'pcs', sv: 'st' },
+  increasing: { en: 'Increasing', sv: 'Ökande' },
+  decreasing: { en: 'Decreasing', sv: 'Minskande' },
+  stable: { en: 'Stable', sv: 'Stabil' },
+} satisfies Record<string, { en: string; sv: string }>;
+
+const text = (locale: string, key: keyof typeof UI) => locale === 'sv' ? UI[key].sv : UI[key].en;
 
 const PROTOCOL_SHORT_LABELS: Record<ErgometerTestProtocol, string> = {
   PEAK_POWER_6S: '6s',
@@ -95,6 +122,12 @@ export function ErgometerProgressionChart({
   thresholdPower,
   showPace = true,
 }: ErgometerProgressionChartProps) {
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? sv : enUS;
+  const ergometerLabel = SV_ERGOMETER_LABELS[ergometerType] && locale === 'sv'
+    ? SV_ERGOMETER_LABELS[ergometerType]
+    : ERGOMETER_LABELS[ergometerType];
+
   const filteredTests = useMemo(() => {
     return tests
       .filter((t) => t.ergometerType === ergometerType)
@@ -103,7 +136,7 @@ export function ErgometerProgressionChart({
 
   const chartData = useMemo(() => {
     return filteredTests.map((test) => ({
-      date: format(new Date(test.testDate), 'd MMM', { locale: sv }),
+      date: format(new Date(test.testDate), 'd MMM', { locale: dateLocale }),
       fullDate: test.testDate,
       protocol: PROTOCOL_SHORT_LABELS[test.testProtocol],
       avgPower: test.avgPower || undefined,
@@ -112,7 +145,7 @@ export function ErgometerProgressionChart({
       avgPace: test.avgPace || undefined,
       bestPace: test.bestPace || undefined,
     }));
-  }, [filteredTests]);
+  }, [dateLocale, filteredTests]);
 
   const powerTrend = useMemo(() => {
     const powers = filteredTests
@@ -127,11 +160,11 @@ export function ErgometerProgressionChart({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Progression - {ERGOMETER_LABELS[ergometerType]}</CardTitle>
-          <CardDescription>Ingen testdata tillganglig</CardDescription>
+          <CardTitle className="text-base">Progression - {ergometerLabel}</CardTitle>
+          <CardDescription>{text(locale, 'noData')}</CardDescription>
         </CardHeader>
         <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground">
-          Genomfor tester for att se progression
+          {text(locale, 'noDataHelp')}
         </CardContent>
       </Card>
     );
@@ -142,10 +175,10 @@ export function ErgometerProgressionChart({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-base">Progression - {ERGOMETER_LABELS[ergometerType]}</CardTitle>
-            <CardDescription>{filteredTests.length} tester</CardDescription>
+            <CardTitle className="text-base">Progression - {ergometerLabel}</CardTitle>
+            <CardDescription>{filteredTests.length} {text(locale, 'tests')}</CardDescription>
           </div>
-          <TrendBadge trend={powerTrend} />
+          <TrendBadge trend={powerTrend} locale={locale} />
         </div>
       </CardHeader>
       <CardContent>
@@ -210,7 +243,7 @@ export function ErgometerProgressionChart({
                 yAxisId="power"
                 type="monotone"
                 dataKey="avgPower"
-                name="Snitteffekt"
+                name={text(locale, 'avgPower')}
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={{ r: 4 }}
@@ -221,7 +254,7 @@ export function ErgometerProgressionChart({
                 yAxisId="power"
                 type="monotone"
                 dataKey="peakPower"
-                name="Toppeffekt"
+                name={text(locale, 'peakPower')}
                 stroke="#ef4444"
                 strokeWidth={2}
                 dot={{ r: 4 }}
@@ -246,7 +279,7 @@ export function ErgometerProgressionChart({
                   yAxisId="pace"
                   type="monotone"
                   dataKey="avgPace"
-                  name="Snitttempo"
+                  name={text(locale, 'avgPace')}
                   stroke="#8b5cf6"
                   strokeWidth={2}
                   strokeDasharray="5 5"
@@ -262,7 +295,7 @@ export function ErgometerProgressionChart({
                   y={thresholdPower}
                   stroke="#f59e0b"
                   strokeDasharray="8 4"
-                  label={{ value: 'Troskel', position: 'right', fontSize: 11 }}
+                  label={{ value: text(locale, 'threshold'), position: 'right', fontSize: 11 }}
                 />
               )}
             </LineChart>
@@ -272,7 +305,7 @@ export function ErgometerProgressionChart({
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t">
           <StatBox
-            label="Senaste CP/Avg"
+            label={text(locale, 'latestPower')}
             value={
               filteredTests[filteredTests.length - 1]?.criticalPower ||
               filteredTests[filteredTests.length - 1]?.avgPower
@@ -280,14 +313,14 @@ export function ErgometerProgressionChart({
             unit="W"
           />
           <StatBox
-            label="Hogsta effekt"
+            label={text(locale, 'highestPower')}
             value={Math.max(...filteredTests.map((t) => t.peakPower || 0))}
             unit="W"
           />
           <StatBox
-            label="Antal tester"
+            label={text(locale, 'testCount')}
             value={filteredTests.length}
-            unit="st"
+            unit={text(locale, 'unitCount')}
           />
         </div>
       </CardContent>
@@ -295,12 +328,12 @@ export function ErgometerProgressionChart({
   );
 }
 
-function TrendBadge({ trend }: { trend: 'up' | 'down' | 'stable' }) {
+function TrendBadge({ trend, locale }: { trend: 'up' | 'down' | 'stable'; locale: string }) {
   if (trend === 'up') {
     return (
       <Badge className="bg-green-100 text-green-800 border-green-300">
         <TrendingUp className="h-3 w-3 mr-1" />
-        Okande
+        {text(locale, 'increasing')}
       </Badge>
     );
   }
@@ -308,14 +341,14 @@ function TrendBadge({ trend }: { trend: 'up' | 'down' | 'stable' }) {
     return (
       <Badge className="bg-red-100 text-red-800 border-red-300">
         <TrendingDown className="h-3 w-3 mr-1" />
-        Minskande
+        {text(locale, 'decreasing')}
       </Badge>
     );
   }
   return (
     <Badge className="bg-gray-100 text-gray-800 border-gray-300">
       <Minus className="h-3 w-3 mr-1" />
-      Stabil
+      {text(locale, 'stable')}
     </Badge>
   );
 }
