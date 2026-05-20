@@ -1,67 +1,74 @@
 'use client'
 
 import { SportType } from '@prisma/client'
+import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 interface Goal {
   id: string
-  label: string
-  description: string
-  duration?: string
+  label: Record<AppLocale, string>
+  description: Record<AppLocale, string>
+  duration?: Record<AppLocale, string>
 }
+
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
 
 const goalsBySport: Record<string, Goal[]> = {
   RUNNING: [
-    { id: 'marathon', label: 'Marathon', description: '42.2 km', duration: '16-26 veckor' },
-    { id: 'half-marathon', label: 'Halvmaraton', description: '21.1 km', duration: '12-20 veckor' },
-    { id: '10k', label: '10K', description: 'Snabb 10 km', duration: '8-12 veckor' },
-    { id: '5k', label: '5K', description: 'Snabb 5 km', duration: '6-10 veckor' },
-    { id: 'custom', label: 'Anpassad', description: 'Egen distans eller mål', duration: 'Valfri' },
+    { id: 'marathon', label: { en: 'Marathon', sv: 'Marathon' }, description: { en: '42.2 km', sv: '42.2 km' }, duration: { en: '16-26 weeks', sv: '16-26 veckor' } },
+    { id: 'half-marathon', label: { en: 'Half marathon', sv: 'Halvmaraton' }, description: { en: '21.1 km', sv: '21.1 km' }, duration: { en: '12-20 weeks', sv: '12-20 veckor' } },
+    { id: '10k', label: { en: '10K', sv: '10K' }, description: { en: 'Fast 10 km', sv: 'Snabb 10 km' }, duration: { en: '8-12 weeks', sv: '8-12 veckor' } },
+    { id: '5k', label: { en: '5K', sv: '5K' }, description: { en: 'Fast 5 km', sv: 'Snabb 5 km' }, duration: { en: '6-10 weeks', sv: '6-10 veckor' } },
+    { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own distance or goal', sv: 'Egen distans eller mål' }, duration: { en: 'Optional', sv: 'Valfri' } },
   ],
   CYCLING: [
-    { id: 'ftp-builder', label: 'FTP Builder', description: 'Höj din tröskeleffekt', duration: '8 veckor' },
-    { id: 'base-builder', label: 'Basbyggare', description: 'Aerob grund', duration: '12 veckor' },
-    { id: 'gran-fondo', label: 'Gran Fondo', description: 'Långdistans 100-200km', duration: '8 veckor' },
-    { id: 'custom', label: 'Anpassad', description: 'Eget mål', duration: 'Valfri' },
+    { id: 'ftp-builder', label: { en: 'FTP Builder', sv: 'FTP Builder' }, description: { en: 'Raise your threshold power', sv: 'Höj din tröskeleffekt' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'base-builder', label: { en: 'Base Builder', sv: 'Basbyggare' }, description: { en: 'Aerobic foundation', sv: 'Aerob grund' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'gran-fondo', label: { en: 'Gran Fondo', sv: 'Gran Fondo' }, description: { en: 'Long distance 100-200 km', sv: 'Långdistans 100-200km' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own goal', sv: 'Eget mål' }, duration: { en: 'Optional', sv: 'Valfri' } },
   ],
   STRENGTH: [
-    { id: 'injury-prevention', label: 'Skadeprevention', description: 'Stabilitet & balans', duration: '8-12 veckor' },
-    { id: 'power', label: 'Kraftutveckling', description: 'Explosivitet & styrka', duration: '12-16 veckor' },
-    { id: 'running-economy', label: 'Löparekonomi', description: 'Styrka för löpare', duration: '12 veckor' },
-    { id: 'general', label: 'Allmän styrka', description: 'Balanserad utveckling', duration: '8-16 veckor' },
+    { id: 'injury-prevention', label: { en: 'Injury prevention', sv: 'Skadeprevention' }, description: { en: 'Stability & balance', sv: 'Stabilitet & balans' }, duration: { en: '8-12 weeks', sv: '8-12 veckor' } },
+    { id: 'power', label: { en: 'Power development', sv: 'Kraftutveckling' }, description: { en: 'Explosiveness & strength', sv: 'Explosivitet & styrka' }, duration: { en: '12-16 weeks', sv: '12-16 veckor' } },
+    { id: 'running-economy', label: { en: 'Running economy', sv: 'Löparekonomi' }, description: { en: 'Strength for runners', sv: 'Styrka för löpare' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'general', label: { en: 'General strength', sv: 'Allmän styrka' }, description: { en: 'Balanced development', sv: 'Balanserad utveckling' }, duration: { en: '8-16 weeks', sv: '8-16 veckor' } },
   ],
   SKIING: [
-    { id: 'threshold-builder', label: 'Tröskelbyggare', description: 'Höj laktattröskel', duration: '8 veckor' },
-    { id: 'prep-phase', label: 'Förberedelse', description: 'Sommar/höst med rullskidor', duration: '12 veckor' },
-    { id: 'vasaloppet', label: 'Vasaloppet', description: 'Långlopp 90 km', duration: '16 veckor' },
-    { id: 'custom', label: 'Anpassad', description: 'Eget mål', duration: 'Valfri' },
+    { id: 'threshold-builder', label: { en: 'Threshold builder', sv: 'Tröskelbyggare' }, description: { en: 'Raise lactate threshold', sv: 'Höj laktattröskel' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'prep-phase', label: { en: 'Preparation', sv: 'Förberedelse' }, description: { en: 'Summer/fall with roller skiing', sv: 'Sommar/höst med rullskidor' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'vasaloppet', label: { en: 'Vasaloppet', sv: 'Vasaloppet' }, description: { en: 'Long race 90 km', sv: 'Långlopp 90 km' }, duration: { en: '16 weeks', sv: '16 veckor' } },
+    { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own goal', sv: 'Eget mål' }, duration: { en: 'Optional', sv: 'Valfri' } },
   ],
   SWIMMING: [
-    { id: 'sprint', label: 'Sprint', description: '50-200m fokus', duration: '8 veckor' },
-    { id: 'distance', label: 'Distans', description: '400m-1500m fokus', duration: '12 veckor' },
-    { id: 'open-water', label: 'Öppet vatten', description: 'Långdistanssim', duration: '12 veckor' },
-    { id: 'custom', label: 'Anpassad', description: 'Eget mål', duration: 'Valfri' },
+    { id: 'sprint', label: { en: 'Sprint', sv: 'Sprint' }, description: { en: '50-200 m focus', sv: '50-200m fokus' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'distance', label: { en: 'Distance', sv: 'Distans' }, description: { en: '400-1500 m focus', sv: '400m-1500m fokus' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'open-water', label: { en: 'Open water', sv: 'Öppet vatten' }, description: { en: 'Long-distance swimming', sv: 'Långdistanssim' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own goal', sv: 'Eget mål' }, duration: { en: 'Optional', sv: 'Valfri' } },
   ],
   TRIATHLON: [
-    { id: 'sprint', label: 'Sprint', description: '750m/20km/5km', duration: '8 veckor' },
-    { id: 'olympic', label: 'Olympic', description: '1.5km/40km/10km', duration: '12 veckor' },
-    { id: 'half-ironman', label: '70.3', description: '1.9km/90km/21km', duration: '16 veckor' },
-    { id: 'ironman', label: 'Ironman', description: '3.8km/180km/42km', duration: '24 veckor' },
-    { id: 'custom', label: 'Anpassad', description: 'Eget mål', duration: 'Valfri' },
+    { id: 'sprint', label: { en: 'Sprint', sv: 'Sprint' }, description: { en: '750m/20km/5km', sv: '750m/20km/5km' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'olympic', label: { en: 'Olympic', sv: 'Olympic' }, description: { en: '1.5km/40km/10km', sv: '1.5km/40km/10km' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'half-ironman', label: { en: '70.3', sv: '70.3' }, description: { en: '1.9km/90km/21km', sv: '1.9km/90km/21km' }, duration: { en: '16 weeks', sv: '16 veckor' } },
+    { id: 'ironman', label: { en: 'Ironman', sv: 'Ironman' }, description: { en: '3.8km/180km/42km', sv: '3.8km/180km/42km' }, duration: { en: '24 weeks', sv: '24 veckor' } },
+    { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own goal', sv: 'Eget mål' }, duration: { en: 'Optional', sv: 'Valfri' } },
   ],
   HYROX: [
-    { id: 'pro', label: 'Pro Division', description: 'Elitklassen', duration: '12 veckor' },
-    { id: 'age-group', label: 'Age Group', description: 'Åldersklass', duration: '12 veckor' },
-    { id: 'doubles', label: 'Doubles', description: 'Parlopp', duration: '8 veckor' },
-    { id: 'custom', label: 'Anpassad', description: 'Eget mål', duration: 'Valfri' },
+    { id: 'pro', label: { en: 'Pro Division', sv: 'Pro Division' }, description: { en: 'Elite class', sv: 'Elitklassen' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'age-group', label: { en: 'Age Group', sv: 'Age Group' }, description: { en: 'Age group', sv: 'Åldersklass' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'doubles', label: { en: 'Doubles', sv: 'Doubles' }, description: { en: 'Pair race', sv: 'Parlopp' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own goal', sv: 'Eget mål' }, duration: { en: 'Optional', sv: 'Valfri' } },
   ],
   GENERAL_FITNESS: [
-    { id: 'weight_loss', label: 'Viktminskning', description: 'Fettförbränning & kondition', duration: '12 veckor' },
-    { id: 'strength', label: 'Styrka', description: 'Muskelbyggande', duration: '12 veckor' },
-    { id: 'endurance', label: 'Uthållighet', description: 'Konditionsträning', duration: '12 veckor' },
-    { id: 'flexibility', label: 'Rörlighet', description: 'Stretching & mobilitet', duration: '8 veckor' },
-    { id: 'stress_relief', label: 'Stresshantering', description: 'Yoga & mindfulness', duration: '8 veckor' },
-    { id: 'general_health', label: 'Allmän hälsa', description: 'Balanserad träning', duration: '8 veckor' },
+    { id: 'weight_loss', label: { en: 'Weight loss', sv: 'Viktminskning' }, description: { en: 'Fat burning & fitness', sv: 'Fettförbränning & kondition' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'strength', label: { en: 'Strength', sv: 'Styrka' }, description: { en: 'Muscle building', sv: 'Muskelbyggande' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'endurance', label: { en: 'Endurance', sv: 'Uthållighet' }, description: { en: 'Cardio training', sv: 'Konditionsträning' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'flexibility', label: { en: 'Mobility', sv: 'Rörlighet' }, description: { en: 'Stretching & mobility', sv: 'Stretching & mobilitet' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'stress_relief', label: { en: 'Stress management', sv: 'Stresshantering' }, description: { en: 'Yoga & mindfulness', sv: 'Yoga & mindfulness' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'general_health', label: { en: 'General health', sv: 'Allmän hälsa' }, description: { en: 'Balanced training', sv: 'Balanserad träning' }, duration: { en: '8 weeks', sv: '8 veckor' } },
   ],
 }
 
@@ -72,26 +79,27 @@ interface GoalSelectorProps {
   onBack: () => void
 }
 
-export function GoalSelector({ sport, selectedGoal, onSelect, onBack }: GoalSelectorProps) {
+export function GoalSelector({ sport, selectedGoal, onSelect, onBack: _onBack }: GoalSelectorProps) {
+  const locale = getAppLocale(useLocale())
   const goals = goalsBySport[sport] || []
 
-  const sportLabels: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    SKIING: 'Skidåkning',
-    SWIMMING: 'Simning',
-    TRIATHLON: 'Triathlon',
-    HYROX: 'HYROX',
-    GENERAL_FITNESS: 'Allmän Fitness',
+  const sportLabels: Record<string, Record<AppLocale, string>> = {
+    RUNNING: { en: 'Running', sv: 'Löpning' },
+    CYCLING: { en: 'Cycling', sv: 'Cykling' },
+    STRENGTH: { en: 'Strength', sv: 'Styrka' },
+    SKIING: { en: 'Skiing', sv: 'Skidåkning' },
+    SWIMMING: { en: 'Swimming', sv: 'Simning' },
+    TRIATHLON: { en: 'Triathlon', sv: 'Triathlon' },
+    HYROX: { en: 'HYROX', sv: 'HYROX' },
+    GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
   }
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Välj mål</h2>
+        <h2 className="text-2xl font-bold mb-2">{t(locale, 'Välj mål', 'Choose goal')}</h2>
         <p className="text-muted-foreground">
-          Vad är målet med {sportLabels[sport]?.toLowerCase() || 'träningen'}?
+          {t(locale, 'Vad är målet med', 'What is the goal for')} {(sportLabels[sport]?.[locale] || t(locale, 'träningen', 'training')).toLowerCase()}?
         </p>
       </div>
 
@@ -111,13 +119,13 @@ export function GoalSelector({ sport, selectedGoal, onSelect, onBack }: GoalSele
                 'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
               )}
             >
-              <span className="font-semibold text-lg text-slate-900 dark:text-white">{goal.label}</span>
+              <span className="font-semibold text-lg text-slate-900 dark:text-white">{goal.label[locale]}</span>
               <span className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {goal.description}
+                {goal.description[locale]}
               </span>
               {goal.duration && (
                 <span className="text-xs text-primary mt-2 font-medium">
-                  {goal.duration}
+                  {goal.duration[locale]}
                 </span>
               )}
             </button>
