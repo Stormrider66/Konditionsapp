@@ -51,6 +51,17 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+function formatExerciseDate(
+  date: Date | string,
+  locale: AppLocale,
+  options?: Intl.DateTimeFormatOptions
+) {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', options)
+}
 
 interface ExerciseInstructionsModalProps {
   exerciseId: string | null
@@ -85,6 +96,7 @@ export function ExerciseInstructionsModal({
   clientId,
 }: ExerciseInstructionsModalProps) {
   const { toast } = useToast()
+  const locale = useLocale() as AppLocale
   const [exercise, setExercise] = useState<ExerciseWithProgression | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('instructions')
@@ -416,7 +428,7 @@ export function ExerciseInstructionsModal({
               <div>
                 <p className="text-xs text-gray-600">Date</p>
                 <p className="text-sm font-medium">
-                  {new Date(exercise.personalBest.date).toLocaleDateString('sv-SE', {
+                  {formatExerciseDate(exercise.personalBest.date, locale, {
                     month: 'short',
                     day: 'numeric',
                   })}
@@ -451,7 +463,7 @@ export function ExerciseInstructionsModal({
               </div>
               <Separator className="my-3" />
               <p className="text-xs text-gray-600">
-                {new Date(exercise.lastPerformed.date).toLocaleDateString('sv-SE')}
+                {formatExerciseDate(exercise.lastPerformed.date, locale)}
               </p>
             </CardContent>
           </Card>
