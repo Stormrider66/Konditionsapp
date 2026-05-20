@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import {
   Dialog,
@@ -29,45 +30,66 @@ type SessionType = 'RUNNING' | 'STRENGTH' | 'CORE' | 'ALTERNATIVE' | 'REST'
 
 interface SessionOption {
   type: SessionType
-  label: string
-  description: string
+  label: Record<AppLocale, string>
+  description: Record<AppLocale, string>
   icon: React.ReactNode
   color: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
+
 const SESSION_OPTIONS: SessionOption[] = [
   {
     type: 'RUNNING',
-    label: 'Running/Cardio',
-    description: 'Løppass med intervaller, distans och zon-träning',
+    label: { en: 'Running/Cardio', sv: 'Löppass/Cardio' },
+    description: {
+      en: 'Running sessions with intervals, distance, and zone training',
+      sv: 'Löppass med intervaller, distans och zonträning',
+    },
     icon: <Activity className="h-8 w-8" />,
     color: 'text-blue-600 hover:bg-blue-50 border-blue-200',
   },
   {
     type: 'STRENGTH',
-    label: 'Strength Training',
-    description: 'Styrketräning med övningar, set och repetitioner',
+    label: { en: 'Strength Training', sv: 'Styrketräning' },
+    description: {
+      en: 'Strength training with exercises, sets, and repetitions',
+      sv: 'Styrketräning med övningar, set och repetitioner',
+    },
     icon: <Dumbbell className="h-8 w-8" />,
     color: 'text-purple-600 hover:bg-purple-50 border-purple-200',
   },
   {
     type: 'CORE',
-    label: 'Core Training',
-    description: 'Core-stabilitet och balans-övningar',
+    label: { en: 'Core Training', sv: 'Coreträning' },
+    description: {
+      en: 'Core stability and balance exercises',
+      sv: 'Corestabilitet och balansövningar',
+    },
     icon: <Target className="h-8 w-8" />,
     color: 'text-orange-600 hover:bg-orange-50 border-orange-200',
   },
   {
     type: 'ALTERNATIVE',
-    label: 'Alternative Training',
-    description: 'Cykling, simning, DWR eller elliptical',
+    label: { en: 'Alternative Training', sv: 'Alternativ träning' },
+    description: {
+      en: 'Cycling, swimming, deep-water running, or elliptical',
+      sv: 'Cykling, simning, DWR eller crosstrainer',
+    },
     icon: <Bike className="h-8 w-8" />,
     color: 'text-green-600 hover:bg-green-50 border-green-200',
   },
   {
     type: 'REST',
-    label: 'Rest Day',
-    description: 'Vilodag - ingen träning',
+    label: { en: 'Rest Day', sv: 'Vilodag' },
+    description: {
+      en: 'Rest day - no training',
+      sv: 'Vilodag - ingen träning',
+    },
     icon: <Moon className="h-8 w-8" />,
     color: 'text-gray-600 hover:bg-gray-50 border-gray-200',
   },
@@ -82,6 +104,7 @@ export function SessionTypeDialog({
   existingWorkoutId,
   mode,
 }: SessionTypeDialogProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
@@ -103,8 +126,8 @@ export function SessionTypeDialog({
     } catch (error) {
       console.error('Error processing session type:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte bearbeta träningspasset.',
+        title: t(locale, 'Fel', 'Error'),
+        description: t(locale, 'Kunde inte bearbeta träningspasset.', 'Could not process the training session.'),
         variant: 'destructive',
       })
       setIsProcessing(false)
@@ -123,8 +146,8 @@ export function SessionTypeDialog({
       }
 
       toast({
-        title: 'Pass borttaget',
-        description: 'Träningspasset har tagits bort.',
+        title: t(locale, 'Pass borttaget', 'Session removed'),
+        description: t(locale, 'Träningspasset har tagits bort.', 'The training session has been removed.'),
       })
 
       onOpenChange(false)
@@ -144,11 +167,13 @@ export function SessionTypeDialog({
       throw new Error('Failed to change workout type')
     }
 
-    const data = await res.json()
-
     toast({
-      title: 'Passtyp ändrad',
-      description: `Träningspasset har ändrats till ${SESSION_OPTIONS.find(o => o.type === type)?.label}.`,
+      title: t(locale, 'Passtyp ändrad', 'Session type changed'),
+      description: t(
+        locale,
+        `Träningspasset har ändrats till ${SESSION_OPTIONS.find(o => o.type === type)?.label.sv}.`,
+        `The training session was changed to ${SESSION_OPTIONS.find(o => o.type === type)?.label.en}.`
+      ),
     })
 
     onOpenChange(false)
@@ -162,8 +187,8 @@ export function SessionTypeDialog({
     if (type === 'REST') {
       // Just close dialog - rest day means no workout
       toast({
-        title: 'Vilodag',
-        description: 'Ingen träning har lagts till.',
+        title: t(locale, 'Vilodag', 'Rest day'),
+        description: t(locale, 'Ingen träning har lagts till.', 'No training was added.'),
       })
       onOpenChange(false)
       setIsProcessing(false)
@@ -189,8 +214,8 @@ export function SessionTypeDialog({
     const data = await res.json()
 
     toast({
-      title: 'Pass skapat',
-      description: 'Nytt träningspass har skapats. Fyll i detaljerna.',
+      title: t(locale, 'Pass skapat', 'Session created'),
+      description: t(locale, 'Nytt träningspass har skapats. Fyll i detaljerna.', 'A new training session was created. Fill in the details.'),
     })
 
     onOpenChange(false)
@@ -226,12 +251,14 @@ export function SessionTypeDialog({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'add' ? 'Lägg till träningspass' : 'Ändra passtyp'}
+            {mode === 'add'
+              ? t(locale, 'Lägg till träningspass', 'Add training session')
+              : t(locale, 'Ändra passtyp', 'Change session type')}
           </DialogTitle>
           <DialogDescription>
             {mode === 'add'
-              ? 'Välj typ av träningspass du vill lägga till.'
-              : 'Välj ny typ för träningspasset. Befintliga segment kommer att tas bort.'}
+              ? t(locale, 'Välj typ av träningspass du vill lägga till.', 'Choose the type of training session to add.')
+              : t(locale, 'Välj ny typ för träningspasset. Befintliga segment kommer att tas bort.', 'Choose a new type for the training session. Existing segments will be removed.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -249,9 +276,9 @@ export function SessionTypeDialog({
                   {option.icon}
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-lg">{option.label}</h4>
+                  <h4 className="font-semibold text-lg">{option.label[locale]}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {option.description}
+                    {option.description[locale]}
                   </p>
                 </div>
                 {isProcessing && (
@@ -268,7 +295,7 @@ export function SessionTypeDialog({
             onClick={() => onOpenChange(false)}
             disabled={isProcessing}
           >
-            Avbryt
+            {t(locale, 'Avbryt', 'Cancel')}
           </Button>
         </div>
       </DialogContent>
