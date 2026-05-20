@@ -6,10 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Timer, Gauge, TrendingUp, Clock, Target, Activity, Snowflake, Mountain } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface SkiingSettings {
   technique: string
@@ -32,27 +32,37 @@ interface SkiingDashboardProps {
   clientName: string
 }
 
-const TECHNIQUE_LABELS: Record<string, { label: string, icon: string }> = {
-  classic: { label: 'Klassisk', icon: '⛷️' },
-  skating: { label: 'Skate', icon: '🎿' },
-  both: { label: 'Båda teknikerna', icon: '⛷️🎿' },
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const text = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const getDateLocale = (locale: AppLocale) => (locale === 'sv' ? sv : enUS)
+
+const TECHNIQUE_LABELS: Record<string, { label: Record<AppLocale, string>, icon: string }> = {
+  classic: { label: { sv: 'Klassisk', en: 'Classic' }, icon: '⛷️' },
+  skating: { label: { sv: 'Skate', en: 'Skate' }, icon: '🎿' },
+  both: { label: { sv: 'Båda teknikerna', en: 'Both techniques' }, icon: '⛷️🎿' },
 }
 
-const DISCIPLINE_LABELS: Record<string, string> = {
-  distance: 'Distans / Maraton',
-  sprint: 'Sprint',
-  skiathlon: 'Skiathlon',
-  biathlon: 'Skidskytte',
-  recreational: 'Motionsskidåkning',
-  touring: 'Skidturism',
-  orienteering: 'Skidorientering',
+const DISCIPLINE_LABELS: Record<string, Record<AppLocale, string>> = {
+  distance: { sv: 'Distans / Maraton', en: 'Distance / Marathon' },
+  sprint: { sv: 'Sprint', en: 'Sprint' },
+  skiathlon: { sv: 'Skiathlon', en: 'Skiathlon' },
+  biathlon: { sv: 'Skidskytte', en: 'Biathlon' },
+  recreational: { sv: 'Motionsskidåkning', en: 'Recreational skiing' },
+  touring: { sv: 'Skidturism', en: 'Ski touring' },
+  orienteering: { sv: 'Skidorientering', en: 'Ski orienteering' },
 }
 
-const TERRAIN_LABELS: Record<string, string> = {
-  flat: 'Platt terräng',
-  hilly: 'Kuperad terräng',
-  mountainous: 'Fjällterräng',
-  mixed: 'Blandad terräng',
+const TERRAIN_LABELS: Record<string, Record<AppLocale, string>> = {
+  flat: { sv: 'Platt terräng', en: 'Flat terrain' },
+  hilly: { sv: 'Kuperad terräng', en: 'Hilly terrain' },
+  mountainous: { sv: 'Fjällterräng', en: 'Mountain terrain' },
+  mixed: { sv: 'Blandad terräng', en: 'Mixed terrain' },
 }
 
 interface PaceZone {
@@ -69,28 +79,28 @@ interface PaceZone {
  * Calculate skiing pace zones from threshold pace
  * Zone structure based on lactate-guided training zones
  */
-function calculateSkiingPaceZones(thresholdPace: number): PaceZone[] {
+function calculateSkiingPaceZones(thresholdPace: number, locale: AppLocale): PaceZone[] {
   // Threshold pace is approximately Zone 4 (lactate threshold)
   // Zones are calculated as multipliers of threshold pace
   // Higher pace = slower (more min/km), lower = faster
   return [
     {
       zone: 1,
-      name: 'Återhämtning',
+      name: text(locale, 'Återhämtning', 'Recovery'),
       paceMin: Number((thresholdPace * 1.30).toFixed(2)),
       paceMax: Number((thresholdPace * 1.50).toFixed(2)),
       percentMin: 67,
       percentMax: 77,
-      description: 'Lätt tempo för återhämtning och uppvärmning'
+      description: text(locale, 'Lätt tempo för återhämtning och uppvärmning', 'Easy pace for recovery and warm-up')
     },
     {
       zone: 2,
-      name: 'Grunduthållighet',
+      name: text(locale, 'Grunduthållighet', 'Base endurance'),
       paceMin: Number((thresholdPace * 1.15).toFixed(2)),
       paceMax: Number((thresholdPace * 1.30).toFixed(2)),
       percentMin: 77,
       percentMax: 87,
-      description: 'Aerob basträning, distansträning'
+      description: text(locale, 'Aerob basträning, distansträning', 'Aerobic base training, distance training')
     },
     {
       zone: 3,
@@ -99,16 +109,16 @@ function calculateSkiingPaceZones(thresholdPace: number): PaceZone[] {
       paceMax: Number((thresholdPace * 1.15).toFixed(2)),
       percentMin: 87,
       percentMax: 95,
-      description: 'Tempointervaller, uthållighetsträning'
+      description: text(locale, 'Tempointervaller, uthållighetsträning', 'Tempo intervals, endurance training')
     },
     {
       zone: 4,
-      name: 'Tröskel',
+      name: text(locale, 'Tröskel', 'Threshold'),
       paceMin: Number((thresholdPace * 0.95).toFixed(2)),
       paceMax: Number((thresholdPace * 1.05).toFixed(2)),
       percentMin: 95,
       percentMax: 105,
-      description: 'Tröskeltempo, tävlingsfart på längre distanser'
+      description: text(locale, 'Tröskeltempo, tävlingsfart på längre distanser', 'Threshold pace, race pace for longer distances')
     },
     {
       zone: 5,
@@ -117,7 +127,7 @@ function calculateSkiingPaceZones(thresholdPace: number): PaceZone[] {
       paceMax: Number((thresholdPace * 0.95).toFixed(2)),
       percentMin: 105,
       percentMax: 118,
-      description: 'Hög intensitet, korta intervaller'
+      description: text(locale, 'Hög intensitet, korta intervaller', 'High intensity, short intervals')
     },
   ]
 }
@@ -135,24 +145,25 @@ function formatPace(paceMinPerKm: number): string {
  * Evaluate skiing level based on threshold pace
  * Values based on cross-country skiing performance standards
  */
-function evaluateSkiingLevel(thresholdPace: number, technique: string): string {
+function evaluateSkiingLevel(thresholdPace: number, technique: string, locale: AppLocale): string {
   // Classic technique is generally slower than skating
   const isClassic = technique === 'classic'
   const adjustedPace = isClassic ? thresholdPace * 0.9 : thresholdPace // Normalize for comparison
 
   if (adjustedPace < 3.0) return 'Elite'
-  if (adjustedPace < 3.5) return 'Mycket hög nivå'
-  if (adjustedPace < 4.0) return 'Hög nivå'
-  if (adjustedPace < 4.5) return 'God nivå'
-  if (adjustedPace < 5.5) return 'Medel'
-  return 'Nybörjare/Motionär'
+  if (adjustedPace < 3.5) return text(locale, 'Mycket hög nivå', 'Very high level')
+  if (adjustedPace < 4.0) return text(locale, 'Hög nivå', 'High level')
+  if (adjustedPace < 4.5) return text(locale, 'God nivå', 'Good level')
+  if (adjustedPace < 5.5) return text(locale, 'Medel', 'Intermediate')
+  return text(locale, 'Nybörjare/Motionär', 'Beginner/Recreational')
 }
 
 export function SkiingDashboard({
   skiingSettings,
-  experience,
-  clientName,
+  experience: _experience,
+  clientName: _clientName,
 }: SkiingDashboardProps) {
+  const locale = getAppLocale(useLocale())
   const t = useTranslations('components.skiingDashboard')
   const basePath = useBasePath()
   const themeContext = useWorkoutThemeOptional()
@@ -202,11 +213,11 @@ export function SkiingDashboard({
   } = skiingSettings
 
   // Get pace zones if we have threshold pace
-  const paceZones = currentThresholdPace ? calculateSkiingPaceZones(currentThresholdPace) : null
+  const paceZones = currentThresholdPace ? calculateSkiingPaceZones(currentThresholdPace, locale) : null
 
   // Get evaluation if we have threshold pace
   const evaluation = currentThresholdPace && technique
-    ? evaluateSkiingLevel(currentThresholdPace, technique)
+    ? evaluateSkiingLevel(currentThresholdPace, technique, locale)
     : null
 
   // Parse threshold test date
@@ -226,14 +237,14 @@ export function SkiingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Tröskeltempo</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>{text(locale, 'Tröskeltempo', 'Threshold pace')}</p>
                 <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {currentThresholdPace ? formatPace(currentThresholdPace) : '—'}
                 </p>
                 <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>min/km</p>
                 {testDate && (
                   <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                    Testad {format(testDate, 'd MMM yyyy', { locale: sv })}
+                    {text(locale, 'Testad', 'Tested')} {format(testDate, 'd MMM yyyy', { locale: getDateLocale(locale) })}
                   </p>
                 )}
               </div>
@@ -248,12 +259,12 @@ export function SkiingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Teknik</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>{text(locale, 'Teknik', 'Technique')}</p>
                 <p className="text-2xl font-bold mt-1">
                   {TECHNIQUE_LABELS[technique]?.icon || '⛷️'}
                 </p>
                 <p className="text-sm font-medium mt-1" style={{ color: theme.colors.textPrimary }}>
-                  {TECHNIQUE_LABELS[technique]?.label || technique || '—'}
+                  {TECHNIQUE_LABELS[technique]?.label[locale] || technique || '—'}
                 </p>
               </div>
               <Mountain className="h-8 w-8 text-cyan-500" />
@@ -267,12 +278,18 @@ export function SkiingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Veckoträning</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>{text(locale, 'Veckoträning', 'Weekly training')}</p>
                 <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {weeklyHours}h
                 </p>
                 <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                  {hasRollerSki && hasOnSnow ? 'Snö + Rullskidor' : hasOnSnow ? 'Snöträning' : hasRollerSki ? 'Rullskidor' : 'Blandad träning'}
+                  {hasRollerSki && hasOnSnow
+                    ? text(locale, 'Snö + Rullskidor', 'Snow + roller skis')
+                    : hasOnSnow
+                      ? text(locale, 'Snöträning', 'Snow training')
+                      : hasRollerSki
+                        ? text(locale, 'Rullskidor', 'Roller skis')
+                        : text(locale, 'Blandad träning', 'Mixed training')}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-green-500" />
@@ -286,12 +303,12 @@ export function SkiingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Snötillgång</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>{text(locale, 'Snötillgång', 'Snow access')}</p>
                 <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
-                  {onSnowAccessMonths} mån
+                  {onSnowAccessMonths} {text(locale, 'mån', 'mo')}
                 </p>
                 <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                  {isSnowSeason ? '❄️ Säsong nu' : '☀️ Utanför säsong'}
+                  {isSnowSeason ? text(locale, 'Säsong nu', 'In season') : text(locale, 'Utanför säsong', 'Off season')}
                 </p>
               </div>
               <Snowflake className="h-8 w-8 text-purple-500" />
@@ -306,9 +323,9 @@ export function SkiingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Primär disciplin</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>{text(locale, 'Primär disciplin', 'Primary discipline')}</p>
                 <p className="text-lg font-semibold mt-1" style={{ color: theme.colors.textPrimary }}>
-                  {DISCIPLINE_LABELS[primaryDiscipline] || primaryDiscipline || '—'}
+                  {DISCIPLINE_LABELS[primaryDiscipline]?.[locale] || primaryDiscipline || '—'}
                 </p>
               </div>
               <Target className="h-6 w-6 text-orange-500" />
@@ -319,9 +336,9 @@ export function SkiingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Terrängpreferens</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>{text(locale, 'Terrängpreferens', 'Terrain preference')}</p>
                 <p className="text-lg font-semibold mt-1" style={{ color: theme.colors.textPrimary }}>
-                  {TERRAIN_LABELS[terrainPreference] || terrainPreference || '—'}
+                  {TERRAIN_LABELS[terrainPreference]?.[locale] || terrainPreference || '—'}
                 </p>
               </div>
               <Gauge className="h-6 w-6 text-amber-500" />
@@ -336,10 +353,10 @@ export function SkiingDashboard({
           <CardHeader>
             <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-5 w-5" />
-              Dina tempoznoner
+              {text(locale, 'Dina tempozoner', 'Your pace zones')}
             </CardTitle>
             <CardDescription style={{ color: theme.colors.textMuted }}>
-              Baserat på ditt tröskeltempo på {formatPace(currentThresholdPace!)} min/km
+              {text(locale, 'Baserat på ditt tröskeltempo på', 'Based on your threshold pace of')} {formatPace(currentThresholdPace!)} min/km
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -371,7 +388,7 @@ export function SkiingDashboard({
                         style={{ width: `${widthPercent}%` }}
                       />
                       <span className="absolute inset-0 flex items-center justify-center text-xs font-medium" style={{ color: theme.colors.textPrimary }}>
-                        {zone.percentMin}–{zone.percentMax}% av tröskel
+                        {zone.percentMin}–{zone.percentMax}% {text(locale, 'av tröskel', 'of threshold')}
                       </span>
                     </div>
                     <p className="text-xs" style={{ color: theme.colors.textMuted }}>{zone.description}</p>
@@ -387,7 +404,7 @@ export function SkiingDashboard({
       {evaluation && (
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle style={{ color: theme.colors.textPrimary }}>Din nivå</CardTitle>
+            <CardTitle style={{ color: theme.colors.textPrimary }}>{text(locale, 'Din nivå', 'Your level')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4 flex-wrap">
@@ -396,7 +413,7 @@ export function SkiingDashboard({
               </Badge>
               {daysSinceTest !== null && daysSinceTest > 56 && (
                 <Badge variant="outline" className="text-amber-600 border-amber-300">
-                  Tröskeltest rekommenderas (senast för {daysSinceTest} dagar sedan)
+                  {text(locale, 'Tröskeltest rekommenderas', 'Threshold test recommended')} ({text(locale, 'senast för', 'last tested')} {daysSinceTest} {text(locale, 'dagar sedan', 'days ago')})
                 </Badge>
               )}
               {weight && (
@@ -425,15 +442,17 @@ export function SkiingDashboard({
                   className="font-medium"
                   style={{ color: theme.id === 'FITAPP_DARK' ? '#fde68a' : '#78350f' }}
                 >
-                  Inget tröskeltempo registrerat
+                  {text(locale, 'Inget tröskeltempo registrerat', 'No threshold pace recorded')}
                 </p>
                 <p
                   className="text-sm mt-1"
                   style={{ color: theme.id === 'FITAPP_DARK' ? '#fcd34d' : '#92400e' }}
                 >
-                  Genomför ett tröskeltest för att få personliga tempoznoner och bättre
-                  anpassade träningsprogram. Du kan använda ett 30-minuters maxtest på
-                  rullskidor eller skidor.
+                  {text(
+                    locale,
+                    'Genomför ett tröskeltest för att få personliga tempozoner och bättre anpassade träningsprogram. Du kan använda ett 30-minuters maxtest på rullskidor eller skidor.',
+                    'Complete a threshold test to get personal pace zones and better tailored training programs. You can use a 30-minute max test on roller skis or skis.'
+                  )}
                 </p>
               </div>
             </div>
@@ -468,7 +487,7 @@ export function SkiingDashboard({
                     : (theme.id === 'FITAPP_DARK' ? '#fed7aa' : '#9a3412')
                 }}
               >
-                {isSnowSeason ? 'Skidsäsong' : 'Förberedelsesäsong'}
+                {isSnowSeason ? text(locale, 'Skidsäsong', 'Ski season') : text(locale, 'Förberedelsesäsong', 'Preparation season')}
               </p>
               <p
                 className="text-sm mt-1"
@@ -479,8 +498,8 @@ export function SkiingDashboard({
                 }}
               >
                 {isSnowSeason
-                  ? 'Fokusera på teknik och tävlingsförberedelser. Prioritera snöträning när möjligt.'
-                  : 'Bygg aerob bas med rullskidor, löpning och styrketräning. Perfekt tid för grundutbyggnad.'}
+                  ? text(locale, 'Fokusera på teknik och tävlingsförberedelser. Prioritera snöträning när möjligt.', 'Focus on technique and race preparation. Prioritize snow training when possible.')
+                  : text(locale, 'Bygg aerob bas med rullskidor, löpning och styrketräning. Perfekt tid för grundutbyggnad.', 'Build an aerobic base with roller skis, running, and strength training. A perfect time for base development.')}
               </p>
             </div>
           </div>
