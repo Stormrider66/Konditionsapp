@@ -2,31 +2,11 @@ import type { Client, CreateTrainingDayDTO, CreateTrainingProgramDTO, CreateWork
 import { getProgramEndDate, getProgramStartDate } from '../date-utils'
 import type { SportProgramParams } from '../sport-router/types'
 import {
-  calculateTrainingLoad,
-  getInjuryPreventionExercises,
-  getPositionRecommendations,
-  getSeasonPhaseTraining,
   type HockeyPosition,
   type SeasonPhase,
 } from '@/lib/training-engine/hockey'
 import { logger } from '@/lib/logger'
-
-type HockeySettings = {
-  position?: HockeyPosition
-  seasonPhase?: SeasonPhase
-  averageIceTimeMinutes?: number | null
-  shiftsPerGame?: number | null
-  matchesThisWeek?: number
-  weeklyOffIceSessions?: number
-  hasAccessToIce?: boolean
-  hasAccessToGym?: boolean
-  playStyle?: string
-}
-
-type LoadGuidance = {
-  intensityMultiplier: number
-  notes: string[]
-}
+import { buildHockeyPlanningContext, type HockeyPlanningContext } from '../team-sports/planning-context'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -34,46 +14,37 @@ export async function generateHockeyProgram(
   params: SportProgramParams,
   client: Client
 ): Promise<CreateTrainingProgramDTO> {
-  const settings = normalizeHockeySettings(params.hockeySettings)
-  const position = settings.position || 'center'
-  const phase = settings.seasonPhase || inferSeasonPhase(params.goal)
-  const matchesThisWeek = settings.matchesThisWeek ?? inferMatchesThisWeek(phase, params.goal)
-  const profile = getPositionRecommendations(position, 'sv')
-  const phaseTraining = getSeasonPhaseTraining(phase, 'sv')
-  const prevention = getInjuryPreventionExercises(position, 'sv')
-  const load = calculateTrainingLoad(position, phase, matchesThisWeek, 'sv')
-  const loadGuidance = getHockeyLoadGuidance(settings, matchesThisWeek)
+  const planning = buildHockeyPlanningContext(params)
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)
-  const requestedSessions = Math.min(7, Math.max(2, settings.weeklyOffIceSessions || params.sessionsPerWeek || 4))
 
   logger.debug('Starting hockey program generation', {
     goal: params.goal,
-    position,
-    phase,
-    requestedSessions,
-    matchesThisWeek,
+    position: planning.position,
+    phase: planning.phase,
+    requestedSessions: planning.requestedSessions,
+    matchesThisWeek: planning.matchesThisWeek,
   })
 
   const weeks = Array.from({ length: params.durationWeeks }).map((_, index) => {
     const weekNumber = index + 1
     const periodPhase = getProgramPhase(weekNumber, params.durationWeeks)
-    const intensityFactor = getWeekIntensityFactor(weekNumber, params.durationWeeks, params.goal) * loadGuidance.intensityMultiplier
+    const intensityFactor = getWeekIntensityFactor(weekNumber, params.durationWeeks, params.goal) * planning.loadGuidance.intensityMultiplier
     const days = buildHockeyWeek({
       goal: params.goal,
-      phase,
-      position,
-      requestedSessions,
-      hasIce: settings.hasAccessToIce !== false,
-      hasGym: settings.hasAccessToGym !== false,
-      matchesThisWeek,
-      profile,
-      phaseTraining,
-      prevention,
-      strengthSessions: load.strengthSessions,
-      conditioningSessions: load.conditioningSessions,
+      phase: planning.phase,
+      position: planning.position,
+      requestedSessions: planning.requestedSessions,
+      hasIce: planning.settings.hasAccessToIce !== false,
+      hasGym: planning.settings.hasAccessToGym !== false,
+      matchesThisWeek: planning.matchesThisWeek,
+      profile: planning.profile,
+      phaseTraining: planning.phaseTraining,
+      prevention: planning.prevention,
+      strengthSessions: planning.trainingLoad.strengthSessions,
+      conditioningSessions: planning.trainingLoad.conditioningSessions,
       intensityFactor,
-      loadNotes: loadGuidance.notes,
+      loadNotes: planning.loadGuidance.notes,
     })
 
     return {
@@ -81,7 +52,7 @@ export async function generateHockeyProgram(
       startDate: new Date(startDate.getTime() + index * 7 * DAY_MS),
       phase: periodPhase,
       volume: days.reduce((sum, day) => sum + day.workouts.reduce((total, workout) => total + (workout.duration || 0), 0), 0),
-      focus: `${phaseTraining.primaryGoals[0] || 'Ishockey'} - ${profile.primaryConditioningFocus[0] || position}`,
+      focus: `${planning.phaseTraining.primaryGoals[0] || 'Ishockey'} - ${planning.profile.primaryConditioningFocus[0] || planning.position}`,
       days,
     }
   })
@@ -95,10 +66,10 @@ export async function generateHockeyProgram(
     startDate,
     endDate,
     notes: params.notes || [
-      profile.description,
+      planning.profile.description,
       'Programmet styrs av säsongsfas, matchbelastning och positionsspecifik skadeprevention.',
-      ...load.notes,
-      ...loadGuidance.notes,
+      ...planning.trainingLoad.notes,
+      ...planning.loadGuidance.notes,
     ].join(' '),
     weeks,
   }
@@ -112,9 +83,9 @@ function buildHockeyWeek(input: {
   hasIce: boolean
   hasGym: boolean
   matchesThisWeek: number
-  profile: ReturnType<typeof getPositionRecommendations>
-  phaseTraining: ReturnType<typeof getSeasonPhaseTraining>
-  prevention: ReturnType<typeof getInjuryPreventionExercises>
+  profile: HockeyPlanningContext['profile']
+  phaseTraining: HockeyPlanningContext['phaseTraining']
+  prevention: HockeyPlanningContext['prevention']
   strengthSessions: number
   conditioningSessions: number
   intensityFactor: number
@@ -170,7 +141,7 @@ function trimToSessions(days: CreateTrainingDayDTO[], sessionsPerWeek: number, p
 function strengthWorkout(
   name: string,
   focusAreas: string[],
-  prevention: ReturnType<typeof getInjuryPreventionExercises>,
+  prevention: HockeyPlanningContext['prevention'],
   intensity: WorkoutIntensity,
   position: HockeyPosition
 ): CreateWorkoutDTO {
@@ -245,7 +216,7 @@ function iceWorkout(name: string, position: HockeyPosition, factor: number, load
   }
 }
 
-function mobilityWorkout(name: string, prevention: ReturnType<typeof getInjuryPreventionExercises>, position: HockeyPosition): CreateWorkoutDTO {
+function mobilityWorkout(name: string, prevention: HockeyPlanningContext['prevention'], position: HockeyPosition): CreateWorkoutDTO {
   const exercises = prevention.map((exercise) => exercise.name).join(', ')
   return {
     type: 'RECOVERY',
@@ -292,43 +263,6 @@ function matchWorkout(name: string, position: HockeyPosition): CreateWorkoutDTO 
   }
 }
 
-function normalizeHockeySettings(value: unknown): HockeySettings {
-  return isRecord(value) ? value as HockeySettings : {}
-}
-
-function getHockeyLoadGuidance(settings: HockeySettings, matchesThisWeek: number): LoadGuidance {
-  const notes: string[] = []
-  let intensityMultiplier = 1
-
-  if (matchesThisWeek >= 3) {
-    intensityMultiplier = Math.min(intensityMultiplier, 0.65)
-    notes.push('Mycket hög matchbelastning: minimera extra off-ice intensitet.')
-  } else if (matchesThisWeek === 2) {
-    intensityMultiplier = Math.min(intensityMultiplier, 0.8)
-    notes.push('Två matcher denna vecka: prioritera återhämtning och korta kvalitetspass.')
-  }
-
-  if ((settings.averageIceTimeMinutes ?? 0) >= 22 || (settings.shiftsPerGame ?? 0) >= 26) {
-    intensityMultiplier = Math.min(intensityMultiplier, 0.85)
-    notes.push('Hög istid/bytesbelastning: reducera extra intervallvolym och följ RPE noga.')
-  }
-
-  return { intensityMultiplier, notes }
-}
-
-function inferSeasonPhase(goal: string): SeasonPhase {
-  if (goal === 'off-season-build') return 'off_season'
-  if (goal === 'pre-season-readiness') return 'pre_season'
-  if (goal === 'in-season-maintenance') return 'in_season'
-  return 'in_season'
-}
-
-function inferMatchesThisWeek(phase: SeasonPhase, goal: string): number {
-  if (goal === 'off-season-build' || phase === 'off_season') return 0
-  if (phase === 'playoffs') return 2
-  return 1
-}
-
 function getProgramPhase(week: number, totalWeeks: number): PeriodPhase {
   const progress = week / totalWeeks
   if (week % 4 === 0 && week < totalWeeks) return 'RECOVERY'
@@ -355,8 +289,4 @@ function hockeyGoalLabel(goal: string): string {
     custom: 'Hockeyprogram',
   }
   return labels[goal] || 'Hockeyprogram'
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
