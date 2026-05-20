@@ -43,4 +43,38 @@ describe('buildTeamSportPromptSection', () => {
     expect(section).toContain('Load guidance')
     expect(section).toContain('avoid hard off-ice conditioning')
   })
+
+  it('adds court and racket sport profile guidance', () => {
+    const tennisSection = buildTeamSportPromptSection({
+      sport: 'TENNIS',
+      sessionsPerWeek: 5,
+      locale: 'en',
+      variant: 'compact',
+      tennisSettings: {
+        playStyle: 'aggressive_baseliner',
+        seasonPhase: 'tournament',
+        matchesPerWeek: 2,
+      },
+    })
+
+    expect(tennisSection).toContain('TENNIS CONTEXT')
+    expect(tennisSection).toContain('Play style: aggressive_baseliner')
+    expect(tennisSection).toContain('point intervals')
+
+    const basketballSection = buildTeamSportPromptSection({
+      sport: 'TEAM_BASKETBALL',
+      sessionsPerWeek: 4,
+      locale: 'sv',
+      variant: 'markdown',
+      basketballSettings: {
+        position: 'point_guard',
+        seasonPhase: 'in_season',
+        matchesPerWeek: 1,
+      },
+    })
+
+    expect(basketballSection).toContain('BASKETSPECIFIK PROFIL')
+    expect(basketballSection).toContain('Position')
+    expect(basketballSection).toContain('hoppbelastning')
+  })
 })

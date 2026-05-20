@@ -17,6 +17,24 @@ const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'e
 
 const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
 
+const teamCourtGoals: Goal[] = [
+  { id: 'off-season-build', label: { en: 'Off-season build', sv: 'Off-season uppbyggnad' }, description: { en: 'Strength, base, robustness', sv: 'Styrka, bas och tålighet' }, duration: { en: '10-12 weeks', sv: '10-12 veckor' } },
+  { id: 'pre-season-readiness', label: { en: 'Pre-season readiness', sv: 'Försäsongsform' }, description: { en: 'Sport fitness and power', sv: 'Sportspecifik kondition och power' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+  { id: 'in-season-maintenance', label: { en: 'In-season maintenance', sv: 'Säsongsunderhåll' }, description: { en: 'Maintain quality around games', sv: 'Behåll kvalitet runt matcher' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+  { id: 'speed-power', label: { en: 'Speed & power', sv: 'Snabbhet & power' }, description: { en: 'Acceleration, jumps, change of direction', sv: 'Acceleration, hopp, riktningsförändring' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+  { id: 'injury-prevention', label: { en: 'Injury prevention', sv: 'Skadeprevention' }, description: { en: 'Position-specific robustness', sv: 'Positionsspecifik robusthet' }, duration: { en: '10 weeks', sv: '10 veckor' } },
+  { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own team or player goal', sv: 'Eget lag- eller spelarmål' }, duration: { en: 'Optional', sv: 'Valfri' } },
+]
+
+const racketGoals: Goal[] = [
+  { id: 'off-season-build', label: { en: 'Off-season build', sv: 'Off-season uppbyggnad' }, description: { en: 'Strength, mobility, base fitness', sv: 'Styrka, rörlighet och bas' }, duration: { en: '10 weeks', sv: '10 veckor' } },
+  { id: 'pre-season-readiness', label: { en: 'Pre-season readiness', sv: 'Försäsongsform' }, description: { en: 'Footwork, power, point fitness', sv: 'Fotarbete, power och poängkondition' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+  { id: 'in-season-maintenance', label: { en: 'In-season maintenance', sv: 'Säsongsunderhåll' }, description: { en: 'Quality between matches', sv: 'Kvalitet mellan matcher' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+  { id: 'tournament', label: { en: 'Tournament block', sv: 'Turneringsblock' }, description: { en: 'Taper, match play, recovery', sv: 'Toppning, matchspel, återhämtning' }, duration: { en: '6 weeks', sv: '6 veckor' } },
+  { id: 'speed-power', label: { en: 'Speed & power', sv: 'Snabbhet & power' }, description: { en: 'First step, rotation, reactions', sv: 'Första steg, rotation, reaktion' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+  { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own match or player goal', sv: 'Eget match- eller spelarmål' }, duration: { en: 'Optional', sv: 'Valfri' } },
+]
+
 const goalsBySport: Record<string, Goal[]> = {
   RUNNING: [
     { id: 'marathon', label: { en: 'Marathon', sv: 'Marathon' }, description: { en: '42.2 km', sv: '42.2 km' }, duration: { en: '16-26 weeks', sv: '16-26 veckor' } },
@@ -88,6 +106,12 @@ const goalsBySport: Record<string, Goal[]> = {
     { id: 'return-to-play', label: { en: 'Return to play', sv: 'Return to play' }, description: { en: 'Controlled ramp to match load', sv: 'Kontrollerad väg till matchbelastning' }, duration: { en: '6 weeks', sv: '6 veckor' } },
     { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own team or player goal', sv: 'Eget lag- eller spelarmål' }, duration: { en: 'Optional', sv: 'Valfri' } },
   ],
+  TEAM_BASKETBALL: teamCourtGoals,
+  TEAM_HANDBALL: teamCourtGoals,
+  TEAM_FLOORBALL: teamCourtGoals,
+  TEAM_VOLLEYBALL: teamCourtGoals,
+  TENNIS: racketGoals,
+  PADEL: racketGoals,
 }
 
 interface GoalSelectorProps {
@@ -112,6 +136,12 @@ export function GoalSelector({ sport, selectedGoal, onSelect, onBack: _onBack }:
     GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
     TEAM_ICE_HOCKEY: { en: 'Ice Hockey', sv: 'Ishockey' },
     TEAM_FOOTBALL: { en: 'Football', sv: 'Fotboll' },
+    TEAM_BASKETBALL: { en: 'Basketball', sv: 'Basket' },
+    TEAM_HANDBALL: { en: 'Handball', sv: 'Handboll' },
+    TEAM_FLOORBALL: { en: 'Floorball', sv: 'Innebandy' },
+    TEAM_VOLLEYBALL: { en: 'Volleyball', sv: 'Volleyboll' },
+    TENNIS: { en: 'Tennis', sv: 'Tennis' },
+    PADEL: { en: 'Padel', sv: 'Padel' },
   }
 
   return (

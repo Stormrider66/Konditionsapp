@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { SportType } from '@prisma/client'
 import { useLocale } from 'next-intl'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
@@ -56,6 +56,12 @@ import { HyroxStationTimes } from './configuration-form/HyroxStationTimes'
 import { StrengthPRs } from './configuration-form/StrengthPRs'
 import { StrengthCoreIntegration } from './configuration-form/StrengthCoreIntegration'
 import { buildTeamSportPlanningSummary, type TeamSportPlanningSummary } from '@/lib/program-generator/team-sports/explainability'
+import {
+  buildCourtSportSettingsPayload,
+  CourtSportSettings,
+  getCourtSportProfileSettings,
+  isCourtSportProgram,
+} from './configuration-form/CourtSportSettings'
 
 const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
 
@@ -87,6 +93,18 @@ const getSportProgramLabel = (sport: SportType, locale: AppLocale) => {
       return t(locale, 'hockeyprogram', 'hockey program')
     case 'TEAM_FOOTBALL':
       return t(locale, 'fotbollsprogram', 'football program')
+    case 'TEAM_BASKETBALL':
+      return t(locale, 'basketprogram', 'basketball program')
+    case 'TEAM_HANDBALL':
+      return t(locale, 'handbollsprogram', 'handball program')
+    case 'TEAM_FLOORBALL':
+      return t(locale, 'innebandyprogram', 'floorball program')
+    case 'TEAM_VOLLEYBALL':
+      return t(locale, 'volleybollprogram', 'volleyball program')
+    case 'TENNIS':
+      return t(locale, 'tennisprogram', 'tennis program')
+    case 'PADEL':
+      return t(locale, 'padelprogram', 'padel program')
     default:
       return t(locale, 'träningsprogram', 'training program')
   }
@@ -97,6 +115,7 @@ const getSessionDescription = (sport: SportType, locale: AppLocale) => {
   if (sport === 'CYCLING') return t(locale, 'Cykelpass per vecka', 'Cycling sessions per week')
   if (sport === 'TEAM_ICE_HOCKEY') return t(locale, 'Planerade pass per vecka', 'Planned sessions per week')
   if (sport === 'TEAM_FOOTBALL') return t(locale, 'Planerade pass per vecka', 'Planned sessions per week')
+  if (isCourtSportProgram(sport)) return t(locale, 'Sportpass inklusive match/teknik per vecka', 'Sport sessions including match/skill work per week')
   return t(locale, 'Träningspass per vecka', 'Training sessions per week')
 }
 
@@ -137,6 +156,10 @@ export function ConfigurationForm({
       technique: 'both',
       poolLength: '25',
       bikeType: 'road',
+      courtPosition: undefined,
+      courtPlayStyle: undefined,
+      seasonPhase: undefined,
+      matchesPerWeek: undefined,
       notes: '',
       // New defaults
       experienceLevel: 'intermediate',
@@ -177,12 +200,16 @@ export function ConfigurationForm({
     },
   })
 
-  const watchClientId = form.watch('clientId')
+  const watchClientId = useWatch({ control: form.control, name: 'clientId' })
   const selectedClient = clients.find((c) => c.id === watchClientId)
-  const watchTargetDate = form.watch('targetRaceDate')
-  const watchIncludeStrength = form.watch('includeStrength')
-  const watchRaceDistance = form.watch('recentRaceDistance')
-  const watchExperienceLevel = form.watch('experienceLevel')
+  const courtSportProfileSettings = useMemo(
+    () => getCourtSportProfileSettings(selectedClient?.sportProfile, sport),
+    [selectedClient?.sportProfile, sport]
+  )
+  const watchTargetDate = useWatch({ control: form.control, name: 'targetRaceDate' })
+  const watchIncludeStrength = useWatch({ control: form.control, name: 'includeStrength' })
+  const watchRaceDistance = useWatch({ control: form.control, name: 'recentRaceDistance' })
+  const watchExperienceLevel = useWatch({ control: form.control, name: 'experienceLevel' })
 
   // Check if sport needs running-specific fields
   const needsRunningFields = sport === 'RUNNING' || sport === 'HYROX' || sport === 'TRIATHLON'
@@ -193,8 +220,8 @@ export function ConfigurationForm({
   const [calendarData, setCalendarData] = useState<CalendarConstraintsResponse | null>(null)
   const [calendarLoading, setCalendarLoading] = useState(false)
 
-  const watchDurationWeeks = form.watch('durationWeeks')
-  const watchSessionsPerWeek = form.watch('sessionsPerWeek')
+  const watchDurationWeeks = useWatch({ control: form.control, name: 'durationWeeks' })
+  const watchSessionsPerWeek = useWatch({ control: form.control, name: 'sessionsPerWeek' })
   const teamSportPlanningSummary = useMemo(() => buildTeamSportPlanningSummary({
     sport,
     goal,
@@ -291,9 +318,17 @@ export function ConfigurationForm({
 
   // Wrap submit to include calendar constraints
   const handleSubmit = form.handleSubmit((data) => {
+    const courtSportSettings = buildCourtSportSettingsPayload(
+      sport,
+      goal,
+      data,
+      courtSportProfileSettings
+    )
+
     // Add calendar constraints to submission if available
     const submissionData = {
       ...data,
+      ...courtSportSettings,
       calendarConstraints: calendarData?.constraints ? {
         blockedDates: calendarData.constraints.blockedDates,
         reducedDates: calendarData.constraints.reducedDates,
@@ -311,6 +346,13 @@ export function ConfigurationForm({
   const handleContinueWithAI = () => {
     const formData = form.getValues()
     const selectedClient = clients.find(c => c.id === formData.clientId)
+    const courtSportProfileSettings = getCourtSportProfileSettings(selectedClient?.sportProfile, sport)
+    const courtSportSettings = buildCourtSportSettingsPayload(
+      sport,
+      goal,
+      formData,
+      courtSportProfileSettings
+    )
 
     // Build the wizard form data
     const wizardFormData: WizardFormData = {
@@ -351,6 +393,12 @@ export function ConfigurationForm({
       strengthPRs: formData.strengthPRs,
       hockeySettings: selectedClient?.sportProfile?.hockeySettings ?? undefined,
       footballSettings: selectedClient?.sportProfile?.footballSettings ?? undefined,
+      basketballSettings: courtSportSettings.basketballSettings ?? selectedClient?.sportProfile?.basketballSettings ?? undefined,
+      handballSettings: courtSportSettings.handballSettings ?? selectedClient?.sportProfile?.handballSettings ?? undefined,
+      floorballSettings: courtSportSettings.floorballSettings ?? selectedClient?.sportProfile?.floorballSettings ?? undefined,
+      volleyballSettings: courtSportSettings.volleyballSettings ?? selectedClient?.sportProfile?.volleyballSettings ?? undefined,
+      tennisSettings: courtSportSettings.tennisSettings ?? selectedClient?.sportProfile?.tennisSettings ?? undefined,
+      padelSettings: courtSportSettings.padelSettings ?? selectedClient?.sportProfile?.padelSettings ?? undefined,
       notes: formData.notes,
     }
 
@@ -359,6 +407,12 @@ export function ConfigurationForm({
       wizardData: wizardFormData,
       hockeySettings: selectedClient?.sportProfile?.hockeySettings ?? undefined,
       footballSettings: selectedClient?.sportProfile?.footballSettings ?? undefined,
+      basketballSettings: courtSportSettings.basketballSettings ?? selectedClient?.sportProfile?.basketballSettings ?? undefined,
+      handballSettings: courtSportSettings.handballSettings ?? selectedClient?.sportProfile?.handballSettings ?? undefined,
+      floorballSettings: courtSportSettings.floorballSettings ?? selectedClient?.sportProfile?.floorballSettings ?? undefined,
+      volleyballSettings: courtSportSettings.volleyballSettings ?? selectedClient?.sportProfile?.volleyballSettings ?? undefined,
+      tennisSettings: courtSportSettings.tennisSettings ?? selectedClient?.sportProfile?.tennisSettings ?? undefined,
+      padelSettings: courtSportSettings.padelSettings ?? selectedClient?.sportProfile?.padelSettings ?? undefined,
     }
 
     // Store context in sessionStorage
@@ -756,6 +810,16 @@ export function ConfigurationForm({
 
         {teamSportPlanningSummary && (
           <TeamSportPlanningPanel summary={teamSportPlanningSummary} locale={locale} />
+        )}
+
+        {isCourtSportProgram(sport) && (
+          <CourtSportSettings
+            form={form}
+            sport={sport}
+            goal={goal}
+            locale={locale}
+            profileSettings={courtSportProfileSettings}
+          />
         )}
 
         {/* Calendar Constraints Section */}

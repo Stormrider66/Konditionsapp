@@ -76,6 +76,54 @@ export function getDefaultDuration(sport: SportType, goal: string): number {
       'return-to-play': 6,
       custom: 12,
     },
+    TEAM_BASKETBALL: {
+      'off-season-build': 10,
+      'pre-season-readiness': 8,
+      'in-season-maintenance': 8,
+      'speed-power': 8,
+      'injury-prevention': 10,
+      custom: 12,
+    },
+    TEAM_HANDBALL: {
+      'off-season-build': 10,
+      'pre-season-readiness': 8,
+      'in-season-maintenance': 8,
+      'speed-power': 8,
+      'injury-prevention': 10,
+      custom: 12,
+    },
+    TEAM_FLOORBALL: {
+      'off-season-build': 10,
+      'pre-season-readiness': 8,
+      'in-season-maintenance': 8,
+      'speed-power': 8,
+      'injury-prevention': 10,
+      custom: 12,
+    },
+    TEAM_VOLLEYBALL: {
+      'off-season-build': 10,
+      'pre-season-readiness': 8,
+      'in-season-maintenance': 8,
+      'speed-power': 8,
+      'injury-prevention': 10,
+      custom: 12,
+    },
+    TENNIS: {
+      'off-season-build': 10,
+      'pre-season-readiness': 8,
+      'in-season-maintenance': 8,
+      tournament: 6,
+      'speed-power': 8,
+      custom: 10,
+    },
+    PADEL: {
+      'off-season-build': 10,
+      'pre-season-readiness': 8,
+      'in-season-maintenance': 8,
+      tournament: 6,
+      'speed-power': 8,
+      custom: 10,
+    },
   }
 
   return durations[sport]?.[goal] || 12
@@ -93,6 +141,12 @@ export function getSportLabel(sport: SportType, locale: AppLocale = 'en'): strin
     GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
     TEAM_ICE_HOCKEY: { en: 'Ice Hockey', sv: 'Ishockey' },
     TEAM_FOOTBALL: { en: 'Football', sv: 'Fotboll' },
+    TEAM_BASKETBALL: { en: 'Basketball', sv: 'Basket' },
+    TEAM_HANDBALL: { en: 'Handball', sv: 'Handboll' },
+    TEAM_FLOORBALL: { en: 'Floorball', sv: 'Innebandy' },
+    TEAM_VOLLEYBALL: { en: 'Volleyball', sv: 'Volleyboll' },
+    TENNIS: { en: 'Tennis', sv: 'Tennis' },
+    PADEL: { en: 'Padel', sv: 'Padel' },
   }
   return labels[sport]?.[locale] || sport
 }

@@ -14,6 +14,11 @@ import { GoalSelector } from './GoalSelector'
 import { DataSourceSelector, DataSourceType, DataSourceInfo } from './DataSourceSelector'
 import { ConfigurationForm } from './ConfigurationForm'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
+import {
+  getCourtSportProfileLabel,
+  getCourtSportProfileSettings,
+  getCourtSportProfileValue,
+} from './configuration-form/CourtSportSettings'
 
 interface Test {
   id: string
@@ -36,6 +41,12 @@ interface SportProfile {
   skiingSettings: Record<string, unknown> | null
   hockeySettings?: Record<string, unknown> | null
   footballSettings?: Record<string, unknown> | null
+  basketballSettings?: Record<string, unknown> | null
+  handballSettings?: Record<string, unknown> | null
+  floorballSettings?: Record<string, unknown> | null
+  volleyballSettings?: Record<string, unknown> | null
+  tennisSettings?: Record<string, unknown> | null
+  padelSettings?: Record<string, unknown> | null
 }
 
 interface Client {
@@ -81,6 +92,18 @@ const getSportPromptLabel = (sport: SportType, locale: AppLocale) => {
       return t(locale, 'ishockey', 'ice hockey')
     case 'TEAM_FOOTBALL':
       return t(locale, 'fotboll', 'football')
+    case 'TEAM_BASKETBALL':
+      return t(locale, 'basket', 'basketball')
+    case 'TEAM_HANDBALL':
+      return t(locale, 'handboll', 'handball')
+    case 'TEAM_FLOORBALL':
+      return t(locale, 'innebandy', 'floorball')
+    case 'TEAM_VOLLEYBALL':
+      return t(locale, 'volleyboll', 'volleyball')
+    case 'TENNIS':
+      return t(locale, 'tennis', 'tennis')
+    case 'PADEL':
+      return t(locale, 'padel', 'padel')
     default:
       return t(locale, 'träning', 'training')
   }
@@ -96,6 +119,18 @@ const getProgramPromptLabel = (sport: SportType, locale: AppLocale) => {
       return t(locale, 'hockeyprogram', 'hockey program')
     case 'TEAM_FOOTBALL':
       return t(locale, 'fotbollsprogram', 'football program')
+    case 'TEAM_BASKETBALL':
+      return t(locale, 'basketprogram', 'basketball program')
+    case 'TEAM_HANDBALL':
+      return t(locale, 'handbollsprogram', 'handball program')
+    case 'TEAM_FLOORBALL':
+      return t(locale, 'innebandyprogram', 'floorball program')
+    case 'TEAM_VOLLEYBALL':
+      return t(locale, 'volleybollprogram', 'volleyball program')
+    case 'TENNIS':
+      return t(locale, 'tennisprogram', 'tennis program')
+    case 'PADEL':
+      return t(locale, 'padelprogram', 'padel program')
     default:
       return t(locale, 'träningsprogram', 'training program')
   }
@@ -129,6 +164,12 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
       STRENGTH: 'RUNNING',
       TEAM_FOOTBALL: 'RUNNING',
       TEAM_ICE_HOCKEY: 'RUNNING',
+      TEAM_BASKETBALL: 'RUNNING',
+      TEAM_HANDBALL: 'RUNNING',
+      TEAM_FLOORBALL: 'RUNNING',
+      TEAM_VOLLEYBALL: 'RUNNING',
+      TENNIS: 'RUNNING',
+      PADEL: 'RUNNING',
     }
 
     const relevantTestType = testTypeMap[selectedSport]
@@ -151,6 +192,13 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
           return c.sportProfile.hockeySettings
         case 'TEAM_FOOTBALL':
           return c.sportProfile.footballSettings
+        case 'TEAM_BASKETBALL':
+        case 'TEAM_HANDBALL':
+        case 'TEAM_FLOORBALL':
+        case 'TEAM_VOLLEYBALL':
+        case 'TENNIS':
+        case 'PADEL':
+          return getCourtSportProfileSettings(c.sportProfile, selectedSport)
         default:
           return false
       }
@@ -196,6 +244,13 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
         return profile.hockeySettings ? t(locale, 'Hockeyprofil', 'Hockey profile') : undefined
       case 'TEAM_FOOTBALL':
         return profile.footballSettings ? t(locale, 'Fotbollsprofil', 'Football profile') : undefined
+      case 'TEAM_BASKETBALL':
+      case 'TEAM_HANDBALL':
+      case 'TEAM_FLOORBALL':
+      case 'TEAM_VOLLEYBALL':
+      case 'TENNIS':
+      case 'PADEL':
+        return getCourtSportProfileValue(sport, getCourtSportProfileSettings(profile, sport), locale)
       default:
         return undefined
     }
@@ -213,6 +268,13 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
         return t(locale, 'Hockeyprofil', 'Hockey profile')
       case 'TEAM_FOOTBALL':
         return t(locale, 'Fotbollsprofil', 'Football profile')
+      case 'TEAM_BASKETBALL':
+      case 'TEAM_HANDBALL':
+      case 'TEAM_FLOORBALL':
+      case 'TEAM_VOLLEYBALL':
+      case 'TENNIS':
+      case 'PADEL':
+        return getCourtSportProfileLabel(sport, locale) || t(locale, 'Sportprofil', 'Sport profile')
       default:
         return t(locale, 'Värde', 'Value')
     }
@@ -307,6 +369,12 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
       ? {
           hockeySettings: c.sportProfile.hockeySettings ?? null,
           footballSettings: c.sportProfile.footballSettings ?? null,
+          basketballSettings: c.sportProfile.basketballSettings ?? null,
+          handballSettings: c.sportProfile.handballSettings ?? null,
+          floorballSettings: c.sportProfile.floorballSettings ?? null,
+          volleyballSettings: c.sportProfile.volleyballSettings ?? null,
+          tennisSettings: c.sportProfile.tennisSettings ?? null,
+          padelSettings: c.sportProfile.padelSettings ?? null,
         }
       : null,
   }))

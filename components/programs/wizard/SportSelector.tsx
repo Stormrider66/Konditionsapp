@@ -89,6 +89,48 @@ const sports: Sport[] = [
     description: { en: 'Match-week planning', sv: 'Matchveckoplanering' },
     color: 'hover:border-emerald-500 hover:bg-emerald-50',
   },
+  {
+    id: 'TEAM_BASKETBALL',
+    icon: '🏀',
+    label: { en: 'Basketball', sv: 'Basket' },
+    description: { en: 'Court speed and jumps', sv: 'Court speed och hopp' },
+    color: 'hover:border-orange-500 hover:bg-orange-50',
+  },
+  {
+    id: 'TEAM_HANDBALL',
+    icon: '🤾',
+    label: { en: 'Handball', sv: 'Handboll' },
+    description: { en: 'Power, contact, throws', sv: 'Power, kontakt, kast' },
+    color: 'hover:border-rose-500 hover:bg-rose-50',
+  },
+  {
+    id: 'TEAM_FLOORBALL',
+    icon: '🏑',
+    label: { en: 'Floorball', sv: 'Innebandy' },
+    description: { en: 'Shift fitness and agility', sv: 'Byteskondition och agility' },
+    color: 'hover:border-lime-500 hover:bg-lime-50',
+  },
+  {
+    id: 'TEAM_VOLLEYBALL',
+    icon: '🏐',
+    label: { en: 'Volleyball', sv: 'Volleyboll' },
+    description: { en: 'Jump power and shoulders', sv: 'Hoppkraft och axlar' },
+    color: 'hover:border-pink-500 hover:bg-pink-50',
+  },
+  {
+    id: 'TENNIS',
+    icon: '🎾',
+    label: { en: 'Tennis', sv: 'Tennis' },
+    description: { en: 'Footwork and match play', sv: 'Fotarbete och matchspel' },
+    color: 'hover:border-teal-500 hover:bg-teal-50',
+  },
+  {
+    id: 'PADEL',
+    icon: '🏓',
+    label: { en: 'Padel', sv: 'Padel' },
+    description: { en: 'Walls, rotation, reactions', sv: 'Väggspel, rotation, reaktion' },
+    color: 'hover:border-fuchsia-500 hover:bg-fuchsia-50',
+  },
 ]
 
 interface SportSelectorProps {

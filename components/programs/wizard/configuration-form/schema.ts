@@ -25,6 +25,12 @@ export const configSchema = z.object({
   // Swimming specific
   poolLength: z.enum(['25', '50']).optional(),
 
+  // Court, team and racket sports
+  courtPosition: z.string().optional(),
+  courtPlayStyle: z.string().optional(),
+  seasonPhase: z.enum(['off_season', 'pre_season', 'in_season', 'playoffs', 'tournament']).optional(),
+  matchesPerWeek: z.coerce.number().min(0).max(3).optional(),
+
   // Strength integration
   includeStrength: z.boolean(),
   strengthSessionsPerWeek: z.coerce.number().min(0).max(3),
@@ -85,6 +91,13 @@ export const configSchema = z.object({
     pullUps: z.coerce.number().optional(), // max reps
   }).optional(),
 
+  basketballSettings: z.record(z.unknown()).optional(),
+  handballSettings: z.record(z.unknown()).optional(),
+  floorballSettings: z.record(z.unknown()).optional(),
+  volleyballSettings: z.record(z.unknown()).optional(),
+  tennisSettings: z.record(z.unknown()).optional(),
+  padelSettings: z.record(z.unknown()).optional(),
+
   notes: z.string().optional(),
 })
 
@@ -97,6 +110,12 @@ export interface Client {
   sportProfile?: {
     hockeySettings?: Record<string, unknown> | null
     footballSettings?: Record<string, unknown> | null
+    basketballSettings?: Record<string, unknown> | null
+    handballSettings?: Record<string, unknown> | null
+    floorballSettings?: Record<string, unknown> | null
+    volleyballSettings?: Record<string, unknown> | null
+    tennisSettings?: Record<string, unknown> | null
+    padelSettings?: Record<string, unknown> | null
   } | null
 }
 

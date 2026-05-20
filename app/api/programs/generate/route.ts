@@ -83,6 +83,12 @@ export async function POST(request: NextRequest) {
             select: {
               hockeySettings: true,
               footballSettings: true,
+              basketballSettings: true,
+              handballSettings: true,
+              floorballSettings: true,
+              volleyballSettings: true,
+              tennisSettings: true,
+              padelSettings: true,
             },
           },
         },
@@ -184,6 +190,12 @@ export async function POST(request: NextRequest) {
         preferredActivities: body.preferredActivities,
         hockeySettings: body.hockeySettings ?? client.sportProfile?.hockeySettings ?? null,
         footballSettings: body.footballSettings ?? client.sportProfile?.footballSettings ?? null,
+        basketballSettings: body.basketballSettings ?? client.sportProfile?.basketballSettings ?? null,
+        handballSettings: body.handballSettings ?? client.sportProfile?.handballSettings ?? null,
+        floorballSettings: body.floorballSettings ?? client.sportProfile?.floorballSettings ?? null,
+        volleyballSettings: body.volleyballSettings ?? client.sportProfile?.volleyballSettings ?? null,
+        tennisSettings: body.tennisSettings ?? client.sportProfile?.tennisSettings ?? null,
+        padelSettings: body.padelSettings ?? client.sportProfile?.padelSettings ?? null,
 
         // Calendar constraints
         calendarConstraints: body.calendarConstraints,

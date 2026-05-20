@@ -53,6 +53,14 @@ export function DataSourceSelector({
     HYROX: { value: { en: 'Zones', sv: 'Zoner' }, unit: '' },
     GENERAL_FITNESS: { value: { en: 'Level', sv: 'Nivå' }, unit: '' },
     STRENGTH: { value: { en: 'Level', sv: 'Nivå' }, unit: '' },
+    TEAM_FOOTBALL: { value: { en: 'Profile', sv: 'Profil' }, unit: '' },
+    TEAM_ICE_HOCKEY: { value: { en: 'Profile', sv: 'Profil' }, unit: '' },
+    TEAM_BASKETBALL: { value: { en: 'Role', sv: 'Roll' }, unit: '' },
+    TEAM_HANDBALL: { value: { en: 'Position', sv: 'Position' }, unit: '' },
+    TEAM_FLOORBALL: { value: { en: 'Position', sv: 'Position' }, unit: '' },
+    TEAM_VOLLEYBALL: { value: { en: 'Position', sv: 'Position' }, unit: '' },
+    TENNIS: { value: { en: 'Style', sv: 'Stil' }, unit: '' },
+    PADEL: { value: { en: 'Side', sv: 'Sida' }, unit: '' },
   }
 
   const metric = sportLabels[sport] || { value: { en: 'Value', sv: 'Värde' }, unit: '' }

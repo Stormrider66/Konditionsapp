@@ -86,6 +86,12 @@ export interface WizardFormData {
 
   hockeySettings?: Record<string, unknown> | null
   footballSettings?: Record<string, unknown> | null
+  basketballSettings?: Record<string, unknown> | null
+  handballSettings?: Record<string, unknown> | null
+  floorballSettings?: Record<string, unknown> | null
+  volleyballSettings?: Record<string, unknown> | null
+  tennisSettings?: Record<string, unknown> | null
+  padelSettings?: Record<string, unknown> | null
 
   notes?: string
 }
@@ -139,6 +145,12 @@ export interface AthleteProfileData {
     swimmingSettings?: Record<string, unknown> | null
     hockeySettings?: Record<string, unknown> | null
     footballSettings?: Record<string, unknown> | null
+    basketballSettings?: Record<string, unknown> | null
+    handballSettings?: Record<string, unknown> | null
+    floorballSettings?: Record<string, unknown> | null
+    volleyballSettings?: Record<string, unknown> | null
+    tennisSettings?: Record<string, unknown> | null
+    padelSettings?: Record<string, unknown> | null
   } | null
 }
 
@@ -162,6 +174,12 @@ export interface ProgramContext {
   fitnessEstimate?: FitnessEstimate  // Fitness level for zone width adjustment
   hockeySettings?: Record<string, unknown> | null
   footballSettings?: Record<string, unknown> | null
+  basketballSettings?: Record<string, unknown> | null
+  handballSettings?: Record<string, unknown> | null
+  floorballSettings?: Record<string, unknown> | null
+  volleyballSettings?: Record<string, unknown> | null
+  tennisSettings?: Record<string, unknown> | null
+  padelSettings?: Record<string, unknown> | null
 }
 
 /**
@@ -254,6 +272,12 @@ export function buildProgramPrompt(context: ProgramContext): string {
     variant: 'markdown',
     hockeySettings: wizardData.hockeySettings ?? context.hockeySettings,
     footballSettings: wizardData.footballSettings ?? context.footballSettings,
+    basketballSettings: wizardData.basketballSettings ?? context.basketballSettings,
+    handballSettings: wizardData.handballSettings ?? context.handballSettings,
+    floorballSettings: wizardData.floorballSettings ?? context.floorballSettings,
+    volleyballSettings: wizardData.volleyballSettings ?? context.volleyballSettings,
+    tennisSettings: wizardData.tennisSettings ?? context.tennisSettings,
+    padelSettings: wizardData.padelSettings ?? context.padelSettings,
   })
 
   // Methodology
