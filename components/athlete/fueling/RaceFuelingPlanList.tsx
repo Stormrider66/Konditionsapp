@@ -169,7 +169,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
       setApplyResult({ planId, count: body.updatedCount ?? 0 })
       await loadPlans(undefined, false)
     } catch {
-      setError(text(locale, 'Kunde inte synka planen till kommande sessions', 'Could not sync the plan to upcoming sessions'))
+      setError(text(locale, 'Kunde inte synka planen till kommande pass', 'Could not sync the plan to upcoming sessions'))
     } finally {
       setApplyingId(null)
     }
