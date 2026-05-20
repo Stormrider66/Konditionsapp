@@ -34,16 +34,15 @@ import {
   History,
   GitBranch,
   GitCommit,
-  Copy,
   ChevronRight,
   Clock,
   User,
   FileEdit,
   Dumbbell,
-  ArrowRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
+import { useLocale } from 'next-intl';
 import { toast } from 'sonner';
 
 interface VersionHistoryEntry {
@@ -70,16 +69,103 @@ interface WorkoutVersionHistoryProps {
   onVersionChange?: () => void;
 }
 
-const CHANGE_TYPES = [
-  { value: 'MODIFIED', label: 'Allmän ändring' },
-  { value: 'MOVEMENTS_CHANGED', label: 'Rörelser ändrade' },
-  { value: 'SCALING_UPDATED', label: 'Skalning uppdaterad' },
-  { value: 'TIME_ADJUSTED', label: 'Tidsinställningar ändrade' },
-  { value: 'FORKED', label: 'Kopia skapad' },
-];
+type AppLocale = 'en' | 'sv';
 
-function getChangeTypeLabel(type: string): string {
-  return CHANGE_TYPES.find((t) => t.value === type)?.label || type;
+const CHANGE_TYPES = ['MODIFIED', 'MOVEMENTS_CHANGED', 'SCALING_UPDATED', 'TIME_ADJUSTED', 'FORKED'] as const;
+
+const changeTypeLabels: Record<AppLocale, Record<string, string>> = {
+  en: {
+    MODIFIED: 'General change',
+    MOVEMENTS_CHANGED: 'Movements changed',
+    SCALING_UPDATED: 'Scaling updated',
+    TIME_ADJUSTED: 'Timing adjusted',
+    FORKED: 'Copy created',
+  },
+  sv: {
+    MODIFIED: 'Allmän ändring',
+    MOVEMENTS_CHANGED: 'Rörelser ändrade',
+    SCALING_UPDATED: 'Skalning uppdaterad',
+    TIME_ADJUSTED: 'Tidsinställningar ändrade',
+    FORKED: 'Kopia skapad',
+  },
+};
+
+const labels: Record<AppLocale, {
+  changeNotesRequired: string;
+  copyCreated: string;
+  versionSaved: string;
+  saveVersionFailed: string;
+  genericError: string;
+  title: string;
+  currentVersion: string;
+  saveVersion: string;
+  dialogTitle: string;
+  dialogDescription: string;
+  changeType: string;
+  changeNotes: string;
+  changeNotesPlaceholder: string;
+  createCopy: string;
+  createCopyDescription: string;
+  cancel: string;
+  saving: string;
+  createCopyAction: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  relatedVersions: string;
+  changeLog: string;
+}> = {
+  en: {
+    changeNotesRequired: 'Enter a description of the change',
+    copyCreated: 'New version created',
+    versionSaved: 'Version saved',
+    saveVersionFailed: 'Could not save version',
+    genericError: 'Something went wrong',
+    title: 'Version history',
+    currentVersion: 'Current version',
+    saveVersion: 'Save version',
+    dialogTitle: 'Save version',
+    dialogDescription: 'Document changes or create a new copy of the workout.',
+    changeType: 'Change type',
+    changeNotes: 'Change description',
+    changeNotesPlaceholder: "e.g. 'Replaced pull-ups with ring rows for the scaled version'",
+    createCopy: 'Create new copy',
+    createCopyDescription: 'Creates a new workout based on this one instead of only logging the change',
+    cancel: 'Cancel',
+    saving: 'Saving...',
+    createCopyAction: 'Create copy',
+    emptyTitle: 'No version history yet',
+    emptyDescription: 'Save a version to start tracking changes',
+    relatedVersions: 'Related versions',
+    changeLog: 'Change log',
+  },
+  sv: {
+    changeNotesRequired: 'Ange en beskrivning av ändringen',
+    copyCreated: 'Ny version skapad',
+    versionSaved: 'Version sparad',
+    saveVersionFailed: 'Kunde inte spara version',
+    genericError: 'Något gick fel',
+    title: 'Versionshistorik',
+    currentVersion: 'Aktuell version',
+    saveVersion: 'Spara version',
+    dialogTitle: 'Spara version',
+    dialogDescription: 'Dokumentera ändringar eller skapa en ny kopia av passet.',
+    changeType: 'Typ av ändring',
+    changeNotes: 'Beskrivning av ändring',
+    changeNotesPlaceholder: "t.ex. 'Bytte ut pull-ups mot ring rows för scaled version'",
+    createCopy: 'Skapa ny kopia',
+    createCopyDescription: 'Skapar ett nytt pass baserat på detta, istället för att bara logga ändringen',
+    cancel: 'Avbryt',
+    saving: 'Sparar...',
+    createCopyAction: 'Skapa kopia',
+    emptyTitle: 'Ingen versionshistorik ännu',
+    emptyDescription: 'Spara en version för att börja spåra ändringar',
+    relatedVersions: 'Relaterade versioner',
+    changeLog: 'Ändringslogg',
+  },
+};
+
+function getChangeTypeLabel(type: string, locale: AppLocale): string {
+  return changeTypeLabels[locale][type] || type;
 }
 
 function getChangeTypeIcon(type: string) {
@@ -97,10 +183,13 @@ function getChangeTypeIcon(type: string) {
 
 export function WorkoutVersionHistory({
   workoutId,
-  workoutName,
+  workoutName: _workoutName,
   currentVersion,
   onVersionChange,
 }: WorkoutVersionHistoryProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = labels[locale];
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const [loading, setLoading] = useState(true);
   const [versionHistory, setVersionHistory] = useState<VersionHistoryEntry[]>([]);
   const [relatedVersions, setRelatedVersions] = useState<RelatedVersion[]>([]);
@@ -127,12 +216,12 @@ export function WorkoutVersionHistory({
   }, [workoutId]);
 
   useEffect(() => {
-    fetchVersionHistory();
+    void fetchVersionHistory();
   }, [fetchVersionHistory]);
 
   async function handleCreateVersion() {
     if (!changeNotes.trim() && !createCopy) {
-      toast.error('Ange en beskrivning av ändringen');
+      toast.error(copy.changeNotesRequired);
       return;
     }
 
@@ -150,11 +239,11 @@ export function WorkoutVersionHistory({
 
       if (response.ok) {
         const data = await response.json();
-        toast.success(createCopy ? 'Ny version skapad' : 'Version sparad');
+        toast.success(createCopy ? copy.copyCreated : copy.versionSaved);
         setIsCreateDialogOpen(false);
         setChangeNotes('');
         setCreateCopy(false);
-        fetchVersionHistory();
+        void fetchVersionHistory();
         onVersionChange?.();
 
         if (createCopy && data.workout?.id) {
@@ -162,11 +251,11 @@ export function WorkoutVersionHistory({
         }
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Kunde inte spara version');
+        toast.error(error.error || copy.saveVersionFailed);
       }
     } catch (error) {
       console.error('Failed to create version:', error);
-      toast.error('Något gick fel');
+      toast.error(copy.genericError);
     } finally {
       setCreating(false);
     }
@@ -179,10 +268,10 @@ export function WorkoutVersionHistory({
           <div>
             <CardTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
-              Versionshistorik
+              {copy.title}
             </CardTitle>
             <CardDescription>
-              Aktuell version: v{currentVersion}
+              {copy.currentVersion}: v{currentVersion}
             </CardDescription>
           </div>
 
@@ -190,28 +279,28 @@ export function WorkoutVersionHistory({
             <DialogTrigger asChild>
               <Button size="sm" variant="outline">
                 <GitCommit className="h-4 w-4 mr-2" />
-                Spara version
+                {copy.saveVersion}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Spara version</DialogTitle>
+                <DialogTitle>{copy.dialogTitle}</DialogTitle>
                 <DialogDescription>
-                  Dokumentera ändringar eller skapa en ny kopia av passet.
+                  {copy.dialogDescription}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Typ av ändring</Label>
+                  <Label>{copy.changeType}</Label>
                   <Select value={changeType} onValueChange={setChangeType}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {CHANGE_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                        <SelectItem key={type} value={type}>
+                          {getChangeTypeLabel(type, locale)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -219,12 +308,12 @@ export function WorkoutVersionHistory({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="changeNotes">Beskrivning av ändring</Label>
+                  <Label htmlFor="changeNotes">{copy.changeNotes}</Label>
                   <Textarea
                     id="changeNotes"
                     value={changeNotes}
                     onChange={(e) => setChangeNotes(e.target.value)}
-                    placeholder="t.ex. 'Bytte ut pull-ups mot ring rows för scaled version'"
+                    placeholder={copy.changeNotesPlaceholder}
                     rows={3}
                   />
                 </div>
@@ -239,10 +328,10 @@ export function WorkoutVersionHistory({
                   />
                   <div>
                     <Label htmlFor="createCopy" className="cursor-pointer">
-                      Skapa ny kopia
+                      {copy.createCopy}
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Skapar ett nytt pass baserat på detta, istället för att bara logga ändringen
+                      {copy.createCopyDescription}
                     </p>
                   </div>
                 </div>
@@ -250,10 +339,10 @@ export function WorkoutVersionHistory({
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Avbryt
+                  {copy.cancel}
                 </Button>
                 <Button onClick={handleCreateVersion} disabled={creating}>
-                  {creating ? 'Sparar...' : createCopy ? 'Skapa kopia' : 'Spara version'}
+                  {creating ? copy.saving : createCopy ? copy.createCopyAction : copy.saveVersion}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -270,9 +359,9 @@ export function WorkoutVersionHistory({
         ) : versionHistory.length === 0 && relatedVersions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <History className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p>Ingen versionshistorik ännu</p>
+            <p>{copy.emptyTitle}</p>
             <p className="text-sm mt-2">
-              Spara en version för att börja spåra ändringar
+              {copy.emptyDescription}
             </p>
           </div>
         ) : (
@@ -282,7 +371,7 @@ export function WorkoutVersionHistory({
               <div>
                 <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                   <GitBranch className="h-4 w-4" />
-                  Relaterade versioner
+                  {copy.relatedVersions}
                 </h4>
                 <div className="space-y-2">
                   {relatedVersions.map((version) => (
@@ -316,7 +405,7 @@ export function WorkoutVersionHistory({
               <div>
                 <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Ändringslogg
+                  {copy.changeLog}
                 </h4>
                 <ScrollArea className="h-[300px] pr-4">
                   <div className="relative">
@@ -324,7 +413,7 @@ export function WorkoutVersionHistory({
                     <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-border" />
 
                     <div className="space-y-4">
-                      {versionHistory.map((entry, index) => (
+                      {versionHistory.map((entry) => (
                         <div key={entry.id} className="relative flex gap-4">
                           {/* Timeline dot */}
                           <div className="relative z-10 flex h-6 w-6 items-center justify-center rounded-full bg-background border-2 border-muted">
@@ -338,7 +427,7 @@ export function WorkoutVersionHistory({
                                 v{entry.versionNumber}
                               </Badge>
                               <span className="text-sm font-medium">
-                                {getChangeTypeLabel(entry.changeType)}
+                                {getChangeTypeLabel(entry.changeType, locale)}
                               </span>
                             </div>
                             {entry.changeNotes && (
@@ -349,7 +438,7 @@ export function WorkoutVersionHistory({
                             <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {format(new Date(entry.createdAt), 'PPp', { locale: sv })}
+                                {format(new Date(entry.createdAt), 'PPp', { locale: dateLocale })}
                               </span>
                               {entry.changedBy && (
                                 <span className="flex items-center gap-1">
