@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useLocale } from 'next-intl'
 import {
   useBusinessAdminContext,
   useBusinessAdminHeaders,
@@ -64,11 +65,25 @@ interface CoachSummary {
   athleteCount: number
 }
 
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
+  )
+}
+
 // ---------- Component ----------
 
 export function BusinessCoachAssignmentsTab() {
   const { businessId } = useBusinessAdminContext()
   const businessHeaders = useBusinessAdminHeaders()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = useCallback((en: string, sv: string) => locale === 'sv' ? sv : en, [locale])
+  const athleteCountLabel = useCallback(
+    (count: number) => copy(`${count} ${count === 1 ? 'athlete' : 'athletes'}`, `${count} ${count === 1 ? 'atlet' : 'atleter'}`),
+    [copy],
+  )
 
   // Pending requests
   const [requests, setRequests] = useState<CoachRequest[]>([])
@@ -175,9 +190,9 @@ export function BusinessCoachAssignmentsTab() {
   }, [businessId, businessHeaders])
 
   useEffect(() => {
-    fetchRequests()
-    fetchUnassigned()
-    fetchCoaches()
+    void fetchRequests()
+    void fetchUnassigned()
+    void fetchCoaches()
   }, [fetchRequests, fetchUnassigned, fetchCoaches])
 
   // ---------- Actions ----------
@@ -195,14 +210,14 @@ export function BusinessCoachAssignmentsTab() {
       )
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || 'Kunde inte acceptera förfrågan')
+        throw new Error(body.error || copy('Could not accept request', 'Kunde inte acceptera förfrågan'))
       }
       // Refresh all sections
-      fetchRequests()
-      fetchUnassigned()
-      fetchCoaches()
+      void fetchRequests()
+      void fetchUnassigned()
+      void fetchCoaches()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setRequestActionLoading(null)
     }
@@ -221,11 +236,11 @@ export function BusinessCoachAssignmentsTab() {
       )
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || 'Kunde inte avvisa förfrågan')
+        throw new Error(body.error || copy('Could not reject request', 'Kunde inte avvisa förfrågan'))
       }
-      fetchRequests()
+      void fetchRequests()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setRequestActionLoading(null)
     }
@@ -258,28 +273,20 @@ export function BusinessCoachAssignmentsTab() {
       )
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || 'Kunde inte tilldela coach')
+        throw new Error(body.error || copy('Could not assign coach', 'Kunde inte tilldela coach'))
       }
       setAssignDialogOpen(false)
       setSelectedAthlete(null)
       setSelectedCoachId('')
       // Refresh
-      fetchUnassigned()
-      fetchCoaches()
+      void fetchUnassigned()
+      void fetchCoaches()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setAssignLoading(false)
     }
   }
-
-  // ---------- Loading spinner ----------
-
-  const Spinner = () => (
-    <div className="flex items-center justify-center py-8">
-      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-    </div>
-  )
 
   // ---------- Render ----------
 
@@ -297,15 +304,15 @@ export function BusinessCoachAssignmentsTab() {
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-sm">Väntande coach-förfrågningar</CardTitle>
+            <CardTitle className="text-sm">{copy('Pending coach requests', 'Väntande coach-förfrågningar')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           {requestsLoading ? (
-            <Spinner />
+            <LoadingSpinner />
           ) : requests.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Inga väntande förfrågningar
+              {copy('No pending requests', 'Inga väntande förfrågningar')}
             </p>
           ) : (
             <div className="space-y-3">
@@ -341,7 +348,7 @@ export function BusinessCoachAssignmentsTab() {
                       ) : (
                         <>
                           <Check className="h-4 w-4 mr-1" />
-                          Acceptera
+                          {copy('Accept', 'Acceptera')}
                         </>
                       )}
                     </Button>
@@ -357,7 +364,7 @@ export function BusinessCoachAssignmentsTab() {
                       ) : (
                         <>
                           <X className="h-4 w-4 mr-1" />
-                          Avvisa
+                          {copy('Reject', 'Avvisa')}
                         </>
                       )}
                     </Button>
@@ -374,15 +381,15 @@ export function BusinessCoachAssignmentsTab() {
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-sm">Ej tilldelade atleter</CardTitle>
+            <CardTitle className="text-sm">{copy('Unassigned athletes', 'Ej tilldelade atleter')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           {unassignedLoading ? (
-            <Spinner />
+            <LoadingSpinner />
           ) : unassigned.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Alla atleter har en coach
+              {copy('All athletes have a coach', 'Alla atleter har en coach')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -416,7 +423,7 @@ export function BusinessCoachAssignmentsTab() {
                     onClick={() => openAssignDialog(athlete)}
                   >
                     <ArrowRight className="h-4 w-4 mr-1" />
-                    Tilldela coach
+                    {copy('Assign coach', 'Tilldela coach')}
                   </Button>
                 </div>
               ))}
@@ -429,35 +436,35 @@ export function BusinessCoachAssignmentsTab() {
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tilldela coach</DialogTitle>
+            <DialogTitle>{copy('Assign coach', 'Tilldela coach')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <p className="text-sm text-muted-foreground">Atlet</p>
+              <p className="text-sm text-muted-foreground">{copy('Athlete', 'Atlet')}</p>
               <p className="font-medium text-sm">
                 {selectedAthlete?.name || selectedAthlete?.email}
               </p>
             </div>
             <Separator />
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Välj coach</p>
+              <p className="text-sm text-muted-foreground">{copy('Select coach', 'Välj coach')}</p>
               {coachesLoading ? (
-                <Spinner />
+                <LoadingSpinner />
               ) : coaches.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Inga coaches tillgängliga
+                  {copy('No coaches available', 'Inga coaches tillgängliga')}
                 </p>
               ) : (
                 <Select value={selectedCoachId} onValueChange={setSelectedCoachId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Välj en coach..." />
+                    <SelectValue placeholder={copy('Select a coach...', 'Välj en coach...')} />
                   </SelectTrigger>
                   <SelectContent>
                     {coaches.map((coach) => (
                       <SelectItem key={coach.id} value={coach.id}>
                         {coach.name || coach.email}{' '}
                         <span className="text-muted-foreground">
-                          ({coach.athleteCount} atleter)
+                          ({athleteCountLabel(coach.athleteCount)})
                         </span>
                       </SelectItem>
                     ))}
@@ -468,7 +475,7 @@ export function BusinessCoachAssignmentsTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
-              Avbryt
+              {copy('Cancel', 'Avbryt')}
             </Button>
             <Button
               onClick={handleAssignAthlete}
@@ -479,7 +486,7 @@ export function BusinessCoachAssignmentsTab() {
               ) : (
                 <UserPlus className="h-4 w-4 mr-2" />
               )}
-              Tilldela
+              {copy('Assign', 'Tilldela')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -490,15 +497,15 @@ export function BusinessCoachAssignmentsTab() {
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-sm">Nuvarande tilldelningar</CardTitle>
+            <CardTitle className="text-sm">{copy('Current assignments', 'Nuvarande tilldelningar')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           {coachesLoading ? (
-            <Spinner />
+            <LoadingSpinner />
           ) : coachSummaries.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Inga coaches i verksamheten
+              {copy('No coaches in the business', 'Inga coaches i verksamheten')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -521,7 +528,7 @@ export function BusinessCoachAssignmentsTab() {
                     </div>
                   </div>
                   <Badge variant="secondary">
-                    {coach.athleteCount} {coach.athleteCount === 1 ? 'atlet' : 'atleter'}
+                    {athleteCountLabel(coach.athleteCount)}
                   </Badge>
                 </div>
               ))}
