@@ -128,7 +128,7 @@ describe('POST /api/coach/staff', () => {
     await expect(response.json()).resolves.toEqual({
       success: true,
       userId: 'staff-1',
-      roleLabel: 'Fysioterapeut',
+      roleLabel: 'Physiotherapist',
     })
     expect(mockInviteUserToBusiness).toHaveBeenCalled()
     expect(mockTeamCoachAssignmentCreate).toHaveBeenCalledTimes(2)

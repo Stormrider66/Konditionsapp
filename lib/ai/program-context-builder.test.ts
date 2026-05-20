@@ -24,9 +24,9 @@ describe('buildProgramPrompt team sport context', () => {
 
     const prompt = buildProgramPrompt(context)
 
-    expect(prompt).toContain('ISHOCKEYSPECIFIK PROFIL')
+    expect(prompt).toContain('ICE HOCKEY CONTEXT')
     expect(prompt).toContain('goalie')
-    expect(prompt).toContain('Undvik hård off-ice kondition')
+    expect(prompt).toContain('avoid hard off-ice conditioning')
   })
 
   it('includes football settings in the generated prompt', () => {
@@ -52,9 +52,9 @@ describe('buildProgramPrompt team sport context', () => {
 
     const prompt = buildProgramPrompt(context)
 
-    expect(prompt).toContain('FOTBOLLSSPECIFIK PROFIL')
+    expect(prompt).toContain('FOOTBALL CONTEXT')
     expect(prompt).toContain('forward')
-    expect(prompt).toContain('MD+1 återhämtning')
+    expect(prompt).toContain('MD+1 recovery')
   })
 
   it('includes court and racket sport settings in the generated prompt', () => {
@@ -78,8 +78,8 @@ describe('buildProgramPrompt team sport context', () => {
 
     const prompt = buildProgramPrompt(context)
 
-    expect(prompt).toContain('TENNISSPECIFIK PROFIL')
+    expect(prompt).toContain('TENNIS CONTEXT')
     expect(prompt).toContain('aggressive_baseliner')
-    expect(prompt).toContain('poängintervaller')
+    expect(prompt).toContain('point intervals')
   })
 })

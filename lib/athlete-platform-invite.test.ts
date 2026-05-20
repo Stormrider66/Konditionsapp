@@ -99,7 +99,7 @@ describe('sendAthletePlatformInvite', () => {
       emailSent: false,
       emailPaused: true,
       email: 'alex@example.com',
-      error: 'Utgående e-post är pausad',
+      error: 'Outbound email is paused',
     })
   })
 })
