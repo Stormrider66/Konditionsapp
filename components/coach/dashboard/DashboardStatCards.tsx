@@ -59,60 +59,42 @@ function DashboardStatCard({
   }
 
   const cardContent = (
-    <div className={cn(
-      "relative flex flex-col p-6 rounded-[2rem] group transition-all duration-300 border h-full overflow-hidden min-h-[150px]",
-      "bg-white/85 dark:bg-slate-900/60 backdrop-blur-xl border-slate-200/80 dark:border-white/10 shadow-xl",
-      "hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-2xl",
-      accentColor === 'blue' && 'hover:shadow-blue-500/10',
-      accentColor === 'emerald' && 'hover:shadow-emerald-500/10',
-      accentColor === 'purple' && 'hover:shadow-purple-500/10',
-      accentColor === 'amber' && 'hover:shadow-amber-500/10',
-      accentColor === 'red' && 'hover:shadow-red-500/10',
-      accentColor === 'teal' && 'hover:shadow-teal-500/10',
-      accentColor === 'slate' && 'hover:shadow-slate-500/10'
-    )}>
-      {/* Background radial glow */}
-      <div className={cn(
-        "absolute -top-12 -right-12 w-24 h-24 rounded-full blur-2xl opacity-10 transition-opacity group-hover:opacity-25",
-        accentColor === 'blue' && 'bg-blue-500',
-        accentColor === 'emerald' && 'bg-emerald-500',
-        accentColor === 'purple' && 'bg-purple-500',
-        accentColor === 'amber' && 'bg-amber-500',
-        accentColor === 'red' && 'bg-red-500',
-        accentColor === 'teal' && 'bg-teal-500',
-        accentColor === 'slate' && 'bg-slate-500'
-      )} />
+    <GlassCard
+      glow={accentColor}
+      className="group hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-2xl flex flex-col h-full min-h-[150px]"
+    >
+      <div className="relative flex flex-col p-6 h-full w-full">
+        {/* Top row */}
+        <div className="flex items-center justify-between mb-4 w-full relative z-10">
+          <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest transition-colors">
+            {title}
+          </span>
+          <div className={cn(
+            "w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 shadow-sm",
+            accentClasses[accentColor].split(' ').slice(0, 3).join(' ')
+          )}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
 
-      {/* Top row */}
-      <div className="flex items-center justify-between mb-4 w-full relative z-10">
-        <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest transition-colors">
-          {title}
-        </span>
-        <div className={cn(
-          "w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 shadow-sm",
-          accentClasses[accentColor].split(' ').slice(0, 3).join(' ')
-        )}>
-          <Icon className="h-5 w-5" />
+        {/* Value */}
+        <div className="mb-4 relative z-10 flex items-baseline">
+          {typeof value === 'string' || typeof value === 'number' ? (
+            <span className="text-4xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-none transition-colors">
+              {value}
+            </span>
+          ) : (
+            value
+          )}
+        </div>
+
+        {/* Bottom Subtext */}
+        <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-auto pt-3 border-t border-slate-100/50 dark:border-white/5 w-full flex items-center justify-between">
+          <span className="truncate pr-2">{subtext}</span>
+          {linkHref && <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />}
         </div>
       </div>
-
-      {/* Value */}
-      <div className="mb-4 relative z-10 flex items-baseline">
-        {typeof value === 'string' || typeof value === 'number' ? (
-          <span className="text-4xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-none transition-colors">
-            {value}
-          </span>
-        ) : (
-          value
-        )}
-      </div>
-
-      {/* Bottom Subtext */}
-      <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-auto pt-3 border-t border-slate-100/50 dark:border-white/5 w-full flex items-center justify-between">
-        <span className="truncate pr-2">{subtext}</span>
-        {linkHref && <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />}
-      </div>
-    </div>
+    </GlassCard>
   )
 
   if (linkHref) {
