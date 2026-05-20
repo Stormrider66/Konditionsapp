@@ -21,6 +21,7 @@ import {
   TENNIS_BENCHMARKS,
   getPlayStyleRecommendations,
   getSurfaceConsiderations,
+  translateTennisText,
 } from '@/lib/training-engine/tennis'
 
 interface TennisDashboardProps {
@@ -149,7 +150,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
 
   // Get surface considerations
   const surfaceConsiderations = settings.preferredSurface !== 'all'
-    ? getSurfaceConsiderations(settings.preferredSurface as 'hard' | 'clay' | 'grass' | 'indoor')
+    ? getSurfaceConsiderations(settings.preferredSurface as 'hard' | 'clay' | 'grass' | 'indoor', locale)
     : []
 
   return (
@@ -216,7 +217,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
-                    {item}
+                    {translateTennisText(locale, item)}
                   </Badge>
                 ))}
               </div>
@@ -224,11 +225,11 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 bg-muted rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">{text(locale, 'Styrka', 'Strength')}</div>
-                <div className="text-sm">{seasonPhase.strengthEmphasis}</div>
+                <div className="text-sm">{translateTennisText(locale, seasonPhase.strengthEmphasis)}</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">{text(locale, 'Kondition', 'Conditioning')}</div>
-                <div className="text-sm">{seasonPhase.conditioningEmphasis}</div>
+                <div className="text-sm">{translateTennisText(locale, seasonPhase.conditioningEmphasis)}</div>
               </div>
             </div>
           </div>
@@ -371,9 +372,9 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4" />
-            {text(locale, 'Spelstilsprofil:', 'Play style profile:')} {playStyleProfile.displayName}
+            {text(locale, 'Spelstilsprofil:', 'Play style profile:')} {translateTennisText(locale, playStyleProfile.displayName)}
           </CardTitle>
-          <CardDescription>{playStyleProfile.description}</CardDescription>
+          <CardDescription>{translateTennisText(locale, playStyleProfile.description)}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -402,7 +403,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
             <div className="flex flex-wrap gap-1">
               {playStyleProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
-                  {attr}
+                  {translateTennisText(locale, attr)}
                 </Badge>
               ))}
             </div>
@@ -425,14 +426,14 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
               <div key={i} className="p-3 border rounded-lg">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium text-sm">{exercise.name}</div>
-                    <div className="text-xs text-muted-foreground">{exercise.setsReps}</div>
+                    <div className="font-medium text-sm">{translateTennisText(locale, exercise.name)}</div>
+                    <div className="text-xs text-muted-foreground">{translateTennisText(locale, exercise.setsReps)}</div>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {exercise.category}
+                    {translateTennisText(locale, exercise.category)}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">{exercise.notes}</div>
+                <div className="text-xs text-muted-foreground mt-2">{translateTennisText(locale, exercise.notes)}</div>
               </div>
             ))}
           </div>

@@ -22,6 +22,7 @@ import {
   TENNIS_BENCHMARKS,
   getPlayStyleRecommendations,
   getSurfaceConsiderations,
+  translateTennisText,
   type TennisPlayStyle,
 } from '@/lib/training-engine/tennis'
 import { SportTestHistory } from '@/components/tests/shared'
@@ -221,7 +222,7 @@ export function TennisAthleteView({
 
   // Get surface considerations
   const surfaceConsiderations = settings.preferredSurface !== 'all'
-    ? getSurfaceConsiderations(settings.preferredSurface as 'hard' | 'clay' | 'grass' | 'indoor')
+    ? getSurfaceConsiderations(settings.preferredSurface as 'hard' | 'clay' | 'grass' | 'indoor', locale)
     : []
 
   return (
@@ -298,7 +299,7 @@ export function TennisAthleteView({
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
-                    {item}
+                    {translateTennisText(locale, item)}
                   </Badge>
                 ))}
               </div>
@@ -306,11 +307,11 @@ export function TennisAthleteView({
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 rounded-lg" style={{ backgroundColor: theme.colors.backgroundAccent }}>
                 <div className="text-xs mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Styrka', 'Strength')}</div>
-                <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{seasonPhase.strengthEmphasis}</div>
+                <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{translateTennisText(locale, seasonPhase.strengthEmphasis)}</div>
               </div>
               <div className="p-3 rounded-lg" style={{ backgroundColor: theme.colors.backgroundAccent }}>
                 <div className="text-xs mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'Kondition', 'Conditioning')}</div>
-                <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{seasonPhase.conditioningEmphasis}</div>
+                <div className="text-sm" style={{ color: theme.colors.textPrimary }}>{translateTennisText(locale, seasonPhase.conditioningEmphasis)}</div>
               </div>
             </div>
           </div>
@@ -452,9 +453,9 @@ export function TennisAthleteView({
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <TrendingUp className="h-4 w-4" />
-            {t(locale, 'Spelstilsprofil:', 'Play-style profile:')} {playStyleProfile.displayName}
+            {t(locale, 'Spelstilsprofil:', 'Play-style profile:')} {translateTennisText(locale, playStyleProfile.displayName)}
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>{playStyleProfile.description}</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{translateTennisText(locale, playStyleProfile.description)}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -483,7 +484,7 @@ export function TennisAthleteView({
             <div className="flex flex-wrap gap-1">
               {playStyleProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
-                  {attr}
+                  {translateTennisText(locale, attr)}
                 </Badge>
               ))}
             </div>
@@ -506,14 +507,14 @@ export function TennisAthleteView({
               <div key={i} className="p-3 border rounded-lg" style={{ borderColor: theme.colors.border }}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>{exercise.name}</div>
-                    <div className="text-xs" style={{ color: theme.colors.textMuted }}>{exercise.setsReps}</div>
+                    <div className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>{translateTennisText(locale, exercise.name)}</div>
+                    <div className="text-xs" style={{ color: theme.colors.textMuted }}>{translateTennisText(locale, exercise.setsReps)}</div>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {exercise.category}
+                    {translateTennisText(locale, exercise.category)}
                   </Badge>
                 </div>
-                <div className="text-xs mt-2" style={{ color: theme.colors.textMuted }}>{exercise.notes}</div>
+                <div className="text-xs mt-2" style={{ color: theme.colors.textMuted }}>{translateTennisText(locale, exercise.notes)}</div>
               </div>
             ))}
           </div>
@@ -619,8 +620,8 @@ export function TennisAthleteView({
         <CardContent>
           <div className="space-y-2 text-sm" style={{ color: theme.colors.textMuted }}>
             <p>
-              <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Spelstil:', 'Play style:')}</strong> {t(locale, 'Som', 'As')} {playStyleProfile.displayName.toLowerCase()} {t(locale, 'bör', 'should')} {clientName} {t(locale, 'fokusera på', 'focus on')}{' '}
-              {playStyleProfile.keyPhysicalAttributes.slice(0, 3).join(', ').toLowerCase()}.
+              <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Spelstil:', 'Play style:')}</strong> {t(locale, 'Som', 'As')} {translateTennisText(locale, playStyleProfile.displayName).toLowerCase()} {t(locale, 'bör', 'should')} {clientName} {t(locale, 'fokusera på', 'focus on')}{' '}
+              {playStyleProfile.keyPhysicalAttributes.map((attr) => translateTennisText(locale, attr)).slice(0, 3).join(', ').toLowerCase()}.
             </p>
             <p>
               <strong style={{ color: theme.colors.textPrimary }}>{t(locale, 'Matchbelastning:', 'Match load:')}</strong> {t(locale, 'Typisk matchbelastning för spelstilen innebär', 'Typical match load for the play style includes')}{' '}

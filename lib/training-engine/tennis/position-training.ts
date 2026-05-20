@@ -68,6 +68,170 @@ export interface PhysicalBenchmarks {
   gripStrength: number | null; // kg
 }
 
+export type TennisLocale = 'en' | 'sv';
+
+const ENGLISH_PHRASES: Record<string, string> = {
+  'Aggressiv Baslinjespelare': 'Aggressive baseliner',
+  'Serve-Volleyspelare': 'Serve-and-volley player',
+  Allroundspelare: 'All-court player',
+  'Defensiv Spelare': 'Counterpuncher',
+  Servkung: 'Big server',
+  'Dominerar från baslinjen med kraftfulla grundslag. Söker att diktera rallys och avsluta poäng med winners från backcourt.': 'Dominates from the baseline with powerful groundstrokes. Looks to dictate rallies and finish points with winners from the backcourt.',
+  'Attackerar nätet efter serven. Förlitar sig på stark serve och snabba reflexer vid nät. Kort poängbyggnad.': 'Attacks the net after serving. Relies on a strong serve and quick reflexes at the net. Builds short points.',
+  'Mångsidig spelare som anpassar sig till alla situationer. Kan spela från baslinjen och nätet. Taktiskt intelligent.': 'Versatile player who adapts to every situation. Can play from the baseline and at the net. Tactically intelligent.',
+  'Utmärkt försvarare som returnerar allt. Väntar på motståndarens misstag. Hög mental uthållighet och löpkapacitet.': 'Excellent defender who gets everything back. Waits for the opponent to make mistakes. High mental endurance and running capacity.',
+  'Förlitar sig på kraftfull serve som huvudvapen. Bygger spelet kring servepoäng och korta rallys.': 'Relies on a powerful serve as the main weapon. Builds play around serve points and short rallies.',
+  'Explosiv kraft': 'Explosive power',
+  Rotatsstyrka: 'Rotational strength',
+  'Lateralt snabbhet': 'Lateral speed',
+  Uthållighet: 'Endurance',
+  Corestabilitet: 'Core stability',
+  Servestyrka: 'Serve strength',
+  Reaktionssnabbhet: 'Reaction speed',
+  Explosivitet: 'Explosiveness',
+  Handledsflexibilitet: 'Wrist flexibility',
+  'Första steget': 'First step',
+  'Allsidig kondition': 'All-round conditioning',
+  Spelförståelse: 'Game understanding',
+  Balans: 'Balance',
+  Rörlighet: 'Mobility',
+  'Mental styrka': 'Mental strength',
+  Snabbhet: 'Speed',
+  Återhämtningsförmåga: 'Recovery ability',
+  Löpkapacitet: 'Running capacity',
+  Axelstabilitet: 'Shoulder stability',
+  'Höjd/Räckvidd': 'Height/reach',
+  Slagkraft: 'Shot power',
+  'Laterala förflyttningar': 'Lateral movements',
+  'Snabba riktningsändringar': 'Fast direction changes',
+  Rotation: 'Rotation',
+  Framåtrush: 'Forward rush',
+  'Snabb acceleration': 'Fast acceleration',
+  'Alla riktningar': 'All directions',
+  Positionsväxlingar: 'Position switches',
+  'Varierad hastighet': 'Varied speed',
+  Anpassning: 'Adaptation',
+  'Långa sprints': 'Long sprints',
+  Sidledsförflyttning: 'Lateral movement',
+  'Djupa returer': 'Deep returns',
+  'Kontinuerlig rörelse': 'Continuous movement',
+  'Vertikal rörelse': 'Vertical movement',
+  'Kort ansats': 'Short approach',
+  'Nätapproach': 'Net approach',
+  Grundstyrka: 'Base strength',
+  'Aerob bas': 'Aerobic base',
+  Skadeförebyggande: 'Injury prevention',
+  Teknikutveckling: 'Technique development',
+  Rehabilitering: 'Rehabilitation',
+  'Tennisspecifik kondition': 'Tennis-specific conditioning',
+  Matchsimulering: 'Match simulation',
+  Taktik: 'Tactics',
+  Styrkeunderhåll: 'Strength maintenance',
+  Återhämtning: 'Recovery',
+  Matchförberedelse: 'Match preparation',
+  'Taktisk anpassning': 'Tactical adaptation',
+  'Peak performance': 'Peak performance',
+  'Mental förberedelse': 'Mental preparation',
+  'Taktisk perfektion': 'Tactical precision',
+  'Maximal återhämtning': 'Maximum recovery',
+  'Hypertrofi och maxstyrka med fokus på bål, ben och axlar': 'Hypertrophy and maximum strength focused on trunk, legs, and shoulders',
+  'Aerob basträning och gradvis uppbyggnad av intensitet': 'Aerobic base training and gradual intensity build-up',
+  'Kraftutveckling och rotationsstyrka för slag': 'Power development and rotational strength for shots',
+  'Intervallträning och tennisspecifika löpövningar': 'Interval training and tennis-specific running drills',
+  'Underhåll av styrka och explosivitet med låg volym': 'Strength and explosiveness maintenance with low volume',
+  'Matchspecifik kondition och aktiv återhämtning': 'Match-specific conditioning and active recovery',
+  'Endast aktiveringsövningar och lätt underhåll': 'Activation drills and light maintenance only',
+  'Lätt rörelse och återhämtning mellan matcher': 'Light movement and recovery between matches',
+  Rotatorkuff: 'Rotator cuff',
+  Mobilitet: 'Mobility',
+  Scapula: 'Scapula',
+  Stabilitet: 'Stability',
+  Styrka: 'Strength',
+  Rehab: 'Rehab',
+  Core: 'Core',
+  Kontroll: 'Control',
+  Power: 'Power',
+  Plyometrics: 'Plyometrics',
+  Reaktion: 'Reaction',
+  Kvickhet: 'Agility',
+  Kondition: 'Conditioning',
+  'External rotation med band': 'Band external rotation',
+  '3x30s per sida': '3x30s per side',
+  '2x10 per position': '2x10 per position',
+  '3x12 per riktning': '3x12 per direction',
+  '3x10 per sida': '3x10 per side',
+  '3x8 per sida': '3x8 per side',
+  '3x8 per ben': '3x8 per leg',
+  '3x30s per ben': '3x30s per leg',
+  '2 set per fot': '2 sets per foot',
+  '3x15 per ben': '3x15 per leg',
+  '3x8 per riktning': '3x8 per direction',
+  '2 rundor': '2 rounds',
+  'Armbågen vid sidan': 'Elbow at the side',
+  'Försiktig posterior kapselstretch': 'Gentle posterior capsule stretch',
+  'Fokus på scapula protraction': 'Focus on scapular protraction',
+  'Liggande på mage': 'Prone position',
+  'Med lätt vikt': 'With light weight',
+  'Både flexion och extension': 'Both flexion and extension',
+  'Långsam excentrisk fas': 'Slow eccentric phase',
+  'För lateral epikondylit': 'For lateral epicondylitis',
+  'Kontrollerad rörelse': 'Controlled movement',
+  'Ryggen i golvet': 'Back on the floor',
+  'Flödande rörelse': 'Flowing movement',
+  'Kontrollerad rotation': 'Controlled rotation',
+  'Fokus på knäkontroll': 'Focus on knee control',
+  'Excentrisk fokus': 'Eccentric focus',
+  'Med band': 'With band',
+  Kontrollerad: 'Controlled',
+  'Progressivt instabilt underlag': 'Progressively unstable surface',
+  'Full ROM': 'Full ROM',
+  'Rita alla bokstäver': 'Draw every letter',
+  'Band runt fotleder': 'Band around ankles',
+  'Försiktig stretch': 'Gentle stretch',
+  'Öppna/stäng händer': 'Open/close hands',
+  'Maximal rotation': 'Maximum rotation',
+  'Kraftig avfärd': 'Powerful push-off',
+  'Kontrollerad kraft': 'Controlled power',
+  Servespecifik: 'Serve-specific',
+  'Maximal acceleration': 'Maximum acceleration',
+  'Alla plan': 'All planes',
+  'Varierade mönster': 'Varied patterns',
+  'Anti-rotation': 'Anti-rotation',
+  'Korta pauser': 'Short rests',
+  'Låg position': 'Low position',
+  Tennistempo: 'Tennis pace',
+  'Tung boll': 'Heavy ball',
+  'Rotatorkuff fokus': 'Rotator cuff focus',
+  'Maximal höjd': 'Maximum height',
+  'Låg matchbelastning - kan öka volymen': 'Low match load - can increase volume',
+  'Hög matchbelastning - prioritera återhämtning': 'High match load - prioritize recovery',
+  'Optimal matchbelastning': 'Optimal match load',
+  'Högre belastning på leder - prioritera mjuka skor': 'Higher joint load - prioritize cushioned shoes',
+  'Snabbare tempo - kortare återhämtningstid mellan slag': 'Faster pace - shorter recovery time between shots',
+  'Viktigare med stötdämpning och fotledsstabilitet': 'Shock absorption and ankle stability are more important',
+  'Längre rallys - fokus på uthållighet': 'Longer rallies - focus on endurance',
+  'Glidteknik viktigt - träna specifik fotwork': 'Sliding technique matters - train specific footwork',
+  'Lägre skaderisk men högre konditionskrav': 'Lower injury risk but higher conditioning demands',
+  'Snabbare spel - reaktionssnabbhet prioriterat': 'Faster play - prioritize reaction speed',
+  'Låg studs - anpassa slagteknik': 'Low bounce - adapt shot technique',
+  'Halkrisk - bra skor och fotledsstabilitet': 'Slip risk - use good shoes and ankle stability',
+  'Konsekvent studs - förutsägbart spel': 'Consistent bounce - predictable play',
+  'Ofta snabbare tempo': 'Often faster pace',
+  'Viktigt med luftkonditionering och vätskeintag': 'Air conditioning and hydration are important',
+};
+
+export function getTennisLocale(locale: string): TennisLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+export function translateTennisText(locale: string, value: string): string {
+  return getTennisLocale(locale) === 'sv' ? value : ENGLISH_PHRASES[value] ?? value;
+}
+
+export function translateTennisList(locale: string, values: string[]): string[] {
+  return values.map((value) => translateTennisText(locale, value));
+}
+
 // Match data interface
 export interface MatchData {
   matchId: string;
@@ -550,7 +714,7 @@ export function calculateWeeklyMatchLoad(matches: MatchData[]): number {
 }
 
 // Get load recommendation based on play style
-export function getLoadRecommendation(weeklyMinutes: number, playStyle: TennisPlayStyle): string {
+export function getLoadRecommendation(weeklyMinutes: number, playStyle: TennisPlayStyle, locale: string = 'en'): string {
   const thresholds: Record<TennisPlayStyle, { low: number; high: number }> = {
     aggressive_baseliner: { low: 300, high: 720 },
     serve_and_volleyer: { low: 280, high: 660 },
@@ -561,13 +725,13 @@ export function getLoadRecommendation(weeklyMinutes: number, playStyle: TennisPl
 
   const { low, high } = thresholds[playStyle];
 
-  if (weeklyMinutes < low) return 'Låg matchbelastning - kan öka volymen';
-  if (weeklyMinutes > high) return 'Hög matchbelastning - prioritera återhämtning';
-  return 'Optimal matchbelastning';
+  if (weeklyMinutes < low) return translateTennisText(locale, 'Låg matchbelastning - kan öka volymen');
+  if (weeklyMinutes > high) return translateTennisText(locale, 'Hög matchbelastning - prioritera återhämtning');
+  return translateTennisText(locale, 'Optimal matchbelastning');
 }
 
 // Surface-specific considerations
-export function getSurfaceConsiderations(surface: 'hard' | 'clay' | 'grass' | 'indoor'): string[] {
+export function getSurfaceConsiderations(surface: 'hard' | 'clay' | 'grass' | 'indoor', locale: string = 'en'): string[] {
   const considerations: Record<string, string[]> = {
     hard: [
       'Högre belastning på leder - prioritera mjuka skor',
@@ -591,7 +755,7 @@ export function getSurfaceConsiderations(surface: 'hard' | 'clay' | 'grass' | 'i
     ],
   };
 
-  return considerations[surface] || [];
+  return translateTennisList(locale, considerations[surface] || []);
 }
 
 const tennisExports = {
@@ -610,6 +774,9 @@ const tennisExports = {
   calculateWeeklyMatchLoad,
   getLoadRecommendation,
   getSurfaceConsiderations,
+  getTennisLocale,
+  translateTennisText,
+  translateTennisList,
 };
 
 export default tennisExports;

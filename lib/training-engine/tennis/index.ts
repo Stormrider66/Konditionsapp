@@ -21,6 +21,9 @@ export {
   calculateWeeklyMatchLoad,
   getLoadRecommendation,
   getSurfaceConsiderations,
+  getTennisLocale,
+  translateTennisText,
+  translateTennisList,
 } from './position-training';
 
 export type {
@@ -32,4 +35,5 @@ export type {
   TournamentProtocol,
   PhysicalBenchmarks,
   MatchData,
+  TennisLocale,
 } from './position-training';
