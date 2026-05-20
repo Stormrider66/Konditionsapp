@@ -9,7 +9,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 import {
   TrendingUp,
   TrendingDown,
@@ -29,8 +29,11 @@ interface ComparisonResultCardProps {
   className?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
 export function ComparisonResultCard({ result, className }: ComparisonResultCardProps) {
   const t = useTranslations('components.comparisonResultCard')
+  const locale = useLocale() as AppLocale
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -42,7 +45,7 @@ export function ComparisonResultCard({ result, className }: ComparisonResultCard
             <CardTitle>{t('title')}</CardTitle>
           </div>
           <CardDescription>
-            {formatDate(result.comparison.testDates.previous)} → {formatDate(result.comparison.testDates.current)}
+            {formatDate(result.comparison.testDates.previous, locale)} → {formatDate(result.comparison.testDates.current, locale)}
             <span className="ml-2 text-muted-foreground">
               ({result.comparison.testDates.daysBetween} {t('days')})
             </span>
@@ -229,8 +232,8 @@ function StatCard({ label, value }: { label: string; value: string }) {
   )
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('sv-SE', {
+function formatDate(dateStr: string, locale: AppLocale): string {
+  return new Date(dateStr).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
