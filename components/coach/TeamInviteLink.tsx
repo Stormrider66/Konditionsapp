@@ -6,6 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Link2, Copy, RefreshCw, Loader2, Check } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
+
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface TeamInviteLinkProps {
   teamId: string
@@ -20,6 +25,7 @@ interface Invite {
 }
 
 export function TeamInviteLink({ teamId }: TeamInviteLinkProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [invite, setInvite] = useState<Invite | null>(null)
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -40,7 +46,7 @@ export function TeamInviteLink({ teamId }: TeamInviteLinkProps) {
   }, [teamId])
 
   useEffect(() => {
-    fetchInvite()
+    void fetchInvite()
   }, [fetchInvite])
 
   const createInvite = useCallback(async () => {
@@ -56,22 +62,22 @@ export function TeamInviteLink({ teamId }: TeamInviteLinkProps) {
 
       const data = await res.json()
       setInvite(data.invite)
-      toast.success('Inbjudningslänk skapad!')
+      toast.success(copy(locale, 'Invite link created!', 'Inbjudningslänk skapad!'))
     } catch {
-      toast.error('Kunde inte skapa inbjudan')
+      toast.error(copy(locale, 'Could not create invite', 'Kunde inte skapa inbjudan'))
     } finally {
       setCreating(false)
     }
-  }, [teamId])
+  }, [locale, teamId])
 
   const copyLink = useCallback(() => {
     if (!invite) return
     const url = `${window.location.origin}/join/${invite.code}`
-    navigator.clipboard.writeText(url)
+    void navigator.clipboard.writeText(url)
     setCopied(true)
-    toast.success('Länk kopierad!')
+    toast.success(copy(locale, 'Link copied!', 'Länk kopierad!'))
     setTimeout(() => setCopied(false), 2000)
-  }, [invite])
+  }, [invite, locale])
 
   if (loading) return null
 
@@ -89,7 +95,7 @@ export function TeamInviteLink({ teamId }: TeamInviteLinkProps) {
         ) : (
           <Link2 className="h-3.5 w-3.5" />
         )}
-        Skapa inbjudningslänk
+        {copy(locale, 'Create invite link', 'Skapa inbjudningslänk')}
       </Button>
     )
   }
@@ -102,7 +108,7 @@ export function TeamInviteLink({ teamId }: TeamInviteLinkProps) {
     return (
       <div className="flex items-center gap-2">
         <Badge variant="secondary" className="text-[10px]">
-          {isExpired ? 'Utgången' : 'Full'}
+          {isExpired ? copy(locale, 'Expired', 'Utgången') : copy(locale, 'Full', 'Full')}
         </Badge>
         <Button
           variant="outline"
@@ -112,7 +118,7 @@ export function TeamInviteLink({ teamId }: TeamInviteLinkProps) {
           className="h-7 text-xs"
         >
           <RefreshCw className="h-3 w-3 mr-1" />
-          Ny länk
+          {copy(locale, 'New link', 'Ny länk')}
         </Button>
       </div>
     )
@@ -137,7 +143,7 @@ export function TeamInviteLink({ teamId }: TeamInviteLinkProps) {
         ) : (
           <Copy className="h-3 w-3" />
         )}
-        {copied ? 'Kopierad' : 'Kopiera'}
+        {copied ? copy(locale, 'Copied', 'Kopierad') : copy(locale, 'Copy', 'Kopiera')}
       </Button>
       <Badge variant="outline" className="text-[9px] flex-shrink-0">
         {invite.currentUses}/{invite.maxUses}
