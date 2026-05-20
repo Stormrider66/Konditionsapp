@@ -9,7 +9,7 @@
 
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Card,
   CardContent,
@@ -42,6 +42,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 
 export interface OversightAction {
   id: string
@@ -143,6 +144,8 @@ export function AgentOversightCard({
   isProcessing = false,
 }: AgentOversightCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
 
   const typeConfig = actionTypeConfig[action.actionType] || {
     icon: <Bot className="h-4 w-4" />,
@@ -159,7 +162,7 @@ export function AgentOversightCard({
 
   const timeAgo = formatDistanceToNow(new Date(action.proposedAt), {
     addSuffix: true,
-    locale: sv,
+    locale: dateLocale,
   })
 
   return (

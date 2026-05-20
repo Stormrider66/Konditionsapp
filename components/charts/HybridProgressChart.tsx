@@ -9,7 +9,7 @@
 
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
 import {
   LineChart,
   Line,
@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, TrendingUp, TrendingDown, Clock, Target, Dumbbell } from 'lucide-react';
-import { useTranslations } from '@/i18n/client';
+import { useLocale, useTranslations } from '@/i18n/client';
 
 export interface HybridWorkoutResultData {
   id: string;
@@ -117,6 +117,8 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
   const [selectedWorkout, setSelectedWorkout] = useState<string>('all');
   const [scoreFilter, setScoreFilter] = useState<string>('all');
   const t = useTranslations('components.charts.hybridProgress');
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
+  const dateLocale = locale === 'sv' ? sv : enUS;
 
   const labels = {
     time: t('series.time'),
@@ -159,8 +161,8 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
   const timelineData = useMemo(() => {
     return filteredResults.map((r) => ({
       id: r.id,
-      date: format(new Date(r.workoutDate || r.completedAt), 'dd MMM', { locale: sv }),
-      fullDate: format(new Date(r.workoutDate || r.completedAt), 'PPP', { locale: sv }),
+      date: format(new Date(r.workoutDate || r.completedAt), 'dd MMM', { locale: dateLocale }),
+      fullDate: format(new Date(r.workoutDate || r.completedAt), 'PPP', { locale: dateLocale }),
       workoutName: r.workoutName,
       timeScore: r.timeScore,
       roundsReps:
@@ -176,7 +178,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
       isPR: r.isPR,
       perceivedEffort: r.perceivedEffort,
     }));
-  }, [filteredResults]);
+  }, [dateLocale, filteredResults]);
 
   // Benchmark comparison data - same workout over time
   const benchmarkData = useMemo(() => {
@@ -220,13 +222,13 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
     }
 
     return filteredResults.map((r) => ({
-      date: format(new Date(r.workoutDate || r.completedAt), 'dd MMM', { locale: sv }),
+      date: format(new Date(r.workoutDate || r.completedAt), 'dd MMM', { locale: dateLocale }),
       score: getNumericScore(r),
       scoreType: r.scoreType,
       isPR: r.isPR,
       scalingLevel: r.scalingLevel,
     }));
-  }, [results, filteredResults, selectedWorkout]);
+  }, [dateLocale, results, filteredResults, selectedWorkout]);
 
   // Volume data - workouts per week/month
   const volumeData = useMemo(() => {
@@ -235,7 +237,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
     results.forEach((r) => {
       const date = new Date(r.workoutDate || r.completedAt);
       const weekStart = getWeekStart(date);
-      const key = format(weekStart, 'dd MMM', { locale: sv });
+      const key = format(weekStart, 'dd MMM', { locale: dateLocale });
 
       weeklyVolume.set(key, (weeklyVolume.get(key) || 0) + 1);
     });
@@ -243,7 +245,7 @@ export function HybridProgressChart({ results, athleteName }: HybridProgressChar
     return Array.from(weeklyVolume.entries())
       .map(([week, count]) => ({ week, workouts: count }))
       .slice(-12); // Last 12 weeks
-  }, [results]);
+  }, [dateLocale, results]);
 
   // Effort distribution
   const effortData = useMemo(() => {
