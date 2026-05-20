@@ -128,7 +128,183 @@ const intensityColors: Record<string, string> = {
 
 // Day names mapping
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
-const dayLabels = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  dayLabels: string[]
+  parseErrorTitle: string
+  parseErrorDescription: string
+  fixing: string
+  fixFormat: string
+  excelExportedTitle: string
+  excelExportedDescription: string
+  pdfExportedTitle: string
+  pdfExportedDescription: string
+  exportErrorTitle: string
+  unknownError: string
+  addFourWeekPhase: string
+  addPhase: string
+  week: string
+  weeksLower: string
+  keyWorkouts: string
+  phaseActions: string
+  duplicatePhase: string
+  deletePhase: string
+  deletePhaseConfirm: (phaseName: string) => string
+  weeklySchedule: string
+  rest: string
+  removeWorkout: string
+  addWorkout: string
+  volumeGuidance: string
+  unsavedChanges: string
+  list: string
+  calendar: string
+  published: string
+  viewProgram: string
+  draftSavedTitle: string
+  draftSavedDescription: string
+  saveDraft: string
+  publish: string
+  incompleteStrong: string
+  incompleteDescription: string
+  selectAthletePublishHint: string
+  type: string
+  name: string
+  workoutNamePlaceholder: string
+  durationMin: string
+  intensity: string
+  cancel: string
+  add: string
+  workoutTypes: Record<string, string>
+  intensities: Record<string, string>
+}> = {
+  en: {
+    dayLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    parseErrorTitle: 'The program could not be parsed',
+    parseErrorDescription:
+      'The AI response contains program data, but the JSON format is invalid or incomplete, likely cut off by the token limit. Use "Fix format" to ask the AI to regenerate the program in the correct format.',
+    fixing: 'Fixing...',
+    fixFormat: 'Fix format',
+    excelExportedTitle: 'Excel exported!',
+    excelExportedDescription: 'The training program has been downloaded as an Excel file.',
+    pdfExportedTitle: 'PDF exported!',
+    pdfExportedDescription: 'The training program has been downloaded as a PDF.',
+    exportErrorTitle: 'Could not export',
+    unknownError: 'Unknown error',
+    addFourWeekPhase: 'Add phase (4 weeks)',
+    addPhase: 'Add phase',
+    week: 'Week',
+    weeksLower: 'weeks',
+    keyWorkouts: 'key workouts',
+    phaseActions: 'Phase actions',
+    duplicatePhase: 'Duplicate phase',
+    deletePhase: 'Delete phase',
+    deletePhaseConfirm: (phaseName) => `Delete phase "${phaseName}"?`,
+    weeklySchedule: 'Weekly schedule:',
+    rest: 'Rest',
+    removeWorkout: 'Remove workout',
+    addWorkout: 'Add workout',
+    volumeGuidance: 'Volume guidance:',
+    unsavedChanges: 'Unsaved changes',
+    list: 'List',
+    calendar: 'Calendar',
+    published: 'Published!',
+    viewProgram: 'View program',
+    draftSavedTitle: 'Draft saved',
+    draftSavedDescription: 'Changes are saved automatically during the session.',
+    saveDraft: 'Save draft',
+    publish: 'Publish',
+    incompleteStrong: 'The program is incomplete.',
+    incompleteDescription: 'The AI did not generate the correct JSON format.',
+    selectAthletePublishHint: 'Choose an athlete in the context panel before publishing the program',
+    type: 'Type',
+    name: 'Name',
+    workoutNamePlaceholder: 'e.g. Easy run',
+    durationMin: 'Duration (min)',
+    intensity: 'Intensity',
+    cancel: 'Cancel',
+    add: 'Add',
+    workoutTypes: {
+      RUNNING: 'Running',
+      CYCLING: 'Cycling',
+      SWIMMING: 'Swimming',
+      STRENGTH: 'Strength',
+      CROSS_TRAINING: 'Cross-training',
+      RECOVERY: 'Recovery',
+      HYROX: 'HYROX',
+      REHAB: 'Rehab',
+    },
+    intensities: {
+      easy: 'Easy',
+      moderate: 'Moderate',
+      hard: 'Hard',
+      race_pace: 'Race pace',
+    },
+  },
+  sv: {
+    dayLabels: ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'],
+    parseErrorTitle: 'Programmet kunde inte tolkas',
+    parseErrorDescription:
+      'AI:ns svar innehåller programdata men JSON-formatet är ogiltigt eller ofullständigt (troligen avklippt av tokensgränsen). Använd "Fixa format" för att be AI:n generera om programmet i korrekt format.',
+    fixing: 'Fixar...',
+    fixFormat: 'Fixa format',
+    excelExportedTitle: 'Excel exporterad!',
+    excelExportedDescription: 'Träningsprogrammet har laddats ner som Excel-fil.',
+    pdfExportedTitle: 'PDF exporterad!',
+    pdfExportedDescription: 'Träningsprogrammet har laddats ner som PDF.',
+    exportErrorTitle: 'Kunde inte exportera',
+    unknownError: 'Okänt fel',
+    addFourWeekPhase: 'Lägg till fas (4 veckor)',
+    addPhase: 'Lägg till fas',
+    week: 'Vecka',
+    weeksLower: 'veckor',
+    keyWorkouts: 'nyckelpass',
+    phaseActions: 'Fasåtgärder',
+    duplicatePhase: 'Duplicera fas',
+    deletePhase: 'Ta bort fas',
+    deletePhaseConfirm: (phaseName) => `Ta bort fasen "${phaseName}"?`,
+    weeklySchedule: 'Veckoschema:',
+    rest: 'Vila',
+    removeWorkout: 'Ta bort pass',
+    addWorkout: 'Lägg till pass',
+    volumeGuidance: 'Volymvägledning:',
+    unsavedChanges: 'Osparade ändringar',
+    list: 'Lista',
+    calendar: 'Kalender',
+    published: 'Publicerat!',
+    viewProgram: 'Visa program',
+    draftSavedTitle: 'Utkast sparat',
+    draftSavedDescription: 'Ändringar sparas automatiskt under sessionen.',
+    saveDraft: 'Spara utkast',
+    publish: 'Publicera',
+    incompleteStrong: 'Programmet är ofullständigt.',
+    incompleteDescription: 'AI:n genererade inte korrekt JSON-format.',
+    selectAthletePublishHint: 'Välj en atlet i kontextpanelen för att kunna publicera programmet',
+    type: 'Typ',
+    name: 'Namn',
+    workoutNamePlaceholder: 'T.ex. Lätt löpning',
+    durationMin: 'Varaktighet (min)',
+    intensity: 'Intensitet',
+    cancel: 'Avbryt',
+    add: 'Lägg till',
+    workoutTypes: {
+      RUNNING: 'Löpning',
+      CYCLING: 'Cykling',
+      SWIMMING: 'Simning',
+      STRENGTH: 'Styrka',
+      CROSS_TRAINING: 'Crosstraining',
+      RECOVERY: 'Återhämtning',
+      HYROX: 'HYROX',
+      REHAB: 'Rehab',
+    },
+    intensities: {
+      easy: 'Lätt',
+      moderate: 'Måttlig',
+      hard: 'Hård',
+      race_pace: 'Tävlingstempo',
+    },
+  },
+}
 
 interface DraftProgram {
   name: string
@@ -156,7 +332,8 @@ export function EnhancedProgramPreview({
   isFixingFormat,
 }: EnhancedProgramPreviewProps) {
   const { toast } = useToast()
-  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -435,11 +612,10 @@ export function EnhancedProgramPreview({
             <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                Programmet kunde inte tolkas
+                {copy.parseErrorTitle}
               </div>
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                AI:ns svar innehåller programdata men JSON-formatet är ogiltigt eller ofullständigt (troligen avklippt av tokensgränsen).
-                Använd &quot;Fixa format&quot; för att be AI:n generera om programmet i korrekt format.
+                {copy.parseErrorDescription}
               </p>
               <div className="flex gap-2 pt-1">
                 {onFixFormat && (
@@ -453,12 +629,12 @@ export function EnhancedProgramPreview({
                     {isFixingFormat ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Fixar...
+                        {copy.fixing}
                       </>
                     ) : (
                       <>
                         <Wand2 className="h-4 w-4 mr-1" />
-                        Fixa format
+                        {copy.fixFormat}
                       </>
                     )}
                   </Button>
@@ -516,13 +692,13 @@ export function EnhancedProgramPreview({
         locale,
       })
       toast({
-        title: 'Excel exporterad!',
-        description: 'Träningsprogrammet har laddats ner som Excel-fil.',
+        title: copy.excelExportedTitle,
+        description: copy.excelExportedDescription,
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte exportera',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.exportErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
     } finally {
@@ -550,13 +726,13 @@ export function EnhancedProgramPreview({
       const filename = generateProgramPDFFilename(draft.name)
       downloadProgramPDF(pdfBlob, filename)
       toast({
-        title: 'PDF exporterad!',
-        description: 'Träningsprogrammet har laddats ner som PDF.',
+        title: copy.pdfExportedTitle,
+        description: copy.pdfExportedDescription,
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte exportera',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy.exportErrorTitle,
+        description: error instanceof Error ? error.message : copy.unknownError,
         variant: 'destructive',
       })
     } finally {
@@ -733,7 +909,7 @@ export function EnhancedProgramPreview({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-2 grid grid-cols-7 gap-1">
-                {dayLabels.map((label, idx) => (
+                {copy.dayLabels.map((label, idx) => (
                   <div key={label} className="text-center">
                     <div className="text-xs font-medium text-muted-foreground mb-1">
                       {label}
@@ -767,7 +943,7 @@ export function EnhancedProgramPreview({
           className="w-full border-dashed"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Lägg till fas (4 veckor)
+          {copy.addFourWeekPhase}
         </Button>
       </div>
     )
@@ -794,13 +970,13 @@ export function EnhancedProgramPreview({
                   <div className="text-left">
                     <div className="font-medium">{phase.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      Vecka {phase.weeks} - {phase.focus}
+                      {copy.week} {phase.weeks} - {phase.focus}
                     </div>
                   </div>
                 </div>
                 {phase.keyWorkouts && phase.keyWorkouts.length > 0 && (
                   <Badge variant="outline" className="text-xs">
-                    {phase.keyWorkouts.length} nyckelpass
+                    {phase.keyWorkouts.length} {copy.keyWorkouts}
                   </Badge>
                 )}
               </button>
@@ -811,7 +987,7 @@ export function EnhancedProgramPreview({
                   variant="outline"
                   size="icon"
                   className="shrink-0 bg-white"
-                  title="Fasåtgärder"
+                  title={copy.phaseActions}
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
@@ -819,18 +995,18 @@ export function EnhancedProgramPreview({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => duplicatePhase(index)}>
                   <Copy className="h-4 w-4 mr-2" />
-                  Duplicera fas
+                  {copy.duplicatePhase}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-600 focus:text-red-700"
                   onClick={() => {
-                    if (confirm(`Ta bort fasen "${phase.name}"?`)) {
+                    if (confirm(copy.deletePhaseConfirm(phase.name))) {
                       removePhase(index)
                     }
                   }}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Ta bort fas
+                  {copy.deletePhase}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -840,9 +1016,9 @@ export function EnhancedProgramPreview({
               {/* Weekly Template */}
               {phase.weeklyTemplate && (
                 <div>
-                  <div className="text-sm font-medium mb-2">Veckoschema:</div>
+                  <div className="text-sm font-medium mb-2">{copy.weeklySchedule}</div>
                   <div className="grid grid-cols-7 gap-1 text-xs">
-                    {dayLabels.map((day, dayIndex) => {
+                    {copy.dayLabels.map((day, dayIndex) => {
                       const workout = phase.weeklyTemplate?.[dayNames[dayIndex]]
                       const isRest = workout?.type === 'REST'
                       const isEditable = workout && !isRest
@@ -870,7 +1046,7 @@ export function EnhancedProgramPreview({
                               )}
                               <div className="truncate mt-0.5 text-[10px]">
                                 {workout.type === 'REST'
-                                  ? 'Vila'
+                                  ? copy.rest
                                   : 'name' in workout
                                   ? workout.name
                                   : workout.type}
@@ -885,7 +1061,7 @@ export function EnhancedProgramPreview({
                                   removeWorkoutFromDay(index, dayNames[dayIndex])
                                 }}
                                 className="absolute -top-1 -left-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-red-500 text-white h-4 w-4 flex items-center justify-center hover:bg-red-600"
-                                title="Ta bort pass"
+                                title={copy.removeWorkout}
                               >
                                 <X className="h-2.5 w-2.5" />
                               </button>
@@ -899,7 +1075,7 @@ export function EnhancedProgramPreview({
                                 setAddWorkoutTarget({ phaseIndex: index, dayName: dayNames[dayIndex] })
                               }}
                               className="mt-1 w-full flex items-center justify-center rounded border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition py-1"
-                              title="Lägg till pass"
+                              title={copy.addWorkout}
                             >
                               <Plus className="h-3 w-3" />
                             </button>
@@ -914,7 +1090,7 @@ export function EnhancedProgramPreview({
               {/* Key Workouts */}
               {phase.keyWorkouts && phase.keyWorkouts.length > 0 && (
                 <div>
-                  <div className="text-sm font-medium mb-2">Nyckelpass:</div>
+                  <div className="text-sm font-medium mb-2">{copy.keyWorkouts}:</div>
                   <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                     {phase.keyWorkouts.map((workout, i) => (
                       <li key={i}>{workout}</li>
@@ -926,7 +1102,7 @@ export function EnhancedProgramPreview({
               {/* Volume Guidance */}
               {phase.volumeGuidance && (
                 <div className="text-sm">
-                  <span className="font-medium">Volymvägledning: </span>
+                  <span className="font-medium">{copy.volumeGuidance} </span>
                   <span className="text-muted-foreground">
                     {phase.volumeGuidance}
                   </span>
@@ -951,7 +1127,7 @@ export function EnhancedProgramPreview({
         className="w-full border-dashed"
       >
         <Plus className="h-4 w-4 mr-2" />
-        Lägg till fas
+        {copy.addPhase}
       </Button>
     </div>
   )
@@ -971,7 +1147,7 @@ export function EnhancedProgramPreview({
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="outline">
-              {draft.totalWeeks} veckor
+              {draft.totalWeeks} {copy.weeksLower}
             </Badge>
             {draft.methodology && (
               <Badge variant="secondary">
@@ -980,7 +1156,7 @@ export function EnhancedProgramPreview({
             )}
             {isDirty && (
               <Badge variant="outline" className="text-amber-600 border-amber-300">
-                Osparade ändringar
+                {copy.unsavedChanges}
               </Badge>
             )}
           </div>
@@ -1001,11 +1177,11 @@ export function EnhancedProgramPreview({
           <TabsList className="grid w-full max-w-[200px] grid-cols-2">
             <TabsTrigger value="list" className="text-xs">
               <List className="h-3 w-3 mr-1" />
-              Lista
+              {copy.list}
             </TabsTrigger>
             <TabsTrigger value="calendar" className="text-xs">
               <CalendarDays className="h-3 w-3 mr-1" />
-              Kalender
+              {copy.calendar}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -1016,19 +1192,19 @@ export function EnhancedProgramPreview({
             <div className="text-2xl font-bold text-blue-600">
               {draft.totalWeeks}
             </div>
-            <div className="text-xs text-muted-foreground">Veckor</div>
+            <div className="text-xs text-muted-foreground">{copy.weeksLower}</div>
           </div>
           <div className="text-center p-3 bg-white rounded-lg border">
             <div className="text-2xl font-bold text-blue-600">
               {draft.phases.length}
             </div>
-            <div className="text-xs text-muted-foreground">Faser</div>
+            <div className="text-xs text-muted-foreground">{locale === 'sv' ? 'Faser' : 'Phases'}</div>
           </div>
           <div className="text-center p-3 bg-white rounded-lg border">
             <div className="text-2xl font-bold text-blue-600">
               {draft.weeklySchedule?.sessionsPerWeek || '?'}
             </div>
-            <div className="text-xs text-muted-foreground">Pass/vecka</div>
+            <div className="text-xs text-muted-foreground">{locale === 'sv' ? 'Pass/vecka' : 'Sessions/week'}</div>
           </div>
         </div>
 
@@ -1056,12 +1232,12 @@ export function EnhancedProgramPreview({
                 {exporting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Exporterar...
+                    {locale === 'sv' ? 'Exporterar...' : 'Exporting...'}
                   </>
                 ) : (
                   <>
                     <Download className="h-4 w-4 mr-2" />
-                    Exportera
+                    {locale === 'sv' ? 'Exportera' : 'Export'}
                   </>
                 )}
               </Button>
@@ -1084,14 +1260,14 @@ export function EnhancedProgramPreview({
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                 <span className="text-sm text-green-600 font-medium">
-                  Publicerat!
+                  {copy.published}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(`/coach/programs/${savedProgramId}`, '_blank')}
                 >
-                  Visa program
+                  {copy.viewProgram}
                 </Button>
               </div>
             ) : (
@@ -1101,14 +1277,14 @@ export function EnhancedProgramPreview({
                   size="sm"
                   onClick={() => {
                     toast({
-                      title: 'Utkast sparat',
-                      description: 'Ändringar sparas automatiskt under sessionen.',
+                      title: copy.draftSavedTitle,
+                      description: copy.draftSavedDescription,
                     })
                     setIsDirty(false)
                   }}
                   disabled={!isDirty}
                 >
-                  Spara utkast
+                  {copy.saveDraft}
                 </Button>
                 <Button
                   onClick={() => {
@@ -1122,7 +1298,7 @@ export function EnhancedProgramPreview({
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Send className="h-4 w-4 mr-2" />
-                  Publicera
+                  {copy.publish}
                 </Button>
               </>
             )}
@@ -1135,7 +1311,7 @@ export function EnhancedProgramPreview({
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
                 <div className="text-sm text-red-700">
-                  <strong>Programmet är ofullständigt.</strong> AI:n genererade inte korrekt JSON-format.
+                  <strong>{copy.incompleteStrong}</strong> {copy.incompleteDescription}
                 </div>
               </div>
               {onFixFormat && (
@@ -1149,12 +1325,12 @@ export function EnhancedProgramPreview({
                   {isFixingFormat ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      Fixar...
+                      {copy.fixing}
                     </>
                   ) : (
                     <>
                       <Wand2 className="h-4 w-4 mr-1" />
-                      Fixa format
+                      {copy.fixFormat}
                     </>
                   )}
                 </Button>
@@ -1165,7 +1341,7 @@ export function EnhancedProgramPreview({
 
         {!athleteId && !isIncomplete && (
           <p className="text-xs text-muted-foreground text-center mt-2">
-            Välj en atlet i kontextpanelen för att kunna publicera programmet
+            {copy.selectAthletePublishHint}
           </p>
         )}
 
@@ -1202,37 +1378,32 @@ export function EnhancedProgramPreview({
       <Dialog open={!!addWorkoutTarget} onOpenChange={(open) => { if (!open) setAddWorkoutTarget(null) }}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Lägg till pass</DialogTitle>
+            <DialogTitle>{copy.addWorkout}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Typ</Label>
+              <Label>{copy.type}</Label>
               <Select value={newWorkoutType} onValueChange={(v) => setNewWorkoutType(v as ParsedWorkout['type'])}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="RUNNING">Löpning</SelectItem>
-                  <SelectItem value="CYCLING">Cykling</SelectItem>
-                  <SelectItem value="SWIMMING">Simning</SelectItem>
-                  <SelectItem value="STRENGTH">Styrka</SelectItem>
-                  <SelectItem value="CROSS_TRAINING">Crosstraining</SelectItem>
-                  <SelectItem value="RECOVERY">Återhämtning</SelectItem>
-                  <SelectItem value="HYROX">HYROX</SelectItem>
-                  <SelectItem value="REHAB">Rehab</SelectItem>
+                  {Object.entries(copy.workoutTypes).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Namn</Label>
+              <Label>{copy.name}</Label>
               <Input
                 value={newWorkoutName}
                 onChange={(e) => setNewWorkoutName(e.target.value)}
-                placeholder="T.ex. Lätt löpning"
+                placeholder={copy.workoutNamePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label>Varaktighet (min)</Label>
+              <Label>{copy.durationMin}</Label>
               <Input
                 type="number"
                 value={newWorkoutDuration}
@@ -1242,27 +1413,26 @@ export function EnhancedProgramPreview({
               />
             </div>
             <div className="space-y-2">
-              <Label>Intensitet</Label>
+              <Label>{copy.intensity}</Label>
               <Select value={newWorkoutIntensity} onValueChange={setNewWorkoutIntensity}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="easy">Lätt</SelectItem>
-                  <SelectItem value="moderate">Måttlig</SelectItem>
-                  <SelectItem value="hard">Hård</SelectItem>
-                  <SelectItem value="race_pace">Tävlingstempo</SelectItem>
+                  {Object.entries(copy.intensities).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddWorkoutTarget(null)}>
-              Avbryt
+              {copy.cancel}
             </Button>
             <Button onClick={handleAddWorkout}>
               <Plus className="h-4 w-4 mr-1" />
-              Lägg till
+              {copy.add}
             </Button>
           </DialogFooter>
         </DialogContent>
