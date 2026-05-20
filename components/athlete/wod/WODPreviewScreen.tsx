@@ -14,8 +14,8 @@ import type {
   PreviewWorkoutData,
   WorkoutSection,
 } from '@/components/workouts/types'
-import type { WODResponse, WODSectionType } from '@/types/wod'
-import { WOD_LABELS } from '@/types/wod'
+import type { WODResponse, WODSectionType, WODWorkoutType } from '@/types/wod'
+import { useLocale } from '@/i18n/client'
 
 interface WODPreviewScreenProps {
   response: WODResponse
@@ -31,7 +31,40 @@ const SECTION_TO_PREVIEW: Record<WODSectionType, WorkoutSection> = {
   COOLDOWN: 'COOLDOWN',
 }
 
-function buildPreviewData(response: WODResponse): PreviewWorkoutData {
+type AppLocale = 'en' | 'sv'
+
+const WORKOUT_TYPE_LABELS: Record<WODWorkoutType, Record<AppLocale, string>> = {
+  strength: { en: 'Strength', sv: 'Styrka' },
+  cardio: { en: 'Cardio', sv: 'Kondition' },
+  mixed: { en: 'Mixed', sv: 'Mixat' },
+  core: { en: 'Core', sv: 'Core' },
+}
+
+const READINESS_MESSAGES: Record<AppLocale, {
+  high: string
+  medium: string
+  low: string
+  unknown: string
+}> = {
+  en: {
+    high: 'Your body is ready for a challenge.',
+    medium: 'Good day for moderate training.',
+    low: 'Focus on recovery today.',
+    unknown: 'No readiness data available.',
+  },
+  sv: {
+    high: 'Din kropp är redo för utmaning!',
+    medium: 'Bra dag för måttlig träning',
+    low: 'Fokusera på återhämtning idag',
+    unknown: 'Ingen beredskapsdata tillgänglig',
+  },
+}
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function buildPreviewData(response: WODResponse, locale: AppLocale): PreviewWorkoutData {
   const { metadata, workout } = response
   const exercises: PreviewExercise[] = []
   let orderIndex = 0
@@ -78,7 +111,7 @@ function buildPreviewData(response: WODResponse): PreviewWorkoutData {
 
   const tags: string[] = []
   if (metadata.workoutType) {
-    const label = WOD_LABELS.workoutTypes[metadata.workoutType]?.title
+    const label = WORKOUT_TYPE_LABELS[metadata.workoutType]?.[locale]
     if (label) tags.push(label)
   }
 
@@ -113,12 +146,12 @@ function buildPreviewData(response: WODResponse): PreviewWorkoutData {
       score: metadata.readinessScore ?? undefined,
       message:
         metadata.readinessScore === null
-          ? WOD_LABELS.readiness.unknown
+          ? READINESS_MESSAGES[locale].unknown
           : metadata.readinessScore >= 7
-            ? WOD_LABELS.readiness.high
+            ? READINESS_MESSAGES[locale].high
             : metadata.readinessScore >= 5
-              ? WOD_LABELS.readiness.medium
-              : WOD_LABELS.readiness.low,
+              ? READINESS_MESSAGES[locale].medium
+              : READINESS_MESSAGES[locale].low,
     },
   }
 }
@@ -129,7 +162,8 @@ export function WODPreviewScreen({
   onRegenerate,
   onClose,
 }: WODPreviewScreenProps) {
-  const data = useMemo(() => buildPreviewData(response), [response])
+  const locale = getAppLocale(useLocale())
+  const data = useMemo(() => buildPreviewData(response, locale), [response, locale])
 
   return (
     <WorkoutPreview
