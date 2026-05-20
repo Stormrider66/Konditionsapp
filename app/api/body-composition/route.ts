@@ -19,13 +19,14 @@ type AppLocale = 'en' | 'sv'
  * Create new body composition measurement
  */
 export async function POST(req: NextRequest) {
+  const locale = getRequestLocale(req)
+
   try {
-    const locale = getRequestLocale(req)
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const body = await req.json()
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     // Validate required fields
     if (!clientId || !measurementDate) {
       return NextResponse.json(
-        { error: 'Missing required fields: clientId, measurementDate' },
+        { error: t(locale, 'Missing required fields: clientId, measurementDate', 'Obligatoriska fält saknas: clientId, measurementDate') },
         { status: 400 }
       )
     }
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     // Calculate BMI if weight is provided
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
     logger.error('Error creating body composition', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -160,13 +161,14 @@ export async function POST(req: NextRequest) {
  * List all body composition measurements for a client
  */
 export async function GET(req: NextRequest) {
+  const locale = getRequestLocale(req)
+
   try {
-    const locale = getRequestLocale(req)
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { searchParams } = new URL(req.url)
@@ -175,7 +177,7 @@ export async function GET(req: NextRequest) {
     const includeAnalysis = searchParams.get('analysis') === 'true'
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'clientId is required', 'clientId krävs') }, { status: 400 })
     }
 
     // Get client for analysis
@@ -184,7 +186,7 @@ export async function GET(req: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     const measurements = await prisma.bodyComposition.findMany({
@@ -260,7 +262,7 @@ export async function GET(req: NextRequest) {
     logger.error('Error fetching body composition', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
