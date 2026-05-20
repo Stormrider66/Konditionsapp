@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Globe, RefreshCw, ShieldCheck, Trash2, AlertCircle, Copy, Check } from 'lucide-react'
+import { useLocale } from 'next-intl'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface CustomDomainData {
@@ -51,6 +52,8 @@ function CopyButton({ value }: { value: string }) {
 }
 
 export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = (en: string, sv: string) => locale === 'sv' ? sv : en
   const businessHeaders = useBusinessAdminHeaders()
   const [domainInput, setDomainInput] = useState('')
   const [busy, setBusy] = useState<'add' | 'verify' | 'remove' | null>(null)
@@ -75,12 +78,12 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
       })
       const json = await res.json()
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Kunde inte spara domänen')
+        throw new Error(json.error || copy('Could not save the domain', 'Kunde inte spara domänen'))
       }
       setDomainInput('')
       onChange()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setBusy(null)
     }
@@ -97,23 +100,23 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
       })
       const json = await res.json()
       if (res.ok && json.success) {
-        setVerifyMessage('Domänen är verifierad — det kan ta upp till 30 minuter innan SSL är aktivt.')
+        setVerifyMessage(copy('The domain is verified. SSL can take up to 30 minutes to become active.', 'Domänen är verifierad — det kan ta upp till 30 minuter innan SSL är aktivt.'))
         onChange()
       } else {
         throw new Error(
           json.error ||
-            'Vi hittar ingen TXT-post ännu. DNS kan ta upp till 30 min — försök igen.',
+            copy('We cannot find the TXT record yet. DNS can take up to 30 minutes. Try again.', 'Vi hittar ingen TXT-post ännu. DNS kan ta upp till 30 min — försök igen.'),
         )
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verifiering misslyckades')
+      setError(err instanceof Error ? err.message : copy('Verification failed', 'Verifiering misslyckades'))
     } finally {
       setBusy(null)
     }
   }
 
   const handleRemove = async () => {
-    if (!confirm('Ta bort den anpassade domänen? Du kan lägga till den igen senare.')) return
+    if (!confirm(copy('Remove the custom domain? You can add it again later.', 'Ta bort den anpassade domänen? Du kan lägga till den igen senare.'))) return
     setBusy('remove')
     setError(null)
     setVerifyMessage(null)
@@ -124,11 +127,11 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
-        throw new Error(json.error || 'Kunde inte ta bort domänen')
+        throw new Error(json.error || copy('Could not remove the domain', 'Kunde inte ta bort domänen'))
       }
       onChange()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setBusy(null)
     }
@@ -140,15 +143,15 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5" />
           <div>
-            <p className="text-sm font-medium">Anpassad domän</p>
+            <p className="text-sm font-medium">{copy('Custom domain', 'Anpassad domän')}</p>
             <p className="text-xs text-muted-foreground">
-              Låt dina coacher och atleter logga in på din egen adress, t.ex. <code>coach.dingym.se</code>
+              {copy('Let your coaches and athletes sign in on your own address, for example', 'Låt dina coacher och atleter logga in på din egen adress, t.ex.')} <code>coach.dingym.se</code>
             </p>
           </div>
         </div>
         {isConfigured && (
           <Badge variant={data.domainVerified ? 'default' : 'secondary'}>
-            {data.domainVerified ? 'Verifierad' : 'Väntar på DNS'}
+            {data.domainVerified ? copy('Verified', 'Verifierad') : copy('Waiting for DNS', 'Väntar på DNS')}
           </Badge>
         )}
       </div>
@@ -169,7 +172,7 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
 
       {!isConfigured ? (
         <div className="space-y-2">
-          <Label htmlFor="customDomain">Domän</Label>
+          <Label htmlFor="customDomain">{copy('Domain', 'Domän')}</Label>
           <div className="flex gap-2">
             <Input
               id="customDomain"
@@ -179,12 +182,14 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
               disabled={busy !== null}
             />
             <Button onClick={handleAdd} disabled={busy !== null || domainInput.trim().length < 4}>
-              {busy === 'add' ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Lägg till'}
+              {busy === 'add' ? <RefreshCw className="h-4 w-4 animate-spin" /> : copy('Add', 'Lägg till')}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Ange en subdomän du redan äger. Vi visar de DNS-poster du behöver lägga till hos din
-            registrar.
+            {copy(
+              'Enter a subdomain you already own. We will show the DNS records you need to add at your registrar.',
+              'Ange en subdomän du redan äger. Vi visar de DNS-poster du behöver lägga till hos din registrar.',
+            )}
           </p>
         </div>
       ) : (
@@ -193,7 +198,7 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
             <p className="text-sm font-medium">{data.customDomain}</p>
             {dnsRecords && (
               <div className="mt-3 space-y-2 text-xs">
-                <p className="font-medium">DNS-poster att lägga till hos din registrar:</p>
+                <p className="font-medium">{copy('DNS records to add at your registrar:', 'DNS-poster att lägga till hos din registrar:')}</p>
                 <div className="space-y-1 rounded bg-background p-2 font-mono">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1 truncate">
@@ -215,8 +220,10 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
                   </div>
                 </div>
                 <p className="text-muted-foreground">
-                  CNAME-posten gör att besökare når oss; TXT-posten är vad vi läser för att
-                  bekräfta att du äger domänen.
+                  {copy(
+                    'The CNAME record routes visitors to us; the TXT record is what we read to confirm that you own the domain.',
+                    'CNAME-posten gör att besökare når oss; TXT-posten är vad vi läser för att bekräfta att du äger domänen.',
+                  )}
                 </p>
               </div>
             )}
@@ -227,11 +234,11 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
               <Button onClick={handleVerify} disabled={busy !== null}>
                 {busy === 'verify' ? (
                   <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Kontrollerar DNS…
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> {copy('Checking DNS...', 'Kontrollerar DNS…')}
                   </>
                 ) : (
                   <>
-                    <ShieldCheck className="mr-2 h-4 w-4" /> Verifiera nu
+                    <ShieldCheck className="mr-2 h-4 w-4" /> {copy('Verify now', 'Verifiera nu')}
                   </>
                 )}
               </Button>
@@ -241,7 +248,7 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Trash2 className="mr-2 h-4 w-4" /> Ta bort
+                  <Trash2 className="mr-2 h-4 w-4" /> {copy('Remove', 'Ta bort')}
                 </>
               )}
             </Button>
@@ -249,9 +256,11 @@ export function CustomDomainSection({ data, onChange }: CustomDomainSectionProps
 
           {!data.domainVerified && (
             <p className="text-xs text-muted-foreground">
-              När DNS-posterna har spridit sig (oftast 5–30 min) klickar du på <strong>Verifiera nu</strong>.
-              Vi måste även lägga till domänen i Vercel — kontakta support om verifiering lyckas men
-              sidan fortfarande inte laddar efter en timme.
+              {copy('When the DNS records have propagated, usually 5-30 minutes, click', 'När DNS-posterna har spridit sig (oftast 5–30 min) klickar du på')} <strong>{copy('Verify now', 'Verifiera nu')}</strong>.
+              {' '}{copy(
+                'We also need to add the domain in Vercel. Contact support if verification succeeds but the page still does not load after an hour.',
+                'Vi måste även lägga till domänen i Vercel — kontakta support om verifiering lyckas men sidan fortfarande inte laddar efter en timme.',
+              )}
             </p>
           )}
         </div>

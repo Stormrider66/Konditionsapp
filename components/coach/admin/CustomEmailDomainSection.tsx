@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react'
+import { useLocale } from 'next-intl'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface DnsRecord {
@@ -50,7 +51,7 @@ function CopyButton({ value }: { value: string }) {
       size="sm"
       onClick={handleCopy}
       className="h-7 px-2 flex-shrink-0"
-      aria-label="Kopiera värde"
+      aria-label="Copy value"
     >
       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
     </Button>
@@ -58,6 +59,8 @@ function CopyButton({ value }: { value: string }) {
 }
 
 export function CustomEmailDomainSection() {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = useCallback((en: string, sv: string) => locale === 'sv' ? sv : en, [locale])
   const businessHeaders = useBusinessAdminHeaders()
   const [data, setData] = useState<CustomEmailDomainData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,17 +75,17 @@ export function CustomEmailDomainSection() {
         headers: businessHeaders,
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Kunde inte hämta domänstatus')
+      if (!res.ok) throw new Error(json.error || copy('Could not load domain status', 'Kunde inte hämta domänstatus'))
       setData(json.data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setLoading(false)
     }
-  }, [businessHeaders])
+  }, [businessHeaders, copy])
 
   useEffect(() => {
-    fetchData()
+    void fetchData()
   }, [fetchData])
 
   const handleAdd = async () => {
@@ -96,11 +99,11 @@ export function CustomEmailDomainSection() {
         body: JSON.stringify({ domain: domainInput.trim().toLowerCase() }),
       })
       const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || 'Kunde inte spara domänen')
+      if (!res.ok || !json.success) throw new Error(json.error || copy('Could not save the domain', 'Kunde inte spara domänen'))
       setData(json.data)
       setDomainInput('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setBusy(null)
     }
@@ -117,18 +120,18 @@ export function CustomEmailDomainSection() {
       })
       const json = await res.json()
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Kunde inte uppdatera status')
+        throw new Error(json.error || copy('Could not update status', 'Kunde inte uppdatera status'))
       }
       setData(json.data)
       if (json.data.customEmailVerified) {
-        setInfo('Domänen är verifierad — utskick går nu från din avsändaradress.')
+        setInfo(copy('The domain is verified. Emails now send from your sender address.', 'Domänen är verifierad — utskick går nu från din avsändaradress.'))
       } else {
         setInfo(
-          'Resend ser inte alla DNS-poster ännu. DKIM kan ta upp till en timme att spridas.',
+          copy('Resend cannot see all DNS records yet. DKIM can take up to an hour to propagate.', 'Resend ser inte alla DNS-poster ännu. DKIM kan ta upp till en timme att spridas.'),
         )
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setBusy(null)
     }
@@ -137,7 +140,7 @@ export function CustomEmailDomainSection() {
   const handleRemove = async () => {
     if (
       !confirm(
-        'Ta bort den anpassade avsändardomänen? Utskick går då tillbaka till noreply@trainomics.app.',
+        copy('Remove the custom sender domain? Emails will go back to noreply@trainomics.app.', 'Ta bort den anpassade avsändardomänen? Utskick går då tillbaka till noreply@trainomics.app.'),
       )
     ) {
       return
@@ -152,7 +155,7 @@ export function CustomEmailDomainSection() {
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
-        throw new Error(json.error || 'Kunde inte ta bort domänen')
+        throw new Error(json.error || copy('Could not remove the domain', 'Kunde inte ta bort domänen'))
       }
       setData({
         customEmailDomain: null,
@@ -161,7 +164,7 @@ export function CustomEmailDomainSection() {
         customEmailDnsRecords: null,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Något gick fel')
+      setError(err instanceof Error ? err.message : copy('Something went wrong', 'Något gick fel'))
     } finally {
       setBusy(null)
     }
@@ -172,7 +175,7 @@ export function CustomEmailDomainSection() {
       <div className="rounded-lg border p-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <RefreshCw className="h-4 w-4 animate-spin" />
-          Laddar avsändarstatus…
+          {copy('Loading sender status...', 'Laddar avsändarstatus…')}
         </div>
       </div>
     )
@@ -187,16 +190,16 @@ export function CustomEmailDomainSection() {
         <div className="flex items-start gap-2">
           <AtSign className="h-5 w-5 mt-0.5" />
           <div>
-            <p className="text-sm font-medium">Egen avsändaradress</p>
+            <p className="text-sm font-medium">{copy('Custom sender address', 'Egen avsändaradress')}</p>
             <p className="text-xs text-muted-foreground">
-              Skickar utskick från <code>noreply@dindomän.se</code> i stället för{' '}
-              <code>noreply@trainomics.app</code>. Kräver DKIM-verifiering hos din DNS-leverantör.
+              {copy('Sends emails from', 'Skickar utskick från')} <code>noreply@yourdomain.com</code> {copy('instead of', 'i stället för')}{' '}
+              <code>noreply@trainomics.app</code>. {copy('Requires DKIM verification with your DNS provider.', 'Kräver DKIM-verifiering hos din DNS-leverantör.')}
             </p>
           </div>
         </div>
         {isConfigured && (
           <Badge variant={data?.customEmailVerified ? 'default' : 'secondary'}>
-            {data?.customEmailVerified ? 'Verifierad' : 'Väntar på DNS'}
+            {data?.customEmailVerified ? copy('Verified', 'Verifierad') : copy('Waiting for DNS', 'Väntar på DNS')}
           </Badge>
         )}
       </div>
@@ -217,7 +220,7 @@ export function CustomEmailDomainSection() {
 
       {!isConfigured ? (
         <div className="space-y-2">
-          <Label htmlFor="customEmailDomain">Domän</Label>
+          <Label htmlFor="customEmailDomain">{copy('Domain', 'Domän')}</Label>
           <div className="flex gap-2">
             <Input
               id="customEmailDomain"
@@ -227,12 +230,14 @@ export function CustomEmailDomainSection() {
               disabled={busy !== null}
             />
             <Button onClick={handleAdd} disabled={busy !== null || domainInput.trim().length < 4}>
-              {busy === 'add' ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Lägg till'}
+              {busy === 'add' ? <RefreshCw className="h-4 w-4 animate-spin" /> : copy('Add', 'Lägg till')}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Använd din egen domän. Vi skapar DKIM- och SPF-poster du behöver lägga till hos din
-            registrar — det är så mottagande mailservrar litar på att du är vi.
+            {copy(
+              'Use your own domain. We create DKIM and SPF records you need to add at your registrar so receiving mail servers can trust the sender.',
+              'Använd din egen domän. Vi skapar DKIM- och SPF-poster du behöver lägga till hos din registrar — det är så mottagande mailservrar litar på att du är vi.',
+            )}
           </p>
         </div>
       ) : (
@@ -263,8 +268,8 @@ export function CustomEmailDomainSection() {
                   ))}
                 </div>
                 <p className="text-muted-foreground">
-                  Lägg in alla poster hos din DNS-leverantör. När alla är aktiva klickar du på{' '}
-                  <strong>Uppdatera status</strong>.
+                  {copy('Add all records at your DNS provider. When they are active, click', 'Lägg in alla poster hos din DNS-leverantör. När alla är aktiva klickar du på')}{' '}
+                  <strong>{copy('Update status', 'Uppdatera status')}</strong>.
                 </p>
               </div>
             )}
@@ -274,11 +279,11 @@ export function CustomEmailDomainSection() {
             <Button onClick={handleRefresh} disabled={busy !== null}>
               {busy === 'refresh' ? (
                 <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Kontrollerar…
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> {copy('Checking...', 'Kontrollerar…')}
                 </>
               ) : (
                 <>
-                  <RefreshCw className="mr-2 h-4 w-4" /> Uppdatera status
+                  <RefreshCw className="mr-2 h-4 w-4" /> {copy('Update status', 'Uppdatera status')}
                 </>
               )}
             </Button>
@@ -287,7 +292,7 @@ export function CustomEmailDomainSection() {
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Trash2 className="mr-2 h-4 w-4" /> Ta bort
+                  <Trash2 className="mr-2 h-4 w-4" /> {copy('Remove', 'Ta bort')}
                 </>
               )}
             </Button>
@@ -295,8 +300,8 @@ export function CustomEmailDomainSection() {
 
           {!data?.customEmailVerified && (
             <p className="text-xs text-muted-foreground">
-              Tills domänen är verifierad fortsätter utskick gå från
-              <code> noreply@trainomics.app</code>. Inga avbrott.
+              {copy('Until the domain is verified, emails continue to send from', 'Tills domänen är verifierad fortsätter utskick gå från')}
+              <code> noreply@trainomics.app</code>. {copy('No interruptions.', 'Inga avbrott.')}
             </p>
           )}
         </div>
