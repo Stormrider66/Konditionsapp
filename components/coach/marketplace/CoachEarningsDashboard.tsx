@@ -57,9 +57,9 @@ interface Props {
   locale?: 'en' | 'sv'
 }
 
-// Format öre to SEK
-function formatCurrency(amountInOre: number): string {
-  return new Intl.NumberFormat('sv-SE', {
+// Format minor currency units to SEK.
+function formatCurrency(amountInOre: number, locale: 'en' | 'sv'): string {
+  return new Intl.NumberFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
     style: 'currency',
     currency: 'SEK',
   }).format(amountInOre / 100)
@@ -109,7 +109,7 @@ export function CoachEarningsDashboard({ locale = 'en' }: Props) {
       }
     }
 
-    fetchData()
+    void fetchData()
   }, [])
 
   if (isLoading) {
@@ -134,7 +134,7 @@ export function CoachEarningsDashboard({ locale = 'en' }: Props) {
             <CardDescription>{t('This Month', 'Denna månad')}</CardDescription>
             <CardTitle className="text-2xl flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-green-500" />
-              {formatCurrency(summary?.thisMonth.totalEarnings || 0)}
+              {formatCurrency(summary?.thisMonth.totalEarnings || 0, locale)}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -149,7 +149,7 @@ export function CoachEarningsDashboard({ locale = 'en' }: Props) {
             <CardDescription>{t('This Year', 'Detta år')}</CardDescription>
             <CardTitle className="text-2xl flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-blue-500" />
-              {formatCurrency(summary?.thisYear.totalEarnings || 0)}
+              {formatCurrency(summary?.thisYear.totalEarnings || 0, locale)}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -164,7 +164,7 @@ export function CoachEarningsDashboard({ locale = 'en' }: Props) {
             <CardDescription>{t('All Time', 'Totalt')}</CardDescription>
             <CardTitle className="text-2xl flex items-center gap-2">
               <Calendar className="w-5 h-5 text-purple-500" />
-              {formatCurrency(summary?.allTime.totalEarnings || 0)}
+              {formatCurrency(summary?.allTime.totalEarnings || 0, locale)}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -179,7 +179,7 @@ export function CoachEarningsDashboard({ locale = 'en' }: Props) {
             <CardDescription>{t('Pending Payout', 'Väntande utbetalning')}</CardDescription>
             <CardTitle className="text-2xl flex items-center gap-2">
               <Clock className="w-5 h-5 text-orange-500" />
-              {formatCurrency(summary?.pendingPayout || 0)}
+              {formatCurrency(summary?.pendingPayout || 0, locale)}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -232,13 +232,13 @@ export function CoachEarningsDashboard({ locale = 'en' }: Props) {
                       {format(new Date(earning.periodEnd), 'PP', { locale: dateLocale })}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatCurrency(earning.coachAmount)}
+                      {formatCurrency(earning.coachAmount, locale)}
                       <span className="text-xs text-muted-foreground ml-1">
                         ({earning.sharePercent}%)
                       </span>
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
-                      {formatCurrency(earning.totalAmount)}
+                      {formatCurrency(earning.totalAmount, locale)}
                     </TableCell>
                     <TableCell>
                       <Badge
