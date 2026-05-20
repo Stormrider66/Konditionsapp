@@ -15,6 +15,7 @@ import {
   type HockeyPosition,
   type SeasonPhase as HockeySeasonPhase,
 } from '@/lib/training-engine/hockey'
+import { footballSettingsSchema, hockeySettingsSchema } from './settings-schema'
 
 export type FootballProgramSettings = {
   position?: FootballPosition
@@ -122,11 +123,11 @@ export function buildHockeyPlanningContext(input: {
 }
 
 export function normalizeFootballSettings(value: unknown): FootballProgramSettings {
-  return isRecord(value) ? value as FootballProgramSettings : {}
+  return isRecord(value) ? footballSettingsSchema.parse(value) as FootballProgramSettings : {}
 }
 
 export function normalizeHockeySettings(value: unknown): HockeyProgramSettings {
-  return isRecord(value) ? value as HockeyProgramSettings : {}
+  return isRecord(value) ? hockeySettingsSchema.parse(value) as HockeyProgramSettings : {}
 }
 
 export function getFootballLoadGuidance(
