@@ -10,6 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard'
 import { VideoUploader } from './VideoUploader'
 import { VideoAnalysisCard } from './VideoAnalysisCard'
 import {
@@ -164,35 +171,35 @@ export function VideoAnalysisList() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Video className="h-6 w-6" />
+          <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+            <Video className="h-6 w-6 text-blue-500" />
             Videoanalys
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
             Ladda upp videos för AI-driven teknikanalys
           </p>
         </div>
-        <Button onClick={() => setShowUploader(true)}>
+        <Button onClick={() => setShowUploader(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
           <Upload className="h-4 w-4 mr-2" />
           Ladda upp video
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-4 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
           <Input
             placeholder="Sök på atlet eller övning..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <Filter className="h-4 w-4 mr-2" />
+            <SelectTrigger className="w-[140px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
+              <Filter className="h-4 w-4 mr-2 text-slate-400" />
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -205,7 +212,7 @@ export function VideoAnalysisList() {
           </Select>
 
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[160px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
               <SelectValue placeholder="Typ" />
             </SelectTrigger>
             <SelectContent>
@@ -221,7 +228,7 @@ export function VideoAnalysisList() {
           </Select>
 
           <Select value={athleteFilter} onValueChange={setAthleteFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[160px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
               <SelectValue placeholder="Atlet" />
             </SelectTrigger>
             <SelectContent>
@@ -239,27 +246,29 @@ export function VideoAnalysisList() {
       {/* Loading state */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </div>
       )}
 
       {/* Empty state */}
       {!isLoading && filteredAnalyses.length === 0 && (
-        <div className="text-center py-12 border-2 border-dashed rounded-lg">
-          <VideoOff className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="font-semibold text-lg mb-2">Inga videoanalyser</h3>
-          <p className="text-muted-foreground mb-4">
-            {searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || athleteFilter !== 'all'
-              ? 'Inga analyser matchar dina filter'
-              : 'Ladda upp din första video för AI-analys'}
-          </p>
-          {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && athleteFilter === 'all' && (
-            <Button onClick={() => setShowUploader(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Ladda upp video
-            </Button>
-          )}
-        </div>
+        <GlassCard glow="blue" className="text-center py-12 border border-slate-200 dark:border-white/5">
+          <GlassCardContent>
+            <VideoOff className="h-12 w-12 mx-auto text-slate-450 mb-4" />
+            <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-white">Inga videoanalyser</h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              {searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || athleteFilter !== 'all'
+                ? 'Inga analyser matchar dina filter'
+                : 'Ladda upp din första video för AI-analys'}
+            </p>
+            {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && athleteFilter === 'all' && (
+              <Button onClick={() => setShowUploader(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Upload className="h-4 w-4 mr-2" />
+                Ladda upp video
+              </Button>
+            )}
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Analysis grid */}

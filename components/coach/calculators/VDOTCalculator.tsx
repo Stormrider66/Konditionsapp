@@ -15,10 +15,17 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard';
 import { Badge } from '@/components/ui/badge';
 import { Target, TrendingUp } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { toast } from 'sonner';
 
 const vdotSchema = z.object({
   raceDistance: z.enum(['1500', '3000', '5000', '10000', '21097', '42195']),
@@ -76,7 +83,7 @@ export function VDOTCalculator() {
       setResult(resultData.data);
     } catch (error) {
       console.error('VDOT calculation failed:', error);
-      alert(error instanceof Error ? error.message : 'Calculation failed');
+      toast.error(error instanceof Error ? error.message : 'Calculation failed');
     } finally {
       setSubmitting(false);
     }
@@ -88,23 +95,23 @@ export function VDOTCalculator() {
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Race Result</CardTitle>
-              <CardDescription>
+          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Race Result</GlassCardTitle>
+              <GlassCardDescription className="text-slate-650 dark:text-slate-400">
                 Enter a recent race result to calculate your VDOT
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="raceDistance"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Race Distance</FormLabel>
+                    <FormLabel className="text-slate-700 dark:text-slate-350">Race Distance</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -123,7 +130,7 @@ export function VDOTCalculator() {
               />
 
               <div>
-                <FormLabel>Race Time</FormLabel>
+                <FormLabel className="text-slate-700 dark:text-slate-350">Race Time</FormLabel>
                 <div className="grid grid-cols-3 gap-4 mt-2">
                   <FormField
                     control={form.control}
@@ -136,11 +143,12 @@ export function VDOTCalculator() {
                             placeholder="Hours"
                             min={0}
                             max={10}
+                            className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                             {...field}
                             onChange={e => field.onChange(parseInt(e.target.value) || 0)}
                           />
                         </FormControl>
-                        <FormDescription>Hours</FormDescription>
+                        <FormDescription className="text-slate-500 dark:text-slate-450">Hours</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -157,11 +165,12 @@ export function VDOTCalculator() {
                             placeholder="Minutes"
                             min={0}
                             max={59}
+                            className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                             {...field}
                             onChange={e => field.onChange(parseInt(e.target.value) || 0)}
                           />
                         </FormControl>
-                        <FormDescription>Minutes</FormDescription>
+                        <FormDescription className="text-slate-500 dark:text-slate-450">Minutes</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -178,21 +187,22 @@ export function VDOTCalculator() {
                             placeholder="Seconds"
                             min={0}
                             max={59}
+                            className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                             {...field}
                             onChange={e => field.onChange(parseInt(e.target.value) || 0)}
                           />
                         </FormControl>
-                        <FormDescription>Seconds</FormDescription>
+                        <FormDescription className="text-slate-500 dark:text-slate-450">Seconds</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Button type="submit" size="lg" disabled={submitting}>
+          <Button type="submit" size="lg" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md">
             {submitting ? 'Calculating...' : 'Calculate VDOT'}
           </Button>
         </form>
@@ -201,170 +211,170 @@ export function VDOTCalculator() {
       {result && (
         <div className="space-y-6">
           {/* VDOT Score */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
+          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+                <Target className="h-5 w-5 text-blue-500" />
                 Your VDOT Score <InfoTooltip conceptKey="vdot" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center p-8 bg-primary/10 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-2">VDOT</p>
-                <p className="text-6xl font-bold">{result.vdot.toFixed(1)}</p>
-                <p className="text-sm text-muted-foreground mt-4">
+              </GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent>
+              <div className="text-center p-8 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 font-medium">VDOT</p>
+                <p className="text-6xl font-bold text-slate-900 dark:text-white">{result.vdot.toFixed(1)}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-4">
                   Based on {getDistanceName(result.distance)} in {formatTime(result.timeSeconds)}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mt-6">
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">VO₂max Estimate</p>
-                  <p className="text-2xl font-bold">{result.vo2maxEstimate.toFixed(1)} ml/kg/min</p>
+                <div className="p-4 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-450 font-medium">VO₂max Estimate</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{result.vo2maxEstimate.toFixed(1)} ml/kg/min</p>
                 </div>
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Race Pace</p>
-                  <p className="text-2xl font-bold">{result.racePace.toFixed(2)} min/km</p>
+                <div className="p-4 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-455 font-medium">Race Pace</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{result.racePace.toFixed(2)} min/km</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           {/* Training Paces */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
+          <GlassCard glow="purple" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+                <TrendingUp className="h-5 w-5 text-purple-500" />
                 Training Paces (Jack Daniels)
-              </CardTitle>
-              <CardDescription>
+              </GlassCardTitle>
+              <GlassCardDescription className="text-slate-650 dark:text-slate-400">
                 Recommended training paces based on your VDOT
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-500/20 rounded-lg">
                   <div>
-                    <p className="font-medium">Easy (E)</p>
-                    <p className="text-sm text-muted-foreground">59-74% VO₂max • Conversational pace</p>
+                    <p className="font-semibold text-emerald-900 dark:text-emerald-300">Easy (E)</p>
+                    <p className="text-sm text-emerald-700/80 dark:text-emerald-400/80">59-74% VO₂max • Conversational pace</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold font-mono">{result.trainingPaces.easy.min.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">to {result.trainingPaces.easy.max.toFixed(2)} min/km</p>
+                    <p className="text-2xl font-bold font-mono text-emerald-900 dark:text-emerald-300">{result.trainingPaces.easy.min.toFixed(2)}</p>
+                    <p className="text-sm text-emerald-700/80 dark:text-emerald-400/80">to {result.trainingPaces.easy.max.toFixed(2)} min/km</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-500/20 rounded-lg">
                   <div>
-                    <p className="font-medium">Marathon (M)</p>
-                    <p className="text-sm text-muted-foreground">75-84% VO₂max • Sustainable pace</p>
+                    <p className="font-semibold text-blue-900 dark:text-blue-300">Marathon (M)</p>
+                    <p className="text-sm text-blue-700/80 dark:text-blue-400/80">75-84% VO₂max • Sustainable pace</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold font-mono">{result.trainingPaces.marathon.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">min/km</p>
+                    <p className="text-2xl font-bold font-mono text-blue-900 dark:text-blue-300">{result.trainingPaces.marathon.toFixed(2)}</p>
+                    <p className="text-sm text-blue-700/80 dark:text-blue-400/80">min/km</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-amber-50/55 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-500/20 rounded-lg">
                   <div>
-                    <p className="font-medium">Threshold (T)</p>
-                    <p className="text-sm text-muted-foreground">83-88% VO₂max • Comfortably hard</p>
+                    <p className="font-semibold text-amber-900 dark:text-amber-305 font-medium">Threshold (T)</p>
+                    <p className="text-sm text-amber-700/80 dark:text-amber-400/80">83-88% VO₂max • Comfortably hard</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold font-mono">{result.trainingPaces.threshold.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">min/km</p>
+                    <p className="text-2xl font-bold font-mono text-amber-900 dark:text-amber-305">{result.trainingPaces.threshold.toFixed(2)}</p>
+                    <p className="text-sm text-amber-700/80 dark:text-amber-400/80">min/km</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-500/20 rounded-lg">
                   <div>
-                    <p className="font-medium">Interval (I)</p>
-                    <p className="text-sm text-muted-foreground">95-100% VO₂max • Hard but controlled</p>
+                    <p className="font-semibold text-orange-900 dark:text-orange-300">Interval (I)</p>
+                    <p className="text-sm text-orange-700/80 dark:text-orange-400/80">95-100% VO₂max • Hard but controlled</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold font-mono">{result.trainingPaces.interval.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">min/km (400m in {formatSeconds(result.trainingPaces.interval400m)})</p>
+                    <p className="text-2xl font-bold font-mono text-orange-900 dark:text-orange-300">{result.trainingPaces.interval.toFixed(2)}</p>
+                    <p className="text-sm text-orange-700/80 dark:text-orange-400/80">min/km (400m in {formatSeconds(result.trainingPaces.interval400m)})</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-500/20 rounded-lg">
                   <div>
-                    <p className="font-medium">Repetition (R)</p>
-                    <p className="text-sm text-muted-foreground">105-120% VO₂max • Speed development</p>
+                    <p className="font-semibold text-rose-900 dark:text-rose-300 font-medium">Repetition (R)</p>
+                    <p className="text-sm text-rose-700/80 dark:text-rose-400/80">105-120% VO₂max • Speed development</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold font-mono">{result.trainingPaces.repetition.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">min/km (200m in {formatSeconds(result.trainingPaces.repetition200m)})</p>
+                    <p className="text-2xl font-bold font-mono text-rose-900 dark:text-rose-300">{result.trainingPaces.repetition.toFixed(2)}</p>
+                    <p className="text-sm text-rose-700/80 dark:text-rose-400/80">min/km (200m in {formatSeconds(result.trainingPaces.repetition200m)})</p>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           {/* Equivalent Race Times */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Equivalent Race Times</CardTitle>
-              <CardDescription>
+          <GlassCard glow="emerald" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Equivalent Race Times</GlassCardTitle>
+              <GlassCardDescription className="text-slate-650 dark:text-slate-400">
                 Predicted race times at other distances based on your VDOT
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <div className="space-y-2">
                 {result.equivalentTimes && (
                   <>
-                    <div className="flex justify-between items-center p-3 bg-muted rounded">
-                      <span className="font-medium">5K</span>
-                      <span className="font-mono">{formatTime(result.equivalentTimes['5K'])}</span>
+                    <div className="flex justify-between items-center p-3 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded">
+                      <span className="font-semibold text-slate-800 dark:text-slate-250">5K</span>
+                      <span className="font-mono text-slate-900 dark:text-white font-semibold">{formatTime(result.equivalentTimes['5K'])}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-muted rounded">
-                      <span className="font-medium">10K</span>
-                      <span className="font-mono">{formatTime(result.equivalentTimes['10K'])}</span>
+                    <div className="flex justify-between items-center p-3 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded">
+                      <span className="font-semibold text-slate-800 dark:text-slate-250">10K</span>
+                      <span className="font-mono text-slate-900 dark:text-white font-semibold">{formatTime(result.equivalentTimes['10K'])}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-muted rounded">
-                      <span className="font-medium">Half Marathon</span>
-                      <span className="font-mono">{formatTime(result.equivalentTimes.halfMarathon)}</span>
+                    <div className="flex justify-between items-center p-3 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded">
+                      <span className="font-semibold text-slate-800 dark:text-slate-250">Halvmaraton</span>
+                      <span className="font-mono text-slate-900 dark:text-white font-semibold">{formatTime(result.equivalentTimes.halfMarathon)}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-muted rounded">
-                      <span className="font-medium">Marathon</span>
-                      <span className="font-mono">{formatTime(result.equivalentTimes.marathon)}</span>
+                    <div className="flex justify-between items-center p-3 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded">
+                      <span className="font-semibold text-slate-800 dark:text-slate-250">Maraton</span>
+                      <span className="font-mono text-slate-900 dark:text-white font-semibold">{formatTime(result.equivalentTimes.marathon)}</span>
                     </div>
                   </>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           {/* Training Recommendations */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Training Recommendations</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <GlassCard glow="amber" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Training Recommendations</GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent>
               <ul className="space-y-2">
-                <li className="flex items-start gap-2 text-sm">
-                  <Badge>E</Badge>
+                <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">E</Badge>
                   <span>Easy runs: 65-79% of weekly mileage. Build aerobic base.</span>
                 </li>
-                <li className="flex items-start gap-2 text-sm">
-                  <Badge>M</Badge>
+                <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                  <Badge className="bg-blue-600 hover:bg-blue-700 text-white font-semibold">M</Badge>
                   <span>Marathon pace: Long runs and race-specific work (10-20% of weekly mileage).</span>
                 </li>
-                <li className="flex items-start gap-2 text-sm">
-                  <Badge>T</Badge>
+                <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                  <Badge className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">T</Badge>
                   <span>Threshold: 20-40 min continuous or 5-15 min intervals. Max 10% of weekly mileage.</span>
                 </li>
-                <li className="flex items-start gap-2 text-sm">
-                  <Badge>I</Badge>
+                <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                  <Badge className="bg-orange-600 hover:bg-orange-700 text-white font-semibold">I</Badge>
                   <span>Intervals: 3-5 min reps, total 8% of weekly mileage. Recovery = workout time.</span>
                 </li>
-                <li className="flex items-start gap-2 text-sm">
-                  <Badge>R</Badge>
+                <li className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                  <Badge className="bg-rose-600 hover:bg-rose-700 text-white font-semibold">R</Badge>
                   <span>Repetitions: 30s-2min reps, total 5% of weekly mileage. Full recovery between reps.</span>
                 </li>
               </ul>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       )}
     </div>

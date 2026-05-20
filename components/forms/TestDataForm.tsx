@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles, ChevronDown, ChevronRight, Activity } from 'lucide-react'
@@ -30,6 +31,8 @@ interface TestDataFormProps {
 }
 
 export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps) {
+  const locale = useLocale()
+  const t = useCallback((sv: string, en: string) => locale === 'sv' ? sv : en, [locale])
   const { toast } = useToast()
   const {
     register,
@@ -133,7 +136,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   })
 
   const inclineUnit = watch('inclineUnit') || 'PERCENT'
-  const inclineLabel = inclineUnit === 'DEGREES' ? 'Lutning (°)' : 'Lutning (%)'
+  const inclineLabel = inclineUnit === 'DEGREES' ? t('Lutning (°)', 'Incline (°)') : t('Lutning (%)', 'Incline (%)')
 
   const watchedStages = watch('stages')
   const lactateWarnings = useMemo(
@@ -174,28 +177,30 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         replace(stages)
 
         toast({
-          title: 'Laktat avläst!',
-          description: `Värde: ${lactateValue} mmol/L (${data.result.reading.confidence}% säkerhet)`,
+          title: t('Laktat avläst!', 'Lactate read!'),
+          description: locale === 'sv'
+            ? `Värde: ${lactateValue} mmol/L (${data.result.reading.confidence}% säkerhet)`
+            : `Value: ${lactateValue} mmol/L (${data.result.reading.confidence}% confidence)`,
         })
 
         if (data.result.reading.warnings?.length > 0) {
           toast({
-            title: 'Varning',
+            title: t('Varning', 'Warning'),
             description: data.result.reading.warnings.join(', '),
             variant: 'destructive',
           })
         }
       } else {
         toast({
-          title: 'Kunde inte läsa av',
-          description: data.error || 'Försök ta en tydligare bild',
+          title: t('Kunde inte läsa av', 'Could not read value'),
+          description: data.error || t('Försök ta en tydligare bild', 'Try taking a clearer photo'),
           variant: 'destructive',
         })
       }
     } catch (error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ansluta till OCR-tjänsten',
+        title: t('Fel', 'Error'),
+        description: t('Kunde inte ansluta till OCR-tjänsten', 'Could not connect to the OCR service'),
         variant: 'destructive',
       })
     } finally {
@@ -231,17 +236,19 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     }
 
     toast({
-      title: 'Testdata importerad!',
-      description: `${data.stages.length} steg extraherade (${Math.round(data.confidence * 100)}% säkerhet)`,
+      title: t('Testdata importerad!', 'Test data imported!'),
+      description: locale === 'sv'
+        ? `${data.stages.length} steg extraherade (${Math.round(data.confidence * 100)}% säkerhet)`
+        : `${data.stages.length} stages extracted (${Math.round(data.confidence * 100)}% confidence)`,
     })
     if (data.warnings.length > 0) {
       toast({
-        title: 'Varningar',
+        title: t('Varningar', 'Warnings'),
         description: data.warnings.join('. '),
         variant: 'destructive',
       })
     }
-  }, [replace, setValue, toast])
+  }, [locale, replace, setValue, t, toast])
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -316,8 +323,8 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const handleSaveTemplate = async () => {
     if (!templateName) {
       toast({
-        title: 'Fel',
-        description: 'Ange ett namn för mallen',
+        title: t('Fel', 'Error'),
+        description: t('Ange ett namn för mallen', 'Enter a name for the template'),
         variant: 'destructive',
       })
       return
@@ -341,8 +348,8 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       const data = await response.json()
       if (data.success) {
         toast({
-          title: 'Mall sparad!',
-          description: 'Testmallen har sparats.',
+          title: t('Mall sparad!', 'Template saved!'),
+          description: t('Testmallen har sparats.', 'The test template has been saved.'),
         })
         setShowSaveDialog(false)
         setTemplateName('')
@@ -354,8 +361,8 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     } catch (error) {
       console.error('Error saving template:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara mall',
+        title: t('Fel', 'Error'),
+        description: t('Kunde inte spara mall', 'Could not save template'),
         variant: 'destructive',
       })
     }
@@ -365,8 +372,10 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     replace(template.stages as any)
     setShowLoadDialog(false)
     toast({
-      title: 'Mall laddad!',
-      description: `Mall "${template.name}" har laddats.`,
+      title: t('Mall laddad!', 'Template loaded!'),
+      description: locale === 'sv'
+        ? `Mall "${template.name}" har laddats.`
+        : `Template "${template.name}" has been loaded.`,
     })
   }
 
@@ -382,7 +391,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   return (
     <form onSubmit={handleSubmit(onSubmitHandler)} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="testDate">Testdatum</Label>
+        <Label htmlFor="testDate">{t('Testdatum', 'Test date')}</Label>
         <Input
           id="testDate"
           type="date"
@@ -393,39 +402,39 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
       {/* Resting Lactate */}
       <div className="space-y-2">
-        <Label htmlFor="restingLactate">Vilolaktat (mmol/L)</Label>
+        <Label htmlFor="restingLactate">{t('Vilolaktat (mmol/L)', 'Resting lactate (mmol/L)')}</Label>
         <Input
           id="restingLactate"
           type="number"
           step="0.1"
-          placeholder="T.ex. 0.8"
+          placeholder={t('T.ex. 0.8', 'e.g. 0.8')}
           className="max-w-[200px]"
           {...register('restingLactate', { valueAsNumber: true })}
         />
-        <p className="text-xs text-gray-500">Laktatvärde före testet (valfritt)</p>
+        <p className="text-xs text-gray-500">{t('Laktatvärde före testet (valfritt)', 'Lactate value before the test (optional)')}</p>
       </div>
 
       {/* Incline Unit Selector (only for running tests) */}
       {testType === 'RUNNING' && (
         <div className="space-y-2">
-          <Label htmlFor="inclineUnit">Lutningsenhet</Label>
+          <Label htmlFor="inclineUnit">{t('Lutningsenhet', 'Incline unit')}</Label>
           <select
             id="inclineUnit"
             {...register('inclineUnit')}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <option value="PERCENT">Procent (%)</option>
-            <option value="DEGREES">Grader (°)</option>
+            <option value="PERCENT">{t('Procent (%)', 'Percent (%)')}</option>
+            <option value="DEGREES">{t('Grader (°)', 'Degrees (°)')}</option>
           </select>
           <p className="text-xs text-gray-500">
-            Välj om lutning mäts i procent eller grader
+            {t('Välj om lutning mäts i procent eller grader', 'Choose whether incline is measured in percent or degrees')}
           </p>
         </div>
       )}
 
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <h3 className="text-lg font-semibold">Teststeg</h3>
+          <h3 className="text-lg font-semibold">{t('Teststeg', 'Test stages')}</h3>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -443,7 +452,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
               size="sm"
             >
               <Download className="w-4 h-4 mr-2" />
-              Ladda mall
+              {t('Ladda mall', 'Load template')}
             </Button>
             <Button
               type="button"
@@ -452,7 +461,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
               size="sm"
             >
               <Save className="w-4 h-4 mr-2" />
-              Spara som mall
+              {t('Spara som mall', 'Save as template')}
             </Button>
           </div>
         </div>
@@ -462,36 +471,36 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         <Alert className="bg-blue-50 border-blue-200">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertTitle className="text-blue-900 font-semibold">
-            Krav för D-max laktattröskelberäkning
+            {t('Krav för D-max laktattröskelberäkning', 'Requirements for D-max lactate threshold calculation')}
           </AlertTitle>
           <AlertDescription className="text-blue-800 text-sm space-y-2 mt-2">
-            <p className="font-medium">För optimal tröskelberäkning behövs:</p>
+            <p className="font-medium">{t('För optimal tröskelberäkning behövs:', 'For optimal threshold calculation you need:')}</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>
-                <strong>Minst 4 teststeg</strong> - fler steg ger bättre precision (5-7 steg rekommenderas)
+                <strong>{t('Minst 4 teststeg', 'At least 4 test stages')}</strong> - {t('fler steg ger bättre precision (5-7 steg rekommenderas)', 'more stages improve precision (5-7 stages recommended)')}
               </li>
               <li>
-                <strong>Stigande laktatvärden</strong> - laktat ska öka mellan stegen (undvik större minskningar)
+                <strong>{t('Stigande laktatvärden', 'Increasing lactate values')}</strong> - {t('laktat ska öka mellan stegen (undvik större minskningar)', 'lactate should increase between stages (avoid larger decreases)')}
               </li>
               <li>
-                <strong>Brett intensitetsområde</strong> - från lätt aerob (1-2 mmol/L) till anaerob (4-6 mmol/L)
+                <strong>{t('Brett intensitetsområde', 'Broad intensity range')}</strong> - {t('från lätt aerob (1-2 mmol/L) till anaerob (4-6 mmol/L)', 'from easy aerobic (1-2 mmol/L) to anaerobic (4-6 mmol/L)')}
               </li>
               <li>
-                <strong>Jämna stegökningar</strong> - helst lika stor ökning mellan varje steg (hastighet/watt)
+                <strong>{t('Jämna stegökningar', 'Even stage increments')}</strong> - {t('helst lika stor ökning mellan varje steg (hastighet/watt)', 'ideally the same increase between each stage (speed/watts)')}
               </li>
               <li>
-                <strong>Komplett data</strong> - fyll i hastighet/watt, puls och laktat för varje steg
+                <strong>{t('Komplett data', 'Complete data')}</strong> - {t('fyll i hastighet/watt, puls och laktat för varje steg', 'enter speed/watts, heart rate, and lactate for each stage')}
               </li>
               <li className="text-xs text-blue-700">
-                <strong>VO₂ är valfritt</strong> - trösklar kan beräknas utan VO₂-mätning
+                <strong>{t('VO₂ är valfritt', 'VO₂ is optional')}</strong> - {t('trösklar kan beräknas utan VO₂-mätning', 'thresholds can be calculated without VO₂ measurement')}
               </li>
             </ul>
             <div className="mt-3 pt-2 border-t border-blue-200">
-              <p className="font-medium mb-1">Konfidensgrad baseras på:</p>
+              <p className="font-medium mb-1">{t('Konfidensgrad baseras på:', 'Confidence level is based on:')}</p>
               <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
-                <li>Hög konfidens: R² ≥ 0.95 och tröskel 2-4 mmol/L</li>
-                <li>Medel konfidens: R² ≥ 0.90 eller tröskel 1.5-4.5 mmol/L</li>
-                <li>Låg konfidens: R² &lt; 0.90 - faller tillbaka på 4.0 mmol/L-metoden</li>
+                <li>{t('Hög konfidens: R² ≥ 0.95 och tröskel 2-4 mmol/L', 'High confidence: R² ≥ 0.95 and threshold 2-4 mmol/L')}</li>
+                <li>{t('Medel konfidens: R² ≥ 0.90 eller tröskel 1.5-4.5 mmol/L', 'Medium confidence: R² ≥ 0.90 or threshold 1.5-4.5 mmol/L')}</li>
+                <li>{t('Låg konfidens: R² < 0.90 - faller tillbaka på 4.0 mmol/L-metoden', 'Low confidence: R² < 0.90 - falls back to the 4.0 mmol/L method')}</li>
               </ul>
             </div>
           </AlertDescription>
@@ -506,7 +515,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           className="gap-2"
         >
           <Activity className="w-4 h-4" />
-          Metabol data (spirometri)
+          {t('Metabol data (spirometri)', 'Metabolic data (spirometry)')}
           {showMetabolicData ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </Button>
 
@@ -514,7 +523,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           <Card key={field.id}>
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-3">
-                <h4 className="font-medium">Steg {index + 1}</h4>
+                <h4 className="font-medium">{t('Steg', 'Stage')} {index + 1}</h4>
                 {fields.length > 1 && (
                   <Button
                     type="button"
@@ -532,7 +541,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                   <>
                     <div className="space-y-1">
                       <Label htmlFor={`stages.${index}.speed`} className="text-xs">
-                        Hastighet (km/h)
+                        {t('Hastighet (km/h)', 'Speed (km/h)')}
                       </Label>
                       <Input
                         id={`stages.${index}.speed`}
@@ -557,7 +566,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                   <>
                     <div className="space-y-1">
                       <Label htmlFor={`stages.${index}.power`} className="text-xs">
-                        Effekt (watt)
+                        {t('Effekt (watt)', 'Power (watts)')}
                       </Label>
                       <Input
                         id={`stages.${index}.power`}
@@ -592,7 +601,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
                 <div className="space-y-1">
                   <Label htmlFor={`stages.${index}.heartRate`} className="text-xs">
-                    Puls (slag/min)
+                    {t('Puls (slag/min)', 'Heart rate (beats/min)')}
                   </Label>
                   <Input
                     id={`stages.${index}.heartRate`}
@@ -632,7 +641,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                       className="shrink-0 h-10 w-10"
                       onClick={() => fileInputRefs.current[index]?.click()}
                       disabled={ocrLoading !== null}
-                      title="Fotografera laktatmätare"
+                      title={t('Fotografera laktatmätare', 'Photograph lactate meter')}
                     >
                       {ocrLoading === index ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -645,19 +654,19 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
                 <div className="space-y-1">
                   <Label htmlFor={`stages.${index}.vo2`} className="text-xs">
-                    VO₂ (ml/kg/min) <span className="text-gray-400 font-normal">(valfritt)</span>
+                    VO₂ (ml/kg/min) <span className="text-gray-400 font-normal">{t('(valfritt)', '(optional)')}</span>
                   </Label>
                   <Input
                     id={`stages.${index}.vo2`}
                     type="number"
                     step="0.1"
-                    placeholder="Valfritt"
+                    placeholder={t('Valfritt', 'Optional')}
                     {...register(`stages.${index}.vo2`, { valueAsNumber: true })}
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs">Tid (min:sek)</Label>
+                  <Label className="text-xs">{t('Tid (min:sek)', 'Time (min:sec)')}</Label>
                   <div className="flex items-center gap-1">
                     <Input
                       id={`stages.${index}.durationMinutes`}
@@ -675,7 +684,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                       min="0"
                       max="59"
                       className="w-16 text-center"
-                      placeholder="sek"
+                      placeholder={t('sek', 'sec')}
                       {...register(`stages.${index}.durationSeconds`, { valueAsNumber: true })}
                     />
                   </div>
@@ -723,7 +732,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor={`stages.${index}.fatPercent`} className="text-xs">
-                      Fett (%)
+                      {t('Fett (%)', 'Fat (%)')}
                     </Label>
                     <Input
                       id={`stages.${index}.fatPercent`}
@@ -735,7 +744,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor={`stages.${index}.choPercent`} className="text-xs">
-                      Kolhydrat (%)
+                      {t('Kolhydrat (%)', 'Carbohydrate (%)')}
                     </Label>
                     <Input
                       id={`stages.${index}.choPercent`}
@@ -747,7 +756,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor={`stages.${index}.respiratoryRate`} className="text-xs">
-                      Andningsfrekvens
+                      {t('Andningsfrekvens', 'Respiratory rate')}
                     </Label>
                     <Input
                       id={`stages.${index}.respiratoryRate`}
@@ -768,12 +777,13 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           <Alert className="bg-yellow-50 border-yellow-300">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertDescription className="text-yellow-800 text-sm">
-              <strong>Varning: Sjunkande laktatvärden</strong>
+              <strong>{t('Varning: Sjunkande laktatvärden', 'Warning: Decreasing lactate values')}</strong>
               <ul className="list-disc list-inside mt-1 space-y-0.5">
                 {lactateWarnings.map((w, i) => (
                   <li key={i}>
-                    Laktat sjönk med {w.drop} mmol/L från steg {w.fromStage} till steg {w.toStage}.
-                    Små variationer kan vara normala, men kontrollera att värdena stämmer.
+                    {locale === 'sv'
+                      ? `Laktat sjönk med ${w.drop} mmol/L från steg ${w.fromStage} till steg ${w.toStage}. Små variationer kan vara normala, men kontrollera att värdena stämmer.`
+                      : `Lactate dropped by ${w.drop} mmol/L from stage ${w.fromStage} to stage ${w.toStage}. Small variations can be normal, but check that the values are correct.`}
                   </li>
                 ))}
               </ul>
@@ -790,7 +800,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
             size="sm"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Lägg till steg
+            {t('Lägg till steg', 'Add stage')}
           </Button>
         </div>
       </div>
@@ -799,9 +809,9 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h3 className="text-lg font-semibold">Eftermätningar (post-max laktat)</h3>
+            <h3 className="text-lg font-semibold">{t('Eftermätningar (post-max laktat)', 'Post-test measurements (post-max lactate)')}</h3>
             <p className="text-sm text-muted-foreground">
-              Mätningar efter maxbelastning för att fånga topp-laktat
+              {t('Mätningar efter maxbelastning för att fånga topp-laktat', 'Measurements after max load to capture peak lactate')}
             </p>
           </div>
           <Button
@@ -811,7 +821,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
             size="sm"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Lägg till mätning
+            {t('Lägg till mätning', 'Add measurement')}
           </Button>
         </div>
 
@@ -821,7 +831,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <Label className="text-xs whitespace-nowrap">Tid efter max:</Label>
+                    <Label className="text-xs whitespace-nowrap">{t('Tid efter max:', 'Time after max:')}</Label>
                     <div className="flex items-center gap-1">
                       <Input
                         type="number"
@@ -837,7 +847,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                         min="0"
                         max="59"
                         className="w-14 text-center"
-                        placeholder="sek"
+                        placeholder={t('sek', 'sec')}
                         {...register(`postTestMeasurements.${index}.timeSeconds`, { valueAsNumber: true })}
                       />
                     </div>
@@ -874,7 +884,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       <div className="space-y-2">
         <Label htmlFor="recommendedNextTestDate" className="flex items-center gap-2">
           <CalendarDays className="w-4 h-4" />
-          Rekommenderat nästa testdatum
+          {t('Rekommenderat nästa testdatum', 'Recommended next test date')}
         </Label>
         <Input
           id="recommendedNextTestDate"
@@ -883,12 +893,12 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           {...register('recommendedNextTestDate')}
         />
         <p className="text-xs text-gray-500">
-          Föreslå ett datum för nästa laktattest (valfritt)
+          {t('Föreslå ett datum för nästa laktattest (valfritt)', 'Suggest a date for the next lactate test (optional)')}
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Anteckningar</Label>
+        <Label htmlFor="notes">{t('Anteckningar', 'Notes')}</Label>
         <textarea
           id="notes"
           {...register('notes')}
@@ -900,17 +910,17 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       {/* Show validation errors summary */}
       {Object.keys(errors).length > 0 && (
         <Alert variant="destructive">
-          <AlertTitle>Formuläret innehåller fel</AlertTitle>
+          <AlertTitle>{t('Formuläret innehåller fel', 'The form contains errors')}</AlertTitle>
           <AlertDescription>
             <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-              {errors.testDate && <li>Testdatum: {errors.testDate.message}</li>}
-              {errors.stages?.message && <li>Teststeg: {errors.stages.message}</li>}
-              {errors.stages?.root?.message && <li>Teststeg: {errors.stages.root.message}</li>}
+              {errors.testDate && <li>{t('Testdatum', 'Test date')}: {errors.testDate.message}</li>}
+              {errors.stages?.message && <li>{t('Teststeg', 'Test stages')}: {errors.stages.message}</li>}
+              {errors.stages?.root?.message && <li>{t('Teststeg', 'Test stages')}: {errors.stages.root.message}</li>}
               {Array.isArray(errors.stages) && errors.stages.map((stageError, idx) =>
                 stageError && (
                   <li key={idx}>
-                    Steg {idx + 1}: {Object.entries(stageError).map(([field, err]) =>
-                      `${field === 'heartRate' ? 'Puls' : field === 'lactate' ? 'Laktat' : field === 'speed' ? 'Hastighet' : field === 'power' ? 'Effekt' : field === 'duration' ? 'Tid' : field}: ${(err as { message?: string })?.message || 'ogiltigt värde'}`
+                    {t('Steg', 'Stage')} {idx + 1}: {Object.entries(stageError).map(([field, err]) =>
+                      `${field === 'heartRate' ? t('Puls', 'Heart rate') : field === 'lactate' ? t('Laktat', 'Lactate') : field === 'speed' ? t('Hastighet', 'Speed') : field === 'power' ? t('Effekt', 'Power') : field === 'duration' ? t('Tid', 'Time') : field}: ${(err as { message?: string })?.message || t('ogiltigt värde', 'invalid value')}`
                     ).join(', ')}
                   </li>
                 )
@@ -925,33 +935,33 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         size="lg"
         className="w-full"
       >
-        Generera Rapport
+        {t('Generera Rapport', 'Generate Report')}
       </Button>
 
       {/* Save Template Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Spara testmall</DialogTitle>
+            <DialogTitle>{t('Spara testmall', 'Save test template')}</DialogTitle>
             <DialogDescription>
-              Spara de nuvarande teststegen som en mall för framtida tester
+              {t('Spara de nuvarande teststegen som en mall för framtida tester', 'Save the current test stages as a template for future tests')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="template-name">Namn</Label>
+              <Label htmlFor="template-name">{t('Namn', 'Name')}</Label>
               <Input
                 id="template-name"
-                placeholder="T.ex. Lag Cykelmall 2025"
+                placeholder={t('T.ex. Lag Cykelmall 2025', 'e.g. Team cycling template 2025')}
                 value={templateName}
                 onChange={(e) => setTemplateName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="template-description">Beskrivning (valfritt)</Label>
+              <Label htmlFor="template-description">{t('Beskrivning (valfritt)', 'Description (optional)')}</Label>
               <textarea
                 id="template-description"
-                placeholder="Beskriv denna mall..."
+                placeholder={t('Beskriv denna mall...', 'Describe this template...')}
                 value={templateDescription}
                 onChange={(e) => setTemplateDescription(e.target.value)}
                 rows={3}
@@ -961,9 +971,9 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
-              Avbryt
+              {t('Avbryt', 'Cancel')}
             </Button>
-            <Button onClick={handleSaveTemplate}>Spara mall</Button>
+            <Button onClick={handleSaveTemplate}>{t('Spara mall', 'Save template')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -981,15 +991,15 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Ladda testmall</DialogTitle>
+            <DialogTitle>{t('Ladda testmall', 'Load test template')}</DialogTitle>
             <DialogDescription>
-              Välj en sparad mall för att ladda teststeg
+              {t('Välj en sparad mall för att ladda teststeg', 'Select a saved template to load test stages')}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             {templates.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Inga mallar sparade för {testType === 'RUNNING' ? 'löpning' : testType === 'CYCLING' ? 'cykling' : 'skidåkning'}
+                {t('Inga mallar sparade för', 'No templates saved for')} {testType === 'RUNNING' ? t('löpning', 'running') : testType === 'CYCLING' ? t('cykling', 'cycling') : t('skidåkning', 'skiing')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -1005,7 +1015,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground mt-2">
-                            {template.stages.length} steg
+                            {template.stages.length} {t('steg', 'stages')}
                           </p>
                         </div>
                       </div>
@@ -1017,7 +1027,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowLoadDialog(false)}>
-              Stäng
+              {t('Stäng', 'Close')}
             </Button>
           </DialogFooter>
         </DialogContent>

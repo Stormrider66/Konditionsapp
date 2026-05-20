@@ -41,8 +41,8 @@ export function MonitoringHeader({ clients, selectedAthleteId }: MonitoringHeade
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div>
-        <h1 className="text-3xl font-bold">{tMonitoringHeader('title')}</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{tMonitoringHeader('title')}</h1>
+        <p className="text-slate-600 dark:text-slate-400">
           {tMonitoringHeader('subtitle')}
         </p>
       </div>
@@ -83,7 +83,7 @@ export function MonitoringHeader({ clients, selectedAthleteId }: MonitoringHeade
         )}
 
         <Select value={selectedAthleteId || undefined} onValueChange={handleAthleteChange}>
-          <SelectTrigger className="w-64">
+          <SelectTrigger className="w-64 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
             <SelectValue placeholder={tMonitoringHeader('selectAthletePlaceholder')} />
           </SelectTrigger>
           <SelectContent>

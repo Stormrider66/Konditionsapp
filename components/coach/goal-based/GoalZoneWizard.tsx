@@ -8,8 +8,14 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard'
+import { toast } from 'sonner'
 import {
   Target,
   Timer,
@@ -58,7 +64,6 @@ const DISTANCES = [
 ]
 
 export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
-  const { toast } = useToast()
   const [step, setStep] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState<TrainingZones | null>(null)
@@ -148,22 +153,15 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
       if (response.ok) {
         setResult(data.zones)
         setStep(2)
+        toast.success('Zonberäkning slutförd!')
         if (onComplete) {
           onComplete(data.zones)
         }
       } else {
-        toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte beräkna zoner',
-          variant: 'destructive',
-        })
+        toast.error(data.error || 'Kunde inte beräkna zoner')
       }
     } catch (error) {
-      toast({
-        title: 'Fel',
-        description: 'Kunde inte beräkna zoner',
-        variant: 'destructive',
-      })
+      toast.error('Kunde inte beräkna zoner')
     } finally {
       setIsLoading(false)
     }
@@ -177,36 +175,36 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
 
   const renderStep0 = () => (
     <div className="space-y-4">
-      <h3 className="font-medium text-center mb-6">Välj typ av indata</h3>
+      <h3 className="font-semibold text-center text-slate-900 dark:text-white mb-6">Välj typ av indata</h3>
       <div className="grid sm:grid-cols-2 gap-4">
         {goalTypes.map((type) => {
           const Icon = type.icon
           return (
-            <Card
+            <div
               key={type.id}
-              className={`cursor-pointer transition-all hover:border-blue-300 ${
-                goalType === type.id ? 'border-blue-500 ring-2 ring-blue-500' : ''
+              className={`cursor-pointer transition-all rounded-lg p-4 bg-white/50 dark:bg-slate-950/50 border hover:border-blue-500/50 ${
+                goalType === type.id 
+                  ? 'border-blue-500 bg-blue-500/5 dark:bg-blue-500/10 ring-1 ring-blue-500' 
+                  : 'border-slate-200 dark:border-white/5'
               }`}
               onClick={() => setGoalType(type.id)}
             >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Icon className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium">{type.title}</h4>
-                    <p className="text-sm text-muted-foreground">{type.description}</p>
-                  </div>
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <h4 className="font-semibold text-slate-900 dark:text-white">{type.title}</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-450 mt-1">{type.description}</p>
+                </div>
+              </div>
+            </div>
           )
         })}
       </div>
 
       <Button
-        className="w-full mt-6"
+        className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md"
         disabled={!goalType}
         onClick={() => setStep(1)}
       >
@@ -218,7 +216,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
 
   const renderStep1 = () => (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => setStep(0)}>
+      <Button variant="ghost" size="sm" onClick={() => setStep(0)} className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
         <ChevronLeft className="h-4 w-4 mr-2" />
         Tillbaka
       </Button>
@@ -226,14 +224,14 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
       {goalType === 'RACE_RESULT' || goalType === 'TIME_TRIAL' ? (
         <>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Distans</label>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Distans</label>
             <select
-              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
               value={formData.distance}
               onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
             >
               {DISTANCES.map((d) => (
-                <option key={d.value} value={d.value}>
+                <option key={d.value} value={d.value} className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
                   {d.label}
                 </option>
               ))}
@@ -241,15 +239,15 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Tid</label>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Tid</label>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-xs text-muted-foreground">Timmar</label>
+                <label className="text-xs text-slate-500 dark:text-slate-450 font-medium">Timmar</label>
                 <input
                   type="number"
                   min="0"
                   max="10"
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 mt-1"
                   value={formData.hours}
                   onChange={(e) =>
                     setFormData({ ...formData, hours: parseInt(e.target.value) || 0 })
@@ -257,12 +255,12 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Minuter</label>
+                <label className="text-xs text-slate-500 dark:text-slate-455 font-medium">Minuter</label>
                 <input
                   type="number"
                   min="0"
                   max="59"
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 mt-1"
                   value={formData.minutes}
                   onChange={(e) =>
                     setFormData({ ...formData, minutes: parseInt(e.target.value) || 0 })
@@ -270,12 +268,12 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Sekunder</label>
+                <label className="text-xs text-slate-500 dark:text-slate-455 font-medium">Sekunder</label>
                 <input
                   type="number"
                   min="0"
                   max="59"
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 mt-1"
                   value={formData.seconds}
                   onChange={(e) =>
                     setFormData({ ...formData, seconds: parseInt(e.target.value) || 0 })
@@ -289,13 +287,13 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
         <>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">HR Drift (%)</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">HR Drift (%)</label>
               <input
                 type="number"
                 min="0"
                 max="50"
                 step="0.5"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 value={formData.hrDriftPercent}
                 onChange={(e) =>
                   setFormData({ ...formData, hrDriftPercent: parseFloat(e.target.value) || 0 })
@@ -303,12 +301,12 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Snittpuls (bpm)</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Snittpuls (bpm)</label>
               <input
                 type="number"
                 min="60"
                 max="220"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 value={formData.avgHR}
                 onChange={(e) =>
                   setFormData({ ...formData, avgHR: parseInt(e.target.value) || 0 })
@@ -316,12 +314,12 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Varaktighet (min)</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Varaktighet (min)</label>
               <input
                 type="number"
                 min="10"
                 max="180"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 value={formData.duration}
                 onChange={(e) =>
                   setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })
@@ -329,13 +327,13 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Snittpace (min/km)</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Snittpace (min/km)</label>
               <input
                 type="number"
                 min="2"
                 max="15"
                 step="0.1"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 value={formData.avgPace}
                 onChange={(e) =>
                   setFormData({ ...formData, avgPace: parseFloat(e.target.value) || 0 })
@@ -346,9 +344,9 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
         </>
       ) : goalType === 'LOOSE_GOAL' ? (
         <div className="space-y-2">
-          <label className="text-sm font-medium">Beskriv ditt mål</label>
+          <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Beskriv ditt mål</label>
           <textarea
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[100px]"
+            className="w-full rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white min-h-[100px] focus:outline-none focus:ring-1 focus:ring-blue-500"
             placeholder="T.ex. 'sub-4 maraton', 'under 25 minuter på 5K', 'klara halvmaraton'"
             value={formData.goalDescription}
             onChange={(e) => setFormData({ ...formData, goalDescription: e.target.value })}
@@ -357,16 +355,16 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
       ) : null}
 
       {/* Optional HR data */}
-      <div className="border-t pt-4 mt-4">
-        <h4 className="text-sm font-medium mb-3">Valfritt: Pulsdata för HR-zoner</h4>
+      <div className="border-t border-slate-200 dark:border-white/5 pt-4 mt-4">
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Valfritt: Pulsdata för HR-zoner</h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Max-puls</label>
+            <label className="text-sm text-slate-500 dark:text-slate-450 font-medium">Max-puls</label>
             <input
               type="number"
               min="100"
               max="220"
-              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="185"
               value={formData.maxHR || ''}
               onChange={(e) =>
@@ -375,12 +373,12 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Vilopuls</label>
+            <label className="text-sm text-slate-500 dark:text-slate-450 font-medium">Vilopuls</label>
             <input
               type="number"
               min="30"
               max="100"
-              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="w-full h-10 rounded-md border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-950/50 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="50"
               value={formData.restingHR || ''}
               onChange={(e) =>
@@ -391,7 +389,7 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
         </div>
       </div>
 
-      <Button className="w-full mt-6" onClick={calculateZones} disabled={isLoading}>
+      <Button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md" onClick={calculateZones} disabled={isLoading}>
         {isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin mr-2" />
         ) : (
@@ -408,46 +406,42 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
     return (
       <div className="space-y-4">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Check className="h-8 w-8 text-green-600" />
+          <div className="w-16 h-16 bg-emerald-500/10 dark:bg-emerald-500/25 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Check className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <h3 className="font-medium text-lg">Träningszoner beräknade</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Träningszoner beräknade</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-450 mt-1 font-medium">
             VDOT: {result.vdot.toFixed(1)} • Konfidens: {result.confidenceLevel}
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Nyckeltempo (min/km)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Lugnt</span>
-                <span className="font-mono">{formatPace(result.keyPaces.easy)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Maraton</span>
-                <span className="font-mono">{formatPace(result.keyPaces.marathon)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tröskel</span>
-                <span className="font-mono">{formatPace(result.keyPaces.threshold)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Intervall</span>
-                <span className="font-mono">{formatPace(result.keyPaces.interval)}</span>
-              </div>
-              <div className="flex justify-between col-span-2">
-                <span className="text-muted-foreground">Repetition</span>
-                <span className="font-mono">{formatPace(result.keyPaces.repetition)}</span>
-              </div>
+        <div className="p-4 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg">
+          <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-4">Nyckeltempo (min/km)</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5">
+              <span className="text-slate-500 dark:text-slate-450 font-medium">Lugnt</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.easy)}</span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5">
+              <span className="text-slate-500 dark:text-slate-450 font-medium">Maraton</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.marathon)}</span>
+            </div>
+            <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5">
+              <span className="text-slate-500 dark:text-slate-450 font-medium">Tröskel</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.threshold)}</span>
+            </div>
+            <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5">
+              <span className="text-slate-500 dark:text-slate-450 font-medium">Intervall</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.interval)}</span>
+            </div>
+            <div className="flex justify-between items-center p-2 bg-white/40 dark:bg-slate-900/40 rounded border border-slate-200/30 dark:border-white/5 col-span-2">
+              <span className="text-slate-500 dark:text-slate-450 font-medium">Repetition</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-white">{formatPace(result.keyPaces.repetition)}</span>
+            </div>
+          </div>
+        </div>
 
-        <Button variant="outline" className="w-full" onClick={() => setStep(0)}>
+        <Button variant="outline" className="w-full border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-900" onClick={() => setStep(0)}>
           Beräkna nya zoner
         </Button>
       </div>
@@ -455,21 +449,21 @@ export function GoalZoneWizard({ onComplete, clientId }: GoalZoneWizardProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Target className="h-5 w-5" />
+    <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+      <GlassCardHeader>
+        <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+          <Target className="h-5 w-5 text-blue-500" />
           Målbaserad zonberäkning
-        </CardTitle>
-        <CardDescription>
+        </GlassCardTitle>
+        <GlassCardDescription className="text-slate-650 dark:text-slate-400">
           Beräkna träningszoner utan utrustning baserat på lopp, tidstest eller mål
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </GlassCardDescription>
+      </GlassCardHeader>
+      <GlassCardContent>
         {step === 0 && renderStep0()}
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

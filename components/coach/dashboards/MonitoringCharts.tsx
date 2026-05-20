@@ -12,7 +12,13 @@
 
 import { useEffect, useState } from 'react';
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Activity, Heart, TrendingUp, AlertTriangle } from 'lucide-react';
@@ -81,12 +87,12 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
 
   if (!data || !data.metrics || data.metrics.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Monitoring Data</CardTitle>
-          <CardDescription>No monitoring data available for this athlete</CardDescription>
-        </CardHeader>
-      </Card>
+      <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-slate-900 dark:text-white">Monitoring Data</GlassCardTitle>
+          <GlassCardDescription className="text-slate-650 dark:text-slate-400">No monitoring data available for this athlete</GlassCardDescription>
+        </GlassCardHeader>
+      </GlassCard>
     );
   }
 
@@ -111,9 +117,9 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
     <div className="space-y-6">
       {/* Time Range Selector */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Monitoring Trends</h3>
+        <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">Monitoring Trends</h3>
         <Select value={timeRange} onValueChange={(v: any) => setTimeRange(v)}>
-          <SelectTrigger className="w-32">
+          <SelectTrigger className="w-32 bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -126,86 +132,86 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Activity className="h-4 w-4" />
+        <GlassCard glow="purple" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
+              <Activity className="h-4 w-4 text-purple-500" />
               Current HRV
               <InfoTooltip conceptKey="hrv" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{latestMetrics.hrvRMSSD?.toFixed(1) || 'N/A'} ms</p>
-            <p className="text-xs text-muted-foreground">
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">{latestMetrics.hrvRMSSD?.toFixed(1) || 'N/A'} ms</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Avg: {avgHRV.toFixed(1)} ms
               {latestMetrics.hrvRMSSD && (
-                <span className={latestMetrics.hrvRMSSD > avgHRV ? 'text-green-600' : 'text-orange-600'}>
+                <span className={latestMetrics.hrvRMSSD > avgHRV ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
                   {' '}({latestMetrics.hrvRMSSD > avgHRV ? '↑' : '↓'})
                 </span>
               )}
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Heart className="h-4 w-4" />
+        <GlassCard glow="red" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
+              <Heart className="h-4 w-4 text-red-500" />
               Resting HR
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{latestMetrics.restingHR || 'N/A'} bpm</p>
-            <p className="text-xs text-muted-foreground">
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">{latestMetrics.restingHR || 'N/A'} bpm</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Avg: {avgRHR.toFixed(0)} bpm
               {latestMetrics.restingHR && (
-                <span className={latestMetrics.restingHR < avgRHR ? 'text-green-600' : 'text-orange-600'}>
+                <span className={latestMetrics.restingHR < avgRHR ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
                   {' '}({latestMetrics.restingHR < avgRHR ? '↓' : '↑'})
                 </span>
               )}
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
+        <GlassCard glow="emerald" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
               Readiness
               <InfoTooltip conceptKey="readiness" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{latestMetrics.readinessScore || 'N/A'}</p>
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{latestMetrics.readinessScore || 'N/A'}</p>
             <Badge variant={getReadinessBadge(latestMetrics.readinessScore)}>
               {getReadinessCategory(latestMetrics.readinessScore)}
             </Badge>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
+        <GlassCard glow="amber" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+          <GlassCardHeader className="pb-2">
+            <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
               Red Flags
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{data.criticalFlags || 0}</p>
-            <p className="text-xs text-muted-foreground">Requires attention</p>
-          </CardContent>
-        </Card>
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">{data.criticalFlags || 0}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Requires attention</p>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* HRV Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>HRV Trend (rMSSD)</CardTitle>
-          <CardDescription>
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-slate-900 dark:text-white">HRV Trend (rMSSD)</GlassCardTitle>
+          <GlassCardDescription className="text-slate-600 dark:text-slate-400">
             Higher HRV indicates better recovery. Watch for declining trends.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <ResponsiveContainer width="100%" height={250}>
             <AreaChart data={chartData}>
               <defs>
@@ -227,18 +233,18 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
               />
             </AreaChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Resting HR Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Resting Heart Rate Trend</CardTitle>
-          <CardDescription>
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-slate-900 dark:text-white">Resting Heart Rate Trend</GlassCardTitle>
+          <GlassCardDescription className="text-slate-600 dark:text-slate-400">
             Lower RHR indicates better fitness. Elevated RHR may signal overtraining or illness.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -254,18 +260,18 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
               />
             </LineChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Wellness Components */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Wellness Components</CardTitle>
-          <CardDescription>
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-slate-900 dark:text-white">Wellness Components</GlassCardTitle>
+          <GlassCardDescription className="text-slate-600 dark:text-slate-400">
             Sleep quality, soreness, and stress levels (1-5 scale)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -278,18 +284,18 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
               <Bar dataKey="stress" fill="#ef4444" name="Stress" />
             </BarChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Readiness Score Trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Readiness Score Trend</CardTitle>
-          <CardDescription>
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-slate-900 dark:text-white">Readiness Score Trend</GlassCardTitle>
+          <GlassCardDescription className="text-slate-600 dark:text-slate-400">
             Composite score (0-100) indicating training readiness
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <ResponsiveContainer width="100%" height={250}>
             <AreaChart data={chartData}>
               <defs>
@@ -311,8 +317,8 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
               />
             </AreaChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   );
 }

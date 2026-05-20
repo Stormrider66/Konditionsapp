@@ -309,13 +309,13 @@ export function VideoUploader({
                     onClick={() => setVideoType(type.value)}
                     className={`p-3 rounded-lg border text-left transition-colors ${
                       videoType === type.value
-                        ? 'border-blue-500 bg-blue-50 text-blue-900'
-                        : 'border-muted hover:border-muted-foreground/50'
+                        ? 'border-blue-550 bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100 font-medium'
+                        : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
                     }`}
                   >
-                    <Icon className={`h-5 w-5 mb-1 ${videoType === type.value ? 'text-blue-600' : 'text-muted-foreground'}`} />
+                    <Icon className={`h-5 w-5 mb-1 ${videoType === type.value ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`} />
                     <div className="font-medium text-sm">{type.label}</div>
-                    <div className="text-xs text-muted-foreground line-clamp-2">{type.description}</div>
+                    <div className="text-xs text-slate-550 dark:text-slate-400 line-clamp-2">{type.description}</div>
                   </button>
                 )
               })}
@@ -326,7 +326,7 @@ export function VideoUploader({
           {videoType === 'RUNNING_GAIT' && (
             <div className="space-y-2">
               <Label>Kameravinkel *</Label>
-              <p className="text-xs text-muted-foreground mb-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 Välj vilken vinkel videon är filmad från för mer precis analys
               </p>
               <div className="grid grid-cols-3 gap-2">
@@ -339,13 +339,13 @@ export function VideoUploader({
                       onClick={() => setCameraAngle(angle.value)}
                       className={`p-3 rounded-lg border text-left transition-colors ${
                         cameraAngle === angle.value
-                          ? 'border-orange-500 bg-orange-50 text-orange-900'
-                          : 'border-muted hover:border-muted-foreground/50'
+                          ? 'border-orange-550 bg-orange-50 dark:bg-orange-950/30 text-orange-900 dark:text-orange-100 font-medium'
+                          : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
                       }`}
                     >
-                      <Icon className={`h-5 w-5 mb-1 ${cameraAngle === angle.value ? 'text-orange-600' : 'text-muted-foreground'}`} />
+                      <Icon className={`h-5 w-5 mb-1 ${cameraAngle === angle.value ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500'}`} />
                       <div className="font-medium text-sm">{angle.label}</div>
-                      <div className="text-xs text-muted-foreground line-clamp-2">{angle.description}</div>
+                      <div className="text-xs text-slate-550 dark:text-slate-400 line-clamp-2">{angle.description}</div>
                     </button>
                   )
                 })}
@@ -357,7 +357,7 @@ export function VideoUploader({
           {videoType === 'HYROX_STATION' && (
             <div className="space-y-2">
               <Label>Välj station *</Label>
-              <p className="text-xs text-muted-foreground mb-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 Vilken HYROX-station vill du analysera?
               </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -368,12 +368,12 @@ export function VideoUploader({
                     onClick={() => setHyroxStation(station.value)}
                     className={`p-3 rounded-lg border text-left transition-colors ${
                       hyroxStation === station.value
-                        ? 'border-yellow-500 bg-yellow-50 text-yellow-900'
-                        : 'border-muted hover:border-muted-foreground/50'
+                        ? 'border-yellow-555 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-900 dark:text-yellow-100 font-medium'
+                        : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
                     }`}
                   >
                     <div className="font-medium text-sm">{station.label}</div>
-                    <div className="text-xs text-muted-foreground">{station.description}</div>
+                    <div className="text-xs text-slate-555 dark:text-slate-400">{station.description}</div>
                   </button>
                 ))}
               </div>
@@ -388,7 +388,7 @@ export function VideoUploader({
                 value={athleteId || "none"}
                 onValueChange={(val) => setAthleteId(val === "none" ? "" : val)}
               >
-                <SelectTrigger id="athlete">
+                <SelectTrigger id="athlete" className="bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-white/10">
                   <SelectValue placeholder="Välj atlet" />
                 </SelectTrigger>
                 <SelectContent>
@@ -409,7 +409,7 @@ export function VideoUploader({
                   value={exerciseId || "none"}
                   onValueChange={(val) => setExerciseId(val === "none" ? "" : val)}
                 >
-                  <SelectTrigger id="exercise">
+                  <SelectTrigger id="exercise" className="bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-white/10">
                     <SelectValue placeholder="Välj övning" />
                   </SelectTrigger>
                   <SelectContent>
@@ -431,27 +431,27 @@ export function VideoUploader({
               {...getRootProps()}
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                 isDragActive
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                  ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+                  : 'border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20'
               }`}
             >
               <input {...getInputProps()} />
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+              <Upload className="h-10 w-10 mx-auto text-slate-500 dark:text-slate-400 mb-4" />
               {isDragActive ? (
-                <p className="text-blue-600 font-medium">Släpp videon här...</p>
+                <p className="text-blue-600 dark:text-blue-400 font-medium">Släpp videon här...</p>
               ) : (
                 <>
-                  <p className="font-medium mb-1">
+                  <p className="font-medium mb-1 text-slate-800 dark:text-slate-200">
                     Dra och släpp en video här, eller klicka för att välja
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     MP4, MOV, WebM, AVI (max 100MB)
                   </p>
                 </>
               )}
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border border-slate-250 dark:border-white/10 rounded-lg overflow-hidden">
               {/* Video preview */}
               {previewUrl && (
                 <div className="bg-black aspect-video relative">
@@ -462,12 +462,12 @@ export function VideoUploader({
                   />
                 </div>
               )}
-              <div className="p-3 flex items-center justify-between bg-muted/50">
+              <div className="p-3 flex items-center justify-between bg-slate-100/50 dark:bg-slate-900/30">
                 <div className="flex items-center gap-2 min-w-0">
                   <Video className="h-5 w-5 text-purple-500 flex-shrink-0" />
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{selectedFile.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-medium truncate text-slate-800 dark:text-slate-200">{selectedFile.name}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                       {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
                     </p>
                   </div>
@@ -481,12 +481,12 @@ export function VideoUploader({
 
           {/* Info about selected type */}
           {selectedVideoType && (
-            <div className="p-3 bg-muted rounded-lg text-sm">
-              <div className="font-medium flex items-center gap-2">
+            <div className="p-3 bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 rounded-lg text-sm">
+              <div className="font-medium flex items-center gap-2 text-slate-800 dark:text-slate-200">
                 <selectedVideoType.icon className="h-4 w-4" />
                 {selectedVideoType.label}
               </div>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-slate-550 dark:text-slate-400 mt-1">
                 {selectedVideoType.description}
               </p>
             </div>

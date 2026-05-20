@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  GlassCard,
+  GlassCardContent,
+} from '@/components/ui/GlassCard'
 import { Play, SkipForward, Square, Droplets, Pause } from 'lucide-react'
 import type { IntervalSessionStatus, IntervalProtocol, RestMode } from '@/lib/interval-session/types'
 
@@ -184,137 +188,142 @@ export function IntervalSessionControls({
     ? 1 - groupRestRemaining / protocol.restDurationSeconds
     : 0
 
+  // Set glow color dynamically depending on the current status
+  const glowColor = status === 'ACTIVE' ? 'red' : (status === 'LACTATE_ENTRY' ? 'emerald' : 'blue')
+
   return (
-    <div className="bg-card border rounded-lg p-4 space-y-4">
-      {/* Timer display */}
-      <div className="text-center">
-        {isGroupResting ? (
-          <>
-            <div className="text-sm text-muted-foreground mb-1">Gruppvila</div>
-            <div className="text-4xl sm:text-5xl font-mono font-bold tabular-nums text-amber-600 dark:text-amber-400">
-              {formatCountdown(groupRestRemaining)}
-            </div>
-            {/* Progress bar */}
-            <div className="w-full max-w-xs mx-auto mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-amber-500 transition-all duration-200 rounded-full"
-                style={{ width: `${restProgress * 100}%` }}
-              />
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">{intervalLabel}</div>
-          </>
-        ) : (
-          <>
-            <div className="text-4xl sm:text-5xl font-mono font-bold tabular-nums dark:text-white">
-              {formatTime(elapsed)}
-            </div>
-            <div className="text-sm text-muted-foreground mt-1">{intervalLabel}</div>
-          </>
-        )}
-      </div>
+    <GlassCard glow={glowColor} className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+      <GlassCardContent className="p-4 space-y-4">
+        {/* Timer display */}
+        <div className="text-center">
+          {isGroupResting ? (
+            <>
+              <div className="text-sm text-slate-550 dark:text-slate-400 mb-1 font-medium">Gruppvila</div>
+              <div className="text-4xl sm:text-5xl font-mono font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                {formatCountdown(groupRestRemaining)}
+              </div>
+              {/* Progress bar */}
+              <div className="w-full max-w-xs mx-auto mt-2 h-1.5 bg-slate-100 dark:bg-slate-950/40 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-500 transition-all duration-200 rounded-full"
+                  style={{ width: `${restProgress * 100}%` }}
+                />
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">{intervalLabel}</div>
+            </>
+          ) : (
+            <>
+              <div className="text-4xl sm:text-5xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                {formatTime(elapsed)}
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">{intervalLabel}</div>
+            </>
+          )}
+        </div>
 
-      {/* Control buttons */}
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-        {status === 'SETUP' && (
-          <Button size="lg" onClick={handleStart} disabled={loading} className="px-8">
-            <Play className="h-5 w-5 mr-2" />
-            Starta
-          </Button>
-        )}
-
-        {status === 'ACTIVE' && !isGroupResting && (
-          <>
-            <Button
-              size="default"
-              variant="outline"
-              onClick={handleLactateMode}
-              disabled={loading}
-              className="sm:size-lg"
-            >
-              <Droplets className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              Laktat
+        {/* Control buttons */}
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+          {status === 'SETUP' && (
+            <Button size="lg" onClick={handleStart} disabled={loading} className="px-8 bg-blue-600 hover:bg-blue-700 text-white">
+              <Play className="h-5 w-5 mr-2" />
+              Starta
             </Button>
-            {/* Show manual group rest trigger when in GROUP mode and all have tapped but rest hasn't started */}
-            {restMode === 'GROUP' && allTapped && !groupRestStartedAt ? (
-              <Button size="default" onClick={handleStartGroupRest} disabled={loading} className="sm:size-lg bg-amber-600 hover:bg-amber-700">
-                <Pause className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                <span className="hidden sm:inline">Starta vila</span>
-                <span className="sm:hidden">Vila</span>
+          )}
+
+          {status === 'ACTIVE' && !isGroupResting && (
+            <>
+              <Button
+                size="default"
+                variant="outline"
+                onClick={handleLactateMode}
+                disabled={loading}
+                className="sm:size-lg border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-950/20"
+              >
+                <Droplets className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 text-emerald-500" />
+                Laktat
               </Button>
-            ) : restMode === 'GROUP' && !allTapped && !groupRestStartedAt ? (
-              <Button size="default" variant="outline" onClick={handleStartGroupRest} disabled={loading} className="sm:size-lg">
-                <Pause className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                <span className="hidden sm:inline">Starta vila</span>
-                <span className="sm:hidden">Vila</span>
+              {/* Show manual group rest trigger when in GROUP mode and all have tapped but rest hasn't started */}
+              {restMode === 'GROUP' && allTapped && !groupRestStartedAt ? (
+                <Button size="default" onClick={handleStartGroupRest} disabled={loading} className="sm:size-lg bg-amber-600 hover:bg-amber-700 text-white">
+                  <Pause className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                  <span className="hidden sm:inline">Starta vila</span>
+                  <span className="sm:hidden">Vila</span>
+                </Button>
+              ) : restMode === 'GROUP' && !allTapped && !groupRestStartedAt ? (
+                <Button size="default" variant="outline" onClick={handleStartGroupRest} disabled={loading} className="sm:size-lg border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-350">
+                  <Pause className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 text-amber-500" />
+                  <span className="hidden sm:inline">Starta vila</span>
+                  <span className="sm:hidden">Vila</span>
+                </Button>
+              ) : null}
+              <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg bg-blue-600 hover:bg-blue-700 text-white">
+                <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                <span className="hidden sm:inline">Nästa intervall</span>
+                <span className="sm:hidden">Nästa</span>
               </Button>
-            ) : null}
-            <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg">
-              <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              <span className="hidden sm:inline">Nästa intervall</span>
-              <span className="sm:hidden">Nästa</span>
-            </Button>
-            <Button
-              size="default"
-              variant="destructive"
-              onClick={handleEnd}
-              disabled={loading}
-              className="sm:size-lg"
-            >
-              <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              Avsluta
-            </Button>
-          </>
-        )}
+              <Button
+                size="default"
+                variant="destructive"
+                onClick={handleEnd}
+                disabled={loading}
+                className="sm:size-lg"
+              >
+                <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                Avsluta
+              </Button>
+            </>
+          )}
 
-        {status === 'ACTIVE' && isGroupResting && (
-          <>
-            <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg">
-              <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              <span className="hidden sm:inline">Hoppa över vila</span>
-              <span className="sm:hidden">Hoppa</span>
-            </Button>
-            <Button
-              size="default"
-              variant="destructive"
-              onClick={handleEnd}
-              disabled={loading}
-              className="sm:size-lg"
-            >
-              <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              Avsluta
-            </Button>
-          </>
-        )}
+          {status === 'ACTIVE' && isGroupResting && (
+            <>
+              <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg bg-amber-600 hover:bg-amber-700 text-white">
+                <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                <span className="hidden sm:inline">Hoppa över vila</span>
+                <span className="sm:hidden">Hoppa</span>
+              </Button>
+              <Button
+                size="default"
+                variant="destructive"
+                onClick={handleEnd}
+                disabled={loading}
+                className="sm:size-lg"
+              >
+                <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                Avsluta
+              </Button>
+            </>
+          )}
 
-        {status === 'LACTATE_ENTRY' && (
-          <>
-            <Button size="default" onClick={handleResume} disabled={loading} className="sm:size-lg">
-              <Play className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              <span className="hidden sm:inline">Återgå till timing</span>
-              <span className="sm:hidden">Timing</span>
-            </Button>
-            <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg">
-              <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              <span className="hidden sm:inline">Nästa intervall</span>
-              <span className="sm:hidden">Nästa</span>
-            </Button>
-            <Button
-              size="default"
-              variant="destructive"
-              onClick={handleEnd}
-              disabled={loading}
-              className="sm:size-lg"
-            >
-              <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-              Avsluta
-            </Button>
-          </>
-        )}
+          {status === 'LACTATE_ENTRY' && (
+            <>
+              <Button size="default" onClick={handleResume} disabled={loading} className="sm:size-lg bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Play className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                <span className="hidden sm:inline">Återgå till timing</span>
+                <span className="sm:hidden">Timing</span>
+              </Button>
+              <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg bg-blue-605 hover:bg-blue-700 text-white">
+                <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                <span className="hidden sm:inline">Nästa intervall</span>
+                <span className="sm:hidden">Nästa</span>
+              </Button>
+              <Button
+                size="default"
+                variant="destructive"
+                onClick={handleEnd}
+                disabled={loading}
+                className="sm:size-lg"
+              >
+                <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                Avsluta
+              </Button>
+            </>
+          )}
 
-        {status === 'ENDED' && (
-          <div className="text-muted-foreground font-medium">Session avslutad</div>
-        )}
-      </div>
-    </div>
+          {status === 'ENDED' && (
+            <div className="text-slate-550 dark:text-slate-400 font-medium">Session avslutad</div>
+          )}
+        </div>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

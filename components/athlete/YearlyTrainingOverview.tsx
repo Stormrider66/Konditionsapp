@@ -22,7 +22,13 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -161,57 +167,57 @@ export function YearlyTrainingOverview({
 
   if (isLoading) {
     return (
-      <Card className={cardClass}>
-        <CardHeader>
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+        <GlassCardHeader>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-4 w-28 mt-1" />
-        </CardHeader>
-        <CardContent>
+        </GlassCardHeader>
+        <GlassCardContent>
           <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   if (!currentSummary) {
     return (
-      <Card className={cardClass}>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+            <Calendar className="h-4 w-4 text-slate-500" />
             Arsoversikt
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>
           <div className="text-center py-8">
-            <Activity className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
+            <Activity className="h-8 w-8 mx-auto text-slate-500 dark:text-slate-400 mb-2" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Ingen arsdata tillganglig annu
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   return (
-    <Card className={cardClass}>
-      <CardHeader className="pb-2">
+    <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+      <GlassCardHeader className="pb-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+            <GlassCardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+              <Calendar className="h-4 w-4 text-blue-500" />
               Arsoversikt
-            </CardTitle>
-            <CardDescription>
+            </GlassCardTitle>
+            <GlassCardDescription className="text-slate-600 dark:text-slate-400">
               Traningssammanfattning for {selectedYear}
-            </CardDescription>
+            </GlassCardDescription>
           </div>
           <Select
             value={selectedYear.toString()}
             onValueChange={(value) => setSelectedYear(parseInt(value, 10))}
           >
-            <SelectTrigger className="w-24 h-8">
+            <SelectTrigger className="w-24 h-8 bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -223,59 +229,58 @@ export function YearlyTrainingOverview({
             </SelectContent>
           </Select>
         </div>
-      </CardHeader>
+      </GlassCardHeader>
 
-      <CardContent className="space-y-6">
+      <GlassCardContent className="space-y-6">
         {/* Top stats */}
         <div className="grid grid-cols-4 gap-4">
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
+          <div className="text-center p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/40 rounded-lg">
             <Clock className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-            <p className="text-xl font-bold">{totalHours}h</p>
-            <p className="text-xs text-muted-foreground">Total tid</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white">{totalHours}h</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Total tid</p>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
+          <div className="text-center p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/40 rounded-lg">
             <Route className="h-5 w-5 mx-auto text-green-500 mb-1" />
-            <p className="text-xl font-bold">
+            <p className="text-xl font-bold text-slate-900 dark:text-white">
               {Math.round(currentSummary.totalDistance / 1000)}
             </p>
-            <p className="text-xs text-muted-foreground">km</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">km</p>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
+          <div className="text-center p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/40 rounded-lg">
             <Flame className="h-5 w-5 mx-auto text-orange-500 mb-1" />
-            <p className="text-xl font-bold">
+            <p className="text-xl font-bold text-slate-900 dark:text-white">
               {Math.round(currentSummary.totalTSS).toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground">TSS</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">TSS</p>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
+          <div className="text-center p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/40 rounded-lg">
             <Activity className="h-5 w-5 mx-auto text-purple-500 mb-1" />
-            <p className="text-xl font-bold">{currentSummary.workoutCount}</p>
-            <p className="text-xs text-muted-foreground">Pass</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white">{currentSummary.workoutCount}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Pass</p>
           </div>
         </div>
 
         {/* Zone breakdown */}
         <div>
-          <h4 className="text-sm font-medium mb-3">Tid per zon</h4>
+          <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-3">Tid per zon</h4>
           <div className="space-y-2">
             {Object.entries(zoneHours).map(([zone, hours]) => {
               const zoneNum = parseInt(zone.replace('zone', ''), 10);
               const color = ZONE_COLORS[zone as keyof typeof ZONE_COLORS];
               const percent = totalHours > 0 ? (hours / totalHours) * 100 : 0;
-              const zoneNames = ['Aterhamtning', 'Aerob bas', 'Tempo', 'Troskel', 'VO2max'];
 
               return (
                 <div key={zone} className="flex items-center gap-3">
                   <div className="w-20 text-sm">
                     <Badge
                       variant="outline"
-                      className="w-full justify-center"
+                      className="w-full justify-center bg-transparent border-slate-200 dark:border-white/10"
                       style={{ borderColor: color, color: color }}
                     >
                       Zon {zoneNum}
                     </Badge>
                   </div>
-                  <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
+                  <div className="flex-1 h-6 bg-slate-100 dark:bg-slate-950/40 rounded-full overflow-hidden">
                     <div
                       className="h-full transition-all duration-500"
                       style={{
@@ -284,9 +289,9 @@ export function YearlyTrainingOverview({
                       }}
                     />
                   </div>
-                  <div className="w-16 text-right text-sm">
+                  <div className="w-16 text-right text-sm text-slate-700 dark:text-slate-350">
                     <span className="font-medium">{hours}h</span>
-                    <span className="text-muted-foreground text-xs ml-1">
+                    <span className="text-slate-500 dark:text-slate-400 text-xs ml-1">
                       ({percent.toFixed(0)}%)
                     </span>
                   </div>
@@ -299,28 +304,29 @@ export function YearlyTrainingOverview({
         {/* Monthly chart */}
         {monthlyChartData.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium mb-3">Manadsfordelning</h4>
+            <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-3">Manadsfordelning</h4>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={monthlyChartData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
                   <XAxis
                     dataKey="month"
                     tick={{ fontSize: 10 }}
-                    stroke="#9ca3af"
+                    stroke="#94a3b8"
                   />
                   <YAxis
                     tick={{ fontSize: 10 }}
-                    stroke="#9ca3af"
+                    stroke="#94a3b8"
                     tickFormatter={(value) => `${value}h`}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(148, 163, 184, 0.15)',
                       borderRadius: '0.5rem',
                       fontSize: '0.75rem',
                     }}
@@ -348,24 +354,24 @@ export function YearlyTrainingOverview({
 
         {/* Polarization indicator */}
         {currentSummary.avgPolarizationRatio !== null && (
-          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/55 dark:border-white/5 rounded-lg">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Genomsnittlig polarisering</span>
+              <TrendingUp className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+              <span className="text-sm text-slate-800 dark:text-slate-200">Genomsnittlig polarisering</span>
             </div>
             <div className="text-right">
-              <span className="font-mono font-bold">
+              <span className="font-mono font-bold text-slate-900 dark:text-white">
                 {currentSummary.avgPolarizationRatio.toFixed(0)}%
               </span>
               {currentSummary.avgPolarizationRatio >= 75 && (
-                <Badge className="ml-2 bg-green-100 text-green-800">
+                <Badge className="ml-2 bg-emerald-105 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-900/30">
                   80/20
                 </Badge>
               )}
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }

@@ -1,13 +1,8 @@
-'use client'
-
-/**
- * Athlete HR Card
- *
- * Displays a single athlete's live heart rate with zone coloring.
- */
-
 import { LiveHRParticipantData, ZONE_COLORS, ZONE_NAMES_SV } from '@/lib/live-hr/types'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+} from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Heart, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -24,9 +19,9 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
   const zoneName = zone ? ZONE_NAMES_SV[zone as keyof typeof ZONE_NAMES_SV] : 'Okänd'
 
   return (
-    <Card
+    <GlassCard
       className={cn(
-        'relative overflow-hidden transition-all duration-300',
+        'relative overflow-hidden transition-all duration-300 bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-sm',
         isStale && 'opacity-60',
         !isStale && heartRate && 'ring-2'
       )}
@@ -41,14 +36,14 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
         style={{ backgroundColor: zoneColor }}
       />
 
-      <CardContent className="p-4">
+      <GlassCardContent className="p-4">
         {/* Athlete name */}
         <div className="flex items-center justify-between mb-3">
-          <span className="font-medium text-sm truncate">{clientName}</span>
+          <span className="font-semibold text-sm truncate text-slate-900 dark:text-white">{clientName}</span>
           {onRemove && (
             <button
               onClick={() => onRemove(participant.clientId)}
-              className="text-muted-foreground hover:text-destructive text-xs"
+              className="text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-450 text-xs font-medium"
             >
               Ta bort
             </button>
@@ -73,10 +68,10 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
               >
                 {heartRate}
               </span>
-              <span className="text-muted-foreground text-sm">bpm</span>
+              <span className="text-slate-500 dark:text-slate-400 text-sm">bpm</span>
             </>
           ) : (
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
               <AlertCircle className="h-5 w-5" />
               <span className="text-sm">Väntar på data...</span>
             </div>
@@ -88,13 +83,13 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
           {zone && heartRate ? (
             <Badge
               variant="secondary"
-              className="text-white text-xs"
+              className="text-white text-xs border-none font-semibold"
               style={{ backgroundColor: zoneColor }}
             >
               Zon {zone} - {zoneName}
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs border-slate-350 dark:border-white/10 text-slate-700 dark:text-slate-300">
               {isStale ? 'Ingen signal' : 'Väntar...'}
             </Badge>
           )}
@@ -102,11 +97,11 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
 
         {/* Stale indicator */}
         {isStale && heartRate && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background/80 p-2 rounded-md">
-            <span className="text-xs text-muted-foreground">Ingen signal</span>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-950/90 p-2 rounded-md border border-slate-200 dark:border-white/10 shadow-lg">
+            <span className="text-xs text-rose-600 dark:text-rose-400 font-semibold">Ingen signal</span>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

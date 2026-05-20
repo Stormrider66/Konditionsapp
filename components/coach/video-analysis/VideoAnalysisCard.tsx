@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardContent,
+} from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -715,8 +719,8 @@ export function VideoAnalysisCard({
 
   return (
     <>
-      <Card className="overflow-hidden">
-        <CardHeader className="p-0">
+      <GlassCard glow="none" className="overflow-hidden bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+        <GlassCardHeader className="p-0">
           {/* Video thumbnail/preview */}
           <div
             className="aspect-video bg-gray-900 relative cursor-pointer group"
@@ -744,14 +748,14 @@ export function VideoAnalysisCard({
             {analysis.status === 'COMPLETED' && analysis.formScore !== null && (
               <div className="absolute bottom-2 left-2">
                 <div className={`px-2 py-1 rounded-lg bg-white/90 font-bold ${getScoreColor(analysis.formScore)}`}>
-                  {analysis.formScore}/100
+                   {analysis.formScore}/100
                 </div>
               </div>
             )}
           </div>
-        </CardHeader>
+        </GlassCardHeader>
 
-        <CardContent className="p-4 space-y-3">
+        <GlassCardContent className="p-4 space-y-3">
           {/* Type and date */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -890,8 +894,8 @@ export function VideoAnalysisCard({
               )}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Video Dialog */}
       <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>

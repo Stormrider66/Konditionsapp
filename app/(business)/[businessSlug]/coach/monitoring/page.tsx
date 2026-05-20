@@ -7,7 +7,12 @@ import { notFound } from 'next/navigation';
 import { MonitoringCharts } from '@/components/coach/dashboards/MonitoringCharts';
 import { MonitoringHeader } from '@/components/coach/monitoring/MonitoringHeader';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+} from '@/components/ui/GlassCard';
 import { prisma } from '@/lib/prisma';
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart';
 import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary';
@@ -53,19 +58,19 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
       {clients.length === 0 ? (
         <>
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">{t('title')}</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
+            <p className="text-slate-600 dark:text-slate-400">
               {t('description')}
             </p>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('emptyTitle')}</CardTitle>
-              <CardDescription>
+          <GlassCard glow="blue">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-slate-900 dark:text-white">{t('emptyTitle')}</GlassCardTitle>
+              <GlassCardDescription className="text-slate-600 dark:text-slate-400">
                 {t('emptyDescription')}
-              </CardDescription>
-            </CardHeader>
-          </Card>
+              </GlassCardDescription>
+            </GlassCardHeader>
+          </GlassCard>
         </>
       ) : (
         <>

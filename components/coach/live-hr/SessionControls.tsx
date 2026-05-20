@@ -20,6 +20,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  GlassCard,
+  GlassCardContent,
+} from '@/components/ui/GlassCard'
 import { Play, Pause, Square, Radio } from 'lucide-react'
 import { LiveHRSessionStatus } from '@/lib/live-hr/types'
 
@@ -46,8 +50,11 @@ export function SessionControls({
     }
   }
 
+  const glowColor = status === 'ACTIVE' ? 'red' : (status === 'PAUSED' ? 'emerald' : 'blue')
+
   return (
-    <div className="flex items-center justify-between bg-card rounded-lg p-4 mb-6 shadow-sm">
+    <GlassCard glow={glowColor} className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md mb-6">
+      <GlassCardContent className="flex items-center justify-between p-4">
       <div className="flex items-center gap-4">
         {/* Live indicator */}
         <div className="flex items-center gap-2">
@@ -124,6 +131,7 @@ export function SessionControls({
           </AlertDialog>
         )}
       </div>
-    </div>
+    </GlassCardContent>
+  </GlassCard>
   )
 }

@@ -1,7 +1,13 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -345,10 +351,10 @@ export function ContextPanel({
 
         {/* Athlete Selection */}
         <Collapsible open={athleteOpen} onOpenChange={setAthleteOpen}>
-          <Card>
+          <GlassCard glow="none">
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition py-3">
-                <CardTitle className="text-sm flex items-center justify-between">
+              <GlassCardHeader className="cursor-pointer hover:bg-slate-200/50 dark:hover:bg-white/5 transition py-3">
+                <GlassCardTitle className="text-sm flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <User className="h-4 w-4" />
                     Atlet
@@ -358,18 +364,18 @@ export function ContextPanel({
                       athleteOpen ? 'rotate-180' : ''
                     }`}
                   />
-                </CardTitle>
-              </CardHeader>
+                </GlassCardTitle>
+              </GlassCardHeader>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="pt-0">
+              <GlassCardContent className="pt-0">
                 <Select
                   value={selectedAthlete || 'none'}
                   onValueChange={(value) =>
                     onAthleteChange(value === 'none' ? null : value)
                   }
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-slate-100 dark:bg-slate-900/40">
                     <SelectValue placeholder="Välj atlet..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -390,14 +396,14 @@ export function ContextPanel({
                 </Select>
 
                 {selectedAthlete && (
-                  <div className="mt-3 p-2 bg-muted rounded-lg text-sm">
-                    <p className="font-medium">
+                  <div className="mt-3 p-2 bg-slate-100/80 dark:bg-slate-900/50 rounded-lg text-sm border border-slate-200 dark:border-white/5">
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">
                       {clients.find((c) => c.id === selectedAthlete)?.name}
                     </p>
 
                     {/* Context summary indicators */}
                     {loadingSummary ? (
-                      <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1 mt-2 text-xs text-slate-500 dark:text-slate-400">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         Laddar data...
                       </div>
@@ -409,7 +415,7 @@ export function ContextPanel({
                             {contextSummary.hasTests && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-green-50 text-green-700 border-green-200">
+                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900/50">
                                     <Activity className="h-3 w-3" />
                                     Test
                                   </Badge>
@@ -426,7 +432,7 @@ export function ContextPanel({
                             {contextSummary.hasRaces && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-blue-50 text-blue-700 border-blue-200">
+                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50">
                                     <Trophy className="h-3 w-3" />
                                     Lopp
                                   </Badge>
@@ -443,7 +449,7 @@ export function ContextPanel({
                             {contextSummary.hasProgram && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-purple-50 text-purple-700 border-purple-200">
+                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900/50">
                                     <Calendar className="h-3 w-3" />
                                     Program
                                   </Badge>
@@ -457,7 +463,7 @@ export function ContextPanel({
                             {contextSummary.hasCheckIns && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-amber-50 text-amber-700 border-amber-200">
+                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50">
                                     <Heart className="h-3 w-3" />
                                     Check-in
                                   </Badge>
@@ -471,7 +477,7 @@ export function ContextPanel({
                             {contextSummary.hasBodyComp && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-teal-50 text-teal-700 border-teal-200">
+                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-900/50">
                                     <Scale className="h-3 w-3" />
                                     Kropp
                                   </Badge>
@@ -485,7 +491,7 @@ export function ContextPanel({
                             {contextSummary.hasVideoAnalyses && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-orange-50 text-orange-700 border-orange-200">
+                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-900/50">
                                     <Video className="h-3 w-3" />
                                     Video
                                   </Badge>
@@ -506,29 +512,29 @@ export function ContextPanel({
 
                         {/* No data indicator */}
                         {!contextSummary.hasTests && !contextSummary.hasRaces && !contextSummary.hasProgram && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
                             Ingen träningsdata tillgänglig
                           </p>
                         )}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground text-xs mt-1">
+                      <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">
                         Atletens data kommer inkluderas i AI-kontexten
                       </p>
                     )}
                   </div>
                 )}
-              </CardContent>
+              </GlassCardContent>
             </CollapsibleContent>
-          </Card>
+          </GlassCard>
         </Collapsible>
 
         {/* Documents Selection - Enhanced */}
         <Collapsible open={documentsOpen} onOpenChange={setDocumentsOpen}>
-          <Card>
+          <GlassCard glow="none">
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition py-3">
-                <CardTitle className="text-sm flex items-center justify-between">
+              <GlassCardHeader className="cursor-pointer hover:bg-slate-200/50 dark:hover:bg-white/5 transition py-3">
+                <GlassCardTitle className="text-sm flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     Dokument
@@ -543,18 +549,18 @@ export function ContextPanel({
                       documentsOpen ? 'rotate-180' : ''
                     }`}
                   />
-                </CardTitle>
-              </CardHeader>
+                </GlassCardTitle>
+              </GlassCardHeader>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="pt-0 space-y-3">
+              <GlassCardContent className="pt-0 space-y-3">
                 {documents.length === 0 ? (
                   <div className="text-center py-4">
-                    <FolderOpen className="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                    <p className="text-sm text-muted-foreground">
+                    <FolderOpen className="h-8 w-8 mx-auto text-slate-400/50 mb-2" />
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
                       Inga dokument uppladdade
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1 mb-3">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-3">
                       Ladda upp träningsdokument, metodikguider, <br />kalender eller Excel-filer
                     </p>
                     <Button
@@ -573,18 +579,18 @@ export function ContextPanel({
                   <>
                     {/* Search input */}
                     <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
                       <Input
                         type="text"
                         placeholder="Sök dokument..."
                         value={docSearchQuery}
                         onChange={(e) => setDocSearchQuery(e.target.value)}
-                        className="pl-8 h-8 text-sm"
+                        className="pl-8 h-8 text-sm bg-slate-100 dark:bg-slate-900/40"
                       />
                       {docSearchQuery && (
                         <button
                           onClick={() => setDocSearchQuery('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -619,7 +625,7 @@ export function ContextPanel({
                         variant="ghost"
                         size="sm"
                         onClick={selectAllFiltered}
-                        className="text-xs h-7"
+                        className="text-xs h-7 hover:bg-slate-200/50 dark:hover:bg-white/5"
                       >
                         Välj {docCategoryFilter !== 'ALL' || docSearchQuery ? 'filtrerade' : 'alla'}
                       </Button>
@@ -629,7 +635,7 @@ export function ContextPanel({
                             variant="ghost"
                             size="sm"
                             onClick={clearFilters}
-                            className="text-xs h-7"
+                            className="text-xs h-7 hover:bg-slate-200/50 dark:hover:bg-white/5"
                           >
                             <X className="h-3 w-3 mr-1" />
                             Filter
@@ -640,7 +646,7 @@ export function ContextPanel({
                             variant="ghost"
                             size="sm"
                             onClick={clearDocuments}
-                            className="text-xs h-7 text-destructive hover:text-destructive"
+                            className="text-xs h-7 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
                           >
                             Rensa val
                           </Button>
@@ -651,7 +657,7 @@ export function ContextPanel({
                     {/* Document list */}
                     <div className="space-y-1 max-h-64 overflow-y-auto">
                       {filteredDocuments.length === 0 ? (
-                        <div className="text-center py-4 text-sm text-muted-foreground">
+                        <div className="text-center py-4 text-sm text-slate-500">
                           Inga dokument matchar filtret
                         </div>
                       ) : (
@@ -664,10 +670,10 @@ export function ContextPanel({
                               key={doc.id}
                               className={`flex items-start gap-2 p-2 rounded-lg transition ${
                                 isSelectable
-                                  ? 'hover:bg-muted/50 cursor-pointer'
+                                  ? 'hover:bg-slate-200/50 dark:hover:bg-white/5 cursor-pointer'
                                   : 'opacity-60 cursor-not-allowed'
                               } ${
-                                selectedDocuments.includes(doc.id) ? 'bg-muted/30 border border-primary/20' : ''
+                                selectedDocuments.includes(doc.id) ? 'bg-slate-150/80 dark:bg-slate-900/60 border border-slate-300 dark:border-white/10' : ''
                               }`}
                               onClick={() => isSelectable && toggleDocument(doc.id)}
                             >
@@ -684,12 +690,12 @@ export function ContextPanel({
                               >
                                 <div className="flex items-center gap-1.5">
                                   {getFileTypeIcon(doc.fileType)}
-                                  <span className="text-sm font-medium truncate">
+                                  <span className="text-sm font-medium truncate text-slate-800 dark:text-slate-200">
                                     {doc.name}
                                   </span>
                                 </div>
                                 {doc.description && (
-                                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                  <p className="text-xs text-slate-550 dark:text-slate-400 truncate mt-0.5">
                                     {doc.description}
                                   </p>
                                 )}
@@ -698,7 +704,7 @@ export function ContextPanel({
                                     {doc.fileType}
                                   </Badge>
                                   {doc.processingStatus === 'COMPLETED' ? (
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
                                       {doc.chunkCount} delar
                                     </span>
                                   ) : (
@@ -720,7 +726,7 @@ export function ContextPanel({
                       <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-2 text-xs">
                         <div className="flex items-start gap-1.5">
                           <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-amber-700 dark:text-amber-400">
+                          <div className="text-amber-750 dark:text-amber-400">
                             Vissa dokument väntar på bearbetning. Gå till{' '}
                             <Link href={documentsHref} className="underline font-medium">
                               Dokument
@@ -736,7 +742,7 @@ export function ContextPanel({
                       <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-2 text-xs">
                         <div className="flex items-start gap-1.5">
                           <Info className="h-3.5 w-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-blue-700 dark:text-blue-400">
+                          <div className="text-blue-750 dark:text-blue-400">
                             <strong>{selectedDocuments.length}</strong> dokument valda.
                             AI kan referera till dessa vid programskapande.
                           </div>
@@ -748,7 +754,7 @@ export function ContextPanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full h-8 text-xs"
+                      className="w-full h-8 text-xs bg-slate-100 dark:bg-slate-900/40"
                       asChild
                     >
                       <Link href={documentsHref}>
@@ -758,17 +764,17 @@ export function ContextPanel({
                     </Button>
                   </>
                 )}
-              </CardContent>
+              </GlassCardContent>
             </CollapsibleContent>
-          </Card>
+          </GlassCard>
         </Collapsible>
 
         {/* AI Skills Selection */}
         <Collapsible open={skillsOpen} onOpenChange={setSkillsOpen}>
-          <Card>
+          <GlassCard glow="none">
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition py-3">
-                <CardTitle className="text-sm flex items-center justify-between">
+              <GlassCardHeader className="cursor-pointer hover:bg-slate-200/50 dark:hover:bg-white/5 transition py-3">
+                <GlassCardTitle className="text-sm flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4" />
                     AI skills
@@ -783,31 +789,31 @@ export function ContextPanel({
                       skillsOpen ? 'rotate-180' : ''
                     }`}
                   />
-                </CardTitle>
-              </CardHeader>
+                </GlassCardTitle>
+              </GlassCardHeader>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="pt-0">
+              <GlassCardContent className="pt-0">
                 <AISkillPicker
                   selectedSkillIds={selectedSkillIds}
                   onSelectedSkillIdsChange={onSelectedSkillIdsChange}
                   disabled={skillSelectionDisabled}
                   side="right"
                   align="start"
-                  triggerClassName="h-8 text-xs"
+                  triggerClassName="h-8 text-xs w-full bg-slate-100 dark:bg-slate-900/40 text-slate-800 dark:text-slate-200 border-slate-250 dark:border-white/5"
                   chipsClassName="max-w-full"
                 />
-              </CardContent>
+              </GlassCardContent>
             </CollapsibleContent>
-          </Card>
+          </GlassCard>
         </Collapsible>
 
         {/* Web Search Toggle */}
         <Collapsible open={searchOpen} onOpenChange={setSearchOpen}>
-          <Card>
+          <GlassCard glow="none">
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition py-3">
-                <CardTitle className="text-sm flex items-center justify-between">
+              <GlassCardHeader className="cursor-pointer hover:bg-slate-200/50 dark:hover:bg-white/5 transition py-3">
+                <GlassCardTitle className="text-sm flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Globe className="h-4 w-4" />
                     Webbsökning
@@ -817,17 +823,17 @@ export function ContextPanel({
                       searchOpen ? 'rotate-180' : ''
                     }`}
                   />
-                </CardTitle>
-              </CardHeader>
+                </GlassCardTitle>
+              </GlassCardHeader>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="pt-0">
+              <GlassCardContent className="pt-0">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label htmlFor="web-search" className="text-sm">
+                    <Label htmlFor="web-search" className="text-sm text-slate-800 dark:text-slate-200">
                       Aktivera webbsökning
                     </Label>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-550 dark:text-slate-400">
                       AI kan söka på internet efter information
                     </p>
                   </div>
@@ -837,18 +843,18 @@ export function ContextPanel({
                     onCheckedChange={onWebSearchChange}
                   />
                 </div>
-              </CardContent>
+              </GlassCardContent>
             </CollapsibleContent>
-          </Card>
+          </GlassCard>
         </Collapsible>
 
         {/* Quick Stats */}
-        <Card>
-          <CardContent className="py-3">
-            <div className="text-xs text-muted-foreground space-y-1">
+        <GlassCard glow="none">
+          <GlassCardContent className="py-3">
+            <div className="text-xs text-slate-550 dark:text-slate-400 space-y-1">
               <div className="flex justify-between">
                 <span>Vald atlet:</span>
-                <span className="font-medium">
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
                   {selectedAthlete
                     ? clients.find((c) => c.id === selectedAthlete)?.name
                     : 'Ingen'}
@@ -856,21 +862,21 @@ export function ContextPanel({
               </div>
               <div className="flex justify-between">
                 <span>Valda dokument:</span>
-                <span className="font-medium">{selectedDocuments.length}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedDocuments.length}</span>
               </div>
               <div className="flex justify-between">
                 <span>AI skills:</span>
-                <span className="font-medium">{selectedSkillIds.length}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedSkillIds.length}</span>
               </div>
               <div className="flex justify-between">
                 <span>Webbsökning:</span>
-                <span className="font-medium">
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
                   {webSearchEnabled ? 'På' : 'Av'}
                 </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     </ScrollArea>
   )

@@ -33,19 +33,19 @@ export function IntervalSummaryBar({
     const maxInterval = Math.max(...participants.map((p) => p.athleteCurrentInterval))
 
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-0 bg-muted/50 rounded-lg px-3 sm:px-4 py-2 text-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-0 bg-slate-100/60 dark:bg-slate-950/45 border border-slate-200/50 dark:border-white/5 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-2 text-sm text-slate-800 dark:text-slate-200">
         <div>
-          <span className="font-medium">Högsta intervall: {maxInterval - 1 > 0 ? maxInterval - 1 : 1}</span>
+          <span className="font-semibold text-slate-900 dark:text-white">Högsta intervall: {maxInterval - 1 > 0 ? maxInterval - 1 : 1}</span>
         </div>
         <div className="flex gap-4 sm:gap-6">
           <div>
-            <span className="text-muted-foreground">Klara: </span>
-            <span className="font-medium">{completed} / {totalParticipants}</span>
+            <span className="text-slate-500 dark:text-slate-400">Klara: </span>
+            <span className="font-semibold text-slate-900 dark:text-white">{completed} / {totalParticipants}</span>
           </div>
           {avgSplitMs !== null && (
             <div>
-              <span className="text-muted-foreground">Snitt: </span>
-              <span className="font-mono font-medium">{formatSplit(avgSplitMs)}</span>
+              <span className="text-slate-500 dark:text-slate-400">Snitt: </span>
+              <span className="font-mono font-semibold text-slate-900 dark:text-white">{formatSplit(avgSplitMs)}</span>
             </div>
           )}
         </div>
@@ -54,21 +54,21 @@ export function IntervalSummaryBar({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-0 bg-muted/50 rounded-lg px-3 sm:px-4 py-2 text-sm">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-0 bg-slate-100/60 dark:bg-slate-950/45 border border-slate-200/50 dark:border-white/5 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-2 text-sm text-slate-800 dark:text-slate-200">
       <div>
-        <span className="font-medium">Intervall {currentInterval}</span>
+        <span className="font-semibold text-slate-900 dark:text-white">Intervall {currentInterval}</span>
       </div>
       <div className="flex gap-4 sm:gap-6">
         <div>
-          <span className="text-muted-foreground">Tappade: </span>
-          <span className="font-medium">
+          <span className="text-slate-500 dark:text-slate-400">Tappade: </span>
+          <span className="font-semibold text-slate-900 dark:text-white">
             {tappedThisInterval} / {totalParticipants}
           </span>
         </div>
         {avgSplitMs !== null && (
           <div>
-            <span className="text-muted-foreground">Snitt: </span>
-            <span className="font-mono font-medium">{formatSplit(avgSplitMs)}</span>
+            <span className="text-slate-500 dark:text-slate-400">Snitt: </span>
+            <span className="font-mono font-semibold text-slate-900 dark:text-white">{formatSplit(avgSplitMs)}</span>
           </div>
         )}
       </div>

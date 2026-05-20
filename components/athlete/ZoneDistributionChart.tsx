@@ -23,7 +23,13 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -245,57 +251,57 @@ export function ZoneDistributionChart({
 
   if (isLoading) {
     return (
-      <Card className={cardClass}>
-        <CardHeader>
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+        <GlassCardHeader>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-4 w-28 mt-1" />
-        </CardHeader>
-        <CardContent>
+        </GlassCardHeader>
+        <GlassCardContent>
           <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   if (distributions.length === 0) {
     return (
-      <Card className={cardClass}>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Heart className="h-4 w-4" />
+      <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+        <GlassCardHeader>
+          <GlassCardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+            <Heart className="h-4 w-4 text-red-500" />
             {t('emptyTitle')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>
           <div className="text-center py-8">
-            <Activity className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
+            <Activity className="h-8 w-8 mx-auto text-slate-500 dark:text-slate-400 mb-2" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {t('empty')}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   return (
-    <Card className={cardClass}>
-      <CardHeader className="pb-2">
+    <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+      <GlassCardHeader className="pb-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Heart className="h-4 w-4" />
+            <GlassCardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+              <Heart className="h-4 w-4 text-red-500" />
               {t('title')}
               <InfoTooltip conceptKey="trainingZones" />
-            </CardTitle>
-            <CardDescription>
+            </GlassCardTitle>
+            <GlassCardDescription className="text-slate-600 dark:text-slate-400">
               {t('description')}
-            </CardDescription>
+            </GlassCardDescription>
           </div>
           <div className="flex items-center gap-3">
             {isPolarized && (
-              <Badge className="bg-green-100 text-green-800">
-                <Zap className="h-3 w-3 mr-1" />
+              <Badge className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-250 dark:border-emerald-900/30">
+                <Zap className="h-3 w-3 mr-1 text-emerald-500" />
                 80/20
               </Badge>
             )}
@@ -303,7 +309,7 @@ export function ZoneDistributionChart({
               value={selectedPeriod}
               onValueChange={(value) => setSelectedPeriod(value as 'week' | 'month' | 'year')}
             >
-              <TabsList className="h-8">
+              <TabsList className="h-8 bg-slate-100 dark:bg-slate-950/40">
                 <TabsTrigger value="week" className="text-xs px-2 h-6">
                   {t('period.week')}
                 </TabsTrigger>
@@ -317,9 +323,9 @@ export function ZoneDistributionChart({
             </Tabs>
           </div>
         </div>
-      </CardHeader>
+      </GlassCardHeader>
 
-      <CardContent>
+      <GlassCardContent>
         {displayMode === 'donut' && currentPeriodData ? (
           <DonutChart
             data={currentPeriodData}
@@ -333,23 +339,24 @@ export function ZoneDistributionChart({
                 data={chartData}
                 margin={{ top: 10, right: 10, left: -10, bottom: 20 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.15)" />
                 <XAxis
                   dataKey="period"
                   tick={{ fontSize: 11 }}
-                  stroke="#9ca3af"
+                  stroke="#94a3b8"
                   tickMargin={8}
                 />
                 <YAxis
                   tick={{ fontSize: 11 }}
-                  stroke="#9ca3af"
+                  stroke="#94a3b8"
                   tickMargin={4}
                   tickFormatter={(value) => `${Math.round(value / 60)}h`}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e5e7eb',
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(148, 163, 184, 0.15)',
                     borderRadius: '0.5rem',
                     fontSize: '0.75rem',
                   }}
@@ -375,34 +382,34 @@ export function ZoneDistributionChart({
 
         {/* Summary stats */}
         {currentPeriodData && (
-          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t">
+          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-white/5">
             <div className="text-center">
-              <p className="text-lg font-bold text-green-600">
+              <p className="text-lg font-bold text-emerald-500">
                 {formatDuration(currentPeriodData.zone1Minutes + currentPeriodData.zone2Minutes)}
               </p>
-              <p className="text-xs text-muted-foreground">{t('summary.low')}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t('summary.low')}</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold text-yellow-600">
+              <p className="text-lg font-bold text-yellow-500">
                 {formatDuration(currentPeriodData.zone3Minutes)}
               </p>
-              <p className="text-xs text-muted-foreground">{t('summary.tempo')}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t('summary.tempo')}</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold text-red-600">
+              <p className="text-lg font-bold text-red-500">
                 {formatDuration(currentPeriodData.zone4Minutes + currentPeriodData.zone5Minutes)}
               </p>
-              <p className="text-xs text-muted-foreground">{t('summary.high')}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t('summary.high')}</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold">
+              <p className="text-lg font-bold text-slate-900 dark:text-white">
                 {currentPeriodData.polarizationRatio?.toFixed(0) || '-'}%
               </p>
-              <p className="text-xs text-muted-foreground">{t('summary.polarization')}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{t('summary.polarization')}</p>
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }

@@ -17,10 +17,17 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowRight, Droplets, Bike, Footprints, Waves, Activity, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
 
 const converterSchema = z.object({
   workout: z.object({
@@ -84,7 +91,7 @@ export function WorkoutConverter() {
       setResult(resultData.data);
     } catch (error) {
       console.error('Conversion failed:', error);
-      alert(error instanceof Error ? error.message : 'Conversion failed');
+      toast.error(error instanceof Error ? error.message : 'Conversion failed');
     } finally {
       setSubmitting(false);
     }
@@ -94,20 +101,20 @@ export function WorkoutConverter() {
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Running Workout Details</CardTitle>
-              <CardDescription>Enter the original running workout to convert</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Running Workout Details</GlassCardTitle>
+              <GlassCardDescription className="text-slate-650 dark:text-slate-400">Enter the original running workout to convert</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="workout.type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Workout Type</FormLabel>
+                    <FormLabel className="text-slate-700 dark:text-slate-350">Workout Type</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g., Easy Run, Tempo, Intervals" />
+                      <Input {...field} placeholder="e.g., Easy Run, Tempo, Intervals" className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -120,12 +127,13 @@ export function WorkoutConverter() {
                   name="workout.duration"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Duration (minutes)</FormLabel>
+                      <FormLabel className="text-slate-700 dark:text-slate-350">Duration (minutes)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           min={10}
                           max={300}
+                          className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                           {...field}
                           onChange={e => field.onChange(parseFloat(e.target.value))}
                         />
@@ -140,12 +148,13 @@ export function WorkoutConverter() {
                   name="workout.tss"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>TSS (Training Stress Score)</FormLabel>
+                      <FormLabel className="text-slate-700 dark:text-slate-350">TSS (Training Stress Score)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           min={0}
                           max={300}
+                          className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                           {...field}
                           onChange={e => field.onChange(parseFloat(e.target.value))}
                         />
@@ -161,10 +170,10 @@ export function WorkoutConverter() {
                 name="workout.intensity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Intensity</FormLabel>
+                    <FormLabel className="text-slate-700 dark:text-slate-350">Intensity</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -181,61 +190,61 @@ export function WorkoutConverter() {
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Cross-Training Modality</CardTitle>
-              <CardDescription>Select alternative training modality</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Cross-Training Modality</GlassCardTitle>
+              <GlassCardDescription className="text-slate-650 dark:text-slate-400">Select alternative training modality</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="targetModality"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Target Modality</FormLabel>
+                    <FormLabel className="text-slate-700 dark:text-slate-350">Target Modality</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="DEEP_WATER_RUNNING">
                           <div className="flex items-center gap-2">
-                            <Droplets className="h-4 w-4" />
+                            <Droplets className="h-4 w-4 text-blue-500" />
                             <span>Deep Water Running (95-100% retention)</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="CYCLING">
                           <div className="flex items-center gap-2">
-                            <Bike className="h-4 w-4" />
+                            <Bike className="h-4 w-4 text-emerald-500" />
                             <span>Cycling (70-80% retention)</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="ELLIPTICAL">
                           <div className="flex items-center gap-2">
-                            <Activity className="h-4 w-4" />
+                            <Activity className="h-4 w-4 text-orange-500" />
                             <span>Elliptical (60-70% retention)</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="SWIMMING">
                           <div className="flex items-center gap-2">
-                            <Waves className="h-4 w-4" />
+                            <Waves className="h-4 w-4 text-sky-500" />
                             <span>Swimming (40-50% retention)</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="ALTERG">
                           <div className="flex items-center gap-2">
-                            <Footprints className="h-4 w-4" />
+                            <Footprints className="h-4 w-4 text-purple-500" />
                             <span>AlterG (80-95% retention)</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="ROWING">
                           <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4" />
+                            <TrendingUp className="h-4 w-4 text-rose-500" />
                             <span>Rowing (60-75% retention)</span>
                           </div>
                         </SelectItem>
@@ -245,24 +254,24 @@ export function WorkoutConverter() {
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Injury Context (Optional)</CardTitle>
-              <CardDescription>Provide injury details for fitness retention prediction</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Injury Context (Optional)</GlassCardTitle>
+              <GlassCardDescription className="text-slate-650 dark:text-slate-400">Provide injury details for fitness retention prediction</GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="injuryContext.severity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Injury Severity</FormLabel>
+                    <FormLabel className="text-slate-700 dark:text-slate-350">Injury Severity</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                           <SelectValue placeholder="Select severity (optional)" />
                         </SelectTrigger>
                       </FormControl>
@@ -282,44 +291,46 @@ export function WorkoutConverter() {
                 name="injuryContext.expectedDuration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Expected Duration (weeks)</FormLabel>
+                    <FormLabel className="text-slate-700 dark:text-slate-350">Expected Duration (weeks)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         placeholder="e.g., 4"
+                        className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                         {...field}
                         value={field.value || ''}
                         onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       />
                     </FormControl>
-                    <FormDescription>Expected time away from running</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-450">Expected time away from running</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           {watchModality === 'ALTERG' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>AlterG Settings</CardTitle>
-                <CardDescription>Body weight support progression</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+              <GlassCardHeader>
+                <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">AlterG Settings</GlassCardTitle>
+                <GlassCardDescription className="text-slate-650 dark:text-slate-400">Body weight support progression</GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="altergSettings.currentBodyWeight"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Current Body Weight (%)</FormLabel>
+                        <FormLabel className="text-slate-700 dark:text-slate-350">Current Body Weight (%)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min={30}
                             max={100}
                             placeholder="e.g., 50"
+                            className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                             {...field}
                             value={field.value || ''}
                             onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -335,13 +346,14 @@ export function WorkoutConverter() {
                     name="altergSettings.targetBodyWeight"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Target Body Weight (%)</FormLabel>
+                        <FormLabel className="text-slate-700 dark:text-slate-350">Target Body Weight (%)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min={30}
                             max={100}
                             placeholder="e.g., 100"
+                            className="bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                             {...field}
                             value={field.value || ''}
                             onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -352,11 +364,11 @@ export function WorkoutConverter() {
                     )}
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           )}
 
-          <Button type="submit" size="lg" disabled={submitting}>
+          <Button type="submit" size="lg" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md">
             {submitting ? 'Converting...' : 'Convert Workout'}
           </Button>
         </form>
@@ -364,90 +376,90 @@ export function WorkoutConverter() {
 
       {result && (
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ArrowRight className="h-5 w-5" />
+          <GlassCard glow="purple" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+                <ArrowRight className="h-5 w-5 text-purple-500" />
                 Conversion Results
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+              </GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-6">
               {/* Conversion Overview */}
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-3">Original Workout</h4>
+                <div className="p-4 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg">
+                  <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Original Workout</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Type:</span>
-                      <span className="font-medium">{result.conversion.original.type}</span>
+                      <span className="text-slate-500 dark:text-slate-450">Type:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">{result.conversion.original.type}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Duration:</span>
-                      <span className="font-medium">{result.conversion.original.duration} min</span>
+                      <span className="text-slate-500 dark:text-slate-450">Duration:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">{result.conversion.original.duration} min</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">TSS:</span>
-                      <span className="font-medium">{result.conversion.original.tss}</span>
+                      <span className="text-slate-500 dark:text-slate-450">TSS:</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">{result.conversion.original.tss}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 bg-primary/10 rounded-lg">
-                  <h4 className="font-medium mb-3">Converted Workout</h4>
+                <div className="p-4 bg-blue-500/10 border border-blue-500/20 text-slate-900 dark:text-blue-100 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-3">Converted Workout</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Modality:</span>
-                      <span className="font-medium">{result.equivalency.modality.replace('_', ' ')}</span>
+                      <span className="text-blue-800 dark:text-blue-400">Modality:</span>
+                      <span className="font-semibold text-blue-950 dark:text-blue-100">{result.equivalency.modality.replace('_', ' ')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Duration:</span>
-                      <span className="font-medium">{result.conversion.converted.duration} min</span>
+                      <span className="text-blue-800 dark:text-blue-400">Duration:</span>
+                      <span className="font-semibold text-blue-950 dark:text-blue-100">{result.conversion.converted.duration} min</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Adjusted TSS:</span>
-                      <span className="font-medium">{result.conversion.converted.tss}</span>
+                      <span className="text-blue-800 dark:text-blue-400">Adjusted TSS:</span>
+                      <span className="font-semibold text-blue-950 dark:text-blue-100">{result.conversion.converted.tss}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Equivalency Details */}
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-3">Modality Equivalencies</h4>
+              <div className="p-4 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg">
+                <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Modality Equivalencies</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">Fitness Retention</p>
-                    <p className="text-2xl font-bold">{result.equivalency.fitnessRetention}%</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-450 font-medium">Fitness Retention</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{result.equivalency.fitnessRetention}%</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">TSS Multiplier</p>
-                    <p className="text-2xl font-bold">{result.equivalency.tssMultiplier.toFixed(2)}x</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-450 font-medium">TSS Multiplier</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{result.equivalency.tssMultiplier.toFixed(2)}x</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">HR Adjustment</p>
-                    <p className="text-2xl font-bold">{result.equivalency.hrAdjustment > 0 ? '+' : ''}{result.equivalency.hrAdjustment} bpm</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-450 font-medium">HR Adjustment</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{result.equivalency.hrAdjustment > 0 ? '+' : ''}{result.equivalency.hrAdjustment} bpm</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Biomechanical Similarity</p>
-                    <p className="text-2xl font-bold">{result.equivalency.biomechanicalSimilarity}%</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-450 font-medium">Biomechanical Similarity</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{result.equivalency.biomechanicalSimilarity}%</p>
                   </div>
                 </div>
               </div>
 
               {/* Fitness Projection */}
               {result.fitnessProjection && (
-                <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                  <h4 className="font-medium mb-3">Fitness Projection</h4>
+                <div className="p-4 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-500/20 text-orange-900 dark:text-orange-300 rounded-lg">
+                  <h4 className="font-semibold text-orange-950 dark:text-orange-300 mb-3">Fitness Projection</h4>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-sm text-muted-foreground">Expected Retention After {form.watch('injuryContext.expectedDuration')} Weeks</p>
-                      <p className="text-3xl font-bold">
+                      <p className="text-sm opacity-80">Expected Retention After {form.watch('injuryContext.expectedDuration')} Weeks</p>
+                      <p className="text-3xl font-bold mt-1">
                         {result.fitnessProjection.expectedRetention.vo2maxRetention.toFixed(1)}% VO₂max
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium mb-2">Return Timeline:</p>
-                      <div className="space-y-1 text-sm">
+                      <p className="text-sm font-semibold mb-2">Return Timeline:</p>
+                      <div className="space-y-1 text-sm opacity-90">
                         <p>• Week 1-2: {result.fitnessProjection.returnTimeline.week1to2}</p>
                         <p>• Week 3-4: {result.fitnessProjection.returnTimeline.week3to4}</p>
                         <p>• Week 5+: {result.fitnessProjection.returnTimeline.week5plus}</p>
@@ -459,21 +471,21 @@ export function WorkoutConverter() {
 
               {/* AlterG Progression */}
               {result.altergProgression && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium mb-3">AlterG Progression Protocol</h4>
+                <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-500/20 text-blue-900 dark:text-blue-300 rounded-lg">
+                  <h4 className="font-semibold text-blue-950 dark:text-blue-300 mb-3">AlterG Progression Protocol</h4>
                   <div className="space-y-2">
                     {result.altergProgression.phases.map((phase: any, i: number) => (
-                      <div key={i} className="flex items-center gap-3 p-3 bg-white rounded">
+                      <div key={i} className="flex items-center gap-3 p-3 bg-white/5 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded">
                         <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
                           {i + 1}
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium">{phase.phase}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="font-semibold text-slate-900 dark:text-white">{phase.phase}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-450">
                             {phase.bodyWeightSupport}% body weight • {phase.duration} weeks
                           </p>
                         </div>
-                        <Badge variant="outline">{phase.progressionCriteria}</Badge>
+                        <Badge variant="outline" className="border-blue-500/30 text-blue-750 dark:text-blue-300 font-semibold">{phase.progressionCriteria}</Badge>
                       </div>
                     ))}
                   </div>
@@ -482,11 +494,11 @@ export function WorkoutConverter() {
 
               {/* Recommendations */}
               <div>
-                <h4 className="font-medium mb-3">Recommendations</h4>
+                <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Recommendations</h4>
                 <ul className="space-y-2">
                   {result.recommendations.map((rec: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <span className="text-muted-foreground">•</span>
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <span className="text-slate-400">•</span>
                       <span>{rec}</span>
                     </li>
                   ))}
@@ -495,9 +507,9 @@ export function WorkoutConverter() {
 
               {/* Conversion Notes */}
               {result.conversion.notes && result.conversion.notes.length > 0 && (
-                <Alert>
-                  <AlertDescription>
-                    <p className="font-medium mb-2">Conversion Notes:</p>
+                <Alert className="bg-slate-50/50 dark:bg-slate-950/30 border border-slate-200 dark:border-white/5">
+                  <AlertDescription className="text-slate-800 dark:text-slate-250">
+                    <p className="font-semibold mb-2">Conversion Notes:</p>
                     <ul className="list-disc list-inside space-y-1">
                       {result.conversion.notes.map((note: string, i: number) => (
                         <li key={i} className="text-sm">{note}</li>
@@ -506,8 +518,8 @@ export function WorkoutConverter() {
                   </AlertDescription>
                 </Alert>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       )}
     </div>

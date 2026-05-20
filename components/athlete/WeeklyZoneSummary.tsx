@@ -11,7 +11,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from 'next-intl';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardDescription,
+  GlassCardContent,
+} from '@/components/ui/GlassCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -127,34 +133,34 @@ export function WeeklyZoneSummary({
 
   if (isLoading) {
     return (
-      <Card className={cardClass}>
-        <CardHeader className="pb-2">
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+        <GlassCardHeader className="pb-2">
           <Skeleton className="h-5 w-32" />
-        </CardHeader>
-        <CardContent>
+        </GlassCardHeader>
+        <GlassCardContent>
           <Skeleton className="h-16 w-full" />
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   if (!currentWeek || currentWeek.totalMinutes === 0) {
     return (
-      <Card className={cardClass}>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Heart className="h-4 w-4" />
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+        <GlassCardHeader className="pb-2">
+          <GlassCardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+            <Heart className="h-4 w-4 text-red-500" />
             {t(locale, 'Veckans zoner', "This week's zones")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>
           <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {t(locale, 'Ingen zondata denna vecka', 'No zone data this week')}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
@@ -172,16 +178,16 @@ export function WeeklyZoneSummary({
 
   if (variant === 'compact') {
     return (
-      <Card className={cardClass}>
-        <CardContent className="pt-4">
+      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
+        <GlassCardContent className="pt-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Heart className="h-4 w-4 text-red-500" />
-              <span className="font-medium">{t(locale, 'Zoner', 'Zones')}</span>
+              <span className="font-medium text-slate-900 dark:text-white">{t(locale, 'Zoner', 'Zones')}</span>
             </div>
             {isPolarized && (
-              <Badge className="bg-green-100 text-green-800">
-                <Zap className="h-3 w-3 mr-1" />
+              <Badge className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-900/30">
+                <Zap className="h-3 w-3 mr-1 text-emerald-500" />
                 80/20
               </Badge>
             )}
@@ -216,31 +222,31 @@ export function WeeklyZoneSummary({
             />
           </div>
 
-          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+          <div className="flex justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
             <span>{t(locale, 'Total:', 'Total:')} {formatDuration(totalMinutes)}</span>
             <span>{t(locale, 'Lågt:', 'Low:')} {currentWeek.polarizationRatio?.toFixed(0) || 0}%</span>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   return (
-    <Card className={cardClass}>
-      <CardHeader className="pb-2">
+    <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
+      <GlassCardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Heart className="h-4 w-4" />
+          <GlassCardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
+            <Heart className="h-4 w-4 text-red-500" />
             {t(locale, 'Veckans zoner', "This week's zones")}
-          </CardTitle>
+          </GlassCardTitle>
           {isPolarized && (
-            <Badge className="bg-green-100 text-green-800">
-              <Zap className="h-3 w-3 mr-1" />
+            <Badge className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-900/30">
+              <Zap className="h-3 w-3 mr-1 text-emerald-500" />
               80/20
             </Badge>
           )}
         </div>
-        <CardDescription>
+        <GlassCardDescription className="text-slate-650 dark:text-slate-400">
           {formatDuration(totalMinutes)} {t(locale, 'total träningstid', 'total training time')}
           {previousWeek && (
             <TrendIndicator
@@ -248,85 +254,85 @@ export function WeeklyZoneSummary({
               previous={previousWeek.totalMinutes}
             />
           )}
-        </CardDescription>
-      </CardHeader>
+        </GlassCardDescription>
+      </GlassCardHeader>
 
-      <CardContent className="space-y-3">
+      <GlassCardContent className="space-y-3">
         {/* Zone 1-2 (Low intensity) */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-slate-700 dark:text-slate-350">
               <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-blue-500" />
               {t(locale, 'Lågt', 'Low')} (Z1-Z2)
             </span>
-            <span className="font-medium">
+            <span className="font-medium text-slate-900 dark:text-white">
               {formatDuration(currentWeek.zone1Minutes + currentWeek.zone2Minutes)}
-              <span className="text-muted-foreground text-xs ml-1">
+              <span className="text-slate-500 dark:text-slate-400 text-xs ml-1">
                 ({zonePercents.zone1 + zonePercents.zone2}%)
               </span>
             </span>
           </div>
           <Progress
             value={zonePercents.zone1 + zonePercents.zone2}
-            className="h-2"
+            className="h-2 bg-slate-100 dark:bg-slate-950/40 [&>[role=progressbar]]:bg-gradient-to-r [&>[role=progressbar]]:from-green-500 [&>[role=progressbar]]:to-blue-500"
           />
         </div>
 
         {/* Zone 3 (Tempo) */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-slate-700 dark:text-slate-350">
               <div className="w-3 h-3 rounded-full bg-yellow-500" />
               Tempo (Z3)
             </span>
-            <span className="font-medium">
+            <span className="font-medium text-slate-900 dark:text-white">
               {formatDuration(currentWeek.zone3Minutes)}
-              <span className="text-muted-foreground text-xs ml-1">
+              <span className="text-slate-500 dark:text-slate-400 text-xs ml-1">
                 ({zonePercents.zone3}%)
               </span>
             </span>
           </div>
           <Progress
             value={zonePercents.zone3}
-            className="h-2 [&>[role=progressbar]]:bg-yellow-500"
+            className="h-2 bg-slate-100 dark:bg-slate-950/40 [&>[role=progressbar]]:bg-yellow-500"
           />
         </div>
 
         {/* Zone 4-5 (High intensity) */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-slate-700 dark:text-slate-350">
               <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-500 to-red-500" />
               {t(locale, 'Högt', 'High')} (Z4-Z5)
             </span>
-            <span className="font-medium">
+            <span className="font-medium text-slate-900 dark:text-white">
               {formatDuration(currentWeek.zone4Minutes + currentWeek.zone5Minutes)}
-              <span className="text-muted-foreground text-xs ml-1">
+              <span className="text-slate-500 dark:text-slate-400 text-xs ml-1">
                 ({zonePercents.zone4 + zonePercents.zone5}%)
               </span>
             </span>
           </div>
           <Progress
             value={zonePercents.zone4 + zonePercents.zone5}
-            className="h-2 [&>[role=progressbar]]:bg-red-500"
+            className="h-2 bg-slate-100 dark:bg-slate-950/40 [&>[role=progressbar]]:bg-gradient-to-r [&>[role=progressbar]]:from-orange-500 [&>[role=progressbar]]:to-red-500"
           />
         </div>
 
         {/* Polarization indicator */}
-        <div className="flex items-center justify-between pt-2 border-t">
-          <span className="text-sm text-muted-foreground">{t(locale, 'Polarisering', 'Polarization')}</span>
+        <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-white/5">
+          <span className="text-sm text-slate-500 dark:text-slate-400">{t(locale, 'Polarisering', 'Polarization')}</span>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-lg">
+            <span className="font-bold text-lg text-slate-900 dark:text-white">
               {currentWeek.polarizationRatio?.toFixed(0) || 0}%
             </span>
             {isPolarized ? (
-              <span className="text-xs text-green-600">{t(locale, 'Optimalt', 'Optimal')}</span>
+              <span className="text-xs text-emerald-500 font-semibold">{t(locale, 'Optimalt', 'Optimal')}</span>
             ) : (
-              <span className="text-xs text-yellow-600">{t(locale, 'Förbättringsbar', 'Can improve')}</span>
+              <span className="text-xs text-yellow-500 font-semibold">{t(locale, 'Förbättringsbar', 'Can improve')}</span>
             )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }
