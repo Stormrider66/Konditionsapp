@@ -1,7 +1,6 @@
 // app/api/programs/generate/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 import { generateBaseProgram, validateProgramParams, ProgramGenerationParams } from '@/lib/program-generator'
 import { generateSportProgram, SportProgramParams, DataSourceType } from '@/lib/program-generator/sport-router'
 import { getProgramStartDate, getProgramEndDate } from '@/lib/program-generator/date-utils'
@@ -17,14 +16,23 @@ import {
   type FitnessLevel,
 } from '@/lib/program-generator/templates/general-fitness'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * POST /api/programs/generate
  * Generate a new training program from test results
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     // Authenticate and authorize
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     // Check subscription limits
     const limitReached = await hasReachedAthleteLimit(user.id)
@@ -32,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Du har nått gränsen för antalet atleter i din prenumeration',
+          error: t(locale, 'You have reached the athlete limit for your subscription', 'Du har nått gränsen för antalet atleter i din prenumeration'),
         },
         { status: 403 }
       )
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Klient-ID saknas',
+          error: t(locale, 'Client ID is missing', 'Klient-ID saknas'),
         },
         { status: 400 }
       )
@@ -54,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig åtkomst',
+          error: t(locale, 'Unauthorized access', 'Obehörig åtkomst'),
         },
         { status: 403 }
       )
@@ -74,7 +82,7 @@ export async function POST(request: NextRequest) {
 
       if (!client) {
         return NextResponse.json(
-          { success: false, error: 'Klient hittades inte' },
+          { success: false, error: t(locale, 'Client not found', 'Klient hittades inte') },
           { status: 404 }
         )
       }
@@ -91,7 +99,7 @@ export async function POST(request: NextRequest) {
 
         if (test && test.userId !== user.id) {
           return NextResponse.json(
-            { success: false, error: 'Obehörig åtkomst till test' },
+            { success: false, error: t(locale, 'Unauthorized access to test', 'Obehörig åtkomst till test') },
             { status: 403 }
           )
         }
@@ -265,7 +273,7 @@ export async function POST(request: NextRequest) {
         {
           success: true,
           data: program,
-          message: 'Träningsprogram skapat',
+          message: t(locale, 'Training program created', 'Träningsprogram skapat'),
         },
         { status: 201 }
       )
@@ -323,7 +331,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Valideringsfel',
+            error: t(locale, 'Validation error', 'Valideringsfel'),
             details: validationErrors,
           },
           { status: 400 }
@@ -340,7 +348,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Klient hittades inte',
+          error: t(locale, 'Client not found', 'Klient hittades inte'),
         },
         { status: 404 }
       )
@@ -362,7 +370,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Test hittades inte',
+            error: t(locale, 'Test not found', 'Test hittades inte'),
           },
           { status: 404 }
         )
@@ -373,7 +381,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Obehörig åtkomst',
+            error: t(locale, 'Unauthorized access', 'Obehörig åtkomst'),
           },
           { status: 403 }
         )
@@ -384,7 +392,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Testet saknar träningszoner. Vänligen beräkna zoner först.',
+            error: t(
+              locale,
+              'The test is missing training zones. Please calculate zones first.',
+              'Testet saknar träningszoner. Vänligen beräkna zoner först.'
+            ),
           },
           { status: 400 }
         )
@@ -394,7 +406,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Test krävs för detta programtyp',
+          error: t(locale, 'A test is required for this program type', 'Test krävs för detta programtyp'),
         },
         { status: 400 }
       )
@@ -413,16 +425,16 @@ export async function POST(request: NextRequest) {
         // Map goal type to display name
         const goalTypeLabels: Record<string, string> = {
           'marathon': 'Marathon',
-          'half-marathon': 'Halvmaraton',
+          'half-marathon': t(locale, 'Half marathon', 'Halvmaraton'),
           '10k': '10K',
           '5k': '5K',
           'fitness': 'Fitness',
-          'cycling': 'Cykling',
-          'skiing': 'Skidåkning',
-          'swimming': 'Simning',
+          'cycling': t(locale, 'Cycling', 'Cykling'),
+          'skiing': t(locale, 'Skiing', 'Skidåkning'),
+          'swimming': t(locale, 'Swimming', 'Simning'),
           'triathlon': 'Triathlon',
           'hyrox': 'HYROX',
-          'custom': 'Anpassad',
+          'custom': t(locale, 'Custom', 'Anpassad'),
         }
 
         const goalLabel = goalTypeLabels[params.goalType] || params.goalType
@@ -436,7 +448,7 @@ export async function POST(request: NextRequest) {
             goalType: params.goalType,
             startDate,
             endDate,
-            notes: params.notes || `Anpassat ${goalLabel.toLowerCase()}-program`,
+            notes: params.notes || t(locale, `Custom ${goalLabel.toLowerCase()} program`, `Anpassat ${goalLabel.toLowerCase()}-program`),
             weeks: Array.from({ length: durationWeeks }).map((_, i) => ({
                 weekNumber: i + 1,
                 phase: 'BASE' as const,
@@ -468,15 +480,15 @@ export async function POST(request: NextRequest) {
       const endDate = getProgramEndDate(startDate, durationWeeks)
 
       programData = {
-        name: `${programDesc.titleSv} - ${client.name}`,
+        name: `${locale === 'sv' ? programDesc.titleSv : programDesc.title} - ${client.name}`,
         clientId: params.clientId,
         coachId: user.id,
         testId: params.testId || null,
         goalType: params.goalType,
         startDate,
         endDate,
-        notes: params.notes || programDesc.descriptionSv,
-        weeks: fitnessWeeks.map((week, weekIndex) => ({
+        notes: params.notes || (locale === 'sv' ? programDesc.descriptionSv : programDesc.description),
+        weeks: fitnessWeeks.map((week) => ({
           weekNumber: week.week,
           phase: week.phase,
           volume: 0,
@@ -611,7 +623,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         data: program,
-        message: 'Träningsprogram skapat',
+        message: t(locale, 'Training program created', 'Träningsprogram skapat'),
       },
       { status: 201 }
     )
@@ -626,7 +638,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att skapa träningsprogram',
+        error: t(locale, 'Failed to create training program', 'Misslyckades med att skapa träningsprogram'),
         debug: { message: errorMessage, stack: errorStack?.split('\n').slice(0, 5) },
       },
       { status: 500 }
