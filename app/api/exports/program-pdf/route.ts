@@ -35,6 +35,7 @@ const requestSchema = z.object({
   athleteName: z.string().max(200).optional(),
   coachName: z.string().max(200).optional(),
   organization: z.string().max(200).optional(),
+  locale: z.enum(['en', 'sv']).optional(),
   startDate: z
     .string()
     .datetime({ offset: true })
@@ -42,7 +43,7 @@ const requestSchema = z.object({
     .optional(),
 })
 
-function safeFilename(name: string): string {
+function safeFilename(name: string, locale: 'en' | 'sv'): string {
   const base = name
     .replace(/[åä]/gi, 'a')
     .replace(/[ö]/gi, 'o')
@@ -50,7 +51,8 @@ function safeFilename(name: string): string {
     .replace(/\s+/g, '_')
     .substring(0, 50)
   const date = new Date().toISOString().split('T')[0]
-  return `Traningsprogram_${base || 'program'}_${date}.pdf`
+  const prefix = locale === 'sv' ? 'Traningsprogram' : 'TrainingProgram'
+  return `${prefix}_${base || 'program'}_${date}.pdf`
 }
 
 export async function POST(request: NextRequest) {
@@ -61,14 +63,14 @@ export async function POST(request: NextRequest) {
     const parsed = requestSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Ogiltig indata', details: parsed.error.flatten() },
+        { error: 'Invalid input', details: parsed.error.flatten() },
         { status: 400 }
       )
     }
 
     const { program, athleteName, coachName, organization, startDate } =
       parsed.data
-    const locale = request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
+    const locale = parsed.data.locale ?? (request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en')
 
     // react-pdf's renderToStream is typed to accept ReactElement<DocumentProps>,
     // i.e. a <Document> element. ProgramPDFDocument is a wrapper component
@@ -122,7 +124,7 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${safeFilename(program.name)}"`,
+        'Content-Disposition': `attachment; filename="${safeFilename(program.name, locale)}"`,
         'Cache-Control': 'no-store',
       },
     })

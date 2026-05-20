@@ -721,9 +721,10 @@ export function EnhancedProgramPreview({
           athleteName: athleteName || undefined,
           coachName: coachName || undefined,
           startDate: new Date(),
+          locale,
         }
       )
-      const filename = generateProgramPDFFilename(draft.name)
+      const filename = generateProgramPDFFilename(draft.name, locale)
       downloadProgramPDF(pdfBlob, filename)
       toast({
         title: copy.pdfExportedTitle,

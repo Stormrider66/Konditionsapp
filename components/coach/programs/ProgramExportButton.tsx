@@ -100,9 +100,10 @@ export function ProgramExportButton({
       coachName,
       organization,
       startDate,
+      locale,
     })
 
-    const filename = generateProgramPDFFilename(program.name)
+    const filename = generateProgramPDFFilename(program.name, locale)
     downloadProgramPDF(pdfBlob, filename)
   }
 
@@ -137,6 +138,7 @@ export function ProgramExportButton({
         coachName,
         organization,
         startDate: startDate ? startDate.toISOString() : undefined,
+        locale,
       }),
     })
 
@@ -145,7 +147,7 @@ export function ProgramExportButton({
     }
 
     const blob = await response.blob()
-    downloadBlob(blob, generateProgramPDFFilename(program.name))
+    downloadBlob(blob, generateProgramPDFFilename(program.name, locale))
   }
 
   const handleExportPDF = async () => {

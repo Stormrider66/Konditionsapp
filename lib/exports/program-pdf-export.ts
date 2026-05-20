@@ -9,6 +9,8 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas-pro';
 import type { ParsedProgram } from '@/lib/ai/program-parser';
 
+type AppLocale = 'en' | 'sv';
+
 export interface ProgramPDFOptions {
   filename?: string;
   quality?: number;
@@ -22,6 +24,31 @@ export interface ProgramPDFData {
   coachName?: string;
   organization?: string;
   startDate?: Date;
+  locale?: AppLocale;
+}
+
+const COPY: Record<AppLocale, {
+  titlePrefix: string;
+  subject: string;
+  keywords: string;
+  filenamePrefix: string;
+}> = {
+  en: {
+    titlePrefix: 'Training program',
+    subject: 'AI-generated training program',
+    keywords: 'training program, training, periodization',
+    filenamePrefix: 'TrainingProgram',
+  },
+  sv: {
+    titlePrefix: 'Träningsprogram',
+    subject: 'AI-genererat träningsprogram',
+    keywords: 'träningsprogram, träning, periodisering',
+    filenamePrefix: 'Traningsprogram',
+  },
+};
+
+function getExportLocale(locale?: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en';
 }
 
 /**
@@ -33,6 +60,8 @@ export async function generateProgramPDFFromElement(
   options: ProgramPDFOptions = {}
 ): Promise<Blob> {
   const { quality = 0.95, scale = 2 } = options;
+  const locale = getExportLocale(data.locale);
+  const copy = COPY[locale];
 
   // Capture HTML as canvas
   const canvas = await html2canvas(element, {
@@ -87,10 +116,10 @@ export async function generateProgramPDFFromElement(
 
   // Add metadata
   pdf.setProperties({
-    title: `Träningsprogram - ${data.program.name}`,
-    subject: 'AI-genererat träningsprogram',
+    title: `${copy.titlePrefix} - ${data.program.name}`,
+    subject: copy.subject,
     author: data.coachName || data.organization || 'AI Studio',
-    keywords: 'träningsprogram, träning, periodisering',
+    keywords: copy.keywords,
     creator: data.organization || '',
   });
 
@@ -100,7 +129,8 @@ export async function generateProgramPDFFromElement(
 /**
  * Generate filename for program PDF
  */
-export function generateProgramPDFFilename(programName: string): string {
+export function generateProgramPDFFilename(programName: string, locale?: AppLocale): string {
+  const copy = COPY[getExportLocale(locale)];
   const safeName = programName
     .replace(/[åä]/gi, 'a')
     .replace(/[ö]/gi, 'o')
@@ -109,7 +139,7 @@ export function generateProgramPDFFilename(programName: string): string {
     .substring(0, 50);
 
   const date = new Date().toISOString().split('T')[0];
-  return `Traningsprogram_${safeName}_${date}.pdf`;
+  return `${copy.filenamePrefix}_${safeName}_${date}.pdf`;
 }
 
 /**
@@ -142,6 +172,6 @@ export async function generateAndDownloadProgramPDF(
   }
 
   const pdfBlob = await generateProgramPDFFromElement(element, data, options);
-  const filename = options?.filename || generateProgramPDFFilename(data.program.name);
+  const filename = options?.filename || generateProgramPDFFilename(data.program.name, data.locale);
   downloadProgramPDF(pdfBlob, filename);
 }

@@ -22,7 +22,12 @@ import {
 } from '@react-pdf/renderer'
 import type { ParsedProgram, ParsedWorkout } from '@/lib/ai/program-parser'
 
-const DAY_NAMES = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+type AppLocale = 'en' | 'sv'
+
+const DAY_NAMES: Record<AppLocale, string[]> = {
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  sv: ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'],
+}
 const DAY_KEYS = [
   'monday',
   'tuesday',
@@ -33,15 +38,104 @@ const DAY_KEYS = [
   'sunday',
 ] as const
 
-const INTENSITY_LABELS: Record<string, string> = {
-  recovery: 'Återhämtning',
-  easy: 'Lugn',
-  moderate: 'Måttlig',
-  threshold: 'Tröskel',
-  interval: 'Intervall',
-  max: 'Max',
-  hard: 'Hård',
-  race_pace: 'Tävlingstempo',
+const INTENSITY_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    recovery: 'Recovery',
+    easy: 'Easy',
+    moderate: 'Moderate',
+    threshold: 'Threshold',
+    interval: 'Interval',
+    max: 'Max',
+    hard: 'Hard',
+    race_pace: 'Race pace',
+  },
+  sv: {
+    recovery: 'Återhämtning',
+    easy: 'Lugn',
+    moderate: 'Måttlig',
+    threshold: 'Tröskel',
+    interval: 'Intervall',
+    max: 'Max',
+    hard: 'Hård',
+    race_pace: 'Tävlingstempo',
+  },
+}
+
+const COPY: Record<AppLocale, {
+  title: string;
+  titlePrefix: string;
+  subject: string;
+  generated: string;
+  programInfo: string;
+  length: string;
+  weekSingular: string;
+  weekPlural: string;
+  methodology: string;
+  sessionsPerWeek: string;
+  startDate: string;
+  athlete: string;
+  coach: string;
+  description: string;
+  week: string;
+  focus: string;
+  weeklySchedule: string;
+  keyWorkouts: string;
+  volume: string;
+  note: string;
+  programNotes: string;
+  footerPrefix: string;
+  rest: string;
+}> = {
+  en: {
+    title: 'TRAINING PROGRAM',
+    titlePrefix: 'Training program',
+    subject: 'AI-generated training program',
+    generated: 'Generated',
+    programInfo: 'Program info',
+    length: 'Length',
+    weekSingular: 'week',
+    weekPlural: 'weeks',
+    methodology: 'Methodology',
+    sessionsPerWeek: 'Sessions/week',
+    startDate: 'Start date',
+    athlete: 'Athlete',
+    coach: 'Coach',
+    description: 'Description',
+    week: 'Week',
+    focus: 'Focus',
+    weeklySchedule: 'Weekly schedule',
+    keyWorkouts: 'Key sessions',
+    volume: 'Volume',
+    note: 'Note',
+    programNotes: 'Program notes',
+    footerPrefix: 'Generated with AI Studio',
+    rest: 'Rest',
+  },
+  sv: {
+    title: 'TRÄNINGSPROGRAM',
+    titlePrefix: 'Träningsprogram',
+    subject: 'AI-genererat träningsprogram',
+    generated: 'Genererad',
+    programInfo: 'Programinfo',
+    length: 'Längd',
+    weekSingular: 'vecka',
+    weekPlural: 'veckor',
+    methodology: 'Metodik',
+    sessionsPerWeek: 'Pass/vecka',
+    startDate: 'Startdatum',
+    athlete: 'Atlet',
+    coach: 'Coach',
+    description: 'Beskrivning',
+    week: 'Vecka',
+    focus: 'Fokus',
+    weeklySchedule: 'Veckoschema',
+    keyWorkouts: 'Nyckelpass',
+    volume: 'Volym',
+    note: 'Obs',
+    programNotes: 'Programkommentarer',
+    footerPrefix: 'Genererat med AI Studio',
+    rest: 'Vila',
+  },
 }
 
 const styles = StyleSheet.create({
@@ -245,19 +339,19 @@ type DayWorkout =
   | ParsedWorkout
   | { type: 'REST'; description?: string }
 
-function getWorkoutDisplay(workout: DayWorkout): {
+function getWorkoutDisplay(workout: DayWorkout, locale: AppLocale): {
   name: string
   duration: string
   intensity: string
 } {
   if (workout.type === 'REST') {
-    return { name: 'Vila', duration: '', intensity: '' }
+    return { name: COPY[locale].rest, duration: '', intensity: '' }
   }
   return {
     name: workout.name || workout.type,
     duration: workout.duration ? `${workout.duration} min` : '',
     intensity: workout.intensity
-      ? INTENSITY_LABELS[workout.intensity] ?? workout.intensity
+      ? INTENSITY_LABELS[locale][workout.intensity] ?? workout.intensity
       : '',
   }
 }
@@ -279,10 +373,9 @@ export function ProgramPDFDocument({
   startDate,
   locale = 'en',
 }: ProgramPDFDocumentProps) {
-  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
-  const copy = locale === 'sv'
-    ? { titlePrefix: 'Träningsprogram', subject: 'AI-genererat träningsprogram' }
-    : { titlePrefix: 'Training program', subject: 'AI-generated training program' }
+  const appLocale: AppLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? 'sv-SE' : 'en-US'
+  const copy = COPY[appLocale]
   const generatedDate = new Date().toLocaleDateString(dateLocale)
   const programStartDate = (startDate ?? new Date()).toLocaleDateString(dateLocale)
 
@@ -297,53 +390,53 @@ export function ProgramPDFDocument({
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>TRÄNINGSPROGRAM</Text>
+            <Text style={styles.title}>{copy.title}</Text>
             <Text style={styles.programName}>{program.name}</Text>
           </View>
           <View>
             {organization ? (
               <Text style={styles.headerMetaBold}>{organization}</Text>
             ) : null}
-            <Text style={styles.headerMeta}>Genererad: {generatedDate}</Text>
+            <Text style={styles.headerMeta}>{copy.generated}: {generatedDate}</Text>
           </View>
         </View>
 
         {/* Info Grid */}
         <View style={styles.infoGrid}>
           <View style={styles.infoCard}>
-            <Text style={styles.infoCardTitle}>Programinfo</Text>
+            <Text style={styles.infoCardTitle}>{copy.programInfo}</Text>
             <Text style={styles.infoCardText}>
-              <Text style={styles.infoLabel}>Längd: </Text>
-              {program.totalWeeks} veckor
+              <Text style={styles.infoLabel}>{copy.length}: </Text>
+              {program.totalWeeks} {program.totalWeeks === 1 ? copy.weekSingular : copy.weekPlural}
             </Text>
             {program.methodology ? (
               <Text style={styles.infoCardText}>
-                <Text style={styles.infoLabel}>Metodik: </Text>
+                <Text style={styles.infoLabel}>{copy.methodology}: </Text>
                 {program.methodology}
               </Text>
             ) : null}
             {program.weeklySchedule ? (
               <Text style={styles.infoCardText}>
-                <Text style={styles.infoLabel}>Pass/vecka: </Text>
+                <Text style={styles.infoLabel}>{copy.sessionsPerWeek}: </Text>
                 {program.weeklySchedule.sessionsPerWeek}
               </Text>
             ) : null}
             <Text style={styles.infoCardText}>
-              <Text style={styles.infoLabel}>Startdatum: </Text>
+              <Text style={styles.infoLabel}>{copy.startDate}: </Text>
               {programStartDate}
             </Text>
           </View>
 
           {athleteName ? (
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardTitle}>Atlet</Text>
+              <Text style={styles.infoCardTitle}>{copy.athlete}</Text>
               <Text style={styles.infoCardText}>{athleteName}</Text>
             </View>
           ) : null}
 
           {coachName ? (
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardTitle}>Coach</Text>
+              <Text style={styles.infoCardTitle}>{copy.coach}</Text>
               <Text style={styles.infoCardText}>{coachName}</Text>
             </View>
           ) : null}
@@ -352,7 +445,7 @@ export function ProgramPDFDocument({
         {/* Description */}
         {program.description ? (
           <View>
-            <Text style={styles.sectionTitle}>Beskrivning</Text>
+            <Text style={styles.sectionTitle}>{copy.description}</Text>
             <Text style={styles.description}>{program.description}</Text>
           </View>
         ) : null}
@@ -367,23 +460,23 @@ export function ProgramPDFDocument({
               <View style={styles.phaseHeader}>
                 <Text style={styles.phaseTitle}>{phase.name}</Text>
                 <Text style={styles.phaseWeeks}>
-                  Vecka {phase.weeks} ({weekCount}{' '}
-                  {weekCount === 1 ? 'vecka' : 'veckor'})
+                  {copy.week} {phase.weeks} ({weekCount}{' '}
+                  {weekCount === 1 ? copy.weekSingular : copy.weekPlural})
                 </Text>
               </View>
 
               <View style={styles.phaseBody}>
                 <Text style={styles.phaseFocus}>
-                  <Text style={styles.infoLabel}>Fokus: </Text>
+                  <Text style={styles.infoLabel}>{copy.focus}: </Text>
                   {phase.focus}
                 </Text>
 
                 {/* Weekly template */}
                 {phase.weeklyTemplate ? (
                   <>
-                    <Text style={styles.sectionTitle}>Veckoschema</Text>
+                    <Text style={styles.sectionTitle}>{copy.weeklySchedule}</Text>
                     <View style={styles.weekGrid}>
-                      {DAY_NAMES.map((day) => (
+                      {DAY_NAMES[appLocale].map((day) => (
                         <Text key={day} style={styles.weekDayHeader}>
                           {day}
                         </Text>
@@ -406,7 +499,7 @@ export function ProgramPDFDocument({
                           )
                         }
 
-                        const display = getWorkoutDisplay(workout)
+                        const display = getWorkoutDisplay(workout, appLocale)
                         const isRest = workout.type === 'REST'
 
                         return (
@@ -448,7 +541,7 @@ export function ProgramPDFDocument({
                 {/* Key workouts */}
                 {phase.keyWorkouts && phase.keyWorkouts.length > 0 ? (
                   <View style={styles.keyWorkoutList}>
-                    <Text style={styles.sectionTitle}>Nyckelpass</Text>
+                    <Text style={styles.sectionTitle}>{copy.keyWorkouts}</Text>
                     {phase.keyWorkouts.map((workout, i) => (
                       <Text key={i} style={styles.keyWorkoutItem}>
                         • {workout}
@@ -460,7 +553,7 @@ export function ProgramPDFDocument({
                 {/* Volume guidance */}
                 {phase.volumeGuidance ? (
                   <Text style={styles.phaseFocus}>
-                    <Text style={styles.infoLabel}>Volym: </Text>
+                    <Text style={styles.infoLabel}>{copy.volume}: </Text>
                     {phase.volumeGuidance}
                   </Text>
                 ) : null}
@@ -469,7 +562,7 @@ export function ProgramPDFDocument({
                 {phase.notes ? (
                   <View style={styles.notesBlock}>
                     <Text style={styles.notesText}>
-                      <Text style={styles.infoLabel}>Obs: </Text>
+                      <Text style={styles.infoLabel}>{copy.note}: </Text>
                       {phase.notes}
                     </Text>
                   </View>
@@ -482,14 +575,14 @@ export function ProgramPDFDocument({
         {/* Program notes */}
         {program.notes ? (
           <View style={styles.programNotes}>
-            <Text style={styles.sectionTitle}>Programkommentarer</Text>
+            <Text style={styles.sectionTitle}>{copy.programNotes}</Text>
             <Text style={styles.description}>{program.notes}</Text>
           </View>
         ) : null}
 
         {/* Footer */}
         <Text style={styles.footer} fixed>
-          Genererat med AI Studio{organization ? ` • ${organization}` : ''}
+          {copy.footerPrefix}{organization ? ` • ${organization}` : ''}
         </Text>
       </Page>
     </Document>
