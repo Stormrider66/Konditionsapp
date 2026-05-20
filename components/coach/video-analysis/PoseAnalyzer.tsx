@@ -57,6 +57,7 @@ import {
   calculateJointAngles,
   type JointAngle,
 } from './pose-analyzer/calculate-joint-angles'
+import { useLocale } from '@/i18n/client'
 
 export type { PoseLandmark, PoseFrame }
 
@@ -66,6 +67,12 @@ interface AngleRange {
   min: number
   max: number
   status: 'good' | 'warning' | 'critical'
+}
+
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 // AI Analysis data from Gemini
@@ -119,7 +126,9 @@ export function PoseAnalyzer({
   savedFrameCount,
   poseSavedAt,
 }: PoseAnalyzerProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const { toast } = useToast()
+  const localeRef = useRef(locale)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -160,6 +169,10 @@ export function PoseAnalyzer({
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [videoReady, setVideoReady] = useState(false)
   const [videoError, setVideoError] = useState(false)
+
+  useEffect(() => {
+    localeRef.current = locale
+  }, [locale])
 
   const clearError = () => {
     setError(null)
@@ -389,7 +402,7 @@ export function PoseAnalyzer({
         setPoseLoaded(true)
       } catch (err) {
         console.error('Failed to initialize MediaPipe Pose:', err)
-        setError('Kunde inte ladda poseanalys. Försök igen.')
+        setError(text(locale, 'Kunde inte ladda poseanalys. Försök igen.', 'Could not load pose analysis. Try again.'))
       }
     }
 
@@ -402,7 +415,7 @@ export function PoseAnalyzer({
     }
     // detectedCameraAngle is intentionally excluded - we don't want to reinitialize pose on camera angle detection
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoType, calculateJointAngles, drawLandmarks])
+  }, [videoType, calculateJointAngles, drawLandmarks, locale])
 
   // Process video frame
   const processFrame = useCallback(async () => {
@@ -421,7 +434,7 @@ export function PoseAnalyzer({
       await pose.send({ image: video })
     } catch (err) {
       console.error('MediaPipe pose.send() error:', err)
-      setError('Posemodellen kunde inte bearbeta videon. Kontrollera att videon är tillgänglig.')
+      setError(text(localeRef.current, 'Posemodellen kunde inte bearbeta videon. Kontrollera att videon är tillgänglig.', 'The pose model could not process the video. Check that the video is available.'))
       setIsAnalyzing(false)
       setIsPlaying(false)
       video.pause()
@@ -452,8 +465,8 @@ export function PoseAnalyzer({
   const analyzeWithGemini = async () => {
     if (currentAngles.length === 0) {
       toast({
-        title: 'Ingen data',
-        description: 'Kör poseanalysen först för att få data att analysera.',
+        title: text(locale, 'Ingen data', 'No data'),
+        description: text(locale, 'Kör poseanalysen först för att få data att analysera.', 'Run the pose analysis first to get data to analyze.'),
         variant: 'destructive',
       })
       return
@@ -496,7 +509,7 @@ export function PoseAnalyzer({
       if (!response.ok) {
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) throw allowanceError
-        throw new Error(data.error || 'AI-analysen misslyckades')
+        throw new Error(data.error || text(locale, 'AI-analysen misslyckades', 'AI analysis failed'))
       }
 
       setAiPoseAnalysis(data.analysis)
@@ -507,20 +520,24 @@ export function PoseAnalyzer({
       }
 
       toast({
-        title: 'AI-analys klar',
-        description: `Gemini har analyserat ${currentAngles.length} ledvinklar från ${frames.length} frames.`,
+        title: text(locale, 'AI-analys klar', 'AI analysis complete'),
+        description: text(
+          locale,
+          `Gemini har analyserat ${currentAngles.length} ledvinklar från ${frames.length} frames.`,
+          `Gemini analyzed ${currentAngles.length} joint angles from ${frames.length} frames.`
+        ),
       })
     } catch (err) {
       console.error('Gemini analysis error:', err)
       const description = isAiAllowanceExhaustedError(err)
         ? showAiAllowanceError(err)
-        : err instanceof Error ? err.message : 'Kunde inte analysera med AI'
+        : err instanceof Error ? err.message : text(locale, 'Kunde inte analysera med AI', 'Could not analyze with AI')
       if (!isAiAllowanceExhaustedError(err)) {
         setError(description)
         setAiAllowanceAction(null)
       }
       toast({
-        title: 'Analysfel',
+        title: text(locale, 'Analysfel', 'Analysis error'),
         description,
         variant: 'destructive',
       })

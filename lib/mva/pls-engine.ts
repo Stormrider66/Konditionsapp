@@ -23,7 +23,7 @@ export function runPLS(preprocessed: PreprocessedData, yVariableId: string): PLS
   const { matrix, athleteIds, athleteNames, variableIds, variableNames } = preprocessed
 
   if (matrix.length < 8) {
-    throw new Error('Minst 8 observationer krävs för PLS')
+    throw new Error('At least 8 observations are required for PLS')
   }
 
   // Find Y variable index
@@ -37,7 +37,7 @@ export function runPLS(preprocessed: PreprocessedData, yVariableId: string): PLS
   const xVariableNames = variableNames.filter((_, i) => i !== yIndex)
 
   if (xVariableIds.length < 3) {
-    throw new Error('Minst 3 X-variabler krävs för PLS')
+    throw new Error('At least 3 X variables are required for PLS')
   }
 
   const X = matrix.map((row) => row.filter((_, i) => i !== yIndex))

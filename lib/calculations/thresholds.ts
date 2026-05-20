@@ -37,7 +37,7 @@ function linearInterpolation(
     logger.debug('linearInterpolation - using pace', { value, belowPace: below.pace, abovePace: above.pace })
   } else {
     logger.error('linearInterpolation - no valid value field found', { below, above })
-    throw new Error('Kunde inte interpolera värde')
+    throw new Error('Could not interpolate value')
   }
 
   logger.debug('linearInterpolation returning', { heartRate, value })

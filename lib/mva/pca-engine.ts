@@ -11,10 +11,10 @@ export function runPCA(preprocessed: PreprocessedData): PCAModelResult {
   const { matrix, athleteIds, athleteNames, variableIds, variableNames } = preprocessed
 
   if (matrix.length < 3) {
-    throw new Error('Minst 3 observationer krävs för PCA')
+    throw new Error('At least 3 observations are required for PCA')
   }
   if (matrix[0].length < 2) {
-    throw new Error('Minst 2 variabler krävs för PCA')
+    throw new Error('At least 2 variables are required for PCA')
   }
 
   // Run PCA — data is already centered and scaled

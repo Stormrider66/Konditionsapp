@@ -41,7 +41,7 @@ export async function performAllCalculations(
     warnings.push({
       type: 'LACTATE_DROP',
       severity: 'warning',
-      message: `Laktatkurvan innehåller ${lactateDrops.length} tydlig sänkning${lactateDrops.length === 1 ? '' : 'ar'}. Kontrollera provtagning, tidpunkt och värden innan trösklarna används skarpt.`,
+      message: `The lactate curve contains ${lactateDrops.length} clear drop${lactateDrops.length === 1 ? '' : 's'}. Check sampling, timing, and values before using the thresholds for decisions.`,
       details: {
         lactateDrops,
       },
@@ -95,7 +95,7 @@ export async function performAllCalculations(
   let anaerobicThreshold = calculateAnaerobicThresholdWithOverride(stages, lt2Override)
 
   if (!aerobicThreshold || !anaerobicThreshold) {
-    throw new Error('Kunde inte beräkna tröskelvärden')
+    throw new Error('Could not calculate threshold values')
   }
 
   // Sanity check: LT1 (aerobic) should always be at lower intensity than LT2 (anaerobic)
@@ -187,7 +187,7 @@ export async function performAllCalculations(
       warnings.push({
         type: 'DATA_QUALITY',
         severity: 'warning',
-        message: `Löpekonomi kunde inte beräknas för ${skipped.length} steg (saknar VO2- eller hastighetsdata): steg ${skipped.join(', ')}.`,
+        message: `Running economy could not be calculated for ${skipped.length} stage${skipped.length === 1 ? '' : 's'} (missing VO2 or speed data): stage ${skipped.join(', ')}.`,
         details: {
           skippedStages: skipped,
         },

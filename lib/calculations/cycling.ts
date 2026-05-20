@@ -10,7 +10,7 @@ import { logger } from '@/lib/logger'
 export function calculateFTP(anaerobicThreshold: Threshold): number {
   logger.debug('calculateFTP called', { threshold: anaerobicThreshold })
   if (anaerobicThreshold.unit !== 'watt') {
-    throw new Error('FTP kan endast beräknas för cykeltester')
+    throw new Error('FTP can only be calculated for cycling tests')
   }
   const ftp = Math.round(anaerobicThreshold.value)
   logger.debug('Calculated FTP', { ftp })
