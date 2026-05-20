@@ -30,7 +30,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import {
   Plus,
   Trash2,
@@ -39,6 +38,7 @@ import {
   ListOrdered,
 } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { useLocale } from '@/i18n/client';
 import type { HybridSectionData, HybridSectionMovement, HybridSectionType } from '@/types';
 
 interface Exercise {
@@ -61,35 +61,99 @@ interface SectionEditorProps {
   disabled?: boolean;
 }
 
-const sectionLabels: Record<HybridSectionType, { title: string; placeholder: string }> = {
+type AppLocale = 'en' | 'sv';
+
+const sectionLabels: Record<HybridSectionType, { title: Record<AppLocale, string>; placeholder: Record<AppLocale, string> }> = {
   WARMUP: {
-    title: 'Uppvärmning',
-    placeholder: 'T.ex. "10 min lätt rodd, dynamiska stretchövningar..."',
+    title: { en: 'Warm-up', sv: 'Uppvärmning' },
+    placeholder: {
+      en: 'e.g. "10 min easy row, dynamic stretches..."',
+      sv: 'T.ex. "10 min lätt rodd, dynamiska stretchövningar..."',
+    },
   },
   STRENGTH: {
-    title: 'Styrka',
-    placeholder: 'T.ex. "Bygg upp till 5RM knäböj..."',
+    title: { en: 'Strength', sv: 'Styrka' },
+    placeholder: {
+      en: 'e.g. "Build to 5RM squat..."',
+      sv: 'T.ex. "Bygg upp till 5RM knäböj..."',
+    },
   },
   METCON: {
-    title: 'Metcon',
-    placeholder: 'Beskrivning av huvudpasset...',
+    title: { en: 'Metcon', sv: 'Metcon' },
+    placeholder: {
+      en: 'Main workout description...',
+      sv: 'Beskrivning av huvudpasset...',
+    },
   },
   COOLDOWN: {
-    title: 'Nedvarvning',
-    placeholder: 'T.ex. "5 min lätt rodd, statisk stretching..."',
+    title: { en: 'Cool-down', sv: 'Nedvarvning' },
+    placeholder: {
+      en: 'e.g. "5 min easy row, static stretching..."',
+      sv: 'T.ex. "5 min lätt rodd, statisk stretching..."',
+    },
   },
 };
 
-const categoryLabels: Record<string, string> = {
-  OLYMPIC_LIFT: 'Tyngdlyftning',
-  POWERLIFTING: 'Styrkelyft',
-  GYMNASTICS: 'Gymnastik',
-  MONOSTRUCTURAL: 'Kondition',
-  KETTLEBELL_WORK: 'Kettlebell',
-  STRONGMAN: 'Strongman',
-  CORE_WORK: 'Core',
-  ACCESSORY: 'Tillbehör',
-  HYROX_STATION: 'HYROX',
+const categoryLabels: Record<string, Record<AppLocale, string>> = {
+  OLYMPIC_LIFT: { en: 'Olympic lifting', sv: 'Tyngdlyftning' },
+  POWERLIFTING: { en: 'Powerlifting', sv: 'Styrkelyft' },
+  GYMNASTICS: { en: 'Gymnastics', sv: 'Gymnastik' },
+  MONOSTRUCTURAL: { en: 'Conditioning', sv: 'Kondition' },
+  KETTLEBELL_WORK: { en: 'Kettlebell', sv: 'Kettlebell' },
+  STRONGMAN: { en: 'Strongman', sv: 'Strongman' },
+  CORE_WORK: { en: 'Core', sv: 'Core' },
+  ACCESSORY: { en: 'Accessory', sv: 'Tillbehör' },
+  HYROX_STATION: { en: 'HYROX', sv: 'HYROX' },
+};
+
+const COPY: Record<AppLocale, {
+  notes: string;
+  structured: string;
+  timeSeconds: string;
+  distanceMeters: string;
+  restSeconds: string;
+  maleWeightKg: string;
+  femaleWeightKg: string;
+  exercises: string;
+  close: string;
+  add: string;
+  searchExercises: string;
+  noExercises: string;
+  addExercisesHint: string;
+  timeMinutes: string;
+}> = {
+  en: {
+    notes: 'Notes',
+    structured: 'Structured',
+    timeSeconds: 'Time (s)',
+    distanceMeters: 'Distance (m)',
+    restSeconds: 'Rest (s)',
+    maleWeightKg: 'Weight M (kg)',
+    femaleWeightKg: 'Weight F (kg)',
+    exercises: 'Exercises',
+    close: 'Close',
+    add: 'Add',
+    searchExercises: 'Search exercises...',
+    noExercises: 'No exercises found.',
+    addExercisesHint: 'Click "Add" to add exercises.',
+    timeMinutes: 'Time (min)',
+  },
+  sv: {
+    notes: 'Anteckningar',
+    structured: 'Strukturerat',
+    timeSeconds: 'Tid (s)',
+    distanceMeters: 'Distans (m)',
+    restSeconds: 'Vila (s)',
+    maleWeightKg: 'Vikt H (kg)',
+    femaleWeightKg: 'Vikt D (kg)',
+    exercises: 'Övningar',
+    close: 'Stäng',
+    add: 'Lägg till',
+    searchExercises: 'Sök övningar...',
+    noExercises: 'Inga övningar hittades.',
+    addExercisesHint: 'Klicka på "Lägg till" för att lägga till övningar.',
+    timeMinutes: 'Tid (min)',
+  },
 };
 
 // Sortable movement card for sections
@@ -97,6 +161,7 @@ interface SortableSectionMovementProps {
   movement: HybridSectionMovement;
   index: number;
   sectionType: HybridSectionType;
+  copy: (typeof COPY)[AppLocale];
   onRemove: (index: number) => void;
   onUpdate: (index: number, updates: Partial<HybridSectionMovement>) => void;
 }
@@ -105,6 +170,7 @@ function SortableSectionMovement({
   movement,
   index,
   sectionType,
+  copy,
   onRemove,
   onUpdate,
 }: SortableSectionMovementProps) {
@@ -182,7 +248,7 @@ function SortableSectionMovement({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Tid (s)</Label>
+              <Label className="text-xs">{copy.timeSeconds}</Label>
               <Input
                 type="number"
                 className="h-8"
@@ -195,7 +261,7 @@ function SortableSectionMovement({
             </div>
             {!showSetsRest && (
               <div className="space-y-1">
-                <Label className="text-xs">Distans (m)</Label>
+                <Label className="text-xs">{copy.distanceMeters}</Label>
                 <Input
                   type="number"
                   className="h-8"
@@ -212,7 +278,7 @@ function SortableSectionMovement({
           {showSetsRest && (
             <div className="grid gap-2 grid-cols-3">
               <div className="space-y-1">
-                <Label className="text-xs">Vila (s)</Label>
+                <Label className="text-xs">{copy.restSeconds}</Label>
                 <Input
                   type="number"
                   className="h-8"
@@ -224,7 +290,7 @@ function SortableSectionMovement({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Vikt H (kg)</Label>
+                <Label className="text-xs">{copy.maleWeightKg}</Label>
                 <Input
                   type="number"
                   className="h-8"
@@ -236,7 +302,7 @@ function SortableSectionMovement({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Vikt D (kg)</Label>
+                <Label className="text-xs">{copy.femaleWeightKg}</Label>
                 <Input
                   type="number"
                   className="h-8"
@@ -268,6 +334,8 @@ export function SectionEditor({
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
 
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = COPY[locale];
   const labels = sectionLabels[sectionType];
 
   // DnD Kit sensors
@@ -315,7 +383,7 @@ export function SectionEditor({
   function addMovement(exercise: Exercise) {
     const newMovement: HybridSectionMovement = {
       exerciseId: exercise.id,
-      exerciseName: exercise.nameSv || exercise.name,
+      exerciseName: (locale === 'sv' ? exercise.nameSv : null) || exercise.name,
       order: (data?.movements?.length || 0) + 1,
       reps: exercise.defaultReps,
       weightMale: exercise.defaultWeightMale,
@@ -396,7 +464,7 @@ export function SectionEditor({
             disabled={disabled}
           >
             <FileText className="h-3.5 w-3.5" />
-            Anteckningar
+            {copy.notes}
           </button>
           <button
             type="button"
@@ -409,13 +477,13 @@ export function SectionEditor({
             disabled={disabled}
           >
             <ListOrdered className="h-3.5 w-3.5" />
-            Strukturerat
+            {copy.structured}
           </button>
         </div>
 
         {(sectionType === 'WARMUP' || sectionType === 'COOLDOWN') && (
           <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground">Tid (min)</Label>
+            <Label className="text-xs text-muted-foreground">{copy.timeMinutes}</Label>
             <Input
               type="number"
               className="h-8 w-16"
@@ -434,11 +502,11 @@ export function SectionEditor({
 
       {/* Notes Input (always shown) */}
       <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Anteckningar</Label>
+        <Label className="text-xs text-muted-foreground">{copy.notes}</Label>
         <Textarea
           value={data?.notes || ''}
           onChange={(e) => handleNotesChange(e.target.value)}
-          placeholder={labels.placeholder}
+          placeholder={labels.placeholder[locale]}
           rows={useStructured ? 2 : 4}
           disabled={disabled}
         />
@@ -448,7 +516,7 @@ export function SectionEditor({
       {useStructured && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Övningar</Label>
+            <Label className="text-sm font-medium">{copy.exercises}</Label>
             <Button
               type="button"
               size="sm"
@@ -457,7 +525,7 @@ export function SectionEditor({
               disabled={disabled}
             >
               <Plus className="h-3.5 w-3.5 mr-1" />
-              {showExerciseSelector ? 'Stäng' : 'Lägg till'}
+              {showExerciseSelector ? copy.close : copy.add}
             </Button>
           </div>
 
@@ -466,7 +534,7 @@ export function SectionEditor({
             <Card>
               <CardContent className="p-3">
                 <Input
-                  placeholder="Sök övningar..."
+                  placeholder={copy.searchExercises}
                   value={exerciseSearch}
                   onChange={(e) => setExerciseSearch(e.target.value)}
                   className="mb-3 h-9"
@@ -474,13 +542,13 @@ export function SectionEditor({
                 <div className="max-h-[200px] overflow-y-auto">
                   {filteredExercises.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-3">
-                      Inga övningar hittades.
+                      {copy.noExercises}
                     </p>
                   ) : (
                     Object.entries(groupedExercises).map(([category, exs]) => (
                       <div key={category} className="mb-3">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                          {categoryLabels[category] || category}
+                          {categoryLabels[category]?.[locale] || category}
                         </p>
                         <div className="grid grid-cols-2 gap-1.5">
                           {exs.slice(0, 8).map((exercise) => (
@@ -493,7 +561,7 @@ export function SectionEditor({
                               onClick={() => addMovement(exercise)}
                               title={exercise.name}
                             >
-                              {exercise.nameSv || exercise.name}
+                              {(locale === 'sv' ? exercise.nameSv : null) || exercise.name}
                             </Button>
                           ))}
                         </div>
@@ -523,6 +591,7 @@ export function SectionEditor({
                       movement={movement}
                       index={index}
                       sectionType={sectionType}
+                      copy={copy}
                       onRemove={removeMovement}
                       onUpdate={updateMovement}
                     />
@@ -532,7 +601,7 @@ export function SectionEditor({
             </DndContext>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Klicka på &quot;Lägg till&quot; för att lägga till övningar.
+              {copy.addExercisesHint}
             </p>
           )}
         </div>
