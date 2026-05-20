@@ -45,7 +45,7 @@ export async function parseWorkoutFromText(
   config: ParserConfig
 ): Promise<ParsedWorkout> {
   const exerciseLibrary = await getExerciseLibrary()
-  const prompt = buildTextParsingPrompt(text, exerciseLibrary)
+  const prompt = buildTextParsingPrompt(text, exerciseLibrary, config.locale)
 
   const result = await callAI(prompt, config)
   return await enrichParsedWorkout(result, exerciseLibrary)
@@ -60,7 +60,7 @@ export async function parseWorkoutFromImage(
   config: ParserConfig
 ): Promise<ParsedWorkout> {
   const exerciseLibrary = await getExerciseLibrary()
-  const prompt = buildImageParsingPrompt(exerciseLibrary)
+  const prompt = buildImageParsingPrompt(exerciseLibrary, config.locale)
 
   const result = await callAIWithImage(prompt, imageUrl, mimeType, config)
   return await enrichParsedWorkout(result, exerciseLibrary)
@@ -80,7 +80,7 @@ export async function parseWorkoutFromVoice(
 
   // Step 2: Parse the transcription
   const exerciseLibrary = await getExerciseLibrary()
-  const prompt = buildVoiceParsingPrompt(transcription, exerciseLibrary)
+  const prompt = buildVoiceParsingPrompt(transcription, exerciseLibrary, config.locale)
 
   const result = await callAI(prompt, config)
   const enriched = await enrichParsedWorkout(result, exerciseLibrary)
@@ -231,7 +231,7 @@ async function transcribeAudio(
   // Fetch audio as base64
   const { base64: base64Data } = await fetchAsBase64(audioUrl)
 
-  const prompt = buildTranscriptionPrompt()
+  const prompt = buildTranscriptionPrompt(config.locale)
   const response = await generateContent(
     client,
     config.apiModelId,
@@ -461,7 +461,7 @@ export async function getParserConfigForAthlete(
 /**
  * Get Google API key for the config (decrypted)
  */
-async function getGoogleApiKey(config: ParserConfig): Promise<string> {
+async function getGoogleApiKey(_config: ParserConfig): Promise<string> {
   // This is a simplified version - in production, you'd pass the coach ID
   // through the config or retrieve it from the request context
   throw new Error(

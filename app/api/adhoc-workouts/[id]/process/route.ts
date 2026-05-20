@@ -336,7 +336,7 @@ async function parseFromText(
   meta: AiCallMeta,
   locale: AppLocale,
 ): Promise<ParsedWorkout> {
-  const prompt = buildTextParsingPrompt(text, exerciseLibrary)
+  const prompt = buildTextParsingPrompt(text, exerciseLibrary, locale)
 
   const response = await generateContent(client, modelId, [createText(prompt)], {
     maxOutputTokens: 4096,
@@ -354,7 +354,7 @@ async function parseFromImage(
   meta: AiCallMeta,
   locale: AppLocale,
 ): Promise<ParsedWorkout> {
-  const prompt = buildImageParsingPrompt(exerciseLibrary)
+  const prompt = buildImageParsingPrompt(exerciseLibrary, locale)
 
   // Fetch image as base64
   let base64Data: string
@@ -426,7 +426,7 @@ async function parseFromVoice(
   }
 
   // Step 1: Transcribe
-  const transcriptionPrompt = buildTranscriptionPrompt()
+  const transcriptionPrompt = buildTranscriptionPrompt(locale)
   const transcriptionResponse = await generateContent(
     client,
     modelId,
@@ -441,7 +441,7 @@ async function parseFromVoice(
   const transcription = transcriptionResponse.text.trim()
 
   // Step 2: Parse transcription
-  const parsingPrompt = buildVoiceParsingPrompt(transcription, exerciseLibrary)
+  const parsingPrompt = buildVoiceParsingPrompt(transcription, exerciseLibrary, locale)
   const parsingResponse = await generateContent(client, modelId, [createText(parsingPrompt)], {
     maxOutputTokens: 4096,
     temperature: 0.3,

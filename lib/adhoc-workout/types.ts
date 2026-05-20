@@ -349,6 +349,8 @@ export interface ParserConfig {
   maxTokens?: number
   /** Temperature for generation */
   temperature?: number
+  /** User-facing output language */
+  locale?: 'en' | 'sv'
 }
 
 /**

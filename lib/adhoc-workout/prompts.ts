@@ -7,6 +7,16 @@
 
 import type { ExerciseLibraryEntry } from './types'
 
+type AppLocale = 'en' | 'sv'
+
+function outputLanguageInstruction(locale: AppLocale): string {
+  const language = locale === 'sv' ? 'Swedish' : 'English'
+  return `OUTPUT LANGUAGE:
+- Write all user-facing JSON string values in ${language}: name, notes, rawInterpretation, warnings, segment notes, and exercise notes.
+- Keep exerciseId values, enum values, units, and source measurements unchanged.
+- Exercise library names may contain Swedish aliases; use them only for matching unless ${language} output naturally requires them.`
+}
+
 // ============================================
 // SYSTEM CONTEXT
 // ============================================
@@ -186,11 +196,14 @@ const SHORTHAND_DICTIONARY = `
  */
 export function buildTextParsingPrompt(
   text: string,
-  exerciseLibrary: ExerciseLibraryEntry[]
+  exerciseLibrary: ExerciseLibraryEntry[],
+  locale: AppLocale = 'en',
 ): string {
   const exerciseList = formatExerciseLibrary(exerciseLibrary)
 
   return `${SYSTEM_CONTEXT}
+
+${outputLanguageInstruction(locale)}
 
 ${SHORTHAND_DICTIONARY}
 
@@ -265,11 +278,14 @@ DISTANSBERÄKNING:
  * Build prompt for parsing workout from photo/screenshot
  */
 export function buildImageParsingPrompt(
-  exerciseLibrary: ExerciseLibraryEntry[]
+  exerciseLibrary: ExerciseLibraryEntry[],
+  locale: AppLocale = 'en',
 ): string {
   const exerciseList = formatExerciseLibrary(exerciseLibrary)
 
   return `${SYSTEM_CONTEXT}
+
+${outputLanguageInstruction(locale)}
 
 ${SHORTHAND_DICTIONARY}
 
@@ -327,11 +343,14 @@ VIKTIGT:
  */
 export function buildVoiceParsingPrompt(
   transcription: string,
-  exerciseLibrary: ExerciseLibraryEntry[]
+  exerciseLibrary: ExerciseLibraryEntry[],
+  locale: AppLocale = 'en',
 ): string {
   const exerciseList = formatExerciseLibrary(exerciseLibrary)
 
   return `${SYSTEM_CONTEXT}
+
+${outputLanguageInstruction(locale)}
 
 ${SHORTHAND_DICTIONARY}
 
@@ -429,8 +448,9 @@ function formatExerciseLibrary(exercises: ExerciseLibraryEntry[]): string {
 /**
  * Build prompt for transcribing audio (before parsing)
  */
-export function buildTranscriptionPrompt(): string {
-  return `Transkribera detta röstmeddelande på svenska.
+export function buildTranscriptionPrompt(locale: AppLocale = 'en'): string {
+  if (locale === 'sv') {
+    return `Transkribera detta röstmeddelande på svenska.
 
 Atleten beskriver ett träningspass de har genomfört.
 
@@ -442,6 +462,20 @@ INSTRUKTIONER:
 5. Om ord är otydliga, gissa bästa tolkning
 
 Svara ENDAST med transkriptionen, ingen annan text.`
+  }
+
+  return `Transcribe this voice message into English text.
+
+The athlete is describing a workout they completed.
+
+INSTRUCTIONS:
+1. Write exactly what is said, translated into natural English where needed
+2. Include pauses as "..." if relevant
+3. Preserve all numbers and measurements
+4. Keep exercise names, workout names, and brand names as close to the source as possible
+5. If words are unclear, make the best reasonable interpretation
+
+Return ONLY the transcription, no other text.`
 }
 
 /**
