@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useLocale } from 'next-intl';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -40,21 +41,13 @@ interface WeeklyZoneSummaryProps {
   variant?: 'default' | 'compact' | 'glass';
 }
 
-const ZONE_COLORS = {
-  zone1: 'bg-green-500',
-  zone2: 'bg-blue-500',
-  zone3: 'bg-yellow-500',
-  zone4: 'bg-orange-500',
-  zone5: 'bg-red-500',
-};
+type AppLocale = 'en' | 'sv';
 
-const ZONE_BG_COLORS = {
-  zone1: 'bg-green-100 text-green-800',
-  zone2: 'bg-blue-100 text-blue-800',
-  zone3: 'bg-yellow-100 text-yellow-800',
-  zone4: 'bg-orange-100 text-orange-800',
-  zone5: 'bg-red-100 text-red-800',
-};
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en');
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+);
 
 function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
@@ -99,6 +92,7 @@ export function WeeklyZoneSummary({
   clientId,
   variant = 'default',
 }: WeeklyZoneSummaryProps) {
+  const locale = getAppLocale(useLocale());
   const [distributions, setDistributions] = useState<ZoneDistribution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -120,7 +114,7 @@ export function WeeklyZoneSummary({
   }, [clientId]);
 
   useEffect(() => {
-    fetchDistributions();
+    void fetchDistributions();
   }, [fetchDistributions]);
 
   const currentWeek = distributions[distributions.length - 1];
@@ -150,13 +144,13 @@ export function WeeklyZoneSummary({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Heart className="h-4 w-4" />
-            Veckans zoner
+            {t(locale, 'Veckans zoner', "This week's zones")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4">
             <p className="text-sm text-muted-foreground">
-              Ingen zondata denna vecka
+              {t(locale, 'Ingen zondata denna vecka', 'No zone data this week')}
             </p>
           </div>
         </CardContent>
@@ -183,7 +177,7 @@ export function WeeklyZoneSummary({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Heart className="h-4 w-4 text-red-500" />
-              <span className="font-medium">Zoner</span>
+              <span className="font-medium">{t(locale, 'Zoner', 'Zones')}</span>
             </div>
             {isPolarized && (
               <Badge className="bg-green-100 text-green-800">
@@ -198,33 +192,33 @@ export function WeeklyZoneSummary({
             <div
               className="bg-green-500 transition-all"
               style={{ width: `${zonePercents.zone1}%` }}
-              title={`Zon 1: ${formatDuration(currentWeek.zone1Minutes)}`}
+              title={`${t(locale, 'Zon', 'Zone')} 1: ${formatDuration(currentWeek.zone1Minutes)}`}
             />
             <div
               className="bg-blue-500 transition-all"
               style={{ width: `${zonePercents.zone2}%` }}
-              title={`Zon 2: ${formatDuration(currentWeek.zone2Minutes)}`}
+              title={`${t(locale, 'Zon', 'Zone')} 2: ${formatDuration(currentWeek.zone2Minutes)}`}
             />
             <div
               className="bg-yellow-500 transition-all"
               style={{ width: `${zonePercents.zone3}%` }}
-              title={`Zon 3: ${formatDuration(currentWeek.zone3Minutes)}`}
+              title={`${t(locale, 'Zon', 'Zone')} 3: ${formatDuration(currentWeek.zone3Minutes)}`}
             />
             <div
               className="bg-orange-500 transition-all"
               style={{ width: `${zonePercents.zone4}%` }}
-              title={`Zon 4: ${formatDuration(currentWeek.zone4Minutes)}`}
+              title={`${t(locale, 'Zon', 'Zone')} 4: ${formatDuration(currentWeek.zone4Minutes)}`}
             />
             <div
               className="bg-red-500 transition-all"
               style={{ width: `${zonePercents.zone5}%` }}
-              title={`Zon 5: ${formatDuration(currentWeek.zone5Minutes)}`}
+              title={`${t(locale, 'Zon', 'Zone')} 5: ${formatDuration(currentWeek.zone5Minutes)}`}
             />
           </div>
 
           <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-            <span>Total: {formatDuration(totalMinutes)}</span>
-            <span>Lagt: {currentWeek.polarizationRatio?.toFixed(0) || 0}%</span>
+            <span>{t(locale, 'Total:', 'Total:')} {formatDuration(totalMinutes)}</span>
+            <span>{t(locale, 'Lågt:', 'Low:')} {currentWeek.polarizationRatio?.toFixed(0) || 0}%</span>
           </div>
         </CardContent>
       </Card>
@@ -237,7 +231,7 @@ export function WeeklyZoneSummary({
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Heart className="h-4 w-4" />
-            Veckans zoner
+            {t(locale, 'Veckans zoner', "This week's zones")}
           </CardTitle>
           {isPolarized && (
             <Badge className="bg-green-100 text-green-800">
@@ -247,7 +241,7 @@ export function WeeklyZoneSummary({
           )}
         </div>
         <CardDescription>
-          {formatDuration(totalMinutes)} total traningstid
+          {formatDuration(totalMinutes)} {t(locale, 'total träningstid', 'total training time')}
           {previousWeek && (
             <TrendIndicator
               current={totalMinutes}
@@ -263,7 +257,7 @@ export function WeeklyZoneSummary({
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-500 to-blue-500" />
-              Lagt (Z1-Z2)
+              {t(locale, 'Lågt', 'Low')} (Z1-Z2)
             </span>
             <span className="font-medium">
               {formatDuration(currentWeek.zone1Minutes + currentWeek.zone2Minutes)}
@@ -303,7 +297,7 @@ export function WeeklyZoneSummary({
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-500 to-red-500" />
-              Hogt (Z4-Z5)
+              {t(locale, 'Högt', 'High')} (Z4-Z5)
             </span>
             <span className="font-medium">
               {formatDuration(currentWeek.zone4Minutes + currentWeek.zone5Minutes)}
@@ -320,15 +314,15 @@ export function WeeklyZoneSummary({
 
         {/* Polarization indicator */}
         <div className="flex items-center justify-between pt-2 border-t">
-          <span className="text-sm text-muted-foreground">Polarisering</span>
+          <span className="text-sm text-muted-foreground">{t(locale, 'Polarisering', 'Polarization')}</span>
           <div className="flex items-center gap-2">
             <span className="font-bold text-lg">
               {currentWeek.polarizationRatio?.toFixed(0) || 0}%
             </span>
             {isPolarized ? (
-              <span className="text-xs text-green-600">Optimalt</span>
+              <span className="text-xs text-green-600">{t(locale, 'Optimalt', 'Optimal')}</span>
             ) : (
-              <span className="text-xs text-yellow-600">Forbattringsbar</span>
+              <span className="text-xs text-yellow-600">{t(locale, 'Förbättringsbar', 'Can improve')}</span>
             )}
           </div>
         </div>
