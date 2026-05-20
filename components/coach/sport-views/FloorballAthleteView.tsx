@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { SportTestHistory } from '@/components/tests/shared'
@@ -23,86 +24,134 @@ interface FloorballAthleteViewProps {
   settings?: Record<string, unknown>
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  goalkeeper: 'Målvakt',
-  defender: 'Back',
-  center: 'Center',
-  forward: 'Forward',
+type LocalizedText = { sv: string; en: string }
+
+function t(locale: string, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Korpen/Motion',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  allsvenskan: 'Allsvenskan',
-  ssl: 'Svenska Superligan',
+function localized(locale: string, text: LocalizedText): string {
+  return locale === 'sv' ? text.sv : text.en
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  playoffs: 'Slutspel',
+function labelFor(labels: Record<string, LocalizedText>, key: string, locale: string): string {
+  return labels[key] ? localized(locale, labels[key]) : key
 }
 
-const PLAYSTYLE_LABELS: Record<string, string> = {
-  offensive: 'Offensiv',
-  defensive: 'Defensiv',
-  playmaker: 'Spelmotor',
-  physical: 'Fysisk',
+const POSITION_LABELS: Record<string, LocalizedText> = {
+  goalkeeper: { sv: 'Målvakt', en: 'Goalkeeper' },
+  defender: { sv: 'Back', en: 'Defender' },
+  center: { sv: 'Center', en: 'Center' },
+  forward: { sv: 'Forward', en: 'Forward' },
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  sprint_speed: 'Sprintsnabbhet',
-  acceleration: 'Acceleration',
-  endurance: 'Uthållighet',
-  agility: 'Kvickhet',
-  shooting_power: 'Skottstyrka',
-  core_stability: 'Core-stabilitet',
-  leg_strength: 'Benstyrka',
-  low_position: 'Låg position',
+const LEAGUE_LABELS: Record<string, LocalizedText> = {
+  recreational: { sv: 'Korpen/Motion', en: 'Recreational' },
+  division_3: { sv: 'Division 3', en: 'Division 3' },
+  division_2: { sv: 'Division 2', en: 'Division 2' },
+  division_1: { sv: 'Division 1', en: 'Division 1' },
+  allsvenskan: { sv: 'Allsvenskan', en: 'Allsvenskan' },
+  ssl: { sv: 'Svenska Superligan', en: 'Swedish Super League' },
 }
 
-const WEAKNESS_LABELS: Record<string, string> = {
-  weak_hand: 'Svaga handen',
-  finishing: 'Avslut',
-  defense: 'Försvarsspel',
-  positioning: 'Positionering',
-  stick_handling: 'Teknik',
-  passing: 'Passningar',
-  stamina: 'Uthållighet',
-  game_reading: 'Spelläsning',
+const PHASE_LABELS: Record<string, LocalizedText> = {
+  off_season: { sv: 'Off-season', en: 'Off-season' },
+  pre_season: { sv: 'Försäsong', en: 'Pre-season' },
+  in_season: { sv: 'Säsong', en: 'In-season' },
+  playoffs: { sv: 'Slutspel', en: 'Playoffs' },
 }
 
-const INJURY_LABELS: Record<string, string> = {
-  groin: 'Ljumske',
-  hamstring: 'Hamstring',
-  knee: 'Knä',
-  ankle: 'Fotled',
-  hip: 'Höft',
-  back: 'Rygg',
-  wrist: 'Handled',
-  shoulder: 'Axel',
+const PLAYSTYLE_LABELS: Record<string, LocalizedText> = {
+  offensive: { sv: 'Offensiv', en: 'Offensive' },
+  defensive: { sv: 'Defensiv', en: 'Defensive' },
+  playmaker: { sv: 'Spelmotor', en: 'Playmaker' },
+  physical: { sv: 'Fysisk', en: 'Physical' },
+}
+
+const STRENGTH_LABELS: Record<string, LocalizedText> = {
+  sprint_speed: { sv: 'Sprintsnabbhet', en: 'Sprint speed' },
+  acceleration: { sv: 'Acceleration', en: 'Acceleration' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  agility: { sv: 'Kvickhet', en: 'Agility' },
+  shooting_power: { sv: 'Skottstyrka', en: 'Shot power' },
+  core_stability: { sv: 'Core-stabilitet', en: 'Core stability' },
+  leg_strength: { sv: 'Benstyrka', en: 'Leg strength' },
+  low_position: { sv: 'Låg position', en: 'Low position' },
+}
+
+const WEAKNESS_LABELS: Record<string, LocalizedText> = {
+  weak_hand: { sv: 'Svaga handen', en: 'Weak hand' },
+  finishing: { sv: 'Avslut', en: 'Finishing' },
+  defense: { sv: 'Försvarsspel', en: 'Defense' },
+  positioning: { sv: 'Positionering', en: 'Positioning' },
+  stick_handling: { sv: 'Teknik', en: 'Stick handling' },
+  passing: { sv: 'Passningar', en: 'Passing' },
+  stamina: { sv: 'Uthållighet', en: 'Stamina' },
+  game_reading: { sv: 'Spelläsning', en: 'Game reading' },
+}
+
+const INJURY_LABELS: Record<string, LocalizedText> = {
+  groin: { sv: 'Ljumske', en: 'Groin' },
+  hamstring: { sv: 'Hamstring', en: 'Hamstring' },
+  knee: { sv: 'Knä', en: 'Knee' },
+  ankle: { sv: 'Fotled', en: 'Ankle' },
+  hip: { sv: 'Höft', en: 'Hip' },
+  back: { sv: 'Rygg', en: 'Back' },
+  wrist: { sv: 'Handled', en: 'Wrist' },
+  shoulder: { sv: 'Axel', en: 'Shoulder' },
 }
 
 // Training recommendations by season phase
-const PHASE_RECOMMENDATIONS: Record<string, { focus: string[]; avoid: string[] }> = {
+const PHASE_RECOMMENDATIONS: Record<string, { focus: LocalizedText[]; avoid: LocalizedText[] }> = {
   off_season: {
-    focus: ['Aerob basträning', 'Maxstyrka (4-6 rep)', 'Rörlighet', 'Skaderehabilitering'],
-    avoid: ['Hög-intensiva intervaller', 'Maximal matchsimulering'],
+    focus: [
+      { sv: 'Aerob basträning', en: 'Aerobic base training' },
+      { sv: 'Maxstyrka (4-6 rep)', en: 'Max strength (4-6 reps)' },
+      { sv: 'Rörlighet', en: 'Mobility' },
+      { sv: 'Skaderehabilitering', en: 'Injury rehab' },
+    ],
+    avoid: [
+      { sv: 'Hög-intensiva intervaller', en: 'High-intensity intervals' },
+      { sv: 'Maximal matchsimulering', en: 'Maximal match simulation' },
+    ],
   },
   pre_season: {
-    focus: ['Explosiv styrka', 'Intervallträning', 'Snabbhet & agility', 'Matchsimulering'],
-    avoid: ['Långdistans steady-state', 'Hög volym styrketräning'],
+    focus: [
+      { sv: 'Explosiv styrka', en: 'Explosive strength' },
+      { sv: 'Intervallträning', en: 'Interval training' },
+      { sv: 'Snabbhet & agility', en: 'Speed & agility' },
+      { sv: 'Matchsimulering', en: 'Match simulation' },
+    ],
+    avoid: [
+      { sv: 'Långdistans steady-state', en: 'Long steady-state distance work' },
+      { sv: 'Hög volym styrketräning', en: 'High-volume strength training' },
+    ],
   },
   in_season: {
-    focus: ['Underhållsstyrka (2x/v)', 'Aktiv återhämtning', 'Mobilitet', 'Skadeförebyggande'],
-    avoid: ['Hög volym off-court', 'Nya övningar', 'Tung styrka nära match'],
+    focus: [
+      { sv: 'Underhållsstyrka (2x/v)', en: 'Maintenance strength (2x/week)' },
+      { sv: 'Aktiv återhämtning', en: 'Active recovery' },
+      { sv: 'Mobilitet', en: 'Mobility' },
+      { sv: 'Skadeförebyggande', en: 'Injury prevention' },
+    ],
+    avoid: [
+      { sv: 'Hög volym off-court', en: 'High off-court volume' },
+      { sv: 'Nya övningar', en: 'New exercises' },
+      { sv: 'Tung styrka nära match', en: 'Heavy strength close to games' },
+    ],
   },
   playoffs: {
-    focus: ['Lätt aktivering', 'Mental skärpa', 'Sömn & återhämtning', 'Lagsammanhållning'],
-    avoid: ['Styrketräning', 'Konditionsträning', 'Allt som kan orsaka trötthet'],
+    focus: [
+      { sv: 'Lätt aktivering', en: 'Light activation' },
+      { sv: 'Mental skärpa', en: 'Mental sharpness' },
+      { sv: 'Sömn & återhämtning', en: 'Sleep & recovery' },
+      { sv: 'Lagsammanhållning', en: 'Team cohesion' },
+    ],
+    avoid: [
+      { sv: 'Styrketräning', en: 'Strength training' },
+      { sv: 'Konditionsträning', en: 'Conditioning training' },
+      { sv: 'Allt som kan orsaka trötthet', en: 'Anything that can create fatigue' },
+    ],
   },
 }
 
@@ -114,7 +163,8 @@ const POSITION_BENCHMARKS: Record<string, { yoyoIR1: number; sprint20m: number; 
   forward: { yoyoIR1: 20.0, sprint20m: 2.95, agility: 4.3, longJump: 270 },
 }
 
-export function FloorballAthleteView({ clientId, clientName, settings }: FloorballAthleteViewProps) {
+export function FloorballAthleteView({ clientId, clientName: _clientName, settings }: FloorballAthleteViewProps) {
+  const locale = useLocale()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -127,11 +177,11 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Trophy className="h-5 w-5" /> Innebandy
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen data tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t(locale, 'Ingen data tillgänglig', 'No data available')}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-            Atleten har inte angett innebandyinställningar ännu.
+            {t(locale, 'Atleten har inte angett innebandyinställningar ännu.', 'The athlete has not entered floorball settings yet.')}
           </p>
         </CardContent>
       </Card>
@@ -163,9 +213,9 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                 {floorballSettings.teamName || 'Innebandy'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2" style={{ color: theme.colors.textMuted }}>
-                <Badge variant="outline">{POSITION_LABELS[floorballSettings.position]}</Badge>
-                <Badge variant="secondary">{LEAGUE_LABELS[floorballSettings.leagueLevel]}</Badge>
-                <Badge className="bg-blue-500">{PHASE_LABELS[floorballSettings.seasonPhase]}</Badge>
+                <Badge variant="outline">{labelFor(POSITION_LABELS, floorballSettings.position, locale)}</Badge>
+                <Badge variant="secondary">{labelFor(LEAGUE_LABELS, floorballSettings.leagueLevel, locale)}</Badge>
+                <Badge className="bg-blue-500">{labelFor(PHASE_LABELS, floorballSettings.seasonPhase, locale)}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
@@ -173,7 +223,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                 {floorballSettings.yearsPlaying}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>
-                års erfarenhet
+                {t(locale, 'års erfarenhet', 'years experience')}
               </div>
             </div>
           </div>
@@ -187,7 +237,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                 {floorballSettings.avgMinutesPerMatch ?? '-'}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>
-                min/match
+                {t(locale, 'min/match', 'min/game')}
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
@@ -196,7 +246,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                 {floorballSettings.matchesPerWeek}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>
-                matcher/v
+                {t(locale, 'matcher/v', 'games/wk')}
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
@@ -205,16 +255,16 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                 {floorballSettings.weeklyTrainingSessions}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>
-                träning/v
+                {t(locale, 'träning/v', 'training/wk')}
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
               <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
-                {floorballSettings.stickHand === 'right' ? 'Höger' : 'Vänster'}
+                {floorballSettings.stickHand === 'right' ? t(locale, 'Höger', 'Right') : t(locale, 'Vänster', 'Left')}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>
-                klubbhand
+                {t(locale, 'klubbhand', 'stick hand')}
               </div>
             </div>
           </div>
@@ -222,7 +272,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
           {/* Play style */}
           <div className="flex items-center gap-2">
             <span className="text-sm" style={{ color: theme.colors.textMuted }}>
-              Spelstil:
+              {t(locale, 'Spelstil:', 'Play style:')}
             </span>
             <Badge
               className={
@@ -235,7 +285,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                       : 'bg-green-500'
               }
             >
-              {PLAYSTYLE_LABELS[floorballSettings.playStyle]}
+              {labelFor(PLAYSTYLE_LABELS, floorballSettings.playStyle, locale)}
             </Badge>
           </div>
         </CardContent>
@@ -246,10 +296,10 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Activity className="h-4 w-4 text-red-500" />
-            Fysiska tester ({POSITION_LABELS[floorballSettings.position]})
+            {t(locale, 'Fysiska tester', 'Physical tests')} ({labelFor(POSITION_LABELS, floorballSettings.position, locale)})
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Jämfört med elitreferensvärden för positionen
+            {t(locale, 'Jämfört med elitreferensvärden för positionen', 'Compared with elite reference values for the position')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -270,8 +320,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                       : 'text-orange-500'
                   }`}
                 >
-                  {getBenchmarkPercentage(floorballSettings.benchmarks.yoyoIR1Level, positionBenchmarks.yoyoIR1)}% av
-                  elit
+                  {getBenchmarkPercentage(floorballSettings.benchmarks.yoyoIR1Level, positionBenchmarks.yoyoIR1)}% {t(locale, 'av elit', 'of elite')}
                 </div>
               )}
             </div>
@@ -293,7 +342,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                   }`}
                 >
                   {getBenchmarkPercentage(floorballSettings.benchmarks.sprint20m, positionBenchmarks.sprint20m, true)}%
-                  av elit
+                  {t(locale, 'av elit', 'of elite')}
                 </div>
               )}
             </div>
@@ -315,7 +364,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                   }`}
                 >
                   {getBenchmarkPercentage(floorballSettings.benchmarks.agilityTest, positionBenchmarks.agility, true)}%
-                  av elit
+                  {t(locale, 'av elit', 'of elite')}
                 </div>
               )}
             </div>
@@ -323,7 +372,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
             {/* Standing Long Jump */}
             <div className="text-center p-2 rounded-lg border" style={{ borderColor: theme.colors.border }}>
               <div className="text-sm font-medium mb-1" style={{ color: theme.colors.textMuted }}>
-                Längdhopp
+                {t(locale, 'Längdhopp', 'Standing long jump')}
               </div>
               <div className="text-xl font-bold" style={{ color: theme.colors.textPrimary }}>
                 {floorballSettings.benchmarks.standingLongJump ?? '-'} cm
@@ -340,7 +389,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                     floorballSettings.benchmarks.standingLongJump,
                     positionBenchmarks.longJump
                   )}
-                  % av elit
+                  % {t(locale, 'av elit', 'of elite')}
                 </div>
               )}
             </div>
@@ -379,30 +428,30 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Target className="h-4 w-4" />
-            Träningsrekommendationer ({PHASE_LABELS[floorballSettings.seasonPhase]})
+            {t(locale, 'Träningsrekommendationer', 'Training recommendations')} ({labelFor(PHASE_LABELS, floorballSettings.seasonPhase, locale)})
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
             <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>
-              Fokusera på:
+              {t(locale, 'Fokusera på:', 'Focus on:')}
             </h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.focus.map((item, i) => (
                 <Badge key={i} variant="outline" className="text-xs bg-green-500/10 border-green-500">
-                  {item}
+                  {localized(locale, item)}
                 </Badge>
               ))}
             </div>
           </div>
           <div>
             <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>
-              Undvik:
+              {t(locale, 'Undvik:', 'Avoid:')}
             </h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.avoid.map((item, i) => (
                 <Badge key={i} variant="outline" className="text-xs bg-red-500/10 border-red-500">
-                  {item}
+                  {localized(locale, item)}
                 </Badge>
               ))}
             </div>
@@ -416,19 +465,19 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-4 w-4" />
-              Styrkor & Utvecklingsområden
+              {t(locale, 'Styrkor & Utvecklingsområden', 'Strengths & Development Areas')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {floorballSettings.strengthFocus.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>
-                  Styrkor:
+                  {t(locale, 'Styrkor:', 'Strengths:')}
                 </h4>
                 <div className="flex flex-wrap gap-1">
                   {floorballSettings.strengthFocus.map((s) => (
                     <Badge key={s} variant="outline" className="text-xs">
-                      {STRENGTH_LABELS[s] || s}
+                      {STRENGTH_LABELS[s] ? localized(locale, STRENGTH_LABELS[s]) : s}
                     </Badge>
                   ))}
                 </div>
@@ -437,12 +486,12 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
             {floorballSettings.weaknesses.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>
-                  Att utveckla:
+                  {t(locale, 'Att utveckla:', 'To develop:')}
                 </h4>
                 <div className="flex flex-wrap gap-1">
                   {floorballSettings.weaknesses.map((w) => (
                     <Badge key={w} variant="outline" className="text-xs bg-orange-500/10 border-orange-500">
-                      {WEAKNESS_LABELS[w] || w}
+                      {WEAKNESS_LABELS[w] ? localized(locale, WEAKNESS_LABELS[w]) : w}
                     </Badge>
                   ))}
                 </div>
@@ -461,19 +510,19 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
               style={{ color: theme.colors.textPrimary }}
             >
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              Skadehistorik
+              {t(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-1">
               {floorballSettings.injuryHistory.map((injury) => (
                 <Badge key={injury} variant="outline" className="text-xs bg-yellow-500/10 border-yellow-500">
-                  {INJURY_LABELS[injury] || injury}
+                  {INJURY_LABELS[injury] ? localized(locale, INJURY_LABELS[injury]) : injury}
                 </Badge>
               ))}
             </div>
             <p className="text-xs mt-2" style={{ color: theme.colors.textMuted }}>
-              Inkludera förebyggande övningar (Nordic curls, ljumskestärkande, etc.) i träningsprogrammet.
+              {t(locale, 'Inkludera förebyggande övningar (Nordic curls, ljumskestärkande, etc.) i träningsprogrammet.', 'Include preventive exercises (Nordic curls, groin strengthening, etc.) in the training program.')}
             </p>
           </CardContent>
         </Card>
@@ -484,68 +533,68 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Users className="h-4 w-4" />
-            Positionsspecifik träning: {POSITION_LABELS[floorballSettings.position]}
+            {t(locale, 'Positionsspecifik träning:', 'Position-specific training:')} {labelFor(POSITION_LABELS, floorballSettings.position, locale)}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {floorballSettings.position === 'goalkeeper' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
               <li>
-                - <strong>Prioritet:</strong> Lateral rörlighet, benarbete, positionering
+                - <strong>{t(locale, 'Prioritet:', 'Priority:')}</strong> {t(locale, 'Lateral rörlighet, benarbete, positionering', 'Lateral mobility, footwork, positioning')}
               </li>
               <li>
-                - <strong>Styrka:</strong> Höftflexorer, core, splitpositioner
+                - <strong>{t(locale, 'Styrka:', 'Strength:')}</strong> {t(locale, 'Höftflexorer, core, splitpositioner', 'Hip flexors, core, split positions')}
               </li>
               <li>
-                - <strong>Kondition:</strong> Kortare intervaller, reaktionsträning
+                - <strong>{t(locale, 'Kondition:', 'Conditioning:')}</strong> {t(locale, 'Kortare intervaller, reaktionsträning', 'Shorter intervals, reaction training')}
               </li>
               <li>
-                - <strong>Förebyggande:</strong> Höft, ljumske, fotled
+                - <strong>{t(locale, 'Förebyggande:', 'Prevention:')}</strong> {t(locale, 'Höft, ljumske, fotled', 'Hip, groin, ankle')}
               </li>
             </ul>
           ) : floorballSettings.position === 'defender' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
               <li>
-                - <strong>Prioritet:</strong> Låg position, täckningsarbete, speluppbyggnad
+                - <strong>{t(locale, 'Prioritet:', 'Priority:')}</strong> {t(locale, 'Låg position, täckningsarbete, speluppbyggnad', 'Low position, blocking work, build-up play')}
               </li>
               <li>
-                - <strong>Styrka:</strong> Benstyrka, core-stabilitet, uthållighetsstyrka
+                - <strong>{t(locale, 'Styrka:', 'Strength:')}</strong> {t(locale, 'Benstyrka, core-stabilitet, uthållighetsstyrka', 'Leg strength, core stability, strength endurance')}
               </li>
               <li>
-                - <strong>Kondition:</strong> Intervaller, repeated sprint ability
+                - <strong>{t(locale, 'Kondition:', 'Conditioning:')}</strong> {t(locale, 'Intervaller, repeated sprint ability', 'Intervals, repeated sprint ability')}
               </li>
               <li>
-                - <strong>Förebyggande:</strong> Ljumske, hamstrings, knä
+                - <strong>{t(locale, 'Förebyggande:', 'Prevention:')}</strong> {t(locale, 'Ljumske, hamstrings, knä', 'Groin, hamstrings, knee')}
               </li>
             </ul>
           ) : floorballSettings.position === 'center' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
               <li>
-                - <strong>Prioritet:</strong> Maximal aerob kapacitet, arbetskapacitet
+                - <strong>{t(locale, 'Prioritet:', 'Priority:')}</strong> {t(locale, 'Maximal aerob kapacitet, arbetskapacitet', 'Max aerobic capacity, work capacity')}
               </li>
               <li>
-                - <strong>Styrka:</strong> Uthållighetsstyrka, funktionell styrka
+                - <strong>{t(locale, 'Styrka:', 'Strength:')}</strong> {t(locale, 'Uthållighetsstyrka, funktionell styrka', 'Strength endurance, functional strength')}
               </li>
               <li>
-                - <strong>Kondition:</strong> Högst krav - intervallfokus, Yo-Yo
+                - <strong>{t(locale, 'Kondition:', 'Conditioning:')}</strong> {t(locale, 'Högst krav - intervallfokus, Yo-Yo', 'Highest demand - interval focus, Yo-Yo')}
               </li>
               <li>
-                - <strong>Förebyggande:</strong> Ljumske, hamstrings, höft
+                - <strong>{t(locale, 'Förebyggande:', 'Prevention:')}</strong> {t(locale, 'Ljumske, hamstrings, höft', 'Groin, hamstrings, hip')}
               </li>
             </ul>
           ) : (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
               <li>
-                - <strong>Prioritet:</strong> Acceleration, snabbhet, avslut
+                - <strong>{t(locale, 'Prioritet:', 'Priority:')}</strong> {t(locale, 'Acceleration, snabbhet, avslut', 'Acceleration, speed, finishing')}
               </li>
               <li>
-                - <strong>Styrka:</strong> Explosiv underkropp, rotationskraft
+                - <strong>{t(locale, 'Styrka:', 'Strength:')}</strong> {t(locale, 'Explosiv underkropp, rotationskraft', 'Explosive lower body, rotational power')}
               </li>
               <li>
-                - <strong>Kondition:</strong> Sprint-återhämtning, korta intervaller
+                - <strong>{t(locale, 'Kondition:', 'Conditioning:')}</strong> {t(locale, 'Sprint-återhämtning, korta intervaller', 'Sprint recovery, short intervals')}
               </li>
               <li>
-                - <strong>Förebyggande:</strong> Hamstrings, ljumske, handled
+                - <strong>{t(locale, 'Förebyggande:', 'Prevention:')}</strong> {t(locale, 'Hamstrings, ljumske, handled', 'Hamstrings, groin, wrist')}
               </li>
             </ul>
           )}
@@ -557,7 +606,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Calendar className="h-4 w-4" />
-            Träningsförutsättningar
+            {t(locale, 'Träningsförutsättningar', 'Training access')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -570,7 +619,7 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
                 {floorballSettings.weeklyTrainingSessions}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>
-                träningspass/v
+                {t(locale, 'träningspass/v', 'training sessions/wk')}
               </div>
             </div>
           </div>
@@ -581,13 +630,13 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
       <SportTestHistory
         clientId={clientId}
         sport="TEAM_FLOORBALL"
-        title="Testhistorik - Innebandy"
+        title={t(locale, 'Testhistorik - Innebandy', 'Test history - Floorball')}
         protocolLabels={{
           YOYO_IR1: 'Yo-Yo IR1',
           SPRINT_20M: '20m Sprint',
           AGILITY_5_10_5: '5-10-5 Agility',
           PRO_AGILITY_5_10_5: '5-10-5 Agility',
-          STANDING_LONG_JUMP: 'Längdhopp',
+          STANDING_LONG_JUMP: t(locale, 'Längdhopp', 'Standing long jump'),
         }}
         benchmarks={{
           YOYO_IR1: { value: positionBenchmarks.yoyoIR1 },
