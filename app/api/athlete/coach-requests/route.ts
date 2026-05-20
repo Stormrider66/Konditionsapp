@@ -14,13 +14,26 @@ const createRequestSchema = z.object({
   message: z.string().max(1000).optional(),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/athlete/coach-requests
  * List athlete's coach requests (sent requests)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
-    const { clientId } = await requireAthleteOrCoachInAthleteMode()
+    const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
+    locale = getUserLocale(user.language)
 
     const requests = await prisma.coachRequest.findMany({
       where: {
@@ -72,7 +85,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error listing athlete coach requests', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att hämta förfrågningar' },
+      { success: false, error: t(locale, 'Failed to fetch requests', 'Misslyckades med att hämta förfrågningar') },
       { status: 500 }
     )
   }
@@ -83,14 +96,17 @@ export async function GET(request: NextRequest) {
  * Create a new request to connect with a coach
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
-    const { clientId } = await requireAthleteOrCoachInAthleteMode()
+    const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
+    locale = getUserLocale(user.language)
 
     const body = await request.json()
     const validatedData = createRequestSchema.parse(body)
 
     const featureDenied = await requireFeatureAccess(clientId, 'coach_requests', {
-      featureLabel: 'Coachanslutning',
+      featureLabel: t(locale, 'Coach connection', 'Coachanslutning'),
     })
 
     if (featureDenied) {
@@ -110,12 +126,12 @@ export async function POST(request: NextRequest) {
         status: result.status,
         expiresAt: result.expiresAt,
       },
-      message: 'Förfrågan skickad! Coachen kommer att meddelas.',
+      message: t(locale, 'Request sent. The coach will be notified.', 'Förfrågan skickad! Coachen kommer att meddelas.'),
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Ogiltiga data', details: error.errors },
+        { success: false, error: t(locale, 'Invalid data', 'Ogiltiga data'), details: error.errors },
         { status: 400 }
       )
     }
@@ -135,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     logger.error('Error creating coach request', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att skapa förfrågan' },
+      { success: false, error: t(locale, 'Failed to create request', 'Misslyckades med att skapa förfrågan') },
       { status: 500 }
     )
   }
@@ -148,15 +164,18 @@ export async function POST(request: NextRequest) {
  * Body: { requestId: string }
  */
 export async function DELETE(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
-    const { clientId } = await requireAthleteOrCoachInAthleteMode()
+    const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
+    locale = getUserLocale(user.language)
 
     const body = await request.json()
     const { requestId } = body
 
     if (!requestId) {
       return NextResponse.json(
-        { success: false, error: 'requestId krävs' },
+        { success: false, error: t(locale, 'requestId is required', 'requestId krävs') },
         { status: 400 }
       )
     }
@@ -169,7 +188,7 @@ export async function DELETE(request: NextRequest) {
         id: result.id,
         status: result.status,
       },
-      message: 'Förfrågan avbruten.',
+      message: t(locale, 'Request cancelled.', 'Förfrågan avbruten.'),
     })
   } catch (error) {
     if (error instanceof Error) {
@@ -187,7 +206,7 @@ export async function DELETE(request: NextRequest) {
 
     logger.error('Error cancelling coach request', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att avbryta förfrågan' },
+      { success: false, error: t(locale, 'Failed to cancel request', 'Misslyckades med att avbryta förfrågan') },
       { status: 500 }
     )
   }
