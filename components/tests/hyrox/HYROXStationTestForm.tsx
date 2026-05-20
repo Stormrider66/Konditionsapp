@@ -15,6 +15,7 @@
  */
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -41,20 +42,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Flame, CheckCircle, AlertTriangle, TrendingUp, Clock, Dumbbell } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
-import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
+import { TestBenchmarkBadge } from '@/components/tests/shared/TestBenchmarkBadge'
 import {
   classifyStationPerformance,
   getStationWeight,
   getWallBallReps,
-  getStationDescription,
   formatStationTime,
   type HYROXStation,
-  type HYROXCategory,
 } from '@/lib/calculations/sport-tests/hyrox-tests'
 
-const hyroxStationSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createHyroxStationSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   station: z.enum([
     'SKIERG_1K',
     'SLED_PUSH',
@@ -71,7 +70,7 @@ const hyroxStationSchema = z.object({
   notes: z.string().optional(),
 })
 
-type HYROXStationFormData = z.infer<typeof hyroxStationSchema>
+type HYROXStationFormData = z.infer<ReturnType<typeof createHyroxStationSchema>>
 
 interface Client {
   id: string
@@ -85,24 +84,31 @@ interface HYROXStationTestFormProps {
   onTestSaved?: (test: any) => void
 }
 
-const stationOptions: { value: HYROXStation; label: string; description: string; distance?: string }[] = [
-  { value: 'SKIERG_1K', label: 'SkiErg', description: 'Skidmaskin', distance: '1000m' },
-  { value: 'SLED_PUSH', label: 'Sled Push', description: 'Skjut släde', distance: '50m' },
-  { value: 'SLED_PULL', label: 'Sled Pull', description: 'Dra släde med rep', distance: '50m' },
-  { value: 'BURPEE_BROAD_JUMP', label: 'Burpee Broad Jump', description: 'Burpees med längdhopp', distance: '80m' },
-  { value: 'ROW_1K', label: 'Row', description: 'Roddmaskin', distance: '1000m' },
-  { value: 'FARMERS_CARRY', label: 'Farmers Carry', description: 'Bär vikter', distance: '200m' },
-  { value: 'SANDBAG_LUNGE', label: 'Sandbag Lunge', description: 'Utfallssteg med sandsäck', distance: '100m' },
-  { value: 'WALL_BALLS', label: 'Wall Balls', description: 'Kasta boll mot vägg' },
+const stationOptions: {
+  value: HYROXStation
+  label: string
+  description: { en: string; sv: string }
+  distance?: string
+}[] = [
+  { value: 'SKIERG_1K', label: 'SkiErg', description: { en: 'Ski ergometer', sv: 'Skidmaskin' }, distance: '1000m' },
+  { value: 'SLED_PUSH', label: 'Sled Push', description: { en: 'Push sled', sv: 'Skjut släde' }, distance: '50m' },
+  { value: 'SLED_PULL', label: 'Sled Pull', description: { en: 'Pull sled with rope', sv: 'Dra släde med rep' }, distance: '50m' },
+  { value: 'BURPEE_BROAD_JUMP', label: 'Burpee Broad Jump', description: { en: 'Burpees with broad jumps', sv: 'Burpees med längdhopp' }, distance: '80m' },
+  { value: 'ROW_1K', label: 'Row', description: { en: 'RowErg', sv: 'Roddmaskin' }, distance: '1000m' },
+  { value: 'FARMERS_CARRY', label: 'Farmers Carry', description: { en: 'Carry weights', sv: 'Bär vikter' }, distance: '200m' },
+  { value: 'SANDBAG_LUNGE', label: 'Sandbag Lunge', description: { en: 'Lunges with sandbag', sv: 'Utfallssteg med sandsäck' }, distance: '100m' },
+  { value: 'WALL_BALLS', label: 'Wall Balls', description: { en: 'Throw ball to wall target', sv: 'Kasta boll mot vägg' } },
 ]
 
 export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<HYROXStationFormData>({
-    resolver: zodResolver(hyroxStationSchema),
+    resolver: zodResolver(createHyroxStationSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -144,7 +150,7 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       const div = client.gender === 'FEMALE' ? 'WOMEN' : 'MEN'
       const time = data.timeMinutes * 60 + data.timeSeconds
@@ -176,7 +182,7 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -194,7 +200,7 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
       onTestSaved?.(resultData.data)
     } catch (err) {
       console.error('Failed to save HYROX station test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -206,12 +212,14 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="h-5 w-5" />
-            HYROX Stationstest
+            {locale === 'sv' ? 'HYROX Stationstest' : 'HYROX station test'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {locale === 'sv'
+              ? 'Inga klienter hittades. Lägg till klienter för att kunna registrera test.'
+              : 'No clients found. Add clients before registering tests.'}
           </p>
         </CardContent>
       </Card>
@@ -226,10 +234,12 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Flame className="h-5 w-5" />
-                HYROX Stationstest
+                {locale === 'sv' ? 'HYROX Stationstest' : 'HYROX station test'}
               </CardTitle>
               <CardDescription>
-                Testa individuella HYROX-stationer för att identifiera styrkor och svagheter
+                {locale === 'sv'
+                  ? 'Testa individuella HYROX-stationer för att identifiera styrkor och svagheter'
+                  : 'Test individual HYROX stations to identify strengths and weaknesses'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -239,11 +249,11 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -264,7 +274,7 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -303,7 +313,9 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                         </SelectContent>
                       </Select>
                       {selectedStation && (
-                        <FormDescription>{selectedStation.description}</FormDescription>
+                        <FormDescription>
+                          {selectedStation.description[locale === 'sv' ? 'sv' : 'en']}
+                        </FormDescription>
                       )}
                       <FormMessage />
                     </FormItem>
@@ -315,7 +327,7 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Kategori</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Kategori' : 'Category'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -323,8 +335,12 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="OPEN">Open (lättare vikter)</SelectItem>
-                          <SelectItem value="PRO">Pro (tyngre vikter)</SelectItem>
+                          <SelectItem value="OPEN">
+                            {locale === 'sv' ? 'Open (lättare vikter)' : 'Open (lighter weights)'}
+                          </SelectItem>
+                          <SelectItem value="PRO">
+                            {locale === 'sv' ? 'Pro (tyngre vikter)' : 'Pro (heavier weights)'}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -339,10 +355,14 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                   <Dumbbell className="h-5 w-5 text-muted-foreground" />
                   {stationWeight !== null && stationWeight > 0 && (
                     <div>
-                      <span className="text-sm text-muted-foreground">Vikt: </span>
+                      <span className="text-sm text-muted-foreground">
+                        {locale === 'sv' ? 'Vikt: ' : 'Weight: '}
+                      </span>
                       <span className="font-medium">{stationWeight} kg</span>
                       {station === 'FARMERS_CARRY' && (
-                        <span className="text-xs text-muted-foreground ml-1">(per hand)</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          {locale === 'sv' ? '(per hand)' : '(per hand)'}
+                        </span>
                       )}
                     </div>
                   )}
@@ -359,7 +379,7 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
               <div className="space-y-2">
                 <FormLabel className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Tid
+                  {locale === 'sv' ? 'Tid' : 'Time'}
                 </FormLabel>
                 <div className="flex items-center gap-2">
                   <FormField
@@ -391,7 +411,7 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                             type="number"
                             min={0}
                             max={59}
-                            placeholder="Sek"
+                            placeholder={locale === 'sv' ? 'Sek' : 'Sec'}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                           />
@@ -400,7 +420,9 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                     )}
                   />
                 </div>
-                <FormDescription>Tid för att genomföra stationen (mm:ss)</FormDescription>
+                <FormDescription>
+                  {locale === 'sv' ? 'Tid för att genomföra stationen (mm:ss)' : 'Time to complete the station (mm:ss)'}
+                </FormDescription>
               </div>
 
               {/* Live calculation preview */}
@@ -408,11 +430,11 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm font-medium mb-3 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
-                    Resultat
+                    {locale === 'sv' ? 'Resultat' : 'Result'}
                   </p>
                   <div className="flex items-center gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Tid</p>
+                      <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Tid' : 'Time'}</p>
                       <span className="text-2xl font-bold text-primary">
                         {formatStationTime(totalSeconds)}
                       </span>
@@ -427,10 +449,10 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Teknik, känsla, strategi..."
+                        placeholder={locale === 'sv' ? 'Teknik, känsla, strategi...' : 'Technique, feeling, strategy...'}
                         {...field}
                       />
                     </FormControl>
@@ -442,7 +464,9 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara stationstest'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara stationstest' : 'Save station test'}
           </Button>
         </form>
       </Form>
@@ -459,22 +483,22 @@ export function HYROXStationTestForm({ clients, onTestSaved }: HYROXStationTestF
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {locale === 'sv' ? 'Test sparat' : 'Test saved'}
             </CardTitle>
             <CardDescription>
               {result.client?.name} - {result.stationLabel} ({result.rawData?.category}) -{' '}
-              {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {new Date(result.testDate).toLocaleDateString(dateLocale)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <CompactResult
-                label="Tid"
+                label={locale === 'sv' ? 'Tid' : 'Time'}
                 value={result.timeFormatted}
                 tier={result.tier}
               />
               {result.weight > 0 && (
-                <CompactResult label="Vikt" value={result.weight} unit="kg" />
+                <CompactResult label={locale === 'sv' ? 'Vikt' : 'Weight'} value={result.weight} unit="kg" />
               )}
               {result.reps && (
                 <CompactResult label="Reps" value={result.reps} />
