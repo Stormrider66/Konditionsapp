@@ -16,6 +16,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -70,9 +71,9 @@ const stationTimeSchema = z.object({
   seconds: z.number().min(0).max(59).optional(),
 })
 
-const raceSimulationSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createRaceSimulationSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   category: z.enum(['OPEN', 'PRO']),
   // Station times
   skierg: stationTimeSchema,
@@ -91,7 +92,7 @@ const raceSimulationSchema = z.object({
   notes: z.string().optional(),
 })
 
-type RaceSimulationFormData = z.infer<typeof raceSimulationSchema>
+type RaceSimulationFormData = z.infer<ReturnType<typeof createRaceSimulationSchema>>
 
 interface Client {
   id: string
@@ -125,6 +126,14 @@ const TIER_COLORS: Record<string, string> = {
 }
 
 const TIER_LABELS: Record<string, string> = {
+  WORLD_CLASS: 'World Class',
+  ELITE: 'Elite',
+  ADVANCED: 'Advanced',
+  INTERMEDIATE: 'Intermediate',
+  BEGINNER: 'Beginner',
+}
+
+const SV_TIER_LABELS: Record<string, string> = {
   WORLD_CLASS: 'Världsklass',
   ELITE: 'Elit',
   ADVANCED: 'Avancerad',
@@ -133,12 +142,15 @@ const TIER_LABELS: Record<string, string> = {
 }
 
 export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimulationFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const tierLabels = locale === 'sv' ? SV_TIER_LABELS : TIER_LABELS
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<RaceSimulationFormData>({
-    resolver: zodResolver(raceSimulationSchema),
+    resolver: zodResolver(createRaceSimulationSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -244,7 +256,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       const div = client.gender === 'FEMALE' ? 'WOMEN' : 'MEN'
 
@@ -290,7 +302,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara simulering')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara simulering' : 'Failed to save simulation'))
       }
 
       const resultData = await response.json()
@@ -304,7 +316,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
       onTestSaved?.(resultData.data)
     } catch (err) {
       console.error('Failed to save race simulation:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -316,12 +328,14 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-orange-500" />
-            HYROX Race Simulering
+            {locale === 'sv' ? 'HYROX Race Simulering' : 'HYROX race simulation'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna genomföra simulering.
+            {locale === 'sv'
+              ? 'Inga klienter hittades. Lägg till klienter för att kunna genomföra simulering.'
+              : 'No clients found. Add clients before running a simulation.'}
           </p>
         </CardContent>
       </Card>
@@ -337,10 +351,12 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Flame className="h-5 w-5 text-orange-500" />
-                HYROX Race Simulering
+                {locale === 'sv' ? 'HYROX Race Simulering' : 'HYROX race simulation'}
               </CardTitle>
               <CardDescription>
-                Uppskatta din totala racetid baserat på stationstider och löptempo
+                {locale === 'sv'
+                  ? 'Uppskatta din totala racetid baserat på stationstider och löptempo'
+                  : 'Estimate total race time from station times and running pace'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -350,11 +366,11 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -375,7 +391,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Datum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Datum' : 'Date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -389,7 +405,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Kategori</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Kategori' : 'Category'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -397,8 +413,12 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="OPEN">Open (lättare vikter)</SelectItem>
-                          <SelectItem value="PRO">Pro (tyngre vikter)</SelectItem>
+                          <SelectItem value="OPEN">
+                            {locale === 'sv' ? 'Open (lättare vikter)' : 'Open (lighter weights)'}
+                          </SelectItem>
+                          <SelectItem value="PRO">
+                            {locale === 'sv' ? 'Pro (tyngre vikter)' : 'Pro (heavier weights)'}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -414,10 +434,10 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                Stationstider
+                {locale === 'sv' ? 'Stationstider' : 'Station times'}
               </CardTitle>
               <CardDescription>
-                Ange din tid för varje station (mm:ss)
+                {locale === 'sv' ? 'Ange din tid för varje station (mm:ss)' : 'Enter your time for each station (mm:ss)'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -440,7 +460,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
 
                       {weight !== null && weight > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          Vikt: {weight} kg{station === 'FARMERS_CARRY' ? ' per hand' : ''}
+                          {locale === 'sv' ? 'Vikt' : 'Weight'}: {weight} kg{station === 'FARMERS_CARRY' ? ' per hand' : ''}
                         </p>
                       )}
 
@@ -481,7 +501,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                                   type="number"
                                   min={0}
                                   max={59}
-                                  placeholder="sek"
+                                  placeholder={locale === 'sv' ? 'sek' : 'sec'}
                                   className="text-center"
                                   {...field}
                                   onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
@@ -509,10 +529,10 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Footprints className="h-5 w-5" />
-                Löpning & Övergångar
+                {locale === 'sv' ? 'Löpning & Övergångar' : 'Running & transitions'}
               </CardTitle>
               <CardDescription>
-                8 x 1 km löpning mellan stationerna
+                {locale === 'sv' ? '8 x 1 km löpning mellan stationerna' : '8 x 1 km running between stations'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -521,7 +541,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                 <div className="space-y-2">
                   <FormLabel className="flex items-center gap-2">
                     <Timer className="h-4 w-4" />
-                    Löptempo (per km)
+                    {locale === 'sv' ? 'Löptempo (per km)' : 'Run pace (per km)'}
                   </FormLabel>
                   <div className="flex items-center gap-2">
                     <FormField
@@ -553,7 +573,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                               type="number"
                               min={0}
                               max={59}
-                              placeholder="sek"
+                              placeholder={locale === 'sv' ? 'sek' : 'sec'}
                               {...field}
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                             />
@@ -564,7 +584,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                     <span className="text-sm text-muted-foreground">/km</span>
                   </div>
                   <FormDescription>
-                    Total löptid: {formatStationTime(((form.watch('runPaceMinutes') || 5) * 60 + (form.watch('runPaceSeconds') || 0)) * 8)}
+                    {locale === 'sv' ? 'Total löptid' : 'Total running time'}: {formatStationTime(((form.watch('runPaceMinutes') || 5) * 60 + (form.watch('runPaceSeconds') || 0)) * 8)}
                   </FormDescription>
                 </div>
 
@@ -576,7 +596,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <ArrowRight className="h-4 w-4" />
-                        Roxzone tid (per station)
+                        {locale === 'sv' ? 'Roxzone tid (per station)' : 'Roxzone time (per station)'}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -588,7 +608,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                         />
                       </FormControl>
                       <FormDescription>
-                        Total Roxzone-tid: {formatStationTime((field.value || 30) * 8)} (8 övergångar)
+                        {locale === 'sv' ? 'Total Roxzone-tid' : 'Total Roxzone time'}: {formatStationTime((field.value || 30) * 8)} ({locale === 'sv' ? '8 övergångar' : '8 transitions'})
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -604,7 +624,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
                   <Clock className="h-5 w-5" />
-                  Uppskattad racetid
+                  {locale === 'sv' ? 'Uppskattad racetid' : 'Estimated race time'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -615,7 +635,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                   </p>
                   <div className="mt-2">
                     <Badge className={`${TIER_COLORS[liveEstimate.tier]} text-white`}>
-                      {TIER_LABELS[liveEstimate.tier]}
+                      {tierLabels[liveEstimate.tier]}
                     </Badge>
                   </div>
                 </div>
@@ -623,13 +643,13 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                 {/* Time Breakdown */}
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span>Stationer</span>
+                    <span>{locale === 'sv' ? 'Stationer' : 'Stations'}</span>
                     <span className="font-mono">{formatStationTime(liveEstimate.stationTime)}</span>
                   </div>
                   <Progress value={(liveEstimate.stationTime / liveEstimate.totalTime) * 100} className="h-2" />
 
                   <div className="flex justify-between text-sm">
-                    <span>Löpning (8 km)</span>
+                    <span>{locale === 'sv' ? 'Löpning (8 km)' : 'Running (8 km)'}</span>
                     <span className="font-mono">{formatStationTime(liveEstimate.runningTime)}</span>
                   </div>
                   <Progress value={(liveEstimate.runningTime / liveEstimate.totalTime) * 100} className="h-2" />
@@ -646,7 +666,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                   <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
                     <div className="flex items-center gap-2 text-red-700 dark:text-red-300 mb-1">
                       <TrendingDown className="h-4 w-4" />
-                      <span className="text-sm font-medium">Svagaste station</span>
+                      <span className="text-sm font-medium">{locale === 'sv' ? 'Svagaste station' : 'Weakest station'}</span>
                     </div>
                     <p className="font-bold">
                       {STATIONS.find(s => s.station === liveEstimate.weakestStation)?.label}
@@ -655,7 +675,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                   <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
                     <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-1">
                       <TrendingUp className="h-4 w-4" />
-                      <span className="text-sm font-medium">Starkaste station</span>
+                      <span className="text-sm font-medium">{locale === 'sv' ? 'Starkaste station' : 'Strongest station'}</span>
                     </div>
                     <p className="font-bold">
                       {STATIONS.find(s => s.station === liveEstimate.strongestStation)?.label}
@@ -674,10 +694,10 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Strategi, mål, observationer..."
+                        placeholder={locale === 'sv' ? 'Strategi, mål, observationer...' : 'Strategy, goals, observations...'}
                         {...field}
                       />
                     </FormControl>
@@ -689,7 +709,9 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara simulering'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara simulering' : 'Save simulation'}
           </Button>
         </form>
       </Form>
@@ -706,11 +728,11 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Simulering sparad
+              {locale === 'sv' ? 'Simulering sparad' : 'Simulation saved'}
             </CardTitle>
             <CardDescription>
               {result.client?.name} - HYROX {result.rawData?.category} -{' '}
-              {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {new Date(result.testDate).toLocaleDateString(dateLocale)}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -719,7 +741,7 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
                 {result.estimate?.totalTimeFormatted}
               </p>
               <Badge className={`${TIER_COLORS[result.estimate?.tier]} text-white mt-2`}>
-                {TIER_LABELS[result.estimate?.tier]}
+                {tierLabels[result.estimate?.tier]}
               </Badge>
             </div>
           </CardContent>
