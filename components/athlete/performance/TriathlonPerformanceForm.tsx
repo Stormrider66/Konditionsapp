@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Trophy } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface TriathlonPerformanceFormProps {
   clientId: string
@@ -21,13 +22,23 @@ interface TriathlonPerformanceFormProps {
   onCancel?: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 const DISTANCES = [
-  { value: 'SUPER_SPRINT', label: 'Super Sprint (400m/10km/2.5km)', swim: 400, bike: 10000, run: 2500 },
-  { value: 'SPRINT', label: 'Sprint (750m/20km/5km)', swim: 750, bike: 20000, run: 5000 },
-  { value: 'OLYMPIC', label: 'Olympisk (1.5km/40km/10km)', swim: 1500, bike: 40000, run: 10000 },
-  { value: 'HALF', label: 'Halv-Ironman (1.9km/90km/21.1km)', swim: 1900, bike: 90000, run: 21100 },
-  { value: 'FULL', label: 'Ironman (3.8km/180km/42.2km)', swim: 3800, bike: 180000, run: 42200 },
-  { value: 'CUSTOM', label: 'Anpassad distans', swim: 0, bike: 0, run: 0 },
+  { value: 'SUPER_SPRINT', label: { sv: 'Super Sprint (400m/10km/2.5km)', en: 'Super sprint (400m/10km/2.5km)' }, swim: 400, bike: 10000, run: 2500 },
+  { value: 'SPRINT', label: { sv: 'Sprint (750m/20km/5km)', en: 'Sprint (750m/20km/5km)' }, swim: 750, bike: 20000, run: 5000 },
+  { value: 'OLYMPIC', label: { sv: 'Olympisk (1.5km/40km/10km)', en: 'Olympic (1.5km/40km/10km)' }, swim: 1500, bike: 40000, run: 10000 },
+  { value: 'HALF', label: { sv: 'Halv-Ironman (1.9km/90km/21.1km)', en: 'Half-Ironman (1.9km/90km/21.1km)' }, swim: 1900, bike: 90000, run: 21100 },
+  { value: 'FULL', label: { sv: 'Ironman (3.8km/180km/42.2km)', en: 'Ironman (3.8km/180km/42.2km)' }, swim: 3800, bike: 180000, run: 42200 },
+  { value: 'CUSTOM', label: { sv: 'Anpassad distans', en: 'Custom distance' }, swim: 0, bike: 0, run: 0 },
 ]
 
 export function TriathlonPerformanceForm({
@@ -35,6 +46,7 @@ export function TriathlonPerformanceForm({
   onSuccess,
   onCancel,
 }: TriathlonPerformanceFormProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -134,7 +146,7 @@ export function TriathlonPerformanceForm({
     setError(null)
 
     if (!eventDate) {
-      setError('Ange datum')
+      setError(text(locale, 'Ange datum', 'Enter a date'))
       setIsSubmitting(false)
       return
     }
@@ -166,7 +178,7 @@ export function TriathlonPerformanceForm({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte spara')
+        throw new Error(data.error || text(locale, 'Kunde inte spara', 'Could not save'))
       }
 
       if (onSuccess) {
@@ -175,7 +187,7 @@ export function TriathlonPerformanceForm({
         router.refresh()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : text(locale, 'Ett fel uppstod', 'An error occurred'))
     } finally {
       setIsSubmitting(false)
     }
@@ -185,13 +197,13 @@ export function TriathlonPerformanceForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center gap-2 text-orange-600 mb-4">
         <Trophy className="h-5 w-5" />
-        <span className="font-medium">Triathlon - Prestationslogg</span>
+        <span className="font-medium">{text(locale, 'Triathlon - Prestationslogg', 'Triathlon - Performance log')}</span>
       </div>
 
       {/* Distance & Date */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Distans *</Label>
+          <Label>{text(locale, 'Distans *', 'Distance *')}</Label>
           <Select value={distance} onValueChange={setDistance}>
             <SelectTrigger>
               <SelectValue />
@@ -199,7 +211,7 @@ export function TriathlonPerformanceForm({
             <SelectContent>
               {DISTANCES.map((d) => (
                 <SelectItem key={d.value} value={d.value}>
-                  {d.label}
+                  {d.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -207,7 +219,7 @@ export function TriathlonPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Datum *</Label>
+          <Label>{text(locale, 'Datum *', 'Date *')}</Label>
           <Input
             type="date"
             value={eventDate}
@@ -219,7 +231,7 @@ export function TriathlonPerformanceForm({
 
       {/* Event Name */}
       <div className="space-y-2">
-        <Label>Tävlingsnamn</Label>
+        <Label>{text(locale, 'Tävlingsnamn', 'Event name')}</Label>
         <Input
           placeholder="Ironman Kalmar, Vansbro Triathlon..."
           value={eventName}
@@ -229,10 +241,10 @@ export function TriathlonPerformanceForm({
 
       {/* Swim */}
       <div className="p-4 bg-cyan-50 rounded-lg space-y-3">
-        <Label className="text-cyan-800 font-medium">🏊 Simning</Label>
+        <Label className="text-cyan-800 font-medium">{text(locale, '🏊 Simning', '🏊 Swim')}</Label>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground">Minuter</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
             <Input
               type="number"
               min="0"
@@ -242,7 +254,7 @@ export function TriathlonPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Sekunder</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
             <Input
               type="number"
               min="0"
@@ -254,16 +266,16 @@ export function TriathlonPerformanceForm({
           </div>
         </div>
         {getSwimPace() && (
-          <p className="text-xs text-cyan-700">Tempo: <strong>{getSwimPace()}</strong></p>
+          <p className="text-xs text-cyan-700">{text(locale, 'Tempo', 'Pace')}: <strong>{getSwimPace()}</strong></p>
         )}
       </div>
 
       {/* T1 */}
       <div className="space-y-2">
-        <Label className="text-muted-foreground">T1 (Växling sim→cykel)</Label>
+        <Label className="text-muted-foreground">{text(locale, 'T1 (Växling sim→cykel)', 'T1 (swim to bike transition)')}</Label>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground">Min</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Min', 'Min')}</Label>
             <Input
               type="number"
               min="0"
@@ -273,7 +285,7 @@ export function TriathlonPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Sek</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Sek', 'Sec')}</Label>
             <Input
               type="number"
               min="0"
@@ -288,10 +300,10 @@ export function TriathlonPerformanceForm({
 
       {/* Bike */}
       <div className="p-4 bg-blue-50 rounded-lg space-y-3">
-        <Label className="text-blue-800 font-medium">🚴 Cykling</Label>
+        <Label className="text-blue-800 font-medium">{text(locale, '🚴 Cykling', '🚴 Bike')}</Label>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground">Timmar</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Timmar', 'Hours')}</Label>
             <Input
               type="number"
               min="0"
@@ -301,7 +313,7 @@ export function TriathlonPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Minuter</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
             <Input
               type="number"
               min="0"
@@ -312,7 +324,7 @@ export function TriathlonPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Sekunder</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
             <Input
               type="number"
               min="0"
@@ -324,16 +336,16 @@ export function TriathlonPerformanceForm({
           </div>
         </div>
         {getBikeSpeed() && (
-          <p className="text-xs text-blue-700">Snitt: <strong>{getBikeSpeed()}</strong></p>
+          <p className="text-xs text-blue-700">{text(locale, 'Snitt', 'Average')}: <strong>{getBikeSpeed()}</strong></p>
         )}
       </div>
 
       {/* T2 */}
       <div className="space-y-2">
-        <Label className="text-muted-foreground">T2 (Växling cykel→löpning)</Label>
+        <Label className="text-muted-foreground">{text(locale, 'T2 (Växling cykel→löpning)', 'T2 (bike to run transition)')}</Label>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground">Min</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Min', 'Min')}</Label>
             <Input
               type="number"
               min="0"
@@ -343,7 +355,7 @@ export function TriathlonPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Sek</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Sek', 'Sec')}</Label>
             <Input
               type="number"
               min="0"
@@ -358,10 +370,10 @@ export function TriathlonPerformanceForm({
 
       {/* Run */}
       <div className="p-4 bg-green-50 rounded-lg space-y-3">
-        <Label className="text-green-800 font-medium">🏃 Löpning</Label>
+        <Label className="text-green-800 font-medium">{text(locale, '🏃 Löpning', '🏃 Run')}</Label>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground">Timmar</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Timmar', 'Hours')}</Label>
             <Input
               type="number"
               min="0"
@@ -371,7 +383,7 @@ export function TriathlonPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Minuter</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
             <Input
               type="number"
               min="0"
@@ -382,7 +394,7 @@ export function TriathlonPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Sekunder</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
             <Input
               type="number"
               min="0"
@@ -394,14 +406,14 @@ export function TriathlonPerformanceForm({
           </div>
         </div>
         {getRunPace() && (
-          <p className="text-xs text-green-700">Tempo: <strong>{getRunPace()}</strong></p>
+          <p className="text-xs text-green-700">{text(locale, 'Tempo', 'Pace')}: <strong>{getRunPace()}</strong></p>
         )}
       </div>
 
       {/* Total Time */}
       {formatTotalTime() && (
         <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-center">
-          <p className="text-sm text-orange-700">Total tid</p>
+          <p className="text-sm text-orange-700">{text(locale, 'Total tid', 'Total time')}</p>
           <p className="text-2xl font-bold text-orange-800">{formatTotalTime()}</p>
         </div>
       )}
@@ -409,7 +421,7 @@ export function TriathlonPerformanceForm({
       {/* Heart Rate */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Snitt puls</Label>
+          <Label>{text(locale, 'Snitt puls', 'Average heart rate')}</Label>
           <Input
             type="number"
             placeholder="155"
@@ -418,7 +430,7 @@ export function TriathlonPerformanceForm({
           />
         </div>
         <div className="space-y-2">
-          <Label>Max puls</Label>
+          <Label>{text(locale, 'Max puls', 'Max heart rate')}</Label>
           <Input
             type="number"
             placeholder="180"
@@ -430,9 +442,9 @@ export function TriathlonPerformanceForm({
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label>Anteckningar</Label>
+        <Label>{text(locale, 'Anteckningar', 'Notes')}</Label>
         <Textarea
-          placeholder="Känsla, väder, utrustning, nutrition..."
+          placeholder={text(locale, 'Känsla, väder, utrustning, nutrition...', 'Feeling, weather, equipment, nutrition...')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
@@ -449,17 +461,17 @@ export function TriathlonPerformanceForm({
       <div className="flex justify-end gap-3">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Avbryt
+            {text(locale, 'Avbryt', 'Cancel')}
           </Button>
         )}
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {text(locale, 'Sparar...', 'Saving...')}
             </>
           ) : (
-            'Spara resultat'
+            text(locale, 'Spara resultat', 'Save result')
           )}
         </Button>
       </div>
