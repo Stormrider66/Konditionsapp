@@ -14,6 +14,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Trash2, Upload, AlertTriangle, Camera } from 'lucide-react';
+import { Plus, Trash2, Upload, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LactateScanButton } from '@/components/shared/LactateScanButton';
 
@@ -41,7 +42,7 @@ const stageSchema = z.object({
 const lactateFormSchema = z.object({
   testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
   testDate: z.string(),
-  stages: z.array(stageSchema).min(4, 'Minst 4 steg krävs för D-max analys'),
+  stages: z.array(stageSchema).min(4, 'At least 4 stages are required for D-max analysis'),
   meterModel: z.string().optional(),
   meterCalibrationDate: z.string().optional(),
   photoUrl: z.string().optional(),
@@ -55,11 +56,25 @@ interface SelfReportedLactateFormProps {
   basePath?: string;
 }
 
+interface LactateValidationResult {
+  isValid: boolean;
+  errors?: string[];
+}
+
+type AppLocale = 'en' | 'sv';
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en');
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+);
+
 export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReportedLactateFormProps) {
+  const locale = getAppLocale(useLocale());
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<LactateValidationResult | null>(null);
 
   const form = useForm<LactateFormData>({
     resolver: zodResolver(lactateFormSchema),
@@ -99,26 +114,29 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Misslyckades med att spara laktatdata');
+        throw new Error(error.message || 'Failed to save lactate data');
       }
 
       const result = await response.json();
       setValidationResult(result.data.validation);
 
       toast({
-        title: 'Laktatdata sparad!',
-        description: 'Din laktatdata har skickats för granskning.',
+        title: t(locale, 'Laktatdata sparad!', 'Lactate data saved!'),
+        description: t(locale, 'Din laktatdata har skickats för granskning.', 'Your lactate data has been sent for review.'),
       });
 
       if (result.data.validation.isValid) {
         router.push(`${basePath}/athlete/dashboard`);
         router.refresh();
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error submitting lactate data:', error);
+      const message = error instanceof Error
+        ? error.message
+        : t(locale, 'Försök igen senare', 'Try again later');
       toast({
-        title: 'Något gick fel',
-        description: error.message,
+        title: t(locale, 'Något gick fel', 'Something went wrong'),
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -170,9 +188,9 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
           {/* Test Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Testinformation</CardTitle>
+              <CardTitle>{t(locale, 'Testinformation', 'Test information')}</CardTitle>
               <CardDescription>
-                Grundläggande information om ditt laktattest
+                {t(locale, 'Grundläggande information om ditt laktattest', 'Basic information about your lactate test')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -181,7 +199,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                 name="testType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testtyp</FormLabel>
+                    <FormLabel>{t(locale, 'Testtyp', 'Test type')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -189,9 +207,9 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="RUNNING">Löpning</SelectItem>
-                        <SelectItem value="CYCLING">Cykling</SelectItem>
-                        <SelectItem value="SKIING">Skidåkning</SelectItem>
+                        <SelectItem value="RUNNING">{t(locale, 'Löpning', 'Running')}</SelectItem>
+                        <SelectItem value="CYCLING">{t(locale, 'Cykling', 'Cycling')}</SelectItem>
+                        <SelectItem value="SKIING">{t(locale, 'Skidåkning', 'Skiing')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -204,7 +222,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t(locale, 'Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -218,11 +236,11 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                 name="meterModel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Laktatmätare modell (valfritt)</FormLabel>
+                    <FormLabel>{t(locale, 'Laktatmätare modell (valfritt)', 'Lactate meter model (optional)')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="t.ex. Lactate Plus" {...field} />
+                      <Input placeholder={t(locale, 't.ex. Lactate Plus', 'e.g. Lactate Plus')} {...field} />
                     </FormControl>
-                    <FormDescription>Vilken laktatmätare använde du?</FormDescription>
+                    <FormDescription>{t(locale, 'Vilken laktatmätare använde du?', 'Which lactate meter did you use?')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -233,11 +251,11 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                 name="meterCalibrationDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Senaste kalibrering (valfritt)</FormLabel>
+                    <FormLabel>{t(locale, 'Senaste kalibrering (valfritt)', 'Latest calibration (optional)')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
-                    <FormDescription>När kalibrerades mätaren senast?</FormDescription>
+                    <FormDescription>{t(locale, 'När kalibrerades mätaren senast?', 'When was the meter last calibrated?')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -248,16 +266,16 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
           {/* Test Stages */}
           <Card>
             <CardHeader>
-              <CardTitle>Teststeg ({fields.length})</CardTitle>
+              <CardTitle>{t(locale, 'Teststeg', 'Test stages')} ({fields.length})</CardTitle>
               <CardDescription>
-                Lägg till minst 4 steg för D-max analys. Varje steg ska vara 3 minuter långt.
+                {t(locale, 'Lägg till minst 4 steg för D-max analys. Varje steg ska vara 3 minuter långt.', 'Add at least 4 stages for D-max analysis. Each stage should be 3 minutes long.')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {fields.map((field, index) => (
                 <div key={field.id} className="border rounded-lg p-4 space-y-4">
                   <div className="flex items-center justify-between mb-2">
-                    <Badge>Steg {index + 1}</Badge>
+                    <Badge>{t(locale, 'Steg', 'Stage')} {index + 1}</Badge>
                     {fields.length > 4 && (
                       <Button
                         type="button"
@@ -277,7 +295,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                         name={`stages.${index}.speed`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Hastighet (km/h)</FormLabel>
+                            <FormLabel>{t(locale, 'Hastighet (km/h)', 'Speed (km/h)')}</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
@@ -299,7 +317,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                         name={`stages.${index}.power`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Effekt (watt)</FormLabel>
+                            <FormLabel>{t(locale, 'Effekt (watt)', 'Power (watts)')}</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
@@ -320,7 +338,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                         name={`stages.${index}.pace`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Tempo (min/km)</FormLabel>
+                            <FormLabel>{t(locale, 'Tempo (min/km)', 'Pace (min/km)')}</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
@@ -341,7 +359,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                       name={`stages.${index}.heartRate`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Puls (slag/min)</FormLabel>
+                          <FormLabel>{t(locale, 'Puls (slag/min)', 'Heart rate (bpm)')}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -359,7 +377,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                       name={`stages.${index}.lactate`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Laktat (mmol/L)</FormLabel>
+                          <FormLabel>{t(locale, 'Laktat (mmol/L)', 'Lactate (mmol/L)')}</FormLabel>
                           <div className="flex gap-2">
                             <FormControl>
                               <Input
@@ -374,7 +392,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                                 form.setValue(`stages.${index}.lactate`, value);
                               }}
                               clientId={clientId}
-                              testStageContext={`Steg ${index + 1}`}
+                              testStageContext={`${t(locale, 'Steg', 'Stage')} ${index + 1}`}
                               size="icon"
                               iconOnly
                               variant="outline"
@@ -395,7 +413,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                 className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Lägg till steg
+                {t(locale, 'Lägg till steg', 'Add stage')}
               </Button>
             </CardContent>
           </Card>
@@ -405,10 +423,10 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5" />
-                Fotoverifiering (valfritt)
+                {t(locale, 'Fotoverifiering (valfritt)', 'Photo verification (optional)')}
               </CardTitle>
               <CardDescription>
-                Ladda upp ett foto på dina laktatvärden för verifiering
+                {t(locale, 'Ladda upp ett foto på dina laktatvärden för verifiering', 'Upload a photo of your lactate values for verification')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -417,16 +435,16 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                 name="photoUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Foto-URL</FormLabel>
+                    <FormLabel>{t(locale, 'Foto-URL', 'Photo URL')}</FormLabel>
                     <FormControl>
                       <Input
                         type="url"
-                        placeholder="Länk till foto (Google Drive, Dropbox, etc.)"
+                        placeholder={t(locale, 'Länk till foto (Google Drive, Dropbox, etc.)', 'Link to photo (Google Drive, Dropbox, etc.)')}
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Ett foto hjälper din tränare att verifiera värdena
+                      {t(locale, 'Ett foto hjälper din tränare att verifiera värdena', 'A photo helps your coach verify the values')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -438,7 +456,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
           {/* Notes */}
           <Card>
             <CardHeader>
-              <CardTitle>Anteckningar (valfritt)</CardTitle>
+              <CardTitle>{t(locale, 'Anteckningar (valfritt)', 'Notes (optional)')}</CardTitle>
             </CardHeader>
             <CardContent>
               <FormField
@@ -450,7 +468,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
                       <textarea
                         className="w-full p-2 border rounded"
                         rows={4}
-                        placeholder="Eventuella anteckningar om testet..."
+                        placeholder={t(locale, 'Eventuella anteckningar om testet...', 'Any notes about the test...')}
                         {...field}
                       />
                     </FormControl>
@@ -462,7 +480,7 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
           </Card>
 
           <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? 'Sparar...' : 'Skicka laktatdata'}
+            {isSubmitting ? t(locale, 'Sparar...', 'Saving...') : t(locale, 'Skicka laktatdata', 'Submit lactate data')}
           </Button>
         </form>
       </Form>
@@ -471,28 +489,28 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
       {validationResult && (
         <Card>
           <CardHeader>
-            <CardTitle>Validering</CardTitle>
+            <CardTitle>{t(locale, 'Validering', 'Validation')}</CardTitle>
           </CardHeader>
           <CardContent>
             {validationResult.isValid ? (
               <Alert>
                 <AlertDescription>
-                  <p className="font-medium text-green-700">✅ Dina laktatdata ser bra ut!</p>
-                  <p className="text-sm mt-1">Data har sparats och skickats till din tränare för granskning.</p>
+                  <p className="font-medium text-green-700">✅ {t(locale, 'Dina laktatdata ser bra ut!', 'Your lactate data looks good!')}</p>
+                  <p className="text-sm mt-1">{t(locale, 'Data har sparats och skickats till din tränare för granskning.', 'Data has been saved and sent to your coach for review.')}</p>
                 </AlertDescription>
               </Alert>
             ) : (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  <p className="font-medium mb-2">Valideringsvarningar:</p>
+                  <p className="font-medium mb-2">{t(locale, 'Valideringsvarningar:', 'Validation warnings:')}</p>
                   <ul className="list-disc list-inside space-y-1 text-sm">
                     {validationResult.errors?.map((error: string, i: number) => (
                       <li key={i}>{error}</li>
                     ))}
                   </ul>
                   <p className="text-sm mt-2">
-                    Data har sparats men kräver granskning av din tränare.
+                    {t(locale, 'Data har sparats men kräver granskning av din tränare.', 'Data has been saved but requires review by your coach.')}
                   </p>
                 </AlertDescription>
               </Alert>
