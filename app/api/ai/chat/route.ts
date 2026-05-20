@@ -289,6 +289,7 @@ export async function POST(request: NextRequest) {
       intent: body.intent,
       isAthleteChat,
       deepThinkEnabled,
+      locale: responseLocale,
     })
     if (!modelResult.ok) return jsonError(400, { error: modelResult.errorMessage })
 

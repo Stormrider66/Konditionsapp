@@ -24,6 +24,7 @@ export interface ResolveAiModelInput {
   intent?: string
   isAthleteChat: boolean
   deepThinkEnabled?: boolean
+  locale?: 'en' | 'sv'
 }
 
 export type ResolveAiModelResult =
@@ -39,6 +40,7 @@ export type ResolveAiModelResult =
  */
 export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult {
   const { provider, model, effectiveKeys, intent, isAthleteChat, deepThinkEnabled } = input
+  const locale = input.locale === 'sv' ? 'sv' : 'en'
 
   // Drop keys for providers whose circuit breaker is open so resolveModel /
   // explicit-provider matches naturally fall through to a healthy provider.
@@ -58,7 +60,12 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
       })
       return { ok: true, aiModel: createModelInstance(resolved), usageLoggedByMiddleware: true }
     }
-    return { ok: false, errorMessage: 'Ingen AI API-nyckel konfigurerad.' }
+    return {
+      ok: false,
+      errorMessage: locale === 'sv'
+        ? 'Ingen AI API-nyckel konfigurerad.'
+        : 'No AI API key is configured.',
+    }
   }
 
   if (provider === 'ANTHROPIC' && healthyKeys.anthropicKey) {
@@ -102,8 +109,9 @@ export function resolveAiModel(input: ResolveAiModelInput): ResolveAiModelResult
 
   return {
     ok: false,
-    errorMessage:
-      'AI-tjänsten är tillfälligt otillgänglig. Försök igen om en stund.',
+    errorMessage: locale === 'sv'
+      ? 'AI-tjänsten är tillfälligt otillgänglig. Försök igen om en stund.'
+      : 'The AI service is temporarily unavailable. Try again in a moment.',
   }
 }
 
