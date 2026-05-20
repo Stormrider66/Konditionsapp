@@ -142,7 +142,7 @@ describe('signup-physio route', () => {
         email: 'physio@example.com',
         name: 'Physio Example',
         role: 'PHYSIO',
-        language: 'sv',
+        language: 'en',
       },
     })
     expect(mockCreateSelfAthleteProfileTx).toHaveBeenCalled()

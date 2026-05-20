@@ -142,7 +142,7 @@ describe('signup-coach route', () => {
         email: 'coach@example.com',
         name: 'Coach Example',
         role: 'COACH',
-        language: 'sv',
+        language: 'en',
       },
     })
     expect(tx.subscription.create).toHaveBeenCalledWith({
@@ -169,7 +169,7 @@ describe('signup-coach route', () => {
         trialEndsAt: new Date('2026-03-20T00:00:00.000Z'),
       },
     })
-    expect(mockSendWelcomeEmail).toHaveBeenCalledWith('coach@example.com', 'Coach Example', 'sv')
+    expect(mockSendWelcomeEmail).toHaveBeenCalledWith('coach@example.com', 'Coach Example', 'en')
     expect(body.data).toEqual({
       id: 'auth-coach-1',
       role: 'COACH',

@@ -90,7 +90,7 @@ describe('POST /api/coach/staff', () => {
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({
-      error: 'Team-bundna roller måste kopplas till minst ett lag',
+      error: 'Team-scoped roles must be assigned to at least one team',
     })
     expect(mockInviteUserToBusiness).not.toHaveBeenCalled()
     expect(mockTeamCoachAssignmentCreate).not.toHaveBeenCalled()
@@ -108,7 +108,7 @@ describe('POST /api/coach/staff', () => {
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({
-      error: 'Ett eller flera lag tillhör inte denna verksamhet',
+      error: 'One or more teams do not belong to this business',
     })
     expect(mockInviteUserToBusiness).not.toHaveBeenCalled()
     expect(mockTeamCoachAssignmentCreate).not.toHaveBeenCalled()

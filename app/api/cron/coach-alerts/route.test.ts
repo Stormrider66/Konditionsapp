@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const mockPrisma = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+  },
   client: {
     findMany: vi.fn(),
   },
@@ -60,6 +63,7 @@ describe('coach-alerts cron route', () => {
     mockPrisma.trainingLoad.findFirst.mockResolvedValue(null)
     mockPrisma.coachAlert.findFirst.mockResolvedValue(null)
     mockPrisma.coachAlert.create.mockResolvedValue({ id: 'alert-1' })
+    mockPrisma.user.findUnique.mockResolvedValue({ language: 'en' })
   })
 
   it('processes athletes in bounded batches', async () => {
