@@ -8,8 +8,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format, formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
@@ -29,7 +30,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { WODWorkout } from '@/types/wod'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface WODHistoryItem {
   id: string
@@ -60,9 +61,13 @@ interface WODHistoryClientProps {
 }
 
 export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClientProps) {
+  const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'completed' | 'pending'>('all')
   const [repeating, setRepeating] = useState<string | null>(null)
   const t = useTranslations('athletePages.wodHistory')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const dateFormat = locale === 'sv' ? 'd MMM yyyy' : 'MMM d, yyyy'
 
   const statusConfig = {
     GENERATED: {
@@ -114,7 +119,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
       }
 
       const data = await response.json()
-      window.location.href = `${basePath}/athlete/wod/${data.newWodId}`
+      router.push(`${basePath}/athlete/wod/${data.newWodId}`)
     } catch (err) {
       console.error('Failed to repeat WOD:', err)
       setRepeating(null)
@@ -279,7 +284,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
                           <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {format(new Date(wod.createdAt), 'd MMM yyyy', { locale: sv })}
+                              {format(new Date(wod.createdAt), dateFormat, { locale: dateLocale })}
                             </span>
                             <span className="flex items-center gap-1">
                               <Timer className="h-3 w-3" />
@@ -304,7 +309,7 @@ export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClien
                                 {t('labels.completedSuffix', {
                                   distance: formatDistanceToNow(new Date(wod.completedAt), {
                                     addSuffix: true,
-                                    locale: sv,
+                                    locale: dateLocale,
                                   }),
                                 })}
                               </p>
