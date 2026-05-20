@@ -5,7 +5,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
-import { getTranslations } from '@/i18n/server'
+import { getLocale, getTranslations } from '@/i18n/server'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PracticeSheetActions } from '@/components/coach/team-calendar/PracticeSheetPrintButton'
@@ -82,8 +82,12 @@ function isDrillStructure(value: unknown): value is DrillStructure {
   )
 }
 
-function formatDate(date: Date) {
-  return date.toLocaleDateString('sv-SE', {
+function dateLocale(locale: string) {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
+function formatDate(date: Date, locale: string) {
+  return date.toLocaleDateString(dateLocale(locale), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -91,9 +95,9 @@ function formatDate(date: Date) {
   })
 }
 
-function formatTime(date: Date | null) {
+function formatTime(date: Date | null, locale: string) {
   if (!date) return null
-  return date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString(dateLocale(locale), { hour: '2-digit', minute: '2-digit' })
 }
 
 function normalizeAudience(value: string | string[] | undefined): PracticeSheetAudience {
@@ -126,6 +130,7 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
   const isPlayerVersion = audience === 'players'
   const user = await requireCoach()
   const t = await getTranslations('coach.pages.practiceSheet')
+  const locale = await getLocale()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -170,8 +175,8 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
       ? [fallbackPracticeBlock]
       : []
   const totalMinutes = practiceBlocks.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
-  const startTime = event.allDay ? null : formatTime(event.startDate)
-  const endTime = event.allDay ? null : formatTime(event.endDate)
+  const startTime = event.allDay ? null : formatTime(event.startDate, locale)
+  const endTime = event.allDay ? null : formatTime(event.endDate, locale)
   const staffHref = `/${businessSlug}/coach/teams/${teamId}/calendar/${eventId}/practice-sheet`
   const playerHref = `${staffHref}?audience=players`
   const focusAreas = uniqueTextValues(practiceBlocks.map((block) => block.focus))
@@ -211,7 +216,7 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
                 {isPlayerVersion ? t('audience.player') : t('audience.staff')} · {t('labels.iceSession')}
               </p>
               <h1 className="mt-1 text-3xl font-bold">{event.title}</h1>
-              <p className="mt-2 text-sm text-slate-600">{team.name} · {formatDate(event.startDate)}</p>
+              <p className="mt-2 text-sm text-slate-600">{team.name} · {formatDate(event.startDate, locale)}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {startTime && (
