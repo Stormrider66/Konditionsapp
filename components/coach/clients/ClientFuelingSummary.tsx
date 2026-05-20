@@ -33,6 +33,7 @@ import {
 } from '@/lib/fueling/product-plan'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
+import { useLocale } from '@/i18n/client'
 
 type FuelingStatus = 'NO_DATA' | 'READY_TO_PROGRESS' | 'HOLD' | 'REDUCE' | 'ON_TRACK'
 
@@ -505,6 +506,9 @@ function FuelingTrendPanel({ logs, trend }: { logs: FuelingLogSummary[]; trend: 
 }
 
 function TrendBar({ log }: { log: FuelingLogSummary }) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const plannedWidth = getBarWidth(log.plannedCarbsGPerHour)
   const actualWidth = getBarWidth(log.actualCarbsGPerHour)
   const productsUsed = normalizeRaceFuelingProductItems(log.productsUsed)
@@ -521,13 +525,13 @@ function TrendBar({ log }: { log: FuelingLogSummary }) {
         <div className="min-w-0">
           <p className="truncate font-medium text-slate-900 dark:text-white">{log.workoutName}</p>
           <p className="text-muted-foreground">
-            {new Date(log.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
-            {log.actualCarbsTotalG ? `, ${Math.round(log.actualCarbsTotalG)} g totalt` : ''}
+            {new Date(log.completedAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}
+            {log.actualCarbsTotalG ? `, ${Math.round(log.actualCarbsTotalG)} ${t('g totalt', 'g total')}` : ''}
           </p>
         </div>
         <div className="text-right tabular-nums">
           <p className="font-medium">{formatGramHour(log.actualCarbsGPerHour)}</p>
-          <p className="text-muted-foreground">plan {formatGramHour(log.plannedCarbsGPerHour)}</p>
+          <p className="text-muted-foreground">{t('plan', 'planned')} {formatGramHour(log.plannedCarbsGPerHour)}</p>
         </div>
       </div>
 
