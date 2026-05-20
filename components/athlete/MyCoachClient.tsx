@@ -18,6 +18,144 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { BusinessCoachBrowser } from '@/components/athlete/BusinessCoachBrowser'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = {
+  en: {
+    pageTitle: 'My Coach',
+    errorTitle: 'Error',
+    fetchFailed: 'Could not fetch coach data. Try again.',
+    cancelRequestFailed: 'Could not cancel request. Try again.',
+    cancelRequestSuccessTitle: 'Request canceled',
+    cancelRequestSuccessDescription: 'Your coach request has been canceled.',
+    acceptInvitationFallback: 'Could not accept invitation',
+    acceptInvitationFailed: 'Could not accept invitation. Try again.',
+    acceptInvitationSuccessTitle: 'Invitation accepted',
+    acceptInvitationSuccessDescription: 'You now have an active coach.',
+    rejectInvitationFailed: 'Could not reject invitation. Try again.',
+    rejectInvitationSuccessTitle: 'Invitation rejected',
+    rejectInvitationSuccessDescription: 'The invitation has been rejected.',
+    endAgreementFailed: 'Could not end the collaboration. Try again.',
+    endAgreementSuccessTitle: 'Collaboration ended',
+    endAgreementSuccessDescription: 'You have ended the collaboration with your coach.',
+    active: 'Active',
+    connectedSince: 'Connected since',
+    endCollaboration: 'End collaboration',
+    endCollaborationQuestion: 'End collaboration?',
+    endCollaborationDescription: (coachName: string) =>
+      `Are you sure you want to end the collaboration with ${coachName}? Your coach will no longer be able to see your training data or create programs for you.`,
+    cancel: 'Cancel',
+    ending: 'Ending...',
+    confirmEnd: 'Yes, end',
+    pendingResponse: 'Waiting for response',
+    requestSent: 'Request sent',
+    yourMessage: 'Your message:',
+    canceling: 'Canceling...',
+    cancelRequest: 'Cancel request',
+    coachInvitations: 'Invitations from coaches',
+    invitation: 'Invitation',
+    messageFromCoach: 'Message from coach:',
+    sent: 'Sent',
+    accepting: 'Accepting...',
+    accept: 'Accept',
+    reject: 'Reject',
+    noCoachTitle: 'You do not have a coach right now',
+    noCoachDescription: 'Browse available coaches below and send a request to get started with personal coaching.',
+    availableCoaches: 'Available coaches',
+  },
+  sv: {
+    pageTitle: 'Min Coach',
+    errorTitle: 'Fel',
+    fetchFailed: 'Kunde inte hämta coachdata. Försök igen.',
+    cancelRequestFailed: 'Kunde inte avbryta förfrågan. Försök igen.',
+    cancelRequestSuccessTitle: 'Förfrågan avbruten',
+    cancelRequestSuccessDescription: 'Din coachförfrågan har avbrutits.',
+    acceptInvitationFallback: 'Kunde inte acceptera inbjudan',
+    acceptInvitationFailed: 'Kunde inte acceptera inbjudan. Försök igen.',
+    acceptInvitationSuccessTitle: 'Inbjudan accepterad',
+    acceptInvitationSuccessDescription: 'Du har nu en aktiv coach!',
+    rejectInvitationFailed: 'Kunde inte avvisa inbjudan. Försök igen.',
+    rejectInvitationSuccessTitle: 'Inbjudan avvisad',
+    rejectInvitationSuccessDescription: 'Inbjudan har avvisats.',
+    endAgreementFailed: 'Kunde inte avsluta samarbetet. Försök igen.',
+    endAgreementSuccessTitle: 'Samarbete avslutat',
+    endAgreementSuccessDescription: 'Du har avslutat samarbetet med din coach.',
+    active: 'Aktiv',
+    connectedSince: 'Kopplad sedan',
+    endCollaboration: 'Avsluta samarbete',
+    endCollaborationQuestion: 'Avsluta samarbete?',
+    endCollaborationDescription: (coachName: string) =>
+      `Vill du verkligen avsluta samarbetet med ${coachName}? Din coach kommer inte längre kunna se dina träningsdata eller skapa program åt dig.`,
+    cancel: 'Avbryt',
+    ending: 'Avslutar...',
+    confirmEnd: 'Ja, avsluta',
+    pendingResponse: 'Väntar på svar',
+    requestSent: 'Förfrågan skickad',
+    yourMessage: 'Ditt meddelande:',
+    canceling: 'Avbryter...',
+    cancelRequest: 'Avbryt förfrågan',
+    coachInvitations: 'Inbjudningar från coacher',
+    invitation: 'Inbjudan',
+    messageFromCoach: 'Meddelande från coachen:',
+    sent: 'Skickad',
+    accepting: 'Accepterar...',
+    accept: 'Acceptera',
+    reject: 'Avvisa',
+    noCoachTitle: 'Du har ingen coach just nu',
+    noCoachDescription: 'Bläddra bland tillgängliga coacher nedan och skicka en förfrågan för att komma igång med personlig coaching.',
+    availableCoaches: 'Tillgängliga coacher',
+  },
+} satisfies Record<AppLocale, {
+  pageTitle: string
+  errorTitle: string
+  fetchFailed: string
+  cancelRequestFailed: string
+  cancelRequestSuccessTitle: string
+  cancelRequestSuccessDescription: string
+  acceptInvitationFallback: string
+  acceptInvitationFailed: string
+  acceptInvitationSuccessTitle: string
+  acceptInvitationSuccessDescription: string
+  rejectInvitationFailed: string
+  rejectInvitationSuccessTitle: string
+  rejectInvitationSuccessDescription: string
+  endAgreementFailed: string
+  endAgreementSuccessTitle: string
+  endAgreementSuccessDescription: string
+  active: string
+  connectedSince: string
+  endCollaboration: string
+  endCollaborationQuestion: string
+  endCollaborationDescription: (coachName: string) => string
+  cancel: string
+  ending: string
+  confirmEnd: string
+  pendingResponse: string
+  requestSent: string
+  yourMessage: string
+  canceling: string
+  cancelRequest: string
+  coachInvitations: string
+  invitation: string
+  messageFromCoach: string
+  sent: string
+  accepting: string
+  accept: string
+  reject: string
+  noCoachTitle: string
+  noCoachDescription: string
+  availableCoaches: string
+}>
+
+function formatDate(value: string, locale: AppLocale): string {
+  return new Date(value).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
 
 interface Coach {
   id: string
@@ -66,7 +204,9 @@ interface MyCoachClientProps {
   businessSlug: string
 }
 
-export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) {
+export function MyCoachClient({ businessId, businessSlug: _businessSlug }: MyCoachClientProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const text = copy[locale]
   const [data, setData] = useState<MyCoachData | null>(null)
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
@@ -78,22 +218,26 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
     try {
       setLoading(true)
       const res = await fetch(`/api/business/${businessId}/my-coach`)
-      if (!res.ok) throw new Error('Kunde inte hämta coachdata')
+      if (!res.ok) throw new Error(text.fetchFailed)
       const json = await res.json()
       setData(json)
-    } catch (err) {
+    } catch (_err) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte hämta coachdata. Försök igen.',
+        title: text.errorTitle,
+        description: text.fetchFailed,
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
     }
-  }, [businessId, toast])
+  }, [businessId, text.errorTitle, text.fetchFailed, toast])
 
   useEffect(() => {
-    fetchCoachData()
+    const timeout = window.setTimeout(() => {
+      void fetchCoachData()
+    }, 0)
+
+    return () => window.clearTimeout(timeout)
   }, [fetchCoachData])
 
   const handleCancelRequest = async (requestId: string) => {
@@ -104,16 +248,16 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ requestId }),
       })
-      if (!res.ok) throw new Error('Kunde inte avbryta förfrågan')
+      if (!res.ok) throw new Error(text.cancelRequestFailed)
       toast({
-        title: 'Förfrågan avbruten',
-        description: 'Din coachförfrågan har avbrutits.',
+        title: text.cancelRequestSuccessTitle,
+        description: text.cancelRequestSuccessDescription,
       })
       await fetchCoachData()
-    } catch (err) {
+    } catch (_err) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte avbryta förfrågan. Försök igen.',
+        title: text.errorTitle,
+        description: text.cancelRequestFailed,
         variant: 'destructive',
       })
     } finally {
@@ -131,17 +275,17 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Kunde inte acceptera inbjudan')
+        throw new Error(errorData.error || text.acceptInvitationFallback)
       }
       toast({
-        title: 'Inbjudan accepterad',
-        description: 'Du har nu en aktiv coach!',
+        title: text.acceptInvitationSuccessTitle,
+        description: text.acceptInvitationSuccessDescription,
       })
       await fetchCoachData()
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
-        title: 'Fel',
-        description: err.message || 'Kunde inte acceptera inbjudan. Försök igen.',
+        title: text.errorTitle,
+        description: err instanceof Error ? err.message : text.acceptInvitationFailed,
         variant: 'destructive',
       })
     } finally {
@@ -157,16 +301,16 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
-      if (!res.ok) throw new Error('Kunde inte avvisa inbjudan')
+      if (!res.ok) throw new Error(text.rejectInvitationFailed)
       toast({
-        title: 'Inbjudan avvisad',
-        description: 'Inbjudan har avvisats.',
+        title: text.rejectInvitationSuccessTitle,
+        description: text.rejectInvitationSuccessDescription,
       })
       await fetchCoachData()
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte avvisa inbjudan. Försök igen.',
+        title: text.errorTitle,
+        description: text.rejectInvitationFailed,
         variant: 'destructive',
       })
     } finally {
@@ -181,16 +325,16 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
       const res = await fetch(`/api/business/${businessId}/my-coach`, {
         method: 'DELETE',
       })
-      if (!res.ok) throw new Error('Kunde inte avsluta samarbetet')
+      if (!res.ok) throw new Error(text.endAgreementFailed)
       toast({
-        title: 'Samarbete avslutat',
-        description: 'Du har avslutat samarbetet med din coach.',
+        title: text.endAgreementSuccessTitle,
+        description: text.endAgreementSuccessDescription,
       })
       await fetchCoachData()
-    } catch (err) {
+    } catch (_err) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte avsluta samarbetet. Försök igen.',
+        title: text.errorTitle,
+        description: text.endAgreementFailed,
         variant: 'destructive',
       })
     } finally {
@@ -201,7 +345,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
   if (loading) {
     return (
       <div className="container mx-auto py-6 px-4 max-w-4xl">
-        <h1 className="text-2xl font-bold text-white mb-6">Min Coach</h1>
+        <h1 className="text-2xl font-bold text-white mb-6">{text.pageTitle}</h1>
         <div className="space-y-4">
           <div className="animate-pulse bg-white/5 rounded-lg h-48" />
           <div className="animate-pulse bg-white/5 rounded-lg h-32" />
@@ -212,7 +356,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-4xl">
-      <h1 className="text-2xl font-bold text-white mb-6">Min Coach</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">{text.pageTitle}</h1>
 
       {/* State 1: Has active coach */}
       {data?.coach && (
@@ -232,7 +376,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
               </div>
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Check className="w-4 h-4 text-green-500" />
-                <span>Aktiv</span>
+                <span>{text.active}</span>
               </div>
             </div>
           </CardHeader>
@@ -254,12 +398,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Clock className="w-4 h-4" />
                 <span>
-                  Kopplad sedan{' '}
-                  {new Date(data.coach.connectedSince).toLocaleDateString('sv-SE', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {text.connectedSince} {formatDate(data.coach.connectedSince, locale)}
                 </span>
               </div>
             )}
@@ -272,27 +411,26 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
                     className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Avsluta samarbete
+                    {text.endCollaboration}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-slate-950 border-white/10">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-white">Avsluta samarbete?</AlertDialogTitle>
+                    <AlertDialogTitle className="text-white">{text.endCollaborationQuestion}</AlertDialogTitle>
                     <AlertDialogDescription className="text-slate-400">
-                      Vill du verkligen avsluta samarbetet med {data.coach.name}? Din coach kommer inte
-                      längre kunna se dina träningsdata eller skapa program åt dig.
+                      {text.endCollaborationDescription(data.coach.name)}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel className="bg-slate-800 border-white/10 text-slate-300 hover:bg-slate-700">
-                      Avbryt
+                      {text.cancel}
                     </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleEndAgreement}
                       disabled={ending}
                       className="bg-red-600 text-white hover:bg-red-700"
                     >
-                      {ending ? 'Avslutar...' : 'Ja, avsluta'}
+                      {ending ? text.ending : text.confirmEnd}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -324,7 +462,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
               </div>
               <div className="flex items-center gap-2 text-sm text-orange-400">
                 <Clock className="w-4 h-4" />
-                <span>Väntar på svar</span>
+                <span>{text.pendingResponse}</span>
               </div>
             </div>
           </CardHeader>
@@ -346,18 +484,13 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
             <div className="flex items-center gap-2 text-sm text-slate-400">
               <Clock className="w-4 h-4" />
               <span>
-                Förfrågan skickad{' '}
-                {new Date(data.pendingRequest.createdAt).toLocaleDateString('sv-SE', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+                {text.requestSent} {formatDate(data.pendingRequest.createdAt, locale)}
               </span>
             </div>
 
             {data.pendingRequest.message && (
               <div className="bg-white/5 rounded-lg p-3 text-sm text-slate-300">
-                <span className="text-slate-500 block mb-1">Ditt meddelande:</span>
+                <span className="text-slate-500 block mb-1">{text.yourMessage}</span>
                 {data.pendingRequest.message}
               </div>
             )}
@@ -370,7 +503,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
                 className="border-white/10 text-slate-300 hover:bg-white/5"
               >
                 <X className="w-4 h-4 mr-2" />
-                {cancelling ? 'Avbryter...' : 'Avbryt förfrågan'}
+                {cancelling ? text.canceling : text.cancelRequest}
               </Button>
             </div>
           </CardContent>
@@ -382,7 +515,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
         <div className="space-y-4 mb-6">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <Mail className="w-5 h-5 text-blue-500" />
-            Inbjudningar från coacher
+            {text.coachInvitations}
           </h2>
           {data.coachInvitations.map((invitation) => (
             <Card key={invitation.id} className="bg-slate-900/50 border-blue-500/20">
@@ -405,7 +538,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
                   </div>
                   <div className="flex items-center gap-2 text-sm text-blue-400">
                     <Mail className="w-4 h-4" />
-                    <span>Inbjudan</span>
+                    <span>{text.invitation}</span>
                   </div>
                 </div>
               </CardHeader>
@@ -426,7 +559,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
 
                 {invitation.message && (
                   <div className="bg-white/5 rounded-lg p-3 text-sm text-slate-300">
-                    <span className="text-slate-500 block mb-1">Meddelande från coachen:</span>
+                    <span className="text-slate-500 block mb-1">{text.messageFromCoach}</span>
                     {invitation.message}
                   </div>
                 )}
@@ -434,12 +567,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
                 <div className="flex items-center gap-2 text-sm text-slate-400">
                   <Clock className="w-4 h-4" />
                   <span>
-                    Skickad{' '}
-                    {new Date(invitation.requestedAt).toLocaleDateString('sv-SE', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {text.sent} {formatDate(invitation.requestedAt, locale)}
                   </span>
                 </div>
 
@@ -450,7 +578,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     <Check className="w-4 h-4 mr-2" />
-                    {invitationActionLoading === invitation.id ? 'Accepterar...' : 'Acceptera'}
+                    {invitationActionLoading === invitation.id ? text.accepting : text.accept}
                   </Button>
                   <Button
                     variant="outline"
@@ -459,7 +587,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
                     className="border-white/10 text-slate-300 hover:bg-white/5"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Avvisa
+                    {text.reject}
                   </Button>
                 </div>
               </CardContent>
@@ -477,11 +605,10 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
                 <UserCircle className="w-8 h-8 text-slate-400" />
               </div>
               <h2 className="text-lg font-semibold text-white mb-2">
-                Du har ingen coach just nu
+                {text.noCoachTitle}
               </h2>
               <p className="text-sm text-slate-400 max-w-md mx-auto">
-                Bläddra bland tillgängliga coacher nedan och skicka en förfrågan för att komma
-                igång med personlig coaching.
+                {text.noCoachDescription}
               </p>
             </CardContent>
           </Card>
@@ -489,7 +616,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
           <div>
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-orange-500" />
-              Tillgängliga coacher
+              {text.availableCoaches}
             </h2>
             <BusinessCoachBrowser
               businessId={businessId}
