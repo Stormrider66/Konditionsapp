@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useLocale } from 'next-intl'
 import {
   Dialog,
   DialogContent,
@@ -100,47 +101,103 @@ interface PostRaceAnalysisFormProps {
   linkedPredictions?: LinkedPrediction[]
 }
 
+type LocalizedLabel = {
+  en: string
+  sv: string
+}
+
+const text = (locale: string, labels: LocalizedLabel) => locale === 'sv' ? labels.sv : labels.en
+
+const UI = {
+  title: { en: 'Race analysis', sv: 'Tävlingsanalys' },
+  time: { en: 'Time', sv: 'Tid' },
+  goal: { en: 'Goal', sv: 'Mål' },
+  linkPrediction: { en: 'Link to AI prediction', sv: 'Länka till AI-prediktion' },
+  predictionPlaceholder: { en: 'Choose prediction...', sv: 'Välj prediktion...' },
+  noPrediction: { en: 'No prediction', sv: 'Ingen prediktion' },
+  confidence: { en: 'confidence', sv: 'konfidens' },
+  linkPredictionHelp: {
+    en: 'Link this race to an earlier prediction to validate AI accuracy',
+    sv: 'Länka denna tävling till en tidigare prediktion för att validera AI-noggrannhet',
+  },
+  goalQuestion: { en: 'Did you reach your goal?', sv: 'Nådde du ditt mål?' },
+  yes: { en: 'Yes', sv: 'Ja' },
+  no: { en: 'No', sv: 'Nej' },
+  satisfactionQuestion: {
+    en: 'How satisfied are you with your performance?',
+    sv: 'Hur nöjd är du med din prestation?',
+  },
+  conditionFactors: { en: 'Influencing factors', sv: 'Påverkande faktorer' },
+  selected: { en: 'selected', sv: 'valda' },
+  coachAnalysis: { en: 'Coach analysis', sv: 'Coachanalys' },
+  pacing: { en: 'Pacing', sv: 'Tempo/Pacing' },
+  pacingPlaceholder: { en: 'Notes about pacing...', sv: 'Kommentarer om tempohållning...' },
+  tactical: { en: 'Tactics/strategy', sv: 'Taktik/Strategi' },
+  tacticalPlaceholder: { en: 'Notes about tactics...', sv: 'Kommentarer om taktik...' },
+  nutrition: { en: 'Nutrition/hydration', sv: 'Näring/Vätskeintag' },
+  nutritionPlaceholder: { en: 'Notes about nutrition...', sv: 'Kommentarer om näring...' },
+  mental: { en: 'Mental performance', sv: 'Mental prestation' },
+  mentalPlaceholder: {
+    en: 'Notes about mental performance...',
+    sv: 'Kommentarer om mental prestation...',
+  },
+  keyLearnings: { en: 'Key learnings', sv: 'Viktiga lärdomar' },
+  keyLearningsPlaceholder: {
+    en: 'What should we take from this race?',
+    sv: 'Vad tar vi med oss från denna tävling?',
+  },
+  recommendations: { en: 'Recommendations ahead', sv: 'Rekommendationer framåt' },
+  recommendationsPlaceholder: {
+    en: 'What should be prioritized before the next race?',
+    sv: 'Vad bör fokuseras på inför nästa tävling?',
+  },
+  cancel: { en: 'Cancel', sv: 'Avbryt' },
+  saving: { en: 'Saving...', sv: 'Sparar...' },
+  save: { en: 'Save analysis', sv: 'Spara analys' },
+} satisfies Record<string, LocalizedLabel>
+
 const SATISFACTION_LABELS = [
-  { value: 1, label: 'Mycket missnöjd', emoji: '😞' },
-  { value: 2, label: 'Missnöjd', emoji: '😕' },
-  { value: 3, label: 'Neutral', emoji: '😐' },
-  { value: 4, label: 'Nöjd', emoji: '🙂' },
-  { value: 5, label: 'Mycket nöjd', emoji: '😄' },
+  { value: 1, label: { en: 'Very dissatisfied', sv: 'Mycket missnöjd' }, emoji: '😞' },
+  { value: 2, label: { en: 'Dissatisfied', sv: 'Missnöjd' }, emoji: '😕' },
+  { value: 3, label: { en: 'Neutral', sv: 'Neutral' }, emoji: '😐' },
+  { value: 4, label: { en: 'Satisfied', sv: 'Nöjd' }, emoji: '🙂' },
+  { value: 5, label: { en: 'Very satisfied', sv: 'Mycket nöjd' }, emoji: '😄' },
 ]
 
 const EXECUTION_OPTIONS = [
-  { value: 'excellent', label: 'Utmärkt', color: 'bg-green-100 text-green-800' },
-  { value: 'good', label: 'Bra', color: 'bg-blue-100 text-blue-800' },
-  { value: 'fair', label: 'Okej', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'poor', label: 'Dålig', color: 'bg-red-100 text-red-800' },
+  { value: 'excellent', label: { en: 'Excellent', sv: 'Utmärkt' }, color: 'bg-green-100 text-green-800' },
+  { value: 'good', label: { en: 'Good', sv: 'Bra' }, color: 'bg-blue-100 text-blue-800' },
+  { value: 'fair', label: { en: 'Fair', sv: 'Okej' }, color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'poor', label: { en: 'Poor', sv: 'Dålig' }, color: 'bg-red-100 text-red-800' },
 ]
 
 const CONDITION_FACTORS = [
-  { key: 'heat', label: 'Hetta', icon: ThermometerSun },
-  { key: 'cold', label: 'Kyla', icon: ThermometerSun },
-  { key: 'humidity', label: 'Fuktighet', icon: ThermometerSun },
-  { key: 'wind', label: 'Vind', icon: ThermometerSun },
-  { key: 'altitude', label: 'Höjd', icon: Mountain },
-  { key: 'illness', label: 'Sjukdom', icon: HeartPulse },
-  { key: 'injury', label: 'Skada', icon: HeartPulse },
-  { key: 'travel', label: 'Reströtthet', icon: Timer },
-  { key: 'poorSleep', label: 'Dålig sömn', icon: Brain },
-  { key: 'nutritionIssues', label: 'Näringsproblem', icon: Utensils },
-  { key: 'mentalStress', label: 'Mental stress', icon: Brain },
-  { key: 'courseConditions', label: 'Banförhållanden', icon: Mountain },
+  { key: 'heat', label: { en: 'Heat', sv: 'Hetta' }, icon: ThermometerSun },
+  { key: 'cold', label: { en: 'Cold', sv: 'Kyla' }, icon: ThermometerSun },
+  { key: 'humidity', label: { en: 'Humidity', sv: 'Fuktighet' }, icon: ThermometerSun },
+  { key: 'wind', label: { en: 'Wind', sv: 'Vind' }, icon: ThermometerSun },
+  { key: 'altitude', label: { en: 'Altitude', sv: 'Höjd' }, icon: Mountain },
+  { key: 'illness', label: { en: 'Illness', sv: 'Sjukdom' }, icon: HeartPulse },
+  { key: 'injury', label: { en: 'Injury', sv: 'Skada' }, icon: HeartPulse },
+  { key: 'travel', label: { en: 'Travel fatigue', sv: 'Reströtthet' }, icon: Timer },
+  { key: 'poorSleep', label: { en: 'Poor sleep', sv: 'Dålig sömn' }, icon: Brain },
+  { key: 'nutritionIssues', label: { en: 'Nutrition issues', sv: 'Näringsproblem' }, icon: Utensils },
+  { key: 'mentalStress', label: { en: 'Mental stress', sv: 'Mental stress' }, icon: Brain },
+  { key: 'courseConditions', label: { en: 'Course conditions', sv: 'Banförhållanden' }, icon: Mountain },
 ] as const
 
 export function PostRaceAnalysisForm({
   open,
   onOpenChange,
   onSubmit,
-  raceResultId,
   raceName,
   raceDate,
   actualTime,
   goalTime,
   linkedPredictions = [],
 }: PostRaceAnalysisFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   // Form state
   const [satisfactionScore, setSatisfactionScore] = useState<number | null>(null)
   const [goalAchieved, setGoalAchieved] = useState<boolean | null>(null)
@@ -247,10 +304,10 @@ export function PostRaceAnalysisForm({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Tävlingsanalys
+            {text(locale, UI.title)}
           </DialogTitle>
           <DialogDescription>
-            {raceName} - {new Date(raceDate).toLocaleDateString('sv-SE')}
+            {raceName} - {new Date(raceDate).toLocaleDateString(dateLocale)}
           </DialogDescription>
         </DialogHeader>
 
@@ -260,12 +317,12 @@ export function PostRaceAnalysisForm({
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Tid</p>
+                  <p className="text-sm text-muted-foreground">{text(locale, UI.time)}</p>
                   <p className="text-2xl font-bold">{actualTime}</p>
                 </div>
                 {goalTime && (
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Mål</p>
+                    <p className="text-sm text-muted-foreground">{text(locale, UI.goal)}</p>
                     <p className="text-lg">{goalTime}</p>
                   </div>
                 )}
@@ -276,23 +333,24 @@ export function PostRaceAnalysisForm({
           {/* Link to Prediction */}
           {linkedPredictions.length > 0 && (
             <div className="space-y-2">
-              <Label>Länka till AI-prediktion</Label>
+              <Label>{text(locale, UI.linkPrediction)}</Label>
               <Select value={linkedPredictionId} onValueChange={setLinkedPredictionId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj prediktion..." />
+                  <SelectValue placeholder={text(locale, UI.predictionPlaceholder)} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Ingen prediktion</SelectItem>
+                  <SelectItem value="">{text(locale, UI.noPrediction)}</SelectItem>
                   {linkedPredictions.map((pred) => (
                     <SelectItem key={pred.id} value={pred.id}>
-                      {pred.predictedTime} ({Math.round(pred.confidenceScore * 100)}% konfidens) -{' '}
-                      {new Date(pred.createdAt).toLocaleDateString('sv-SE')}
+                      {pred.predictedTime} ({Math.round(pred.confidenceScore * 100)}%{' '}
+                      {text(locale, UI.confidence)}) -{' '}
+                      {new Date(pred.createdAt).toLocaleDateString(dateLocale)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Länka denna tävling till en tidigare prediktion för att validera AI-noggrannhet
+                {text(locale, UI.linkPredictionHelp)}
               </p>
             </div>
           )}
@@ -303,7 +361,7 @@ export function PostRaceAnalysisForm({
           <div className="space-y-3">
             <Label className="flex items-center gap-2">
               <Target className="h-4 w-4" />
-              Nådde du ditt mål?
+              {text(locale, UI.goalQuestion)}
             </Label>
             <RadioGroup
               value={goalAchieved === null ? '' : goalAchieved ? 'yes' : 'no'}
@@ -313,13 +371,13 @@ export function PostRaceAnalysisForm({
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="yes" id="goal-yes" />
                 <Label htmlFor="goal-yes" className="cursor-pointer">
-                  Ja
+                  {text(locale, UI.yes)}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="no" id="goal-no" />
                 <Label htmlFor="goal-no" className="cursor-pointer">
-                  Nej
+                  {text(locale, UI.no)}
                 </Label>
               </div>
             </RadioGroup>
@@ -329,7 +387,7 @@ export function PostRaceAnalysisForm({
           <div className="space-y-3">
             <Label className="flex items-center gap-2">
               <Star className="h-4 w-4" />
-              Hur nöjd är du med din prestation?
+              {text(locale, UI.satisfactionQuestion)}
             </Label>
             <div className="flex gap-2">
               {SATISFACTION_LABELS.map((item) => (
@@ -341,7 +399,7 @@ export function PostRaceAnalysisForm({
                   onClick={() => setSatisfactionScore(item.value)}
                 >
                   <span className="text-xl">{item.emoji}</span>
-                  <span className="text-xs mt-1">{item.label}</span>
+                  <span className="text-xs mt-1">{text(locale, item.label)}</span>
                 </Button>
               ))}
             </div>
@@ -352,9 +410,11 @@ export function PostRaceAnalysisForm({
           {/* Condition Factors */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Påverkande faktorer</Label>
+              <Label>{text(locale, UI.conditionFactors)}</Label>
               {activeConditions > 0 && (
-                <Badge variant="secondary">{activeConditions} valda</Badge>
+                <Badge variant="secondary">
+                  {activeConditions} {text(locale, UI.selected)}
+                </Badge>
               )}
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -374,7 +434,7 @@ export function PostRaceAnalysisForm({
                     onCheckedChange={() => handleConditionToggle(key)}
                   />
                   <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{label}</span>
+                  <span className="text-sm">{text(locale, label)}</span>
                 </div>
               ))}
             </div>
@@ -385,14 +445,14 @@ export function PostRaceAnalysisForm({
           {/* Coach Analysis */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Coachanalys</CardTitle>
+              <CardTitle className="text-base">{text(locale, UI.coachAnalysis)}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Pacing */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Timer className="h-4 w-4" />
-                  Tempo/Pacing
+                  {text(locale, UI.pacing)}
                 </Label>
                 <div className="flex gap-2">
                   {EXECUTION_OPTIONS.map((opt) => (
@@ -403,12 +463,12 @@ export function PostRaceAnalysisForm({
                       size="sm"
                       onClick={() => handleAnalysisChange('pacingExecution', opt.value as CoachAnalysis['pacingExecution'])}
                     >
-                      {opt.label}
+                      {text(locale, opt.label)}
                     </Button>
                   ))}
                 </div>
                 <Textarea
-                  placeholder="Kommentarer om tempohållning..."
+                  placeholder={text(locale, UI.pacingPlaceholder)}
                   value={coachAnalysis.pacingNotes}
                   onChange={(e) => handleAnalysisChange('pacingNotes', e.target.value)}
                   rows={2}
@@ -419,7 +479,7 @@ export function PostRaceAnalysisForm({
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Brain className="h-4 w-4" />
-                  Taktik/Strategi
+                  {text(locale, UI.tactical)}
                 </Label>
                 <div className="flex gap-2">
                   {EXECUTION_OPTIONS.map((opt) => (
@@ -430,12 +490,12 @@ export function PostRaceAnalysisForm({
                       size="sm"
                       onClick={() => handleAnalysisChange('tacticalExecution', opt.value as CoachAnalysis['tacticalExecution'])}
                     >
-                      {opt.label}
+                      {text(locale, opt.label)}
                     </Button>
                   ))}
                 </div>
                 <Textarea
-                  placeholder="Kommentarer om taktik..."
+                  placeholder={text(locale, UI.tacticalPlaceholder)}
                   value={coachAnalysis.tacticalNotes}
                   onChange={(e) => handleAnalysisChange('tacticalNotes', e.target.value)}
                   rows={2}
@@ -446,7 +506,7 @@ export function PostRaceAnalysisForm({
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Utensils className="h-4 w-4" />
-                  Näring/Vätskeintag
+                  {text(locale, UI.nutrition)}
                 </Label>
                 <div className="flex gap-2">
                   {EXECUTION_OPTIONS.map((opt) => (
@@ -457,12 +517,12 @@ export function PostRaceAnalysisForm({
                       size="sm"
                       onClick={() => handleAnalysisChange('nutritionExecution', opt.value as CoachAnalysis['nutritionExecution'])}
                     >
-                      {opt.label}
+                      {text(locale, opt.label)}
                     </Button>
                   ))}
                 </div>
                 <Textarea
-                  placeholder="Kommentarer om näring..."
+                  placeholder={text(locale, UI.nutritionPlaceholder)}
                   value={coachAnalysis.nutritionNotes}
                   onChange={(e) => handleAnalysisChange('nutritionNotes', e.target.value)}
                   rows={2}
@@ -473,7 +533,7 @@ export function PostRaceAnalysisForm({
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Brain className="h-4 w-4" />
-                  Mental prestation
+                  {text(locale, UI.mental)}
                 </Label>
                 <div className="flex gap-2">
                   {EXECUTION_OPTIONS.map((opt) => (
@@ -484,12 +544,12 @@ export function PostRaceAnalysisForm({
                       size="sm"
                       onClick={() => handleAnalysisChange('mentalExecution', opt.value as CoachAnalysis['mentalExecution'])}
                     >
-                      {opt.label}
+                      {text(locale, opt.label)}
                     </Button>
                   ))}
                 </div>
                 <Textarea
-                  placeholder="Kommentarer om mental prestation..."
+                  placeholder={text(locale, UI.mentalPlaceholder)}
                   value={coachAnalysis.mentalNotes}
                   onChange={(e) => handleAnalysisChange('mentalNotes', e.target.value)}
                   rows={2}
@@ -500,9 +560,9 @@ export function PostRaceAnalysisForm({
 
               {/* Key Learnings */}
               <div className="space-y-2">
-                <Label>Viktiga lärdomar</Label>
+                <Label>{text(locale, UI.keyLearnings)}</Label>
                 <Textarea
-                  placeholder="Vad tar vi med oss från denna tävling?"
+                  placeholder={text(locale, UI.keyLearningsPlaceholder)}
                   value={coachAnalysis.keyLearnings}
                   onChange={(e) => handleAnalysisChange('keyLearnings', e.target.value)}
                   rows={3}
@@ -511,9 +571,9 @@ export function PostRaceAnalysisForm({
 
               {/* Recommendations */}
               <div className="space-y-2">
-                <Label>Rekommendationer framåt</Label>
+                <Label>{text(locale, UI.recommendations)}</Label>
                 <Textarea
-                  placeholder="Vad bör fokuseras på inför nästa tävling?"
+                  placeholder={text(locale, UI.recommendationsPlaceholder)}
                   value={coachAnalysis.recommendations}
                   onChange={(e) => handleAnalysisChange('recommendations', e.target.value)}
                   rows={3}
@@ -525,13 +585,13 @@ export function PostRaceAnalysisForm({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
+            {text(locale, UI.cancel)}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={satisfactionScore === null || goalAchieved === null || isSubmitting}
           >
-            {isSubmitting ? 'Sparar...' : 'Spara analys'}
+            {isSubmitting ? text(locale, UI.saving) : text(locale, UI.save)}
           </Button>
         </DialogFooter>
       </DialogContent>
