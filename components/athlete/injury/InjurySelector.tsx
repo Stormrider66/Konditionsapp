@@ -11,8 +11,9 @@
  * - Pain 5+: Required selection, triggers injury cascade
  */
 
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import type { SportType } from '@prisma/client'
+import { useLocale } from 'next-intl'
 import {
   Select,
   SelectContent,
@@ -23,9 +24,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertTriangle, Thermometer, MapPin, Activity } from 'lucide-react'
+import { AlertTriangle, Thermometer, Activity } from 'lucide-react'
 import {
   GlassCard,
   GlassCardHeader,
@@ -39,10 +38,15 @@ import {
   getInjuriesForSportAndBodyPart,
   type BodyPart,
   type InjurySide,
-  type InjurySelection,
   type IllnessType,
 } from '@/lib/injury-detection/sport-injuries'
 import { cn } from '@/lib/utils'
+
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // TYPES
@@ -78,21 +82,14 @@ export function InjurySelector({
   variant = 'default',
 }: InjurySelectorProps) {
   const isGlass = variant === 'glass'
-  const [availableInjuries, setAvailableInjuries] = useState<ReturnType<typeof getInjuriesForSportAndBodyPart>>([])
-
-  // Update available injuries when body part changes
-  useEffect(() => {
-    if (value.bodyPart) {
-      const injuries = getInjuriesForSportAndBodyPart(sport, value.bodyPart)
-      setAvailableInjuries(injuries)
-    } else {
-      setAvailableInjuries([])
-    }
-  }, [sport, value.bodyPart])
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const availableInjuries = useMemo(
+    () => value.bodyPart ? getInjuriesForSportAndBodyPart(sport, value.bodyPart) : [],
+    [sport, value.bodyPart],
+  )
 
   // Determine UI state based on pain level
   const isRequired = painLevel >= 5
-  const isWarning = painLevel >= 3 && painLevel < 5
 
   // Handle body part change
   const handleBodyPartChange = (bodyPart: string) => {
@@ -153,13 +150,13 @@ export function InjurySelector({
               <Activity className="h-5 w-5 text-yellow-500" />
             )}
             {isRequired
-              ? 'Besvär rapporterat'
-              : 'Lite känning?'}
+              ? copy(locale, 'Issue reported', 'Besvär rapporterat')
+              : copy(locale, 'A little discomfort?', 'Lite känning?')}
           </GlassCardTitle>
           <GlassCardDescription className="font-medium text-slate-400">
             {isRequired
-              ? 'Hjälp oss förstå så vi kan anpassa din träning'
-              : 'Vill du specificera? (Valfritt)'}
+              ? copy(locale, 'Help us understand so we can adapt your training', 'Hjälp oss förstå så vi kan anpassa din träning')
+              : copy(locale, 'Do you want to specify? (Optional)', 'Vill du specificera? (Valfritt)')}
           </GlassCardDescription>
         </GlassCardHeader>
 
@@ -176,7 +173,7 @@ export function InjurySelector({
             <div className="flex items-center gap-2">
               <Thermometer className="h-4 w-4 text-red-500" />
               <Label htmlFor="isIllness" className="text-sm font-bold uppercase tracking-widest text-slate-300 cursor-pointer">
-                Jag är sjuk (feber, magsjuka, förkylning)
+                {copy(locale, 'I am sick (fever, stomach illness, cold)', 'Jag är sjuk (feber, magsjuka, förkylning)')}
               </Label>
             </div>
           </div>
@@ -184,19 +181,19 @@ export function InjurySelector({
           {/* Illness Type Selector */}
           {value.isIllness && (
             <div className="space-y-3 pl-2 border-l-2 border-red-500/30 ml-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Typ av sjukdom</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{copy(locale, 'Type of illness', 'Typ av sjukdom')}</Label>
               <Select
                 value={value.illnessType || ''}
                 onValueChange={handleIllnessTypeChange}
                 disabled={disabled}
               >
                 <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white h-10">
-                  <SelectValue placeholder="Välj typ av sjukdom" />
+                  <SelectValue placeholder={copy(locale, 'Select illness type', 'Välj typ av sjukdom')} />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border">
                   {ILLNESSES.map((illness) => (
                     <SelectItem key={illness.id} value={illness.id}>
-                      {illness.labelSv}
+                      {locale === 'sv' ? illness.labelSv : illness.labelEn}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -204,11 +201,11 @@ export function InjurySelector({
 
               {value.illnessType === 'CHRONIC' ? (
                 <div className="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400 font-medium">
-                  Kronisk sjukdom noterad. Träningen påverkas inte automatiskt, men informationen loggas.
+                  {copy(locale, 'Chronic condition noted. Training is not adjusted automatically, but the information is logged.', 'Kronisk sjukdom noterad. Träningen påverkas inte automatiskt, men informationen loggas.')}
                 </div>
               ) : (
                 <div className="mt-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 font-medium">
-                  Vid sjukdom rekommenderas fullständig vila. Din träningsplan kommer att anpassas därefter.
+                  {copy(locale, 'For illness, complete rest is recommended. Your training plan will be adjusted accordingly.', 'Vid sjukdom rekommenderas fullständig vila. Din träningsplan kommer att anpassas därefter.')}
                 </div>
               )}
             </div>
@@ -220,8 +217,8 @@ export function InjurySelector({
               {/* Body Part Selector */}
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center justify-between">
-                  Var gör det ont?
-                  {isRequired && <span className="text-orange-500">Obligatoriskt</span>}
+                  {copy(locale, 'Where does it hurt?', 'Var gör det ont?')}
+                  {isRequired && <span className="text-orange-500">{copy(locale, 'Required', 'Obligatoriskt')}</span>}
                 </Label>
                 <Select
                   value={value.bodyPart || ''}
@@ -229,12 +226,12 @@ export function InjurySelector({
                   disabled={disabled}
                 >
                   <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white h-12">
-                    <SelectValue placeholder="Välj kroppsdel" />
+                    <SelectValue placeholder={copy(locale, 'Select body part', 'Välj kroppsdel')} />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
                     {BODY_PARTS.map((bodyPart) => (
                       <SelectItem key={bodyPart.id} value={bodyPart.id}>
-                        {bodyPart.labelSv}
+                        {locale === 'sv' ? bodyPart.labelSv : bodyPart.labelEn}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -245,7 +242,7 @@ export function InjurySelector({
               {value.bodyPart && availableInjuries.length > 0 && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Typ av besvär
+                    {copy(locale, 'Type of issue', 'Typ av besvär')}
                   </Label>
                   <Select
                     value={value.injuryType || ''}
@@ -253,12 +250,12 @@ export function InjurySelector({
                     disabled={disabled}
                   >
                     <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white h-12">
-                      <SelectValue placeholder="Välj typ av besvär" />
+                      <SelectValue placeholder={copy(locale, 'Select issue type', 'Välj typ av besvär')} />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
                       {availableInjuries.map((injury) => (
                         <SelectItem key={injury.id} value={injury.id}>
-                          {injury.labelSv}
+                          {locale === 'sv' ? injury.labelSv : injury.labelEn}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -269,7 +266,7 @@ export function InjurySelector({
               {/* Side Selector */}
               {value.bodyPart && value.bodyPart !== 'OTHER' && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Vilken sida?</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{copy(locale, 'Which side?', 'Vilken sida?')}</Label>
                   <RadioGroup
                     value={value.side}
                     onValueChange={handleSideChange}
@@ -277,10 +274,10 @@ export function InjurySelector({
                     disabled={disabled}
                   >
                     {[
-                      { value: 'LEFT', label: 'Vänster' },
-                      { value: 'RIGHT', label: 'Höger' },
-                      { value: 'BOTH', label: 'Båda' },
-                      { value: 'NA', label: 'Ej aktuellt' },
+                      { value: 'LEFT', label: copy(locale, 'Left', 'Vänster') },
+                      { value: 'RIGHT', label: copy(locale, 'Right', 'Höger') },
+                      { value: 'BOTH', label: copy(locale, 'Both', 'Båda') },
+                      { value: 'NA', label: copy(locale, 'Not applicable', 'Ej aktuellt') },
                     ].map((item) => (
                       <div key={item.value} className="flex-1 min-w-[100px]">
                         <Label
@@ -311,13 +308,13 @@ export function InjurySelector({
             )}>
               {isRequired ? (
                 <>
-                  <span className="font-black uppercase tracking-widest block mb-1">Automatisk justering:</span>
-                  Dina pass kommer att justeras automatiskt för att undvika överbelastning. Din coach har notifierats och kommer följa upp.
+                  <span className="font-black uppercase tracking-widest block mb-1">{copy(locale, 'Automatic adjustment:', 'Automatisk justering:')}</span>
+                  {copy(locale, 'Your sessions will be adjusted automatically to avoid overload. Your coach has been notified and will follow up.', 'Dina pass kommer att justeras automatiskt för att undvika överbelastning. Din coach har notifierats och kommer följa upp.')}
                 </>
               ) : (
                 <>
-                  <span className="font-black uppercase tracking-widest block mb-1">Vi noterar känningen:</span>
-                  Passen påverkas inte automatiskt vid den här nivån, men informationen loggas så du och din coach kan följa trender över tid.
+                  <span className="font-black uppercase tracking-widest block mb-1">{copy(locale, 'We will note the discomfort:', 'Vi noterar känningen:')}</span>
+                  {copy(locale, 'Sessions are not adjusted automatically at this level, but the information is logged so you and your coach can track trends over time.', 'Passen påverkas inte automatiskt vid den här nivån, men informationen loggas så du och din coach kan följa trender över tid.')}
                 </>
               )}
             </div>
@@ -348,22 +345,23 @@ export function createDefaultInjurySelectorValue(): InjurySelectorValue {
 
 export function validateInjurySelection(
   value: InjurySelectorValue,
-  painLevel: number
+  painLevel: number,
+  locale: AppLocale = 'en',
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = []
 
   // For pain >= 5, require either illness or body part selection
   if (painLevel >= 5) {
     if (!value.isIllness && !value.bodyPart) {
-      errors.push('Välj kroppsdel eller markera sjukdom')
+      errors.push(copy(locale, 'Select a body part or mark illness', 'Välj kroppsdel eller markera sjukdom'))
     }
 
     if (value.isIllness && !value.illnessType) {
-      errors.push('Välj typ av sjukdom')
+      errors.push(copy(locale, 'Select illness type', 'Välj typ av sjukdom'))
     }
 
     if (!value.isIllness && value.bodyPart && !value.injuryType) {
-      errors.push('Välj typ av besvär')
+      errors.push(copy(locale, 'Select issue type', 'Välj typ av besvär'))
     }
   }
 

@@ -289,7 +289,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
     try {
       // Validate injury selection if pain >= 5
       if (data.injuryPain >= 5) {
-        const validation = validateInjurySelection(injurySelection, data.injuryPain)
+        const validation = validateInjurySelection(injurySelection, data.injuryPain, locale)
         if (!validation.valid) {
           toast({
             title: text(locale, 'Vänligen specificera skadan', 'Please specify the injury'),
