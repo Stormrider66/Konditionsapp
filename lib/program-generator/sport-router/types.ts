@@ -178,6 +178,10 @@ export interface SportProgramParams {
   hasGymAccess?: boolean
   preferredActivities?: string[]
 
+  // Team sports profile settings
+  hockeySettings?: Record<string, unknown> | null
+  footballSettings?: Record<string, unknown> | null
+
   // Calendar constraints - blocked dates won't have workouts scheduled
   calendarConstraints?: {
     blockedDates: string[] // ISO date strings (YYYY-MM-DD)

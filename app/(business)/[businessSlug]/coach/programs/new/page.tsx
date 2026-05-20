@@ -71,6 +71,8 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
           swimmingSettings: true,
           runningSettings: true,
           skiingSettings: true,
+          hockeySettings: true,
+          footballSettings: true,
         },
       },
     },

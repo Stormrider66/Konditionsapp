@@ -81,6 +81,10 @@ const getSportProgramLabel = (sport: SportType, locale: AppLocale) => {
       return t(locale, 'styrkeprogram', 'strength program')
     case 'GENERAL_FITNESS':
       return t(locale, 'träningsprogram', 'general fitness program')
+    case 'TEAM_ICE_HOCKEY':
+      return t(locale, 'hockeyprogram', 'hockey program')
+    case 'TEAM_FOOTBALL':
+      return t(locale, 'fotbollsprogram', 'football program')
     default:
       return t(locale, 'träningsprogram', 'training program')
   }
@@ -89,6 +93,8 @@ const getSportProgramLabel = (sport: SportType, locale: AppLocale) => {
 const getSessionDescription = (sport: SportType, locale: AppLocale) => {
   if (sport === 'RUNNING') return t(locale, 'Löppass per vecka', 'Runs per week')
   if (sport === 'CYCLING') return t(locale, 'Cykelpass per vecka', 'Cycling sessions per week')
+  if (sport === 'TEAM_ICE_HOCKEY') return t(locale, 'Planerade pass per vecka', 'Planned sessions per week')
+  if (sport === 'TEAM_FOOTBALL') return t(locale, 'Planerade pass per vecka', 'Planned sessions per week')
   return t(locale, 'Träningspass per vecka', 'Training sessions per week')
 }
 
@@ -332,12 +338,16 @@ export function ConfigurationForm({
       hyroxGender: formData.hyroxGender,
       hyroxBodyweight: formData.hyroxBodyweight,
       strengthPRs: formData.strengthPRs,
+      hockeySettings: selectedClient?.sportProfile?.hockeySettings ?? undefined,
+      footballSettings: selectedClient?.sportProfile?.footballSettings ?? undefined,
       notes: formData.notes,
     }
 
     // Build the context
     const context: ProgramContext = {
       wizardData: wizardFormData,
+      hockeySettings: selectedClient?.sportProfile?.hockeySettings ?? undefined,
+      footballSettings: selectedClient?.sportProfile?.footballSettings ?? undefined,
     }
 
     // Store context in sessionStorage

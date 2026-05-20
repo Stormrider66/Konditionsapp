@@ -80,6 +80,8 @@ export interface GenerationContext {
     status: string
     notes?: string
   }>
+  hockeySettings?: Record<string, unknown> | null
+  footballSettings?: Record<string, unknown> | null
   notes?: string
 }
 

@@ -94,6 +94,10 @@ export interface Client {
   id: string
   name: string
   tests: { id: string; testDate: Date; testType: string }[]
+  sportProfile?: {
+    hockeySettings?: Record<string, unknown> | null
+    footballSettings?: Record<string, unknown> | null
+  } | null
 }
 
 // Calendar constraints API response

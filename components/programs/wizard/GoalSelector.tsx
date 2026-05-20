@@ -70,6 +70,24 @@ const goalsBySport: Record<string, Goal[]> = {
     { id: 'stress_relief', label: { en: 'Stress management', sv: 'Stresshantering' }, description: { en: 'Yoga & mindfulness', sv: 'Yoga & mindfulness' }, duration: { en: '8 weeks', sv: '8 veckor' } },
     { id: 'general_health', label: { en: 'General health', sv: 'Allmän hälsa' }, description: { en: 'Balanced training', sv: 'Balanserad träning' }, duration: { en: '8 weeks', sv: '8 veckor' } },
   ],
+  TEAM_ICE_HOCKEY: [
+    { id: 'off-season-build', label: { en: 'Off-season build', sv: 'Off-season uppbyggnad' }, description: { en: 'Strength, base fitness, mobility', sv: 'Styrka, bas och rörlighet' }, duration: { en: '12 weeks', sv: '12 veckor' } },
+    { id: 'pre-season-readiness', label: { en: 'Pre-season readiness', sv: 'Försäsongsform' }, description: { en: 'Shift fitness and power', sv: 'Byteskondition och power' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'in-season-maintenance', label: { en: 'In-season maintenance', sv: 'Säsongsunderhåll' }, description: { en: 'Maintain power, recover well', sv: 'Behåll power, återhämta smart' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'speed-power', label: { en: 'Speed & power', sv: 'Snabbhet & power' }, description: { en: 'Acceleration and explosive work', sv: 'Acceleration och explosivitet' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'injury-prevention', label: { en: 'Injury prevention', sv: 'Skadeprevention' }, description: { en: 'Groin, hip, shoulder, ankle', sv: 'Ljumske, höft, axel, fotled' }, duration: { en: '10 weeks', sv: '10 veckor' } },
+    { id: 'return-to-play', label: { en: 'Return to play', sv: 'Return to play' }, description: { en: 'Gradual ramp to games', sv: 'Stegrad väg till match' }, duration: { en: '6 weeks', sv: '6 veckor' } },
+    { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own team or player goal', sv: 'Eget lag- eller spelarmål' }, duration: { en: 'Optional', sv: 'Valfri' } },
+  ],
+  TEAM_FOOTBALL: [
+    { id: 'off-season-build', label: { en: 'Off-season build', sv: 'Off-season uppbyggnad' }, description: { en: 'Strength, base, robustness', sv: 'Styrka, bas och tålighet' }, duration: { en: '10 weeks', sv: '10 veckor' } },
+    { id: 'pre-season-readiness', label: { en: 'Pre-season readiness', sv: 'Försäsongsform' }, description: { en: 'Football fitness and speed', sv: 'Fotbollskondition och snabbhet' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'in-season-maintenance', label: { en: 'In-season maintenance', sv: 'Säsongsunderhåll' }, description: { en: 'Match-week maintenance', sv: 'Underhåll runt matchvecka' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'speed-power', label: { en: 'Speed & power', sv: 'Snabbhet & power' }, description: { en: 'Sprint, acceleration, jumps', sv: 'Sprint, acceleration, hopp' }, duration: { en: '8 weeks', sv: '8 veckor' } },
+    { id: 'injury-prevention', label: { en: 'Injury prevention', sv: 'Skadeprevention' }, description: { en: 'Hamstring, groin, ankle, knee', sv: 'Hamstring, ljumske, fotled, knä' }, duration: { en: '10 weeks', sv: '10 veckor' } },
+    { id: 'return-to-play', label: { en: 'Return to play', sv: 'Return to play' }, description: { en: 'Controlled ramp to match load', sv: 'Kontrollerad väg till matchbelastning' }, duration: { en: '6 weeks', sv: '6 veckor' } },
+    { id: 'custom', label: { en: 'Custom', sv: 'Anpassad' }, description: { en: 'Own team or player goal', sv: 'Eget lag- eller spelarmål' }, duration: { en: 'Optional', sv: 'Valfri' } },
+  ],
 }
 
 interface GoalSelectorProps {
@@ -92,6 +110,8 @@ export function GoalSelector({ sport, selectedGoal, onSelect, onBack: _onBack }:
     TRIATHLON: { en: 'Triathlon', sv: 'Triathlon' },
     HYROX: { en: 'HYROX', sv: 'HYROX' },
     GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
+    TEAM_ICE_HOCKEY: { en: 'Ice Hockey', sv: 'Ishockey' },
+    TEAM_FOOTBALL: { en: 'Football', sv: 'Fotboll' },
   }
 
   return (

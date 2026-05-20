@@ -34,6 +34,8 @@ interface SportProfile {
     vdot?: number
   } | null
   skiingSettings: Record<string, unknown> | null
+  hockeySettings?: Record<string, unknown> | null
+  footballSettings?: Record<string, unknown> | null
 }
 
 interface Client {
@@ -75,6 +77,10 @@ const getSportPromptLabel = (sport: SportType, locale: AppLocale) => {
       return t(locale, 'styrka', 'strength')
     case 'GENERAL_FITNESS':
       return t(locale, 'träning', 'general fitness')
+    case 'TEAM_ICE_HOCKEY':
+      return t(locale, 'ishockey', 'ice hockey')
+    case 'TEAM_FOOTBALL':
+      return t(locale, 'fotboll', 'football')
     default:
       return t(locale, 'träning', 'training')
   }
@@ -86,6 +92,10 @@ const getProgramPromptLabel = (sport: SportType, locale: AppLocale) => {
       return t(locale, 'löpprogram', 'running program')
     case 'CYCLING':
       return t(locale, 'cykelprogram', 'cycling program')
+    case 'TEAM_ICE_HOCKEY':
+      return t(locale, 'hockeyprogram', 'hockey program')
+    case 'TEAM_FOOTBALL':
+      return t(locale, 'fotbollsprogram', 'football program')
     default:
       return t(locale, 'träningsprogram', 'training program')
   }
@@ -117,6 +127,8 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
       HYROX: 'RUNNING',
       GENERAL_FITNESS: 'RUNNING',
       STRENGTH: 'RUNNING',
+      TEAM_FOOTBALL: 'RUNNING',
+      TEAM_ICE_HOCKEY: 'RUNNING',
     }
 
     const relevantTestType = testTypeMap[selectedSport]
@@ -135,6 +147,10 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
           return c.sportProfile.swimmingSettings?.css
         case 'RUNNING':
           return c.sportProfile.runningSettings?.vdot
+        case 'TEAM_ICE_HOCKEY':
+          return c.sportProfile.hockeySettings
+        case 'TEAM_FOOTBALL':
+          return c.sportProfile.footballSettings
         default:
           return false
       }
@@ -176,6 +192,10 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
         return profile.swimmingSettings?.css
       case 'RUNNING':
         return profile.runningSettings?.vdot?.toString()
+      case 'TEAM_ICE_HOCKEY':
+        return profile.hockeySettings ? t(locale, 'Hockeyprofil', 'Hockey profile') : undefined
+      case 'TEAM_FOOTBALL':
+        return profile.footballSettings ? t(locale, 'Fotbollsprofil', 'Football profile') : undefined
       default:
         return undefined
     }
@@ -189,6 +209,10 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
         return 'CSS'
       case 'RUNNING':
         return 'VDOT'
+      case 'TEAM_ICE_HOCKEY':
+        return t(locale, 'Hockeyprofil', 'Hockey profile')
+      case 'TEAM_FOOTBALL':
+        return t(locale, 'Fotbollsprofil', 'Football profile')
       default:
         return t(locale, 'Värde', 'Value')
     }
@@ -279,6 +303,12 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
       testDate: t.testDate,
       testType: t.testType,
     })),
+    sportProfile: c.sportProfile
+      ? {
+          hockeySettings: c.sportProfile.hockeySettings ?? null,
+          footballSettings: c.sportProfile.footballSettings ?? null,
+        }
+      : null,
   }))
   const selectedClientName = clients.find((client) => client.id === selectedClientId)?.name
   const athletePromptName = selectedClientName || t(locale, 'en atlet', 'an athlete')

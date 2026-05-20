@@ -75,6 +75,20 @@ const sports: Sport[] = [
     description: { en: '6 goal-based programs', sv: '6 målbaserade program' },
     color: 'hover:border-green-500 hover:bg-green-50',
   },
+  {
+    id: 'TEAM_ICE_HOCKEY',
+    icon: '🏒',
+    label: { en: 'Ice Hockey', sv: 'Ishockey' },
+    description: { en: 'Position and season-aware', sv: 'Position och säsongsfas' },
+    color: 'hover:border-blue-500 hover:bg-blue-50',
+  },
+  {
+    id: 'TEAM_FOOTBALL',
+    icon: '⚽',
+    label: { en: 'Football', sv: 'Fotboll' },
+    description: { en: 'Match-week planning', sv: 'Matchveckoplanering' },
+    color: 'hover:border-emerald-500 hover:bg-emerald-50',
+  },
 ]
 
 interface SportSelectorProps {

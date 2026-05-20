@@ -58,6 +58,24 @@ export function getDefaultDuration(sport: SportType, goal: string): number {
       stress_relief: 8,
       general_health: 8,
     },
+    TEAM_ICE_HOCKEY: {
+      'off-season-build': 12,
+      'pre-season-readiness': 8,
+      'in-season-maintenance': 8,
+      'speed-power': 8,
+      'injury-prevention': 10,
+      'return-to-play': 6,
+      custom: 12,
+    },
+    TEAM_FOOTBALL: {
+      'off-season-build': 10,
+      'pre-season-readiness': 8,
+      'in-season-maintenance': 8,
+      'speed-power': 8,
+      'injury-prevention': 10,
+      'return-to-play': 6,
+      custom: 12,
+    },
   }
 
   return durations[sport]?.[goal] || 12
@@ -73,6 +91,8 @@ export function getSportLabel(sport: SportType, locale: AppLocale = 'en'): strin
     TRIATHLON: { en: 'Triathlon', sv: 'Triathlon' },
     HYROX: { en: 'HYROX', sv: 'HYROX' },
     GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
+    TEAM_ICE_HOCKEY: { en: 'Ice Hockey', sv: 'Ishockey' },
+    TEAM_FOOTBALL: { en: 'Football', sv: 'Fotboll' },
   }
   return labels[sport]?.[locale] || sport
 }

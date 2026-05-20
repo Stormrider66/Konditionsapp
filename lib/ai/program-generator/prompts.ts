@@ -59,6 +59,7 @@ export function buildOutlinePrompt(context: GenerationContext): string {
   const locale = getProgramLocale(context)
   const athleteInfo = buildAthleteInfoSection(context)
   const testInfo = buildTestDataSection(context)
+  const teamSportInfo = buildTeamSportSection(context, locale)
   const additionalInfo = buildAdditionalInfoSection(context)
 
   if (locale === 'en') {
@@ -66,6 +67,7 @@ export function buildOutlinePrompt(context: GenerationContext): string {
 
 ${athleteInfo}
 ${testInfo}
+${teamSportInfo}
 ${additionalInfo}
 
 GOAL: ${context.goal || 'Improve performance'}
@@ -101,6 +103,7 @@ RETURN ONLY THIS JSON FORMAT:
 
 ${athleteInfo}
 ${testInfo}
+${teamSportInfo}
 ${additionalInfo}
 
 MÅL: ${context.goal || 'Förbättra prestanda'}
@@ -145,6 +148,7 @@ export function buildPhasePrompt(
   const locale = getProgramLocale(context)
   const athleteInfo = buildAthleteInfoSection(context)
   const testInfo = buildTestDataSection(context)
+  const teamSportInfo = buildTeamSportSection(context, locale)
   const previousPhasesContext = buildPreviousPhasesContext(previousPhases, locale)
 
   if (locale === 'en') {
@@ -159,6 +163,7 @@ PROGRAM OUTLINE:
 
 ${athleteInfo}
 ${testInfo}
+${teamSportInfo}
 
 ${previousPhasesContext}
 
@@ -237,6 +242,7 @@ PROGRAMÖVERSIKT:
 
 ${athleteInfo}
 ${testInfo}
+${teamSportInfo}
 
 ${previousPhasesContext}
 
@@ -458,6 +464,8 @@ function formatSport(sport: string, locale: AppLocale = 'sv'): string {
     SKIING: 'längdskidåkning',
     HYROX: 'HYROX',
     GENERAL_FITNESS: 'allmän kondition',
+    TEAM_ICE_HOCKEY: 'ishockey',
+    TEAM_FOOTBALL: 'fotboll',
   }
   const enNames: Record<string, string> = {
     RUNNING: 'running',
@@ -467,8 +475,58 @@ function formatSport(sport: string, locale: AppLocale = 'sv'): string {
     SKIING: 'cross-country skiing',
     HYROX: 'HYROX',
     GENERAL_FITNESS: 'general fitness',
+    TEAM_ICE_HOCKEY: 'ice hockey',
+    TEAM_FOOTBALL: 'football',
   }
   return (locale === 'sv' ? svNames : enNames)[sport] || sport.toLowerCase()
+}
+
+function buildTeamSportSection(context: GenerationContext, locale: AppLocale): string {
+  if (context.sport === 'TEAM_ICE_HOCKEY' && context.hockeySettings) {
+    return [
+      locale === 'sv' ? 'ISHOCKEYSPECIFIKT:' : 'ICE HOCKEY CONTEXT:',
+      formatSetting(locale === 'sv' ? 'Position' : 'Position', context.hockeySettings.position),
+      formatSetting(locale === 'sv' ? 'Säsongsfas' : 'Season phase', context.hockeySettings.seasonPhase),
+      formatSetting(locale === 'sv' ? 'Istid per match' : 'Ice time per game', context.hockeySettings.averageIceTimeMinutes),
+      formatSetting(locale === 'sv' ? 'Byten per match' : 'Shifts per game', context.hockeySettings.shiftsPerGame),
+      formatSetting(locale === 'sv' ? 'Spelstil' : 'Play style', context.hockeySettings.playStyle),
+      formatSetting(locale === 'sv' ? 'Off-ice-pass per vecka' : 'Off-ice sessions per week', context.hockeySettings.weeklyOffIceSessions),
+      formatListSetting(locale === 'sv' ? 'Skadehistorik' : 'Injury history', context.hockeySettings.injuryHistory),
+      locale === 'sv'
+        ? 'Krav: använd positionens krav, säsongsfas och matchbelastning. Inkludera relevant skadeprevention och undvik onödig off-ice fatigue nära matcher.'
+        : 'Requirement: use the position demands, season phase, and match load. Include relevant injury prevention and avoid unnecessary off-ice fatigue near games.',
+    ].filter(Boolean).join('\n')
+  }
+
+  if (context.sport === 'TEAM_FOOTBALL' && context.footballSettings) {
+    return [
+      locale === 'sv' ? 'FOTBOLLSSPECIFIKT:' : 'FOOTBALL CONTEXT:',
+      formatSetting(locale === 'sv' ? 'Position' : 'Position', context.footballSettings.position),
+      formatSetting(locale === 'sv' ? 'Detaljerad position' : 'Position detail', context.footballSettings.positionDetail),
+      formatSetting(locale === 'sv' ? 'Säsongsfas' : 'Season phase', context.footballSettings.seasonPhase),
+      formatSetting(locale === 'sv' ? 'Matcher per vecka' : 'Matches per week', context.footballSettings.matchesPerWeek),
+      formatSetting(locale === 'sv' ? 'Minuter per match' : 'Minutes per match', context.footballSettings.avgMinutesPerMatch),
+      formatSetting(locale === 'sv' ? 'Spelstil' : 'Play style', context.footballSettings.playStyle),
+      formatSetting(locale === 'sv' ? 'Matchdistans km' : 'Match distance km', context.footballSettings.avgMatchDistanceKm),
+      formatSetting(locale === 'sv' ? 'Sprintdistans m' : 'Sprint distance m', context.footballSettings.avgSprintDistanceM),
+      formatListSetting(locale === 'sv' ? 'Skadehistorik' : 'Injury history', context.footballSettings.injuryHistory),
+      locale === 'sv'
+        ? 'Krav: planera runt matchdagar med MD+1 återhämtning och MD-1 aktivering. Inkludera FIFA 11+ eller motsvarande skadeprevention.'
+        : 'Requirement: plan around match days with MD+1 recovery and MD-1 activation. Include FIFA 11+ or equivalent injury prevention.',
+    ].filter(Boolean).join('\n')
+  }
+
+  return ''
+}
+
+function formatSetting(label: string, value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null
+  return `- ${label}: ${String(value)}`
+}
+
+function formatListSetting(label: string, value: unknown): string | null {
+  if (!Array.isArray(value) || value.length === 0) return null
+  return `- ${label}: ${value.map(String).join(', ')}`
 }
 
 // ============================================

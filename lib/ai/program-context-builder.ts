@@ -83,6 +83,9 @@ export interface WizardFormData {
     pullUps?: number
   }
 
+  hockeySettings?: Record<string, unknown> | null
+  footballSettings?: Record<string, unknown> | null
+
   notes?: string
 }
 
@@ -133,6 +136,8 @@ export interface AthleteProfileData {
     runningSettings?: Record<string, unknown> | null
     cyclingSettings?: Record<string, unknown> | null
     swimmingSettings?: Record<string, unknown> | null
+    hockeySettings?: Record<string, unknown> | null
+    footballSettings?: Record<string, unknown> | null
   } | null
 }
 
@@ -154,6 +159,8 @@ export interface ProgramContext {
   injuries?: InjuryData[]
   documentIds?: string[]
   fitnessEstimate?: FitnessEstimate  // Fitness level for zone width adjustment
+  hockeySettings?: Record<string, unknown> | null
+  footballSettings?: Record<string, unknown> | null
 }
 
 /**
@@ -237,6 +244,12 @@ export function buildProgramPrompt(context: ProgramContext): string {
   if (wizardData.targetTime) {
     prompt += `- **Måltid**: ${wizardData.targetTime}\n`
   }
+
+  prompt += buildTeamSportSection(
+    wizardData.sport,
+    wizardData.hockeySettings ?? context.hockeySettings,
+    wizardData.footballSettings ?? context.footballSettings
+  )
 
   // Methodology
   if (wizardData.methodology && wizardData.methodology !== 'AUTO') {
@@ -486,8 +499,87 @@ function getSportLabel(sport: SportType): string {
     TRIATHLON: 'Triathlon',
     HYROX: 'HYROX',
     GENERAL_FITNESS: 'Allmän Fitness',
+    TEAM_ICE_HOCKEY: 'Ishockey',
+    TEAM_FOOTBALL: 'Fotboll',
   }
   return labels[sport] || sport
+}
+
+function buildTeamSportSection(
+  sport: SportType,
+  hockeySettings?: Record<string, unknown> | null,
+  footballSettings?: Record<string, unknown> | null
+): string {
+  if (sport === 'TEAM_ICE_HOCKEY' && hockeySettings) {
+    const lines = [
+      '\n## ISHOCKEYSPECIFIK PROFIL',
+      formatSetting('Position', hockeySettings.position),
+      formatSetting('Lag', hockeySettings.teamName),
+      formatSetting('Liga/nivå', hockeySettings.leagueLevel),
+      formatSetting('Säsongsfas', hockeySettings.seasonPhase),
+      formatSetting('Istid per match', hockeySettings.averageIceTimeMinutes ? `${hockeySettings.averageIceTimeMinutes} min` : undefined),
+      formatSetting('Byten per match', hockeySettings.shiftsPerGame),
+      formatSetting('Spelstil', hockeySettings.playStyle),
+      formatSetting('Off-ice-pass per vecka', hockeySettings.weeklyOffIceSessions),
+      formatBooleanSetting('Tillgång till is', hockeySettings.hasAccessToIce),
+      formatBooleanSetting('Tillgång till gym', hockeySettings.hasAccessToGym),
+      formatListSetting('Styrkefokus', hockeySettings.strengthFocus),
+      formatListSetting('Utvecklingsområden', hockeySettings.weaknesses),
+      formatListSetting('Skadehistorik', hockeySettings.injuryHistory),
+      '\nPlanera hockeyprogrammet efter position, säsongsfas, matchbelastning och skadeprevention. Undvik hård off-ice kondition vid hög matchbelastning.',
+    ].filter(Boolean)
+    return `${lines.join('\n')}\n`
+  }
+
+  if (sport === 'TEAM_FOOTBALL' && footballSettings) {
+    const benchmarks = isRecord(footballSettings.benchmarks) ? footballSettings.benchmarks : {}
+    const lines = [
+      '\n## FOTBOLLSSPECIFIK PROFIL',
+      formatSetting('Position', footballSettings.position),
+      formatSetting('Detaljerad position', footballSettings.positionDetail),
+      formatSetting('Lag', footballSettings.teamName),
+      formatSetting('Liga/nivå', footballSettings.leagueLevel),
+      formatSetting('Säsongsfas', footballSettings.seasonPhase),
+      formatSetting('Matcher per vecka', footballSettings.matchesPerWeek),
+      formatSetting('Minuter per match', footballSettings.avgMinutesPerMatch),
+      formatSetting('Spelstil', footballSettings.playStyle),
+      formatSetting('Träningspass per vecka', footballSettings.weeklyTrainingSessions),
+      formatBooleanSetting('GPS-data finns', footballSettings.hasGPSData),
+      formatSetting('GPS-system', footballSettings.gpsProvider),
+      formatSetting('Matchdistans', footballSettings.avgMatchDistanceKm ? `${footballSettings.avgMatchDistanceKm} km` : undefined),
+      formatSetting('Sprintdistans', footballSettings.avgSprintDistanceM ? `${footballSettings.avgSprintDistanceM} m` : undefined),
+      formatSetting('Yo-Yo IR1', benchmarks.yoyoIR1Level),
+      formatSetting('10m sprint', benchmarks.sprint10m ? `${benchmarks.sprint10m} s` : undefined),
+      formatSetting('30m sprint', benchmarks.sprint30m ? `${benchmarks.sprint30m} s` : undefined),
+      formatSetting('CMJ', benchmarks.cmjHeight ? `${benchmarks.cmjHeight} cm` : undefined),
+      formatListSetting('Styrkefokus', footballSettings.strengthFocus),
+      formatListSetting('Utvecklingsområden', footballSettings.weaknesses),
+      formatListSetting('Skadehistorik', footballSettings.injuryHistory),
+      '\nPlanera fotbollsprogrammet runt matchdagar (MD+1 återhämtning, MD-1 aktivering), positionens sprint-/löpmängd och skadeprevention.',
+    ].filter(Boolean)
+    return `${lines.join('\n')}\n`
+  }
+
+  return ''
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function formatSetting(label: string, value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null
+  return `- **${label}**: ${String(value)}`
+}
+
+function formatBooleanSetting(label: string, value: unknown): string | null {
+  if (typeof value !== 'boolean') return null
+  return `- **${label}**: ${value ? 'Ja' : 'Nej'}`
+}
+
+function formatListSetting(label: string, value: unknown): string | null {
+  if (!Array.isArray(value) || value.length === 0) return null
+  return `- **${label}**: ${value.map(String).join(', ')}`
 }
 
 function getGoalLabel(goal: string): string {
@@ -507,6 +599,12 @@ function getGoalLabel(goal: string): string {
     'age-group': 'Age Group',
     doubles: 'Doubles',
     vasaloppet: 'Vasaloppet',
+    'off-season-build': 'Off-season uppbyggnad',
+    'pre-season-readiness': 'Försäsongsform',
+    'in-season-maintenance': 'Säsongsunderhåll',
+    'speed-power': 'Snabbhet & power',
+    'injury-prevention': 'Skadeprevention',
+    'return-to-play': 'Return to play',
     custom: 'Anpassat',
   }
   return labels[goal] || goal

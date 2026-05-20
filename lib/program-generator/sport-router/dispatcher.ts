@@ -6,6 +6,8 @@ import { generateSwimmingProgram, type SwimmingProgramParams } from '../generato
 import { generateTriathlonProgram, type TriathlonProgramParams } from '../generators/triathlon-generator'
 import { generateHyroxProgram, type HyroxProgramParams } from '../generators/hyrox-generator'
 import { generateStrengthProgram, type StrengthProgramParams } from '../generators/strength-generator'
+import { generateFootballProgram } from '../generators/football-generator'
+import { generateHockeyProgram } from '../generators/hockey-generator'
 import type { SportProgramParams } from './types'
 import { applyCalendarConstraints } from './calendar-constraints'
 import { generateRunningProgram } from './running'
@@ -96,6 +98,14 @@ export async function generateSportProgram(
       program = await generateGeneralFitnessProgram(params, client)
       break
 
+    case 'TEAM_FOOTBALL':
+      program = await generateFootballProgram(params, client)
+      break
+
+    case 'TEAM_ICE_HOCKEY':
+      program = await generateHockeyProgram(params, client)
+      break
+
     default:
       throw new Error(`Unsupported sport type: ${params.sport}`)
   }
@@ -108,4 +118,3 @@ export async function generateSportProgram(
 
   return program
 }
-

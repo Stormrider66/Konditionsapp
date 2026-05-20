@@ -78,6 +78,14 @@ export async function POST(request: NextRequest) {
       // Fetch client
       const client = await prisma.client.findUnique({
         where: { id: body.clientId },
+        include: {
+          sportProfile: {
+            select: {
+              hockeySettings: true,
+              footballSettings: true,
+            },
+          },
+        },
       })
 
       if (!client) {
@@ -174,6 +182,8 @@ export async function POST(request: NextRequest) {
         fitnessLevel: body.fitnessLevel,
         hasGymAccess: body.hasGymAccess,
         preferredActivities: body.preferredActivities,
+        hockeySettings: body.hockeySettings ?? client.sportProfile?.hockeySettings ?? null,
+        footballSettings: body.footballSettings ?? client.sportProfile?.footballSettings ?? null,
 
         // Calendar constraints
         calendarConstraints: body.calendarConstraints,
