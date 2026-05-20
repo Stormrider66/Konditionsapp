@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, type ReactNode } from 'react'
 import {
   GlassCard,
   GlassCardHeader,
   GlassCardTitle,
-  GlassCardDescription,
   GlassCardContent,
 } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
@@ -36,7 +35,6 @@ import {
   Upload,
   FolderOpen,
   Search,
-  Filter,
   X,
   FileSpreadsheet,
   FileVideo,
@@ -55,6 +53,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLocale } from '@/i18n/client'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import {
   Tooltip,
@@ -99,6 +98,150 @@ interface ContextPanelProps {
 
 // Document category types
 type DocumentCategory = 'ALL' | 'PDF' | 'EXCEL' | 'MARKDOWN' | 'VIDEO'
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  context: string
+  athlete: string
+  chooseAthlete: string
+  noAthleteSelected: string
+  loadingData: string
+  tests: string
+  races: string
+  programs: string
+  checkIns: string
+  bodyCompositions: string
+  videoAnalyses: string
+  lactateTests: string
+  raceBadge: string
+  bodyBadge: string
+  formScore: string
+  injuryRisk: string
+  poseIncluded: string
+  poseFindings: string
+  noTrainingData: string
+  athleteDataIncluded: string
+  documents: string
+  noDocuments: string
+  uploadDescription: ReactNode
+  uploadDocuments: string
+  searchDocuments: string
+  selectFiltered: string
+  selectAll: string
+  filter: string
+  clearSelection: string
+  noDocumentsMatch: string
+  chunks: string
+  pendingDocumentsPrefix: string
+  documentsLink: string
+  pendingDocumentsSuffix: string
+  selectedDocuments: string
+  selectedDocumentsSuffix: string
+  manageDocuments: string
+  webSearch: string
+  enableWebSearch: string
+  webSearchDescription: string
+  selectedAthlete: string
+  none: string
+  selectedDocumentsLabel: string
+  on: string
+  off: string
+}> = {
+  en: {
+    context: 'Context',
+    athlete: 'Athlete',
+    chooseAthlete: 'Choose athlete...',
+    noAthleteSelected: 'No athlete selected',
+    loadingData: 'Loading data...',
+    tests: 'Test',
+    races: 'Races',
+    programs: 'Program',
+    checkIns: 'Check-in',
+    bodyCompositions: 'Body compositions',
+    videoAnalyses: 'Video analyses',
+    lactateTests: 'lactate tests',
+    raceBadge: 'Races',
+    bodyBadge: 'Body',
+    formScore: 'Form score',
+    injuryRisk: 'Injury risk',
+    poseIncluded: 'Pose/Gemini included',
+    poseFindings: 'pose findings in latest analysis',
+    noTrainingData: 'No training data available',
+    athleteDataIncluded: 'The athlete data will be included in the AI context',
+    documents: 'Documents',
+    noDocuments: 'No documents uploaded',
+    uploadDescription: <>Upload training documents, methodology guides, <br />calendars, or Excel files</>,
+    uploadDocuments: 'Upload documents',
+    searchDocuments: 'Search documents...',
+    selectFiltered: 'Select filtered',
+    selectAll: 'Select all',
+    filter: 'Filter',
+    clearSelection: 'Clear selection',
+    noDocumentsMatch: 'No documents match the filter',
+    chunks: 'chunks',
+    pendingDocumentsPrefix: 'Some documents are waiting for processing. Go to ',
+    documentsLink: 'Documents',
+    pendingDocumentsSuffix: ' and click "Generate" to activate them.',
+    selectedDocuments: 'documents selected.',
+    selectedDocumentsSuffix: 'AI can reference these when creating programs.',
+    manageDocuments: 'Manage documents',
+    webSearch: 'Web search',
+    enableWebSearch: 'Enable web search',
+    webSearchDescription: 'AI can search the internet for information',
+    selectedAthlete: 'Selected athlete:',
+    none: 'None',
+    selectedDocumentsLabel: 'Selected documents:',
+    on: 'On',
+    off: 'Off',
+  },
+  sv: {
+    context: 'Kontext',
+    athlete: 'Atlet',
+    chooseAthlete: 'Välj atlet...',
+    noAthleteSelected: 'Ingen atlet vald',
+    loadingData: 'Laddar data...',
+    tests: 'Test',
+    races: 'Lopp',
+    programs: 'Program',
+    checkIns: 'Check-in',
+    bodyCompositions: 'kroppssammansättningar',
+    videoAnalyses: 'videoanalyser',
+    lactateTests: 'laktattest',
+    raceBadge: 'Lopp',
+    bodyBadge: 'Kropp',
+    formScore: 'Formpoäng',
+    injuryRisk: 'Skaderisk',
+    poseIncluded: 'Pose/Gemini ingår',
+    poseFindings: 'posefynd i senaste analysen',
+    noTrainingData: 'Ingen träningsdata tillgänglig',
+    athleteDataIncluded: 'Atletens data kommer inkluderas i AI-kontexten',
+    documents: 'Dokument',
+    noDocuments: 'Inga dokument uppladdade',
+    uploadDescription: <>Ladda upp träningsdokument, metodikguider, <br />kalender eller Excel-filer</>,
+    uploadDocuments: 'Ladda upp dokument',
+    searchDocuments: 'Sök dokument...',
+    selectFiltered: 'Välj filtrerade',
+    selectAll: 'Välj alla',
+    filter: 'Filter',
+    clearSelection: 'Rensa val',
+    noDocumentsMatch: 'Inga dokument matchar filtret',
+    chunks: 'delar',
+    pendingDocumentsPrefix: 'Vissa dokument väntar på bearbetning. Gå till ',
+    documentsLink: 'Dokument',
+    pendingDocumentsSuffix: ' och klicka "Generera" för att aktivera dem.',
+    selectedDocuments: 'dokument valda.',
+    selectedDocumentsSuffix: 'AI kan referera till dessa vid programskapande.',
+    manageDocuments: 'Hantera dokument',
+    webSearch: 'Webbsökning',
+    enableWebSearch: 'Aktivera webbsökning',
+    webSearchDescription: 'AI kan söka på internet efter information',
+    selectedAthlete: 'Vald atlet:',
+    none: 'Ingen',
+    selectedDocumentsLabel: 'Valda dokument:',
+    on: 'På',
+    off: 'Av',
+  },
+}
 
 // Context summary from API
 interface ContextSummary {
@@ -157,6 +300,8 @@ export function ContextPanel({
   skillSelectionDisabled = false,
 }: ContextPanelProps) {
   const pathname = usePathname()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const documentsHref = pathBusinessSlug ? `${basePath}/coach/documents` : '/login'
@@ -197,7 +342,7 @@ export function ContextPanel({
       }
     }
 
-    fetchSummary()
+    void fetchSummary()
   }, [selectedAthlete])
 
   // Document search and filter state
@@ -272,7 +417,7 @@ export function ContextPanel({
 
   const getCategoryLabel = (category: DocumentCategory) => {
     switch (category) {
-      case 'ALL': return 'Alla'
+      case 'ALL': return locale === 'sv' ? 'Alla' : 'All'
       case 'PDF': return 'PDF'
       case 'EXCEL': return 'Excel'
       case 'MARKDOWN': return 'Markdown'
@@ -285,21 +430,21 @@ export function ContextPanel({
       case 'COMPLETED':
         return {
           icon: <CheckCircle className="h-3 w-3 text-green-500" />,
-          label: 'Klar',
+          label: locale === 'sv' ? 'Klar' : 'Ready',
           color: 'text-green-600',
           canSelect: true,
         }
       case 'PROCESSING':
         return {
           icon: <Clock className="h-3 w-3 text-blue-500 animate-pulse" />,
-          label: 'Bearbetar...',
+          label: locale === 'sv' ? 'Bearbetar...' : 'Processing...',
           color: 'text-blue-600',
           canSelect: false,
         }
       case 'FAILED':
         return {
           icon: <AlertTriangle className="h-3 w-3 text-red-500" />,
-          label: 'Misslyckades',
+          label: locale === 'sv' ? 'Misslyckades' : 'Failed',
           color: 'text-red-600',
           canSelect: false,
         }
@@ -307,7 +452,7 @@ export function ContextPanel({
       default:
         return {
           icon: <Clock className="h-3 w-3 text-amber-500" />,
-          label: 'Väntar',
+          label: locale === 'sv' ? 'Väntar' : 'Pending',
           color: 'text-amber-600',
           canSelect: false,
         }
@@ -315,16 +460,16 @@ export function ContextPanel({
   }
 
   const getSportLabel = (sport: string) => {
-    const sportLabels: Record<string, string> = {
-      RUNNING: 'Löpning',
-      CYCLING: 'Cykling',
-      SWIMMING: 'Simning',
-      TRIATHLON: 'Triathlon',
-      HYROX: 'HYROX',
-      SKIING: 'Skidåkning',
-      GENERAL_FITNESS: 'Allmän träning',
+    const sportLabels: Record<string, Record<AppLocale, string>> = {
+      RUNNING: { en: 'Running', sv: 'Löpning' },
+      CYCLING: { en: 'Cycling', sv: 'Cykling' },
+      SWIMMING: { en: 'Swimming', sv: 'Simning' },
+      TRIATHLON: { en: 'Triathlon', sv: 'Triathlon' },
+      HYROX: { en: 'HYROX', sv: 'HYROX' },
+      SKIING: { en: 'Skiing', sv: 'Skidåkning' },
+      GENERAL_FITNESS: { en: 'General fitness', sv: 'Allmän träning' },
     }
-    return sportLabels[sport] || sport
+    return sportLabels[sport]?.[locale] || sport
   }
 
   // Show skeleton while mounting to prevent hydration mismatch
@@ -333,7 +478,7 @@ export function ContextPanel({
       <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg">Kontext</h2>
+            <h2 className="font-semibold text-lg">{copy.context}</h2>
           </div>
           <div className="animate-pulse space-y-4">
             <div className="h-24 bg-muted rounded-lg" />
@@ -349,7 +494,7 @@ export function ContextPanel({
     <ScrollArea className="h-full">
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-lg">Kontext</h2>
+          <h2 className="font-semibold text-lg">{copy.context}</h2>
         </div>
 
         {/* Athlete Selection */}
@@ -360,7 +505,7 @@ export function ContextPanel({
                 <GlassCardTitle className="text-sm flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    Atlet
+                    {copy.athlete}
                   </span>
                   <ChevronDown
                     className={`h-4 w-4 transition-transform ${
@@ -379,10 +524,10 @@ export function ContextPanel({
                   }
                 >
                   <SelectTrigger className="w-full bg-slate-100 dark:bg-slate-900/40">
-                    <SelectValue placeholder="Välj atlet..." />
+                    <SelectValue placeholder={copy.chooseAthlete} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Ingen atlet vald</SelectItem>
+                    <SelectItem value="none">{copy.noAthleteSelected}</SelectItem>
                     {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>
                         <div className="flex items-center gap-2">
@@ -408,7 +553,7 @@ export function ContextPanel({
                     {loadingSummary ? (
                       <div className="flex items-center gap-1 mt-2 text-xs text-slate-500 dark:text-slate-400">
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        Laddar data...
+                        {copy.loadingData}
                       </div>
                     ) : contextSummary ? (
                       <div className="mt-2 space-y-1.5">
@@ -420,11 +565,11 @@ export function ContextPanel({
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900/50">
                                     <Activity className="h-3 w-3" />
-                                    Test
+                                    {copy.tests}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{contextSummary.counts.tests} laktattest</p>
+                                  <p>{contextSummary.counts.tests} {copy.lactateTests}</p>
                                   {contextSummary.latestTest?.vo2max && (
                                     <p className="text-xs">VO2max: {contextSummary.latestTest.vo2max.toFixed(1)}</p>
                                   )}
@@ -437,11 +582,11 @@ export function ContextPanel({
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/50">
                                     <Trophy className="h-3 w-3" />
-                                    Lopp
+                                    {copy.raceBadge}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{contextSummary.counts.races} tävlingar</p>
+                                  <p>{contextSummary.counts.races} {copy.races.toLowerCase()}</p>
                                   {contextSummary.latestRace?.vdot && (
                                     <p className="text-xs">VDOT: {contextSummary.latestRace.vdot.toFixed(1)}</p>
                                   )}
@@ -454,11 +599,11 @@ export function ContextPanel({
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900/50">
                                     <Calendar className="h-3 w-3" />
-                                    Program
+                                    {copy.programs}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{contextSummary.counts.programs} träningsprogram</p>
+                                  <p>{contextSummary.counts.programs} {locale === 'sv' ? 'träningsprogram' : 'training programs'}</p>
                                 </TooltipContent>
                               </Tooltip>
                             )}
@@ -472,7 +617,7 @@ export function ContextPanel({
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{contextSummary.counts.checkIns} dagliga check-ins</p>
+                                  <p>{contextSummary.counts.checkIns} {locale === 'sv' ? 'dagliga check-ins' : 'daily check-ins'}</p>
                                 </TooltipContent>
                               </Tooltip>
                             )}
@@ -482,11 +627,11 @@ export function ContextPanel({
                                 <TooltipTrigger asChild>
                                   <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-900/50">
                                     <Scale className="h-3 w-3" />
-                                    Kropp
+                                    {copy.bodyBadge}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{contextSummary.counts.bodyComps} kroppssammansättningar</p>
+                                  <p>{contextSummary.counts.bodyComps} {copy.bodyCompositions}</p>
                                 </TooltipContent>
                               </Tooltip>
                             )}
@@ -500,23 +645,23 @@ export function ContextPanel({
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{contextSummary.counts.videoAnalyses} videoanalyser</p>
+                                  <p>{contextSummary.counts.videoAnalyses} {copy.videoAnalyses}</p>
                                   {contextSummary.latestVideoAnalysis?.formScore && (
-                                    <p className="text-xs">Formpoäng: {contextSummary.latestVideoAnalysis.formScore}/100</p>
+                                    <p className="text-xs">{copy.formScore}: {contextSummary.latestVideoAnalysis.formScore}/100</p>
                                   )}
                                   {contextSummary.latestVideoAnalysis?.injuryRiskLevel && (
-                                    <p className="text-xs">Skaderisk: {contextSummary.latestVideoAnalysis.injuryRiskLevel}</p>
+                                    <p className="text-xs">{copy.injuryRisk}: {contextSummary.latestVideoAnalysis.injuryRiskLevel}</p>
                                   )}
                                   {contextSummary.latestVideoAnalysis?.hasPoseContext && (
                                     <p className="text-xs">
-                                      Pose/Gemini ingår
+                                      {copy.poseIncluded}
                                       {contextSummary.latestVideoAnalysis.poseScore !== null
                                         ? `: ${contextSummary.latestVideoAnalysis.poseScore}/100`
                                         : ''}
                                     </p>
                                   )}
                                   {contextSummary.latestVideoAnalysis?.poseFindingCount ? (
-                                    <p className="text-xs">{contextSummary.latestVideoAnalysis.poseFindingCount} posefynd i senaste analysen</p>
+                                    <p className="text-xs">{contextSummary.latestVideoAnalysis.poseFindingCount} {copy.poseFindings}</p>
                                   ) : null}
                                 </TooltipContent>
                               </Tooltip>
@@ -527,13 +672,13 @@ export function ContextPanel({
                         {/* No data indicator */}
                         {!contextSummary.hasTests && !contextSummary.hasRaces && !contextSummary.hasProgram && (
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Ingen träningsdata tillgänglig
+                            {copy.noTrainingData}
                           </p>
                         )}
                       </div>
                     ) : (
                       <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">
-                        Atletens data kommer inkluderas i AI-kontexten
+                        {copy.athleteDataIncluded}
                       </p>
                     )}
                   </div>
@@ -551,7 +696,7 @@ export function ContextPanel({
                 <GlassCardTitle className="text-sm flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Dokument
+                    {copy.documents}
                     {selectedDocuments.length > 0 && (
                       <Badge variant="secondary" className="ml-1">
                         {selectedDocuments.length}
@@ -572,10 +717,10 @@ export function ContextPanel({
                   <div className="text-center py-4">
                     <FolderOpen className="h-8 w-8 mx-auto text-slate-400/50 mb-2" />
                     <p className="text-sm text-slate-700 dark:text-slate-300">
-                      Inga dokument uppladdade
+                      {copy.noDocuments}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-3">
-                      Ladda upp träningsdokument, metodikguider, <br />kalender eller Excel-filer
+                      {copy.uploadDescription}
                     </p>
                     <Button
                       variant="outline"
@@ -585,7 +730,7 @@ export function ContextPanel({
                     >
                       <Link href={documentsHref}>
                         <Upload className="h-3 w-3 mr-1" />
-                        Ladda upp dokument
+                        {copy.uploadDocuments}
                       </Link>
                     </Button>
                   </div>
@@ -596,7 +741,7 @@ export function ContextPanel({
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
                       <Input
                         type="text"
-                        placeholder="Sök dokument..."
+                        placeholder={copy.searchDocuments}
                         value={docSearchQuery}
                         onChange={(e) => setDocSearchQuery(e.target.value)}
                         className="pl-8 h-8 text-sm bg-slate-100 dark:bg-slate-900/40"
@@ -641,7 +786,7 @@ export function ContextPanel({
                         onClick={selectAllFiltered}
                         className="text-xs h-7 hover:bg-slate-200/50 dark:hover:bg-white/5"
                       >
-                        Välj {docCategoryFilter !== 'ALL' || docSearchQuery ? 'filtrerade' : 'alla'}
+                        {docCategoryFilter !== 'ALL' || docSearchQuery ? copy.selectFiltered : copy.selectAll}
                       </Button>
                       <div className="flex gap-1">
                         {(docCategoryFilter !== 'ALL' || docSearchQuery) && (
@@ -652,7 +797,7 @@ export function ContextPanel({
                             className="text-xs h-7 hover:bg-slate-200/50 dark:hover:bg-white/5"
                           >
                             <X className="h-3 w-3 mr-1" />
-                            Filter
+                            {copy.filter}
                           </Button>
                         )}
                         {selectedDocuments.length > 0 && (
@@ -662,7 +807,7 @@ export function ContextPanel({
                             onClick={clearDocuments}
                             className="text-xs h-7 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
                           >
-                            Rensa val
+                            {copy.clearSelection}
                           </Button>
                         )}
                       </div>
@@ -672,7 +817,7 @@ export function ContextPanel({
                     <div className="space-y-1 max-h-64 overflow-y-auto">
                       {filteredDocuments.length === 0 ? (
                         <div className="text-center py-4 text-sm text-slate-500">
-                          Inga dokument matchar filtret
+                          {copy.noDocumentsMatch}
                         </div>
                       ) : (
                         filteredDocuments.map((doc) => {
@@ -719,7 +864,7 @@ export function ContextPanel({
                                   </Badge>
                                   {doc.processingStatus === 'COMPLETED' ? (
                                     <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                                      {doc.chunkCount} delar
+                                      {doc.chunkCount} {copy.chunks}
                                     </span>
                                   ) : (
                                     <span className={`text-[10px] flex items-center gap-1 ${statusInfo.color}`}>
@@ -741,11 +886,11 @@ export function ContextPanel({
                         <div className="flex items-start gap-1.5">
                           <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 flex-shrink-0" />
                           <div className="text-amber-750 dark:text-amber-400">
-                            Vissa dokument väntar på bearbetning. Gå till{' '}
+                            {copy.pendingDocumentsPrefix}
                             <Link href={documentsHref} className="underline font-medium">
-                              Dokument
-                            </Link>{' '}
-                            och klicka &quot;Generera&quot; för att aktivera dem.
+                              {copy.documentsLink}
+                            </Link>
+                            {copy.pendingDocumentsSuffix}
                           </div>
                         </div>
                       </div>
@@ -757,8 +902,9 @@ export function ContextPanel({
                         <div className="flex items-start gap-1.5">
                           <Info className="h-3.5 w-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
                           <div className="text-blue-750 dark:text-blue-400">
-                            <strong>{selectedDocuments.length}</strong> dokument valda.
-                            AI kan referera till dessa vid programskapande.
+                            <strong>{selectedDocuments.length}</strong> {copy.selectedDocuments}
+                            {' '}
+                            {copy.selectedDocumentsSuffix}
                           </div>
                         </div>
                       </div>
@@ -773,7 +919,7 @@ export function ContextPanel({
                     >
                       <Link href={documentsHref}>
                         <Upload className="h-3 w-3 mr-1" />
-                        Hantera dokument
+                        {copy.manageDocuments}
                       </Link>
                     </Button>
                   </>
@@ -830,7 +976,7 @@ export function ContextPanel({
                 <GlassCardTitle className="text-sm flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Globe className="h-4 w-4" />
-                    Webbsökning
+                    {copy.webSearch}
                   </span>
                   <ChevronDown
                     className={`h-4 w-4 transition-transform ${
@@ -845,10 +991,10 @@ export function ContextPanel({
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <Label htmlFor="web-search" className="text-sm text-slate-800 dark:text-slate-200">
-                      Aktivera webbsökning
+                      {copy.enableWebSearch}
                     </Label>
                     <p className="text-xs text-slate-550 dark:text-slate-400">
-                      AI kan söka på internet efter information
+                      {copy.webSearchDescription}
                     </p>
                   </div>
                   <Switch
@@ -867,15 +1013,15 @@ export function ContextPanel({
           <GlassCardContent className="py-3">
             <div className="text-xs text-slate-550 dark:text-slate-400 space-y-1">
               <div className="flex justify-between">
-                <span>Vald atlet:</span>
+                <span>{copy.selectedAthlete}</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
                   {selectedAthlete
                     ? clients.find((c) => c.id === selectedAthlete)?.name
-                    : 'Ingen'}
+                    : copy.none}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Valda dokument:</span>
+                <span>{copy.selectedDocumentsLabel}</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedDocuments.length}</span>
               </div>
               <div className="flex justify-between">
@@ -883,9 +1029,9 @@ export function ContextPanel({
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedSkillIds.length}</span>
               </div>
               <div className="flex justify-between">
-                <span>Webbsökning:</span>
+                <span>{copy.webSearch}:</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {webSearchEnabled ? 'På' : 'Av'}
+                  {webSearchEnabled ? copy.on : copy.off}
                 </span>
               </div>
             </div>
