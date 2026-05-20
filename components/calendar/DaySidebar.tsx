@@ -103,7 +103,7 @@ export function DaySidebar({
   const isGlass = variant === 'glass'
   const t = useTranslations('components.daySidebar')
   const locale = useLocale()
-  const dateLocale = locale?.startsWith('en') ? enUS : sv
+  const dateLocale = locale?.startsWith('sv') ? sv : enUS
 
   if (!date) {
     if (isGlass) {

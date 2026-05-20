@@ -51,7 +51,7 @@ export function FieldTestDetailPanel({ test, isGlass = false }: { test: UnifiedC
   const warnings = normalizeMessages(detail?.warnings)
   const errors = normalizeMessages(detail?.errors)
   const dateLabel = detail?.date
-    ? new Date(detail.date).toLocaleDateString(locale?.startsWith('en') ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
+    ? new Date(detail.date).toLocaleDateString(locale?.startsWith('sv') ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
     : null
   const metrics = getFieldTestMetrics(detail?.results || null, t)
 

@@ -363,7 +363,7 @@ export function CalendarEventItem({
   const [workoutResult, setWorkoutResult] = useState<ScheduledWorkoutResult | null>(null)
   const t = useTranslations('components.daySidebar')
   const locale = useLocale()
-  const dateLocale = locale?.startsWith('en') ? enUS : sv
+  const dateLocale = locale?.startsWith('sv') ? sv : enUS
   const dateLocaleCode = toDateLocaleCode(locale)
   const meta = event.metadata
   const eventType = (meta.eventType as string) || 'EXTERNAL_EVENT'

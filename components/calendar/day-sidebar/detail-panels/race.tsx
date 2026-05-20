@@ -48,7 +48,7 @@ export function RaceDetailPanel({ race, isGlass = false }: { race: UnifiedCalend
   const completed = (meta.isCompleted as boolean) || !!detail?.timeFormatted
   const confidence = formatConfidenceLabel(detail?.confidence, t)
   const dateLabel = detail?.raceDate
-    ? new Date(detail.raceDate).toLocaleDateString(locale?.startsWith('en') ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
+    ? new Date(detail.raceDate).toLocaleDateString(locale?.startsWith('sv') ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
     : null
 
   return (

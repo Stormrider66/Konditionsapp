@@ -189,7 +189,7 @@ export function WorkoutDetailPanel({ workout, isGlass = false, onViewWorkoutDeta
   const intervalResults = Array.isArray(latestLog?.intervalResults) ? latestLog.intervalResults : []
   const hasIntervalDetails = intervalResults.some((segment) => Array.isArray(segment.reps) && segment.reps.length > 0)
   const completedDate = latestLog?.completedAt
-    ? new Date(latestLog.completedAt).toLocaleDateString(locale?.startsWith('en') ? 'en-US' : 'sv-SE', {
+    ? new Date(latestLog.completedAt).toLocaleDateString(locale?.startsWith('sv') ? 'sv-SE' : 'en-US', {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',

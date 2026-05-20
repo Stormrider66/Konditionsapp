@@ -118,7 +118,7 @@ export function DayActionMenu({
   const isMobile = useIsMobile()
   const t = useTranslations('components.daySidebar')
   const locale = useLocale()
-  const dateLocale = locale?.startsWith('en') ? enUS : sv
+  const dateLocale = locale?.startsWith('sv') ? sv : enUS
 
   const handleAction = useCallback(
     (actionId: DayActionType) => {
