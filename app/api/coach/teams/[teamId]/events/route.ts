@@ -185,7 +185,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     if (locationConflicts.length > 0) {
       return NextResponse.json({
-        error: formatLocationConflictMessage(locationConflicts),
+        error: formatLocationConflictMessage(locationConflicts, locale),
         code: 'LOCATION_CONFLICT',
         conflicts: locationConflicts.map((conflict) => ({
           ...conflict,

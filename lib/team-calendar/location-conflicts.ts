@@ -10,6 +10,8 @@ export interface TeamCalendarLocationConflict {
   type: string
 }
 
+type AppLocale = 'en' | 'sv'
+
 function normalizeLocationName(location: string | null | undefined) {
   return location?.trim().replace(/\s+/g, ' ').toLowerCase() ?? ''
 }
@@ -89,16 +91,26 @@ export async function findTeamCalendarLocationConflicts({
     }))
 }
 
-export function formatLocationConflictMessage(conflicts: TeamCalendarLocationConflict[]) {
+export function formatLocationConflictMessage(conflicts: TeamCalendarLocationConflict[], locale: AppLocale = 'en') {
   const first = conflicts[0]
-  if (!first) return 'Platsen är redan bokad under den tiden.'
+  if (!first) {
+    return locale === 'sv'
+      ? 'Platsen är redan bokad under den tiden.'
+      : 'The location is already booked during that time.'
+  }
 
-  const time = first.startDate.toLocaleString('sv-SE', {
+  const time = first.startDate.toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
   })
-  const suffix = conflicts.length > 1 ? ` och ${conflicts.length - 1} till` : ''
-  return `${first.location} är redan bokad ${time} (${first.title})${suffix}.`
+  const suffix = conflicts.length > 1
+    ? locale === 'sv'
+      ? ` och ${conflicts.length - 1} till`
+      : ` and ${conflicts.length - 1} more`
+    : ''
+  return locale === 'sv'
+    ? `${first.location} är redan bokad ${time} (${first.title})${suffix}.`
+    : `${first.location} is already booked ${time} (${first.title})${suffix}.`
 }

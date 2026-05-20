@@ -25,6 +25,8 @@ interface RouteContext {
   params: Promise<{ teamId: string; eventId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
 const updateEventSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional().nullable(),
@@ -88,8 +90,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
 }
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
@@ -174,7 +179,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     if (locationConflicts.length > 0) {
       return NextResponse.json({
-        error: formatLocationConflictMessage(locationConflicts),
+        error: formatLocationConflictMessage(locationConflicts, locale),
         code: 'LOCATION_CONFLICT',
         conflicts: locationConflicts.map((conflict) => ({
           ...conflict,
