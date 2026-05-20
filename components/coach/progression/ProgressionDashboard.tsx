@@ -26,6 +26,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useLocale } from 'next-intl'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -97,6 +98,8 @@ interface ProgressionSummary {
 }
 
 export function ProgressionDashboard({ clientId, clientName }: ProgressionDashboardProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const pageCtx = usePageContextOptional()
   const { toast } = useToast()
 
@@ -140,10 +143,12 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
         plateauCount: plateauExercises.length,
         readyForIncreaseCount: readyForIncrease.length,
       },
-      summary: `Progression för ${clientName}: ${exerciseSummaries.length} övningar spåras. ${plateauExercises.length} i platå, ${readyForIncrease.length} redo för belastningsökning.${selectedSummary ? ` Vald övning: ${selectedSummary.exercise.name} med 1RM ${selectedSummary.current1RM.toFixed(1)} kg (${selectedSummary.currentStatus}).` : ''}`,
+      summary: locale === 'sv'
+        ? `Progression för ${clientName}: ${exerciseSummaries.length} övningar spåras. ${plateauExercises.length} i platå, ${readyForIncrease.length} redo för belastningsökning.${selectedSummary ? ` Vald övning: ${selectedSummary.exercise.name} med 1RM ${selectedSummary.current1RM.toFixed(1)} kg (${selectedSummary.currentStatus}).` : ''}`
+        : `Progression for ${clientName}: ${exerciseSummaries.length} exercises tracked. ${plateauExercises.length} in plateau, ${readyForIncrease.length} ready for load increase.${selectedSummary ? ` Selected exercise: ${selectedSummary.exercise.name} with 1RM ${selectedSummary.current1RM.toFixed(1)} kg (${selectedSummary.currentStatus}).` : ''}`,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exerciseSummaries, selectedExercise, clientName])
+  }, [exerciseSummaries, selectedExercise, clientName, locale])
 
   // Fetch weekly progression summary
   const fetchProgressionSummary = useCallback(async () => {
@@ -198,13 +203,13 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
 
   // Fetch exercise summaries on mount
   useEffect(() => {
-    fetchProgressionSummary()
+    void fetchProgressionSummary()
   }, [fetchProgressionSummary])
 
   // Fetch progression history when exercise changes
   useEffect(() => {
     if (selectedExercise) {
-      fetchProgressionHistory(selectedExercise)
+      void fetchProgressionHistory(selectedExercise)
     }
   }, [selectedExercise, fetchProgressionHistory])
 
@@ -308,7 +313,7 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3 text-gray-400" />
               <span className="text-sm">
-                {new Date(summary.lastSession).toLocaleDateString('sv-SE')}
+                {new Date(summary.lastSession).toLocaleDateString(dateLocale)}
               </span>
             </div>
             {summary.plateauWeeks > 0 && (
@@ -338,11 +343,11 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
-                tickFormatter={(value) => new Date(value).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' })}
+                tickFormatter={(value) => new Date(value).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}
               />
               <YAxis />
               <Tooltip
-                labelFormatter={(value) => new Date(value).toLocaleDateString('sv-SE')}
+                labelFormatter={(value) => new Date(value).toLocaleDateString(dateLocale)}
                 formatter={(value: any) => [`${value.toFixed(1)} kg`, '1RM']}
               />
               <Legend />
@@ -377,11 +382,11 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
-                tickFormatter={(value) => new Date(value).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' })}
+                tickFormatter={(value) => new Date(value).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}
               />
               <YAxis yAxisId="left" />
               <YAxis yAxisId="right" orientation="right" />
-              <Tooltip labelFormatter={(value) => new Date(value).toLocaleDateString('sv-SE')} />
+              <Tooltip labelFormatter={(value) => new Date(value).toLocaleDateString(dateLocale)} />
               <Legend />
               <Bar yAxisId="left" dataKey="actualLoad" fill="#3b82f6" name="Load (kg)" />
               <Bar yAxisId="right" dataKey="repsCompleted" fill="#10b981" name="Reps Completed" />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -54,6 +55,8 @@ interface TrendingStats {
 type TimeRange = '3months' | '6months' | '1year' | 'all'
 
 export function HistoricalTrendingChart({ clientId, clientName }: HistoricalTrendingChartProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [data, setData] = useState<TrendingDataPoint[]>([])
   const [stats, setStats] = useState<TrendingStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -85,7 +88,7 @@ export function HistoricalTrendingChart({ clientId, clientName }: HistoricalTren
 
           return {
             date: new Date(race.raceDate),
-            dateString: new Date(race.raceDate).toLocaleDateString('sv-SE'),
+            dateString: new Date(race.raceDate).toLocaleDateString(dateLocale),
             vdot,
             marathonPaceKmh,
             marathonPaceMinKm: speedToPace(marathonPaceKmh),
@@ -118,7 +121,7 @@ export function HistoricalTrendingChart({ clientId, clientName }: HistoricalTren
 
           return {
             date: new Date(test.testDate),
-            dateString: new Date(test.testDate).toLocaleDateString('sv-SE'),
+            dateString: new Date(test.testDate).toLocaleDateString(dateLocale),
             vdot: estimatedVdot,
             marathonPaceKmh,
             marathonPaceMinKm: speedToPace(marathonPaceKmh),
@@ -141,7 +144,7 @@ export function HistoricalTrendingChart({ clientId, clientName }: HistoricalTren
 
           return {
             date: new Date(test.testDate),
-            dateString: new Date(test.testDate).toLocaleDateString('sv-SE'),
+            dateString: new Date(test.testDate).toLocaleDateString(dateLocale),
             vdot: estimatedVdot,
             vo2max: test.vo2max,
             source: 'VO2MAX_TEST' as const,
@@ -190,10 +193,10 @@ export function HistoricalTrendingChart({ clientId, clientName }: HistoricalTren
     } finally {
       setLoading(false)
     }
-  }, [clientId])
+  }, [clientId, dateLocale])
 
   useEffect(() => {
-    fetchHistoricalData()
+    void fetchHistoricalData()
   }, [fetchHistoricalData])
 
   // Filter data by time range
@@ -352,7 +355,7 @@ export function HistoricalTrendingChart({ clientId, clientName }: HistoricalTren
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {stats.vdotChangePercent && stats.vdotChangePercent > 0 ? '+' : ''}
-                  {stats.vdotChangePercent?.toFixed(1)}% since {stats.firstDate?.toLocaleDateString('sv-SE')}
+                  {stats.vdotChangePercent?.toFixed(1)}% since {stats.firstDate?.toLocaleDateString(dateLocale)}
                 </p>
               </>
             ) : (
