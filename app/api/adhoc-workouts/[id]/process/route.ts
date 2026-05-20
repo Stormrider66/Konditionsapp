@@ -37,6 +37,12 @@ import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 export const maxDuration = 120
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================
 // POST - Process Ad-Hoc Workout
 // ============================================
@@ -52,6 +58,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     // Get client info for coach's API keys
     const client = await prisma.client.findUnique({
@@ -117,7 +124,7 @@ export async function POST(
     // Handle skipAI mode (e.g. manual form with pre-built structure)
     const body = await request.json().catch(() => ({}))
     if (body.skipAI && body.parsedStructure) {
-      const parsedWorkout = normalizeParsedWorkoutDistance(validateParsedWorkout(body.parsedStructure))
+      const parsedWorkout = normalizeParsedWorkoutDistance(validateParsedWorkout(body.parsedStructure, locale))
       const updated = await prisma.adHocWorkout.update({
         where: { id },
         data: {
@@ -150,7 +157,10 @@ export async function POST(
 
     if (!googleKey) {
       return NextResponse.json(
-        { success: false, error: 'Ingen Google API-nyckel hittades. Kontrollera AI-inställningarna.' },
+        {
+          success: false,
+          error: t(locale, 'No Google API key was found. Check AI settings.', 'Ingen Google API-nyckel hittades. Kontrollera AI-inställningarna.'),
+        },
         { status: 400 }
       )
     }
@@ -204,6 +214,7 @@ export async function POST(
             adHocWorkout.rawInputText,
             exerciseLibrary,
             aiMeta,
+            locale,
           )
           break
         }
@@ -219,6 +230,7 @@ export async function POST(
             adHocWorkout.rawInputUrl,
             exerciseLibrary,
             aiMeta,
+            locale,
           )
           break
         }
@@ -233,6 +245,7 @@ export async function POST(
             adHocWorkout.rawInputUrl,
             exerciseLibrary,
             aiMeta,
+            locale,
           )
           break
         }
@@ -321,6 +334,7 @@ async function parseFromText(
   text: string,
   exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>,
   meta: AiCallMeta,
+  locale: AppLocale,
 ): Promise<ParsedWorkout> {
   const prompt = buildTextParsingPrompt(text, exerciseLibrary)
 
@@ -329,7 +343,7 @@ async function parseFromText(
     temperature: 0.3,
   }, meta)
 
-  return parseAIResponse(response.text)
+  return parseAIResponse(response.text, locale)
 }
 
 async function parseFromImage(
@@ -338,6 +352,7 @@ async function parseFromImage(
   imageUrl: string,
   exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>,
   meta: AiCallMeta,
+  locale: AppLocale,
 ): Promise<ParsedWorkout> {
   const prompt = buildImageParsingPrompt(exerciseLibrary)
 
@@ -375,7 +390,7 @@ async function parseFromImage(
     meta,
   )
 
-  return parseAIResponse(response.text)
+  return parseAIResponse(response.text, locale)
 }
 
 async function parseFromVoice(
@@ -384,6 +399,7 @@ async function parseFromVoice(
   audioUrl: string,
   exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>,
   meta: AiCallMeta,
+  locale: AppLocale,
 ): Promise<ParsedWorkout> {
   // Fetch audio as base64
   let base64Data: string
@@ -431,11 +447,11 @@ async function parseFromVoice(
     temperature: 0.3,
   }, { ...meta, category: 'adhoc_workout_voice_parse' })
 
-  const parsed = parseAIResponse(parsingResponse.text)
+  const parsed = parseAIResponse(parsingResponse.text, locale)
 
   // Include transcription in notes if not already there
   if (!parsed.notes) {
-    parsed.notes = `Transkription: ${transcription}`
+    parsed.notes = `${t(locale, 'Transcription', 'Transkription')}: ${transcription}`
   }
 
   return parsed
@@ -445,14 +461,14 @@ async function parseFromVoice(
 // HELPER FUNCTIONS
 // ============================================
 
-function parseAIResponse(text: string): ParsedWorkout {
+function parseAIResponse(text: string, locale: AppLocale): ParsedWorkout {
   // Extract JSON from response (might be wrapped in markdown code blocks)
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
   const jsonText = jsonMatch ? jsonMatch[1] : text
 
   try {
     const parsed = JSON.parse(jsonText)
-    return validateParsedWorkout(parsed)
+    return validateParsedWorkout(parsed, locale)
   } catch (error) {
     logger.error('Failed to parse AI response as JSON', { text: text.substring(0, 500), error })
 
@@ -460,13 +476,13 @@ function parseAIResponse(text: string): ParsedWorkout {
     return {
       type: 'MIXED',
       confidence: 0,
-      rawInterpretation: 'Kunde inte tolka AI-svaret',
-      warnings: ['AI-svaret kunde inte tolkas som JSON'],
+      rawInterpretation: t(locale, 'Could not interpret the AI response', 'Kunde inte tolka AI-svaret'),
+      warnings: [t(locale, 'The AI response could not be parsed as JSON', 'AI-svaret kunde inte tolkas som JSON')],
     }
   }
 }
 
-function validateParsedWorkout(data: unknown): ParsedWorkout {
+function validateParsedWorkout(data: unknown, locale: AppLocale): ParsedWorkout {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid parsed workout data')
   }
@@ -517,7 +533,7 @@ function validateParsedWorkout(data: unknown): ParsedWorkout {
     rawInterpretation:
       typeof workout.rawInterpretation === 'string'
         ? workout.rawInterpretation
-        : 'Ingen tolkning tillgänglig',
+        : t(locale, 'No interpretation available', 'Ingen tolkning tillgänglig'),
     warnings: Array.isArray(workout.warnings) ? workout.warnings : undefined,
   }
 }
