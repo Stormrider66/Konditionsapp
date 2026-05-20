@@ -10,6 +10,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
 interface SimcaAthleteScore {
   key: string
   name: string
@@ -34,6 +36,18 @@ interface SimcaSummary {
 
 function normalizeKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9åäö]/gi, '')
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+async function getUserLocale(userId: string): Promise<AppLocale> {
+  const appUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return appUser?.language === 'sv' ? 'sv' : 'en'
 }
 
 function safeNumber(value: unknown): number | null {
@@ -223,25 +237,29 @@ async function authorizeTeam(teamId: string) {
   })
 
   if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
+    const locale = await getUserLocale(user.id)
     return {
       error: NextResponse.json(
-        { success: false, error: 'PRO-prenumeration krävs för SIMCA-jämförelse' },
+        { success: false, error: t(locale, 'A PRO subscription is required for SIMCA comparison', 'PRO-prenumeration krävs för SIMCA-jämförelse') },
         { status: 403 }
       ),
     }
   }
 
-  return { user, team }
+  return { user, team, locale: await getUserLocale(user.id) }
 }
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: teamId } = await params
     const auth = await authorizeTeam(teamId)
     if (auth.error) return auth.error
+    locale = auth.locale
 
     const url = new URL(request.url)
     const baselineId = url.searchParams.get('baselineId')
@@ -249,7 +267,7 @@ export async function GET(
 
     if (!baselineId || !currentId || baselineId === currentId) {
       return NextResponse.json(
-        { success: false, error: 'Välj två olika SIMCA-importer att jämföra' },
+        { success: false, error: t(auth.locale, 'Choose two different SIMCA imports to compare', 'Välj två olika SIMCA-importer att jämföra') },
         { status: 400 }
       )
     }
@@ -273,7 +291,7 @@ export async function GET(
     const current = imports.find((item) => item.id === currentId)
 
     if (!baseline || !current) {
-      return NextResponse.json({ success: false, error: 'SIMCA-import hittades inte' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(auth.locale, 'SIMCA import not found', 'SIMCA-import hittades inte') }, { status: 404 })
     }
 
     const baselineSummary = extractSimcaSummary(baseline.modelData)
@@ -381,7 +399,7 @@ export async function GET(
   } catch (error) {
     console.error('SIMCA compare error:', error)
     return NextResponse.json(
-      { success: false, error: 'Serverfel vid SIMCA-jämförelse' },
+      { success: false, error: t(locale, 'Server error during SIMCA comparison', 'Serverfel vid SIMCA-jämförelse') },
       { status: 500 }
     )
   }

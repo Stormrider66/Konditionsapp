@@ -13,6 +13,20 @@ import type { Prisma, SportType } from '@prisma/client'
 
 const MAX_IMPORT_CHARS = 1_000_000
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+async function getUserLocale(userId: string): Promise<AppLocale> {
+  const appUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return appUser?.language === 'sv' ? 'sv' : 'en'
+}
+
 function detectFormat(fileName: string, content: string): 'json' | 'csv' | 'text' {
   const lower = fileName.toLowerCase()
   if (lower.endsWith('.json')) return 'json'
@@ -83,25 +97,29 @@ async function authorizeTeam(teamId: string) {
   })
 
   if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
+    const locale = await getUserLocale(user.id)
     return {
       error: NextResponse.json(
-        { success: false, error: 'PRO-prenumeration krävs för SIMCA-import' },
+        { success: false, error: t(locale, 'A PRO subscription is required for SIMCA import', 'PRO-prenumeration krävs för SIMCA-import') },
         { status: 403 }
       ),
     }
   }
 
-  return { user, team }
+  return { user, team, locale: await getUserLocale(user.id) }
 }
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: teamId } = await params
     const auth = await authorizeTeam(teamId)
     if (auth.error) return auth.error
+    locale = auth.locale
 
     const imports = await prisma.mVAModel.findMany({
       where: {
@@ -149,7 +167,7 @@ export async function GET(
   } catch (error) {
     console.error('SIMCA imports list error:', error)
     return NextResponse.json(
-      { success: false, error: 'Serverfel vid hämtning av SIMCA-importer' },
+      { success: false, error: t(locale, 'Server error while fetching SIMCA imports', 'Serverfel vid hämtning av SIMCA-importer') },
       { status: 500 }
     )
   }
@@ -159,22 +177,25 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: teamId } = await params
     const auth = await authorizeTeam(teamId)
     if (auth.error) return auth.error
+    locale = auth.locale
 
     const body = await request.json()
     const fileName = typeof body?.fileName === 'string' ? body.fileName.slice(0, 160) : 'simca-result'
     const content = typeof body?.content === 'string' ? body.content : ''
 
     if (!content.trim()) {
-      return NextResponse.json({ success: false, error: 'Tom SIMCA-fil' }, { status: 400 })
+      return NextResponse.json({ success: false, error: t(locale, 'Empty SIMCA file', 'Tom SIMCA-fil') }, { status: 400 })
     }
 
     if (content.length > MAX_IMPORT_CHARS) {
       return NextResponse.json(
-        { success: false, error: 'SIMCA-filen är för stor för första importversionen' },
+        { success: false, error: t(locale, 'The SIMCA file is too large for the first import version', 'SIMCA-filen är för stor för första importversionen') },
         { status: 413 }
       )
     }
@@ -231,7 +252,7 @@ export async function POST(
   } catch (error) {
     console.error('SIMCA import error:', error)
     return NextResponse.json(
-      { success: false, error: 'Serverfel vid SIMCA-import' },
+      { success: false, error: t(locale, 'Server error during SIMCA import', 'Serverfel vid SIMCA-import') },
       { status: 500 }
     )
   }
