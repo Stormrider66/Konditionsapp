@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Activity, Calendar, Library, Plus, FolderOpen, Wand2, CalendarPlus, CheckCircle2, Loader2, FileUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,11 +18,21 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+
+function ExerciseLibraryLoading() {
+  const { copy } = useStrengthDashboardCopy()
+  return <div className="p-8 text-center text-muted-foreground">{copy.loadingExerciseLibrary}</div>
+}
+
+function ProgressionLoading() {
+  const { copy } = useStrengthDashboardCopy()
+  return <div className="p-8 text-center text-muted-foreground">{copy.loadingProgression}</div>
+}
 
 const ExerciseLibraryBrowser = dynamic(
   () => import('@/components/coach/exercise-library/ExerciseLibraryBrowser').then(mod => mod.ExerciseLibraryBrowser),
-  { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground">Laddar övningsbibliotek...</div> }
+  { ssr: false, loading: ExerciseLibraryLoading }
 )
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
 import { SessionBuilder } from './SessionBuilder'
@@ -38,7 +49,7 @@ import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calenda
 
 const ProgressionDashboard = dynamic(
   () => import('@/components/coach/progression/ProgressionDashboard').then(mod => mod.ProgressionDashboard),
-  { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground">Laddar progression...</div> }
+  { ssr: false, loading: ProgressionLoading }
 )
 
 interface GeneratedSession {
@@ -77,11 +88,122 @@ interface StrengthStats {
   topPrExercises: string | null
 }
 
+interface ClientOptionRecord {
+  id: string
+  name?: string | null
+  firstName?: string | null
+  lastName?: string | null
+}
+
+type AppLocale = 'en' | 'sv'
+
+const LOCALE_CONFIG: Record<AppLocale, string> = {
+  en: 'en-US',
+  sv: 'sv-SE',
+}
+
+const COPY = {
+  en: {
+    loadingExerciseLibrary: 'Loading exercise library...',
+    loadingProgression: 'Loading progression...',
+    openSessionError: 'Could not open the strength session',
+    openSessionToast: 'Could not open the session',
+    unnamedAthlete: 'Unnamed',
+    pageDescription: 'Manage exercises, build sophisticated strength programs, and track athlete progression.',
+    importWorkout: 'Import workout',
+    autoGenerate: 'Auto-generate',
+    newExercise: 'New exercise',
+    createSessionPrefix: 'Create ',
+    session: 'Session',
+    exercises: 'Exercises',
+    sessionLibrarySuffix: 'library',
+    sectionBuilder: 'Section builder',
+    simpleBuilder: 'Simple builder',
+    builderHint: 'Build sessions with warm-up, main work, core, and cooldown',
+    weeklyProgram: (current: number, total: number) => `Weekly program - Session ${current} of ${total}`,
+    saveToContinue: 'Save this session to continue to the next one.',
+    selectAthlete: 'Select athlete',
+    selectAthletePlaceholder: 'Select an athlete...',
+    assignSuccess: (count: number) => `${count} sessions assigned`,
+    assignSuccessDescription: (athleteName: string | null, startDate: string) =>
+      `Assigned to ${athleteName || 'the athlete'} starting ${startDate}`,
+    assignError: 'Could not assign sessions',
+    assignWeeklyProgram: 'Assign weekly program',
+    assignWeeklyDescription: (count: number, athleteName: string | null) =>
+      `${count} saved sessions. Assign to ${athleteName || 'the athlete'}?`,
+    weekStarts: 'Week starts',
+    schedule: 'Schedule:',
+    sessionLetter: 'Session',
+    skip: 'Skip',
+    assigning: 'Assigning...',
+    assignSessions: (count: number) => `Assign ${count} sessions`,
+    importSuccess: 'Workout imported - review and save in the builder',
+    pageContext: {
+      autoGenerate: 'Can auto-generate individual sessions or weekly programs (A/B/C) with varied pillar focus',
+      athleteAware: 'Generation adapts to the athlete profile, restrictions, pain, and calendar',
+      exerciseLibrary: 'Exercise library with favorites and most-used exercises',
+      periodization: 'Anatomical adaptation -> Max strength -> Power -> Maintenance -> Taper',
+      summary: (stats: StrengthStats) =>
+        `Strength training: ${stats.totalExercises} exercises, ${stats.activePrograms} active sessions, ${stats.complianceRate}% adherence, ${stats.prsThisWeek} PRs this week. Auto-generation supports individual sessions and weekly programs with athlete-aware restriction filtering.`,
+    },
+  },
+  sv: {
+    loadingExerciseLibrary: 'Laddar övningsbibliotek...',
+    loadingProgression: 'Laddar progression...',
+    openSessionError: 'Kunde inte öppna styrkepasset',
+    openSessionToast: 'Kunde inte öppna passet',
+    unnamedAthlete: 'Namnlös',
+    pageDescription: 'Hantera övningar, bygg avancerade styrkeprogram och följ atletens progression.',
+    importWorkout: 'Importera pass',
+    autoGenerate: 'Auto-generera',
+    newExercise: 'Ny övning',
+    createSessionPrefix: 'Skapa ',
+    session: 'Pass',
+    exercises: 'Övningar',
+    sessionLibrarySuffix: 'bibliotek',
+    sectionBuilder: 'Sektionsbyggare',
+    simpleBuilder: 'Enkel byggare',
+    builderHint: 'Bygg pass med uppvärmning, huvudpass, core och nedvarvning',
+    weeklyProgram: (current: number, total: number) => `Veckoprogram - Pass ${current} av ${total}`,
+    saveToContinue: 'Spara detta pass för att gå vidare till nästa.',
+    selectAthlete: 'Välj atlet',
+    selectAthletePlaceholder: 'Välj en atlet...',
+    assignSuccess: (count: number) => `${count} pass tilldelade`,
+    assignSuccessDescription: (athleteName: string | null, startDate: string) =>
+      `Tilldelat ${athleteName || 'atleten'} med start ${startDate}`,
+    assignError: 'Kunde inte tilldela pass',
+    assignWeeklyProgram: 'Tilldela veckoprogram',
+    assignWeeklyDescription: (count: number, athleteName: string | null) =>
+      `${count} pass sparade. Tilldela till ${athleteName || 'atleten'}?`,
+    weekStarts: 'Vecka börjar',
+    schedule: 'Schema:',
+    sessionLetter: 'Pass',
+    skip: 'Hoppa över',
+    assigning: 'Tilldelar...',
+    assignSessions: (count: number) => `Tilldela ${count} pass`,
+    importSuccess: 'Pass importerat - granska och spara i byggaren',
+    pageContext: {
+      autoGenerate: 'Kan auto-generera enskilda pass eller veckoprogram (A/B/C) med varierad pelarfokus',
+      athleteAware: 'Generering anpassas efter atletens profil, restriktioner, smärta och kalender',
+      exerciseLibrary: 'Övningsbibliotek med favoriter och mest använda',
+      periodization: 'Anatomisk anpassning -> Maxstyrka -> Power -> Underhåll -> Taper',
+      summary: (stats: StrengthStats) =>
+        `Styrketräning: ${stats.totalExercises} övningar, ${stats.activePrograms} aktiva pass, ${stats.complianceRate}% genomförande, ${stats.prsThisWeek} PR denna vecka. Auto-generering stödjer enskilda pass och veckoprogram med atletmedveten restriktionsfiltrering.`,
+    },
+  },
+} as const
+
+function useStrengthDashboardCopy() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  return { copy: COPY[locale], localeCode: LOCALE_CONFIG[locale] }
+}
+
 interface StrengthDashboardProps {
   businessId?: string
 }
 
 export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
+  const { copy, localeCode } = useStrengthDashboardCopy()
   const pageCtx = usePageContextOptional()
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -129,7 +251,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          throw new Error(body.error || 'Kunde inte öppna styrkepasset')
+          throw new Error(body.error || copy.openSessionError)
         }
         return res.json()
       })
@@ -141,7 +263,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       })
       .catch((error) => {
         if (cancelled) return
-        toast.error('Kunde inte öppna passet', {
+        toast.error(copy.openSessionToast, {
           description: error instanceof Error ? error.message : undefined,
         })
       })
@@ -149,7 +271,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
     return () => {
       cancelled = true
     }
-  }, [editSessionId])
+  }, [copy.openSessionError, copy.openSessionToast, editSessionId])
 
   // Set rich page context for AI chat
   useEffect(() => {
@@ -167,17 +289,17 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         prsThisWeek: stats.prsThisWeek,
         topPrExercises: stats.topPrExercises,
         capabilities: {
-          autoGenerate: 'Kan auto-generera enskilda pass eller veckoprogram (A/B/C) med varierad pelarfokus',
-          athleteAware: 'Generering anpassas efter atletens profil, restriktioner, smärta och kalender',
-          exerciseLibrary: 'Övningsbibliotek med favoriter och mest använda',
-          periodization: 'Anatomisk anpassning → Maxstyrka → Power → Underhåll → Taper',
+          autoGenerate: copy.pageContext.autoGenerate,
+          athleteAware: copy.pageContext.athleteAware,
+          exerciseLibrary: copy.pageContext.exerciseLibrary,
+          periodization: copy.pageContext.periodization,
           biomechanicalPillars: 'Posterior chain, Knee dominance, Unilateral, Foot/ankle, Anti-rotation/core, Upper body',
         },
       },
-      summary: `Styrketräning: ${stats.totalExercises} övningar, ${stats.activePrograms} aktiva pass, ${stats.complianceRate}% genomförande, ${stats.prsThisWeek} PR denna vecka. Auto-generering stödjer enskilda pass och veckoprogram med atletmedveten restriktionsfiltrering.`,
+      summary: copy.pageContext.summary(stats),
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats])
+  }, [copy.pageContext, stats])
 
   // Fetch stats on mount
   useEffect(() => {
@@ -196,23 +318,24 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         console.error('Failed to fetch strength stats:', error)
       }
     }
-    fetchStats()
+    void fetchStats()
     // Also fetch athletes for progression tab
     async function fetchAthletes() {
       try {
         const res = await fetch('/api/clients')
         if (res.ok) {
           const data = await res.json()
-          const list = (data.clients || data || []).map((c: any) => ({
+          const clients = (data.clients || data || []) as ClientOptionRecord[]
+          const list = clients.map((c) => ({
             id: c.id,
-            name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Unnamed',
+            name: c.name || `${c.firstName || ''} ${c.lastName || ''}`.trim() || copy.unnamedAthlete,
           }))
           setProgressionAthletes(list)
         }
       } catch { /* non-critical */ }
     }
-    fetchAthletes()
-  }, [businessId])
+    void fetchAthletes()
+  }, [businessId, copy.unnamedAthlete])
 
   // Handle auto-generated session
   const handleAutoGenerated = (session: GeneratedSession) => {
@@ -448,15 +571,15 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         if (res.ok) assignedCount++
       }
 
-      toast.success(`${assignedCount} pass tilldelade`, {
-        description: `Tilldelat ${weeklyAthleteName} med start ${assignStartDate}`,
+      toast.success(copy.assignSuccess(assignedCount), {
+        description: copy.assignSuccessDescription(weeklyAthleteName, assignStartDate),
       })
 
       setShowWeeklyAssignDialog(false)
       cleanupWeeklyState()
       setActiveTab('sessions')
     } catch {
-      toast.error('Kunde inte tilldela pass')
+      toast.error(copy.assignError)
     } finally {
       setIsAssigning(false)
     }
@@ -483,7 +606,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         }
       } catch {}
     }
-    refreshStats()
+    void refreshStats()
   }
 
   return (
@@ -494,7 +617,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Strength Studio</h1>
           <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-            Manage exercises, build sophisticated strength programs, and track athlete progression.
+            {copy.pageDescription}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -505,7 +628,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
             onClick={() => setShowImporter(true)}
           >
             <FileUp className="mr-2 h-4 w-4" />
-            Importera pass
+            {copy.importWorkout}
           </Button>
           <AutoGenerateDialog
             onGenerated={handleAutoGenerated}
@@ -513,13 +636,13 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
             trigger={
               <Button variant="secondary" size="sm" className="sm:size-default text-foreground">
                 <Wand2 className="mr-2 h-4 w-4" />
-                Auto-generera
+                {copy.autoGenerate}
               </Button>
             }
           />
           <Button onClick={() => setShowCreator(true)} size="sm" className="sm:size-default">
             <Plus className="mr-2 h-4 w-4" />
-            Ny Övning
+            {copy.newExercise}
           </Button>
         </div>
       </div>
@@ -528,15 +651,15 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         <TabsList className="w-full justify-start overflow-x-auto bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1">
           <TabsTrigger value="builder" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Skapa </span>Pass
+            <span className="hidden sm:inline">{copy.createSessionPrefix}</span>{copy.session}
           </TabsTrigger>
           <TabsTrigger value="library" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Library className="h-4 w-4" />
-            Övningar
+            {copy.exercises}
           </TabsTrigger>
           <TabsTrigger value="sessions" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <FolderOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Pass</span>bibliotek
+            <span className="hidden sm:inline">{copy.session}</span>{copy.sessionLibrarySuffix}
           </TabsTrigger>
           <TabsTrigger value="progression" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             <Activity className="h-4 w-4" />
@@ -575,7 +698,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
                     : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
                 }`}
               >
-                Sektionsbyggare
+                {copy.sectionBuilder}
               </Button>
               <Button
                 variant="ghost"
@@ -587,12 +710,12 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
                     : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
                 }`}
               >
-                Enkel byggare
+                {copy.simpleBuilder}
               </Button>
             </div>
             {useSectionBuilder && (
               <p className="text-xs sm:text-sm text-slate-400">
-                Bygg pass med uppvärmning, huvudpass, core och nedvarvning
+                {copy.builderHint}
               </p>
             )}
           </div>
@@ -604,10 +727,10 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-white">
-                      Veckoprogram — Pass {currentWeeklyIndex + 1} av {weeklySessionQueue.length}
+                      {copy.weeklyProgram(currentWeeklyIndex + 1, weeklySessionQueue.length)}
                     </p>
                     <p className="text-xs text-slate-400">
-                      Spara detta pass för att gå vidare till nästa.
+                      {copy.saveToContinue}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -703,13 +826,13 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
             {/* Athlete selector for progression */}
             <div className="flex flex-col sm:flex-row sm:items-end gap-4 bg-white/5 dark:bg-slate-950/20 border border-white/5 p-4 rounded-xl backdrop-blur-sm shadow-md">
               <div className="flex-1 max-w-xs">
-                <Label className="text-sm font-medium mb-1.5 block text-slate-300">Välj atlet</Label>
+                <Label className="text-sm font-medium mb-1.5 block text-slate-300">{copy.selectAthlete}</Label>
                 <select
                   value={progressionClientId}
                   onChange={(e) => setProgressionClientId(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-white/10 bg-slate-950/50 backdrop-blur-sm px-3 py-2 text-sm text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
                 >
-                  <option value="" className="bg-slate-950 text-slate-200">Välj en atlet...</option>
+                  <option value="" className="bg-slate-950 text-slate-200">{copy.selectAthletePlaceholder}</option>
                   {progressionAthletes.map((a) => (
                     <option key={a.id} value={a.id} className="bg-slate-950 text-slate-200">{a.name}</option>
                   ))}
@@ -758,16 +881,16 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarPlus className="h-5 w-5 text-primary" />
-              Tilldela veckoprogram
+              {copy.assignWeeklyProgram}
             </DialogTitle>
             <DialogDescription>
-              {weeklySavedIds.length} pass sparade. Tilldela till {weeklyAthleteName}?
+              {copy.assignWeeklyDescription(weeklySavedIds.length, weeklyAthleteName)}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Vecka börjar</Label>
+              <Label className="text-sm font-medium">{copy.weekStarts}</Label>
               <input
                 type="date"
                 value={assignStartDate}
@@ -777,18 +900,18 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
             </div>
 
             <div className="rounded-md bg-muted/50 p-3 space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">Schema:</p>
+              <p className="text-xs font-medium text-muted-foreground">{copy.schedule}</p>
               {weeklySavedIds.map((_, i) => {
                 const dayOffsets = weeklySavedIds.length === 1 ? [0]
                   : weeklySavedIds.length === 2 ? [0, 2]
                   : [0, 2, 4]
                 const date = new Date(assignStartDate)
                 date.setDate(date.getDate() + (dayOffsets[i] || i * 2))
-                const dayName = date.toLocaleDateString('sv-SE', { weekday: 'long' })
-                const dateStr = date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+                const dayName = date.toLocaleDateString(localeCode, { weekday: 'long' })
+                const dateStr = date.toLocaleDateString(localeCode, { day: 'numeric', month: 'short' })
                 return (
                   <p key={i} className="text-sm">
-                    Pass {String.fromCharCode(65 + i)} → <span className="font-medium capitalize">{dayName}</span> {dateStr}
+                    {copy.sessionLetter} {String.fromCharCode(65 + i)} - <span className="font-medium capitalize">{dayName}</span> {dateStr}
                   </p>
                 )
               })}
@@ -801,18 +924,18 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
               cleanupWeeklyState()
               setActiveTab('sessions')
             }}>
-              Hoppa över
+              {copy.skip}
             </Button>
             <Button onClick={handleBatchAssign} disabled={isAssigning}>
               {isAssigning ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Tilldelar...
+                  {copy.assigning}
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Tilldela {weeklySavedIds.length} pass
+                  {copy.assignSessions(weeklySavedIds.length)}
                 </>
               )}
             </Button>
@@ -836,7 +959,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           setEditSession(toStrengthSessionData(workout, mappings))
           setUseSectionBuilder(true)
           setActiveTab('builder')
-          toast.success('Pass importerat — granska och spara i byggaren')
+          toast.success(copy.importSuccess)
         }}
       />
     </div>
