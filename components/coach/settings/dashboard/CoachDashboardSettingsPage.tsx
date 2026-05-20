@@ -28,7 +28,9 @@ import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { cn } from '@/lib/utils'
 import {
   getCoachWidgets,
-  CATEGORY_LABELS,
+  categoryLabel,
+  widgetDescription,
+  widgetDisplayName,
   type WidgetCategory,
   type WidgetDefinition,
 } from '@/lib/dashboard/widget-registry'
@@ -267,7 +269,7 @@ export default function CoachDashboardSettingsPage() {
         return (
           <GlassCard key={category} glow="purple">
             <GlassCardHeader>
-              <GlassCardTitle>{CATEGORY_LABELS[category]}</GlassCardTitle>
+              <GlassCardTitle>{categoryLabel(category, locale)}</GlassCardTitle>
               <GlassCardDescription>
                 {copy(locale, `${items.length} widget${items.length === 1 ? '' : 's'} - reorder with the arrows`, `${items.length} widget${items.length === 1 ? '' : 's'} - ändra ordning med pilarna`)}
               </GlassCardDescription>
@@ -299,14 +301,16 @@ export default function CoachDashboardSettingsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <Label className="text-base font-medium flex items-center gap-2 text-slate-900 dark:text-white">
-                      {w.definition.name}
+                      {widgetDisplayName(w.definition, locale)}
                       {w.definition.required && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <Lock className="h-3 w-3" /> {copy(locale, 'required', 'krävs')}
                         </span>
                       )}
                     </Label>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{w.definition.description}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {widgetDescription(w.definition, locale)}
+                    </p>
                   </div>
                   <Switch
                     checked={w.definition.required ? true : w.visible}

@@ -54,6 +54,219 @@ export interface WidgetDefinition {
   deprecated?: boolean
 }
 
+export type DashboardRegistryLocale = 'en' | 'sv'
+
+const WIDGET_COPY_EN: Record<string, { name: string; description: string }> = {
+  'hero-card-slider': {
+    name: "Today's session",
+    description: "Shows today's scheduled sessions and WODs",
+  },
+  'readiness-panel': {
+    name: 'Readiness',
+    description: 'Daily recovery, training load, and fatigue',
+  },
+  'milestone-celebration': {
+    name: 'Milestones',
+    description: 'Celebrates completed milestones and PRs',
+  },
+  'morning-briefing': {
+    name: 'Morning briefing',
+    description: 'AI-generated daily summary',
+  },
+  'pre-workout-nudge': {
+    name: 'Pre-session prep',
+    description: 'Reminders and preparation tips before sessions',
+  },
+  'pattern-alert': {
+    name: 'Pattern detection',
+    description: 'AI detects recurring patterns in your training',
+  },
+  'mental-prep': {
+    name: 'Mental prep',
+    description: 'Mental coaching before important sessions and competitions',
+  },
+  'nutrition-timing': {
+    name: 'Nutrition timing',
+    description: 'Suggestions for nutrition intake before and after sessions',
+  },
+  'race-fueling': {
+    name: 'Race fueling',
+    description: 'Carbohydrate plan for races and long sessions',
+  },
+  'post-workout-check': {
+    name: 'Post-workout check',
+    description: 'Quick feedback after completed sessions',
+  },
+  'ai-suggestions-banner': {
+    name: 'AI suggestions',
+    description: 'Intelligent training suggestions based on your data',
+  },
+  'sport-specific-dashboard': {
+    name: 'Sport-specific overview',
+    description: 'Specialized view for your primary sport',
+  },
+  'upcoming-team-events': {
+    name: 'Upcoming team activities',
+    description: 'Practices, games, and tests from your team',
+  },
+  'upcoming-workouts': {
+    name: 'Upcoming sessions',
+    description: 'Scheduled sessions for the next 7 days',
+  },
+  'weekly-training-summary': {
+    name: 'Weekly summary',
+    description: "Summary of this week's training",
+  },
+  'training-trend-chart': {
+    name: 'Training trends',
+    description: '12-week training load over time',
+  },
+  'zone-distribution-chart': {
+    name: 'Zone distribution',
+    description: 'Distribution of training across intensity zones',
+  },
+  'nutrition-dashboard': {
+    name: 'Nutrition',
+    description: "Today's nutrition intake and macros",
+  },
+  'integrated-recent-activity': {
+    name: 'Recent activities',
+    description: 'Strava, Garmin, and logged training',
+  },
+  'interval-results-history': {
+    name: 'Interval results',
+    description: 'History from live interval tests',
+  },
+  'athlete-drill-list': {
+    name: 'Drills',
+    description: 'Assigned drills and exercises from your coach',
+  },
+  'accountability-streak': {
+    name: 'Streak',
+    description: 'Daily accountability streak',
+  },
+  'agent-recommendations': {
+    name: 'AI recommendations',
+    description: 'Personal recommendations from the AI agent',
+  },
+  'active-restrictions': {
+    name: 'Active restrictions',
+    description: 'Injuries and training restrictions - safety critical',
+  },
+  'active-programs': {
+    name: 'Active programs',
+    description: 'Ongoing training programs',
+  },
+  'wod-history-summary': {
+    name: 'WOD history',
+    description: 'AI-generated sessions and statistics',
+  },
+  'garmin-health-card': {
+    name: 'Garmin health data',
+    description: 'HRV, resting heart rate, sleep, and stress from Garmin',
+  },
+  'oura-health-card': {
+    name: 'Oura Ring',
+    description: 'Readiness, sleep score, HRV, resting heart rate, and SpO2 from Oura',
+  },
+  'coach-command-center': {
+    name: 'Coach Command Center',
+    description: 'Prioritized work queue with explained AI recommendations',
+  },
+  'dashboard-stat-cards': {
+    name: 'Stat cards',
+    description: 'Overview of clients, programs, and recent activity',
+  },
+  'athlete-attention-list': {
+    name: 'Athletes needing attention',
+    description: 'Priority list of athletes with warnings',
+  },
+  'client-status-grid': {
+    name: 'Client status',
+    description: 'Overview grid of all clients',
+  },
+  'todays-appointments': {
+    name: "Today's appointments",
+    description: 'Booked sessions and appointments today',
+  },
+  'coach-ai-assistant': {
+    name: 'AI assistant',
+    description: 'AI coach panel for program suggestions and questions',
+  },
+  'coach-quick-actions': {
+    name: 'Quick actions',
+    description: 'Shortcuts to common coach tasks',
+  },
+  'recent-tests': {
+    name: 'Recent tests',
+    description: 'Physiological tests from the last 30 days',
+  },
+  'upcoming-events': {
+    name: 'Upcoming events',
+    description: 'Competitions and events in the next 7 days',
+  },
+  'team-quick-access': {
+    name: 'Team quick access',
+    description: 'Quick access to teams with readiness, sessions, and flags',
+  },
+  'team-pulse-panel': {
+    name: 'Team pulse',
+    description: 'Combined readiness, injury flags, and follow-ups',
+  },
+  'today-timeline': {
+    name: "Today's timeline",
+    description: "Timeline of the team's day",
+  },
+  'team-roster-grid': {
+    name: 'Team roster grid',
+    description: 'Overview of the whole team',
+  },
+  'team-tests-activity': {
+    name: 'Tests and team activity',
+    description: 'Upcoming team tests and recent assigned team sessions',
+  },
+  'gym-classes': {
+    name: 'Group classes',
+    description: 'Schedule for group classes',
+  },
+  'gym-client-list': {
+    name: 'PT clients',
+    description: 'List of personal training clients',
+  },
+  'coach-tasks': {
+    name: 'To-do',
+    description: 'Coach tasks and reminders',
+  },
+  'social-media': {
+    name: 'Social media',
+    description: 'Scheduled social media posts',
+  },
+  competitions: {
+    name: 'Competitions',
+    description: 'Competition calendar and registrations',
+  },
+  'strength-pr-feed': {
+    name: 'PR feed',
+    description: 'Latest personal records from clients',
+  },
+}
+
+export function widgetDisplayName(
+  definition: WidgetDefinition,
+  locale: DashboardRegistryLocale = 'en'
+): string {
+  return locale === 'sv' ? definition.name : WIDGET_COPY_EN[definition.key]?.name ?? definition.name
+}
+
+export function widgetDescription(
+  definition: WidgetDefinition,
+  locale: DashboardRegistryLocale = 'en'
+): string {
+  return locale === 'sv'
+    ? definition.description
+    : WIDGET_COPY_EN[definition.key]?.description ?? definition.description
+}
+
 // ---------------------------------------------------------------------------
 // ATHLETE WIDGETS
 // ---------------------------------------------------------------------------
@@ -585,6 +798,8 @@ export interface Preset {
   key: PresetKey
   name: string
   description: string
+  nameSv?: string
+  descriptionSv?: string
   /** Returns the visible widget keys for this preset, given the athlete's sport. */
   resolve: (allWidgets: WidgetDefinition[], sport?: SportType | null) => Set<string>
 }
@@ -600,13 +815,15 @@ export const PRESETS: Record<PresetKey, Preset> = {
   standard: {
     key: 'standard',
     name: 'Standard',
-    description: 'Visa allt — den fullständiga dashboard-vyn',
+    description: 'Show everything - the complete dashboard view',
+    descriptionSv: 'Visa allt — den fullständiga dashboard-vyn',
     resolve: (all) => new Set(all.filter(w => w.defaultVisible).map(w => w.key)),
   },
   minimal: {
     key: 'minimal',
     name: 'Minimal',
-    description: 'Bara det viktigaste: dagens pass, readiness och program',
+    description: "Only the essentials: today's session, readiness, and programs",
+    descriptionSv: 'Bara det viktigaste: dagens pass, readiness och program',
     resolve: (all) => {
       const keep = new Set([
         'hero-card-slider',
@@ -621,8 +838,10 @@ export const PRESETS: Record<PresetKey, Preset> = {
   },
   performance: {
     key: 'performance',
-    name: 'Prestation',
-    description: 'Fokus på träningsanalys, trender och AI-insikter',
+    name: 'Performance',
+    description: 'Focus on training analysis, trends, and AI insights',
+    nameSv: 'Prestation',
+    descriptionSv: 'Fokus på träningsanalys, trender och AI-insikter',
     resolve: (all) => {
       const keep = new Set([
         'hero-card-slider',
@@ -650,8 +869,10 @@ export const PRESETS: Record<PresetKey, Preset> = {
   },
   recovery: {
     key: 'recovery',
-    name: 'Återhämtning',
-    description: 'Fokus på readiness, sömn, näring och mental hälsa',
+    name: 'Recovery',
+    description: 'Focus on readiness, sleep, nutrition, and mental health',
+    nameSv: 'Återhämtning',
+    descriptionSv: 'Fokus på readiness, sömn, näring och mental hälsa',
     resolve: (all) => {
       const keep = new Set([
         'hero-card-slider',
@@ -673,8 +894,10 @@ export const PRESETS: Record<PresetKey, Preset> = {
   },
   'sport-focus': {
     key: 'sport-focus',
-    name: 'Sport-fokus',
-    description: 'Anpassad efter din primära sport (lag-, kondition- eller styrkefokus)',
+    name: 'Sport focus',
+    description: 'Adapted to your primary sport (team, endurance, or strength focus)',
+    nameSv: 'Sport-fokus',
+    descriptionSv: 'Anpassad efter din primära sport (lag-, kondition- eller styrkefokus)',
     resolve: (all, sport) => {
       // Sport-aware curated set
       const base = new Set([
@@ -714,6 +937,19 @@ export const PRESETS: Record<PresetKey, Preset> = {
 }
 
 export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
+  overview: 'Overview',
+  training: 'Training',
+  health: 'Health & recovery',
+  'ai-insights': 'AI insights',
+  nutrition: 'Nutrition',
+  social: 'Team & social',
+  'sport-specific': 'Sport-specific',
+  'coach-clients': 'Clients',
+  'coach-team': 'Team',
+  'coach-business': 'Business',
+}
+
+export const CATEGORY_LABELS_SV: Record<WidgetCategory, string> = {
   overview: 'Översikt',
   training: 'Träning',
   health: 'Hälsa & återhämtning',
@@ -724,4 +960,19 @@ export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
   'coach-clients': 'Klienter',
   'coach-team': 'Lag',
   'coach-business': 'Verksamhet',
+}
+
+export function categoryLabel(
+  category: WidgetCategory,
+  locale: DashboardRegistryLocale = 'en'
+): string {
+  return (locale === 'sv' ? CATEGORY_LABELS_SV : CATEGORY_LABELS)[category]
+}
+
+export function presetName(preset: Preset, locale: DashboardRegistryLocale = 'en'): string {
+  return locale === 'sv' ? preset.nameSv ?? preset.name : preset.name
+}
+
+export function presetDescription(preset: Preset, locale: DashboardRegistryLocale = 'en'): string {
+  return locale === 'sv' ? preset.descriptionSv ?? preset.description : preset.description
 }

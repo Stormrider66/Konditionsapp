@@ -45,16 +45,22 @@ import {
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import {
   getAthleteWidgets,
-  CATEGORY_LABELS,
+  categoryLabel,
+  widgetDescription,
+  widgetDisplayName,
   type WidgetCategory,
   type WidgetDefinition,
 } from '@/lib/dashboard/widget-registry'
+import { useLocale } from '@/i18n/client'
 
 export interface AthleteDashboardTemplatesClientProps {
   businessId: string
 }
 
 type Scope = 'BUSINESS_DEFAULT' | 'TEAM' | 'INDIVIDUAL'
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface Team {
   id: string
@@ -88,6 +94,7 @@ interface WidgetState {
 export default function AthleteDashboardTemplatesClient({
   businessId,
 }: AthleteDashboardTemplatesClientProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const basePath = useBasePath()
   const allWidgets = useMemo(() => getAthleteWidgets(), [])
 
@@ -110,7 +117,7 @@ export default function AthleteDashboardTemplatesClient({
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<{ text: string; tone: 'success' | 'error' } | null>(null)
 
   // Initial load: targets + existing templates
   useEffect(() => {
@@ -135,7 +142,7 @@ export default function AthleteDashboardTemplatesClient({
         setIsLoading(false)
       }
     }
-    load()
+    void load()
   }, [businessId])
 
   // Find the existing template that matches current scope + targetId
@@ -151,24 +158,28 @@ export default function AthleteDashboardTemplatesClient({
 
   // When the active template changes, hydrate widget state
   useEffect(() => {
-    const fresh = buildDefaults()
-    if (currentTemplate) {
-      setTemplateName(currentTemplate.name)
-      const map = new Map(currentTemplate.widgets.map(w => [w.widgetKey, w]))
-      setWidgets(
-        fresh
-          .map(w => {
-            const t = map.get(w.key)
-            return t ? { ...w, visible: t.visible, order: t.order } : w
-          })
-          .sort((a, b) => a.order - b.order)
-      )
-    } else {
-      setTemplateName(scope === 'BUSINESS_DEFAULT' ? 'Standard' : '')
-      setWidgets(fresh)
-    }
-    setHasChanges(false)
-    setSaveMessage(null)
+    const timeout = window.setTimeout(() => {
+      const fresh = buildDefaults()
+      if (currentTemplate) {
+        setTemplateName(currentTemplate.name)
+        const map = new Map(currentTemplate.widgets.map(w => [w.widgetKey, w]))
+        setWidgets(
+          fresh
+            .map(w => {
+              const t = map.get(w.key)
+              return t ? { ...w, visible: t.visible, order: t.order } : w
+            })
+            .sort((a, b) => a.order - b.order)
+        )
+      } else {
+        setTemplateName(scope === 'BUSINESS_DEFAULT' ? 'Standard' : '')
+        setWidgets(fresh)
+      }
+      setHasChanges(false)
+      setSaveMessage(null)
+    }, 0)
+
+    return () => window.clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope, targetId, currentTemplate?.id])
 
@@ -211,11 +222,11 @@ export default function AthleteDashboardTemplatesClient({
 
   async function save() {
     if (scope !== 'BUSINESS_DEFAULT' && !targetId) {
-      setSaveMessage('Välj ett mål först')
+      setSaveMessage({ text: copy(locale, 'Select a target first', 'Välj ett mål först'), tone: 'error' })
       return
     }
     if (!templateName.trim()) {
-      setSaveMessage('Ge mallen ett namn')
+      setSaveMessage({ text: copy(locale, 'Give the template a name', 'Ge mallen ett namn'), tone: 'error' })
       return
     }
     setIsSaving(true)
@@ -244,15 +255,15 @@ export default function AthleteDashboardTemplatesClient({
           return [...filtered, data.template]
         })
         setHasChanges(false)
-        setSaveMessage('Mall sparad!')
+        setSaveMessage({ text: copy(locale, 'Template saved!', 'Mall sparad!'), tone: 'success' })
         setTimeout(() => setSaveMessage(null), 3000)
       } else {
         const err = await res.json().catch(() => ({}))
-        setSaveMessage(err.error ?? 'Kunde inte spara mall')
+        setSaveMessage({ text: err.error ?? copy(locale, 'Could not save template', 'Kunde inte spara mall'), tone: 'error' })
       }
     } catch (err) {
       console.error('Failed to save template', err)
-      setSaveMessage('Ett fel uppstod')
+      setSaveMessage({ text: copy(locale, 'An error occurred', 'Ett fel uppstod'), tone: 'error' })
     } finally {
       setIsSaving(false)
     }
@@ -260,7 +271,7 @@ export default function AthleteDashboardTemplatesClient({
 
   async function remove() {
     if (!currentTemplate) return
-    if (!confirm(`Ta bort mallen "${currentTemplate.name}"?`)) return
+    if (!confirm(copy(locale, `Delete the template "${currentTemplate.name}"?`, `Ta bort mallen "${currentTemplate.name}"?`))) return
     setIsSaving(true)
     try {
       const res = await fetch(`/api/coach/dashboard-templates/${currentTemplate.id}`, {
@@ -268,7 +279,7 @@ export default function AthleteDashboardTemplatesClient({
       })
       if (res.ok) {
         setTemplates(prev => prev.filter(t => t.id !== currentTemplate.id))
-        setSaveMessage('Mall borttagen')
+        setSaveMessage({ text: copy(locale, 'Template deleted', 'Mall borttagen'), tone: 'success' })
         setWidgets(buildDefaults())
         setTimeout(() => setSaveMessage(null), 3000)
       }
@@ -291,7 +302,7 @@ export default function AthleteDashboardTemplatesClient({
 
   const targetOptions =
     scope === 'TEAM'
-      ? teams.map(t => ({ value: t.id, label: `${t.name} (${t.memberCount} medlemmar)` }))
+      ? teams.map(t => ({ value: t.id, label: `${t.name} (${t.memberCount} ${copy(locale, 'members', 'medlemmar')})` }))
       : scope === 'INDIVIDUAL'
         ? athletes.map(a => ({ value: a.id, label: a.name }))
         : []
@@ -318,10 +329,14 @@ export default function AthleteDashboardTemplatesClient({
         <div className="flex-1">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Users className="h-6 w-6" />
-            Atleternas dashboard-mallar
+            {copy(locale, 'Athlete dashboard templates', 'Atleternas dashboard-mallar')}
           </h1>
           <p className="text-muted-foreground text-sm">
-            Bestäm vilka widgets som ska visas på dina atleters dashboards. Atleten kan alltid välja att åsidosätta dina inställningar.
+            {copy(
+              locale,
+              'Choose which widgets appear on your athletes dashboards. Athletes can always override your settings.',
+              'Bestäm vilka widgets som ska visas på dina atleters dashboards. Atleten kan alltid välja att åsidosätta dina inställningar.'
+            )}
           </p>
         </div>
       </div>
@@ -330,23 +345,26 @@ export default function AthleteDashboardTemplatesClient({
       <Tabs value={scope} onValueChange={v => { setScope(v as Scope); setTargetId('') }}>
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="BUSINESS_DEFAULT" className="gap-2">
-            <Building2 className="h-4 w-4" /> Standard
+            <Building2 className="h-4 w-4" /> {copy(locale, 'Default', 'Standard')}
           </TabsTrigger>
           <TabsTrigger value="TEAM" className="gap-2">
-            <Users className="h-4 w-4" /> Per lag
+            <Users className="h-4 w-4" /> {copy(locale, 'By team', 'Per lag')}
           </TabsTrigger>
           <TabsTrigger value="INDIVIDUAL" className="gap-2">
-            <User className="h-4 w-4" /> Per atlet
+            <User className="h-4 w-4" /> {copy(locale, 'By athlete', 'Per atlet')}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="BUSINESS_DEFAULT" className="mt-4">
           <GlassCard glow="blue">
             <GlassCardHeader>
-              <GlassCardTitle className="text-base">Standardmall för verksamheten</GlassCardTitle>
+              <GlassCardTitle className="text-base">{copy(locale, 'Business default template', 'Standardmall för verksamheten')}</GlassCardTitle>
               <GlassCardDescription>
-                Gäller alla atleter i verksamheten som inte har en mer specifik mall (lag eller individ).
-                Påverkar {affectedCount} atlet{affectedCount === 1 ? '' : 'er'}.
+                {copy(
+                  locale,
+                  `Applies to all athletes in the business without a more specific template (team or individual). Affects ${affectedCount} athlete${affectedCount === 1 ? '' : 's'}.`,
+                  `Gäller alla atleter i verksamheten som inte har en mer specifik mall (lag eller individ). Påverkar ${affectedCount} atlet${affectedCount === 1 ? '' : 'er'}.`
+                )}
               </GlassCardDescription>
             </GlassCardHeader>
           </GlassCard>
@@ -355,15 +373,15 @@ export default function AthleteDashboardTemplatesClient({
         <TabsContent value="TEAM" className="mt-4">
           <GlassCard glow="purple">
             <GlassCardHeader>
-              <GlassCardTitle className="text-base">Per lag</GlassCardTitle>
+              <GlassCardTitle className="text-base">{copy(locale, 'By team', 'Per lag')}</GlassCardTitle>
               <GlassCardDescription>
-                Bra för lagcoacher: en mall gäller alla lagets medlemmar.
+                {copy(locale, 'Useful for team coaches: one template applies to all team members.', 'Bra för lagcoacher: en mall gäller alla lagets medlemmar.')}
               </GlassCardDescription>
             </GlassCardHeader>
             <GlassCardContent>
               <Select value={targetId} onValueChange={setTargetId}>
                 <SelectTrigger className="w-full bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
-                  <SelectValue placeholder={teams.length === 0 ? 'Inga lag funna' : 'Välj lag'} />
+                  <SelectValue placeholder={teams.length === 0 ? copy(locale, 'No teams found', 'Inga lag funna') : copy(locale, 'Select team', 'Välj lag')} />
                 </SelectTrigger>
                 <SelectContent>
                   {targetOptions.map(o => (
@@ -375,7 +393,7 @@ export default function AthleteDashboardTemplatesClient({
               </Select>
               {targetId && (
                 <p className="text-xs text-slate-500 mt-2">
-                  Påverkar {affectedCount} atlet{affectedCount === 1 ? '' : 'er'}.
+                  {copy(locale, `Affects ${affectedCount} athlete${affectedCount === 1 ? '' : 's'}.`, `Påverkar ${affectedCount} atlet${affectedCount === 1 ? '' : 'er'}.`)}
                 </p>
               )}
             </GlassCardContent>
@@ -385,15 +403,15 @@ export default function AthleteDashboardTemplatesClient({
         <TabsContent value="INDIVIDUAL" className="mt-4">
           <GlassCard glow="emerald">
             <GlassCardHeader>
-              <GlassCardTitle className="text-base">Per atlet</GlassCardTitle>
+              <GlassCardTitle className="text-base">{copy(locale, 'By athlete', 'Per atlet')}</GlassCardTitle>
               <GlassCardDescription>
-                Bra för PT-coacher: skräddarsy en specifik atlets dashboard.
+                {copy(locale, 'Useful for PT coaches: tailor one specific athlete dashboard.', 'Bra för PT-coacher: skräddarsy en specifik atlets dashboard.')}
               </GlassCardDescription>
             </GlassCardHeader>
             <GlassCardContent>
               <Select value={targetId} onValueChange={setTargetId}>
                 <SelectTrigger className="w-full bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
-                  <SelectValue placeholder={athletes.length === 0 ? 'Inga atleter funna' : 'Välj atlet'} />
+                  <SelectValue placeholder={athletes.length === 0 ? copy(locale, 'No athletes found', 'Inga atleter funna') : copy(locale, 'Select athlete', 'Välj atlet')} />
                 </SelectTrigger>
                 <SelectContent>
                   {targetOptions.map(o => (
@@ -412,18 +430,18 @@ export default function AthleteDashboardTemplatesClient({
       {(scope === 'BUSINESS_DEFAULT' || targetId) && (
         <GlassCard glow="blue">
           <GlassCardHeader>
-            <GlassCardTitle className="text-base">Mallnamn</GlassCardTitle>
+            <GlassCardTitle className="text-base">{copy(locale, 'Template name', 'Mallnamn')}</GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <Input
               value={templateName}
               onChange={e => { setTemplateName(e.target.value); setHasChanges(true) }}
-              placeholder="t.ex. 'Hockey U18 fokus' eller 'Standardmall'"
+              placeholder={copy(locale, "e.g. 'Hockey U18 focus' or 'Default template'", "t.ex. 'Hockey U18 fokus' eller 'Standardmall'")}
               className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
             />
             {currentTemplate && (
               <p className="text-xs text-slate-500 mt-2">
-                Redigerar befintlig mall — ändringar gäller från sparning.
+                {copy(locale, 'Editing existing template - changes apply after saving.', 'Redigerar befintlig mall — ändringar gäller från sparning.')}
               </p>
             )}
           </GlassCardContent>
@@ -439,7 +457,7 @@ export default function AthleteDashboardTemplatesClient({
             return (
               <GlassCard key={category} glow="purple">
                 <GlassCardHeader>
-                  <GlassCardTitle>{CATEGORY_LABELS[category]}</GlassCardTitle>
+                  <GlassCardTitle>{categoryLabel(category, locale)}</GlassCardTitle>
                   <GlassCardDescription>
                     {items.length} widget{items.length === 1 ? '' : 's'}
                   </GlassCardDescription>
@@ -457,7 +475,7 @@ export default function AthleteDashboardTemplatesClient({
                           className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
                           disabled={idx === 0}
                           onClick={() => move(w, 'up')}
-                          aria-label="Flytta upp"
+                          aria-label={copy(locale, 'Move up', 'Flytta upp')}
                         >
                           <ChevronUp className="h-4 w-4" />
                         </Button>
@@ -467,21 +485,23 @@ export default function AthleteDashboardTemplatesClient({
                           className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
                           disabled={idx === items.length - 1}
                           onClick={() => move(w, 'down')}
-                          aria-label="Flytta ner"
+                          aria-label={copy(locale, 'Move down', 'Flytta ner')}
                         >
                           <ChevronDown className="h-4 w-4" />
                         </Button>
                       </div>
                       <div className="flex-1 min-w-0">
                         <Label className="text-base font-medium flex items-center gap-2 text-slate-900 dark:text-white">
-                          {w.definition.name}
+                          {widgetDisplayName(w.definition, locale)}
                           {w.definition.required && (
                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                              <Lock className="h-3 w-3" /> krävs
+                              <Lock className="h-3 w-3" /> {copy(locale, 'required', 'krävs')}
                             </span>
                           )}
                         </Label>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{w.definition.description}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          {widgetDescription(w.definition, locale)}
+                        </p>
                       </div>
                       <Switch
                         checked={w.definition.required ? true : w.visible}
@@ -506,22 +526,22 @@ export default function AthleteDashboardTemplatesClient({
               {currentTemplate && (
                 <Button variant="outline" size="sm" onClick={remove} disabled={isSaving} className="border-slate-200 dark:border-white/10 text-red-500 hover:text-red-650 hover:bg-red-500/10 transition-all">
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Ta bort mall
+                  {copy(locale, 'Delete template', 'Ta bort mall')}
                 </Button>
               )}
               {saveMessage && (
                 <p
                   className={`text-sm font-semibold ${
-                    saveMessage.includes('sparad') || saveMessage.includes('borttagen')
+                    saveMessage.tone === 'success'
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-red-600 dark:text-red-400'
                   }`}
                 >
-                  {saveMessage}
+                  {saveMessage.text}
                 </p>
               )}
               {hasChanges && !saveMessage && (
-                <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">Osparade ändringar</p>
+                <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{copy(locale, 'Unsaved changes', 'Osparade ändringar')}</p>
               )}
             </div>
             <Button 
@@ -535,12 +555,12 @@ export default function AthleteDashboardTemplatesClient({
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sparar...
+                  {copy(locale, 'Saving...', 'Sparar...')}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  {currentTemplate ? 'Uppdatera mall' : 'Skapa mall'}
+                  {currentTemplate ? copy(locale, 'Update template', 'Uppdatera mall') : copy(locale, 'Create template', 'Skapa mall')}
                 </>
               )}
             </Button>
