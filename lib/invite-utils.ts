@@ -11,6 +11,11 @@ import { resolveEmailBranding } from '@/lib/email/branding'
 import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 
 type BusinessMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH' | 'PHYSICAL_TRAINER' | 'ASSISTANT_COACH' | 'PHYSIO'
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export interface InviteUserResult {
   success: boolean
@@ -33,11 +38,13 @@ export async function inviteUserToBusiness({
   businessId,
   role,
   invitedByUserId,
+  locale = 'en',
 }: {
   email: string
   name: string
   businessId: string
   role: BusinessMemberRole
+  locale?: AppLocale
   /** The User who's issuing this invite. When their email is on the
    *  business's verified custom sending domain, the invite mail goes from
    *  their own address (e.g. henrik@thomsons.se) instead of noreply@. */
@@ -72,7 +79,10 @@ export async function inviteUserToBusiness({
       })
 
       if (existingMember) {
-        return { success: false, error: 'Användaren är redan medlem i denna verksamhet' }
+        return {
+          success: false,
+          error: t(locale, 'The user is already a member of this business', 'Användaren är redan medlem i denna verksamhet'),
+        }
       }
 
       const member = await prisma.businessMember.create({
@@ -101,7 +111,7 @@ export async function inviteUserToBusiness({
 
     if (authError || !authData.user) {
       logger.error('Invite: auth user creation failed', { email }, authError)
-      return { success: false, error: `Kunde inte skapa konto: ${authError?.message}` }
+      return { success: false, error: t(locale, `Could not create account: ${authError?.message}`, `Kunde inte skapa konto: ${authError?.message}`) }
     }
 
     // Create DB records in a transaction
@@ -138,7 +148,7 @@ export async function inviteUserToBusiness({
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch((cleanupErr) => {
         logger.error('Invite: failed to clean up auth user', { userId: authData.user.id }, cleanupErr)
       })
-      return { success: false, error: 'Databasfel vid skapande av användare' }
+      return { success: false, error: t(locale, 'Database error while creating user', 'Databasfel vid skapande av användare') }
     }
 
     // Generate recovery link for password setup
@@ -173,6 +183,7 @@ export async function inviteUserToBusiness({
       {
         businessId,
       },
+      locale,
     ).catch((emailErr) => {
       logger.error('Invite: failed to send invite email', { email }, emailErr)
       return { success: false, error: 'Email send failed' }
@@ -186,6 +197,6 @@ export async function inviteUserToBusiness({
     return { success: true, userId: authData.user.id, memberId, emailSent }
   } catch (error) {
     logger.error('Invite: unexpected error', { email, businessId }, error)
-    return { success: false, error: 'Ett oväntat fel inträffade' }
+    return { success: false, error: t(locale, 'An unexpected error occurred', 'Ett oväntat fel inträffade') }
   }
 }

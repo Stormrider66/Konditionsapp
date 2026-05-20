@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       businessId,
       role: validatedData.role,
       invitedByUserId: admin.id,
+      locale,
     })
 
     if (!result.success) {

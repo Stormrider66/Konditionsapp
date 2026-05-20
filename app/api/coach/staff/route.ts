@@ -223,6 +223,7 @@ export async function POST(req: NextRequest) {
       businessId: membership.businessId,
       role: parsed.data.role,
       invitedByUserId: user.id,
+      locale,
     })
 
     if (!result.success) {
