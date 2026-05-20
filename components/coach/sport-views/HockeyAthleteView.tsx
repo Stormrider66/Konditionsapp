@@ -35,6 +35,8 @@ import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
 import { SportTestHistory } from '@/components/tests/shared'
 import { toast } from 'sonner'
+import { buildTeamSportPlanningSummary } from '@/lib/program-generator/team-sports/explainability'
+import { TeamSportPlanningSummaryCard } from './TeamSportPlanningSummaryCard'
 
 interface HockeyAthleteViewProps {
   clientId: string
@@ -730,6 +732,17 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
   }
 
   const phaseRecommendations = PHASE_RECOMMENDATIONS[hockeySettings.seasonPhase] || PHASE_RECOMMENDATIONS.off_season
+  const planningSummary = buildTeamSportPlanningSummary({
+    sport: 'TEAM_ICE_HOCKEY',
+    goal: hockeySettings.seasonPhase === 'off_season'
+      ? 'off-season-build'
+      : hockeySettings.seasonPhase === 'pre_season'
+        ? 'pre-season-readiness'
+        : 'in-season-maintenance',
+    sessionsPerWeek: hockeySettings.weeklyOffIceSessions,
+    locale: locale === 'sv' ? 'sv' : 'en',
+    hockeySettings: settings as Record<string, unknown>,
+  })
 
   // Calculate average shift length
   const avgShiftLength = hockeySettings.averageIceTimeMinutes && hockeySettings.shiftsPerGame
@@ -879,6 +892,14 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
           </Button>
         </CardContent>
       </Card>
+
+      {planningSummary && (
+        <TeamSportPlanningSummaryCard
+          summary={planningSummary}
+          locale={locale}
+          theme={theme}
+        />
+      )}
 
       <Card className={playerHighlightClasses(playerHighlight.tone)} style={{ borderColor: theme.colors.border }}>
         <CardHeader className="pb-3">

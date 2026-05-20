@@ -18,6 +18,8 @@ import {
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { FootballSettings } from '@/components/onboarding/FootballOnboarding'
 import { SportTestHistory } from '@/components/tests/shared'
+import { buildTeamSportPlanningSummary } from '@/lib/program-generator/team-sports/explainability'
+import { TeamSportPlanningSummaryCard } from './TeamSportPlanningSummaryCard'
 
 interface FootballAthleteViewProps {
   clientId: string
@@ -217,6 +219,17 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
 
   const phaseRecommendations = PHASE_RECOMMENDATIONS[footballSettings.seasonPhase] || PHASE_RECOMMENDATIONS.off_season
   const positionBenchmarks = POSITION_BENCHMARKS[footballSettings.position] || POSITION_BENCHMARKS.midfielder
+  const planningSummary = buildTeamSportPlanningSummary({
+    sport: 'TEAM_FOOTBALL',
+    goal: footballSettings.seasonPhase === 'off_season'
+      ? 'off-season-build'
+      : footballSettings.seasonPhase === 'pre_season'
+        ? 'pre-season-readiness'
+        : 'in-season-maintenance',
+    sessionsPerWeek: footballSettings.weeklyTrainingSessions,
+    locale: locale === 'sv' ? 'sv' : 'en',
+    footballSettings: settings,
+  })
 
   // Calculate benchmark percentages
   const getBenchmarkPercentage = (actual: number | null, target: number, lowerIsBetter = false): number | null => {
@@ -303,6 +316,14 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
           </div>
         </CardContent>
       </Card>
+
+      {planningSummary && (
+        <TeamSportPlanningSummaryCard
+          summary={planningSummary}
+          locale={locale}
+          theme={theme}
+        />
+      )}
 
       {/* GPS Data Card */}
       {footballSettings.hasGPSData && (
