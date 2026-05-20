@@ -22,6 +22,8 @@ function getRequestLocale(rawLocale: unknown, userLanguage?: string | null): App
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     // Rate limit: 5 emails per minute per IP (Redis-backed with in-memory fallback)
     const ip = getRequestIp(request)
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -51,11 +53,12 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       select: { role: true, language: true },
     })
+    locale = getRequestLocale(undefined, dbUser?.language)
     if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Forbidden',
+          error: t(locale, 'Forbidden', 'Förbjudet'),
         },
         { status: 403 }
       )
@@ -72,13 +75,13 @@ export async function POST(request: NextRequest) {
       customMessage,
       locale: rawLocale,
     } = body
-    const locale = getRequestLocale(rawLocale, dbUser.language)
+    locale = getRequestLocale(rawLocale, dbUser.language)
 
     if (!to || !pdfBase64) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Email address and PDF data are required',
+          error: t(locale, 'Email address and PDF data are required', 'E-postadress och PDF-data krävs'),
         },
         { status: 400 }
       )
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid email address format',
+          error: t(locale, 'Invalid email address format', 'Ogiltigt e-postformat'),
         },
         { status: 400 }
       )
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'PDF file size exceeds maximum allowed (10MB)',
+          error: t(locale, 'PDF file size exceeds maximum allowed (10MB)', 'PDF-filen överskrider maximal tillåten storlek (10 MB)'),
         },
         { status: 400 }
       )
@@ -183,7 +186,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Email service not configured',
+          error: t(locale, 'Email service is not configured', 'E-posttjänsten är inte konfigurerad'),
         },
         { status: 503 }
       )
@@ -213,7 +216,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to send email',
+          error: t(locale, 'Failed to send email', 'Kunde inte skicka e-post'),
         },
         { status: 500 }
       )
@@ -222,16 +225,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: data,
-      message: 'Email sent successfully',
+      message: t(locale, 'Email sent successfully', 'E-post skickades'),
     })
   } catch (error: unknown) {
     logger.error('Error sending email', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to send email',
+        error: t(locale, 'Failed to send email', 'Kunde inte skicka e-post'),
       },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
