@@ -33,7 +33,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface PartnerReferral {
   id: string
@@ -82,6 +82,7 @@ interface PartnerReferralsTabProps {
 
 export function PartnerReferralsTab({ businessId, businessSlug, businessName }: PartnerReferralsTabProps) {
   const t = useTranslations('components.partnerReferralsTab')
+  const numberLocale = useLocale() === 'sv' ? 'sv-SE' : 'en-US'
   const [referrals, setReferrals] = useState<PartnerReferral[]>([])
   const [stats, setStats] = useState<ReferralStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -153,7 +154,7 @@ export function PartnerReferralsTab({ businessId, businessSlug, businessName }: 
   }
 
   const formatCurrency = (amount: number, currency: string = 'SEK') => {
-    return new Intl.NumberFormat('sv-SE', {
+    return new Intl.NumberFormat(numberLocale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,

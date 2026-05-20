@@ -40,6 +40,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useLocale } from 'next-intl';
 import { EnterpriseContract, EnterpriseContractStatus } from '@/types';
 import { ContractForm } from './ContractForm';
 
@@ -57,6 +58,7 @@ interface ContractsTableProps {
 }
 
 export function ContractsTable({ onViewContract }: ContractsTableProps) {
+  const numberLocale = useLocale() === 'sv' ? 'sv-SE' : 'en-US';
   const [contracts, setContracts] = useState<EnterpriseContract[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -119,7 +121,7 @@ export function ContractsTable({ onViewContract }: ContractsTableProps) {
   };
 
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('sv-SE', {
+    return new Intl.NumberFormat(numberLocale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,
@@ -190,7 +192,7 @@ export function ContractsTable({ onViewContract }: ContractsTableProps) {
             variant="outline"
             size="icon"
             onClick={fetchContracts}
-            aria-label="Uppdatera kontraktslista"
+            aria-label="Refresh contract list"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>

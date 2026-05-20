@@ -18,6 +18,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useLocale } from 'next-intl';
 import { BusinessMembersManager } from './BusinessMembersManager';
 import { PartnerReferralsTab } from './PartnerReferralsTab';
 
@@ -82,6 +83,7 @@ interface BusinessDetailPanelProps {
 }
 
 export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPanelProps) {
+  const numberLocale = useLocale() === 'sv' ? 'sv-SE' : 'en-US';
   const [business, setBusiness] = useState<BusinessDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -282,7 +284,7 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Monthly Fee</span>
                   <span>
-                    {new Intl.NumberFormat('sv-SE', {
+                    {new Intl.NumberFormat(numberLocale, {
                       style: 'currency',
                       currency: business.enterpriseContract.currency,
                       minimumFractionDigits: 0,
