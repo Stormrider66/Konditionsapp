@@ -19,6 +19,10 @@ import {
 import { ProgramPDFContent } from '@/components/exports/ProgramPDFContent'
 import type { ParsedProgram } from '@/lib/ai/program-parser'
 
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
 interface ProgramExportButtonProps {
   /** The parsed program data to export */
   program: ParsedProgram
@@ -46,7 +50,7 @@ export function ProgramExportButton({
   size = 'default',
 }: ProgramExportButtonProps) {
   const { toast } = useToast()
-  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null)
   const pdfContentRef = useRef<HTMLDivElement>(null)
 
@@ -62,13 +66,13 @@ export function ProgramExportButton({
         locale,
       })
       toast({
-        title: 'Excel exporterad!',
-        description: 'Träningsprogrammet har laddats ner som Excel-fil.',
+        title: copy(locale, 'Excel exported!', 'Excel exporterad!'),
+        description: copy(locale, 'The training program has been downloaded as an Excel file.', 'Träningsprogrammet har laddats ner som Excel-fil.'),
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte exportera',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy(locale, 'Could not export', 'Kunde inte exportera'),
+        description: error instanceof Error ? error.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -158,13 +162,13 @@ export function ProgramExportButton({
       }
 
       toast({
-        title: 'PDF exporterad!',
-        description: 'Träningsprogrammet har laddats ner som PDF.',
+        title: copy(locale, 'PDF exported!', 'PDF exporterad!'),
+        description: copy(locale, 'The training program has been downloaded as a PDF.', 'Träningsprogrammet har laddats ner som PDF.'),
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte exportera',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy(locale, 'Could not export', 'Kunde inte exportera'),
+        description: error instanceof Error ? error.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -180,12 +184,12 @@ export function ProgramExportButton({
             {exporting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Exporterar...
+                {copy(locale, 'Exporting...', 'Exporterar...')}
               </>
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                Exportera
+                {copy(locale, 'Export', 'Exportera')}
               </>
             )}
           </Button>
@@ -193,11 +197,11 @@ export function ProgramExportButton({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleExportExcel} disabled={exporting !== null}>
             <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Exportera till Excel
+            {copy(locale, 'Export to Excel', 'Exportera till Excel')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleExportPDF} disabled={exporting !== null}>
             <FileText className="h-4 w-4 mr-2" />
-            Exportera till PDF
+            {copy(locale, 'Export to PDF', 'Exportera till PDF')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

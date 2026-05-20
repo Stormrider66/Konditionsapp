@@ -38,32 +38,36 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useLocale } from 'next-intl'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 type Modality = 'DWR' | 'XC_SKIING' | 'ALTERG' | 'AIR_BIKE' | 'CYCLING' | 'ROWING' | 'ELLIPTICAL' | 'SWIMMING'
+type AppLocale = 'en' | 'sv'
 
-const MODALITY_CONFIG = {
-  DWR: { icon: '🏊', label: 'DWR (Deep Water Running)', description: '98% retention' },
-  XC_SKIING: { icon: '⛷️', label: 'Längdskidåkning', description: '92% retention' },
-  ALTERG: { icon: '🏃', label: 'AlterG (Anti-gravity)', description: '90% retention' },
-  AIR_BIKE: { icon: '🚴‍♂️', label: 'Air Bike / Assault Bike', description: '80% retention' },
-  CYCLING: { icon: '🚴', label: 'Cykling', description: '75% retention' },
-  ROWING: { icon: '🚣', label: 'Rodd', description: '68% retention' },
-  ELLIPTICAL: { icon: '🏃‍♂️', label: 'Crosstrainer', description: '65% retention' },
-  SWIMMING: { icon: '🏊‍♂️', label: 'Simning', description: '45% retention' },
-}
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
-const INJURY_TYPES = [
+const getModalityConfig = (locale: AppLocale) => ({
+  DWR: { icon: '🏊', label: 'DWR (Deep Water Running)', description: copy(locale, '98% retention', '98% retention') },
+  XC_SKIING: { icon: '⛷️', label: copy(locale, 'Cross-country skiing', 'Längdskidåkning'), description: copy(locale, '92% retention', '92% retention') },
+  ALTERG: { icon: '🏃', label: 'AlterG (Anti-gravity)', description: copy(locale, '90% retention', '90% retention') },
+  AIR_BIKE: { icon: '🚴‍♂️', label: 'Air Bike / Assault Bike', description: copy(locale, '80% retention', '80% retention') },
+  CYCLING: { icon: '🚴', label: copy(locale, 'Cycling', 'Cykling'), description: copy(locale, '75% retention', '75% retention') },
+  ROWING: { icon: '🚣', label: copy(locale, 'Rowing', 'Rodd'), description: copy(locale, '68% retention', '68% retention') },
+  ELLIPTICAL: { icon: '🏃‍♂️', label: copy(locale, 'Elliptical', 'Crosstrainer'), description: copy(locale, '65% retention', '65% retention') },
+  SWIMMING: { icon: '🏊‍♂️', label: copy(locale, 'Swimming', 'Simning'), description: copy(locale, '45% retention', '45% retention') },
+})
+
+const getInjuryTypes = (locale: AppLocale) => [
   { value: 'PLANTAR_FASCIITIS', label: 'Plantar Fasciitis' },
-  { value: 'ACHILLES_TENDINOPATHY', label: 'Achilles Tendinopati' },
-  { value: 'IT_BAND_SYNDROME', label: 'IT-band Syndrom' },
-  { value: 'PATELLOFEMORAL_SYNDROME', label: 'Patellofemoral Syndrom' },
-  { value: 'SHIN_SPLINTS', label: 'Hälsporre' },
-  { value: 'STRESS_FRACTURE', label: 'Stressfraktur' },
-  { value: 'HAMSTRING_STRAIN', label: 'Hamstringsträckning' },
-  { value: 'CALF_STRAIN', label: 'Vadträckning' },
-  { value: 'HIP_FLEXOR', label: 'Höftböjare' },
+  { value: 'ACHILLES_TENDINOPATHY', label: copy(locale, 'Achilles tendinopathy', 'Achilles Tendinopati') },
+  { value: 'IT_BAND_SYNDROME', label: copy(locale, 'IT band syndrome', 'IT-band Syndrom') },
+  { value: 'PATELLOFEMORAL_SYNDROME', label: copy(locale, 'Patellofemoral syndrome', 'Patellofemoral Syndrom') },
+  { value: 'SHIN_SPLINTS', label: copy(locale, 'Shin splints', 'Hälsporre') },
+  { value: 'STRESS_FRACTURE', label: copy(locale, 'Stress fracture', 'Stressfraktur') },
+  { value: 'HAMSTRING_STRAIN', label: copy(locale, 'Hamstring strain', 'Hamstringsträckning') },
+  { value: 'CALF_STRAIN', label: copy(locale, 'Calf strain', 'Vadträckning') },
+  { value: 'HIP_FLEXOR', label: copy(locale, 'Hip flexor', 'Höftböjare') },
 ]
 
 interface ModalityPreferences {
@@ -83,6 +87,15 @@ interface ModalityPreferences {
   }
 }
 
+interface ClientOption {
+  id: string
+  name: string
+}
+
+interface PreferencesResponse {
+  preferences?: ModalityPreferences
+}
+
 interface ModalityPreferencesProps {
   initialClientId?: string
 }
@@ -90,7 +103,10 @@ interface ModalityPreferencesProps {
 export default function ModalityPreferences({
   initialClientId,
 }: ModalityPreferencesProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const { toast } = useToast()
+  const modalityConfig = getModalityConfig(locale)
+  const injuryTypes = getInjuryTypes(locale)
 
   const [selectedClient, setSelectedClient] = useState<string>(initialClientId || '')
   const [preferences, setPreferences] = useState<ModalityPreferences | null>(null)
@@ -99,11 +115,11 @@ export default function ModalityPreferences({
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
 
   // Fetch clients
-  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher)
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: ClientOption[] }>('/api/clients', fetcher)
   const clients = clientsResponse?.data || []
 
   // Fetch preferences
-  const { data, error, isLoading, mutate } = useSWR<any>(
+  const { data, isLoading, mutate } = useSWR<PreferencesResponse>(
     selectedClient ? `/api/cross-training/preferences/${selectedClient}` : null,
     fetcher
   )
@@ -111,8 +127,11 @@ export default function ModalityPreferences({
   // Initialize preferences when data loads
   useEffect(() => {
     if (data?.preferences) {
-      setPreferences(data.preferences)
-      setHasChanges(false)
+      const frame = requestAnimationFrame(() => {
+        setPreferences(data.preferences ?? null)
+        setHasChanges(false)
+      })
+      return () => cancelAnimationFrame(frame)
     }
   }, [data])
 
@@ -214,16 +233,16 @@ export default function ModalityPreferences({
       }
 
       toast({
-        title: 'Preferenser sparade',
-        description: 'Korstr.träningspreferenser har uppdaterats',
+        title: copy(locale, 'Preferences saved', 'Preferenser sparade'),
+        description: copy(locale, 'Cross-training preferences have been updated', 'Korstr.träningspreferenser har uppdaterats'),
       })
 
       setHasChanges(false)
-      mutate()
-    } catch (error: any) {
+      void mutate()
+    } catch (error: unknown) {
       toast({
-        title: 'Fel',
-        description: error.message || 'Kunde inte spara preferenser',
+        title: copy(locale, 'Error', 'Fel'),
+        description: error instanceof Error ? error.message : copy(locale, 'Could not save preferences', 'Kunde inte spara preferenser'),
         variant: 'destructive',
       })
     } finally {
@@ -242,15 +261,15 @@ export default function ModalityPreferences({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Korstr.träningspreferenser</CardTitle>
+          <CardTitle>{copy(locale, 'Cross-training preferences', 'Korstr.träningspreferenser')}</CardTitle>
           <CardDescription>
-            Välj en atlet för att konfigurera korstr.träningspreferenser
+            {copy(locale, 'Select an athlete to configure cross-training preferences', 'Välj en atlet för att konfigurera korstr.träningspreferenser')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Select onValueChange={handleClientChange}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Välj atlet..." />
+              <SelectValue placeholder={copy(locale, 'Select athlete...', 'Välj atlet...')} />
             </SelectTrigger>
             <SelectContent>
               {clients?.map((client) => (
@@ -266,7 +285,7 @@ export default function ModalityPreferences({
   }
 
   if (isLoading || !preferences) {
-    return <div className="text-muted-foreground">Laddar preferenser...</div>
+    return <div className="text-muted-foreground">{copy(locale, 'Loading preferences...', 'Laddar preferenser...')}</div>
   }
 
   return (
@@ -274,9 +293,9 @@ export default function ModalityPreferences({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold flex items-center gap-1.5">Korstr.träningspreferenser <InfoTooltip conceptKey="crossTraining" /></h2>
+          <h2 className="text-2xl font-bold flex items-center gap-1.5">{copy(locale, 'Cross-training preferences', 'Korstr.träningspreferenser')} <InfoTooltip conceptKey="crossTraining" /></h2>
           <p className="text-sm text-muted-foreground">
-            Konfigurera modaliteter och utrustning för individuell anpassning
+            {copy(locale, 'Configure modalities and equipment for individual adaptation', 'Konfigurera modaliteter och utrustning för individuell anpassning')}
           </p>
         </div>
 
@@ -300,11 +319,11 @@ export default function ModalityPreferences({
             <>
               <Button onClick={handleSave} disabled={isSaving}>
                 <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Sparar...' : 'Spara'}
+                {isSaving ? copy(locale, 'Saving...', 'Sparar...') : copy(locale, 'Save', 'Spara')}
               </Button>
               <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                 <X className="h-4 w-4 mr-2" />
-                Avbryt
+                {copy(locale, 'Cancel', 'Avbryt')}
               </Button>
             </>
           )}
@@ -314,9 +333,9 @@ export default function ModalityPreferences({
       {/* Preferred Modality Order */}
       <Card>
         <CardHeader>
-          <CardTitle>Prioriterad ordning (dra för att ändra)</CardTitle>
+          <CardTitle>{copy(locale, 'Priority order (drag to reorder)', 'Prioriterad ordning (dra för att ändra)')}</CardTitle>
           <CardDescription>
-            Första valet används vid automatiska konverteringar (om kompatibelt med skada)
+            {copy(locale, 'The first choice is used for automatic conversions when compatible with the injury', 'Första valet används vid automatiska konverteringar (om kompatibelt med skada)')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -337,11 +356,11 @@ export default function ModalityPreferences({
                   <Badge variant="outline" className="w-8 h-8 flex items-center justify-center">
                     {index + 1}
                   </Badge>
-                  <span className="text-2xl">{MODALITY_CONFIG[modality].icon}</span>
+                  <span className="text-2xl">{modalityConfig[modality].icon}</span>
                   <div>
-                    <div className="font-semibold">{MODALITY_CONFIG[modality].label}</div>
+                    <div className="font-semibold">{modalityConfig[modality].label}</div>
                     <div className="text-xs text-muted-foreground">
-                      {MODALITY_CONFIG[modality].description}
+                      {modalityConfig[modality].description}
                     </div>
                   </div>
                 </div>
@@ -354,9 +373,9 @@ export default function ModalityPreferences({
       {/* Equipment Availability */}
       <Card>
         <CardHeader>
-          <CardTitle>Tillgänglig utrustning</CardTitle>
+          <CardTitle>{copy(locale, 'Available equipment', 'Tillgänglig utrustning')}</CardTitle>
           <CardDescription>
-            Markera vilken utrustning atleten har tillgång till
+            {copy(locale, 'Select the equipment the athlete can access', 'Markera vilken utrustning atleten har tillgång till')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -370,7 +389,7 @@ export default function ModalityPreferences({
                 }
               />
               <Label htmlFor="hasBike" className="cursor-pointer">
-                🚴 Cykel
+                🚴 {copy(locale, 'Bike', 'Cykel')}
               </Label>
             </div>
 
@@ -383,7 +402,7 @@ export default function ModalityPreferences({
                 }
               />
               <Label htmlFor="hasPoolAccess" className="cursor-pointer">
-                🏊‍♂️ Pool (DWR/Simning)
+                🏊‍♂️ {copy(locale, 'Pool (DWR/Swimming)', 'Pool (DWR/Simning)')}
               </Label>
             </div>
 
@@ -396,7 +415,7 @@ export default function ModalityPreferences({
                 }
               />
               <Label htmlFor="hasAlterG" className="cursor-pointer">
-                🏃 AlterG Löpband
+                🏃 {copy(locale, 'AlterG treadmill', 'AlterG Löpband')}
               </Label>
             </div>
 
@@ -422,7 +441,7 @@ export default function ModalityPreferences({
                 }
               />
               <Label htmlFor="hasElliptical" className="cursor-pointer">
-                🏃‍♂️ Crosstrainer
+                🏃‍♂️ {copy(locale, 'Elliptical', 'Crosstrainer')}
               </Label>
             </div>
 
@@ -435,7 +454,7 @@ export default function ModalityPreferences({
                 }
               />
               <Label htmlFor="hasRowingMachine" className="cursor-pointer">
-                🚣 Roddmaskin
+                🚣 {copy(locale, 'Rowing machine', 'Roddmaskin')}
               </Label>
             </div>
 
@@ -448,7 +467,7 @@ export default function ModalityPreferences({
                 }
               />
               <Label htmlFor="hasXCSkiAccess" className="cursor-pointer">
-                ⛷️ Längdskidåkning
+                ⛷️ {copy(locale, 'Cross-country skiing', 'Längdskidåkning')}
               </Label>
             </div>
           </div>
@@ -458,14 +477,14 @@ export default function ModalityPreferences({
       {/* Limitations */}
       <Card>
         <CardHeader>
-          <CardTitle>Begränsningar / Ogillar</CardTitle>
+          <CardTitle>{copy(locale, 'Limitations / dislikes', 'Begränsningar / Ogillar')}</CardTitle>
           <CardDescription>
-            Fritext för specifika begränsningar eller preferenser
+            {copy(locale, 'Free text for specific limitations or preferences', 'Fritext för specifika begränsningar eller preferenser')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Textarea
-            placeholder="T.ex. 'Gillar inte simning', 'Vänster axel begränsar rodd', 'Föredrar utomhus'"
+            placeholder={copy(locale, "E.g. 'Dislikes swimming', 'Left shoulder limits rowing', 'Prefers outdoors'", "T.ex. 'Gillar inte simning', 'Vänster axel begränsar rodd', 'Föredrar utomhus'")}
             value={preferences.limitations}
             onChange={(e) => handleLimitationsChange(e.target.value)}
             rows={4}
@@ -476,16 +495,16 @@ export default function ModalityPreferences({
       {/* Injury-Specific Overrides */}
       <Card>
         <CardHeader>
-          <CardTitle>Skadespecifika åsidosättningar</CardTitle>
+          <CardTitle>{copy(locale, 'Injury-specific overrides', 'Skadespecifika åsidosättningar')}</CardTitle>
           <CardDescription>
-            Åsidosätt standardrekommendationer för specifika skador
+            {copy(locale, 'Override standard recommendations for specific injuries', 'Åsidosätt standardrekommendationer för specifika skador')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Systemet har standardrekommendationer för varje skatyp. Använd endast åsidosättningar om atleten har specifika skäl.
+              {copy(locale, 'The system has standard recommendations for each injury type. Use overrides only when the athlete has specific reasons.', 'Systemet har standardrekommendationer för varje skatyp. Använd endast åsidosättningar om atleten har specifika skäl.')}
             </AlertDescription>
           </Alert>
 
@@ -496,13 +515,13 @@ export default function ModalityPreferences({
               className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{MODALITY_CONFIG[modality].icon}</span>
+                <span className="text-2xl">{modalityConfig[modality].icon}</span>
                 <div>
                   <div className="font-semibold">
-                    {INJURY_TYPES.find((i) => i.value === injuryType)?.label || injuryType}
+                    {injuryTypes.find((i) => i.value === injuryType)?.label || injuryType}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    → {MODALITY_CONFIG[modality].label}
+                    → {modalityConfig[modality].label}
                   </div>
                 </div>
               </div>
@@ -525,10 +544,10 @@ export default function ModalityPreferences({
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj skatyp..." />
+                <SelectValue placeholder={copy(locale, 'Select injury type...', 'Välj skatyp...')} />
               </SelectTrigger>
               <SelectContent>
-                {INJURY_TYPES.filter(
+                {injuryTypes.filter(
                   (i) => !preferences.injuryOverrides[i.value]
                 ).map((injury) => (
                   <SelectItem key={injury.value} value={injury.value}>
@@ -544,19 +563,19 @@ export default function ModalityPreferences({
       {/* Preview */}
       <Card>
         <CardHeader>
-          <CardTitle>Förhandsvisning</CardTitle>
-          <CardDescription>Exempel på automatisk konvertering</CardDescription>
+          <CardTitle>{copy(locale, 'Preview', 'Förhandsvisning')}</CardTitle>
+          <CardDescription>{copy(locale, 'Example automatic conversion', 'Exempel på automatisk konvertering')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert>
             <Check className="h-4 w-4" />
             <AlertDescription>
-              <strong>Löppass 60 min @ Lätt</strong> konverteras till{' '}
+              <strong>{copy(locale, 'Run 60 min @ Easy', 'Löppass 60 min @ Lätt')}</strong> {copy(locale, 'converts to', 'konverteras till')}{' '}
               <strong>
-                {MODALITY_CONFIG[preferences.preferredOrder[0]].icon}{' '}
-                {MODALITY_CONFIG[preferences.preferredOrder[0]].label}
+                {modalityConfig[preferences.preferredOrder[0]].icon}{' '}
+                {modalityConfig[preferences.preferredOrder[0]].label}
               </strong>{' '}
-              med {MODALITY_CONFIG[preferences.preferredOrder[0]].description} fitnessretention
+              {copy(locale, 'with', 'med')} {modalityConfig[preferences.preferredOrder[0]].description} {copy(locale, 'fitness retention', 'fitnessretention')}
             </AlertDescription>
           </Alert>
         </CardContent>
