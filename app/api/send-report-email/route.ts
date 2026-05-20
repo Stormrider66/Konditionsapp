@@ -13,6 +13,13 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 // Maximum PDF size: 10MB
 const MAX_PDF_SIZE = 10 * 1024 * 1024
+type AppLocale = 'en' | 'sv'
+
+function getRequestLocale(rawLocale: unknown, userLanguage?: string | null): AppLocale {
+  if (rawLocale === 'sv') return 'sv'
+  if (rawLocale === 'en') return 'en'
+  return userLanguage === 'sv' ? 'sv' : 'en'
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +47,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Require COACH or ADMIN (athletes should not be able to send outbound emails)
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true, language: true },
+    })
     if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
       return NextResponse.json(
         {
@@ -62,7 +72,7 @@ export async function POST(request: NextRequest) {
       customMessage,
       locale: rawLocale,
     } = body
-    const locale = rawLocale === 'en' ? 'en' : 'sv'
+    const locale = getRequestLocale(rawLocale, dbUser.language)
 
     if (!to || !pdfBase64) {
       return NextResponse.json(
@@ -160,7 +170,8 @@ export async function POST(request: NextRequest) {
     const emailBody = emailLayout(emailBranding, copy.reportTitle, bodyContent)
 
     // Sanitize filename
-    const safeFilename = `Konditionstest_${safeClientName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}_${safeTestDate.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`
+    const filenamePrefix = locale === 'sv' ? 'Konditionstest' : 'Fitness_test'
+    const safeFilename = `${filenamePrefix}_${safeClientName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}_${safeTestDate.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`
 
     // Kill switch: pause all outbound email
     if (process.env.EMAILS_PAUSED === 'true') {
@@ -183,7 +194,7 @@ export async function POST(request: NextRequest) {
       from: emailBranding.fromAddress,
       replyTo: emailBranding.replyTo,
       to: [to],
-          subject: copy.subject,
+      subject: copy.subject,
       html: emailBody,
       headers: {
         'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${appUrl}/unsubscribe>`,
