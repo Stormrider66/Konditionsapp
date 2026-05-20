@@ -25,6 +25,12 @@ interface RouteContext {
   params: Promise<{ teamId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const createEventSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
@@ -115,8 +121,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
@@ -133,16 +142,22 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const team = await getTeamCalendarWritableTeam(user.id, teamId, scope.businessSlug, parsed.data.type, 'create')
 
     if (!team) {
-      return NextResponse.json({ error: 'Din roll kan inte skapa den här typen av händelse för laget' }, { status: 403 })
+      return NextResponse.json({
+        error: t(
+          locale,
+          'Your role cannot create this type of team event',
+          'Din roll kan inte skapa den här typen av händelse för laget'
+        ),
+      }, { status: 403 })
     }
 
     const startDate = new Date(parsed.data.startDate)
     const endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
     if (Number.isNaN(startDate.getTime()) || (endDate && Number.isNaN(endDate.getTime()))) {
-      return NextResponse.json({ error: 'Ogiltigt datum eller tid' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid date or time', 'Ogiltigt datum eller tid') }, { status: 400 })
     }
     if (endDate && endDate <= startDate) {
-      return NextResponse.json({ error: 'Sluttid måste vara efter starttid' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'End time must be after start time', 'Sluttid måste vara efter starttid') }, { status: 400 })
     }
 
     const recurrenceCount = parsed.data.recurrenceCount ?? 1
@@ -249,6 +264,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     console.error('Error creating team event:', error)
-    return NextResponse.json({ error: 'Kunde inte spara händelsen i databasen' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Could not save the event to the database', 'Kunde inte spara händelsen i databasen') }, { status: 500 })
   }
 }
