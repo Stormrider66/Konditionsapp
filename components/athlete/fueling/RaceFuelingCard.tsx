@@ -10,6 +10,7 @@ import { normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan } from
 import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
 import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
+import { useLocale } from '@/i18n/client'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -55,6 +56,16 @@ interface RaceFuelingCardProps {
   showDetailLink?: boolean
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale.startsWith('sv') ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 export function RaceFuelingCard({
   clientId,
   variant = 'default',
@@ -63,6 +74,7 @@ export function RaceFuelingCard({
   listHref,
   showDetailLink = true,
 }: RaceFuelingCardProps) {
+  const locale = getAppLocale(useLocale())
   const [plan, setPlan] = useState<RaceFuelingPlanSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const resolvedDetailBasePath = detailBasePath ?? `${basePath}/athlete/fueling`
@@ -92,7 +104,7 @@ export function RaceFuelingCard({
     ? summarizeRaceFuelingProductPlan(structuredProductPlan)
     : savedProductPlanNote?.summary
   const savedPackedCarbs = structuredProductPlan?.totalCarbsG ?? savedProductPlanNote?.packedCarbsG ?? null
-  const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true })
+  const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true, locale })
 
   return (
     <Card className={isGlass ? 'bg-white/80 dark:bg-slate-900/70 backdrop-blur border-white/20' : undefined}>
@@ -101,15 +113,15 @@ export function RaceFuelingCard({
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <Utensils className="h-4 w-4 text-amber-600" />
-              Tävlingsenergi
+              {text(locale, 'Tävlingsenergi', 'Race fueling')}
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              Kolhydratsplan för nästa mål
+              {text(locale, 'Kolhydratsplan för nästa mål', 'Carbohydrate plan for your next goal')}
             </p>
           </div>
           {plan && (
             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-              {confidenceLabel(plan.confidence)}
+              {confidenceLabel(plan.confidence, locale)}
             </Badge>
           )}
         </div>
@@ -127,7 +139,7 @@ export function RaceFuelingCard({
           <div className="space-y-4">
             <div>
               <p className="font-medium text-sm text-slate-900 dark:text-white">
-                {plan.name ?? sportLabel(plan.sport)}
+                {plan.name ?? sportLabel(plan.sport, locale)}
               </p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
                 {plan.durationMinutes && <span>{formatDuration(plan.durationMinutes)}</span>}
@@ -143,47 +155,47 @@ export function RaceFuelingCard({
             <div className="grid grid-cols-2 gap-3">
               <Metric
                 icon={<Flame className="h-4 w-4 text-orange-600" />}
-                label="Beräknat behov"
-                value={plan.estimatedCarbDemandGPerHour ? `${Math.round(plan.estimatedCarbDemandGPerHour)} g/h` : 'Saknas'}
+                label={text(locale, 'Beräknat behov', 'Estimated need')}
+                value={plan.estimatedCarbDemandGPerHour ? `${Math.round(plan.estimatedCarbDemandGPerHour)} g/h` : text(locale, 'Saknas', 'Missing')}
               />
               <Metric
                 icon={<Activity className="h-4 w-4 text-emerald-600" />}
-                label="Rekommenderat"
-                value={plan.recommendedCarbsGPerHour ? `${Math.round(plan.recommendedCarbsGPerHour)} g/h` : 'Saknas'}
+                label={text(locale, 'Rekommenderat', 'Recommended')}
+                value={plan.recommendedCarbsGPerHour ? `${Math.round(plan.recommendedCarbsGPerHour)} g/h` : text(locale, 'Saknas', 'Missing')}
               />
             </div>
 
             {plan.recommendedCarbsTotalG && (
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                Planera cirka <span className="font-semibold">{Math.round(plan.recommendedCarbsTotalG)} g kolhydrater</span> under tävlingen.
+                {text(locale, 'Planera cirka', 'Plan around')} <span className="font-semibold">{Math.round(plan.recommendedCarbsTotalG)} g {text(locale, 'kolhydrater', 'carbohydrates')}</span> {text(locale, 'under tävlingen.', 'during the race.')}
               </p>
             )}
 
             {plan.fuelingProgress && (
-              <DashboardFuelingProgress progress={plan.fuelingProgress} />
+              <DashboardFuelingProgress progress={plan.fuelingProgress} locale={locale} />
             )}
 
             {plan.raceDayPlan && (
               <div className="rounded-lg border bg-orange-50/70 p-3 dark:bg-orange-900/10 dark:border-orange-900/30">
                 <div className="flex items-center gap-2 text-sm font-medium text-orange-800 dark:text-orange-300">
                   <PackageCheck className="h-4 w-4" />
-                  Packa för race
+                  {text(locale, 'Packa för race', 'Pack for race day')}
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-200">
                   <span className="inline-flex items-center gap-1">
                     <Timer className="h-3 w-3 text-orange-600" />
-                    {plan.raceDayPlan.intakeEvery20Min} g var 20:e min
+                    {plan.raceDayPlan.intakeEvery20Min} g {text(locale, 'var 20:e min', 'every 20 min')}
                   </span>
                   {plan.raceDayPlan.gelEquivalentCount && (
-                    <span>{plan.raceDayPlan.gelEquivalentCount} gel à 25 g</span>
+                    <span>{plan.raceDayPlan.gelEquivalentCount} {text(locale, 'gel à 25 g', 'gels at 25 g')}</span>
                   )}
                   {plan.raceDayPlan.bottleMixCount && (
-                    <span>{plan.raceDayPlan.bottleMixCount} flaskor à 40 g</span>
+                    <span>{plan.raceDayPlan.bottleMixCount} {text(locale, 'flaskor à 40 g', 'bottles at 40 g')}</span>
                   )}
                 </div>
                 {plan.raceDayPlan.timing.length > 0 && (
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Första intag efter {plan.raceDayPlan.timing[0].label}, fortsätt jämnt genom loppet.
+                    {text(locale, 'Första intag efter', 'First intake after')} {plan.raceDayPlan.timing[0].label}, {text(locale, 'fortsätt jämnt genom loppet.', 'then continue evenly through the race.')}
                   </p>
                 )}
               </div>
@@ -193,10 +205,10 @@ export function RaceFuelingCard({
               <div className="rounded-lg border bg-emerald-50/70 p-3 text-sm text-emerald-950 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-100">
                 <div className="flex items-center gap-2 font-medium">
                   <PackageCheck className="h-4 w-4" />
-                  Sparad produktplan
+                  {text(locale, 'Sparad produktplan', 'Saved product plan')}
                 </div>
                 <p className="mt-1 text-xs">
-                  {savedProductPlanSummary ?? `${formatGrams(savedPackedCarbs)} packat`}
+                  {savedProductPlanSummary ?? `${formatGrams(savedPackedCarbs)} ${text(locale, 'packat', 'packed')}`}
                 </p>
               </div>
             )}
@@ -205,12 +217,12 @@ export function RaceFuelingCard({
               <div className="grid grid-cols-2 gap-2">
                 <Button asChild variant="outline" size="sm">
                   <Link href={`${resolvedDetailBasePath}/${plan.id}`}>
-                    Visa planen
+                    {text(locale, 'Visa planen', 'View plan')}
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="sm">
                   <Link href={resolvedListHref}>
-                    Alla planer
+                    {text(locale, 'Alla planer', 'All plans')}
                   </Link>
                 </Button>
               </div>
@@ -219,12 +231,16 @@ export function RaceFuelingCard({
         ) : (
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              Ingen tävlingsplan sparad ännu. Skapa en plan när atleten har ett mål för lopp, match, tävling eller långt event.
+              {text(
+                locale,
+                'Ingen tävlingsplan sparad ännu. Skapa en plan när atleten har ett mål för lopp, match, tävling eller långt event.',
+                'No race plan saved yet. Create a plan when the athlete has a goal for a race, match, competition, or long event.'
+              )}
             </p>
             {showDetailLink && (
               <Button asChild variant="outline" size="sm">
                 <Link href={resolvedListHref}>
-                  Skapa plan
+                  {text(locale, 'Skapa plan', 'Create plan')}
                 </Link>
               </Button>
             )}
@@ -237,8 +253,10 @@ export function RaceFuelingCard({
 
 function DashboardFuelingProgress({
   progress,
+  locale,
 }: {
   progress: NonNullable<RaceFuelingPlanSummary['fuelingProgress']>
+  locale: AppLocale
 }) {
   const isSynced = progress.linkedWorkoutCount > 0
   return (
@@ -247,23 +265,23 @@ function DashboardFuelingProgress({
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-medium text-blue-900 dark:text-blue-200">
             <TrendingUp className="h-4 w-4" />
-            Carb-träning
+            {text(locale, 'Carb-träning', 'Carb training')}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {isSynced
-              ? `${progress.linkedWorkoutCount} pass kopplade, ${progress.loggedWorkoutCount} loggade`
-              : 'Synka planen med kommande pass för att bygga toleransen.'}
+              ? text(locale, `${progress.linkedWorkoutCount} pass kopplade, ${progress.loggedWorkoutCount} loggade`, `${progress.linkedWorkoutCount} sessions linked, ${progress.loggedWorkoutCount} logged`)
+              : text(locale, 'Synka planen med kommande pass för att bygga toleransen.', 'Sync the plan with upcoming sessions to build tolerance.')}
           </p>
         </div>
         {progress.buildUpWeeks && (
           <Badge variant="outline" className="shrink-0 bg-white/70 text-[10px] dark:bg-slate-950/40">
-            {progress.buildUpWeeks} veckor
+            {progress.buildUpWeeks} {text(locale, 'veckor', 'weeks')}
           </Badge>
         )}
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <MiniFuelingMetric label="Nästa mål" value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
-        <MiniFuelingMetric label="Bäst tålt" value={formatGramHour(progress.bestToleratedGPerHour)} />
+        <MiniFuelingMetric label={text(locale, 'Nästa mål', 'Next target')} value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
+        <MiniFuelingMetric label={text(locale, 'Bäst tålt', 'Best tolerated')} value={formatGramHour(progress.bestToleratedGPerHour)} />
       </div>
     </div>
   )
@@ -290,14 +308,14 @@ function MiniFuelingMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function confidenceLabel(confidence: string): string {
-  if (confidence === 'HIGH') return 'Hög säkerhet'
-  if (confidence === 'MEDIUM') return 'Medel'
-  return 'Låg'
+function confidenceLabel(confidence: string, locale: AppLocale): string {
+  if (confidence === 'HIGH') return text(locale, 'Hög säkerhet', 'High confidence')
+  if (confidence === 'MEDIUM') return text(locale, 'Medel', 'Medium')
+  return text(locale, 'Låg', 'Low')
 }
 
-function sportLabel(sport: string): string {
-  return fuelingSportLabel(sport)
+function sportLabel(sport: string, locale: AppLocale): string {
+  return fuelingSportLabel(sport, locale)
 }
 
 function formatDuration(minutes: number): string {
