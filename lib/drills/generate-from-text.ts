@@ -14,6 +14,12 @@ import { getResolvedGoogleKey } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
 import type { DrillStructure } from '@/components/coach/drills/IceHockeyRink'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // Sport-specific coordinate configs for the prompt
 const SPORT_PROMPTS: Record<string, string> = {
   ICE_HOCKEY: `Coordinate system (IIHF ice hockey rink):
@@ -59,8 +65,9 @@ Player labels: C, LW, RW, LD, RD, G.`,
 Player labels: S (setter), OH (outside hitter), OPP (opposite), MB (middle blocker), L (libero), RS (right side).`,
 }
 
-function buildPrompt(sportType: string): string {
+function buildPrompt(sportType: string, locale: AppLocale): string {
   const sportCoords = SPORT_PROMPTS[sportType] || SPORT_PROMPTS.ICE_HOCKEY
+  const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
 
   return `You are an expert sports coach and drill designer. A coach will describe a drill or tactical exercise in natural language. Generate a complete drill diagram as structured JSON.
 
@@ -68,8 +75,8 @@ ${sportCoords}
 
 Return ONLY valid JSON with this structure:
 {
-  "title": "Short name for the drill (in Swedish)",
-  "description": "Brief description of the objective and execution (in Swedish)",
+  "title": "Short name for the drill (in ${outputLanguage})",
+  "description": "Brief description of the objective and execution (in ${outputLanguage})",
   "players": [
     { "id": "p1", "x": 100, "y": 42, "label": "C", "team": "home" }
   ],
@@ -94,7 +101,7 @@ Guidelines:
 - Give every active player a skate movement in the relevant phase when they should move, including defenders
 - Use zones to highlight tactical areas
 - Add annotations for coaching cues
-- Write all text in Swedish
+- Write all user-facing text in ${outputLanguage}
 - Make the drill tactically sound and realistic`
 }
 
@@ -110,15 +117,16 @@ export async function generateDrillFromText(
   userId: string,
   businessId?: string,
   meta?: AiCallMeta,
+  locale: AppLocale = 'en',
 ): Promise<TextDrillResult> {
   const googleKey = await getResolvedGoogleKey(userId, { businessId })
 
   if (!googleKey) {
-    throw new Error('Ingen Google AI-nyckel konfigurerad. Lägg till en i inställningarna.')
+    throw new Error(t(locale, 'No Google AI key is configured. Add one in settings.', 'Ingen Google AI-nyckel konfigurerad. Lägg till en i inställningarna.'))
   }
 
   const client = createGoogleGenAIClient(googleKey)
-  const systemPrompt = buildPrompt(sportType)
+  const systemPrompt = buildPrompt(sportType, locale)
 
   const result = await generateContent(
     client,
@@ -136,7 +144,7 @@ export async function generateDrillFromText(
   )
 
   if (!result.text) {
-    throw new Error('AI returnerade inget svar')
+    throw new Error(t(locale, 'AI returned no response', 'AI returnerade inget svar'))
   }
 
   logger.info('Text-to-drill generation completed', {
@@ -155,7 +163,7 @@ export async function generateDrillFromText(
   try {
     const parsed = JSON.parse(jsonText)
     return {
-      title: parsed.title || 'Övning',
+      title: parsed.title || t(locale, 'Drill', 'Övning'),
       description: parsed.description || '',
       structure: {
         players: parsed.players || [],
@@ -166,6 +174,6 @@ export async function generateDrillFromText(
     }
   } catch (err) {
     logger.error('Failed to parse text-to-drill JSON', { response: result.text, error: String(err) })
-    throw new Error('Kunde inte tolka AI-svaret. Försök med en tydligare beskrivning.')
+    throw new Error(t(locale, 'Could not parse the AI response. Try a clearer description.', 'Kunde inte tolka AI-svaret. Försök med en tydligare beskrivning.'))
   }
 }

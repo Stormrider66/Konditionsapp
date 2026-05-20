@@ -50,8 +50,8 @@ interface ClubDrillLibraryProps {
   teams: Team[]
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
+function formatDate(iso: string, locale: 'en' | 'sv'): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -103,7 +103,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
         toast.error(t('common.errors.exportFailed'))
       }
     },
-    [t]
+    [locale, t]
   )
 
   useEffect(() => {
@@ -263,7 +263,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
                       <h3 className="font-semibold text-sm truncate">{drill.title}</h3>
                       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
                         <Calendar className="h-3 w-3" />
-                        {formatDate(drill.createdAt)}
+                        {formatDate(drill.createdAt, locale)}
                         <span>·</span>
                         <span>{drill.createdBy.name}</span>
                         {drill.team ? (
@@ -307,7 +307,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
                           title={drill.title}
                           description={drill.description || undefined}
                           structure={drill.structure}
-                          locale="sv"
+                          locale={locale}
                           sportType={(drill.sportType as DrillSportType) || 'ICE_HOCKEY'}
                         />
                       ) : (

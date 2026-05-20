@@ -14,7 +14,16 @@ import { getResolvedGoogleKey } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
 import type { DrillStructure } from '@/components/coach/drills/IceHockeyRink'
 
-const DRILL_ANALYSIS_PROMPT = `You are an expert ice hockey coach analyzing a photo of a hand-drawn drill diagram on a clipboard or whiteboard.
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function buildDrillAnalysisPrompt(locale: AppLocale): string {
+  const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
+
+  return `You are an expert ice hockey coach analyzing a photo of a hand-drawn drill diagram on a clipboard or whiteboard.
 
 Analyze the image and extract the drill structure as JSON. The coordinate system is:
 - X: 0 (left goal) to 200 (right goal)
@@ -26,7 +35,7 @@ Analyze the image and extract the drill structure as JSON. The coordinate system
 Return ONLY valid JSON with this structure:
 {
   "title": "Name of the drill (infer from context)",
-  "description": "Brief description of the drill objective and execution in Swedish",
+  "description": "Brief description of the drill objective and execution in ${outputLanguage}",
   "players": [
     { "id": "p1", "x": 100, "y": 42, "label": "C", "team": "home" }
   ],
@@ -49,7 +58,8 @@ Use "phase" to show timing: all movements with the same phase happen simultaneou
 Include all visible defenders/opponents and their movement routes when pressure or defensive timing is shown.
 
 If the image is unclear, make your best interpretation. Include all visible players, arrows, and text.
-Write the description in Swedish.`
+Write all user-facing text in ${outputLanguage}.`
+}
 
 export interface DrillAnalysisResult {
   title: string
@@ -63,11 +73,12 @@ export async function analyzeClipboardPhoto(
   userId: string,
   businessId?: string,
   meta?: AiCallMeta,
+  locale: AppLocale = 'en',
 ): Promise<DrillAnalysisResult> {
   const googleKey = await getResolvedGoogleKey(userId, { businessId })
 
   if (!googleKey) {
-    throw new Error('Ingen Google AI-nyckel konfigurerad. Lägg till en i inställningarna.')
+    throw new Error(t(locale, 'No Google AI key is configured. Add one in settings.', 'Ingen Google AI-nyckel konfigurerad. Lägg till en i inställningarna.'))
   }
 
   const client = createGoogleGenAIClient(googleKey)
@@ -76,7 +87,7 @@ export async function analyzeClipboardPhoto(
     client,
     'gemini-2.5-pro-preview-06-05',
     [
-      { text: DRILL_ANALYSIS_PROMPT },
+      { text: buildDrillAnalysisPrompt(locale) },
       { inlineData: { mimeType, data: imageBase64 } },
     ],
     undefined,
@@ -88,7 +99,7 @@ export async function analyzeClipboardPhoto(
   )
 
   if (!result.text) {
-    throw new Error('AI returnerade inget svar')
+    throw new Error(t(locale, 'AI returned no response', 'AI returnerade inget svar'))
   }
 
   logger.info('Drill analysis completed', {
@@ -105,7 +116,7 @@ export async function analyzeClipboardPhoto(
   try {
     const parsed = JSON.parse(jsonText)
     return {
-      title: parsed.title || 'Övning',
+      title: parsed.title || t(locale, 'Drill', 'Övning'),
       description: parsed.description || '',
       structure: {
         players: parsed.players || [],
@@ -116,6 +127,6 @@ export async function analyzeClipboardPhoto(
     }
   } catch (err) {
     logger.error('Failed to parse drill analysis JSON', { response: result.text, error: String(err) })
-    throw new Error('Kunde inte tolka AI-svaret. Försök med en tydligare bild.')
+    throw new Error(t(locale, 'Could not parse the AI response. Try a clearer image.', 'Kunde inte tolka AI-svaret. Försök med en tydligare bild.'))
   }
 }

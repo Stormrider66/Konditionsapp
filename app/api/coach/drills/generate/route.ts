@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       user.id,
       membership?.businessId,
       { userId: user.id, category: 'coach_drill_text_generation' },
+      locale,
     )
 
     return NextResponse.json(result)

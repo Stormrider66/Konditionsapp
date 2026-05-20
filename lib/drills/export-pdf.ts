@@ -45,11 +45,19 @@ const SPORT_LABELS: Record<'en' | 'sv', Record<string, string>> = {
   },
 }
 
-const MOVEMENT_TYPE_LABELS: Record<string, string> = {
-  skate: 'Åkning/Löpning',
-  pass: 'Passning',
-  shot: 'Skott',
-  puck: 'Puck/Boll',
+const MOVEMENT_TYPE_LABELS: Record<'en' | 'sv', Record<string, string>> = {
+  en: {
+    skate: 'Skating/Running',
+    pass: 'Pass',
+    shot: 'Shot',
+    puck: 'Puck/Ball',
+  },
+  sv: {
+    skate: 'Åkning/Löpning',
+    pass: 'Passning',
+    shot: 'Skott',
+    puck: 'Puck/Boll',
+  },
 }
 
 /**
@@ -122,6 +130,12 @@ export async function exportDrillPDF(
   const locale = options.locale ?? 'en'
   const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const createdByLabel = locale === 'sv' ? 'Skapad av' : 'Created by'
+  const playersLabel = locale === 'sv' ? 'Spelare:' : 'Players:'
+  const movementsLabel = locale === 'sv' ? 'Rörelser:' : 'Movements:'
+  const homeLabel = locale === 'sv' ? 'Hemma' : 'Home'
+  const awayLabel = locale === 'sv' ? 'Borta' : 'Away'
+  const renderFailedLabel = locale === 'sv' ? '[Diagram kunde inte renderas]' : '[Diagram could not be rendered]'
+  const countSuffix = locale === 'sv' ? 'st' : 'items'
   const metaParts: string[] = [SPORT_LABELS[locale][sportType] || sportType]
   if (teamName) metaParts.push(teamName)
   if (createdBy) metaParts.push(`${createdByLabel} ${createdBy}`)
@@ -174,7 +188,7 @@ export async function exportDrillPDF(
     // If SVG capture fails, just skip the image
     doc.setFontSize(9)
     doc.setTextColor(150, 150, 150)
-    doc.text('[Diagram kunde inte renderas]', margin, y)
+    doc.text(renderFailedLabel, margin, y)
     y += 8
     doc.setTextColor(0, 0, 0)
   }
@@ -187,11 +201,11 @@ export async function exportDrillPDF(
   if (structure.players.length > 0) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(8)
-    doc.text('Spelare:', margin, legendY)
+    doc.text(playersLabel, margin, legendY)
 
     doc.setFont('helvetica', 'normal')
     const playerText = structure.players
-      .map((p) => `${p.label} (${p.team === 'home' ? 'Hemma' : 'Borta'})`)
+      .map((p) => `${p.label} (${p.team === 'home' ? homeLabel : awayLabel})`)
       .join('    ')
     doc.text(playerText, margin + 18, legendY)
   }
@@ -200,14 +214,14 @@ export async function exportDrillPDF(
   if (structure.movements.length > 0) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(8)
-    doc.text('Rörelser:', margin, legendY + 5)
+    doc.text(movementsLabel, margin, legendY + 5)
 
     doc.setFont('helvetica', 'normal')
     const types = new Set(structure.movements.map((m) => m.type))
     const legendItems = Array.from(types).map(
-      (t) => MOVEMENT_TYPE_LABELS[t] || t
+      (t) => MOVEMENT_TYPE_LABELS[locale][t] || t
     )
-    doc.text(`${structure.movements.length} st — ${legendItems.join(', ')}`, margin + 18, legendY + 5)
+    doc.text(`${structure.movements.length} ${countSuffix} — ${legendItems.join(', ')}`, margin + 18, legendY + 5)
   }
 
   // Footer
@@ -218,5 +232,5 @@ export async function exportDrillPDF(
   // ─── Download ──────────────────────────────────────────────────
 
   const safeName = title.replace(/[^a-zA-ZåäöÅÄÖ0-9-_ ]/g, '').replace(/\s+/g, '-')
-  doc.save(`${safeName || 'ovning'}.pdf`)
+  doc.save(`${safeName || (locale === 'sv' ? 'ovning' : 'drill')}.pdf`)
 }

@@ -29,8 +29,8 @@ interface DrillListProps {
   teamId?: string
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })
+function formatDate(iso: string, locale: 'en' | 'sv'): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export function DrillList({ teamId }: DrillListProps) {
@@ -66,7 +66,7 @@ export function DrillList({ teamId }: DrillListProps) {
         toast.error(t('common.errors.exportFailed'))
       }
     },
-    [t]
+    [locale, t]
   )
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export function DrillList({ teamId }: DrillListProps) {
               <div>
                 <h3 className="font-semibold">{drill.title}</h3>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span>{formatDate(drill.createdAt)}</span>
+                  <span>{formatDate(drill.createdAt, locale)}</span>
                   <span>·</span>
                   <span>{drill.createdBy.name}</span>
                   {drill.team && (
@@ -154,7 +154,7 @@ export function DrillList({ teamId }: DrillListProps) {
                     title={drill.title}
                     description={drill.description || undefined}
                     structure={drill.structure}
-                    locale="sv"
+                    locale={locale}
                     sportType={(drill.sportType as DrillSportType) || 'ICE_HOCKEY'}
                   />
                 ) : (

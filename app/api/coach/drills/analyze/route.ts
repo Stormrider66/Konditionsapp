@@ -9,15 +9,25 @@ import { requireCoach } from '@/lib/auth-utils'
 import { analyzeClipboardPhoto } from '@/lib/drills/analyze-clipboard'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const { imageBase64, mimeType } = body
 
     if (!imageBase64 || !mimeType) {
-      return NextResponse.json({ error: 'Image data required' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'Image data is required', 'Bilddata krävs') },
+        { status: 400 },
+      )
     }
 
     // Get business context for API key resolution
@@ -32,6 +42,7 @@ export async function POST(req: NextRequest) {
       user.id,
       membership?.businessId,
       { userId: user.id, category: 'coach_drill_clipboard_analysis' },
+      locale,
     )
 
     return NextResponse.json(result)
