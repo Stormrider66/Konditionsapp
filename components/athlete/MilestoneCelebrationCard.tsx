@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { GlassCard, GlassCardHeader, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -17,7 +17,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { celebrationColors, celebrationEmojis, type CelebrationLevel } from '@/lib/milestone-constants'
+import { celebrationEmojis, type CelebrationLevel } from '@/lib/milestone-constants'
 import { ShareAchievementButton } from './shareable/ShareAchievementButton'
 
 interface ContextData {
@@ -43,13 +43,13 @@ interface Notification {
 }
 
 const milestoneIcons: Record<string, React.ReactNode> = {
-  PERSONAL_RECORD: <Trophy className="h-6 w-6" />,
-  CONSISTENCY_STREAK: <Flame className="h-6 w-6" />,
-  WORKOUT_COUNT: <Award className="h-6 w-6" />,
-  TRAINING_ANNIVERSARY: <Cake className="h-6 w-6" />,
-  FIRST_WORKOUT: <Star className="h-6 w-6" />,
-  COMEBACK: <Zap className="h-6 w-6" />,
-  PROGRAM_COMPLETED: <Trophy className="h-6 w-6" />,
+  PERSONAL_RECORD: <Trophy className="h-5 w-5" />,
+  CONSISTENCY_STREAK: <Flame className="h-5 w-5" />,
+  WORKOUT_COUNT: <Award className="h-5 w-5" />,
+  TRAINING_ANNIVERSARY: <Cake className="h-5 w-5" />,
+  FIRST_WORKOUT: <Star className="h-5 w-5" />,
+  COMEBACK: <Zap className="h-5 w-5" />,
+  PROGRAM_COMPLETED: <Trophy className="h-5 w-5" />,
 }
 
 export function MilestoneCelebrationCard() {
@@ -75,7 +75,7 @@ export function MilestoneCelebrationCard() {
           // Mark as read
           for (const n of milestoneNotifications) {
             if (!n.readAt) {
-              fetch(`/api/athlete/notifications/${n.id}`, {
+              void fetch(`/api/athlete/notifications/${n.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'read' }),
@@ -90,7 +90,7 @@ export function MilestoneCelebrationCard() {
       }
     }
 
-    fetchNotifications()
+    void fetchNotifications()
   }, [])
 
   async function handleDismiss(notification: Notification) {
@@ -116,6 +116,62 @@ export function MilestoneCelebrationCard() {
     }
   }
 
+  function getGlowColor(level: CelebrationLevel): 'amber' | 'slate' | 'purple' | 'none' {
+    switch (level) {
+      case 'PLATINUM':
+        return 'purple'
+      case 'GOLD':
+        return 'amber'
+      case 'SILVER':
+        return 'slate'
+      case 'BRONZE':
+      default:
+        return 'amber'
+    }
+  }
+
+  function getBorderColorClass(level: CelebrationLevel) {
+    switch (level) {
+      case 'PLATINUM':
+        return 'border-purple-200/40 dark:border-purple-800/30 hover:border-purple-500/30 dark:hover:border-purple-500/30'
+      case 'GOLD':
+        return 'border-yellow-200/40 dark:border-yellow-800/30 hover:border-yellow-500/30 dark:hover:border-yellow-500/30'
+      case 'SILVER':
+        return 'border-slate-200/40 dark:border-slate-800/30 hover:border-slate-500/30 dark:hover:border-slate-500/30'
+      case 'BRONZE':
+      default:
+        return 'border-amber-200/40 dark:border-amber-800/30 hover:border-amber-500/30 dark:hover:border-amber-500/30'
+    }
+  }
+
+  function getIconColorClass(level: CelebrationLevel) {
+    switch (level) {
+      case 'PLATINUM':
+        return 'bg-purple-500/10 dark:bg-purple-400/10 border-purple-500/20 dark:border-purple-400/20 text-purple-600 dark:text-purple-400'
+      case 'GOLD':
+        return 'bg-yellow-500/10 dark:bg-yellow-400/10 border-yellow-500/20 dark:border-yellow-400/20 text-yellow-600 dark:text-yellow-400'
+      case 'SILVER':
+        return 'bg-slate-500/10 dark:bg-slate-400/10 border-slate-500/20 dark:border-slate-400/20 text-slate-600 dark:text-slate-400'
+      case 'BRONZE':
+      default:
+        return 'bg-amber-500/10 dark:bg-amber-400/10 border-amber-500/20 dark:border-amber-400/20 text-amber-600 dark:text-amber-400'
+    }
+  }
+
+  function getBadgeColorClass(level: CelebrationLevel) {
+    switch (level) {
+      case 'PLATINUM':
+        return 'bg-purple-500/10 text-purple-750 dark:text-purple-300 border border-purple-500/20'
+      case 'GOLD':
+        return 'bg-yellow-500/10 text-yellow-750 dark:text-yellow-300 border border-yellow-500/20'
+      case 'SILVER':
+        return 'bg-slate-500/10 text-slate-750 dark:text-slate-300 border border-slate-500/20'
+      case 'BRONZE':
+      default:
+        return 'bg-amber-500/10 text-amber-750 dark:text-amber-300 border border-amber-500/20'
+    }
+  }
+
   // Don't render if loading or no notifications
   if (isLoading || notifications.length === 0) {
     return null
@@ -126,17 +182,17 @@ export function MilestoneCelebrationCard() {
       {notifications.map((notification) => {
         const context = notification.contextData as ContextData
         const level = context?.celebrationLevel || 'BRONZE'
-        const colors = celebrationColors[level]
-        const icon = milestoneIcons[context?.milestoneType] || <Star className="h-6 w-6" />
+        const icon = milestoneIcons[context?.milestoneType] || <Star className="h-5 w-5" />
         const emoji = celebrationEmojis[level]
 
         return (
-          <Card
+          <GlassCard
             key={notification.id}
+            glow={getGlowColor(level)}
+            gradient
             className={cn(
-              'bg-gradient-to-br overflow-hidden relative',
-              colors.gradient,
-              colors.border
+              'group overflow-hidden relative transition-all duration-300',
+              getBorderColorClass(level)
             )}
           >
             {/* Sparkle decorations for higher levels */}
@@ -148,20 +204,20 @@ export function MilestoneCelebrationCard() {
               </>
             )}
 
-            <CardHeader className="pb-2">
+            <GlassCardHeader className="pb-2">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={cn('p-3 rounded-xl', colors.iconBg, colors.iconColor)}>
+                  <div className={cn('p-2.5 rounded-full border shadow-inner transition-all duration-300 group-hover:scale-110', getIconColorClass(level))}>
                     {icon}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className={cn('font-bold text-lg', colors.textColor)}>
+                      <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">
                         {notification.title}
                       </h3>
                       <span className="text-2xl">{emoji}</span>
                     </div>
-                    <p className={cn('text-sm opacity-80', colors.textColor)}>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-normal">
                       {notification.message}
                     </p>
                   </div>
@@ -176,7 +232,7 @@ export function MilestoneCelebrationCard() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={cn('h-8 w-8 hover:bg-white/50', colors.textColor)}
+                    className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800/50 rounded-full"
                     onClick={() => handleDismiss(notification)}
                     disabled={dismissingId === notification.id}
                   >
@@ -188,21 +244,21 @@ export function MilestoneCelebrationCard() {
                   </Button>
                 </div>
               </div>
-            </CardHeader>
+            </GlassCardHeader>
 
-            <CardContent className="pt-2">
+            <GlassCardContent className="pt-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {/* Value display */}
                   {context?.value && (
-                    <Badge className={cn('text-sm font-bold px-3 py-1', colors.badgeBg)}>
+                    <Badge className={cn('text-xs font-semibold px-2.5 py-0.5 rounded-full border', getBadgeColorClass(level))}>
                       {context.value} {context.unit || ''}
                     </Badge>
                   )}
 
                   {/* Improvement indicator */}
                   {context?.improvement && context.improvement > 0 && (
-                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm">
+                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-semibold">
                       <TrendingUp className="h-4 w-4" />
                       <span>+{context.improvement}%</span>
                     </div>
@@ -210,15 +266,14 @@ export function MilestoneCelebrationCard() {
 
                   {/* Previous best */}
                   {context?.previousBest && (
-                    <span className={cn('text-xs opacity-60', colors.textColor)}>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                       Tidigare: {context.previousBest} {context.unit}
                     </span>
                   )}
                 </div>
-
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         )
       })}
     </div>

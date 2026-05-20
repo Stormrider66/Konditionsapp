@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from '@/i18n/client'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { GlassCard, GlassCardHeader, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -137,44 +137,51 @@ export function PatternAlertCard() {
   function getSeverityColor(severity: string) {
     switch (severity) {
       case 'HIGH':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'
+        return 'bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20'
       case 'MEDIUM':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200'
+        return 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border border-orange-500/20'
       default:
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200'
+        return 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
     }
   }
 
-  function getCardGradient(urgency: string) {
+  function getGlowColor(urgency: string, hasPositiveTrend: boolean): 'red' | 'amber' | 'emerald' | 'none' {
+    if (hasPositiveTrend) return 'emerald'
     switch (urgency) {
       case 'high':
-        return 'from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border-red-200 dark:border-red-800'
+        return 'red'
       case 'medium':
-        return 'from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-orange-200 dark:border-orange-800'
+        return 'amber'
       default:
-        return 'from-yellow-50 to-amber-50 dark:from-yellow-950/30 dark:to-amber-950/30 border-yellow-200 dark:border-yellow-800'
+        return 'amber'
     }
   }
 
-  function getIconColor(urgency: string) {
+  function getCardBorderClass(urgency: string, hasPositiveTrend: boolean) {
+    if (hasPositiveTrend) {
+      return 'border-green-200/30 dark:border-green-800/20 hover:border-green-500/30 dark:hover:border-green-500/30'
+    }
     switch (urgency) {
       case 'high':
-        return 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
+        return 'border-red-200/30 dark:border-red-800/20 hover:border-red-500/30 dark:hover:border-red-500/30'
       case 'medium':
-        return 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'
+        return 'border-orange-200/30 dark:border-orange-800/20 hover:border-orange-500/30 dark:hover:border-orange-500/30'
       default:
-        return 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-600 dark:text-yellow-400'
+        return 'border-yellow-200/30 dark:border-yellow-800/20 hover:border-yellow-500/30 dark:hover:border-yellow-500/30'
     }
   }
 
-  function getTextColor(urgency: string) {
+  function getIconColorClass(urgency: string, hasPositiveTrend: boolean) {
+    if (hasPositiveTrend) {
+      return 'bg-emerald-500/10 dark:bg-emerald-400/10 border-emerald-500/20 dark:border-emerald-400/20 text-emerald-600 dark:text-emerald-400'
+    }
     switch (urgency) {
       case 'high':
-        return 'text-red-900 dark:text-red-100'
+        return 'bg-red-500/10 dark:bg-red-400/10 border-red-500/20 dark:border-red-400/20 text-red-600 dark:text-red-400'
       case 'medium':
-        return 'text-orange-900 dark:text-orange-100'
+        return 'bg-orange-500/10 dark:bg-orange-400/10 border-orange-500/20 dark:border-orange-400/20 text-orange-600 dark:text-orange-400'
       default:
-        return 'text-yellow-900 dark:text-yellow-100'
+        return 'bg-amber-500/10 dark:bg-amber-400/10 border-amber-500/20 dark:border-amber-400/20 text-amber-600 dark:text-amber-400'
     }
   }
 
@@ -203,7 +210,6 @@ export function PatternAlertCard() {
     }
   }
 
-  // Don't render if loading or no notifications
   if (isLoading || notifications.length === 0) {
     return null
   }
@@ -218,28 +224,17 @@ export function PatternAlertCard() {
         const recommendations = context?.recommendations || []
         const hasPositiveTrend = patterns.some((p) => p.type === 'POSITIVE_TREND')
 
-        // Use different styling for positive trends
-        const cardClass = hasPositiveTrend
-          ? 'from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800'
-          : getCardGradient(urgency)
-
-        const iconClass = hasPositiveTrend
-          ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400'
-          : getIconColor(urgency)
-
-        const textClass = hasPositiveTrend
-          ? 'text-green-900 dark:text-green-100'
-          : getTextColor(urgency)
-
         return (
-          <Card
+          <GlassCard
             key={notification.id}
-            className={cn('bg-gradient-to-br overflow-hidden', cardClass)}
+            glow={getGlowColor(urgency, hasPositiveTrend)}
+            gradient
+            className={cn('group transition-all duration-300', getCardBorderClass(urgency, hasPositiveTrend))}
           >
-            <CardHeader className="pb-2">
+            <GlassCardHeader className="pb-2">
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={cn('p-2 rounded-lg', iconClass)}>
+                <div className="flex items-center gap-3">
+                  <div className={cn('p-2.5 rounded-full border shadow-inner transition-all duration-300 group-hover:scale-110', getIconColorClass(urgency, hasPositiveTrend))}>
                     {hasPositiveTrend ? (
                       <Sparkles className="h-5 w-5" />
                     ) : (
@@ -247,10 +242,10 @@ export function PatternAlertCard() {
                     )}
                   </div>
                   <div>
-                    <h3 className={cn('font-semibold', textClass)}>
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">
                       {notification.title}
                     </h3>
-                    <p className={cn('text-xs opacity-70', textClass)}>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                       {t('patternCount', { count: patterns.length })}
                     </p>
                   </div>
@@ -258,10 +253,7 @@ export function PatternAlertCard() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn(
-                    'h-8 w-8 hover:bg-white/50 dark:hover:bg-black/20',
-                    textClass
-                  )}
+                  className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800/50 rounded-full"
                   onClick={() => handleDismiss(notification.id)}
                   disabled={dismissingId === notification.id}
                 >
@@ -272,11 +264,11 @@ export function PatternAlertCard() {
                   )}
                 </Button>
               </div>
-            </CardHeader>
+            </GlassCardHeader>
 
-            <CardContent className="space-y-3">
+            <GlassCardContent className="space-y-4">
               {/* Main message */}
-              <p className={cn('text-sm opacity-90', textClass)}>
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                 {notification.message}
               </p>
 
@@ -287,14 +279,14 @@ export function PatternAlertCard() {
                     <Badge
                       key={index}
                       variant="secondary"
-                      className={cn('text-xs', getSeverityColor(pattern.severity))}
+                      className={cn('text-xs font-semibold px-2 py-0.5 rounded-full border', getSeverityColor(pattern.severity))}
                     >
-                      {patternIcons[pattern.type] || <Activity className="h-3 w-3 mr-1" />}
+                      {patternIcons[pattern.type] || <Activity className="h-3.5 w-3.5 mr-1" />}
                       <span className="ml-1">{getPatternLabel(pattern.type)}</span>
                     </Badge>
                   ))}
                   {patterns.length > 3 && (
-                    <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-gray-800">
+                    <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400">
                       {t('morePatterns', { count: patterns.length - 3 })}
                     </Badge>
                   )}
@@ -306,22 +298,19 @@ export function PatternAlertCard() {
                 <div>
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : notification.id)}
-                    className={cn(
-                      'flex items-center gap-1 text-xs opacity-70 hover:opacity-100',
-                      textClass
-                    )}
+                    className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
                   >
                     <ChevronRight
-                      className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-90')}
+                      className={cn('h-3.5 w-3.5 transition-transform duration-250', isExpanded && 'rotate-90')}
                     />
                     {isExpanded ? t('actions.hideRecommendations') : t('actions.showRecommendations')}
                   </button>
                   {isExpanded && (
-                    <ul className="mt-2 space-y-1 pl-4">
+                    <ul className="mt-2 space-y-1.5 pl-5 list-disc">
                       {recommendations.map((rec, index) => (
                         <li
                           key={index}
-                          className={cn('text-xs list-disc opacity-80', textClass)}
+                          className="text-xs text-slate-600 dark:text-slate-400 leading-normal"
                         >
                           {rec}
                         </li>
@@ -337,14 +326,7 @@ export function PatternAlertCard() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className={cn(
-                      'h-8 text-xs bg-white/50 dark:bg-black/20',
-                      hasPositiveTrend
-                        ? 'border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900/50'
-                        : urgency === 'high'
-                          ? 'border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/50'
-                          : 'border-orange-300 dark:border-orange-700 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/50'
-                    )}
+                    className="h-9 text-xs rounded-full bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all duration-200 shadow-sm hover:shadow"
                     onClick={() => handleAction(notification)}
                   >
                     {notification.actionLabel}
@@ -352,8 +334,8 @@ export function PatternAlertCard() {
                   </Button>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         )
       })}
     </div>

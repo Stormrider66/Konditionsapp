@@ -1,22 +1,9 @@
-/**
- * Nutrition Timing Card
- *
- * Proactive notification-style card that surfaces key meal timing information
- * before workouts. Shows when to eat, what to eat, and hydration reminders.
- *
- * Features:
- * - Workout-aware timing (meal deadline based on workout time)
- * - Intensity-based carb recommendations
- * - Hydration reminders
- * - Expandable food suggestions
- * - Session-based dismissal (resets daily)
- */
-
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { GlassCard, GlassCardHeader, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Utensils, Clock, Droplets, X, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
@@ -116,22 +103,22 @@ export function NutritionTimingCard() {
   }
 
   return (
-    <Card
-      className="bg-gradient-to-br from-emerald-50 to-teal-50
-                 dark:from-emerald-950/30 dark:to-teal-950/30
-                 border-emerald-200 dark:border-emerald-800"
+    <GlassCard
+      glow="emerald"
+      gradient
+      className="group border-emerald-200/30 dark:border-emerald-800/20 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 transition-all duration-300"
     >
-      <CardHeader className="pb-2">
+      <GlassCardHeader className="pb-2">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg">
-              <Utensils className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/10 dark:bg-emerald-400/10 border border-emerald-500/20 dark:border-emerald-400/20 rounded-full shadow-inner transition-all duration-300 group-hover:bg-emerald-500/20">
+              <Utensils className="h-5 w-5 text-emerald-600 dark:text-emerald-400 transition-transform duration-500 group-hover:scale-110" />
             </div>
             <div>
-              <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">
                 {t('title')}
               </h3>
-              <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {isPostWorkoutMode
                   ? t('subtitle.recovery')
                   : hasScheduledTime
@@ -144,36 +131,33 @@ export function NutritionTimingCard() {
             variant="ghost"
             size="icon"
             onClick={handleDismiss}
-            className="h-8 w-8 text-emerald-600 hover:text-emerald-800
-                       hover:bg-emerald-100
-                       dark:text-emerald-400 dark:hover:text-emerald-200
-                       dark:hover:bg-emerald-900/50"
+            className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800/50 rounded-full"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
-      </CardHeader>
+      </GlassCardHeader>
 
-      <CardContent className="space-y-3">
+      <GlassCardContent className="space-y-4">
         {/* Workout info */}
-        <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
           {workout.name}
-          {workout.duration && ` ${workout.duration} min`}
-          {workout.intensity && ` (${getIntensityLabel(workout.intensity)})`}
+          {workout.duration && ` • ${workout.duration} min`}
+          {workout.intensity && ` • ${getIntensityLabel(workout.intensity)}`}
         </p>
 
         {/* Main timing message */}
-        <div className="flex items-start gap-2">
-          <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+        <div className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800/30 bg-emerald-500/5 hover:shadow-sm transition-all duration-300">
+          <Clock className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
               {isPostWorkoutMode
                 ? (postWorkout?.timingLabel || t('timing.eatWithinRecoveryWindow'))
                 : mealDeadline !== null
                   ? t('timing.eatBy', { time: formatHour(mealDeadline) })
                   : t('timing.eatBeforeWorkout')}
             </p>
-            <p className="text-xs text-emerald-700 dark:text-emerald-300">
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-normal">
               {isPostWorkoutMode
                 ? (postWorkout?.recommendation ||
                   t('recommendations.recovery', {
@@ -189,9 +173,9 @@ export function NutritionTimingCard() {
         </div>
 
         {/* Hydration tip */}
-        <div className="flex items-start gap-2">
-          <Droplets className="h-4 w-4 text-cyan-600 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800/30 bg-cyan-500/5 hover:shadow-sm transition-all duration-300">
+          <Droplets className="h-4.5 w-4.5 text-cyan-600 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-normal">
             {isPostWorkoutMode
               ? t('hydration.afterWorkout', { amount: postWorkout?.hydrationMl || 500 })
               : t('hydration.beforeWorkout', { amount: preWorkout?.hydrationMl || 500 })}
@@ -200,28 +184,30 @@ export function NutritionTimingCard() {
 
         {/* Expandable details */}
         {isExpanded && (isPostWorkoutMode ? postWorkout : preWorkout) && (
-          <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800 space-y-2">
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800/60 space-y-3">
             {(isPostWorkoutMode ? postWorkout : preWorkout)?.timingLabel && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              <Badge variant="outline" className="bg-emerald-500/5 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 text-[10px] font-medium uppercase tracking-wider">
                 {(isPostWorkoutMode ? postWorkout : preWorkout)?.timingLabel}
-              </p>
+              </Badge>
             )}
             {(isPostWorkoutMode ? postWorkout : preWorkout)?.foodSuggestions && ((isPostWorkoutMode ? postWorkout : preWorkout)?.foodSuggestions.length || 0) > 0 && (
-              <div>
-                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 mb-1">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/40 rounded-xl">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5 flex items-center gap-1.5">
+                  <Utensils className="h-3.5 w-3.5 text-emerald-500" />
                   {t('suggestions')}
                 </p>
-                <ul className="text-xs text-emerald-700 dark:text-emerald-300 space-y-0.5">
+                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1 pl-1">
                   {(isPostWorkoutMode ? postWorkout : preWorkout)!.foodSuggestions.slice(0, 4).map((food, i) => (
-                    <li key={i}>
-                      - {locale === 'en' ? food.nameEn : food.nameSv} ({food.portion})
+                    <li key={i} className="flex items-center gap-1">
+                      <span className="text-emerald-500">•</span>
+                      <span>{locale === 'en' ? food.nameEn : food.nameSv} ({food.portion})</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
             {(isPostWorkoutMode ? postWorkout : preWorkout)?.reasoning && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 italic">
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-900/20 p-2.5 rounded-lg border border-slate-100/50 dark:border-slate-800/20">
                 {(isPostWorkoutMode ? postWorkout : preWorkout)?.reasoning}
               </p>
             )}
@@ -235,12 +221,12 @@ export function NutritionTimingCard() {
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100
-                         dark:text-emerald-400 dark:hover:text-emerald-200
-                         dark:hover:bg-emerald-900/50 gap-1 px-2"
+              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100
+                         dark:text-slate-400 dark:hover:text-white
+                         dark:hover:bg-slate-800/50 gap-1 px-2.5 rounded-full text-xs font-semibold"
             >
               <ChevronDown
-                className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                className={`h-4 w-4 transition-transform duration-250 ${isExpanded ? 'rotate-180' : ''}`}
               />
               {isExpanded ? t('showLess') : t('showMore')}
             </Button>
@@ -249,14 +235,15 @@ export function NutritionTimingCard() {
             asChild
             variant="outline"
             size="sm"
-            className="border-emerald-300 hover:bg-emerald-100
-                       dark:border-emerald-700 dark:hover:bg-emerald-900/50
-                       text-emerald-700 dark:text-emerald-300 ml-auto"
+            className="border-slate-200 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/60
+                       hover:bg-slate-50 dark:hover:bg-slate-800
+                       text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
+                       rounded-full shadow-sm hover:shadow text-xs font-medium ml-auto"
           >
             <Link href={`${basePath}/athlete/settings/nutrition`}>{t('nutritionSettings')}</Link>
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

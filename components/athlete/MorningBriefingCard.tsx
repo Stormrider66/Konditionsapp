@@ -1,7 +1,5 @@
-'use client'
-
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { GlassCard, GlassCardHeader, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -107,8 +105,7 @@ export function MorningBriefingCard() {
         router.push(`${basePath}/athlete/training`)
         break
       case 'open_chat':
-        // Open the floating chat - this would need to be connected to a global state
-        // For now, we'll scroll to the chat button
+        // Open the floating chat
         document.querySelector('[data-chat-trigger]')?.scrollIntoView({ behavior: 'smooth' })
         break
       case 'check_in':
@@ -118,7 +115,6 @@ export function MorningBriefingCard() {
         router.push(`${basePath}/athlete/program`)
         break
       default:
-        // Unknown action - no-op
         break
     }
   }
@@ -126,13 +122,13 @@ export function MorningBriefingCard() {
   function getAlertIcon(type: string) {
     switch (type) {
       case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />
+        return <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
       case 'info':
-        return <Info className="h-4 w-4 text-blue-500" />
+        return <Info className="h-4 w-4 text-blue-500 mt-0.5" />
       case 'success':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
+        return <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5" />
       default:
-        return <Info className="h-4 w-4" />
+        return <Info className="h-4 w-4 mt-0.5" />
     }
   }
 
@@ -151,12 +147,7 @@ export function MorningBriefingCard() {
     }
   }
 
-  // Don't render if loading or no briefing
-  if (isLoading) {
-    return null
-  }
-
-  if (!briefing) {
+  if (isLoading || !briefing) {
     return null
   }
 
@@ -167,18 +158,22 @@ export function MorningBriefingCard() {
   const highlights = briefing.highlights || []
 
   return (
-    <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800 overflow-hidden">
-      <CardHeader className="pb-2">
+    <GlassCard
+      glow="amber"
+      gradient
+      className="group border-amber-200/30 dark:border-amber-800/20 hover:border-amber-500/30 dark:hover:border-amber-500/30 transition-all duration-300"
+    >
+      <GlassCardHeader className="pb-2">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
-              <Sun className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/20 dark:border-amber-400/20 rounded-full shadow-inner transition-all duration-300 group-hover:bg-amber-500/20">
+              <Sun className="h-5 w-5 text-amber-600 dark:text-amber-400 transition-transform duration-700 group-hover:rotate-45" />
             </div>
             <div>
-              <h3 className="font-semibold text-amber-900 dark:text-amber-100">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">
                 {briefing.title}
               </h3>
-              <p className="text-xs text-amber-700 dark:text-amber-300">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {new Date(briefing.scheduledFor).toLocaleTimeString(locale, {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -190,7 +185,7 @@ export function MorningBriefingCard() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-amber-600 hover:text-amber-800 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/50"
+            className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800/50 rounded-full"
             onClick={handleDismiss}
             disabled={isDismissing}
           >
@@ -201,33 +196,37 @@ export function MorningBriefingCard() {
             )}
           </Button>
         </div>
-      </CardHeader>
+      </GlassCardHeader>
 
-      <CardContent className="space-y-3">
+      <GlassCardContent className="space-y-4">
         {/* Main content */}
-        <p className="text-sm text-amber-800 dark:text-amber-200">{briefing.content}</p>
+        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+          {briefing.content}
+        </p>
 
-        {/* Readiness score if available */}
-        {briefing.readinessScore !== undefined && briefing.readinessScore !== null && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-600 dark:text-amber-400">{t('readiness')}</span>
+        {/* Readiness score & workout */}
+        {(briefing.readinessScore !== undefined && briefing.readinessScore !== null) && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {t('readiness')}
+            </span>
             <Badge
               variant="secondary"
               className={cn(
-                'text-xs',
+                'text-xs font-semibold px-2.5 py-0.5 rounded-full border',
                 briefing.readinessScore >= 7
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
                   : briefing.readinessScore >= 5
-                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+                    : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20'
               )}
             >
               {briefing.readinessScore.toFixed(1)}/10
             </Badge>
             {briefing.todaysWorkout && (
               <>
-                <span className="text-amber-400">•</span>
-                <span className="text-xs text-amber-700 dark:text-amber-300">
+                <span className="text-slate-300 dark:text-slate-700">•</span>
+                <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                   {briefing.todaysWorkout}
                 </span>
               </>
@@ -237,22 +236,22 @@ export function MorningBriefingCard() {
 
         {/* Alerts */}
         {alerts.length > 0 && (
-          <div className="space-y-1">
+          <div className="space-y-2">
             {alerts.map((alert, index) => (
               <div
                 key={index}
                 className={cn(
-                  'flex items-center gap-2 p-2 rounded-lg text-xs',
+                  'flex items-start gap-3 p-3 rounded-xl text-xs border border-slate-100 dark:border-slate-800/30 backdrop-blur-sm transition-all duration-300 hover:shadow-sm',
                   alert.type === 'warning' &&
-                    'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200',
+                    'bg-amber-500/5 border-l-4 border-l-amber-500 text-slate-700 dark:text-slate-300',
                   alert.type === 'info' &&
-                    'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200',
+                    'bg-blue-500/5 border-l-4 border-l-blue-500 text-slate-700 dark:text-slate-300',
                   alert.type === 'success' &&
-                    'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
+                    'bg-emerald-500/5 border-l-4 border-l-emerald-500 text-slate-700 dark:text-slate-300'
                 )}
               >
                 {getAlertIcon(alert.type)}
-                <span>{alert.message}</span>
+                <span className="leading-normal">{alert.message}</span>
               </div>
             ))}
           </div>
@@ -263,19 +262,19 @@ export function MorningBriefingCard() {
           <div>
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
+              className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
             >
               <ChevronRight
-                className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-90')}
+                className={cn('h-3.5 w-3.5 transition-transform duration-250', isExpanded && 'rotate-90')}
               />
               {isExpanded ? t('actions.hideDetails') : t('actions.showDetails')}
             </button>
             {isExpanded && (
-              <ul className="mt-2 space-y-1 pl-4">
+              <ul className="mt-2 space-y-1.5 pl-5 list-disc">
                 {highlights.map((highlight, index) => (
                   <li
                     key={index}
-                    className="text-xs text-amber-700 dark:text-amber-300 list-disc"
+                    className="text-xs text-slate-600 dark:text-slate-400 leading-normal"
                   >
                     {highlight}
                   </li>
@@ -293,16 +292,16 @@ export function MorningBriefingCard() {
                 key={index}
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs bg-white/50 dark:bg-black/20 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                className="h-9 text-xs rounded-full bg-white/60 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all duration-200 shadow-sm hover:shadow"
                 onClick={() => handleAction(action.action)}
               >
                 {getActionIcon(action.action)}
-                <span className="ml-1">{action.label}</span>
+                <span className="ml-1.5 font-medium">{action.label}</span>
               </Button>
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

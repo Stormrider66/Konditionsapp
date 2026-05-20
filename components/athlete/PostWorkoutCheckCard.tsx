@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from '@/i18n/client'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { GlassCard, GlassCardHeader, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -215,23 +215,25 @@ export function PostWorkoutCheckCard() {
         const timeSince = getTimeSinceCompletion(context?.completedAt || notification.createdAt)
 
         return (
-          <Card
+          <GlassCard
             key={notification.id}
-            className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200 dark:border-emerald-800 overflow-hidden"
+            glow="emerald"
+            gradient
+            className="group border-emerald-200/30 dark:border-emerald-800/20 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 transition-all duration-300"
           >
-            <CardHeader className="pb-2">
+            <GlassCardHeader className="pb-2">
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg">
-                    <ClipboardCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-emerald-500/10 dark:bg-emerald-400/10 border border-emerald-500/20 dark:border-emerald-400/20 rounded-full shadow-inner transition-all duration-300 group-hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <ClipboardCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">
                       {notification.title}
                     </h3>
-                    <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
                       <span>{context?.workoutName}</span>
-                      <span className="text-emerald-400">•</span>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
                       <span>{timeSince}</span>
                     </div>
                   </div>
@@ -239,7 +241,7 @@ export function PostWorkoutCheckCard() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+                  className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-800/50 rounded-full"
                   onClick={() => handleDismiss(notification.id)}
                   disabled={dismissingId === notification.id}
                 >
@@ -250,34 +252,34 @@ export function PostWorkoutCheckCard() {
                   )}
                 </Button>
               </div>
-            </CardHeader>
+            </GlassCardHeader>
 
-            <CardContent className="space-y-4">
+            <GlassCardContent className="space-y-4">
               {/* Greeting message */}
-              <p className="text-sm text-emerald-800 dark:text-emerald-200">
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                 {notification.message}
               </p>
 
               {/* Expand to show feedback form */}
               <button
                 onClick={() => setExpandedId(isExpanded ? null : notification.id)}
-                className="flex items-center gap-1 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200"
+                className="flex items-center gap-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
               >
                 <ChevronRight
-                  className={cn('h-4 w-4 transition-transform', isExpanded && 'rotate-90')}
+                  className={cn('h-4 w-4 transition-transform duration-250', isExpanded && 'rotate-90')}
                 />
                 {isExpanded ? t('actions.hideForm') : t('actions.giveFeedback')}
               </button>
 
               {isExpanded && feedback && (
-                <div className="space-y-4 pt-2 border-t border-emerald-200 dark:border-emerald-800">
+                <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800/60">
                   {/* Overall Feeling */}
                   <div className="space-y-2">
-                    <Label className="text-sm text-emerald-800 dark:text-emerald-200">
+                    <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       {t('fields.overallFeeling')}
                     </Label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{feelingEmojis[feedback.overallFeeling - 1]}</span>
+                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/35 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                      <span className="text-2xl w-8 text-center">{feelingEmojis[feedback.overallFeeling - 1]}</span>
                       <Slider
                         value={[feedback.overallFeeling]}
                         onValueChange={([v]) => updateFeedback(notification.id, 'overallFeeling', v)}
@@ -286,7 +288,7 @@ export function PostWorkoutCheckCard() {
                         step={1}
                         className="flex-1"
                       />
-                      <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300 w-6">
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200 w-6 text-right">
                         {feedback.overallFeeling}
                       </span>
                     </div>
@@ -294,11 +296,11 @@ export function PostWorkoutCheckCard() {
 
                   {/* Energy Level */}
                   <div className="space-y-2">
-                    <Label className="text-sm text-emerald-800 dark:text-emerald-200">
+                    <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       {t('fields.energy')}
                     </Label>
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-5 w-5 text-emerald-500" />
+                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/35 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                      <Zap className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                       <Slider
                         value={[feedback.energyLevel]}
                         onValueChange={([v]) => updateFeedback(notification.id, 'energyLevel', v)}
@@ -307,7 +309,7 @@ export function PostWorkoutCheckCard() {
                         step={1}
                         className="flex-1"
                       />
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 w-16 text-right">
+                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 w-16 text-right">
                         {getEnergyLabel(feedback.energyLevel)}
                       </span>
                     </div>
@@ -315,11 +317,11 @@ export function PostWorkoutCheckCard() {
 
                   {/* Difficulty */}
                   <div className="space-y-2">
-                    <Label className="text-sm text-emerald-800 dark:text-emerald-200">
+                    <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       {t('fields.difficulty')}
                     </Label>
-                    <div className="flex items-center gap-2">
-                      <ThumbsUp className="h-5 w-5 text-emerald-500" />
+                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/35 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40">
+                      <ThumbsUp className="h-5 w-5 text-emerald-500 flex-shrink-0" />
                       <Slider
                         value={[feedback.difficulty]}
                         onValueChange={([v]) => updateFeedback(notification.id, 'difficulty', v)}
@@ -328,7 +330,7 @@ export function PostWorkoutCheckCard() {
                         step={1}
                         className="flex-1"
                       />
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 w-24 text-right">
+                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 w-20 text-right">
                         {getDifficultyLabel(feedback.difficulty)}
                       </span>
                     </div>
@@ -336,8 +338,8 @@ export function PostWorkoutCheckCard() {
 
                   {/* Pain/Discomfort */}
                   <div className="space-y-2">
-                    <Label className="text-sm text-emerald-800 dark:text-emerald-200 flex items-center gap-1">
-                      <AlertCircle className="h-4 w-4" />
+                    <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4 text-emerald-500" />
                       {t('fields.pain')}
                     </Label>
                     <Textarea
@@ -346,30 +348,28 @@ export function PostWorkoutCheckCard() {
                         updateFeedback(notification.id, 'painOrDiscomfort', e.target.value)
                       }
                       placeholder={t('placeholders.pain')}
-                      className="min-h-[60px] bg-white/50 dark:bg-black/20 border-emerald-200 dark:border-emerald-700"
+                      className="min-h-[60px] bg-white/40 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/60 text-slate-900 dark:text-white rounded-xl focus-visible:ring-emerald-500/30 transition-all"
                     />
                   </div>
 
                   {/* Notes */}
                   <div className="space-y-2">
-                    <Label className="text-sm text-emerald-800 dark:text-emerald-200">
+                    <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       {t('fields.notes')}
                     </Label>
                     <Textarea
                       value={feedback.notes}
                       onChange={(e) => updateFeedback(notification.id, 'notes', e.target.value)}
                       placeholder={t('placeholders.notes')}
-                      className="min-h-[60px] bg-white/50 dark:bg-black/20 border-emerald-200 dark:border-emerald-700"
+                      className="min-h-[60px] bg-white/40 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/60 text-slate-900 dark:text-white rounded-xl focus-visible:ring-emerald-500/30 transition-all"
                     />
                   </div>
 
                   {/* Recovery Tip */}
                   {context?.recoveryTip && (
-                    <div className="flex items-start gap-2 p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                      <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-                      <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                        {context.recoveryTip}
-                      </p>
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl border border-slate-100 dark:border-slate-800/30 bg-emerald-500/5 text-xs text-slate-700 dark:text-slate-300 transition-all duration-300">
+                      <Sparkles className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                      <p className="leading-normal">{context.recoveryTip}</p>
                     </div>
                   )}
 
@@ -377,7 +377,7 @@ export function PostWorkoutCheckCard() {
                   <Button
                     onClick={() => handleSubmit(notification)}
                     disabled={submittingId === notification.id}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-semibold shadow-sm hover:shadow transition-all duration-200"
                   >
                     {submittingId === notification.id ? (
                       <>
@@ -393,8 +393,8 @@ export function PostWorkoutCheckCard() {
                   </Button>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         )
       })}
     </div>
