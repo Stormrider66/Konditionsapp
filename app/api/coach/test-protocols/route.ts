@@ -10,6 +10,12 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const metricSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
@@ -67,13 +73,16 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const body = await req.json()
     const parsed = createProtocolSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Ogiltig indata', details: parsed.error.flatten() }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() }, { status: 400 })
     }
 
     const membership = await prisma.businessMember.findFirst({
@@ -82,7 +91,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'Ingen verksamhet' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business found', 'Ingen verksamhet') }, { status: 400 })
     }
 
     const protocol = await prisma.customTestProtocol.create({

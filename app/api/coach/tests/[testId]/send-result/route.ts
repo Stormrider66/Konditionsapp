@@ -21,9 +21,16 @@ interface RouteContext {
   params: Promise<{ testId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const coach = await requireCoach()
+    const locale: AppLocale = coach.language === 'sv' ? 'sv' : 'en'
     const { testId } = await context.params
 
     const body = await request.json().catch(() => ({}))
@@ -51,7 +58,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!test) {
       return NextResponse.json(
-        { success: false, error: 'Testet hittades inte' },
+        { success: false, error: t(locale, 'Test not found', 'Testet hittades inte') },
         { status: 404 },
       )
     }
@@ -71,7 +78,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!authorized) {
       return NextResponse.json(
-        { success: false, error: 'Du har inte behörighet till det här testet' },
+        { success: false, error: t(locale, 'You do not have access to this test', 'Du har inte behörighet till det här testet') },
         { status: 403 },
       )
     }
@@ -84,7 +91,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, error: result.error || 'Kunde inte skicka resultatmejl' },
+        { success: false, error: result.error || t(locale, 'Could not send result email', 'Kunde inte skicka resultatmejl') },
         { status: 400 },
       )
     }
