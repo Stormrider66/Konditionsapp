@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Trophy,
   Target,
@@ -27,52 +27,61 @@ interface TennisDashboardProps {
   settings: TennisSettings
 }
 
-const PLAYSTYLE_LABELS: Record<string, string> = {
-  aggressive_baseliner: 'Aggressiv Baslinjespelare',
-  serve_and_volleyer: 'Serve-Volleyspelare',
-  all_court: 'Allroundspelare',
-  counter_puncher: 'Defensiv Spelare',
-  big_server: 'Servkung',
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const text = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const PLAYSTYLE_LABELS: Record<string, Record<AppLocale, string>> = {
+  aggressive_baseliner: { sv: 'Aggressiv Baslinjespelare', en: 'Aggressive baseliner' },
+  serve_and_volleyer: { sv: 'Serve-Volleyspelare', en: 'Serve-and-volley player' },
+  all_court: { sv: 'Allroundspelare', en: 'All-court player' },
+  counter_puncher: { sv: 'Defensiv Spelare', en: 'Counterpuncher' },
+  big_server: { sv: 'Servkung', en: 'Big server' },
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  tournament: 'Turnering',
+const PHASE_LABELS: Record<string, Record<AppLocale, string>> = {
+  off_season: { sv: 'Off-season', en: 'Off-season' },
+  pre_season: { sv: 'Försäsong', en: 'Pre-season' },
+  in_season: { sv: 'Säsong', en: 'In-season' },
+  tournament: { sv: 'Turnering', en: 'Tournament' },
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Motionsspelare',
-  club: 'Klubbspelare',
-  division_4: 'Division 4',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  elitserien: 'Elitserien',
-  atp_wta: 'ATP/WTA',
+const LEAGUE_LABELS: Record<string, Record<AppLocale, string>> = {
+  recreational: { sv: 'Motionsspelare', en: 'Recreational player' },
+  club: { sv: 'Klubbspelare', en: 'Club player' },
+  division_4: { sv: 'Division 4', en: 'Division 4' },
+  division_3: { sv: 'Division 3', en: 'Division 3' },
+  division_2: { sv: 'Division 2', en: 'Division 2' },
+  division_1: { sv: 'Division 1', en: 'Division 1' },
+  elitserien: { sv: 'Elitserien', en: 'Elite series' },
+  atp_wta: { sv: 'ATP/WTA', en: 'ATP/WTA' },
 }
 
-const SURFACE_LABELS: Record<string, string> = {
-  hard: 'Hardcourt',
-  clay: 'Grus',
-  grass: 'Gräs',
-  indoor: 'Inomhus',
-  all: 'Alla underlag',
+const SURFACE_LABELS: Record<string, Record<AppLocale, string>> = {
+  hard: { sv: 'Hardcourt', en: 'Hard court' },
+  clay: { sv: 'Grus', en: 'Clay' },
+  grass: { sv: 'Gräs', en: 'Grass' },
+  indoor: { sv: 'Inomhus', en: 'Indoor' },
+  all: { sv: 'Alla underlag', en: 'All surfaces' },
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  serve: 'Serve',
-  forehand: 'Forehand',
-  backhand: 'Backhand',
-  volley: 'Volley',
-  return: 'Return',
-  movement: 'Rörelse/Fotwork',
-  mental: 'Mental styrka',
-  endurance: 'Uthållighet',
+const STRENGTH_LABELS: Record<string, Record<AppLocale, string>> = {
+  serve: { sv: 'Serve', en: 'Serve' },
+  forehand: { sv: 'Forehand', en: 'Forehand' },
+  backhand: { sv: 'Backhand', en: 'Backhand' },
+  volley: { sv: 'Volley', en: 'Volley' },
+  return: { sv: 'Return', en: 'Return' },
+  movement: { sv: 'Rörelse/Fotwork', en: 'Movement/footwork' },
+  mental: { sv: 'Mental styrka', en: 'Mental strength' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
 }
 
 export function TennisDashboard({ settings }: TennisDashboardProps) {
+  const locale = getAppLocale(useLocale())
   const t = useTranslations('components.athleteDashboard')
 
   if (!settings) {
@@ -155,14 +164,14 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
                 {settings.clubName || 'Tennis'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2">
-                <Badge variant="outline">{PLAYSTYLE_LABELS[playStyle]}</Badge>
-                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]}</Badge>
-                <Badge className="bg-green-500">{PHASE_LABELS[settings.seasonPhase]}</Badge>
+                <Badge variant="outline">{PLAYSTYLE_LABELS[playStyle]?.[locale]}</Badge>
+                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]?.[locale]}</Badge>
+                <Badge className="bg-green-500">{PHASE_LABELS[settings.seasonPhase]?.[locale]}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold">{settings.yearsPlaying}</div>
-              <div className="text-xs text-muted-foreground">års erfarenhet</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'års erfarenhet', 'years experience')}</div>
             </div>
           </div>
         </CardHeader>
@@ -171,22 +180,22 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
             <div className="text-center">
               <Ruler className="h-4 w-4 mx-auto mb-1 text-green-500" />
               <div className="text-lg font-bold">{settings.height ?? '-'}</div>
-              <div className="text-xs text-muted-foreground">cm längd</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'cm längd', 'cm height')}</div>
             </div>
             <div className="text-center">
               <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
               <div className="text-lg font-bold">{settings.serveSpeed ?? '-'}</div>
-              <div className="text-xs text-muted-foreground">km/h serve</div>
+              <div className="text-xs text-muted-foreground">km/h {text(locale, 'serve', 'serve')}</div>
             </div>
             <div className="text-center">
               <Activity className="h-4 w-4 mx-auto mb-1 text-blue-500" />
-              <div className="text-lg font-bold">{SURFACE_LABELS[settings.preferredSurface]}</div>
-              <div className="text-xs text-muted-foreground">underlag</div>
+              <div className="text-lg font-bold">{SURFACE_LABELS[settings.preferredSurface]?.[locale]}</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'underlag', 'surface')}</div>
             </div>
             <div className="text-center">
               <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
               <div className="text-lg font-bold">{settings.weeklyTrainingSessions}</div>
-              <div className="text-xs text-muted-foreground">träning/v</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'träning/v', 'sessions/wk')}</div>
             </div>
           </div>
         </CardContent>
@@ -197,13 +206,13 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Calendar className="h-4 w-4" />
-            {PHASE_LABELS[settings.seasonPhase]} - Träningsfokus
+            {PHASE_LABELS[settings.seasonPhase]?.[locale]} - {text(locale, 'Träningsfokus', 'Training focus')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div>
-              <h4 className="text-sm font-medium mb-2">Fokusområden:</h4>
+              <h4 className="text-sm font-medium mb-2">{text(locale, 'Fokusområden:', 'Focus areas:')}</h4>
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
@@ -214,11 +223,11 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Styrka</div>
+                <div className="text-xs text-muted-foreground mb-1">{text(locale, 'Styrka', 'Strength')}</div>
                 <div className="text-sm">{seasonPhase.strengthEmphasis}</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Kondition</div>
+                <div className="text-xs text-muted-foreground mb-1">{text(locale, 'Kondition', 'Conditioning')}</div>
                 <div className="text-sm">{seasonPhase.conditioningEmphasis}</div>
               </div>
             </div>
@@ -231,9 +240,9 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="h-4 w-4 text-green-500" />
-            Snabbhetstester - {PLAYSTYLE_LABELS[playStyle]}
+            {text(locale, 'Snabbhetstester', 'Speed tests')} - {PLAYSTYLE_LABELS[playStyle]?.[locale]}
           </CardTitle>
-          <CardDescription>Dina resultat jämfört med elitnivå</CardDescription>
+          <CardDescription>{text(locale, 'Dina resultat jämfört med elitnivå', 'Your results compared with elite level')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -254,7 +263,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.sprint5m, benchmarks.elite.sprint5m!, true) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.sprint5m} s</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.sprint5m} s</div>
             </div>
 
             {/* 10m Sprint */}
@@ -274,7 +283,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.sprint10m, benchmarks.elite.sprint10m!, true) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.sprint10m} s</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.sprint10m} s</div>
             </div>
 
             {/* Spider Drill */}
@@ -294,13 +303,13 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.agilitySpider, benchmarks.elite.agilitySpider!, true) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.agilitySpider} s</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.agilitySpider} s</div>
             </div>
 
             {/* Vertical Jump */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Vertikalhopp</span>
+                <span>{text(locale, 'Vertikalhopp', 'Vertical jump')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.verticalJump,
                   benchmarks.elite.verticalJump!,
@@ -313,13 +322,13 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.verticalJump, benchmarks.elite.verticalJump!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.verticalJump} cm</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.verticalJump} cm</div>
             </div>
 
             {/* Medicine Ball */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Medicinboll</span>
+                <span>{text(locale, 'Medicinboll', 'Medicine ball')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.medicineBallThrow,
                   benchmarks.elite.medicineBallThrow!,
@@ -332,7 +341,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.medicineBallThrow, benchmarks.elite.medicineBallThrow!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.medicineBallThrow} m</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.medicineBallThrow} m</div>
             </div>
 
             {/* Yo-Yo */}
@@ -351,7 +360,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.yoyoIR1Level, benchmarks.elite.yoyoIR1Level!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.yoyoIR1Level}</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.yoyoIR1Level}</div>
             </div>
           </div>
         </CardContent>
@@ -362,7 +371,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4" />
-            Spelstilsprofil: {playStyleProfile.displayName}
+            {text(locale, 'Spelstilsprofil:', 'Play style profile:')} {playStyleProfile.displayName}
           </CardTitle>
           <CardDescription>{playStyleProfile.description}</CardDescription>
         </CardHeader>
@@ -375,13 +384,13 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
               </div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Poäng/match</div>
+              <div className="text-sm text-muted-foreground mb-1">{text(locale, 'Poäng/match', 'Points/match')}</div>
               <div className="font-medium">
                 {playStyleProfile.avgPointsPerMatch.min}-{playStyleProfile.avgPointsPerMatch.max}
               </div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Bantäckning</div>
+              <div className="text-sm text-muted-foreground mb-1">{text(locale, 'Bantäckning', 'Court coverage')}</div>
               <div className="font-medium capitalize">
                 {playStyleProfile.courtCoverage.replace('_', ' ')}
               </div>
@@ -389,7 +398,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
           </div>
 
           <div className="mt-4">
-            <div className="text-sm font-medium mb-2">Nyckelegenskaper:</div>
+            <div className="text-sm font-medium mb-2">{text(locale, 'Nyckelegenskaper:', 'Key attributes:')}</div>
             <div className="flex flex-wrap gap-1">
               {playStyleProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
@@ -406,9 +415,9 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Dumbbell className="h-4 w-4" />
-            Rekommenderade övningar
+            {text(locale, 'Rekommenderade övningar', 'Recommended exercises')}
           </CardTitle>
-          <CardDescription>Baserat på din spelstil och skadehistorik</CardDescription>
+          <CardDescription>{text(locale, 'Baserat på din spelstil och skadehistorik', 'Based on your play style and injury history')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -436,7 +445,7 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Target className="h-4 w-4 text-green-500" />
-              {SURFACE_LABELS[settings.preferredSurface]} - Tips
+              {SURFACE_LABELS[settings.preferredSurface]?.[locale]} - {text(locale, 'Tips', 'Tips')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -458,14 +467,14 @@ export function TennisDashboard({ settings }: TennisDashboardProps) {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Zap className="h-4 w-4 text-green-500" />
-              Dina styrkor
+              {text(locale, 'Dina styrkor', 'Your strengths')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {settings.strengthFocus.map((strength) => (
                 <Badge key={strength} variant="secondary">
-                  {STRENGTH_LABELS[strength] || strength}
+                  {STRENGTH_LABELS[strength]?.[locale] || strength}
                 </Badge>
               ))}
             </div>
