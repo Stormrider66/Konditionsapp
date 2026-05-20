@@ -113,6 +113,7 @@ interface HockeyPathwayReadiness {
 export interface HockeyAthleteReportData {
   clientId: string
   clientName: string
+  locale?: 'en' | 'sv'
   settings: HockeySettings
   latest: HockeyTestSummary | null
   previous: HockeyTestSummary | null
@@ -138,29 +139,31 @@ const PAGE_HEIGHT = 297
 const MARGIN = 14
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 
-const POSITION_LABELS: Record<string, string> = {
-  center: 'Center',
-  wing: 'Forward',
-  defense: 'Back',
-  goalie: 'Malvakt',
+type LocalizedLabel = { en: string; sv: string }
+
+const POSITION_LABELS: Record<string, LocalizedLabel> = {
+  center: { en: 'Center', sv: 'Center' },
+  wing: { en: 'Forward', sv: 'Forward' },
+  defense: { en: 'Defense', sv: 'Back' },
+  goalie: { en: 'Goalie', sv: 'Malvakt' },
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Motionshockey',
-  junior: 'Junior',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  hockeyettan: 'Hockeyettan',
-  hockeyallsvenskan: 'Hockeyallsvenskan',
-  shl: 'SHL',
+const LEAGUE_LABELS: Record<string, LocalizedLabel> = {
+  recreational: { en: 'Recreational', sv: 'Motionshockey' },
+  junior: { en: 'Junior', sv: 'Junior' },
+  division_3: { en: 'Division 3', sv: 'Division 3' },
+  division_2: { en: 'Division 2', sv: 'Division 2' },
+  division_1: { en: 'Division 1', sv: 'Division 1' },
+  hockeyettan: { en: 'Hockeyettan', sv: 'Hockeyettan' },
+  hockeyallsvenskan: { en: 'Hockeyallsvenskan', sv: 'Hockeyallsvenskan' },
+  shl: { en: 'SHL', sv: 'SHL' },
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Forsasong',
-  in_season: 'Sasong',
-  playoffs: 'Slutspel',
+const PHASE_LABELS: Record<string, LocalizedLabel> = {
+  off_season: { en: 'Off-season', sv: 'Off-season' },
+  pre_season: { en: 'Pre-season', sv: 'Forsasong' },
+  in_season: { en: 'In season', sv: 'Sasong' },
+  playoffs: { en: 'Playoffs', sv: 'Slutspel' },
 }
 
 function formatMetricValue(value: number | null | undefined, unit: string, decimals: number): string {
@@ -177,9 +180,19 @@ function formatDelta(delta: number, unit: string, decimals: number): string {
   return `${sign}${delta.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
-function formatDate(iso: string | null | undefined): string {
+type ReportLocale = 'en' | 'sv'
+
+function getReportLocale(locale?: string): ReportLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function localizedLabel(labels: Record<string, LocalizedLabel>, key: string, locale: ReportLocale): string {
+  return labels[key]?.[locale] ?? key
+}
+
+function formatDate(iso: string | null | undefined, locale: ReportLocale): string {
   if (!iso) return '-'
-  return new Date(iso).toLocaleDateString('sv-SE')
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
 }
 
 function filenamePart(value: string): string {
@@ -393,7 +406,12 @@ function pathwayChange(value: number | null | undefined, unit: string, decimals:
   return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
-function developmentPathway(pdf: jsPDF, data: HockeyAthleteReportData, y: number): number {
+function developmentPathway(
+  pdf: jsPDF,
+  data: HockeyAthleteReportData,
+  y: number,
+  locale: ReportLocale
+): number {
   const seasons = data.pathway?.seasons ?? []
   const readiness = data.pathway?.readiness ?? []
   if (seasons.length === 0 && readiness.length === 0) return y
@@ -453,7 +471,7 @@ function developmentPathway(pdf: jsPDF, data: HockeyAthleteReportData, y: number
       pdf,
       ['Date', 'Milestone', 'Detail'],
       milestones.slice(0, 6).map((milestone) => [
-        formatDate(milestone.date),
+        formatDate(milestone.date, locale),
         milestone.label,
         milestone.detail,
       ]),
@@ -466,6 +484,7 @@ function developmentPathway(pdf: jsPDF, data: HockeyAthleteReportData, y: number
 }
 
 export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): Blob {
+  const locale = getReportLocale(data.locale)
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
 
@@ -477,7 +496,7 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
   pdf.text('Hockey athlete report', MARGIN, 16)
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
-  pdf.text(`${data.clientName} · ${new Date().toLocaleDateString('sv-SE')}`, MARGIN, 24)
+  pdf.text(`${data.clientName} · ${new Date().toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')}`, MARGIN, 24)
   y = 44
 
   const settings = data.settings
@@ -487,10 +506,10 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
   const latestSource = data.latest?.sourceType === 'MUSCLE_LAB_IMPORT' ? 'MuscleLab' : data.latest ? 'Manual' : '-'
 
   y = summaryCards(pdf, [
-    ['Position', POSITION_LABELS[settings.position] ?? settings.position],
-    ['League', LEAGUE_LABELS[settings.leagueLevel] ?? settings.leagueLevel],
-    ['Season phase', PHASE_LABELS[settings.seasonPhase] ?? settings.seasonPhase],
-    ['Latest test', formatDate(data.latest?.testDate), latestSource],
+    ['Position', localizedLabel(POSITION_LABELS, settings.position, locale)],
+    ['League', localizedLabel(LEAGUE_LABELS, settings.leagueLevel, locale)],
+    ['Season phase', localizedLabel(PHASE_LABELS, settings.seasonPhase, locale)],
+    ['Latest test', formatDate(data.latest?.testDate, locale), latestSource],
     ['Experience', `${settings.yearsPlaying ?? '-'} years`],
     ['Shift profile', avgShiftLength ? `${avgShiftLength} sec/shift` : '-', `${settings.averageIceTimeMinutes ?? '-'} min · ${settings.shiftsPerGame ?? '-'} shifts`],
   ], y)
@@ -502,7 +521,7 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     y = planItems(pdf, data.coachPlan, y)
   }
 
-  y = developmentPathway(pdf, data, y)
+  y = developmentPathway(pdf, data, y, locale)
 
   if (data.latest) {
     y = sectionTitle(pdf, 'Latest test snapshot', y)
@@ -534,7 +553,7 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     .map((metric) => {
       const best = data.bests[metric.key]
       return best
-        ? [metric.label, formatMetricValue(best.value, metric.unit, metric.decimals), formatDate(best.testDate)]
+        ? [metric.label, formatMetricValue(best.value, metric.unit, metric.decimals), formatDate(best.testDate, locale)]
         : null
     })
     .filter((row): row is string[] => row != null)
@@ -574,7 +593,7 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
       pdf,
       ['Date', 'MuscleLab', '10m', 'VO2max', 'LT2'],
       data.history.slice(0, 8).map((test) => [
-        formatDate(test.testDate),
+        formatDate(test.testDate, locale),
         formatMetricValue(test.metrics.muscleLabWkg, 'W/kg', 1),
         formatMetricValue(test.metrics.sprint10m, 's', 2),
         formatMetricValue(test.metrics.vo2Max, 'ml/kg/min', 1),
@@ -591,7 +610,7 @@ export function generateHockeyAthleteReportPDF(data: HockeyAthleteReportData): B
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(8)
     pdf.setTextColor(140, 140, 140)
-    pdf.text(`Generated ${new Date().toLocaleString('sv-SE')}`, MARGIN, 286)
+    pdf.text(`Generated ${new Date().toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')}`, MARGIN, 286)
     pdf.text(`Trainomics · ${page}/${pageCount}`, PAGE_WIDTH - MARGIN - 30, 286)
   }
 

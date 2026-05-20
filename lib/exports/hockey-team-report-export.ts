@@ -117,6 +117,7 @@ interface HockeyNormReference {
 export interface HockeyTeamReportData {
   teamId: string
   teamName: string
+  locale?: 'en' | 'sv'
   metrics: HockeyMetric[]
   athletes: HockeyAthleteRow[]
   leaders: HockeyLeader[]
@@ -131,6 +132,12 @@ const PAGE_WIDTH = 210
 const PAGE_HEIGHT = 297
 const MARGIN = 14
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
+type ReportLocale = 'en' | 'sv'
+
+function getReportLocale(locale?: string): ReportLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
 const CORE_METRICS = [
   'muscleLabWkg',
   'backSquat1RM',
@@ -523,6 +530,7 @@ function developmentPathway(pdf: jsPDF, data: HockeyTeamReportData, y: number): 
 }
 
 export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
+  const locale = getReportLocale(data.locale)
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
 
@@ -534,7 +542,7 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   pdf.text('Hockey team report', MARGIN, 16)
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
-  pdf.text(`${data.teamName} · ${new Date().toLocaleDateString('sv-SE')}`, MARGIN, 24)
+  pdf.text(`${data.teamName} · ${new Date().toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')}`, MARGIN, 24)
   y = 42
 
   const testedAthletes = data.athletes.filter((athlete) => athlete.latestTestDate).length
@@ -681,7 +689,7 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(8)
     pdf.setTextColor(140, 140, 140)
-    pdf.text(`Generated ${new Date().toLocaleString('sv-SE')}`, MARGIN, 286)
+    pdf.text(`Generated ${new Date().toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')}`, MARGIN, 286)
     pdf.text(`Trainomics · ${page}/${pageCount}`, PAGE_WIDTH - MARGIN - 30, 286)
   }
 

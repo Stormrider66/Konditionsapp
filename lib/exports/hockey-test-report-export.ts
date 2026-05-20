@@ -38,6 +38,7 @@ interface MuscleLabRawTrace {
 export interface HockeyTestReportData {
   id: string
   testDate: string
+  locale?: 'en' | 'sv'
   notes: string | null
   client: HockeyTestReportClient
   team: HockeyTestReportTeam | null
@@ -101,8 +102,18 @@ const PAGE_HEIGHT = 297
 const MARGIN = 14
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
+type ReportLocale = 'en' | 'sv'
+
+function getReportLocale(locale?: string): ReportLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: ReportLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
+function formatDate(iso: string, locale: ReportLocale): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -283,6 +294,7 @@ function filenameSafe(value: string): string {
 }
 
 export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
+  const locale = getReportLocale(test.locale)
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
 
@@ -291,10 +303,10 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
   pdf.setTextColor(255, 255, 255)
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(18)
-  pdf.text('Hockeytest', MARGIN, 16)
+  pdf.text(t(locale, 'Hockeytest', 'Hockey test'), MARGIN, 16)
   pdf.setFontSize(10)
   pdf.setFont('helvetica', 'normal')
-  pdf.text(`${test.client.name} · ${formatDate(test.testDate)}`, MARGIN, 24)
+  pdf.text(`${test.client.name} · ${formatDate(test.testDate, locale)}`, MARGIN, 24)
   if (test.team?.name) {
     pdf.text(test.team.name, PAGE_WIDTH - MARGIN - 45, 24)
   }
@@ -528,7 +540,7 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(8)
     pdf.setTextColor(140, 140, 140)
-    pdf.text(`Genererad ${new Date().toLocaleString('sv-SE')}`, MARGIN, 286)
+    pdf.text(`${t(locale, 'Genererad', 'Generated')} ${new Date().toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')}`, MARGIN, 286)
     pdf.text(`Trainomics · ${page}/${pageCount}`, PAGE_WIDTH - MARGIN - 30, 286)
   }
 
@@ -538,7 +550,8 @@ export function generateHockeyTestReportPDF(test: HockeyTestReportData): Blob {
 export function generateHockeyTestReportFilename(test: HockeyTestReportData): string {
   const athlete = filenameSafe(test.client.name || 'athlete')
   const date = new Date(test.testDate).toISOString().split('T')[0]
-  return `Hockeytest_${athlete}_${date}.pdf`
+  const prefix = getReportLocale(test.locale) === 'sv' ? 'Hockeytest' : 'Hockey_test'
+  return `${prefix}_${athlete}_${date}.pdf`
 }
 
 export function downloadHockeyTestReportPDF(test: HockeyTestReportData): void {
