@@ -11,6 +11,7 @@ import { FUELING_SPORT_OPTIONS, fuelingSportLabel } from '@/lib/fueling/sport-la
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
 import { extractApiErrorMessage } from '@/lib/fueling/api-error'
+import { useLocale } from '@/i18n/client'
 
 interface RaceFuelingPlanSummary {
   id: string
@@ -59,6 +60,16 @@ interface CreatePlanFormState {
   currentGutToleranceCarbsPerHour: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale.startsWith('sv') ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 const EMPTY_CREATE_FORM: CreatePlanFormState = {
   name: '',
   sport: 'RUNNING',
@@ -72,6 +83,7 @@ const EMPTY_CREATE_FORM: CreatePlanFormState = {
 }
 
 export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }: RaceFuelingPlanListProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const [plans, setPlans] = useState<RaceFuelingPlanSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -107,15 +119,15 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
       setPlans(body.plans ?? [])
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
-      setError(err instanceof Error ? err.message : 'Kunde inte hämta planer')
+      setError(err instanceof Error ? err.message : text(locale, 'Kunde inte hämta planer', 'Could not load plans'))
     } finally {
       if (showLoadingState && !signal?.aborted) setIsLoading(false)
     }
-  }, [clientId, showArchived])
+  }, [clientId, locale, showArchived])
 
   useEffect(() => {
     const controller = new AbortController()
-    void loadPlans(controller.signal)
+    queueMicrotask(() => void loadPlans(controller.signal))
     return () => controller.abort()
   }, [loadPlans])
 
@@ -140,7 +152,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
         return current.filter((plan) => plan.id !== planId)
       })
     } catch {
-      setError('Kunde inte uppdatera planen')
+      setError(text(locale, 'Kunde inte uppdatera planen', 'Could not update the plan'))
     } finally {
       setUpdatingId(null)
     }
@@ -157,7 +169,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
       setApplyResult({ planId, count: body.updatedCount ?? 0 })
       await loadPlans(undefined, false)
     } catch {
-      setError('Kunde inte synka planen till kommande pass')
+      setError(text(locale, 'Kunde inte synka planen till kommande sessions', 'Could not sync the plan to upcoming sessions'))
     } finally {
       setApplyingId(null)
     }
@@ -200,7 +212,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
       }
     } catch (err) {
       setCreateState('error')
-      setCreateError(err instanceof Error ? err.message : 'Kunde inte skapa planen.')
+      setCreateError(err instanceof Error ? err.message : text(locale, 'Kunde inte skapa planen.', 'Could not create the plan.'))
     }
   }
 
@@ -214,18 +226,18 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Tävlingsenergi</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{text(locale, 'Tävlingsenergi', 'Race fueling')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sparade raceplaner, packlista och carb-träning mot tävling.
+            {text(locale, 'Sparade raceplaner, packlista och carb-träning mot tävling.', 'Saved race plans, packing list, and carb training toward competition.')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setShowCreateForm((value) => !value)}>
             <PlusCircle className="h-4 w-4" />
-            Ny plan
+            {text(locale, 'Ny plan', 'New plan')}
           </Button>
           <Button variant="outline" onClick={() => setShowArchived((value) => !value)}>
-            {showArchived ? 'Dölj arkiv' : 'Visa arkiv'}
+            {showArchived ? text(locale, 'Dölj arkiv', 'Hide archive') : text(locale, 'Visa arkiv', 'Show archive')}
           </Button>
         </div>
       </div>
@@ -235,13 +247,13 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Utensils className="h-4 w-4 text-amber-600" />
-              Skapa tävlingsenergi
+              {text(locale, 'Skapa tävlingsenergi', 'Create race fueling')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 md:grid-cols-3">
               <label className="text-xs text-muted-foreground md:col-span-2">
-                Namn
+                {text(locale, 'Namn', 'Name')}
                 <input
                   className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   value={createForm.name}
@@ -257,12 +269,12 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                   onChange={(event) => updateCreateForm('sport', event.target.value)}
                 >
                   {FUELING_SPORT_OPTIONS.map((sport) => (
-                    <option key={sport.value} value={sport.value}>{sport.label}</option>
+                    <option key={sport.value} value={sport.value}>{locale === 'sv' ? sport.label : sport.labelEn}</option>
                   ))}
                 </select>
               </label>
               <label className="text-xs text-muted-foreground">
-                Distans (km)
+                {text(locale, 'Distans (km)', 'Distance (km)')}
                 <input
                   className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   inputMode="decimal"
@@ -275,7 +287,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 />
               </label>
               <label className="text-xs text-muted-foreground">
-                Förväntad tid (min)
+                {text(locale, 'Förväntad tid (min)', 'Expected time (min)')}
                 <input
                   className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   inputMode="numeric"
@@ -287,7 +299,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 />
               </label>
               <label className="text-xs text-muted-foreground">
-                Tävlingsdatum
+                {text(locale, 'Tävlingsdatum', 'Race date')}
                 <input
                   className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   type="date"
@@ -296,7 +308,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 />
               </label>
               <label className="text-xs text-muted-foreground">
-                Målfart km/h
+                {text(locale, 'Målfart km/h', 'Target speed km/h')}
                 <input
                   className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   inputMode="decimal"
@@ -308,7 +320,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 />
               </label>
               <label className="text-xs text-muted-foreground">
-                Måleffekt W
+                {text(locale, 'Måleffekt W', 'Target power W')}
                 <input
                   className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   inputMode="numeric"
@@ -319,7 +331,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 />
               </label>
               <label className="text-xs text-muted-foreground">
-                Målfart min/km
+                {text(locale, 'Målfart min/km', 'Target pace min/km')}
                 <input
                   className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   inputMode="decimal"
@@ -331,7 +343,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
                 />
               </label>
               <label className="text-xs text-muted-foreground">
-                Nuvarande magtolerans (g/h)
+                {text(locale, 'Nuvarande magtolerans (g/h)', 'Current gut tolerance (g/h)')}
                 <input
                   className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                   inputMode="numeric"
@@ -348,12 +360,12 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
             <div className="flex flex-wrap items-center gap-2">
               <Button onClick={() => void createPlan()} disabled={!canCreatePlan || createState === 'saving'}>
                 {createState === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
-                {createState === 'saved' ? 'Plan skapad' : 'Skapa plan'}
+                {createState === 'saved' ? text(locale, 'Plan skapad', 'Plan created') : text(locale, 'Skapa plan', 'Create plan')}
               </Button>
-              <Button variant="ghost" onClick={() => setShowCreateForm(false)}>Avbryt</Button>
-              {!canCreatePlan && <span className="text-xs text-muted-foreground">Ange förväntad tid, eller distans tillsammans med målfart.</span>}
+              <Button variant="ghost" onClick={() => setShowCreateForm(false)}>{text(locale, 'Avbryt', 'Cancel')}</Button>
+              {!canCreatePlan && <span className="text-xs text-muted-foreground">{text(locale, 'Ange förväntad tid, eller distans tillsammans med målfart.', 'Enter expected time, or distance together with target pace/speed.')}</span>}
               {createState === 'error' && (
-                <span className="text-xs text-destructive">{createError ?? 'Kunde inte skapa planen.'}</span>
+                <span className="text-xs text-destructive">{createError ?? text(locale, 'Kunde inte skapa planen.', 'Could not create the plan.')}</span>
               )}
             </div>
           </CardContent>
@@ -376,21 +388,23 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
             updatingId={updatingId}
             applyingId={applyingId}
             applyResult={applyResult}
+            locale={locale}
             onApply={(id) => void applyPlanToPrograms(id)}
             onArchive={(id) => void updateStatus(id, 'ARCHIVED')}
           />
 
           {showArchived && (
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Arkiv</h2>
+              <h2 className="text-lg font-semibold">{text(locale, 'Arkiv', 'Archive')}</h2>
               <PlanGrid
                 plans={archivedPlans}
                 detailBasePath={resolvedDetailBasePath}
                 updatingId={updatingId}
                 applyingId={applyingId}
                 applyResult={applyResult}
+                locale={locale}
                 onRestore={(id) => void updateStatus(id, 'DRAFT')}
-                emptyText="Inga arkiverade planer ännu."
+                emptyText={text(locale, 'Inga arkiverade planer ännu.', 'No archived plans yet.')}
               />
             </div>
           )}
@@ -406,16 +420,18 @@ function PlanGrid({
   updatingId,
   applyingId,
   applyResult,
+  locale,
   onApply,
   onArchive,
   onRestore,
-  emptyText = 'Ingen raceplan sparad ännu. Skapa en plan när mål, distans eller tävlingstid är satt.',
+  emptyText,
 }: {
   plans: RaceFuelingPlanSummary[]
   detailBasePath: string
   updatingId: string | null
   applyingId: string | null
   applyResult: { planId: string; count: number } | null
+  locale: AppLocale
   onApply?: (id: string) => void
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
@@ -424,7 +440,9 @@ function PlanGrid({
   if (plans.length === 0) {
     return (
       <Card>
-        <CardContent className="py-10 text-sm text-muted-foreground">{emptyText}</CardContent>
+        <CardContent className="py-10 text-sm text-muted-foreground">
+          {emptyText ?? text(locale, 'Ingen raceplan sparad ännu. Skapa en plan när mål, distans eller tävlingstid är satt.', 'No race plan saved yet. Create a plan when a goal, distance, or race time is set.')}
+        </CardContent>
       </Card>
     )
   }
@@ -439,6 +457,7 @@ function PlanGrid({
           updatingId={updatingId}
           applyingId={applyingId}
           applyResult={applyResult}
+          locale={locale}
           onApply={onApply}
           onArchive={onArchive}
           onRestore={onRestore}
@@ -454,6 +473,7 @@ function PlanCard({
   updatingId,
   applyingId,
   applyResult,
+  locale,
   onApply,
   onArchive,
   onRestore,
@@ -463,11 +483,12 @@ function PlanCard({
   updatingId: string | null
   applyingId: string | null
   applyResult: { planId: string; count: number } | null
+  locale: AppLocale
   onApply?: (id: string) => void
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
 }) {
-  const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true })
+  const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true, locale })
   const syncCopy = applyResult?.planId === plan.id
     ? buildFuelingSyncResultCopy(applyResult.count)
     : null
@@ -478,9 +499,9 @@ function PlanCard({
             <div className="flex items-start justify-between gap-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Utensils className="h-4 w-4 text-amber-600" />
-                {plan.name ?? sportLabel(plan.sport)}
+                {plan.name ?? sportLabel(plan.sport, locale)}
               </CardTitle>
-              <Badge variant="outline">{statusLabel(plan.status)}</Badge>
+              <Badge variant="outline">{statusLabel(plan.status, locale)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -495,19 +516,19 @@ function PlanCard({
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <MiniMetric label="Mål" value={formatGramHour(plan.recommendedCarbsGPerHour)} />
-              <MiniMetric label="Totalt" value={plan.recommendedCarbsTotalG ? `${Math.round(plan.recommendedCarbsTotalG)} g` : '-'} />
-              <MiniMetric label="Var 20:e" value={plan.raceDayPlan ? `${plan.raceDayPlan.intakeEvery20Min} g` : '-'} />
-              <MiniMetric label="Gel" value={plan.raceDayPlan?.gelEquivalentCount ? `${plan.raceDayPlan.gelEquivalentCount} st` : '-'} />
+              <MiniMetric label={text(locale, 'Mål', 'Target')} value={formatGramHour(plan.recommendedCarbsGPerHour)} />
+              <MiniMetric label={text(locale, 'Totalt', 'Total')} value={plan.recommendedCarbsTotalG ? `${Math.round(plan.recommendedCarbsTotalG)} g` : '-'} />
+              <MiniMetric label={text(locale, 'Var 20:e', 'Every 20 min')} value={plan.raceDayPlan ? `${plan.raceDayPlan.intakeEvery20Min} g` : '-'} />
+              <MiniMetric label="Gel" value={plan.raceDayPlan?.gelEquivalentCount ? `${plan.raceDayPlan.gelEquivalentCount} ${text(locale, 'st', 'pcs')}` : '-'} />
             </div>
 
-            <FuelingProgressStrip progress={plan.fuelingProgress} />
+            <FuelingProgressStrip progress={plan.fuelingProgress} locale={locale} />
 
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" className="flex-1">
                 <Link href={`${detailBasePath}/${plan.id}`}>
                   <Eye className="h-4 w-4" />
-                  Öppna
+                  {text(locale, 'Öppna', 'Open')}
                 </Link>
               </Button>
               {onApply && (
@@ -518,7 +539,7 @@ function PlanCard({
                   disabled={applyingId === plan.id}
                 >
                   {applyingId === plan.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  {syncCopy ? syncCopy.buttonLabelSv : 'Synka pass'}
+                  {syncCopy ? syncButtonLabel(syncCopy, locale) : text(locale, 'Synka pass', 'Sync sessions')}
                 </Button>
               )}
               {onArchive && (
@@ -529,7 +550,7 @@ function PlanCard({
                   disabled={updatingId === plan.id}
                 >
                   {updatingId === plan.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
-                  Arkivera
+                  {text(locale, 'Arkivera', 'Archive')}
                 </Button>
               )}
               {onRestore && (
@@ -540,7 +561,7 @@ function PlanCard({
                   disabled={updatingId === plan.id}
                 >
                   {updatingId === plan.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                  Återställ
+                  {text(locale, 'Återställ', 'Restore')}
                 </Button>
               )}
             </div>
@@ -550,8 +571,8 @@ function PlanCard({
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-900/10 dark:text-emerald-100'
                   : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-100'
               }`}>
-                <p className="font-medium">{syncCopy.titleSv}</p>
-                <p className="mt-1 opacity-80">{syncCopy.bodySv}</p>
+                <p className="font-medium">{syncTitle(syncCopy, applyResult?.count ?? 0, locale)}</p>
+                <p className="mt-1 opacity-80">{syncBody(syncCopy, locale)}</p>
               </div>
             )}
           </CardContent>
@@ -559,7 +580,7 @@ function PlanCard({
   )
 }
 
-function FuelingProgressStrip({ progress }: { progress?: RaceFuelingPlanSummary['fuelingProgress'] }) {
+function FuelingProgressStrip({ progress, locale }: { progress?: RaceFuelingPlanSummary['fuelingProgress']; locale: AppLocale }) {
   if (!progress) return null
 
   const isSynced = progress.linkedWorkoutCount > 0
@@ -568,19 +589,19 @@ function FuelingProgressStrip({ progress }: { progress?: RaceFuelingPlanSummary[
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold text-slate-900 dark:text-white">
-            {isSynced ? `${progress.linkedWorkoutCount} pass kopplade` : 'Redo att synka'}
+            {isSynced ? text(locale, `${progress.linkedWorkoutCount} pass kopplade`, `${progress.linkedWorkoutCount} sessions linked`) : text(locale, 'Redo att synka', 'Ready to sync')}
           </p>
           <p className="mt-1 text-muted-foreground">
-            {progress.buildUpWeeks ? `${progress.buildUpWeeks} veckors magträning` : 'Skapa progression från planmålet'}
+            {progress.buildUpWeeks ? text(locale, `${progress.buildUpWeeks} veckors magträning`, `${progress.buildUpWeeks} weeks of gut training`) : text(locale, 'Skapa progression från planmålet', 'Create progression from the plan target')}
           </p>
         </div>
         <Badge variant="outline" className="bg-white/70 text-[10px] dark:bg-slate-950/40">
-          {progress.loggedWorkoutCount} loggade
+          {progress.loggedWorkoutCount} {text(locale, 'loggade', 'logged')}
         </Badge>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <MiniMetric label="Nästa mål" value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
-        <MiniMetric label="Bäst tålt" value={formatGramHour(progress.bestToleratedGPerHour)} />
+        <MiniMetric label={text(locale, 'Nästa mål', 'Next target')} value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
+        <MiniMetric label={text(locale, 'Bäst tålt', 'Best tolerated')} value={formatGramHour(progress.bestToleratedGPerHour)} />
       </div>
     </div>
   )
@@ -606,10 +627,31 @@ function formatDuration(minutes: number): string {
   return hours > 0 ? `${hours} h ${mins} min` : `${mins} min`
 }
 
-function statusLabel(status: string): string {
-  if (status === 'APPROVED') return 'Godkänd'
-  if (status === 'ARCHIVED') return 'Arkiv'
-  return 'Utkast'
+function statusLabel(status: string, locale: AppLocale): string {
+  if (status === 'APPROVED') return text(locale, 'Godkänd', 'Approved')
+  if (status === 'ARCHIVED') return text(locale, 'Arkiv', 'Archived')
+  return text(locale, 'Utkast', 'Draft')
+}
+
+function syncButtonLabel(syncCopy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale): string {
+  if (locale === 'sv') return syncCopy.buttonLabelSv
+  if (syncCopy.tone === 'empty') return 'No sessions'
+  const match = syncCopy.buttonLabelSv.match(/\d+/)
+  return match ? `${match[0]} sessions` : 'Sessions'
+}
+
+function syncTitle(syncCopy: ReturnType<typeof buildFuelingSyncResultCopy>, count: number, locale: AppLocale): string {
+  if (locale === 'sv') return syncCopy.titleSv
+  return syncCopy.tone === 'success'
+    ? `${count} upcoming sessions updated.`
+    : 'No upcoming sessions were updated.'
+}
+
+function syncBody(syncCopy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale): string {
+  if (locale === 'sv') return syncCopy.bodySv
+  return syncCopy.tone === 'success'
+    ? 'The athlete now sees carb targets on sessions that match the plan.'
+    : 'There are no active upcoming sessions that match length, sport, and intensity yet.'
 }
 
 function parseOptionalNumber(value: string): number | undefined {
@@ -617,6 +659,6 @@ function parseOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
 }
 
-function sportLabel(sport: string): string {
-  return fuelingSportLabel(sport)
+function sportLabel(sport: string, locale: AppLocale): string {
+  return fuelingSportLabel(sport, locale)
 }
