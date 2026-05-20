@@ -55,12 +55,138 @@ function getMaxSize(category: 'image' | 'document' | 'audio'): number {
   return category === 'image' ? MAX_IMAGE_SIZE : MAX_AUDIO_SIZE
 }
 
+function buildEnglishPrompt(
+  testType: string,
+  category: 'image' | 'document' | 'audio',
+  imageCount = 1
+): string {
+  const sportContext =
+    testType === 'RUNNING'
+      ? 'Running test: extract speed (km/h) for each stage. Extract incline if present.'
+      : testType === 'CYCLING'
+        ? 'Cycling test: extract power (watts) and cadence (rpm) for each stage.'
+        : 'Skiing test: extract pace (min/km) for each stage.'
+
+  const commonSuffix = `
+You extract test data from a physiological lactate test (step test / threshold test).
+
+Test type: ${testType}
+${sportContext}
+
+FIELD NAMES (must match the form exactly):
+- stages[]: durationMinutes + durationSeconds are ADDITIVE components of total
+  stage duration (totalSeconds = durationMinutes*60 + durationSeconds). A 4-minute
+  stage = {durationMinutes: 4, durationSeconds: 0}. NEVER return {durationMinutes: 4,
+  durationSeconds: 240}, because that becomes 8 minutes and double-counts time.
+  heartRate (beats/min), lactate (mmol/L), vo2 (ml/kg/min, optional)
+  + speed (km/h) for running, power (watts) for cycling, pace (min/km) for skiing
+  + cadence (rpm) for cycling, incline for running (optional)
+  + METABOLIC DATA (if available from spirometry/Oxycon/Cosmed/Jaeger/Vyntus):
+    rer (Respiratory Exchange Ratio, decimal between 0.70 and 1.30), ve
+    (minute ventilation L/min), vco2 (carbon dioxide production ml/min),
+    fatPercent (fat oxidation %), choPercent (carbohydrate oxidation %),
+    respiratoryRate (breaths/min).
+- restingLactate: resting lactate in mmol/L (before the test)
+- testDate: date in YYYY-MM-DD format
+- postTestMeasurements[]: timeMinutes, timeSeconds, lactate for post-max measurements
+
+RULES:
+1. Normalize decimal commas to decimal points in JSON (4,5 -> 4.5)
+2. At least 3 stages are required; warn if fewer are found
+3. Warn if lactate decreases between stages because it may be a data-entry issue
+4. If stage duration is missing, assume 4 minutes
+5. Fill sourceDescription with what you identified, for example "Cosmed printout with 6 stages"
+6. Identify equipment if possible (Cosmed K5, Kvark, Lactate Pro 2, etc.)
+7. Confidence: 0.9+ for clear data, 0.5-0.9 for partly uncertain data, <0.5 for very unclear data
+8. Write warnings and sourceDescription in English
+9. If you find post-test/recovery lactate measurements, include them in postTestMeasurements`
+
+  if (category === 'image') {
+    if (imageCount > 1) {
+      return `${commonSuffix}
+
+MULTIPLE IMAGES (${imageCount}) - MERGE THEM:
+Images are provided in order. IMAGE 1 is ALWAYS the test protocol (handwritten or
+printed table with stages, heart rate, lactate, speed/power, and time). Image 2${imageCount > 2 ? ' and 3' : ''} contains
+spirometry/metabolic data from a metabolic cart (Cosmed, Cortex, Vyntus, Oxycon, Jaeger, etc.).
+
+IMPORTANT FOR SPIROMETRY IMAGES:
+- Images may be rotated 90 degrees. Mentally orient the table so column headers are at the top.
+- Jaeger/Vyntus usually shows columns like these; map them to our field names:
+    Time / Phase / T (MM:SS)         -> row timestamp
+    V'O2/kg or VO2/kg (ml/kg/min)    -> vo2
+    V'O2 STPD (ml/min or L/min)      -> use V'O2/kg if both are present
+    V'CO2 (ml/min)                   -> vco2
+    RER or RQ                        -> rer
+    V'E or VE (L/min, BTPS)          -> ve
+    BF or Bf (1/min)                 -> respiratoryRate
+    %FAT / Fat                       -> fatPercent
+    %CHO / CHO                       -> choPercent
+- Ignore columns that do not map to our fields (FetO2, FetCO2, VEqO2, EE, PaCO2, etc.).
+- Colored bands may indicate warmup/test/recovery sections; use them as clues.
+
+HOW TO MERGE:
+1. CRITICAL: stages[] must contain exactly as many stages as IMAGE 1 contains.
+   Count the rows in IMAGE 1 first. Never skip a stage because metabolic data is missing or unusual.
+2. Use IMAGE 1 as authoritative for heartRate, lactate, speed/power/pace,
+   incline, durationMinutes, and durationSeconds.
+3. SPIROMETRY IS AUTHORITATIVE for vo2, rer, ve, vco2, respiratoryRate,
+   fatPercent, and choPercent, even if handwritten VO2 values also appear in the protocol.
+4. Identify each stage end time from IMAGE 1, such as handwritten time markers.
+5. In IMAGE 2${imageCount > 2 ? '/3' : ''}, find the time window matching each stage END TIME.
+   Use the steady-state value from the final 30-60 seconds of the stage.
+6. Read numbers exactly as shown. If VO2 shows "27" or "27.4", use that number.
+   Never use scientific notation such as "2.7e-7".
+7. If a metabolic time window is missing, leave only the metabolic fields blank.
+   Always keep the stage object with protocol data.
+8. Set sourceDescription = "Protocol + spirometry (${imageCount} images). Read
+   spirometry columns: <list>." List exactly which columns you could identify and read.
+9. Warn specifically why metabolic data is missing, for example:
+   - "The spirometry image is unclear/blank on the right side; RER and VE could not be read."
+   - "Image 2 only shows graphs, no numeric table; no metabolic data extracted."
+   - "Stage 5 has 5 min duration but spirometry has no matching 20:00-25:00 window."
+- For handwriting, be extra careful with digits that can be confused (1/7, 5/6, 3/8).
+- Warn if any image is blurry, glared, or partially cropped.`
+    }
+
+    return `${commonSuffix}
+
+IMAGE-SPECIFIC:
+- Handle printouts, handwritten tables, and screenshots
+- Read column headers so fields are mapped correctly
+- For handwriting, be extra careful with digits that can be confused (1/7, 5/6, 3/8)
+- Warn if the image is blurry, glared, or partially cropped`
+  }
+
+  if (category === 'document') {
+    return `${commonSuffix}
+
+DOCUMENT-SPECIFIC:
+- The text below was extracted from a PDF or CSV document
+- Identify table structure and column headers
+- CSV files may use semicolon (;) separators`
+  }
+
+  return `${commonSuffix}
+
+AUDIO-SPECIFIC:
+- The speaker may dictate test results in English or Swedish
+- Format may be: "Stage 1, speed 8, heart rate 120, lactate 1.2"
+- If a value is repeated or corrected, use the latest/corrected value
+- Warn about gaps or unclear parts in the dictation
+- Spoken decimal comma means decimal point, for example "one comma five" = 1.5`
+}
+
 function buildPrompt(
   testType: string,
   category: 'image' | 'document' | 'audio',
   imageCount = 1,
   locale: AppLocale = 'en'
 ): string {
+  if (locale === 'en') {
+    return buildEnglishPrompt(testType, category, imageCount)
+  }
+
   const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
   const sportContext =
     testType === 'RUNNING'
