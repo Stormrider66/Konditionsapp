@@ -76,6 +76,27 @@ export const COACH_PRICING = {
 } as const;
 
 export type CoachBillingCycle = 'MONTHLY' | 'YEARLY';
+type PaymentLocale = 'en' | 'sv';
+
+function resolvePaymentLocale(language: string | null | undefined): PaymentLocale {
+  return language === 'sv' ? 'sv' : 'en';
+}
+
+function formatPaymentDate(date: Date, locale: PaymentLocale): string {
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US');
+}
+
+function formatSekAmount(amount: number, unit: 'month' | 'year' | null, locale: PaymentLocale): string {
+  const formatted = new Intl.NumberFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    style: 'currency',
+    currency: 'SEK',
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+  if (!unit) return formatted;
+  if (locale === 'sv') return `${formatted}/${unit === 'month' ? 'månad' : 'år'}`;
+  return `${formatted}/${unit}`;
+}
 
 /**
  * Get Stripe price ID for a coach tier and billing cycle
@@ -308,11 +329,12 @@ async function handleCoachCheckoutComplete(
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (user?.email) {
+      const locale = resolvePaymentLocale(user.language);
       const pricing = COACH_PRICING[tier as keyof typeof COACH_PRICING];
       const isYearly = cycle === 'YEARLY';
       const amount = isYearly
-        ? `${pricing?.yearly || 0} kr/år`
-        : `${pricing?.monthly || 0} kr/månad`;
+        ? formatSekAmount(pricing?.yearly || 0, 'year', locale)
+        : formatSekAmount(pricing?.monthly || 0, 'month', locale);
 
       // Calculate next billing date (1 month or 1 year from now)
       const nextBillingDate = new Date();
@@ -327,8 +349,8 @@ async function handleCoachCheckoutComplete(
         user.name || user.email.split('@')[0],
         subscriptionTier,
         amount,
-        nextBillingDate.toLocaleDateString('sv-SE'),
-        'sv'
+        formatPaymentDate(nextBillingDate, locale),
+        locale
       );
     }
   } catch (emailError) {
@@ -438,12 +460,13 @@ async function handleCoachSubscriptionDeleted(
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (user?.email) {
+      const locale = resolvePaymentLocale(user.language);
       await sendSubscriptionCancelledEmail(
         user.email,
         user.name || user.email.split('@')[0],
         tier || 'Subscription',
-        endDate.toLocaleDateString('sv-SE'),
-        'sv',
+        formatPaymentDate(endDate, locale),
+        locale,
         { reactivatePath: await getCoachSubscriptionPath(userId) }
       );
     }
@@ -522,19 +545,20 @@ async function handleCoachInvoiceFailed(
       });
 
       if (user?.email) {
+        const locale = resolvePaymentLocale(user.language);
         const amount = invoiceAny.amount_due
-          ? `${(invoiceAny.amount_due / 100).toFixed(0)} kr`
-          : 'Okänt belopp';
+          ? formatSekAmount(invoiceAny.amount_due / 100, null, locale)
+          : locale === 'sv' ? 'Okänt belopp' : 'Unknown amount';
         const retryDate = invoiceAny.next_payment_attempt
-          ? new Date(invoiceAny.next_payment_attempt * 1000).toLocaleDateString('sv-SE')
-          : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE'); // 3 days
+          ? formatPaymentDate(new Date(invoiceAny.next_payment_attempt * 1000), locale)
+          : formatPaymentDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), locale); // 3 days
 
         await sendPaymentFailedEmail(
           user.email,
           user.name || user.email.split('@')[0],
           amount,
           retryDate,
-          'sv',
+          locale,
           { updatePaymentPath: await getCoachSubscriptionPath(subscription.metadata.userId) }
         );
       }

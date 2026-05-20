@@ -55,6 +55,23 @@ const PRICE_IDS = {
 } as const;
 
 export type BillingCycle = 'MONTHLY' | 'YEARLY';
+type PaymentLocale = 'en' | 'sv';
+
+function resolvePaymentLocale(language: string | null | undefined): PaymentLocale {
+  return language === 'sv' ? 'sv' : 'en';
+}
+
+function formatPaymentDate(date: Date, locale: PaymentLocale): string {
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US');
+}
+
+function formatSekAmount(amount: number, locale: PaymentLocale): string {
+  return new Intl.NumberFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    style: 'currency',
+    currency: 'SEK',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
 
 /**
  * Get Stripe price ID for a tier and billing cycle
@@ -642,7 +659,7 @@ async function handleInvoicePaymentFailed(
         where: { id: clientId },
         include: {
           athleteAccount: {
-            include: { user: { select: { email: true, name: true } } },
+            include: { user: { select: { email: true, name: true, language: true } } },
           },
         },
       });
@@ -651,19 +668,20 @@ async function handleInvoicePaymentFailed(
       const athleteName = client?.athleteAccount?.user?.name || client?.name || 'Athlete';
 
       if (athleteEmail) {
+        const locale = resolvePaymentLocale(client?.athleteAccount?.user?.language);
         const amount = invoiceAny.amount_due
-          ? `${(invoiceAny.amount_due / 100).toFixed(0)} kr`
-          : 'Okänt belopp';
+          ? formatSekAmount(invoiceAny.amount_due / 100, locale)
+          : locale === 'sv' ? 'Okänt belopp' : 'Unknown amount';
         const retryDate = invoiceAny.next_payment_attempt
-          ? new Date(invoiceAny.next_payment_attempt * 1000).toLocaleDateString('sv-SE')
-          : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE');
+          ? formatPaymentDate(new Date(invoiceAny.next_payment_attempt * 1000), locale)
+          : formatPaymentDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), locale);
 
         await sendPaymentFailedEmail(
           athleteEmail,
           athleteName,
           amount,
           retryDate,
-          'sv',
+          locale,
           { updatePaymentPath: '/athlete/subscription' }
         );
       }
