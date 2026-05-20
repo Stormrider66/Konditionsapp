@@ -147,13 +147,14 @@ async function handleConfirmUpload(
   body: Record<string, unknown>,
   userId: string
 ) {
-  const { uploadPath, videoType, cameraAngle, athleteId, exerciseId, hyroxStation } = body as {
+  const { uploadPath, videoType, cameraAngle, athleteId, exerciseId, hyroxStation, sourceContext } = body as {
     uploadPath?: string
     videoType?: string
     cameraAngle?: string
     athleteId?: string
     exerciseId?: string
     hyroxStation?: string
+    sourceContext?: Record<string, unknown>
   }
 
   if (!uploadPath || !videoType) {
@@ -175,6 +176,10 @@ async function handleConfirmUpload(
     return NextResponse.json({ error: 'Invalid upload path' }, { status: 403 });
   }
 
+  const sanitizedSourceContext = sourceContext
+    ? Object.fromEntries(Object.entries(sourceContext).filter(([, value]) => value !== undefined))
+    : null;
+
   const analysis = await prisma.videoAnalysis.create({
     data: {
       coachId: userId,
@@ -182,7 +187,14 @@ async function handleConfirmUpload(
       exerciseId: exerciseId || null,
       videoUrl: uploadPath,
       videoType,
+      hyroxStation: hyroxStation || null,
       cameraAngle: cameraAngle || null,
+      comparisonData: sanitizedSourceContext
+        ? {
+            source: 'test_protocol',
+            ...sanitizedSourceContext,
+          }
+        : undefined,
       status: 'PENDING',
     },
     include: {

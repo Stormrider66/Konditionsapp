@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useLocale } from 'next-intl'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles, ChevronDown, ChevronRight, Activity } from 'lucide-react'
+import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles, ChevronDown, ChevronRight, Activity, Video, Square, CheckCircle2 } from 'lucide-react'
 import { createTestSchema, CreateTestFormData, detectLactateDecreases } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,14 @@ interface TestDataFormProps {
   testType: TestType
   onSubmit: (data: CreateTestFormData) => void
   clientId?: string
+}
+
+type StageVideoStatus = 'uploading' | 'analyzing' | 'completed' | 'failed'
+
+interface StageVideoState {
+  status: StageVideoStatus
+  analysisId?: string
+  error?: string
 }
 
 export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps) {
@@ -152,6 +160,13 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [showMetabolicData, setShowMetabolicData] = useState(false)
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recordingStreamRef = useRef<MediaStream | null>(null)
+  const recordedChunksRef = useRef<BlobPart[]>([])
+  const recordingPreviewRef = useRef<HTMLVideoElement | null>(null)
+  const [recordingStageIndex, setRecordingStageIndex] = useState<number | null>(null)
+  const [recordingSeconds, setRecordingSeconds] = useState(0)
+  const [stageVideoStates, setStageVideoStates] = useState<Record<number, StageVideoState>>({})
 
   // OCR handler for lactate meter photo
   const handleLactateOCR = async (stageIndex: number, file: File) => {
@@ -206,6 +221,240 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       setOcrLoading(null)
     }
   }
+
+  const getRecordingMimeType = () => {
+    if (typeof MediaRecorder === 'undefined') return ''
+    const supportedTypes = [
+      'video/mp4',
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+    ]
+    return supportedTypes.find((type) => MediaRecorder.isTypeSupported(type)) || ''
+  }
+
+  const stopRecordingStream = useCallback(() => {
+    recordingStreamRef.current?.getTracks().forEach((track) => track.stop())
+    recordingStreamRef.current = null
+    if (recordingPreviewRef.current) {
+      recordingPreviewRef.current.srcObject = null
+    }
+  }, [])
+
+  const uploadAndAnalyzeStageVideo = useCallback(async (stageIndex: number, blob: Blob, recordedMimeType: string) => {
+    if (!clientId) return
+
+    const uploadMimeType = (recordedMimeType || blob.type || 'video/webm').split(';')[0]
+    const extension = uploadMimeType.includes('mp4') ? 'mp4' : 'webm'
+    const stages = getValues('stages')
+    const stage = stages[stageIndex]
+    const speed = stage?.speed
+    const safeSpeed = typeof speed === 'number' ? `${speed.toString().replace('.', '-')}kmh` : 'speed'
+    const file = new File([blob], `running-stage-${stageIndex + 1}-${safeSpeed}.${extension}`, {
+      type: uploadMimeType,
+    })
+
+    setStageVideoStates((prev) => ({
+      ...prev,
+      [stageIndex]: { status: 'uploading' },
+    }))
+
+    try {
+      const urlResponse = await fetch('/api/video-analysis/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get-upload-url',
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          videoType: 'RUNNING_GAIT',
+          cameraAngle: 'SIDE',
+          athleteId: clientId,
+        }),
+      })
+
+      const urlData = await urlResponse.json()
+      if (!urlResponse.ok) {
+        throw new Error(urlData.error || t('Kunde inte skapa uppladdning', 'Could not prepare upload'))
+      }
+
+      const uploadResponse = await fetch(urlData.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': urlData.contentType },
+        body: file,
+      })
+
+      if (!uploadResponse.ok) {
+        throw new Error(t('Videouppladdning misslyckades', 'Video upload failed'))
+      }
+
+      const confirmResponse = await fetch('/api/video-analysis/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm-upload',
+          uploadPath: urlData.path,
+          videoType: 'RUNNING_GAIT',
+          cameraAngle: 'SIDE',
+          athleteId: clientId,
+          sourceContext: {
+            testType,
+            testDate: getValues('testDate'),
+            stageSequence: stageIndex + 1,
+            speed,
+            incline: stage?.incline,
+            heartRate: stage?.heartRate,
+            lactate: stage?.lactate,
+            vo2: stage?.vo2,
+          },
+        }),
+      })
+
+      const confirmData = await confirmResponse.json()
+      if (!confirmResponse.ok) {
+        throw new Error(confirmData.error || t('Kunde inte spara videoanalysen', 'Could not save video analysis'))
+      }
+
+      const analysisId = confirmData.analysis?.id as string | undefined
+      if (!analysisId) {
+        throw new Error(t('Video sparades utan analys-id', 'Video was saved without an analysis id'))
+      }
+
+      setStageVideoStates((prev) => ({
+        ...prev,
+        [stageIndex]: { status: 'analyzing', analysisId },
+      }))
+
+      const analyzeResponse = await fetch(`/api/video-analysis/${analysisId}/analyze`, {
+        method: 'POST',
+      })
+      const analyzeData = await analyzeResponse.json().catch(() => null)
+      if (!analyzeResponse.ok) {
+        throw new Error(analyzeData?.error || t('Gemini-analysen misslyckades', 'Gemini analysis failed'))
+      }
+
+      setStageVideoStates((prev) => ({
+        ...prev,
+        [stageIndex]: { status: 'completed', analysisId },
+      }))
+      toast({
+        title: t('Löpvideo analyserad', 'Running video analyzed'),
+        description: t('Videon har sparats på atletens profil.', 'The video has been saved to the athlete profile.'),
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('Okänt fel', 'Unknown error')
+      setStageVideoStates((prev) => ({
+        ...prev,
+        [stageIndex]: { status: 'failed', error: message },
+      }))
+      toast({
+        title: t('Video kunde inte analyseras', 'Video could not be analyzed'),
+        description: message,
+        variant: 'destructive',
+      })
+    }
+  }, [clientId, getValues, t, testType, toast])
+
+  const startStageVideoRecording = async (stageIndex: number) => {
+    if (testType !== 'RUNNING') return
+    if (!clientId) {
+      toast({
+        title: t('Välj atlet först', 'Select athlete first'),
+        description: t('Videon behöver kopplas till en atletprofil.', 'The video needs to be linked to an athlete profile.'),
+        variant: 'destructive',
+      })
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      toast({
+        title: t('Videoinspelning stöds inte', 'Video recording is not supported'),
+        description: t('Prova i Safari eller Chrome med kamerabehörighet.', 'Try Safari or Chrome with camera permission.'),
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      })
+      const mimeType = getRecordingMimeType()
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+
+      recordedChunksRef.current = []
+      recordingStreamRef.current = stream
+      mediaRecorderRef.current = recorder
+      setRecordingStageIndex(stageIndex)
+      setRecordingSeconds(0)
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data)
+        }
+      }
+
+      recorder.onstop = () => {
+        const chunks = recordedChunksRef.current
+        recordedChunksRef.current = []
+        mediaRecorderRef.current = null
+        stopRecordingStream()
+        setRecordingStageIndex(null)
+        setRecordingSeconds(0)
+
+        const blobType = mimeType || 'video/webm'
+        const blob = new Blob(chunks, { type: blobType })
+        if (blob.size > 0) {
+          void uploadAndAnalyzeStageVideo(stageIndex, blob, blobType)
+        }
+      }
+
+      recorder.start()
+    } catch (error) {
+      stopRecordingStream()
+      setRecordingStageIndex(null)
+      toast({
+        title: t('Kameran kunde inte startas', 'Could not start camera'),
+        description: error instanceof Error ? error.message : t('Kontrollera kamerabehörighet.', 'Check camera permission.'),
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const stopStageVideoRecording = () => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+  }
+
+  useEffect(() => {
+    if (recordingPreviewRef.current && recordingStreamRef.current) {
+      recordingPreviewRef.current.srcObject = recordingStreamRef.current
+    }
+  }, [recordingStageIndex])
+
+  useEffect(() => {
+    if (recordingStageIndex === null) return
+    const interval = window.setInterval(() => {
+      setRecordingSeconds((seconds) => seconds + 1)
+    }, 1000)
+    return () => window.clearInterval(interval)
+  }, [recordingStageIndex])
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop()
+      } else {
+        stopRecordingStream()
+      }
+    }
+  }, [stopRecordingStream])
 
   const handleSmartImport = useCallback((data: TestImportResult) => {
     if (data.stages.length > 0) {
@@ -262,7 +511,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   }, [testType])
 
   useEffect(() => {
-    fetchTemplates()
+    void fetchTemplates()
   }, [fetchTemplates])
 
   // Detect the increment pattern from existing stage values
@@ -353,7 +602,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         setShowSaveDialog(false)
         setTemplateName('')
         setTemplateDescription('')
-        fetchTemplates()
+        void fetchTemplates()
       } else {
         throw new Error(data.error)
       }
@@ -542,12 +791,40 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                       <Label htmlFor={`stages.${index}.speed`} className="text-xs">
                         {t('Hastighet (km/h)', 'Speed (km/h)')}
                       </Label>
-                      <Input
-                        id={`stages.${index}.speed`}
-                        type="number"
-                        step="0.1"
-                        {...register(`stages.${index}.speed`, { valueAsNumber: true })}
-                      />
+                      <div className="flex gap-1">
+                        <Input
+                          id={`stages.${index}.speed`}
+                          type="number"
+                          step="0.1"
+                          className="flex-1"
+                          {...register(`stages.${index}.speed`, { valueAsNumber: true })}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0 h-10 w-10"
+                          onClick={() => void startStageVideoRecording(index)}
+                          disabled={recordingStageIndex !== null || stageVideoStates[index]?.status === 'uploading' || stageVideoStates[index]?.status === 'analyzing'}
+                          title={t('Filma löpteknik vid denna hastighet', 'Record running technique at this speed')}
+                        >
+                          {stageVideoStates[index]?.status === 'uploading' || stageVideoStates[index]?.status === 'analyzing' ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : stageVideoStates[index]?.status === 'completed' ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Video className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      {stageVideoStates[index] && (
+                        <p className={`text-xs ${stageVideoStates[index].status === 'failed' ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          {stageVideoStates[index].status === 'uploading' && t('Sparar video...', 'Saving video...')}
+                          {stageVideoStates[index].status === 'analyzing' && t('Gemini analyserar...', 'Gemini is analyzing...')}
+                          {stageVideoStates[index].status === 'completed' && t('Video sparad på atletprofilen', 'Video saved to athlete profile')}
+                          {stageVideoStates[index].status === 'failed' && (stageVideoStates[index].error || t('Video misslyckades', 'Video failed'))}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor={`stages.${index}.incline`} className="text-xs">
@@ -621,33 +898,37 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                       className="flex-1"
                       {...register(`stages.${index}.lactate`, { valueAsNumber: true })}
                     />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      ref={(el) => { fileInputRefs.current[index] = el }}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) handleLactateOCR(index, file)
-                        e.target.value = ''
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="shrink-0 h-10 w-10"
-                      onClick={() => fileInputRefs.current[index]?.click()}
-                      disabled={ocrLoading !== null}
-                      title={t('Fotografera laktatmätare', 'Photograph lactate meter')}
-                    >
-                      {ocrLoading === index ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Camera className="h-4 w-4" />
-                      )}
-                    </Button>
+                    {testType !== 'RUNNING' && (
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          ref={(el) => { fileInputRefs.current[index] = el }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) void handleLactateOCR(index, file)
+                            e.target.value = ''
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0 h-10 w-10"
+                          onClick={() => fileInputRefs.current[index]?.click()}
+                          disabled={ocrLoading !== null}
+                          title={t('Fotografera laktatmätare', 'Photograph lactate meter')}
+                        >
+                          {ocrLoading === index ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Camera className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -933,9 +1214,62 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         type="submit"
         size="lg"
         className="w-full"
+        disabled={recordingStageIndex !== null}
       >
         {t('Generera Rapport', 'Generate Report')}
       </Button>
+
+      {/* Running Video Recording Dialog */}
+      <Dialog
+        open={recordingStageIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) stopStageVideoRecording()
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5" />
+              {recordingStageIndex !== null
+                ? t(`Filmar steg ${recordingStageIndex + 1}`, `Recording stage ${recordingStageIndex + 1}`)
+                : t('Filmar löpteknik', 'Recording running technique')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('Filma 8-15 sekunder från sidan. Videon sparas automatiskt på atletprofilen och skickas till Gemini.', 'Record 8-15 seconds from the side. The video is saved to the athlete profile and sent to Gemini automatically.')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-lg bg-black aspect-video">
+              <video
+                ref={recordingPreviewRef}
+                autoPlay
+                muted
+                playsInline
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>
+                {recordingStageIndex !== null && (() => {
+                  const stage = getValues('stages')[recordingStageIndex]
+                  return stage?.speed
+                    ? t(`Hastighet: ${stage.speed} km/h`, `Speed: ${stage.speed} km/h`)
+                    : t('Hastighet saknas', 'Speed missing')
+                })()}
+              </span>
+              <span>{recordingSeconds}s</span>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" onClick={stopStageVideoRecording}>
+              <Square className="h-4 w-4 mr-2" />
+              {t('Stoppa och analysera', 'Stop and analyze')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Save Template Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
