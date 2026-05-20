@@ -53,6 +53,12 @@ const FORBIDDEN_DOMAINS = new Set([
   'proton.me',
 ])
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function ensureResend() {
   if (!resend) {
     return NextResponse.json(
@@ -67,6 +73,7 @@ function ensureResend() {
 export async function POST(request: NextRequest) {
   try {
     const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
+    const locale: AppLocale = admin.language === 'sv' ? 'sv' : 'en'
     const businessId = admin.businessId
 
     if (!(await hasWhiteLabel(businessId))) {
@@ -87,7 +94,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Den här domänen kan inte användas som avsändare. Använd en domän du själv äger.',
+          error: t(
+            locale,
+            'This domain cannot be used as a sender. Use a domain you own.',
+            'Den här domänen kan inte användas som avsändare. Använd en domän du själv äger.'
+          ),
         },
         { status: 400 },
       )
@@ -100,7 +111,7 @@ export async function POST(request: NextRequest) {
     })
     if (conflict && conflict.id !== businessId) {
       return NextResponse.json(
-        { success: false, error: 'Domänen används redan av en annan verksamhet' },
+        { success: false, error: t(locale, 'The domain is already used by another business', 'Domänen används redan av en annan verksamhet') },
         { status: 409 },
       )
     }
@@ -121,7 +132,7 @@ export async function POST(request: NextRequest) {
     const created = await r.domains.create({ name: normalized, region: 'eu-west-1' })
     if (created.error || !created.data) {
       return NextResponse.json(
-        { success: false, error: created.error?.message || 'Kunde inte skapa domän hos Resend' },
+        { success: false, error: created.error?.message || t(locale, 'Could not create domain in Resend', 'Kunde inte skapa domän hos Resend') },
         { status: 502 },
       )
     }
@@ -181,6 +192,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
+    const locale: AppLocale = admin.language === 'sv' ? 'sv' : 'en'
     const businessId = admin.businessId
 
     if (!(await hasWhiteLabel(businessId))) {
@@ -200,7 +212,7 @@ export async function PUT(request: NextRequest) {
 
     if (!business?.resendDomainId) {
       return NextResponse.json(
-        { success: false, error: 'Ingen domän registrerad' },
+        { success: false, error: t(locale, 'No domain registered', 'Ingen domän registrerad') },
         { status: 400 },
       )
     }
@@ -208,7 +220,7 @@ export async function PUT(request: NextRequest) {
     const fetched = await r.domains.get(business.resendDomainId)
     if (fetched.error || !fetched.data) {
       return NextResponse.json(
-        { success: false, error: fetched.error?.message || 'Kunde inte hämta status från Resend' },
+        { success: false, error: fetched.error?.message || t(locale, 'Could not fetch status from Resend', 'Kunde inte hämta status från Resend') },
         { status: 502 },
       )
     }

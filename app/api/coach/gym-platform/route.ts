@@ -4,6 +4,12 @@ import { prisma } from '@/lib/prisma'
 import { getAdapter } from '@/lib/integrations/gym-platforms/adapters'
 import type { ConnectionConfig } from '@/lib/integrations/gym-platforms/types'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET() {
   try {
     const user = await requireCoach()
@@ -52,6 +58,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const body = await request.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -60,13 +67,13 @@ export async function POST(request: NextRequest) {
     })
 
     if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
-      return NextResponse.json({ error: 'Bara ägare/admin kan hantera plattformsanslutningar' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Only owners/admins can manage platform connections', 'Bara ägare/admin kan hantera plattformsanslutningar') }, { status: 403 })
     }
 
     // Test connection first
     const adapter = getAdapter(body.provider)
     if (!adapter) {
-      return NextResponse.json({ error: 'Okänd plattform' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Unknown platform', 'Okänd plattform') }, { status: 400 })
     }
 
     const config: ConnectionConfig = {
