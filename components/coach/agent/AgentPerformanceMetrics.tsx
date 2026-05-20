@@ -22,7 +22,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -35,12 +34,9 @@ import {
   TrendingUp,
   TrendingDown,
   Target,
-  CheckCircle2,
-  XCircle,
   RefreshCw,
   Loader2,
   BarChart3,
-  PieChart,
   Activity,
 } from 'lucide-react'
 import {
@@ -58,6 +54,13 @@ import {
   Bar,
   Legend,
 } from 'recharts'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+function formatChartDate(date: Date | string, locale: AppLocale, options?: Intl.DateTimeFormatOptions) {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', options)
+}
 
 interface MetricsData {
   summary: {
@@ -101,8 +104,6 @@ interface MetricsData {
   }
 }
 
-const COLORS = ['#6366f1', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4']
-
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 interface AgentPerformanceMetricsProps {
@@ -111,6 +112,7 @@ interface AgentPerformanceMetricsProps {
 }
 
 export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', basePath = '' }: AgentPerformanceMetricsProps) {
+  const locale = useLocale() as AppLocale
   const [timeRange, setTimeRange] = useState(initialRange)
   const businessSlug = basePath.split('/').filter(Boolean)[0]
   const params = new URLSearchParams({ range: timeRange })
@@ -261,12 +263,12 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
                   <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                   <XAxis
                     dataKey="date"
-                    tickFormatter={(v) => new Date(v).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                    tickFormatter={(v) => formatChartDate(v, locale, { day: 'numeric', month: 'short' })}
                     fontSize={12}
                   />
                   <YAxis fontSize={12} />
                   <Tooltip
-                    labelFormatter={(v) => new Date(v).toLocaleDateString('sv-SE')}
+                    labelFormatter={(v) => formatChartDate(v as string | Date, locale)}
                     contentStyle={{
                       backgroundColor: 'rgba(0,0,0,0.8)',
                       border: 'none',
