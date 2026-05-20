@@ -46,7 +46,8 @@ import {
   User,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale } from 'next-intl'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface ACWRData {
@@ -66,57 +67,156 @@ interface LoadDataPoint {
   acwr: number
 }
 
+type AppLocale = 'en' | 'sv'
+
+const labels: Record<AppLocale, {
+  pageTitle: string
+  pageDescription: string
+  riskZonesTitle: string
+  riskZonesDescription: string
+  detailedTitle: string
+  detailedDescription: string
+  selectAthlete: string
+  selectPrompt: string
+  noLoadData: string
+  acuteVsChronic: string
+  acute: string
+  chronic: string
+  acwrRatio: string
+  guideWhatTitle: string
+  guideWhatText: string
+  recommendedActions: string
+  currentLoad: string
+  reduce20: string
+  reduce40: string
+  immediateRest: string
+  increaseGradually: string
+  acuteShort: string
+  chronicShort: string
+}> = {
+  en: {
+    pageTitle: 'ACWR injury risk monitor',
+    pageDescription: 'Monitor training load and prevent injuries with ACWR zones',
+    riskZonesTitle: 'Athletes in risk zones',
+    riskZonesDescription: 'Athletes who need training adjustment based on ACWR',
+    detailedTitle: 'Detailed ACWR analysis',
+    detailedDescription: '30-day load trend with acute/chronic ratio',
+    selectAthlete: 'Select athlete',
+    selectPrompt: 'Select an athlete to see the detailed ACWR trend',
+    noLoadData: 'No load data available',
+    acuteVsChronic: 'Acute vs chronic load',
+    acute: 'Acute (7d)',
+    chronic: 'Chronic (28d)',
+    acwrRatio: 'ACWR ratio (acute:chronic)',
+    guideWhatTitle: 'What is ACWR?',
+    guideWhatText:
+      'ACWR (Acute:Chronic Workload Ratio) measures the relationship between acute load (last 7 days) and chronic load (last 28 days). This helps identify injury risks from sudden load spikes.',
+    recommendedActions: 'Recommended actions',
+    currentLoad: 'Optimal zone - continue current load',
+    reduce20: 'Reduce load 20-30%',
+    reduce40: 'Reduce load 40-50% + extra rest',
+    immediateRest: 'Immediate rest recommended',
+    increaseGradually: 'Increase load gradually (10% per week)',
+    acuteShort: 'Acute',
+    chronicShort: 'Chronic',
+  },
+  sv: {
+    pageTitle: 'ACWR Skaderiskmonitor',
+    pageDescription: 'Övervaka träningsbelastning och förebygg skador med ACWR-zoner',
+    riskZonesTitle: 'Atleter i Riskzoner',
+    riskZonesDescription: 'Atleeter som behöver träningsjustering baserat på ACWR',
+    detailedTitle: 'Detaljerad ACWR-analys',
+    detailedDescription: '30-dagars belastningstrend med akut/kronisk ratio',
+    selectAthlete: 'Välj atleet',
+    selectPrompt: 'Välj en atleet för att se detaljerad ACWR-trend',
+    noLoadData: 'Ingen belastningsdata tillgänglig',
+    acuteVsChronic: 'Akut vs Kronisk Belastning',
+    acute: 'Akut (7d)',
+    chronic: 'Kronisk (28d)',
+    acwrRatio: 'ACWR Ratio (Akut:Kronisk)',
+    guideWhatTitle: 'Vad är ACWR?',
+    guideWhatText:
+      'ACWR (Acute:Chronic Workload Ratio) mäter förhållandet mellan akut belastning (senaste 7 dagarna) och kronisk belastning (senaste 28 dagarna). Detta hjälper till att identifiera skaderisker från plötsliga belastningsökningar.',
+    recommendedActions: 'Rekommenderade Åtgärder',
+    currentLoad: 'Optimal zon - fortsätt nuvarande belastning',
+    reduce20: 'Minska belastning 20-30%',
+    reduce40: 'Minska belastning 40-50% + extra vila',
+    immediateRest: 'Omedelbar vila rekommenderas',
+    increaseGradually: 'Öka belastning gradvis (10% per vecka)',
+    acuteShort: 'Akut',
+    chronicShort: 'Kronisk',
+  },
+}
+
 const ZONE_CONFIG = {
   OPTIMAL: {
-    label: 'Optimal',
+    label: { en: 'Optimal', sv: 'Optimal' },
     range: '0.8-1.3',
     color: 'bg-green-500',
     textColor: 'text-green-700',
     bgColor: 'bg-green-50',
     icon: CheckCircle2,
-    description: 'Perfekt balans mellan belastning och återhämtning',
+    description: {
+      en: 'Perfect balance between load and recovery',
+      sv: 'Perfekt balans mellan belastning och återhämtning',
+    },
   },
   CAUTION: {
-    label: 'Varning',
+    label: { en: 'Caution', sv: 'Varning' },
     range: '1.3-1.5',
     color: 'bg-yellow-500',
     textColor: 'text-yellow-700',
     bgColor: 'bg-yellow-50',
     icon: AlertTriangle,
-    description: 'Måttlig risk - övervaka noga',
+    description: {
+      en: 'Moderate risk - monitor closely',
+      sv: 'Måttlig risk - övervaka noga',
+    },
   },
   DANGER: {
-    label: 'Fara',
+    label: { en: 'Danger', sv: 'Fara' },
     range: '1.5-2.0',
     color: 'bg-orange-500',
     textColor: 'text-orange-700',
     bgColor: 'bg-orange-50',
     icon: TrendingUp,
-    description: 'Hög risk - minska belastning omedelbart',
+    description: {
+      en: 'High risk - reduce load immediately',
+      sv: 'Hög risk - minska belastning omedelbart',
+    },
   },
   CRITICAL: {
-    label: 'Kritisk',
+    label: { en: 'Critical', sv: 'Kritisk' },
     range: '>2.0',
     color: 'bg-red-500',
     textColor: 'text-red-700',
     bgColor: 'bg-red-50',
     icon: AlertTriangle,
-    description: 'Mycket hög risk - omedelbar vila rekommenderas',
+    description: {
+      en: 'Very high risk - immediate rest recommended',
+      sv: 'Mycket hög risk - omedelbar vila rekommenderas',
+    },
   },
   DETRAINING: {
-    label: 'Avträning',
+    label: { en: 'Detraining', sv: 'Avträning' },
     range: '<0.8',
     color: 'bg-blue-500',
     textColor: 'text-blue-700',
     bgColor: 'bg-blue-50',
     icon: TrendingDown,
-    description: 'För låg belastning - risk för konditionsförlust',
+    description: {
+      en: 'Load is too low - risk of fitness loss',
+      sv: 'För låg belastning - risk för konditionsförlust',
+    },
   },
 }
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
 export function ACWRRiskMonitor() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = labels[locale]
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const pageCtx = usePageContextOptional()
 
@@ -153,7 +253,7 @@ export function ACWRRiskMonitor() {
   // Transform load data for chart
   const loadChartData: LoadDataPoint[] =
     loadData?.loads?.map((l: any) => ({
-      date: format(new Date(l.date), 'dd MMM', { locale: sv }),
+      date: format(new Date(l.date), 'dd MMM', { locale: dateLocale }),
       acuteLoad: l.acuteLoad,
       chronicLoad: l.chronicLoad,
       acwr: l.acwr,
@@ -171,7 +271,7 @@ export function ACWRRiskMonitor() {
     const caution = currentWarnings.filter(w => w.acwrZone === 'CAUTION').length
     pageCtx.setPageContext({
       type: 'acwr-monitor',
-      title: 'ACWR Skaderiskmonitor',
+      title: copy.pageTitle,
       data: {
         totalWarnings: currentWarnings.length,
         criticalCount: critical,
@@ -180,19 +280,21 @@ export function ACWRRiskMonitor() {
         totalAthletes: currentClients.length,
         flaggedAthletes: currentWarnings.map(w => ({ name: w.clientName, acwr: w.acwr.toFixed(2), zone: w.acwrZone })),
       },
-      summary: `ACWR-monitor: ${critical} kritiska, ${danger} fara, ${caution} varning av ${currentClients.length} atleter.`,
+      summary: locale === 'sv'
+        ? `ACWR-monitor: ${critical} kritiska, ${danger} fara, ${caution} varning av ${currentClients.length} atleter.`
+        : `ACWR monitor: ${critical} critical, ${danger} danger, ${caution} caution out of ${currentClients.length} athletes.`,
       conceptKeys: ['acwr', 'delawarePain', 'rehabPhases', 'tss'],
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warningsData, clientsData])
+  }, [warningsData, clientsData, copy.pageTitle, locale])
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h3 className="text-2xl font-bold">ACWR Skaderiskmonitor <InfoTooltip conceptKey="acwr" /></h3>
+        <h3 className="text-2xl font-bold">{copy.pageTitle} <InfoTooltip conceptKey="acwr" /></h3>
         <p className="text-sm text-muted-foreground">
-          Övervaka träningsbelastning och förebygg skador med ACWR-zoner
+          {copy.pageDescription}
         </p>
       </div>
 
@@ -220,9 +322,9 @@ export function ACWRRiskMonitor() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold mb-1">{athletes.length}</div>
-                <p className="text-sm font-medium mb-2">{config.label}</p>
+                <p className="text-sm font-medium mb-2">{config.label[locale]}</p>
                 <p className="text-xs text-muted-foreground line-clamp-2">
-                  {config.description}
+                  {config.description[locale]}
                 </p>
               </CardContent>
             </Card>
@@ -238,27 +340,27 @@ export function ACWRRiskMonitor() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-500" />
-              Atleter i Riskzoner
+              {copy.riskZonesTitle}
             </CardTitle>
             <CardDescription>
-              Atleeter som behöver träningsjustering baserat på ACWR
+              {copy.riskZonesDescription}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {/* Critical Risk Athletes */}
               {athletesByZone.CRITICAL.map(athlete => (
-                <AthleteRiskCard key={athlete.clientId} athlete={athlete} severity="CRITICAL" />
+                <AthleteRiskCard key={athlete.clientId} athlete={athlete} severity="CRITICAL" locale={locale} copy={copy} />
               ))}
 
               {/* Danger Athletes */}
               {athletesByZone.DANGER.map(athlete => (
-                <AthleteRiskCard key={athlete.clientId} athlete={athlete} severity="DANGER" />
+                <AthleteRiskCard key={athlete.clientId} athlete={athlete} severity="DANGER" locale={locale} copy={copy} />
               ))}
 
               {/* Caution Athletes */}
               {athletesByZone.CAUTION.map(athlete => (
-                <AthleteRiskCard key={athlete.clientId} athlete={athlete} severity="CAUTION" />
+                <AthleteRiskCard key={athlete.clientId} athlete={athlete} severity="CAUTION" locale={locale} copy={copy} />
               ))}
             </div>
           </CardContent>
@@ -270,14 +372,14 @@ export function ACWRRiskMonitor() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Detaljerad ACWR-analys</CardTitle>
+              <CardTitle>{copy.detailedTitle}</CardTitle>
               <CardDescription>
-                30-dagars belastningstrend med akut/kronisk ratio
+                {copy.detailedDescription}
               </CardDescription>
             </div>
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Välj atleet" />
+                <SelectValue placeholder={copy.selectAthlete} />
               </SelectTrigger>
               <SelectContent>
                 {allClients.map((client: any) => (
@@ -292,11 +394,11 @@ export function ACWRRiskMonitor() {
         <CardContent>
           {!selectedClientId ? (
             <p className="text-center text-muted-foreground py-12">
-              Välj en atleet för att se detaljerad ACWR-trend
+              {copy.selectPrompt}
             </p>
           ) : loadChartData.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">
-              Ingen belastningsdata tillgänglig
+              {copy.noLoadData}
             </p>
           ) : (
             <div className="space-y-6">
@@ -308,10 +410,10 @@ export function ACWRRiskMonitor() {
                     <div className="space-y-2">
                       <p className="font-semibold">
                         ACWR: {selectedWarning.acwr.toFixed(2)} -{' '}
-                        {ZONE_CONFIG[selectedWarning.acwrZone].label}
+                        {ZONE_CONFIG[selectedWarning.acwrZone].label[locale]}
                       </p>
                       <p className="text-sm">
-                        {ZONE_CONFIG[selectedWarning.acwrZone].description}
+                        {ZONE_CONFIG[selectedWarning.acwrZone].description[locale]}
                       </p>
                     </div>
                   </AlertDescription>
@@ -320,7 +422,7 @@ export function ACWRRiskMonitor() {
 
               {/* Load Chart - Acute vs Chronic */}
               <div>
-                <h4 className="text-sm font-medium mb-3">Akut vs Kronisk Belastning</h4>
+                <h4 className="text-sm font-medium mb-3">{copy.acuteVsChronic}</h4>
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={loadChartData}>
                     <defs>
@@ -361,7 +463,7 @@ export function ACWRRiskMonitor() {
                       stroke="#3b82f6"
                       strokeWidth={2}
                       fill="url(#acuteGradient)"
-                      name="Akut (7d)"
+                      name={copy.acute}
                     />
                     <Area
                       type="monotone"
@@ -369,7 +471,7 @@ export function ACWRRiskMonitor() {
                       stroke="#10b981"
                       strokeWidth={2}
                       fill="url(#chronicGradient)"
-                      name="Kronisk (28d)"
+                      name={copy.chronic}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -377,7 +479,7 @@ export function ACWRRiskMonitor() {
 
               {/* ACWR Ratio Chart */}
               <div>
-                <h4 className="text-sm font-medium mb-3">ACWR Ratio (Akut:Kronisk)</h4>
+                <h4 className="text-sm font-medium mb-3">{copy.acwrRatio}</h4>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={loadChartData}>
                     <defs>
@@ -410,10 +512,10 @@ export function ACWRRiskMonitor() {
                     />
 
                     {/* Zone Reference Lines */}
-                    <ReferenceLine y={0.8} stroke="#3b82f6" strokeDasharray="3 3" label="Avträning" />
-                    <ReferenceLine y={1.3} stroke="#eab308" strokeDasharray="3 3" label="Varning" />
-                    <ReferenceLine y={1.5} stroke="#f97316" strokeDasharray="3 3" label="Fara" />
-                    <ReferenceLine y={2.0} stroke="#ef4444" strokeDasharray="3 3" label="Kritisk" />
+                    <ReferenceLine y={0.8} stroke="#3b82f6" strokeDasharray="3 3" label={ZONE_CONFIG.DETRAINING.label[locale]} />
+                    <ReferenceLine y={1.3} stroke="#eab308" strokeDasharray="3 3" label={ZONE_CONFIG.CAUTION.label[locale]} />
+                    <ReferenceLine y={1.5} stroke="#f97316" strokeDasharray="3 3" label={ZONE_CONFIG.DANGER.label[locale]} />
+                    <ReferenceLine y={2.0} stroke="#ef4444" strokeDasharray="3 3" label={ZONE_CONFIG.CRITICAL.label[locale]} />
 
                     {/* Optimal Zone Shading (0.8-1.3) */}
                     <Area
@@ -452,21 +554,19 @@ export function ACWRRiskMonitor() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <h4 className="font-semibold mb-2">Vad är ACWR?</h4>
+              <h4 className="font-semibold mb-2">{copy.guideWhatTitle}</h4>
               <p className="text-sm text-muted-foreground">
-                ACWR (Acute:Chronic Workload Ratio) mäter förhållandet mellan akut belastning
-                (senaste 7 dagarna) och kronisk belastning (senaste 28 dagarna). Detta hjälper
-                till att identifiera skaderisker från plötsliga belastningsökningar.
+                {copy.guideWhatText}
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-2">Rekommenderade Åtgärder</h4>
+              <h4 className="font-semibold mb-2">{copy.recommendedActions}</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• <strong>ACWR 0.8-1.3:</strong> Optimal zon - fortsätt nuvarande belastning</li>
-                <li>• <strong>ACWR 1.3-1.5:</strong> Minska belastning 20-30%</li>
-                <li>• <strong>ACWR 1.5-2.0:</strong> Minska belastning 40-50% + extra vila</li>
-                <li>• <strong>ACWR &gt;2.0:</strong> Omedelbar vila rekommenderas</li>
-                <li>• <strong>ACWR &lt;0.8:</strong> Öka belastning gradvis (10% per vecka)</li>
+                <li>• <strong>ACWR 0.8-1.3:</strong> {copy.currentLoad}</li>
+                <li>• <strong>ACWR 1.3-1.5:</strong> {copy.reduce20}</li>
+                <li>• <strong>ACWR 1.5-2.0:</strong> {copy.reduce40}</li>
+                <li>• <strong>ACWR &gt;2.0:</strong> {copy.immediateRest}</li>
+                <li>• <strong>ACWR &lt;0.8:</strong> {copy.increaseGradually}</li>
               </ul>
             </div>
           </div>
@@ -482,9 +582,13 @@ export function ACWRRiskMonitor() {
 function AthleteRiskCard({
   athlete,
   severity,
+  locale,
+  copy,
 }: {
   athlete: ACWRData
   severity: 'CRITICAL' | 'DANGER' | 'CAUTION'
+  locale: AppLocale
+  copy: typeof labels[AppLocale]
 }) {
   const config = ZONE_CONFIG[severity]
   const Icon = config.icon
@@ -500,14 +604,14 @@ function AthleteRiskCard({
         <div>
           <p className="font-semibold">{athlete.clientName}</p>
           <p className="text-sm text-muted-foreground">
-            ACWR: <span className="font-medium">{athlete.acwr.toFixed(2)}</span> · Akut:{' '}
-            {athlete.acuteLoad.toFixed(0)} TSS · Kronisk: {athlete.chronicLoad.toFixed(0)} TSS
+            ACWR: <span className="font-medium">{athlete.acwr.toFixed(2)}</span> · {copy.acuteShort}:{' '}
+            {athlete.acuteLoad.toFixed(0)} TSS · {copy.chronicShort}: {athlete.chronicLoad.toFixed(0)} TSS
           </p>
         </div>
       </div>
 
       <Badge variant={severity === 'CRITICAL' ? 'destructive' : 'default'}>
-        {config.label}
+        {config.label[locale]}
       </Badge>
     </div>
   )
