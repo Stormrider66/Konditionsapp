@@ -13,6 +13,8 @@ type AppLocale = 'en' | 'sv'
  * Generate AI-powered social media captions
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
     const body = await request.json()
@@ -25,10 +27,13 @@ export async function POST(request: NextRequest) {
       language,               // sv or en
       includeHashtags = true,
     } = body
-    const locale: AppLocale = language === 'sv' || (!language && user.language === 'sv') ? 'sv' : 'en'
+    locale = language === 'sv' || (!language && user.language === 'sv') ? 'sv' : 'en'
 
     if (!topic) {
-      return NextResponse.json({ error: 'topic required' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'Topic is required', 'Ämne krävs') },
+        { status: 400 }
+      )
     }
 
     // Resolve AI model
@@ -127,7 +132,10 @@ Rules:
     })
   } catch (error) {
     console.error('Social generate error:', error)
-    return NextResponse.json({ error: 'Failed to generate caption' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to generate caption', 'Kunde inte generera inläggstext') },
+      { status: 500 }
+    )
   }
 }
 
