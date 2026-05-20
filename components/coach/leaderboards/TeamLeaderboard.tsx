@@ -15,7 +15,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -46,7 +45,8 @@ import {
   Dumbbell,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
+import { useLocale } from 'next-intl';
 
 interface LeaderboardEntry {
   rank: number;
@@ -86,12 +86,67 @@ interface TeamLeaderboardProps {
   variant?: 'default' | 'compact';
 }
 
-const ERGOMETER_CONFIG: Record<ErgometerType, { label: string; icon: React.ReactNode }> = {
-  CONCEPT2_ROW: { label: 'Roddmaskin', icon: <Ship className="h-4 w-4" /> },
-  CONCEPT2_SKIERG: { label: 'SkiErg', icon: <Mountain className="h-4 w-4" /> },
-  CONCEPT2_BIKEERG: { label: 'BikeErg', icon: <Bike className="h-4 w-4" /> },
-  WATTBIKE: { label: 'Wattbike', icon: <Bike className="h-4 w-4" /> },
-  ASSAULT_BIKE: { label: 'Air Bike', icon: <Dumbbell className="h-4 w-4" /> },
+type AppLocale = 'en' | 'sv';
+
+const labels: Record<AppLocale, {
+  leaderboardTitle: string;
+  noTestsDescription: string;
+  noTestsBody: string;
+  testedSummary: string;
+  selectTest: string;
+  bestTeam: string;
+  teamAverage: string;
+  tested: string;
+  player: string;
+  result: string;
+  level: string;
+  new: string;
+  up: string;
+  down: string;
+  same: string;
+}> = {
+  en: {
+    leaderboardTitle: 'Ergometer leaderboard',
+    noTestsDescription: 'No ergometer tests registered for the team',
+    noTestsBody: 'When team members complete ergometer tests, rankings will appear here.',
+    testedSummary: '{tested} of {total} players have tested',
+    selectTest: 'Select test...',
+    bestTeam: 'Best on team',
+    teamAverage: 'Team average',
+    tested: 'Tested',
+    player: 'Player',
+    result: 'Result',
+    level: 'Level',
+    new: 'New',
+    up: 'Up',
+    down: 'Down',
+    same: 'Same',
+  },
+  sv: {
+    leaderboardTitle: 'Ergometer-topplista',
+    noTestsDescription: 'Inga ergometertester registrerade for laget',
+    noTestsBody: 'Nar lagmedlemmar genomfor ergometertester visas rankingen har.',
+    testedSummary: '{tested} av {total} spelare har testat',
+    selectTest: 'Valj test...',
+    bestTeam: 'Bast i laget',
+    teamAverage: 'Lagsnitt',
+    tested: 'Testade',
+    player: 'Spelare',
+    result: 'Resultat',
+    level: 'Niva',
+    new: 'Ny',
+    up: 'Upp',
+    down: 'Ner',
+    same: 'Samma',
+  },
+};
+
+const ERGOMETER_CONFIG: Record<ErgometerType, { label: Record<AppLocale, string>; icon: React.ReactNode }> = {
+  CONCEPT2_ROW: { label: { en: 'RowErg', sv: 'Roddmaskin' }, icon: <Ship className="h-4 w-4" /> },
+  CONCEPT2_SKIERG: { label: { en: 'SkiErg', sv: 'SkiErg' }, icon: <Mountain className="h-4 w-4" /> },
+  CONCEPT2_BIKEERG: { label: { en: 'BikeErg', sv: 'BikeErg' }, icon: <Bike className="h-4 w-4" /> },
+  WATTBIKE: { label: { en: 'Wattbike', sv: 'Wattbike' }, icon: <Bike className="h-4 w-4" /> },
+  ASSAULT_BIKE: { label: { en: 'Air Bike', sv: 'Air Bike' }, icon: <Dumbbell className="h-4 w-4" /> },
 };
 
 const PROTOCOL_LABELS: Record<ErgometerTestProtocol, string> = {
@@ -105,7 +160,7 @@ const PROTOCOL_LABELS: Record<ErgometerTestProtocol, string> = {
   MAP_RAMP: 'MAP Ramp',
   CP_3MIN_ALL_OUT: '3min CP Test',
   CP_MULTI_TRIAL: 'Multi-Trial CP',
-  INTERVAL_4X4: '4x4min Intervall',
+  INTERVAL_4X4: '4x4min Intervals',
 };
 
 const TIER_COLORS: Record<string, { bg: string; text: string }> = {
@@ -119,8 +174,8 @@ const TIER_COLORS: Record<string, { bg: string; text: string }> = {
 const SORT_OPTIONS = [
   { value: 'power', label: 'Watt' },
   { value: 'watts_per_kg', label: 'W/kg' },
-  { value: 'pace', label: 'Tempo' },
-  { value: 'time', label: 'Tid' },
+  { value: 'pace', label: { en: 'Pace', sv: 'Tempo' } },
+  { value: 'time', label: { en: 'Time', sv: 'Tid' } },
 ];
 
 function RankBadge({ rank }: { rank: number }) {
@@ -152,12 +207,20 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-function TrendIndicator({ trend, improvement }: { trend: string; improvement?: number }) {
+function TrendIndicator({
+  trend,
+  improvement,
+  copy,
+}: {
+  trend: string;
+  improvement?: number;
+  copy: typeof labels[AppLocale];
+}) {
   if (trend === 'new') {
     return (
       <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
         <Sparkles className="h-3 w-3 mr-1" />
-        Ny
+        {copy.new}
       </Badge>
     );
   }
@@ -165,7 +228,7 @@ function TrendIndicator({ trend, improvement }: { trend: string; improvement?: n
     return (
       <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
         <TrendingUp className="h-3 w-3 mr-1" />
-        {improvement ? `+${improvement.toFixed(1)}%` : 'Upp'}
+        {improvement ? `+${improvement.toFixed(1)}%` : copy.up}
       </Badge>
     );
   }
@@ -173,19 +236,22 @@ function TrendIndicator({ trend, improvement }: { trend: string; improvement?: n
     return (
       <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
         <TrendingDown className="h-3 w-3 mr-1" />
-        {improvement ? `${improvement.toFixed(1)}%` : 'Ner'}
+        {improvement ? `${improvement.toFixed(1)}%` : copy.down}
       </Badge>
     );
   }
   return (
     <Badge variant="outline" className="text-xs">
       <Minus className="h-3 w-3 mr-1" />
-      Samma
+      {copy.same}
     </Badge>
   );
 }
 
 export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = labels[locale];
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const [leaderboards, setLeaderboards] = useState<LeaderboardResult[]>([]);
   const [selectedLeaderboard, setSelectedLeaderboard] = useState<LeaderboardResult | null>(null);
   const [sortMetric, setSortMetric] = useState<'power' | 'pace' | 'time' | 'watts_per_kg'>('power');
@@ -225,7 +291,7 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
   }, [teamId, sortMetric]);
 
   useEffect(() => {
-    fetchLeaderboard();
+    void fetchLeaderboard();
   }, [fetchLeaderboard]);
 
   if (isLoading) {
@@ -248,15 +314,15 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5" />
-            Ergometer-topplista
+            {copy.leaderboardTitle}
           </CardTitle>
-          <CardDescription>Inga ergometertester registrerade for laget</CardDescription>
+          <CardDescription>{copy.noTestsDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
             <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">
-              Nar lagmedlemmar genomfor ergometertester visas rankingen har.
+              {copy.noTestsBody}
             </p>
           </div>
         </CardContent>
@@ -271,10 +337,12 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
           <div>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5" />
-              Ergometer-topplista
+              {copy.leaderboardTitle}
             </CardTitle>
             <CardDescription>
-              {teamStats?.testedMembers} av {teamStats?.totalMembers} spelare har testat
+              {copy.testedSummary
+                .replace('{tested}', String(teamStats?.testedMembers ?? 0))
+                .replace('{total}', String(teamStats?.totalMembers ?? 0))}
             </CardDescription>
           </div>
 
@@ -290,7 +358,7 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
               }}
             >
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Valj test..." />
+                <SelectValue placeholder={copy.selectTest} />
               </SelectTrigger>
               <SelectContent>
                 {leaderboards.map((lb) => {
@@ -302,7 +370,7 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
                     >
                       <div className="flex items-center gap-2">
                         {config.icon}
-                        <span>{config.label}</span>
+                        <span>{config.label[locale]}</span>
                         <span className="text-muted-foreground text-xs">
                           {PROTOCOL_LABELS[lb.testProtocol]}
                         </span>
@@ -321,7 +389,7 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
               <SelectContent>
                 {SORT_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {typeof opt.label === 'string' ? opt.label : opt.label[locale]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -337,15 +405,15 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
             <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
               <div className="text-center">
                 <p className="text-2xl font-bold">{selectedLeaderboard.teamStats.bestFormatted}</p>
-                <p className="text-xs text-muted-foreground">Bast i laget</p>
+                <p className="text-xs text-muted-foreground">{copy.bestTeam}</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold">{selectedLeaderboard.teamStats.averageFormatted}</p>
-                <p className="text-xs text-muted-foreground">Lagsnitt</p>
+                <p className="text-xs text-muted-foreground">{copy.teamAverage}</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold">{selectedLeaderboard.entries.length}</p>
-                <p className="text-xs text-muted-foreground">Testade</p>
+                <p className="text-xs text-muted-foreground">{copy.tested}</p>
               </div>
             </div>
 
@@ -354,11 +422,11 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[60px]">Rank</TableHead>
-                  <TableHead>Spelare</TableHead>
-                  <TableHead className="text-right">Resultat</TableHead>
-                  {variant === 'default' && <TableHead className="text-center">Niva</TableHead>}
+                  <TableHead>{copy.player}</TableHead>
+                  <TableHead className="text-right">{copy.result}</TableHead>
+                  {variant === 'default' && <TableHead className="text-center">{copy.level}</TableHead>}
                   <TableHead className="text-center">Trend</TableHead>
-                  {variant === 'default' && <TableHead className="text-right">Testad</TableHead>}
+                  {variant === 'default' && <TableHead className="text-right">{copy.tested}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -388,13 +456,13 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
                         </TableCell>
                       )}
                       <TableCell className="text-center">
-                        <TrendIndicator trend={entry.trend} improvement={entry.improvement} />
+                        <TrendIndicator trend={entry.trend} improvement={entry.improvement} copy={copy} />
                       </TableCell>
                       {variant === 'default' && (
                         <TableCell className="text-right text-sm text-muted-foreground">
                           {formatDistanceToNow(new Date(entry.testDate), {
                             addSuffix: true,
-                            locale: sv,
+                            locale: dateLocale,
                           })}
                         </TableCell>
                       )}
