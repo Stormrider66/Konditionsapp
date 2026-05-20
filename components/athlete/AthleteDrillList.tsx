@@ -27,17 +27,22 @@ function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
 }
 
-const SPORT_LABELS: Record<string, string> = {
-  ICE_HOCKEY: 'Ishockey',
-  FOOTBALL: 'Fotboll',
-  HANDBALL: 'Handboll',
-  BASKETBALL: 'Basket',
-  FLOORBALL: 'Innebandy',
+type AppLocale = 'en' | 'sv'
+
+const appLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const SPORT_LABELS: Record<string, Record<AppLocale, string>> = {
+  ICE_HOCKEY: { sv: 'Ishockey', en: 'Ice hockey' },
+  FOOTBALL: { sv: 'Fotboll', en: 'Football' },
+  HANDBALL: { sv: 'Handboll', en: 'Handball' },
+  BASKETBALL: { sv: 'Basket', en: 'Basketball' },
+  FLOORBALL: { sv: 'Innebandy', en: 'Floorball' },
 }
 
 export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
   const t = useTranslations('components.athleteDrillList')
   const locale = useLocale()
+  const currentLocale = appLocale(locale)
   const [drills, setDrills] = useState<Drill[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -94,7 +99,7 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
                   </p>
                 </div>
                 <Badge variant="outline" className="text-[9px] shrink-0">
-                  {SPORT_LABELS[drill.sportType] || drill.sportType}
+                  {SPORT_LABELS[drill.sportType]?.[currentLocale] || drill.sportType}
                 </Badge>
               </div>
 
