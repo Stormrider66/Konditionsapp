@@ -26,6 +26,9 @@ interface WeeklySummaryAthlete {
   id: string
   name: string
   userId: string
+  user: {
+    language: string | null
+  }
 }
 
 // Helper to get Monday of the previous week
@@ -109,7 +112,12 @@ export async function GET(request: NextRequest) {
           : {}),
         take: pageSize,
         orderBy: { id: 'asc' },
-        select: { id: true, name: true, userId: true },
+        select: {
+          id: true,
+          name: true,
+          userId: true,
+          user: { select: { language: true } },
+        },
       })
 
       if (athletes.length === 0) {
@@ -236,6 +244,9 @@ type AthleteSummaryCandidate = {
   id: string
   name: string
   userId: string
+  user: {
+    language: string | null
+  }
 }
 
 type AthleteSummaryOutcome =
@@ -264,7 +275,7 @@ async function processAthleteSummary(
       reportType: 'training-summary',
       clientId: athlete.id,
       coachId: athlete.userId,
-      locale: 'sv',
+      locale: athlete.user.language === 'sv' ? 'sv' : 'en',
       periodStart: previousWeekStart,
       periodEnd: new Date(previousWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
     })

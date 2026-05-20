@@ -328,7 +328,7 @@ async function processCoachWarning(
   }
 
   try {
-    const locale = (subscription.user.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
+    const locale = (subscription.user.language === 'sv' ? 'sv' : 'en') as 'sv' | 'en'
     const upgradeUrl = await resolveCoachUpgradeUrl(subscription.userId)
     const template = getTrialWarningEmailTemplate({
       recipientName: subscription.user.name || 'Coach',
@@ -361,7 +361,7 @@ async function processAthleteWarning(
   }
 
   try {
-    const locale = (subscription.client.athleteAccount?.user?.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
+    const locale = (subscription.client.athleteAccount?.user?.language === 'sv' ? 'sv' : 'en') as 'sv' | 'en'
     const template = getTrialWarningEmailTemplate({
       recipientName: subscription.client.name,
       daysRemaining: threshold,

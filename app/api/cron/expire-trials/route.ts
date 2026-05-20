@@ -344,7 +344,7 @@ async function processExpiredCoachTrial(subscription: ExpiredCoachTrial): Promis
 
     if (subscription.user.email) {
       try {
-        const locale = (subscription.user.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
+        const locale = (subscription.user.language === 'sv' ? 'sv' : 'en') as 'sv' | 'en'
         const upgradeUrl = await resolveCoachUpgradeUrl(subscription.userId)
         const template = getTrialExpiredEmailTemplate({
           recipientName: subscription.user.name || 'Coach',
@@ -379,7 +379,7 @@ async function processExpiredAthleteTrial(subscription: ExpiredAthleteTrial): Pr
     const athleteEmail = subscription.client.athleteAccount?.user?.email || subscription.client.email
     if (athleteEmail) {
       try {
-        const locale = (subscription.client.athleteAccount?.user?.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
+        const locale = (subscription.client.athleteAccount?.user?.language === 'sv' ? 'sv' : 'en') as 'sv' | 'en'
         const template = getTrialExpiredEmailTemplate({
           recipientName: subscription.client.name,
           upgradeUrl: `${process.env.NEXT_PUBLIC_APP_URL}/athlete/subscription`,

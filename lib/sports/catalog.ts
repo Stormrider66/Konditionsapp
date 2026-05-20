@@ -69,7 +69,7 @@ export function getSportLabelKey(sport: string | null | undefined): string | und
 
 export function getSportLabel(
   sport: string | null | undefined,
-  locale: 'sv' | 'en' = 'sv'
+  locale: 'sv' | 'en' = 'en'
 ): string {
   if (!sport) return ''
   const labels = locale === 'en' ? SPORT_LABELS_EN : SPORT_LABELS_SV

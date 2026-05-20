@@ -124,11 +124,14 @@ export async function POST(request: NextRequest) {
     }
 
     const data: CreateTestApiData = validation.data
+    const locale = user.language === 'sv' ? 'sv' : 'en'
     const lactateDrops = detectLactateDecreases(data.stages)
     const warnings = lactateDrops.map((drop) => ({
       type: 'LACTATE_DROP',
       severity: 'warning',
-      message: `Laktat sjönk med ${drop.drop} mmol/L från steg ${drop.fromStage} till steg ${drop.toStage}. Testet sparades ändå, men kontrollera värdet innan du använder rapporten skarpt.`,
+      message: locale === 'sv'
+        ? `Laktat sjönk med ${drop.drop} mmol/L från steg ${drop.fromStage} till steg ${drop.toStage}. Testet sparades ändå, men kontrollera värdet innan du använder rapporten skarpt.`
+        : `Lactate dropped by ${drop.drop} mmol/L from stage ${drop.fromStage} to stage ${drop.toStage}. The test was still saved, but check the value before using the report.`,
       details: drop,
     }))
 
@@ -233,7 +236,7 @@ export async function POST(request: NextRequest) {
       testId: test.id,
       clientId: test.clientId,
       coachId: user.id,
-      locale: 'sv',
+      locale,
     }).catch((err) => {
       logger.warn('Background visual report generation failed', { testId: test.id }, err)
     })
