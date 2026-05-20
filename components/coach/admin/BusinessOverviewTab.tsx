@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
+import { useLocale } from 'next-intl'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface BusinessStats {
@@ -50,6 +51,7 @@ interface BusinessStats {
 
 export function BusinessOverviewTab() {
   const businessHeaders = useBusinessAdminHeaders()
+  const locale = useLocale()
   const [stats, setStats] = useState<BusinessStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,11 +74,14 @@ export function BusinessOverviewTab() {
   }, [businessHeaders])
 
   useEffect(() => {
-    fetchStats()
+    const timer = window.setTimeout(() => {
+      void fetchStats()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [fetchStats])
 
   const formatCurrency = (amount: number, currency: string = 'SEK') => {
-    return new Intl.NumberFormat('sv-SE', {
+    return new Intl.NumberFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,

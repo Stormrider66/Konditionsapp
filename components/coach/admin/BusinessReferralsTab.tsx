@@ -33,6 +33,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useLocale } from 'next-intl'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface PartnerReferral {
@@ -76,10 +77,10 @@ interface ReferralStats {
 
 export function BusinessReferralsTab() {
   const businessHeaders = useBusinessAdminHeaders()
+  const locale = useLocale()
   const [referrals, setReferrals] = useState<PartnerReferral[]>([])
   const [stats, setStats] = useState<ReferralStats | null>(null)
   const [businessSlug, setBusinessSlug] = useState<string>('')
-  const [businessName, setBusinessName] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -113,7 +114,6 @@ export function BusinessReferralsTab() {
       setStats(result.data.stats)
       setTotalPages(result.data.pagination.totalPages)
       setBusinessSlug(result.data.business.slug)
-      setBusinessName(result.data.business.name)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load referrals')
     } finally {
@@ -122,7 +122,10 @@ export function BusinessReferralsTab() {
   }, [businessHeaders, page, statusFilter])
 
   useEffect(() => {
-    fetchReferrals()
+    const timer = window.setTimeout(() => {
+      void fetchReferrals()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [fetchReferrals])
 
   const copyReferralLink = async () => {
@@ -154,7 +157,7 @@ export function BusinessReferralsTab() {
   }
 
   const formatCurrency = (amount: number, currency: string = 'SEK') => {
-    return new Intl.NumberFormat('sv-SE', {
+    return new Intl.NumberFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,

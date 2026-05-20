@@ -17,6 +17,7 @@ import {
   Crown,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useLocale } from 'next-intl'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface BusinessLocation {
@@ -76,6 +77,7 @@ interface BusinessSettings {
 
 export function BusinessSettingsTab() {
   const businessHeaders = useBusinessAdminHeaders()
+  const locale = useLocale()
   const [settings, setSettings] = useState<BusinessSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -130,7 +132,10 @@ export function BusinessSettingsTab() {
   }, [businessHeaders])
 
   useEffect(() => {
-    fetchSettings()
+    const timer = window.setTimeout(() => {
+      void fetchSettings()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [fetchSettings])
 
   const handleSave = async () => {
@@ -170,7 +175,7 @@ export function BusinessSettingsTab() {
 
       setSuccessMessage('Settings saved successfully')
       setTimeout(() => setSuccessMessage(null), 3000)
-      fetchSettings()
+      void fetchSettings()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings')
     } finally {
@@ -179,7 +184,7 @@ export function BusinessSettingsTab() {
   }
 
   const formatCurrency = (amount: number, currency: string = 'SEK') => {
-    return new Intl.NumberFormat('sv-SE', {
+    return new Intl.NumberFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,
