@@ -26,6 +26,7 @@ interface RequestBody {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:generate-chart', user.id, {
       limit: 10,
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
       coachUserId: user.id,
       clientId,
       query,
+      locale,
       dataContext: dataContext || 'all',
     };
 

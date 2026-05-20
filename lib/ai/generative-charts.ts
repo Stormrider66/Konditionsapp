@@ -11,6 +11,7 @@
 
 import { generateObject } from 'ai';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
 import { createModelInstance } from '@/lib/ai/create-model';
@@ -26,7 +27,7 @@ const ChartDataPointSchema = z.object({
 
 const ChartConfigSchema = z.object({
   chartType: z.enum(['line', 'bar', 'area', 'composed', 'radar', 'pie']).describe('Type of chart to render'),
-  title: z.string().describe('Chart title in Swedish'),
+  title: z.string().describe('Chart title in the requested output language'),
   subtitle: z.string().optional().describe('Chart subtitle explaining the data'),
   data: z.array(ChartDataPointSchema).describe('Data points for the chart'),
   xAxisLabel: z.string().describe('X-axis label'),
@@ -46,7 +47,7 @@ const ChartConfigSchema = z.object({
     label: z.string(),
     color: z.string().default('#ef4444'),
   })).optional().describe('Reference lines or annotations'),
-  insights: z.array(z.string()).describe('Key insights from the data in Swedish'),
+  insights: z.array(z.string()).describe('Key insights from the data in the requested output language'),
 });
 
 export type ChartConfig = z.infer<typeof ChartConfigSchema>;
@@ -55,6 +56,7 @@ export interface GenerateChartRequest {
   coachUserId: string;
   clientId: string;
   query: string; // Natural language query
+  locale?: 'en' | 'sv';
   dataContext?: 'training_load' | 'wellness' | 'performance' | 'comparison' | 'all';
   timeRange?: {
     start: Date;
@@ -76,7 +78,7 @@ export interface GenerateChartResponse {
 export async function generateChartFromQuery(
   request: GenerateChartRequest
 ): Promise<GenerateChartResponse> {
-  const { coachUserId, clientId, query, dataContext = 'all', timeRange } = request;
+  const { coachUserId, clientId, query, locale = 'en', dataContext = 'all', timeRange } = request;
 
   // Get API keys
   const apiKeys = await prisma.userApiKey.findUnique({
@@ -144,7 +146,7 @@ export async function generateChartFromQuery(
     const result = await generateObject({
       model,
       schema: ChartConfigSchema,
-      prompt: buildChartPrompt(query, athleteData),
+      prompt: buildChartPrompt(query, athleteData, locale),
     });
 
     return {
@@ -192,7 +194,7 @@ interface AthleteData {
   fieldTests: Array<{
     date: string;
     testType: string;
-    results: any;
+    results: Prisma.JsonValue;
   }>;
   raceResults: Array<{
     date: string;
@@ -332,10 +334,13 @@ async function fetchAthleteData(
   };
 }
 
-function buildChartPrompt(query: string, data: AthleteData): string {
+function buildChartPrompt(query: string, data: AthleteData, locale: 'en' | 'sv'): string {
+  const outputLanguage = locale === 'sv' ? 'Swedish' : 'English';
+
   return `You are a sports analytics expert creating visualizations for coaches.
 
 Based on the user's query, generate a Recharts-compatible chart configuration.
+All user-facing chart titles, subtitles, axis labels, annotation labels, and insights must be written in ${outputLanguage}.
 
 ## USER QUERY
 "${query}"
@@ -369,7 +374,7 @@ Avg RPE: ${data.teamAverages.avgRPE.toFixed(1)}/10` : ''}
 2. Select appropriate data from the athlete data
 3. Choose the best chart type for the visualization
 4. Format data points correctly for Recharts
-5. Add meaningful Swedish titles and labels
+5. Add meaningful ${outputLanguage} titles and labels
 6. Include 2-3 key insights from the data
 7. Add reference lines/annotations if helpful (e.g., thresholds, averages)
 
@@ -416,3 +421,45 @@ export const CHART_TEMPLATES = {
     yAxisLabel: 'Procent',
   },
 };
+
+export function getChartTemplates(locale: 'en' | 'sv' = 'en') {
+  if (locale === 'sv') return CHART_TEMPLATES;
+
+  return {
+    trainingLoadTrend: {
+      chartType: 'area' as const,
+      title: 'Training load over time',
+      xAxisLabel: 'Date',
+      yAxisLabel: 'TSS',
+    },
+    acwrTrend: {
+      chartType: 'composed' as const,
+      title: 'ACWR trend',
+      xAxisLabel: 'Date',
+      yAxisLabel: 'ACWR',
+      annotations: [
+        { type: 'line' as const, value: 1.5, label: 'Risk zone', color: '#ef4444' },
+        { type: 'line' as const, value: 0.8, label: 'Undertraining', color: '#f59e0b' },
+      ],
+    },
+    readinessVsFatigue: {
+      chartType: 'line' as const,
+      title: 'Readiness vs fatigue',
+      xAxisLabel: 'Date',
+      yAxisLabel: 'Readiness (%)',
+      yAxis2Label: 'Fatigue (1-10)',
+    },
+    performanceProgression: {
+      chartType: 'line' as const,
+      title: 'Performance progression',
+      xAxisLabel: 'Date',
+      yAxisLabel: 'VDOT',
+    },
+    intensityDistribution: {
+      chartType: 'pie' as const,
+      title: 'Intensity distribution',
+      xAxisLabel: 'Zone',
+      yAxisLabel: 'Percent',
+    },
+  };
+}
