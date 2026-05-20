@@ -11,10 +11,12 @@ import Link from 'next/link'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
   TEAM_EVENT_CONTENT_OWNERS,
-  TEAM_EVENT_CONTENT_OWNER_LABELS,
-  TEAM_EVENT_CONTENT_STATUS_LABELS,
+  TEAM_EVENT_CONTENT_STATUSES,
   TEAM_EVENT_TYPE_COLORS,
-  TEAM_EVENT_TYPE_LABELS,
+  teamEventContentOwnerLabel,
+  teamEventContentStatusLabel,
+  teamEventTypeLabel,
+  type TeamCalendarLocale,
   type TeamEventContentOwner,
   type TeamEventContentStatus,
   type TeamEventType,
@@ -46,6 +48,7 @@ import { toast } from 'sonner'
 import type { PracticeBlock } from '@/lib/team-calendar/practice-plan'
 import { inputDateValue } from '@/lib/team-calendar/date-time'
 import { openCoachFloatingChat } from '@/lib/events/coach-floating-chat'
+import { useLocale } from '@/i18n/client'
 
 interface TeamEvent {
   id: string
@@ -97,22 +100,30 @@ interface TeamCalendarPermissions {
 type PlanningFilter = 'all' | 'needsReview' | 'iceMissingPlan' | 'needsContent' | 'ready' | 'assigned' | 'ice' | 'physical'
 type LoadLevel = 'low' | 'moderate' | 'high'
 
-function getTypeConfig(type: string) {
+function getTypeConfig(type: string, locale: TeamCalendarLocale) {
   if (isTeamEventType(type)) {
     return {
-      label: TEAM_EVENT_TYPE_LABELS[type],
+      label: teamEventTypeLabel(type, locale),
       color: TEAM_EVENT_TYPE_COLORS[type],
     }
   }
-  return { label: 'Övrigt', color: 'bg-gray-500' }
+  return { label: locale === 'sv' ? 'Övrigt' : 'Other', color: 'bg-gray-500' }
 }
 
 function firstDescriptionLine(description: string | null): string | null {
   return description?.split('\n').map((line) => line.trim()).find(Boolean) ?? null
 }
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+function dateLocale(locale: TeamCalendarLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
+function text(locale: TeamCalendarLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function formatTime(iso: string, locale: TeamCalendarLocale): string {
+  return new Date(iso).toLocaleTimeString(dateLocale(locale), { hour: '2-digit', minute: '2-digit' })
 }
 
 function eventDurationMinutes(event: TeamEvent): number | null {
@@ -165,8 +176,8 @@ function planningColumnFor(type: string): 'ice' | 'physical' | 'team' | 'other' 
   return 'other'
 }
 
-function compactEventText(event: TeamEvent): string {
-  const time = event.allDay ? '' : formatTime(event.startDate)
+function compactEventText(event: TeamEvent, locale: TeamCalendarLocale): string {
+  const time = event.allDay ? '' : formatTime(event.startDate, locale)
   const location = event.location ? ` ${event.location}` : ''
   return `${time}${time ? ' ' : ''}${event.title}${location}`
 }
@@ -177,18 +188,18 @@ function eventNeedsContent(event: TeamEvent): boolean {
   return event.contentStatus !== 'CONTENT_READY' || !event.linkedWorkoutId
 }
 
-function contentStatusLabel(status: string | undefined): string {
-  if (status && status in TEAM_EVENT_CONTENT_STATUS_LABELS) {
-    return TEAM_EVENT_CONTENT_STATUS_LABELS[status as TeamEventContentStatus]
+function contentStatusLabel(status: string | undefined, locale: TeamCalendarLocale): string {
+  if (status && TEAM_EVENT_CONTENT_STATUSES.some((candidate) => candidate === status)) {
+    return teamEventContentStatusLabel(status as TeamEventContentStatus, locale)
   }
-  return TEAM_EVENT_CONTENT_STATUS_LABELS.PLANNED
+  return teamEventContentStatusLabel('PLANNED', locale)
 }
 
-function contentOwnerLabel(owner: string | null | undefined): string {
-  if (owner && owner in TEAM_EVENT_CONTENT_OWNER_LABELS) {
-    return TEAM_EVENT_CONTENT_OWNER_LABELS[owner as TeamEventContentOwner]
+function contentOwnerLabel(owner: string | null | undefined, locale: TeamCalendarLocale): string {
+  if (owner && TEAM_EVENT_CONTENT_OWNERS.some((candidate) => candidate === owner)) {
+    return teamEventContentOwnerLabel(owner as TeamEventContentOwner, locale)
   }
-  return TEAM_EVENT_CONTENT_OWNER_LABELS.physical_trainer
+  return teamEventContentOwnerLabel('physical_trainer', locale)
 }
 
 function builderLinkForEvent(event: TeamEvent, teamId: string, businessSlug?: string): { href: string; label: string } | null {
@@ -216,9 +227,9 @@ function builderLinkForEvent(event: TeamEvent, teamId: string, businessSlug?: st
   return null
 }
 
-function assignmentProgressLabel(event: TeamEvent): string | null {
+function assignmentProgressLabel(event: TeamEvent, locale: TeamCalendarLocale): string | null {
   if (!event.assignmentSummary) return null
-  return `${event.assignmentSummary.totalCompleted}/${event.assignmentSummary.totalAssigned} klara`
+  return `${event.assignmentSummary.totalCompleted}/${event.assignmentSummary.totalAssigned} ${text(locale, 'klara', 'completed')}`
 }
 
 function hasPracticePlan(event: TeamEvent): boolean {
@@ -238,35 +249,39 @@ function practiceBlockMinutes(event: TeamEvent): number {
   return event.practicePlan.reduce((sum, block) => sum + (Number(block.duration) || 0), 0)
 }
 
-function getPlanningIssues(event: TeamEvent): string[] {
+function getPlanningIssues(event: TeamEvent, locale: TeamCalendarLocale): string[] {
   const issues: string[] = []
 
   if (isIcePracticeEvent(event)) {
     if (!hasPracticePlan(event)) {
-      issues.push('Saknar blockplan')
+      issues.push(text(locale, 'Saknar blockplan', 'Missing block plan'))
     } else if (Array.isArray(event.practicePlan)) {
       const missingGroups = event.practicePlan.filter((block) => !block.groups?.trim()).length
       const missingEquipment = event.practicePlan.filter((block) => !block.equipment?.trim()).length
       const eventMinutes = eventDurationMinutes(event)
       const blockMinutes = practiceBlockMinutes(event)
 
-      if (missingGroups > 0) issues.push(`${missingGroups} block saknar grupp`)
-      if (missingEquipment > 0) issues.push(`${missingEquipment} block saknar material`)
+      if (missingGroups > 0) {
+        issues.push(text(locale, `${missingGroups} block saknar grupp`, `${missingGroups} blocks missing groups`))
+      }
+      if (missingEquipment > 0) {
+        issues.push(text(locale, `${missingEquipment} block saknar material`, `${missingEquipment} blocks missing equipment`))
+      }
       if (eventMinutes !== null && blockMinutes > 0 && Math.abs(eventMinutes - blockMinutes) >= 10) {
-        issues.push(`Blocktid ${blockMinutes} min / kalender ${eventMinutes} min`)
+        issues.push(text(locale, `Blocktid ${blockMinutes} min / kalender ${eventMinutes} min`, `Block time ${blockMinutes} min / calendar ${eventMinutes} min`))
       }
     }
   }
 
   if (isPhysicalEvent(event) && event.contentStatus === 'CONTENT_READY' && !event.linkedWorkoutId && !event.assignedBroadcastId) {
-    issues.push('Markerad klar utan kopplat pass')
+    issues.push(text(locale, 'Markerad klar utan kopplat pass', 'Marked ready without a linked workout'))
   }
 
   return issues
 }
 
-function eventNeedsReview(event: TeamEvent): boolean {
-  return getPlanningIssues(event).length > 0
+function eventNeedsReview(event: TeamEvent, locale: TeamCalendarLocale): boolean {
+  return getPlanningIssues(event, locale).length > 0
 }
 
 function sumEventMinutes(eventsToSum: TeamEvent[]): number {
@@ -294,10 +309,10 @@ function loadLevelFor(points: number): LoadLevel {
   return 'low'
 }
 
-function loadLevelLabel(level: LoadLevel): string {
-  if (level === 'high') return 'Hög'
-  if (level === 'moderate') return 'Medel'
-  return 'Låg'
+function loadLevelLabel(level: LoadLevel, locale: TeamCalendarLocale): string {
+  if (level === 'high') return text(locale, 'Hög', 'High')
+  if (level === 'moderate') return text(locale, 'Medel', 'Moderate')
+  return text(locale, 'Låg', 'Low')
 }
 
 function loadLevelClassName(level: LoadLevel): string {
@@ -306,7 +321,7 @@ function loadLevelClassName(level: LoadLevel): string {
   return 'border-emerald-200 bg-emerald-50 text-emerald-900'
 }
 
-function getPlanningBadges(event: TeamEvent): Array<{
+function getPlanningBadges(event: TeamEvent, locale: TeamCalendarLocale): Array<{
   key: string
   label: string
   icon: LucideIcon
@@ -330,17 +345,17 @@ function getPlanningBadges(event: TeamEvent): Array<{
     } else {
       badges.push({
         key: 'missing-practice-plan',
-        label: 'Saknar plan',
+        label: text(locale, 'Saknar plan', 'Missing plan'),
         icon: TriangleAlert,
         className: 'border-amber-300 bg-amber-50 text-amber-800',
       })
     }
   }
 
-  if (eventNeedsReview(event)) {
+  if (eventNeedsReview(event, locale)) {
     badges.push({
       key: 'needs-review',
-      label: 'Kontroll',
+      label: text(locale, 'Kontroll', 'Review'),
       icon: TriangleAlert,
       className: 'border-orange-300 bg-orange-50 text-orange-800',
     })
@@ -350,21 +365,21 @@ function getPlanningBadges(event: TeamEvent): Array<{
     if (event.assignedBroadcastId) {
       badges.push({
         key: 'assigned',
-        label: assignmentProgressLabel(event) ?? 'Tilldelat',
+        label: assignmentProgressLabel(event, locale) ?? text(locale, 'Tilldelat', 'Assigned'),
         icon: Send,
         className: 'border-emerald-300 bg-emerald-50 text-emerald-800',
       })
     } else if (event.linkedWorkoutId && event.contentStatus === 'CONTENT_READY') {
       badges.push({
         key: 'ready',
-        label: 'Klar',
+        label: text(locale, 'Klar', 'Ready'),
         icon: CheckCircle2,
         className: 'border-emerald-300 bg-emerald-50 text-emerald-800',
       })
     } else if (eventNeedsContent(event)) {
       badges.push({
         key: 'needs-content',
-        label: contentStatusLabel(event.contentStatus),
+        label: contentStatusLabel(event.contentStatus, locale),
         icon: TriangleAlert,
         className: 'border-amber-300 bg-amber-50 text-amber-800',
       })
@@ -374,8 +389,8 @@ function getPlanningBadges(event: TeamEvent): Array<{
   return badges
 }
 
-function PlanningBadges({ event, compact = false }: { event: TeamEvent; compact?: boolean }) {
-  const badges = getPlanningBadges(event)
+function PlanningBadges({ event, locale, compact = false }: { event: TeamEvent; locale: TeamCalendarLocale; compact?: boolean }) {
+  const badges = getPlanningBadges(event, locale)
   if (badges.length === 0) return null
 
   return (
@@ -397,9 +412,9 @@ function PlanningBadges({ event, compact = false }: { event: TeamEvent; compact?
   )
 }
 
-function eventMatchesPlanningFilter(event: TeamEvent, filter: PlanningFilter): boolean {
+function eventMatchesPlanningFilter(event: TeamEvent, filter: PlanningFilter, locale: TeamCalendarLocale): boolean {
   if (filter === 'all') return true
-  if (filter === 'needsReview') return eventNeedsReview(event)
+  if (filter === 'needsReview') return eventNeedsReview(event, locale)
   if (filter === 'iceMissingPlan') return isIcePracticeEvent(event) && !hasPracticePlan(event)
   if (filter === 'needsContent') return eventNeedsContent(event)
   if (filter === 'ready') return isPhysicalEvent(event) && Boolean(event.linkedWorkoutId) && event.contentStatus === 'CONTENT_READY' && !event.assignedBroadcastId
@@ -409,24 +424,24 @@ function eventMatchesPlanningFilter(event: TeamEvent, filter: PlanningFilter): b
   return true
 }
 
-const PLANNING_FILTERS: Array<{ value: PlanningFilter; label: string }> = [
-  { value: 'all', label: 'Alla' },
-  { value: 'needsReview', label: 'Kontroll' },
-  { value: 'iceMissingPlan', label: 'Saknar isplan' },
-  { value: 'needsContent', label: 'Behöver innehåll' },
-  { value: 'ready', label: 'Klara fys' },
-  { value: 'assigned', label: 'Tilldelade' },
-  { value: 'ice', label: 'Is' },
-  { value: 'physical', label: 'Fys' },
+const PLANNING_FILTERS: Array<{ value: PlanningFilter; label: Record<TeamCalendarLocale, string> }> = [
+  { value: 'all', label: { en: 'All', sv: 'Alla' } },
+  { value: 'needsReview', label: { en: 'Review', sv: 'Kontroll' } },
+  { value: 'iceMissingPlan', label: { en: 'Missing ice plan', sv: 'Saknar isplan' } },
+  { value: 'needsContent', label: { en: 'Needs content', sv: 'Behöver innehåll' } },
+  { value: 'ready', label: { en: 'Ready physical', sv: 'Klara fys' } },
+  { value: 'assigned', label: { en: 'Assigned', sv: 'Tilldelade' } },
+  { value: 'ice', label: { en: 'Ice', sv: 'Is' } },
+  { value: 'physical', label: { en: 'Physical', sv: 'Fys' } },
 ]
 
-const PHYSICAL_QUICK_TYPES: Array<{ type: TeamEventType; title: string; label: string }> = [
-  { type: 'STRENGTH', title: 'Styrka', label: 'Styrka' },
-  { type: 'CARDIO', title: 'Kondition', label: 'Kondition' },
-  { type: 'PREHAB', title: 'Stabilitet / Prehab', label: 'Prehab' },
-  { type: 'PLYOMETRICS', title: 'Plyometri', label: 'Plyo' },
-  { type: 'HYBRID', title: 'Hybrid', label: 'Hybrid' },
-  { type: 'AGILITY', title: 'Agility', label: 'Agility' },
+const PHYSICAL_QUICK_TYPES: Array<{ type: TeamEventType; title: Record<TeamCalendarLocale, string>; label: string }> = [
+  { type: 'STRENGTH', title: { en: 'Strength', sv: 'Styrka' }, label: 'Strength' },
+  { type: 'CARDIO', title: { en: 'Conditioning', sv: 'Kondition' }, label: 'Conditioning' },
+  { type: 'PREHAB', title: { en: 'Stability / Prehab', sv: 'Stabilitet / Prehab' }, label: 'Prehab' },
+  { type: 'PLYOMETRICS', title: { en: 'Plyometrics', sv: 'Plyometri' }, label: 'Plyo' },
+  { type: 'HYBRID', title: { en: 'Hybrid', sv: 'Hybrid' }, label: 'Hybrid' },
+  { type: 'AGILITY', title: { en: 'Agility', sv: 'Agility' }, label: 'Agility' },
 ]
 
 interface TeamCalendarViewProps {
@@ -442,6 +457,7 @@ export function TeamCalendarView({
   businessSlug,
   initialTeamPlans = [],
 }: TeamCalendarViewProps) {
+  const locale: TeamCalendarLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [events, setEvents] = useState<TeamEvent[]>([])
   const [teamPlans, setTeamPlans] = useState<AthletePlanSummary[]>(initialTeamPlans)
   const [loading, setLoading] = useState(true)
@@ -495,13 +511,13 @@ export function TeamCalendarView({
     ))
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
   const planningReviewQueue = events
-    .filter(eventNeedsReview)
+    .filter((event) => eventNeedsReview(event, locale))
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
   const visibleEvents = isStaffPlanningView
-    ? events.filter((event) => eventMatchesPlanningFilter(event, planningFilter))
+    ? events.filter((event) => eventMatchesPlanningFilter(event, planningFilter, locale))
     : events
   const planningFilterCounts = PLANNING_FILTERS.reduce<Record<PlanningFilter, number>>((acc, filter) => {
-    acc[filter.value] = events.filter((event) => eventMatchesPlanningFilter(event, filter.value)).length
+    acc[filter.value] = events.filter((event) => eventMatchesPlanningFilter(event, filter.value, locale)).length
     return acc
   }, {
     all: 0,
@@ -543,10 +559,10 @@ export function TeamCalendarView({
   })
   const orchestrationWarnings = [
     weeklyNeedsContent.length > 0
-      ? `${weeklyNeedsContent.length} fyspass saknar workout-innehåll.`
+      ? text(locale, `${weeklyNeedsContent.length} fyspass saknar workout-innehåll.`, `${weeklyNeedsContent.length} physical sessions are missing workout content.`)
       : null,
     weeklyMissingIcePlans.length > 0
-      ? `${weeklyMissingIcePlans.length} ispass saknar blockplan.`
+      ? text(locale, `${weeklyMissingIcePlans.length} ispass saknar blockplan.`, `${weeklyMissingIcePlans.length} ice sessions are missing a block plan.`)
       : null,
     ...weeklyGameEvents.flatMap((game) => {
       const gameDate = new Date(game.startDate)
@@ -555,28 +571,38 @@ export function TeamCalendarView({
       const previousDayPhysical = weeklyPhysicalEvents.filter((event) => isSameDay(new Date(event.startDate), previousDay))
       const previousDayLoad = previousDayPhysical.reduce((sum, event) => sum + eventLoadPoints(event), 0)
       if (previousDayLoad < 3) return []
-      return [`Tung fys dagen före match: ${game.title} (${gameDate.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })}).`]
+      return [
+        text(
+          locale,
+          `Tung fys dagen före match: ${game.title} (${gameDate.toLocaleDateString(dateLocale(locale), { weekday: 'short', day: 'numeric', month: 'short' })}).`,
+          `Heavy physical load the day before a game: ${game.title} (${gameDate.toLocaleDateString(dateLocale(locale), { weekday: 'short', day: 'numeric', month: 'short' })}).`
+        ),
+      ]
     }),
     ...dayLoadSummaries
       .filter((day) => day.level === 'high' && day.events.length >= 2)
-      .map((day) => `${day.date.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'short' })} har hög totalbelastning.`),
+      .map((day) => text(
+        locale,
+        `${day.date.toLocaleDateString(dateLocale(locale), { weekday: 'long', day: 'numeric', month: 'short' })} har hög totalbelastning.`,
+        `${day.date.toLocaleDateString(dateLocale(locale), { weekday: 'long', day: 'numeric', month: 'short' })} has high total load.`
+      )),
   ].filter(Boolean) as string[]
   const nextOrchestrationActions = [
     ...weeklyNeedsContent.slice(0, 3).map((event) => ({
       key: `content-${event.id}`,
-      label: 'Bygg innehåll',
+      label: text(locale, 'Bygg innehåll', 'Build content'),
       event,
       tone: 'amber' as const,
     })),
     ...weeklyReadyToAssign.slice(0, 3).map((event) => ({
       key: `assign-${event.id}`,
-      label: 'Tilldela laget',
+      label: text(locale, 'Tilldela laget', 'Assign to team'),
       event,
       tone: 'emerald' as const,
     })),
     ...weeklyMissingIcePlans.slice(0, 3).map((event) => ({
       key: `ice-${event.id}`,
-      label: 'Komplettera isplan',
+      label: text(locale, 'Komplettera isplan', 'Complete ice plan'),
       event,
       tone: 'blue' as const,
     })),
@@ -598,11 +624,11 @@ export function TeamCalendarView({
         setCalendarPermissions(data.calendarPermissions || null)
       }
     } catch {
-      toast.error('Kunde inte hämta händelser')
+      toast.error(text(locale, 'Kunde inte hämta händelser', 'Could not fetch events'))
     } finally {
       setLoading(false)
     }
-  }, [teamId, businessSlug, rangeStartIso, rangeEndIso])
+  }, [teamId, businessSlug, rangeStartIso, rangeEndIso, locale])
 
   useEffect(() => {
     void fetchEvents()
@@ -625,7 +651,7 @@ export function TeamCalendarView({
   }
 
   const handleDelete = async (eventId: string) => {
-    if (!confirm('Ta bort händelse?')) return
+    if (!confirm(text(locale, 'Ta bort händelse?', 'Delete event?'))) return
     try {
       const params = new URLSearchParams()
       if (businessSlug) params.set('businessSlug', businessSlug)
@@ -635,18 +661,18 @@ export function TeamCalendarView({
       })
       if (res.ok) {
         setEvents((prev) => prev.filter((e) => e.id !== eventId))
-        toast.success('Händelse borttagen')
+        toast.success(text(locale, 'Händelse borttagen', 'Event deleted'))
         return
       }
-      toast.error('Kunde inte ta bort händelse')
+      toast.error(text(locale, 'Kunde inte ta bort händelse', 'Could not delete event'))
     } catch {
-      toast.error('Kunde inte ta bort händelse')
+      toast.error(text(locale, 'Kunde inte ta bort händelse', 'Could not delete event'))
     }
   }
 
   const handleAssignReadyWorkout = async (event: TeamEvent) => {
     if (!canAssignContentType(event.type) || !event.linkedWorkoutId) {
-      toast.error('Din roll kan inte tilldela det här passet')
+      toast.error(text(locale, 'Din roll kan inte tilldela det här passet', 'Your role cannot assign this workout'))
       return
     }
 
@@ -665,10 +691,10 @@ export function TeamCalendarView({
 
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
-      toast.success(`Tilldelat till ${data.assignmentCount ?? 'laget'} spelare`)
+      toast.success(text(locale, `Tilldelat till ${data.assignmentCount ?? 'laget'} spelare`, `Assigned to ${data.assignmentCount ?? 'the team'} players`))
       await fetchEvents()
     } catch {
-      toast.error('Kunde inte tilldela passet')
+      toast.error(text(locale, 'Kunde inte tilldela passet', 'Could not assign the workout'))
     } finally {
       setAssigningEventId(null)
     }
@@ -684,13 +710,17 @@ export function TeamCalendarView({
     const from = rangeStartIso.slice(0, 10)
     const to = rangeEndIso.slice(0, 10)
     const focusInstruction = {
-      overview: 'Ge mig en kort prioriterad brief: risker, saknat innehåll, klara pass att tilldela och nästa steg.',
-      missingContent: 'Fokusera på fys-pass som saknar innehåll och prioritera vilka som bör byggas först.',
-      load: 'Fokusera på veckobelastning, matchnära risker och dagar som behöver justeras.',
+      overview: text(locale, 'Ge mig en kort prioriterad brief: risker, saknat innehåll, klara pass att tilldela och nästa steg.', 'Give me a short prioritized brief: risks, missing content, workouts ready to assign, and next steps.'),
+      missingContent: text(locale, 'Fokusera på fys-pass som saknar innehåll och prioritera vilka som bör byggas först.', 'Focus on physical sessions missing content and prioritize what should be built first.'),
+      load: text(locale, 'Fokusera på veckobelastning, matchnära risker och dagar som behöver justeras.', 'Focus on weekly load, game-adjacent risks, and days that should be adjusted.'),
     }[focus]
 
     openCoachFloatingChat(
-      `Läs lagkalendern för ${teamName} (teamId: ${teamId}) från ${from} till ${to}. Använd getTeamCalendarBriefing. ${focusInstruction}`
+      text(
+        locale,
+        `Läs lagkalendern för ${teamName} (teamId: ${teamId}) från ${from} till ${to}. Använd getTeamCalendarBriefing. ${focusInstruction}`,
+        `Read the team calendar for ${teamName} (teamId: ${teamId}) from ${from} to ${to}. Use getTeamCalendarBriefing. ${focusInstruction}`
+      )
     )
   }
 
@@ -699,19 +729,19 @@ export function TeamCalendarView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(-1)} aria-label="Föregående vecka">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(-1)} aria-label={text(locale, 'Föregående vecka', 'Previous week')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={goToday}>
-            Idag
+            {text(locale, 'Idag', 'Today')}
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(1)} aria-label="Nästa vecka">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(1)} aria-label={text(locale, 'Nästa vecka', 'Next week')}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium ml-2">
             {effectiveViewMode === 'planning'
-              ? weekBase.toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })
-              : `${weekDates[0].toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} - ${weekDates[6].toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+              ? weekBase.toLocaleDateString(dateLocale(locale), { month: 'long', year: 'numeric' })
+              : `${weekDates[0].toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })} - ${weekDates[6].toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short', year: 'numeric' })}`}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -726,7 +756,7 @@ export function TeamCalendarView({
                   setLoading(true)
                 }}
               >
-                Vecka
+                {text(locale, 'Vecka', 'Week')}
               </Button>
               <Button
                 variant={viewMode === 'planning' ? 'default' : 'ghost'}
@@ -737,7 +767,7 @@ export function TeamCalendarView({
                   setLoading(true)
                 }}
               >
-                Planering
+                {text(locale, 'Planering', 'Planning')}
               </Button>
             </div>
           )}
@@ -756,14 +786,14 @@ export function TeamCalendarView({
               trigger={
                 <Button variant="outline" size="sm">
                   <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                  Blockplan
+                  {text(locale, 'Blockplan', 'Block plan')}
                 </Button>
               }
             />
           )}
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-3.5 w-3.5 mr-1.5" />
-            Exportera .ics
+            {text(locale, 'Exportera .ics', 'Export .ics')}
           </Button>
           {creatableTypes.length > 0 && (
             <CreateEventDialog
@@ -772,13 +802,13 @@ export function TeamCalendarView({
               onCreated={fetchEvents}
               allowedEventTypes={creatableTypes}
               defaultType={isPhysicalTrainerCalendar ? 'STRENGTH' : undefined}
-              defaultTitle={isPhysicalTrainerCalendar ? 'Fys' : undefined}
+              defaultTitle={isPhysicalTrainerCalendar ? text(locale, 'Fys', 'Physical session') : undefined}
               defaultContentStatus={isPhysicalTrainerCalendar ? 'NEEDS_CONTENT' : undefined}
               defaultContentOwner={isPhysicalTrainerCalendar ? 'physical_trainer' : undefined}
               trigger={
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-1.5" />
-                  {isPhysicalTrainerCalendar ? 'Nytt fyspass' : 'Ny händelse'}
+                  {isPhysicalTrainerCalendar ? text(locale, 'Nytt fyspass', 'New physical session') : text(locale, 'Ny händelse', 'New event')}
                 </Button>
               }
             />
@@ -791,7 +821,7 @@ export function TeamCalendarView({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Filter className="h-3.5 w-3.5" />
-              Visa
+              {text(locale, 'Visa', 'Show')}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {PLANNING_FILTERS.map((filter) => (
@@ -803,7 +833,7 @@ export function TeamCalendarView({
                   className="h-7 px-2 text-xs"
                   onClick={() => setPlanningFilter(filter.value)}
                 >
-                  {filter.label}
+                  {filter.label[locale]}
                   <span className="ml-1 text-[10px] opacity-70">{planningFilterCounts[filter.value]}</span>
                 </Button>
               ))}
@@ -818,14 +848,14 @@ export function TeamCalendarView({
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <Activity className="h-4 w-4" />
-                Veckans hockeyöversikt
+                {text(locale, 'Veckans hockeyöversikt', 'Weekly hockey overview')}
               </div>
               <p className="text-xs text-muted-foreground">
-                Samlar is, fys, matcher och planeringsstatus för veckan.
+                {text(locale, 'Samlar is, fys, matcher och planeringsstatus för veckan.', 'Combines ice, physical work, games, and planning status for the week.')}
               </p>
             </div>
             <Badge variant="outline" className={`mt-1 w-fit ${loadLevelClassName(weeklyLoadLevel)}`}>
-              Belastning: {loadLevelLabel(weeklyLoadLevel)}
+              {text(locale, 'Belastning', 'Load')}: {loadLevelLabel(weeklyLoadLevel, locale)}
             </Badge>
           </div>
 
@@ -833,44 +863,46 @@ export function TeamCalendarView({
             <div className="rounded-md border p-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CalendarDays className="h-3.5 w-3.5" />
-                Is
+                {text(locale, 'Is', 'Ice')}
               </div>
               <div className="mt-1 text-2xl font-semibold">{weeklyIceEvents.length}</div>
-              <div className="text-xs text-muted-foreground">{sumEventMinutes(weeklyIceEvents)} min planerat</div>
+              <div className="text-xs text-muted-foreground">{sumEventMinutes(weeklyIceEvents)} {text(locale, 'min planerat', 'min planned')}</div>
             </div>
             <div className="rounded-md border p-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Dumbbell className="h-3.5 w-3.5" />
-                Fys
+                {text(locale, 'Fys', 'Physical')}
               </div>
               <div className="mt-1 text-2xl font-semibold">{weeklyPhysicalEvents.length}</div>
-              <div className="text-xs text-muted-foreground">{sumEventMinutes(weeklyPhysicalEvents)} min planerat</div>
+              <div className="text-xs text-muted-foreground">{sumEventMinutes(weeklyPhysicalEvents)} {text(locale, 'min planerat', 'min planned')}</div>
             </div>
             <div className="rounded-md border p-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Trophy className="h-3.5 w-3.5" />
-                Match
+                {text(locale, 'Match', 'Game')}
               </div>
               <div className="mt-1 text-2xl font-semibold">{weeklyGameEvents.length}</div>
               <div className="text-xs text-muted-foreground">
-                {weeklyGameEvents.length > 0 ? 'Kontrollera toppning och återhämtning' : 'Ingen match i veckan'}
+                {weeklyGameEvents.length > 0
+                  ? text(locale, 'Kontrollera toppning och återhämtning', 'Check tapering and recovery')
+                  : text(locale, 'Ingen match i veckan', 'No game this week')}
               </div>
             </div>
             <div className="rounded-md border p-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Status
+                {text(locale, 'Status', 'Status')}
               </div>
               <div className="mt-1 text-2xl font-semibold">{weeklyAssignedEvents.length}</div>
               <div className="text-xs text-muted-foreground">
-                {weeklyReadyToAssign.length} klara att tilldela · {weeklyNeedsContent.length} saknar innehåll
+                {text(locale, `${weeklyReadyToAssign.length} klara att tilldela · ${weeklyNeedsContent.length} saknar innehåll`, `${weeklyReadyToAssign.length} ready to assign · ${weeklyNeedsContent.length} missing content`)}
               </div>
             </div>
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_1fr]">
             <div className="rounded-md border p-3">
-              <div className="mb-2 text-xs font-medium text-muted-foreground">Daglig belastning</div>
+              <div className="mb-2 text-xs font-medium text-muted-foreground">{text(locale, 'Daglig belastning', 'Daily load')}</div>
               <div className="grid grid-cols-7 gap-1.5">
                 {dayLoadSummaries.map((day) => (
                   <button
@@ -882,10 +914,10 @@ export function TeamCalendarView({
                     }}
                   >
                     <div className="text-[10px] font-medium uppercase">
-                      {day.date.toLocaleDateString('sv-SE', { weekday: 'short' })}
+                      {day.date.toLocaleDateString(dateLocale(locale), { weekday: 'short' })}
                     </div>
                     <div className="text-base font-semibold">{day.events.length}</div>
-                    <div className="text-[10px] opacity-75">{loadLevelLabel(day.level)}</div>
+                    <div className="text-[10px] opacity-75">{loadLevelLabel(day.level, locale)}</div>
                   </button>
                 ))}
               </div>
@@ -894,11 +926,11 @@ export function TeamCalendarView({
             <div className="rounded-md border p-3">
               <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <TriangleAlert className="h-3.5 w-3.5" />
-                Veckosignaler
+                {text(locale, 'Veckosignaler', 'Weekly signals')}
               </div>
               {orchestrationWarnings.length === 0 ? (
                 <div className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs text-emerald-900">
-                  Inga tydliga planeringsrisker för veckan.
+                  {text(locale, 'Inga tydliga planeringsrisker för veckan.', 'No clear planning risks for the week.')}
                 </div>
               ) : (
                 <div className="space-y-1.5">
@@ -914,7 +946,7 @@ export function TeamCalendarView({
 
           {nextOrchestrationActions.length > 0 && (
             <div className="mt-4 rounded-md border p-3">
-              <div className="mb-2 text-xs font-medium text-muted-foreground">Nästa åtgärder</div>
+              <div className="mb-2 text-xs font-medium text-muted-foreground">{text(locale, 'Nästa åtgärder', 'Next actions')}</div>
               <div className="flex flex-wrap gap-2">
                 {nextOrchestrationActions.map((action) => {
                   const toneClassName = action.tone === 'emerald'
@@ -931,7 +963,7 @@ export function TeamCalendarView({
                     >
                       <div className="font-medium">{action.label}</div>
                       <div className="mt-0.5 opacity-75">
-                        {new Date(action.event.startDate).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' })} · {action.event.title}
+                        {new Date(action.event.startDate).toLocaleDateString(dateLocale(locale), { weekday: 'short', day: 'numeric', month: 'short' })} · {action.event.title}
                       </div>
                     </button>
                   )
@@ -954,7 +986,7 @@ export function TeamCalendarView({
               businessSlug={businessSlug}
               initialPlan={activeTeamPlan}
               onSaved={(plan) => setTeamPlans((current) => current.map((item) => item.id === plan.id ? plan : item))}
-              trigger={<Button variant="outline" size="sm">Redigera</Button>}
+              trigger={<Button variant="outline" size="sm">{text(locale, 'Redigera', 'Edit')}</Button>}
             />
           }
         />
@@ -966,10 +998,10 @@ export function TeamCalendarView({
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <CalendarDays className="h-4 w-4" />
-                Ingen aktiv blockplan
+                {text(locale, 'Ingen aktiv blockplan', 'No active block plan')}
               </div>
               <p className="text-xs text-muted-foreground">
-                Sätt säsongens faser först, fyll sedan kalendern med pass och matcher.
+                {text(locale, 'Sätt säsongens faser först, fyll sedan kalendern med pass och matcher.', 'Set the season phases first, then fill the calendar with workouts and games.')}
               </p>
             </div>
             <CreateTeamPlanDialog
@@ -988,16 +1020,16 @@ export function TeamCalendarView({
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <TriangleAlert className="h-4 w-4" />
-                Planeringskontroll
+                {text(locale, 'Planeringskontroll', 'Planning review')}
               </div>
               <div className="text-xs text-orange-900/80">
-                {planningReviewQueue.length} pass har detaljer som bör kontrolleras innan publicering.
+                {text(locale, `${planningReviewQueue.length} pass har detaljer som bör kontrolleras innan publicering.`, `${planningReviewQueue.length} sessions have details that should be checked before publishing.`)}
               </div>
             </div>
 
             <div className="flex max-w-full flex-wrap gap-2">
               {planningReviewQueue.slice(0, 8).map((event) => {
-                const issues = getPlanningIssues(event)
+                const issues = getPlanningIssues(event, locale)
                 return (
                   <button
                     key={event.id}
@@ -1007,7 +1039,7 @@ export function TeamCalendarView({
                   >
                     <div className="font-medium">{event.title}</div>
                     <div className="text-orange-900/75">
-                      {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} · {issues.slice(0, 2).join(' · ')}
+                      {new Date(event.startDate).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })} · {issues.slice(0, 2).join(' · ')}
                     </div>
                   </button>
                 )
@@ -1023,16 +1055,16 @@ export function TeamCalendarView({
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <CheckCircle2 className="h-4 w-4" />
-                Färdiga pass att tilldela
+                {text(locale, 'Färdiga pass att tilldela', 'Finished sessions ready to assign')}
               </div>
               <div className="text-xs text-emerald-900/80">
-                {readyAssignmentQueue.length} pass har kopplat workout-innehåll och kan skickas till laget.
+                {text(locale, `${readyAssignmentQueue.length} pass har kopplat workout-innehåll och kan skickas till laget.`, `${readyAssignmentQueue.length} sessions have linked workout content and can be sent to the team.`)}
               </div>
             </div>
 
             <div className="flex max-w-full flex-wrap gap-2">
               {readyAssignmentQueue.slice(0, 8).map((event) => {
-                const typeConfig = getTypeConfig(event.type)
+                const typeConfig = getTypeConfig(event.type, locale)
                 const isAssigning = assigningEventId === event.id
                 return (
                   <div
@@ -1052,8 +1084,8 @@ export function TeamCalendarView({
                         </Badge>
                       </div>
                       <div className="mt-1 text-emerald-900/75">
-                        {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
-                        {!event.allDay && ` ${formatTime(event.startDate)}`}
+                        {new Date(event.startDate).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })}
+                        {!event.allDay && ` ${formatTime(event.startDate, locale)}`}
                       </div>
                       {event.linkedWorkoutName && (
                         <div className="mt-1 max-w-64 truncate text-emerald-900/75">
@@ -1071,7 +1103,7 @@ export function TeamCalendarView({
                         onClick={() => void handleAssignReadyWorkout(event)}
                       >
                         <Send className="mr-1 h-3 w-3" />
-                        {isAssigning ? 'Tilldelar...' : 'Tilldela laget'}
+                        {isAssigning ? text(locale, 'Tilldelar...', 'Assigning...') : text(locale, 'Tilldela laget', 'Assign to team')}
                       </Button>
                       <Button
                         type="button"
@@ -1080,7 +1112,7 @@ export function TeamCalendarView({
                         className="h-7 px-2 text-xs"
                         onClick={() => setSelectedEvent(event)}
                       >
-                        Öppna
+                        {text(locale, 'Öppna', 'Open')}
                       </Button>
                     </div>
                   </div>
@@ -1099,10 +1131,10 @@ export function TeamCalendarView({
                 <div>
                   <div className="flex items-center gap-2 text-sm font-semibold">
                     <Filter className="h-4 w-4" />
-                    Fys-pass som behöver innehåll
+                    {text(locale, 'Fys-pass som behöver innehåll', 'Physical sessions that need content')}
                   </div>
                   <div className="text-xs text-amber-900/80">
-                    {allOpenContentQueue.length} planerade pass saknar kopplat workout-innehåll.
+                    {text(locale, `${allOpenContentQueue.length} planerade pass saknar kopplat workout-innehåll.`, `${allOpenContentQueue.length} planned sessions are missing linked workout content.`)}
                   </div>
                 </div>
                 <Button
@@ -1113,7 +1145,7 @@ export function TeamCalendarView({
                   onClick={() => openAiCalendarBrief('missingContent')}
                 >
                   <MessageSquareText className="mr-1 h-3.5 w-3.5" />
-                  Prioritera med AI
+                  {text(locale, 'Prioritera med AI', 'Prioritize with AI')}
                 </Button>
               </div>
             </div>
@@ -1126,7 +1158,7 @@ export function TeamCalendarView({
                 className="h-7 px-2 text-xs"
                 onClick={() => setQueueStatusFilter('open')}
               >
-                Alla öppna
+                {text(locale, 'Alla öppna', 'All open')}
               </Button>
               <Button
                 type="button"
@@ -1135,7 +1167,7 @@ export function TeamCalendarView({
                 className="h-7 px-2 text-xs"
                 onClick={() => setQueueStatusFilter('PLANNED')}
               >
-                Planerad ram
+                {teamEventContentStatusLabel('PLANNED', locale)}
               </Button>
               <Button
                 type="button"
@@ -1144,7 +1176,7 @@ export function TeamCalendarView({
                 className="h-7 px-2 text-xs"
                 onClick={() => setQueueStatusFilter('NEEDS_CONTENT')}
               >
-                Behöver innehåll
+                {teamEventContentStatusLabel('NEEDS_CONTENT', locale)}
               </Button>
               <Button
                 type="button"
@@ -1153,7 +1185,7 @@ export function TeamCalendarView({
                 className="h-7 px-2 text-xs"
                 onClick={() => setQueueOwnerFilter('all')}
               >
-                Alla roller
+                {text(locale, 'Alla roller', 'All roles')}
               </Button>
               {TEAM_EVENT_CONTENT_OWNERS.map((owner) => (
                 <Button
@@ -1164,18 +1196,18 @@ export function TeamCalendarView({
                   className="h-7 px-2 text-xs"
                   onClick={() => setQueueOwnerFilter(owner)}
                 >
-                  {TEAM_EVENT_CONTENT_OWNER_LABELS[owner]}
+                  {teamEventContentOwnerLabel(owner, locale)}
                 </Button>
               ))}
             </div>
 
             <div className="flex max-w-full flex-wrap gap-2">
               {contentQueue.length === 0 ? (
-                <div className="text-xs text-amber-900/75">Inga pass matchar filtret.</div>
+                <div className="text-xs text-amber-900/75">{text(locale, 'Inga pass matchar filtret.', 'No sessions match the filter.')}</div>
               ) : (
                 contentQueue.slice(0, 8).map((event) => {
                   const builderLink = builderLinkForEvent(event, teamId, businessSlug)
-                  const typeConfig = getTypeConfig(event.type)
+                  const typeConfig = getTypeConfig(event.type, locale)
                   return (
                     <div
                       key={event.id}
@@ -1194,10 +1226,10 @@ export function TeamCalendarView({
                           </Badge>
                         </div>
                         <div className="mt-1 text-amber-900/75">
-                          {new Date(event.startDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
-                          {!event.allDay && ` ${formatTime(event.startDate)}`}
+                          {new Date(event.startDate).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })}
+                          {!event.allDay && ` ${formatTime(event.startDate, locale)}`}
                           {' · '}
-                          {contentOwnerLabel(event.contentOwner)} · {contentStatusLabel(event.contentStatus)}
+                          {contentOwnerLabel(event.contentOwner, locale)} · {contentStatusLabel(event.contentStatus, locale)}
                         </div>
                       </button>
                       {canCreateType(event.type as TeamEventType) && (
@@ -1206,8 +1238,8 @@ export function TeamCalendarView({
                           variant="ghost"
                           size="sm"
                           className="absolute right-1.5 top-1.5 h-6 w-6 p-0 text-amber-900/55 hover:bg-red-50 hover:text-destructive"
-                          aria-label={`Ta bort ${event.title}`}
-                          title="Ta bort"
+                          aria-label={text(locale, `Ta bort ${event.title}`, `Delete ${event.title}`)}
+                          title={text(locale, 'Ta bort', 'Delete')}
                           onClick={(e) => {
                             e.stopPropagation()
                             void handleDelete(event.id)
@@ -1224,7 +1256,7 @@ export function TeamCalendarView({
                           className="h-7 px-2 text-xs"
                           onClick={() => setSelectedEvent(event)}
                         >
-                          Planera
+                          {text(locale, 'Planera', 'Plan')}
                         </Button>
                         {builderLink && (
                           <Button asChild type="button" variant="outline" size="sm" className="h-7 px-2 text-xs">
@@ -1256,14 +1288,14 @@ export function TeamCalendarView({
           <table className="w-full min-w-[960px] border-collapse text-sm">
             <thead>
               <tr className="bg-muted/70 text-left">
-                <th className="w-16 border-r px-2 py-2 font-semibold">v.</th>
-                <th className="w-16 border-r px-2 py-2 font-semibold">Dag</th>
-                <th className="w-28 border-r px-2 py-2 font-semibold">Datum</th>
-                <th className="border-r px-2 py-2 font-semibold">Is</th>
-                <th className="border-r px-2 py-2 font-semibold">Fys</th>
-                <th className="border-r px-2 py-2 font-semibold">Match / lag</th>
-                <th className="border-r px-2 py-2 font-semibold">Övrigt</th>
-                <th className="px-2 py-2 font-semibold bg-amber-100 text-amber-950">Årshjul</th>
+                <th className="w-16 border-r px-2 py-2 font-semibold">{text(locale, 'v.', 'wk')}</th>
+                <th className="w-16 border-r px-2 py-2 font-semibold">{text(locale, 'Dag', 'Day')}</th>
+                <th className="w-28 border-r px-2 py-2 font-semibold">{text(locale, 'Datum', 'Date')}</th>
+                <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Is', 'Ice')}</th>
+                <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Fys', 'Physical')}</th>
+                <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Match / lag', 'Game / team')}</th>
+                <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Övrigt', 'Other')}</th>
+                <th className="px-2 py-2 font-semibold bg-amber-100 text-amber-950">{text(locale, 'Årshjul', 'Annual plan')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1277,7 +1309,7 @@ export function TeamCalendarView({
                   annual: dayEvents.filter((event) => planningColumnFor(event.type) === 'annual'),
                 }
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6
-                const dayName = date.toLocaleDateString('sv-SE', { weekday: 'short' }).toUpperCase()
+                const dayName = date.toLocaleDateString(dateLocale(locale), { weekday: 'short' }).toUpperCase()
                 const weekNumber = Math.ceil((((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 86400000) + new Date(date.getFullYear(), 0, 1).getDay() + 1) / 7)
 
                 const renderQuickAdd = (defaultType: TeamEventType) => {
@@ -1293,7 +1325,7 @@ export function TeamCalendarView({
                               onCreated={fetchEvents}
                               defaultDate={inputDateValue(date)}
                               defaultType={quickType.type}
-                              defaultTitle={quickType.title}
+                              defaultTitle={quickType.title[locale]}
                               defaultContentStatus="NEEDS_CONTENT"
                               defaultContentOwner="physical_trainer"
                               allowedEventTypes={creatableTypes}
@@ -1328,7 +1360,7 @@ export function TeamCalendarView({
                           className="flex w-full items-center gap-1 rounded-sm px-1.5 py-1 text-left text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
                           <Plus className="h-3 w-3" />
-                          Lägg till
+                          {text(locale, 'Lägg till', 'Add')}
                         </button>
                       }
                     />
@@ -1342,7 +1374,7 @@ export function TeamCalendarView({
                     ) : (
                       <>
                         {cellEvents.map((event) => {
-                          const typeConf = getTypeConfig(event.type)
+                          const typeConf = getTypeConfig(event.type, locale)
                           return (
                             <button
                               key={event.id}
@@ -1351,8 +1383,8 @@ export function TeamCalendarView({
                               onClick={() => setSelectedEvent(event)}
                             >
                               <span className={`mr-1 inline-block h-2 w-2 rounded-full ${typeConf.color}`} />
-                              <span className="font-medium">{compactEventText(event)}</span>
-                              <PlanningBadges event={event} compact />
+                              <span className="font-medium">{compactEventText(event, locale)}</span>
+                              <PlanningBadges event={event} locale={locale} compact />
                             </button>
                           )
                         })}
@@ -1364,7 +1396,7 @@ export function TeamCalendarView({
 
                 return (
                   <tr key={date.toISOString()} className={isWeekend ? 'bg-muted/40' : ''}>
-                    <td className="border-r border-t px-2 py-2 text-muted-foreground">{date.getDay() === 1 ? `v.${weekNumber}` : ''}</td>
+                    <td className="border-r border-t px-2 py-2 text-muted-foreground">{date.getDay() === 1 ? `${text(locale, 'v.', 'wk ')}${weekNumber}` : ''}</td>
                     <td className={`border-r border-t px-2 py-2 font-semibold ${date.getDay() === 0 ? 'text-red-600' : ''}`}>{dayName}</td>
                     <td className="border-r border-t px-2 py-2">{date.getDate()}</td>
                     <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.ice, 'PRACTICE')}</td>
@@ -1384,7 +1416,7 @@ export function TeamCalendarView({
             const dayEvents = visibleEvents.filter((e) => isSameDay(new Date(e.startDate), date))
             const isToday = isSameDay(date, today)
             const isPast = date < today && !isToday
-            const dayName = date.toLocaleDateString('sv-SE', { weekday: 'short' })
+            const dayName = date.toLocaleDateString(dateLocale(locale), { weekday: 'short' })
             const dayNum = date.getDate()
 
             return (
@@ -1413,7 +1445,7 @@ export function TeamCalendarView({
                   ) : (
                     <div className="space-y-1">
                       {dayEvents.map((event) => {
-                        const typeConf = getTypeConfig(event.type)
+                        const typeConf = getTypeConfig(event.type, locale)
                         const descriptionLine = firstDescriptionLine(event.description)
                         return (
                           <div
@@ -1436,14 +1468,14 @@ export function TeamCalendarView({
                                 <Badge variant="outline" className="text-[10px] shrink-0">
                                   {typeConf.label}
                                 </Badge>
-                                <PlanningBadges event={event} />
+                                <PlanningBadges event={event} locale={locale} />
                               </div>
                               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                                 {!event.allDay && (
                                   <span className="flex items-center gap-0.5">
                                     <Clock className="h-3 w-3" />
-                                    {formatTime(event.startDate)}
-                                    {event.endDate && ` - ${formatTime(event.endDate)}`}
+                                    {formatTime(event.startDate, locale)}
+                                    {event.endDate && ` - ${formatTime(event.endDate, locale)}`}
                                   </span>
                                 )}
                                 {event.location && (
