@@ -465,8 +465,16 @@ function formatSport(sport: string, locale: AppLocale = 'sv'): string {
     SKIING: 'längdskidåkning',
     HYROX: 'HYROX',
     GENERAL_FITNESS: 'allmän kondition',
+    FUNCTIONAL_FITNESS: 'funktionell träning',
+    STRENGTH: 'styrka',
     TEAM_ICE_HOCKEY: 'ishockey',
     TEAM_FOOTBALL: 'fotboll',
+    TEAM_HANDBALL: 'handboll',
+    TEAM_FLOORBALL: 'innebandy',
+    TEAM_BASKETBALL: 'basket',
+    TEAM_VOLLEYBALL: 'volleyboll',
+    TENNIS: 'tennis',
+    PADEL: 'padel',
   }
   const enNames: Record<string, string> = {
     RUNNING: 'running',
@@ -476,8 +484,16 @@ function formatSport(sport: string, locale: AppLocale = 'sv'): string {
     SKIING: 'cross-country skiing',
     HYROX: 'HYROX',
     GENERAL_FITNESS: 'general fitness',
+    FUNCTIONAL_FITNESS: 'functional fitness',
+    STRENGTH: 'strength',
     TEAM_ICE_HOCKEY: 'ice hockey',
     TEAM_FOOTBALL: 'football',
+    TEAM_HANDBALL: 'handball',
+    TEAM_FLOORBALL: 'floorball',
+    TEAM_BASKETBALL: 'basketball',
+    TEAM_VOLLEYBALL: 'volleyball',
+    TENNIS: 'tennis',
+    PADEL: 'padel',
   }
   return (locale === 'sv' ? svNames : enNames)[sport] || sport.toLowerCase()
 }
@@ -491,6 +507,12 @@ function buildTeamSportSection(context: GenerationContext, locale: AppLocale): s
     variant: 'compact',
     hockeySettings: context.hockeySettings,
     footballSettings: context.footballSettings,
+    handballSettings: context.handballSettings,
+    floorballSettings: context.floorballSettings,
+    basketballSettings: context.basketballSettings,
+    volleyballSettings: context.volleyballSettings,
+    tennisSettings: context.tennisSettings,
+    padelSettings: context.padelSettings,
   })
 }
 

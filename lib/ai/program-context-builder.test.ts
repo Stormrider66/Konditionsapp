@@ -56,4 +56,30 @@ describe('buildProgramPrompt team sport context', () => {
     expect(prompt).toContain('forward')
     expect(prompt).toContain('MD+1 återhämtning')
   })
+
+  it('includes court and racket sport settings in the generated prompt', () => {
+    const context: ProgramContext = {
+      wizardData: {
+        sport: 'TENNIS',
+        goal: 'tournament',
+        dataSource: 'PROFILE',
+        clientId: 'client-1',
+        clientName: 'Alex Tennis',
+        durationWeeks: 6,
+        sessionsPerWeek: 5,
+        includeStrength: true,
+        tennisSettings: {
+          playStyle: 'aggressive_baseliner',
+          seasonPhase: 'tournament',
+          matchesPerWeek: 2,
+        },
+      },
+    }
+
+    const prompt = buildProgramPrompt(context)
+
+    expect(prompt).toContain('TENNISSPECIFIK PROFIL')
+    expect(prompt).toContain('aggressive_baseliner')
+    expect(prompt).toContain('poängintervaller')
+  })
 })

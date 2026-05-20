@@ -530,6 +530,12 @@ function getSportLabel(sport: SportType): string {
     GENERAL_FITNESS: 'Allmän Fitness',
     TEAM_ICE_HOCKEY: 'Ishockey',
     TEAM_FOOTBALL: 'Fotboll',
+    TEAM_HANDBALL: 'Handboll',
+    TEAM_FLOORBALL: 'Innebandy',
+    TEAM_BASKETBALL: 'Basket',
+    TEAM_VOLLEYBALL: 'Volleyboll',
+    TENNIS: 'Tennis',
+    PADEL: 'Padel',
   }
   return labels[sport] || sport
 }

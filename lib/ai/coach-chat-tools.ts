@@ -23,6 +23,7 @@ import { getAccessibleTeam, getAccessibleTeamWhere } from '@/lib/coach/team-acce
 import { buildCoachMessageAction, prepareCoachMessageDraftInputSchema } from '@/lib/ai/coach-message-actions'
 import { buildTeamCalendarBriefing, type TeamCalendarBriefingEvent } from '@/lib/team-calendar/briefing'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
+import { getProgramSportSettings, normalizeProgramSport } from '@/lib/ai/program-generator/sport-normalization'
 import type { StrengthPhase } from '@prisma/client'
 
 type CoachToolClient = {
@@ -1629,7 +1630,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
       description: 'Starta generering av ett komplett flervekkors träningsprogram åt en atlet. Programmet genereras i bakgrunden (1-10 min) med AI och sparas automatiskt. Stödjer alla sporter och metodiker (Polarized, Norwegian, Canova, Pyramidal). Kräver atletens clientId — använd listAthletes först om du inte har det.',
       inputSchema: z.object({
         clientId: z.string().describe('Atletens client-ID (hämta med listAthletes)'),
-        sport: z.string().describe('Primär sport (t.ex. "Running", "Cycling", "Swimming", "HYROX", "Triathlon", "Football")'),
+        sport: z.string().describe('Primär sport. Stödjer t.ex. Running, Cycling, Swimming, HYROX, Triathlon, Football/Fotboll, Ice hockey/Ishockey, Handball/Handboll, Floorball/Innebandy, Basketball/Basket, Volleyball/Volleyboll, Tennis och Padel.'),
         totalWeeks: z.number().min(1).max(52).describe('Programlängd i veckor'),
         sessionsPerWeek: z.number().min(1).max(14).optional().describe('Antal pass per vecka'),
         goal: z.string().describe('Atletens huvudmål (t.ex. "Springa ett marathon under 3:30")'),
@@ -1639,6 +1640,8 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
       }),
       execute: async ({ clientId, sport, totalWeeks, sessionsPerWeek, goal, goalDate, methodology, notes }) => {
         try {
+          const normalizedSport = normalizeProgramSport(sport)
+
           // Check for active generation
           const activeSession = await prisma.programGenerationSession.findFirst({
             where: {
@@ -1658,7 +1661,25 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
           // Fetch client data
           const clientRecord = await prisma.client.findUnique({
             where: { id: clientId },
-            select: { id: true, name: true, weight: true, height: true, birthDate: true },
+            select: {
+              id: true,
+              name: true,
+              weight: true,
+              height: true,
+              birthDate: true,
+              sportProfile: {
+                select: {
+                  hockeySettings: true,
+                  footballSettings: true,
+                  handballSettings: true,
+                  floorballSettings: true,
+                  basketballSettings: true,
+                  volleyballSettings: true,
+                  tennisSettings: true,
+                  padelSettings: true,
+                },
+              },
+            },
           })
 
           if (!clientRecord) {
@@ -1692,9 +1713,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
           const age = clientRecord.birthDate
             ? Math.floor((Date.now() - new Date(clientRecord.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
             : undefined
+          const sportProfile = clientRecord.sportProfile as Record<string, unknown> | null
+          const sportSettings = getProgramSportSettings(normalizedSport, sportProfile)
 
           const generationContext: GenerationContext = {
-            sport,
+            sport: normalizedSport,
             totalWeeks,
             locale,
             sessionsPerWeek,
@@ -1716,6 +1739,14 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
               status: i.status,
               notes: i.notes || undefined,
             })),
+            hockeySettings: normalizedSport === 'TEAM_ICE_HOCKEY' ? sportSettings : undefined,
+            footballSettings: normalizedSport === 'TEAM_FOOTBALL' ? sportSettings : undefined,
+            handballSettings: normalizedSport === 'TEAM_HANDBALL' ? sportSettings : undefined,
+            floorballSettings: normalizedSport === 'TEAM_FLOORBALL' ? sportSettings : undefined,
+            basketballSettings: normalizedSport === 'TEAM_BASKETBALL' ? sportSettings : undefined,
+            volleyballSettings: normalizedSport === 'TEAM_VOLLEYBALL' ? sportSettings : undefined,
+            tennisSettings: normalizedSport === 'TENNIS' ? sportSettings : undefined,
+            padelSettings: normalizedSport === 'PADEL' ? sportSettings : undefined,
             notes: notes || undefined,
           }
 
@@ -1732,9 +1763,9 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             data: {
               coachId: coachUserId,
               athleteId: clientId,
-              query: `${sport} program: ${goal}`,
+              query: `${normalizedSport} program: ${goal}`,
               totalWeeks,
-              sport,
+              sport: normalizedSport,
               methodology: methodology || null,
               athleteContext: generationContext as unknown as object,
               status: 'PENDING',
@@ -1759,12 +1790,12 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             success: true,
             sessionId: session.id,
             athleteName: clientRecord.name,
-            sport,
+            sport: normalizedSport,
             totalWeeks,
             totalPhases,
             estimatedMinutes,
             goal,
-            message: `Programgenerering startad för ${clientRecord.name}! ${totalWeeks} veckor ${sport}, ${totalPhases} faser. Beräknad tid: ${estimatedMinutes} minuter. Programmet dyker upp automatiskt på atletens profil när det är klart.`,
+            message: `Programgenerering startad för ${clientRecord.name}! ${totalWeeks} veckor ${normalizedSport}, ${totalPhases} faser. Beräknad tid: ${estimatedMinutes} minuter. Programmet dyker upp automatiskt på atletens profil när det är klart.`,
           }
         } catch (error) {
           logger.error('Failed to start program generation via coach chat', { coachUserId }, error)

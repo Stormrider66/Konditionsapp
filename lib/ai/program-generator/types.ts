@@ -82,6 +82,12 @@ export interface GenerationContext {
   }>
   hockeySettings?: Record<string, unknown> | null
   footballSettings?: Record<string, unknown> | null
+  handballSettings?: Record<string, unknown> | null
+  floorballSettings?: Record<string, unknown> | null
+  basketballSettings?: Record<string, unknown> | null
+  volleyballSettings?: Record<string, unknown> | null
+  tennisSettings?: Record<string, unknown> | null
+  padelSettings?: Record<string, unknown> | null
   notes?: string
 }
 

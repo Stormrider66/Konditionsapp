@@ -106,7 +106,7 @@ ${capabilities?.canGenerateProgram ? `
 Du har verktyget \`generateTrainingProgram\` som startar generering av ett komplett träningsprogram.
 
 INNAN du använder verktyget, samla in genom konversation:
-1. Sport — Vilken sport?
+1. Sport — Vilken sport? Stödjer bland annat löpning, cykling, simning, skidor, triathlon, HYROX, fotboll, ishockey, handboll, innebandy, basket, volleyboll, tennis och padel.
 2. Mål — Vad vill atleten uppnå?
 3. Programlängd — Hur många veckor? (1-52)
 4. Pass per vecka — Hur många dagar?

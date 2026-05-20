@@ -21,6 +21,7 @@ import { resolveModel } from '@/types/ai-models'
 import { logger } from '@/lib/logger'
 import { lookupOrGenerateExercise } from '@/lib/ai/exercise-generator'
 import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { getProgramSportSettings, normalizeProgramSport } from '@/lib/ai/program-generator/sport-normalization'
 
 /** Capabilities that control which tools are available */
 export interface ChatToolCapabilities {
@@ -730,7 +731,7 @@ export function createChatTools(
         'Programmet genereras i bakgrunden (1-10 min). ' +
         'Använd detta verktyg EFTER att du samlat in sport, mål, programlängd och pass per vecka från atleten.',
       inputSchema: z.object({
-        sport: z.string().describe('Primär sport (t.ex. "Running", "Cycling", "Swimming", "HYROX")'),
+        sport: z.string().describe('Primär sport. Stödjer t.ex. Running, Cycling, Swimming, HYROX, Triathlon, Football/Fotboll, Ice hockey/Ishockey, Handball/Handboll, Floorball/Innebandy, Basketball/Basket, Volleyball/Volleyboll, Tennis och Padel.'),
         totalWeeks: z.number().min(1).max(52).describe('Programlängd i veckor'),
         sessionsPerWeek: z.number().min(1).max(14).optional()
           .describe('Antal träningspass per vecka'),
@@ -744,6 +745,8 @@ export function createChatTools(
       }),
       execute: async ({ sport, totalWeeks, sessionsPerWeek, goal, goalDate, methodology, notes }) => {
         try {
+          const normalizedSport = normalizeProgramSport(sport)
+
           // Check for active generation session
           const activeSession = await prisma.programGenerationSession.findFirst({
             where: {
@@ -820,6 +823,7 @@ export function createChatTools(
 
           // Build generation context from tool params + athlete data
           const sportProfile = clientRecord.sportProfile as Record<string, unknown> | null
+          const sportSettings = getProgramSportSettings(normalizedSport, sportProfile)
 
           // Fetch athlete test data for zones/thresholds
           const [latestTest, injuries] = await Promise.all([
@@ -846,7 +850,7 @@ export function createChatTools(
           ])
 
           const generationContext: GenerationContext = {
-            sport,
+            sport: normalizedSport,
             totalWeeks,
             locale,
             sessionsPerWeek,
@@ -869,6 +873,14 @@ export function createChatTools(
               status: i.status,
               notes: i.notes || undefined,
             })),
+            hockeySettings: normalizedSport === 'TEAM_ICE_HOCKEY' ? sportSettings : undefined,
+            footballSettings: normalizedSport === 'TEAM_FOOTBALL' ? sportSettings : undefined,
+            handballSettings: normalizedSport === 'TEAM_HANDBALL' ? sportSettings : undefined,
+            floorballSettings: normalizedSport === 'TEAM_FLOORBALL' ? sportSettings : undefined,
+            basketballSettings: normalizedSport === 'TEAM_BASKETBALL' ? sportSettings : undefined,
+            volleyballSettings: normalizedSport === 'TEAM_VOLLEYBALL' ? sportSettings : undefined,
+            tennisSettings: normalizedSport === 'TENNIS' ? sportSettings : undefined,
+            padelSettings: normalizedSport === 'PADEL' ? sportSettings : undefined,
             notes: notes || undefined,
           }
 
@@ -891,9 +903,9 @@ export function createChatTools(
               coachId: coachUserId,
               athleteId: clientId,
               conversationId: conversationId || null,
-              query: `${sport} program: ${goal}`,
+              query: `${normalizedSport} program: ${goal}`,
               totalWeeks,
-              sport,
+              sport: normalizedSport,
               methodology: methodology || null,
               athleteContext: generationContext as unknown as object,
               status: 'PENDING',
@@ -921,7 +933,7 @@ export function createChatTools(
           logger.info('Program generation started via chat tool', {
             sessionId: session.id,
             clientId,
-            sport,
+            sport: normalizedSport,
             totalWeeks,
             totalPhases,
             estimatedMinutes,
@@ -932,7 +944,7 @@ export function createChatTools(
             sessionId: session.id,
             totalPhases,
             estimatedMinutes,
-            sport,
+            sport: normalizedSport,
             totalWeeks,
             goal,
           }
