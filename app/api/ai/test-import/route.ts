@@ -37,6 +37,12 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024   // 10MB
 const MAX_DOC_SIZE = 25 * 1024 * 1024     // 25MB
 const MAX_AUDIO_SIZE = 10 * 1024 * 1024   // 10MB
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function getMediaCategory(mimeType: string): 'image' | 'document' | 'audio' | null {
   if (IMAGE_TYPES.includes(mimeType)) return 'image'
   if (DOCUMENT_TYPES.includes(mimeType)) return 'document'
@@ -52,8 +58,10 @@ function getMaxSize(category: 'image' | 'document' | 'audio'): number {
 function buildPrompt(
   testType: string,
   category: 'image' | 'document' | 'audio',
-  imageCount = 1
+  imageCount = 1,
+  locale: AppLocale = 'en'
 ): string {
+  const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
   const sportContext =
     testType === 'RUNNING'
       ? 'Löptest: extrahera speed (km/h) per steg. Incline (lutning) om det finns.'
@@ -94,7 +102,7 @@ REGLER:
 5. Fyll i sourceDescription med vad du identifierade (t.ex. "Cosmed-utskrift med 6 steg")
 6. Identifiera utrustning om möjligt (Cosmed K5, Kvark, Lactate Pro 2, etc.)
 7. Confidence: 0.9+ om data är tydlig, 0.5-0.9 om delvis osäker, <0.5 om mycket oklart
-8. Svara alltid på svenska i warnings och sourceDescription
+8. Write warnings and sourceDescription in ${outputLanguage}
 9. Om du hittar eftermätningar (post-test/recovery-laktat), inkludera dem i postTestMeasurements`
 
   if (category === 'image') {
@@ -196,6 +204,7 @@ LJUDSPECIFIKT:
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     // Subscription gate
     const denied = await requireCoachFeatureAccess(user.id, 'smart_test_import')
@@ -220,14 +229,14 @@ export async function POST(request: NextRequest) {
 
     if (files.length === 0) {
       return NextResponse.json(
-        { error: 'Ingen fil uppladdad' },
+        { error: t(locale, 'No file uploaded', 'Ingen fil uppladdad') },
         { status: 400 }
       )
     }
 
     if (!testType || !['RUNNING', 'CYCLING', 'SKIING'].includes(testType)) {
       return NextResponse.json(
-        { error: 'Ogiltig testtyp' },
+        { error: t(locale, 'Invalid test type', 'Ogiltig testtyp') },
         { status: 400 }
       )
     }
@@ -237,26 +246,38 @@ export async function POST(request: NextRequest) {
     const categories = files.map((f) => getMediaCategory(f.type))
     if (categories.some((c) => c === null)) {
       return NextResponse.json(
-        { error: 'Filtypen stöds inte. Använd bild (JPEG/PNG/WebP/HEIC), dokument (PDF/CSV), eller ljud (WebM/MP4/WAV/OGG).' },
+        {
+          error: t(
+            locale,
+            'This file type is not supported. Use an image (JPEG/PNG/WebP/HEIC), document (PDF/CSV), or audio (WebM/MP4/WAV/OGG).',
+            'Filtypen stöds inte. Använd bild (JPEG/PNG/WebP/HEIC), dokument (PDF/CSV), eller ljud (WebM/MP4/WAV/OGG).'
+          ),
+        },
         { status: 400 }
       )
     }
     const category = categories[0]!
     if (categories.some((c) => c !== category)) {
       return NextResponse.json(
-        { error: 'Blanda inte olika filtyper i samma import (alla bilder, eller ett dokument, eller ett ljud).' },
+        {
+          error: t(
+            locale,
+            'Do not mix file types in the same import. Use all images, one document, or one audio file.',
+            'Blanda inte olika filtyper i samma import (alla bilder, eller ett dokument, eller ett ljud).'
+          ),
+        },
         { status: 400 }
       )
     }
     if (files.length > 1 && category !== 'image') {
       return NextResponse.json(
-        { error: 'Endast bilder kan laddas upp flera åt gången.' },
+        { error: t(locale, 'Only images can be uploaded several at a time.', 'Endast bilder kan laddas upp flera åt gången.') },
         { status: 400 }
       )
     }
     if (files.length > 3) {
       return NextResponse.json(
-        { error: 'Max 3 bilder per import.' },
+        { error: t(locale, 'Maximum 3 images per import.', 'Max 3 bilder per import.') },
         { status: 400 }
       )
     }
@@ -266,7 +287,13 @@ export async function POST(request: NextRequest) {
     const oversized = files.find((f) => f.size > maxSize)
     if (oversized) {
       return NextResponse.json(
-        { error: `Filen får inte vara större än ${maxSize / (1024 * 1024)}MB.` },
+        {
+          error: t(
+            locale,
+            `The file cannot be larger than ${maxSize / (1024 * 1024)}MB.`,
+            `Filen får inte vara större än ${maxSize / (1024 * 1024)}MB.`
+          ),
+        },
         { status: 400 }
       )
     }
@@ -276,7 +303,7 @@ export async function POST(request: NextRequest) {
       const hasAccess = await canAccessClient(user.id, clientId)
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'Klienten hittades inte eller saknar behörighet' },
+          { error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller saknar behörighet') },
           { status: 404 }
         )
       }
@@ -294,14 +321,14 @@ export async function POST(request: NextRequest) {
     const googleKey = await getResolvedGoogleKey(user.id)
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google/Gemini API-nyckel saknas. Konfigurera i AI-inställningar.' },
+        { error: t(locale, 'Google/Gemini API key is missing. Configure it in AI settings.', 'Google/Gemini API-nyckel saknas. Konfigurera i AI-inställningar.') },
         { status: 400 }
       )
     }
 
     // Initialize Gemini
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
-    const prompt = buildPrompt(testType, category, files.length)
+    const prompt = buildPrompt(testType, category, files.length, locale)
     const aiContext = {
       userId: user.id,
       clientId,
@@ -379,8 +406,8 @@ export async function POST(request: NextRequest) {
                 {
                   type: 'file',
                   data: base64,
-                  mimeType: 'application/pdf',
-                } as any,
+                  mediaType: 'application/pdf',
+                },
                 { type: 'text', text: prompt },
               ],
             },
@@ -398,12 +425,12 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: [
-              {
-                type: 'file',
-                data: base64,
-                mimeType: file.type,
-              } as any,
+              content: [
+                {
+                  type: 'file',
+                  data: base64,
+                  mediaType: file.type,
+              },
               { type: 'text', text: prompt },
             ],
           },
