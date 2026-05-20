@@ -13,14 +13,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { ErgometerType } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import {
   Ship,
   Bike,
@@ -32,10 +32,9 @@ import {
   Calendar,
   AlertCircle,
   ChevronRight,
-  Trophy,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 
 interface ErgometerThreshold {
@@ -80,13 +79,13 @@ interface ErgometerAthleteViewProps {
 
 const ERGOMETER_CONFIG: Record<
   ErgometerType,
-  { label: string; icon: React.ReactNode; color: string }
+  { label: string; labelSv: string; icon: React.ReactNode; color: string }
 > = {
-  CONCEPT2_ROW: { label: 'Roddmaskin', icon: <Ship className="h-4 w-4" />, color: 'blue' },
-  CONCEPT2_SKIERG: { label: 'SkiErg', icon: <Mountain className="h-4 w-4" />, color: 'purple' },
-  CONCEPT2_BIKEERG: { label: 'BikeErg', icon: <Bike className="h-4 w-4" />, color: 'green' },
-  WATTBIKE: { label: 'Wattbike', icon: <Bike className="h-4 w-4" />, color: 'orange' },
-  ASSAULT_BIKE: { label: 'Air Bike', icon: <Dumbbell className="h-4 w-4" />, color: 'red' },
+  CONCEPT2_ROW: { label: 'RowErg', labelSv: 'Roddmaskin', icon: <Ship className="h-4 w-4" />, color: 'blue' },
+  CONCEPT2_SKIERG: { label: 'SkiErg', labelSv: 'SkiErg', icon: <Mountain className="h-4 w-4" />, color: 'purple' },
+  CONCEPT2_BIKEERG: { label: 'BikeErg', labelSv: 'BikeErg', icon: <Bike className="h-4 w-4" />, color: 'green' },
+  WATTBIKE: { label: 'Wattbike', labelSv: 'Wattbike', icon: <Bike className="h-4 w-4" />, color: 'orange' },
+  ASSAULT_BIKE: { label: 'Air Bike', labelSv: 'Air Bike', icon: <Dumbbell className="h-4 w-4" />, color: 'red' },
 };
 
 const ZONE_COLORS: Record<number, string> = {
@@ -104,7 +103,11 @@ function formatPace(seconds: number): string {
   return `${min}:${sec.padStart(4, '0')}`;
 }
 
-export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteViewProps) {
+export function ErgometerAthleteView({ clientId, clientName: _clientName }: ErgometerAthleteViewProps) {
+  const locale = useLocale();
+  const isSv = locale === 'sv';
+  const dateFnsLocale = isSv ? sv : enUS;
+  const t = (svText: string, enText: string) => isSv ? svText : enText;
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
   const pathname = usePathname();
@@ -151,15 +154,15 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
       if (availableTypes.length > 0) {
         setActiveTab(availableTypes[0]);
       }
-    } catch (err) {
-      setError('Kunde inte hamta ergometerdata');
+    } catch (_err) {
+      setError(isSv ? 'Kunde inte hämta ergometerdata' : 'Could not load ergometer data');
     } finally {
       setIsLoading(false);
     }
-  }, [clientId]);
+  }, [clientId, isSv]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   if (isLoading) {
@@ -188,19 +191,22 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
         <CardHeader>
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Zap className="h-5 w-5" />
-            Ergometer Profil
+            {t('Ergometerprofil', 'Ergometer Profile')}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Ingen ergometerdata tillganglig
+            {t('Ingen ergometerdata tillgänglig', 'No ergometer data available')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm mb-4" style={{ color: theme.colors.textMuted }}>
-            Genomfor ett ergometertest for att se troskelvarden och traningszoner.
+            {t(
+              'Genomför ett ergometertest för att se tröskelvärden och träningszoner.',
+              'Complete an ergometer test to see threshold values and training zones.'
+            )}
           </p>
           <Button variant="outline" asChild>
             <a href={`${basePath}/coach/tests/ergometer/new?clientId=${clientId}`}>
-              Skapa nytt test
+              {t('Skapa nytt test', 'Create new test')}
             </a>
           </Button>
         </CardContent>
@@ -226,13 +232,15 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
             <div>
               <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
                 <Zap className="h-5 w-5" />
-                Ergometer Dashboard
+                {t('Ergometeröversikt', 'Ergometer Dashboard')}
               </CardTitle>
               <CardDescription style={{ color: theme.colors.textMuted }}>
-                Troskelvarden och traningszoner
+                {t('Tröskelvärden och träningszoner', 'Threshold values and training zones')}
               </CardDescription>
             </div>
-            <Badge variant="outline">{availableErgometers.length} maskiner</Badge>
+            <Badge variant="outline">
+              {availableErgometers.length} {t('maskiner', 'machines')}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -253,7 +261,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
                   <div className="flex items-center gap-2 mb-1">
                     {config.icon}
                     <span className="text-xs font-medium" style={{ color: theme.colors.textMuted }}>
-                      {config.label}
+                      {isSv ? config.labelSv : config.label}
                     </span>
                   </div>
                   <p className="text-xl font-bold" style={{ color: theme.colors.textPrimary }}>
@@ -280,7 +288,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
                 return (
                   <TabsTrigger key={type} value={type} className="flex items-center gap-1">
                     {config.icon}
-                    <span className="hidden sm:inline">{config.label}</span>
+                    <span className="hidden sm:inline">{isSv ? config.labelSv : config.label}</span>
                   </TabsTrigger>
                 );
               })}
@@ -293,7 +301,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
             <div className="space-y-3">
               <h4 className="font-medium text-sm flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
                 <Timer className="h-4 w-4" />
-                Troskelvarden
+                {t('Tröskelvärden', 'Threshold Values')}
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {currentThreshold.criticalPower && (
@@ -318,10 +326,10 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
               </div>
               <div className="flex items-center gap-4 text-xs" style={{ color: theme.colors.textMuted }}>
                 <span>
-                  Kalla: {currentThreshold.sourceMethod.replace('_', ' ')}
+                  {t('Källa', 'Source')}: {currentThreshold.sourceMethod.replace('_', ' ')}
                 </span>
                 <span>
-                  Testad: {formatDistanceToNow(new Date(currentThreshold.testDate), { locale: sv, addSuffix: true })}
+                  {t('Testad', 'Tested')}: {formatDistanceToNow(new Date(currentThreshold.testDate), { locale: dateFnsLocale, addSuffix: true })}
                 </span>
                 {currentThreshold.confidence && (
                   <Badge variant="outline" className="text-xs">
@@ -337,7 +345,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
             <div className="space-y-3">
               <h4 className="font-medium text-sm flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
                 <TrendingUp className="h-4 w-4" />
-                Traningszoner
+                {t('Träningszoner', 'Training Zones')}
               </h4>
               <div className="space-y-2">
                 {currentZones.map((zone) => (
@@ -355,7 +363,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>
-                          {zone.nameSwedish}
+                          {isSv ? zone.nameSwedish : zone.name}
                         </span>
                         <span className="text-sm font-mono" style={{ color: theme.colors.textPrimary }}>
                           {zone.powerMin}-{zone.powerMax}W
@@ -379,7 +387,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
             <div className="space-y-3">
               <h4 className="font-medium text-sm flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
                 <Calendar className="h-4 w-4" />
-                Senaste tester
+                {t('Senaste tester', 'Recent Tests')}
               </h4>
               <div className="space-y-2">
                 {currentTests.slice(0, 5).map((test) => (
@@ -389,7 +397,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xs" style={{ color: theme.colors.textMuted }}>
-                        {format(new Date(test.testDate), 'd MMM', { locale: sv })}
+                        {format(new Date(test.testDate), 'd MMM', { locale: dateFnsLocale })}
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {test.testProtocol.replace(/_/g, ' ')}
@@ -398,7 +406,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
                     <div className="flex items-center gap-3">
                       {test.avgPower && (
                         <span className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>
-                          {test.avgPower}W avg
+                          {test.avgPower}W {t('snitt', 'avg')}
                         </span>
                       )}
                       {test.criticalPower && (
