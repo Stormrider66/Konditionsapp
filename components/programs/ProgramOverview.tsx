@@ -14,6 +14,9 @@ import {
   TrendingUp,
   Edit,
   Trash2,
+  Activity,
+  Gauge,
+  ShieldCheck,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -47,6 +50,7 @@ import { ProgramExportButton } from '@/components/coach/programs/ProgramExportBu
 import { convertDatabaseProgramToParsed } from '@/lib/exports/program-converter'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { ProgramInfographic } from '@/components/programs/ProgramInfographic'
+import { buildTeamSportPlanningSummaryFromMetadata } from '@/lib/program-generator/team-sports/planning-metadata-summary'
 
 interface ProgramOverviewProps {
   program: ProgramWithWeeks & { infographicUrl?: string | null; infographicModel?: string | null }
@@ -80,6 +84,13 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
   const totalWeeks = program.weeks?.length || 0
   const progressPercent = totalWeeks > 0 ? Math.round((currentWeek / totalWeeks) * 100) : 0
   const isActive = isActiveProgram(program)
+  const planningSummary = useMemo(
+    () => buildTeamSportPlanningSummaryFromMetadata({
+      metadata: program.planningMetadata,
+      locale,
+    }),
+    [program.planningMetadata, locale]
+  )
 
   // Memoize parsed program for export
   const parsedProgram = useMemo(
@@ -324,6 +335,71 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
         infographicUrl={program.infographicUrl}
         infographicModel={program.infographicModel}
       />
+
+      {planningSummary && (
+        <GlassCard>
+          <GlassCardContent className="pt-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
+                  <Activity className="h-4 w-4 text-primary" />
+                  {planningSummary.title}
+                </h3>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  {planningSummary.description}
+                </p>
+              </div>
+              <Badge variant={planningSummary.loadGuidance.length > 0 ? 'secondary' : 'outline'} className="w-fit">
+                <Gauge className="mr-1 h-3.5 w-3.5" />
+                {planningSummary.loadGuidance.length > 0
+                  ? t(locale, 'Belastning anpassas', 'Load adjusted')
+                  : t(locale, 'Normal belastning', 'Normal load')}
+              </Badge>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+              {planningSummary.assumptions.map((item) => (
+                <div key={item.label} className="rounded-lg border border-slate-200 bg-white/50 p-2 dark:border-slate-700 dark:bg-slate-900/40">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{item.label}</div>
+                  <div className="mt-1 text-sm font-medium text-slate-900 dark:text-white">{item.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-lg border border-slate-200 bg-white/50 p-3 dark:border-slate-700 dark:bg-slate-900/40">
+                <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  {t(locale, 'Prioriterad prevention', 'Priority prevention')}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {planningSummary.prevention.map((item) => (
+                    <Badge key={item} variant="outline" className="text-xs">{item}</Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-white/50 p-3 dark:border-slate-700 dark:bg-slate-900/40">
+                <div className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
+                  <Gauge className="h-4 w-4 text-amber-600" />
+                  {t(locale, 'Belastningssignal', 'Load signal')}
+                </div>
+                {planningSummary.loadGuidance.length > 0 ? (
+                  <ul className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                    {planningSummary.loadGuidance.map((note) => (
+                      <li key={note}>{note}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    {t(locale, 'Ingen extra reducering behövs utifrån profilen.', 'No extra reduction is needed from the profile.')}
+                  </p>
+                )}
+              </div>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+      )}
 
       {/* Program Notes */}
       {program.description && (
