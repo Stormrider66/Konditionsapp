@@ -12,6 +12,7 @@ import type { SportProgramParams } from './types'
 import { applyCalendarConstraints } from './calendar-constraints'
 import { generateRunningProgram } from './running'
 import { generateGeneralFitnessProgram } from './general-fitness'
+import { validateTeamSportProgram } from '../validators/team-sport-validator'
 
 
 /**
@@ -108,6 +109,22 @@ export async function generateSportProgram(
 
     default:
       throw new Error(`Unsupported sport type: ${params.sport}`)
+  }
+
+  if (params.sport === 'TEAM_FOOTBALL' || params.sport === 'TEAM_ICE_HOCKEY') {
+    const settings = params.sport === 'TEAM_FOOTBALL' ? params.footballSettings : params.hockeySettings
+    const validation = validateTeamSportProgram(program, params.sport, settings)
+    if (!validation.valid) {
+      throw new Error(`Team sport program validation failed: ${validation.errors.join(', ')}`)
+    }
+    if (validation.warnings.length > 0) {
+      program = {
+        ...program,
+        notes: [program.notes, `Valideringsnoteringar: ${validation.warnings.join(' ')}`]
+          .filter(Boolean)
+          .join(' '),
+      }
+    }
   }
 
   // Apply calendar constraints - remove workouts from blocked dates

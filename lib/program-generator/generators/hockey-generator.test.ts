@@ -41,4 +41,26 @@ describe('generateHockeyProgram', () => {
     expect(instructions).toMatch(/Höft|höft/)
     expect(instructions).toMatch(/reaktion|Reaktion/)
   })
+
+  it('backs off off-ice load for high game and ice-time load', async () => {
+    const program = await generateHockeyProgram(params({
+      hockeySettings: {
+        position: 'defense',
+        seasonPhase: 'in_season',
+        matchesThisWeek: 2,
+        averageIceTimeMinutes: 24,
+        shiftsPerGame: 28,
+        weeklyOffIceSessions: 5,
+        hasAccessToIce: false,
+        hasAccessToGym: true,
+      },
+    }), client)
+
+    const conditioning = program.weeks?.[0].days
+      .flatMap((day) => day.workouts)
+      .find((workout) => workout.name.includes('Bytesintervaller'))
+
+    expect(conditioning?.duration ?? 0).toBeLessThan(45)
+    expect(program.notes).toContain('Hög istid/bytesbelastning')
+  })
 })

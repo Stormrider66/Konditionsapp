@@ -16,10 +16,16 @@ type HockeySettings = {
   seasonPhase?: SeasonPhase
   averageIceTimeMinutes?: number | null
   shiftsPerGame?: number | null
+  matchesThisWeek?: number
   weeklyOffIceSessions?: number
   hasAccessToIce?: boolean
   hasAccessToGym?: boolean
   playStyle?: string
+}
+
+type LoadGuidance = {
+  intensityMultiplier: number
+  notes: string[]
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -31,11 +37,12 @@ export async function generateHockeyProgram(
   const settings = normalizeHockeySettings(params.hockeySettings)
   const position = settings.position || 'center'
   const phase = settings.seasonPhase || inferSeasonPhase(params.goal)
-  const matchesThisWeek = inferMatchesThisWeek(phase, params.goal)
+  const matchesThisWeek = settings.matchesThisWeek ?? inferMatchesThisWeek(phase, params.goal)
   const profile = getPositionRecommendations(position, 'sv')
   const phaseTraining = getSeasonPhaseTraining(phase, 'sv')
   const prevention = getInjuryPreventionExercises(position, 'sv')
   const load = calculateTrainingLoad(position, phase, matchesThisWeek, 'sv')
+  const loadGuidance = getHockeyLoadGuidance(settings, matchesThisWeek)
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)
   const requestedSessions = Math.min(7, Math.max(2, settings.weeklyOffIceSessions || params.sessionsPerWeek || 4))
@@ -51,7 +58,7 @@ export async function generateHockeyProgram(
   const weeks = Array.from({ length: params.durationWeeks }).map((_, index) => {
     const weekNumber = index + 1
     const periodPhase = getProgramPhase(weekNumber, params.durationWeeks)
-    const intensityFactor = getWeekIntensityFactor(weekNumber, params.durationWeeks, params.goal)
+    const intensityFactor = getWeekIntensityFactor(weekNumber, params.durationWeeks, params.goal) * loadGuidance.intensityMultiplier
     const days = buildHockeyWeek({
       goal: params.goal,
       phase,
@@ -66,6 +73,7 @@ export async function generateHockeyProgram(
       strengthSessions: load.strengthSessions,
       conditioningSessions: load.conditioningSessions,
       intensityFactor,
+      loadNotes: loadGuidance.notes,
     })
 
     return {
@@ -86,7 +94,12 @@ export async function generateHockeyProgram(
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `${profile.description} Programmet styrs av säsongsfas, matchbelastning och positionsspecifik skadeprevention.`,
+    notes: params.notes || [
+      profile.description,
+      'Programmet styrs av säsongsfas, matchbelastning och positionsspecifik skadeprevention.',
+      ...load.notes,
+      ...loadGuidance.notes,
+    ].join(' '),
     weeks,
   }
 }
@@ -105,6 +118,7 @@ function buildHockeyWeek(input: {
   strengthSessions: number
   conditioningSessions: number
   intensityFactor: number
+  loadNotes: string[]
 }): CreateTrainingDayDTO[] {
   const days: CreateTrainingDayDTO[] = Array.from({ length: 7 }).map((_, index) => ({
     dayNumber: index + 1,
@@ -118,8 +132,8 @@ function buildHockeyWeek(input: {
       ? withWorkout(2, strengthWorkout('Kort styrka/prehab', input.profile.primaryStrengthFocus, input.prevention, 'MODERATE', input.position))
       : withWorkout(2, mobilityWorkout('Prehab och mobilitet', input.prevention, input.position))
     days[2] = input.hasIce
-      ? withWorkout(3, iceWorkout('Is: teknik och matchtempo', input.position, input.intensityFactor))
-      : withWorkout(3, conditioningWorkout('Bytesintervaller off-ice', input.position, input.intensityFactor))
+      ? withWorkout(3, iceWorkout('Is: teknik och matchtempo', input.position, input.intensityFactor, input.loadNotes))
+      : withWorkout(3, conditioningWorkout('Bytesintervaller off-ice', input.position, input.intensityFactor, input.loadNotes))
     days[4] = withWorkout(5, activationWorkout('Matchförberedande aktivering', input.position))
     days[5] = withWorkout(6, matchWorkout('Match', input.position))
     if (input.matchesThisWeek >= 2) {
@@ -131,12 +145,12 @@ function buildHockeyWeek(input: {
   days[0] = input.hasGym
     ? withWorkout(1, strengthWorkout('Maxstyrka och acceleration', input.profile.primaryStrengthFocus, input.prevention, 'THRESHOLD', input.position))
     : withWorkout(1, mobilityWorkout('Prehab och mobilitet', input.prevention, input.position))
-  days[1] = withWorkout(2, conditioningWorkout('Hockeyspecifik kondition', input.position, input.intensityFactor))
+  days[1] = withWorkout(2, conditioningWorkout('Hockeyspecifik kondition', input.position, input.intensityFactor, input.loadNotes))
   days[2] = withWorkout(3, recoveryWorkout('Aktiv återhämtning', 'Lätt aerob aktivitet och rörlighet.'))
   days[3] = withWorkout(4, powerWorkout(input.position))
   days[4] = input.hasIce
     ? withWorkout(5, iceWorkout('Is: skills och hög fart', input.position, input.intensityFactor))
-    : withWorkout(5, conditioningWorkout('Agility och riktningsförändringar', input.position, input.intensityFactor))
+    : withWorkout(5, conditioningWorkout('Agility och riktningsförändringar', input.position, input.intensityFactor, input.loadNotes))
   days[5] = input.hasGym
     ? withWorkout(6, strengthWorkout('Unilateral styrka/prehab', input.profile.primaryStrengthFocus, input.prevention, 'MODERATE', input.position))
     : withWorkout(6, mobilityWorkout('Rörlighet och bål', input.prevention, input.position))
@@ -176,7 +190,7 @@ function strengthWorkout(
   }
 }
 
-function conditioningWorkout(name: string, position: HockeyPosition, factor: number): CreateWorkoutDTO {
+function conditioningWorkout(name: string, position: HockeyPosition, factor: number, loadNotes: string[] = []): CreateWorkoutDTO {
   const isGoalie = position === 'goalie'
   const duration = Math.round((isGoalie ? 35 : 45) * factor)
   const description = isGoalie
@@ -187,7 +201,7 @@ function conditioningWorkout(name: string, position: HockeyPosition, factor: num
     name,
     intensity: 'INTERVAL',
     duration,
-    instructions: description,
+    instructions: [description, ...loadNotes].join(' '),
     segments: [
       { order: 1, type: 'warmup', duration: 10, zone: 1, description: 'Lätt uppvärmning' },
       { order: 2, type: 'interval', duration: Math.max(15, duration - 20), zone: 4, description },
@@ -216,16 +230,17 @@ function powerWorkout(position: HockeyPosition): CreateWorkoutDTO {
   }
 }
 
-function iceWorkout(name: string, position: HockeyPosition, factor: number): CreateWorkoutDTO {
+function iceWorkout(name: string, position: HockeyPosition, factor: number, loadNotes: string[] = []): CreateWorkoutDTO {
   const duration = Math.round(60 * factor)
+  const baseInstructions = position === 'goalie'
+    ? 'Målvaktsspecifik is: vinklar, reaktion, lateral förflyttning och kontrollerad volym.'
+    : 'Is-pass med skridskoekonomi, riktningsförändringar och positionsspecifika moment.'
   return {
     type: 'OTHER',
     name,
     intensity: 'MODERATE',
     duration,
-    instructions: position === 'goalie'
-      ? 'Målvaktsspecifik is: vinklar, reaktion, lateral förflyttning och kontrollerad volym.'
-      : 'Is-pass med skridskoekonomi, riktningsförändringar och positionsspecifika moment.',
+    instructions: [baseInstructions, ...loadNotes].join(' '),
     segments: [{ order: 1, type: 'work', duration, description: 'Is-specifik träning' }],
   }
 }
@@ -279,6 +294,26 @@ function matchWorkout(name: string, position: HockeyPosition): CreateWorkoutDTO 
 
 function normalizeHockeySettings(value: unknown): HockeySettings {
   return isRecord(value) ? value as HockeySettings : {}
+}
+
+function getHockeyLoadGuidance(settings: HockeySettings, matchesThisWeek: number): LoadGuidance {
+  const notes: string[] = []
+  let intensityMultiplier = 1
+
+  if (matchesThisWeek >= 3) {
+    intensityMultiplier = Math.min(intensityMultiplier, 0.65)
+    notes.push('Mycket hög matchbelastning: minimera extra off-ice intensitet.')
+  } else if (matchesThisWeek === 2) {
+    intensityMultiplier = Math.min(intensityMultiplier, 0.8)
+    notes.push('Två matcher denna vecka: prioritera återhämtning och korta kvalitetspass.')
+  }
+
+  if ((settings.averageIceTimeMinutes ?? 0) >= 22 || (settings.shiftsPerGame ?? 0) >= 26) {
+    intensityMultiplier = Math.min(intensityMultiplier, 0.85)
+    notes.push('Hög istid/bytesbelastning: reducera extra intervallvolym och följ RPE noga.')
+  }
+
+  return { intensityMultiplier, notes }
 }
 
 function inferSeasonPhase(goal: string): SeasonPhase {

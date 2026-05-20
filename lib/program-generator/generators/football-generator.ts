@@ -2,6 +2,8 @@ import type { Client, CreateTrainingDayDTO, CreateTrainingProgramDTO, CreateWork
 import { getProgramEndDate, getProgramStartDate } from '../date-utils'
 import type { SportProgramParams } from '../sport-router/types'
 import {
+  calculateACWR,
+  calculateGPSLoadStatus,
   getInjuryPreventionExercises,
   getPositionRecommendations,
   getSeasonPhaseTraining,
@@ -20,7 +22,13 @@ type FootballSettings = {
   hasGPSData?: boolean
   avgMatchDistanceKm?: number | null
   avgSprintDistanceM?: number | null
+  recentWeeklyLoads?: number[]
   playStyle?: string
+}
+
+type LoadGuidance = {
+  intensityMultiplier: number
+  notes: string[]
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -35,6 +43,7 @@ export async function generateFootballProgram(
   const profile = getPositionRecommendations(position, 'sv')
   const phaseTraining = getSeasonPhaseTraining(phase, 'sv')
   const prevention = getInjuryPreventionExercises(position, 'sv')
+  const loadGuidance = getFootballLoadGuidance(settings, position)
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)
   const sessionsPerWeek = Math.min(7, Math.max(2, settings.weeklyTrainingSessions || params.sessionsPerWeek || 4))
@@ -59,7 +68,8 @@ export async function generateFootballProgram(
       profile,
       phaseTraining,
       prevention,
-      intensityFactor,
+      intensityFactor: intensityFactor * loadGuidance.intensityMultiplier,
+      loadNotes: loadGuidance.notes,
     })
 
     return {
@@ -80,7 +90,11 @@ export async function generateFootballProgram(
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `${profile.description} Programmet följer matchveckans rytm och inkluderar positionsspecifik skadeprevention.`,
+    notes: params.notes || [
+      profile.description,
+      'Programmet följer matchveckans rytm och inkluderar positionsspecifik skadeprevention.',
+      ...loadGuidance.notes,
+    ].join(' '),
     weeks,
   }
 }
@@ -95,6 +109,7 @@ function buildFootballWeek(input: {
   phaseTraining: ReturnType<typeof getSeasonPhaseTraining>
   prevention: ReturnType<typeof getInjuryPreventionExercises>
   intensityFactor: number
+  loadNotes: string[]
 }): CreateTrainingDayDTO[] {
   const hasMatch = input.phase === 'in_season' || input.phase === 'playoffs' || input.matchesPerWeek > 0
   const days: CreateTrainingDayDTO[] = Array.from({ length: 7 }).map((_, index) => ({
@@ -106,7 +121,7 @@ function buildFootballWeek(input: {
   if (hasMatch) {
     days[0] = withWorkout(1, recoveryWorkout('MD+1 återhämtning', 'Lätt cykel/jogg, mobilitet och återställning efter match.'))
     days[1] = withWorkout(2, strengthWorkout('MD+2 styrka/prehab', input.profile.primaryStrengthFocus, input.prevention, 'MODERATE'))
-    days[2] = withWorkout(3, footballConditioningWorkout(input.position, input.goal, input.intensityFactor))
+    days[2] = withWorkout(3, footballConditioningWorkout(input.position, input.goal, input.intensityFactor, input.loadNotes))
     days[3] = withWorkout(4, tacticalWorkout('MD-3 fotbollsspecifik träning', input.phaseTraining.conditioningFocus.type.join(', ')))
     days[4] = withWorkout(5, activationWorkout('MD-2 reducerad volym', 'Kort teknik, rörlighet och låg total belastning.'))
     days[5] = withWorkout(6, activationWorkout('MD-1 aktivering', 'FIFA 11+, lätta accelerationer och taktisk förberedelse.'))
@@ -115,7 +130,7 @@ function buildFootballWeek(input: {
   }
 
   days[0] = withWorkout(1, strengthWorkout('Maxstyrka och robusthet', input.profile.primaryStrengthFocus, input.prevention, 'THRESHOLD'))
-  days[1] = withWorkout(2, footballConditioningWorkout(input.position, input.goal, input.intensityFactor))
+  days[1] = withWorkout(2, footballConditioningWorkout(input.position, input.goal, input.intensityFactor, input.loadNotes))
   days[2] = withWorkout(3, recoveryWorkout('Rörlighet och återhämtning', 'Mobilitet, FIFA 11+ och lätt aerob flush.'))
   days[3] = withWorkout(4, speedPowerWorkout(input.position))
   days[4] = withWorkout(5, tacticalWorkout('Small-sided games', 'Fotbollsspecifik kondition, riktningsförändringar och bolltempo.'))
@@ -133,7 +148,7 @@ function trimToSessions(days: CreateTrainingDayDTO[], sessionsPerWeek: number, p
   return days.map((day) => keep.has(day.dayNumber) ? day : { ...day, notes: 'Vilodag', workouts: [] })
 }
 
-function footballConditioningWorkout(position: FootballPosition, goal: string, factor: number): CreateWorkoutDTO {
+function footballConditioningWorkout(position: FootballPosition, goal: string, factor: number, loadNotes: string[] = []): CreateWorkoutDTO {
   const duration = Math.round((goal === 'speed-power' ? 45 : 55) * factor)
   const focus = position === 'forward'
     ? 'Repeated sprint ability och acceleration'
@@ -148,7 +163,7 @@ function footballConditioningWorkout(position: FootballPosition, goal: string, f
     name: 'Fotbollsspecifik kondition',
     intensity: 'INTERVAL',
     duration,
-    instructions: `${focus}. Håll total volym kontrollerad och avsluta med nedvarvning.`,
+    instructions: [`${focus}. Håll total volym kontrollerad och avsluta med nedvarvning.`, ...loadNotes].join(' '),
     segments: [
       { order: 1, type: 'warmup', duration: 12, zone: 1, description: 'FIFA 11+ och dynamisk uppvärmning' },
       { order: 2, type: 'interval', duration: Math.max(15, duration - 22), zone: 4, description: focus },
@@ -242,6 +257,45 @@ function matchWorkout(name: string, position: FootballPosition): CreateWorkoutDT
 
 function normalizeFootballSettings(value: unknown): FootballSettings {
   return isRecord(value) ? value as FootballSettings : {}
+}
+
+function getFootballLoadGuidance(settings: FootballSettings, position: FootballPosition): LoadGuidance {
+  const notes: string[] = []
+  let intensityMultiplier = 1
+
+  if (settings.hasGPSData && settings.avgMatchDistanceKm && settings.avgSprintDistanceM) {
+    const status = calculateGPSLoadStatus(position, {
+      totalDistanceM: Math.round(settings.avgMatchDistanceKm * 1000),
+      highSpeedRunningM: Math.round(settings.avgSprintDistanceM * 1.8),
+      sprintDistanceM: Math.round(settings.avgSprintDistanceM),
+      accelerations: 0,
+      decelerations: 0,
+    }, 'sv')
+
+    if (status.overall === 'very_high') {
+      intensityMultiplier = Math.min(intensityMultiplier, 0.75)
+      notes.push('GPS-belastning är mycket hög: reducera sprint-/HI-volym och prioritera återhämtning.')
+    } else if (status.overall === 'high') {
+      intensityMultiplier = Math.min(intensityMultiplier, 0.85)
+      notes.push('GPS-belastning är hög: håll nästa intensiva pass kortare och undvik extra sprintvolym.')
+    } else if (status.overall === 'low') {
+      intensityMultiplier = Math.max(intensityMultiplier, 1.05)
+      notes.push('GPS-belastning är låg: kontrollerad extra konditions-/hastighetsexponering är rimlig.')
+    }
+  }
+
+  if (settings.recentWeeklyLoads && settings.recentWeeklyLoads.length >= 4) {
+    const acwr = calculateACWR(settings.recentWeeklyLoads, 'sv')
+    if (acwr.zone === 'danger') {
+      intensityMultiplier = Math.min(intensityMultiplier, 0.65)
+      notes.push(`ACWR ${acwr.ratio}: ${acwr.recommendation}`)
+    } else if (acwr.zone === 'caution') {
+      intensityMultiplier = Math.min(intensityMultiplier, 0.8)
+      notes.push(`ACWR ${acwr.ratio}: ${acwr.recommendation}`)
+    }
+  }
+
+  return { intensityMultiplier, notes }
 }
 
 function inferSeasonPhase(goal: string): SeasonPhase {
