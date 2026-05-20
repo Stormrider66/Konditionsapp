@@ -1,10 +1,68 @@
 // app/api/programs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma, type PeriodPhase, type WorkoutIntensity, type WorkoutType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessProgram, canAccessClient, resolveAthleteClientId } from '@/lib/auth-utils'
+import { getCurrentUser, canAccessClient, resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { createFuelingPrescriptionsForProgram } from '@/lib/fueling/workout-prescriptions'
+
+type AppLocale = 'en' | 'sv'
+
+interface ProgramSegmentInput {
+  order: number
+  type: string
+  duration?: number
+  distance?: number
+  pace?: string
+  zone?: number
+  heartRate?: string
+  power?: number
+  reps?: number
+  exerciseId?: string
+  sets?: number
+  repsCount?: string
+  weight?: string
+  tempo?: string
+  rest?: number
+  description?: string
+  notes?: string
+}
+
+interface ProgramWorkoutInput {
+  type: WorkoutType
+  name: string
+  description?: string
+  intensity: WorkoutIntensity
+  duration?: number
+  distance?: number
+  instructions?: string
+  coachNotes?: string
+  order?: number
+  segments?: ProgramSegmentInput[]
+}
+
+interface ProgramDayInput {
+  dayNumber: number
+  date: string | Date
+  notes?: string
+  workouts?: ProgramWorkoutInput[]
+}
+
+interface ProgramWeekInput {
+  weekNumber: number
+  startDate: string | Date
+  endDate: string | Date
+  phase: PeriodPhase
+  focus?: string
+  weeklyVolume?: number
+  notes?: string
+  days?: ProgramDayInput[]
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/programs
@@ -13,6 +71,8 @@ import { createFuelingPrescriptionsForProgram } from '@/lib/fueling/workout-pres
  * - clientId: Filter programs by specific client (coaches only)
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
@@ -20,11 +80,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: 'Unauthorized',
         },
         { status: 401 }
       )
     }
+
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     // Get optional clientId filter from query params
     const { searchParams } = new URL(request.url)
@@ -85,7 +147,7 @@ export async function GET(request: NextRequest) {
           return NextResponse.json(
             {
               success: false,
-              error: 'Åtkomst nekad till klient',
+              error: t(locale, 'Access denied to client', 'Åtkomst nekad till klient'),
             },
             { status: 403 }
           )
@@ -93,7 +155,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Build where clause
-      const whereClause: any = {
+      const whereClause: Prisma.TrainingProgramWhereInput = {
         coachId: user.id,
       }
 
@@ -142,7 +204,7 @@ export async function GET(request: NextRequest) {
       })
     } else {
       // Admins see all programs (optionally filtered by client)
-      const adminWhere: any = {}
+      const adminWhere: Prisma.TrainingProgramWhereInput = {}
       if (clientId) {
         adminWhere.clientId = clientId
       }
@@ -195,7 +257,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att hämta träningsprogram',
+        error: t(locale, 'Failed to fetch training programs', 'Misslyckades med att hämta träningsprogram'),
       },
       { status: 500 }
     )
@@ -207,19 +269,23 @@ export async function GET(request: NextRequest) {
  * Create a new training program
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Obehörig' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
+    locale = user.language === 'sv' ? 'sv' : 'en'
+
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Endast tränare kan skapa program' },
+        { success: false, error: t(locale, 'Only coaches can create programs', 'Endast tränare kan skapa program') },
         { status: 403 }
       )
     }
@@ -240,12 +306,18 @@ export async function POST(request: NextRequest) {
       weeks = [],
     } = body
 
+    const programWeeks = weeks as ProgramWeekInput[]
+
     // Validate required fields
     if (!clientId || !name || !startDate || !endDate) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Saknade obligatoriska fält: clientId, name, startDate, endDate',
+          error: t(
+            locale,
+            'Missing required fields: clientId, name, startDate, endDate',
+            'Saknade obligatoriska fält: clientId, name, startDate, endDate'
+          ),
         },
         { status: 400 }
       )
@@ -254,7 +326,7 @@ export async function POST(request: NextRequest) {
     const hasClientAccess = await canAccessClient(user.id, clientId)
     if (!hasClientAccess) {
       return NextResponse.json(
-        { success: false, error: 'Klient hittades inte eller åtkomst nekad' },
+        { success: false, error: t(locale, 'Client not found or access denied', 'Klient hittades inte eller åtkomst nekad') },
         { status: 404 }
       )
     }
@@ -275,7 +347,7 @@ export async function POST(request: NextRequest) {
         isTemplate,
         generatedFromTest: !!testId,
         weeks: {
-          create: weeks.map((week: any) => ({
+          create: programWeeks.map((week) => ({
             weekNumber: week.weekNumber,
             startDate: new Date(week.startDate),
             endDate: new Date(week.endDate),
@@ -284,12 +356,12 @@ export async function POST(request: NextRequest) {
             weeklyVolume: week.weeklyVolume,
             notes: week.notes,
             days: {
-              create: week.days?.map((day: any) => ({
+              create: week.days?.map((day) => ({
                 dayNumber: day.dayNumber,
                 date: new Date(day.date),
                 notes: day.notes,
                 workouts: {
-                  create: day.workouts?.map((workout: any) => ({
+                  create: day.workouts?.map((workout) => ({
                     type: workout.type,
                     name: workout.name,
                     description: workout.description,
@@ -300,7 +372,7 @@ export async function POST(request: NextRequest) {
                     coachNotes: workout.coachNotes,
                     order: workout.order || 1,
                     segments: {
-                      create: workout.segments?.map((segment: any) => ({
+                      create: workout.segments?.map((segment) => ({
                         order: segment.order,
                         type: segment.type,
                         duration: segment.duration,
@@ -393,7 +465,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att skapa träningsprogram',
+        error: t(locale, 'Failed to create training program', 'Misslyckades med att skapa träningsprogram'),
       },
       { status: 500 }
     )
