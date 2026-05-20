@@ -1,13 +1,20 @@
 import { prisma } from '@/lib/prisma'
 import { normalizeMuscleGroups, CANONICAL_MUSCLE_GROUPS, type CanonicalMuscleGroup } from '@/lib/muscle-group-normalizer'
 import { startOfWeek, startOfMonth, subWeeks, subMonths, format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale?: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
 
 export async function getMuscleGroupData(
   clientId: string,
   period: 'week' | 'month',
-  count: number
+  count: number,
+  localeValue?: string
 ) {
+  const locale = getAppLocale(localeValue)
+  const dateLocale = locale === 'sv' ? sv : enUS
   const now = new Date()
   const startDate =
     period === 'week'
@@ -47,8 +54,8 @@ export async function getMuscleGroupData(
 
     const label =
       period === 'week'
-        ? `V${format(bucketStart, 'w', { locale: sv })}`
-        : format(bucketStart, 'MMM', { locale: sv })
+        ? `${locale === 'sv' ? 'V' : 'W'}${format(bucketStart, 'w', { locale: dateLocale })}`
+        : format(bucketStart, 'MMM', { locale: dateLocale })
 
     const groups = {} as Record<CanonicalMuscleGroup, { volume: number; sets: number }>
     for (const g of CANONICAL_MUSCLE_GROUPS) {

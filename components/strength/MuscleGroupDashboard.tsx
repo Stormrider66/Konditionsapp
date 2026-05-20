@@ -45,7 +45,7 @@ interface MuscleGroupResponse {
 
 export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) {
   const locale = useLocale()
-  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const numberLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [clients, setClients] = useState<ClientOption[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
@@ -89,9 +89,10 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
       setIsLoading(true)
       try {
         const count = period === 'week' ? 8 : 6
+        const queryLocale = locale === 'sv' ? 'sv' : 'en'
         const url = businessId
-          ? `/api/business/${businessId}/strength/muscle-groups?clientId=${selectedClientId}&period=${period}&count=${count}`
-          : `/api/athlete/muscle-groups?period=${period}&count=${count}`
+          ? `/api/business/${businessId}/strength/muscle-groups?clientId=${selectedClientId}&period=${period}&count=${count}&locale=${queryLocale}`
+          : `/api/athlete/muscle-groups?period=${period}&count=${count}&locale=${queryLocale}`
         const res = await fetch(url)
         if (res.ok) {
           const result = await res.json()
@@ -104,7 +105,7 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
       }
     }
     void fetchData()
-  }, [selectedClientId, period, businessId])
+  }, [selectedClientId, period, businessId, locale])
 
   // Compute balance score: 100 - coefficient of variation (capped 0-100)
   const balanceScore = (() => {
@@ -228,7 +229,7 @@ export function MuscleGroupDashboard({ businessId }: MuscleGroupDashboardProps) 
                 <p className="text-lg font-bold">
                   {data.summary.totalVolume >= 1000
                     ? `${(data.summary.totalVolume / 1000).toFixed(1)}t`
-                    : data.summary.totalVolume.toLocaleString(dateLocale)}{' '}
+                    : data.summary.totalVolume.toLocaleString(numberLocale)}{' '}
                   kg
                 </p>
               </div>

@@ -9,6 +9,7 @@ const querySchema = z.object({
   clientId: z.string().uuid(),
   period: z.enum(['week', 'month']).default('week'),
   count: z.coerce.number().int().min(1).max(52).default(8),
+  locale: z.enum(['en', 'sv']).default('en'),
 })
 
 interface RouteParams {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { clientId, period, count } = parsed.data
+    const { clientId, period, count, locale } = parsed.data
 
     // Verify athlete belongs to this business
     const client = await prisma.client.findFirst({
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
     }
 
-    const data = await getMuscleGroupData(clientId, period, count)
+    const data = await getMuscleGroupData(clientId, period, count, locale)
     return NextResponse.json(data)
   } catch (error) {
     return handleApiError(error)

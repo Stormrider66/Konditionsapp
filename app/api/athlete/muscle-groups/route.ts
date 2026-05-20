@@ -6,6 +6,7 @@ import { getMuscleGroupData } from '@/lib/strength/muscle-group-data'
 const querySchema = z.object({
   period: z.enum(['week', 'month']).default('week'),
   count: z.coerce.number().int().min(1).max(52).default(8),
+  locale: z.enum(['en', 'sv']).default('en'),
 })
 
 export async function GET(request: NextRequest) {
@@ -26,8 +27,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { period, count } = parsed.data
-    const data = await getMuscleGroupData(clientId, period, count)
+    const { period, count, locale } = parsed.data
+    const data = await getMuscleGroupData(clientId, period, count, locale)
 
     return NextResponse.json(data)
   } catch (error) {
