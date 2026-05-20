@@ -46,6 +46,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 interface CalendarWorkoutDetailSheetProps {
   workoutId: string | null
@@ -137,12 +138,29 @@ interface ExerciseOption {
   category?: string | null
 }
 
+interface ExercisePayload {
+  id: string
+  name: string
+  nameSv?: string | null
+  category?: string | null
+}
+
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 const SECTION_ORDER = ['WARMUP', 'MAIN', 'CORE', 'COOLDOWN'] as const
-const SECTION_LABELS: Record<string, string> = {
-  WARMUP: 'Uppvärmning',
-  MAIN: 'Huvudpass',
-  CORE: 'Core',
-  COOLDOWN: 'Nedvarvning',
+const SECTION_LABELS: Record<string, Record<AppLocale, string>> = {
+  WARMUP: { sv: 'Uppvärmning', en: 'Warm-up' },
+  MAIN: { sv: 'Huvudpass', en: 'Main set' },
+  CORE: { sv: 'Core', en: 'Core' },
+  COOLDOWN: { sv: 'Nedvarvning', en: 'Cool-down' },
 }
 const SECTION_COLORS: Record<string, string> = {
   WARMUP: 'text-amber-500',
@@ -151,13 +169,13 @@ const SECTION_COLORS: Record<string, string> = {
   COOLDOWN: 'text-green-500',
 }
 
-const INTENSITY_LABELS: Record<string, string> = {
-  RECOVERY: 'Återhämtning',
-  EASY: 'Lätt',
-  MODERATE: 'Måttlig',
-  THRESHOLD: 'Tröskel',
-  INTERVAL: 'Intervall',
-  MAX: 'Max',
+const INTENSITY_LABELS: Record<string, Record<AppLocale, string>> = {
+  RECOVERY: { sv: 'Återhämtning', en: 'Recovery' },
+  EASY: { sv: 'Lätt', en: 'Easy' },
+  MODERATE: { sv: 'Måttlig', en: 'Moderate' },
+  THRESHOLD: { sv: 'Tröskel', en: 'Threshold' },
+  INTERVAL: { sv: 'Intervall', en: 'Interval' },
+  MAX: { sv: 'Max', en: 'Max' },
 }
 
 const INTENSITY_COLORS: Record<string, string> = {
@@ -188,12 +206,12 @@ const STRENGTH_TYPES = new Set(['STRENGTH', 'PLYOMETRIC', 'CORE'])
 const STRENGTH_SEGMENT_TYPES = ['EXERCISE', 'WORK', 'REST'] as const
 const CARDIO_SEGMENT_TYPES = ['WARMUP', 'WORK', 'INTERVAL', 'RECOVERY', 'COOLDOWN', 'REST'] as const
 
-const FEELING_LABELS: Record<string, string> = {
-  Great: 'Fantastiskt',
-  Good: 'Bra',
-  Okay: 'Okej',
-  Tired: 'Trött',
-  Struggled: 'Kämpigt',
+const FEELING_LABELS: Record<string, Record<AppLocale, string>> = {
+  Great: { sv: 'Fantastiskt', en: 'Great' },
+  Good: { sv: 'Bra', en: 'Good' },
+  Okay: { sv: 'Okej', en: 'Okay' },
+  Tired: { sv: 'Trött', en: 'Tired' },
+  Struggled: { sv: 'Kämpigt', en: 'Struggled' },
 }
 
 const FEELING_COLORS: Record<string, string> = {
@@ -213,6 +231,7 @@ export function CalendarWorkoutDetailSheet({
   businessSlug,
   onWorkoutUpdated,
 }: CalendarWorkoutDetailSheetProps) {
+  const locale = getAppLocale(useLocale())
   const { toast } = useToast()
   const [workout, setWorkout] = useState<WorkoutDetail | null>(null)
   const [logs, setLogs] = useState<WorkoutLog[]>([])
@@ -248,7 +267,7 @@ export function CalendarWorkoutDetailSheet({
 
     Promise.all([
       fetch(`/api/workouts/${workoutId}`).then((res) => {
-        if (!res.ok) throw new Error('Kunde inte hämta passdetaljer')
+        if (!res.ok) throw new Error(text(locale, 'Kunde inte hämta passdetaljer', 'Could not load workout details'))
         return res.json()
       }),
       fetch(`/api/workouts/${workoutId}/logs`).then((res) => {
@@ -273,7 +292,7 @@ export function CalendarWorkoutDetailSheet({
     return () => {
       cancelled = true
     }
-  }, [workoutId, open])
+  }, [workoutId, open, locale])
 
   useEffect(() => {
     if (!open) return
@@ -289,7 +308,7 @@ export function CalendarWorkoutDetailSheet({
         if (cancelled) return
         const exercises = Array.isArray(data) ? data : data.exercises || []
         setAvailableExercises(
-          exercises.map((exercise: any) => ({
+          exercises.map((exercise: ExercisePayload) => ({
             id: exercise.id,
             name: exercise.name,
             nameSv: exercise.nameSv,
@@ -359,7 +378,7 @@ export function CalendarWorkoutDetailSheet({
         }),
       })
 
-      if (!response.ok) throw new Error('Kunde inte spara ändringar')
+      if (!response.ok) throw new Error(text(locale, 'Kunde inte spara ändringar', 'Could not save changes'))
 
       setWorkout({
         ...workout,
@@ -371,18 +390,21 @@ export function CalendarWorkoutDetailSheet({
         segments: editSegments,
       })
       setIsEditing(false)
-      toast({ title: 'Sparat', description: 'Passet har uppdaterats' })
+      toast({
+        title: text(locale, 'Sparat', 'Saved'),
+        description: text(locale, 'Passet har uppdaterats', 'The workout has been updated'),
+      })
       onWorkoutUpdated?.()
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara ändringar',
+        title: text(locale, 'Fel', 'Error'),
+        description: text(locale, 'Kunde inte spara ändringar', 'Could not save changes'),
         variant: 'destructive',
       })
     } finally {
       setIsSaving(false)
     }
-  }, [workout, workoutId, editName, editType, editIntensity, editInstructions, editCoachNotes, editSegments, toast, onWorkoutUpdated])
+  }, [workout, workoutId, editName, editType, editIntensity, editInstructions, editCoachNotes, editSegments, toast, onWorkoutUpdated, locale])
 
   const isStrengthWorkout = STRENGTH_TYPES.has((isEditing ? editType : workout?.type) || '')
 
@@ -453,7 +475,7 @@ export function CalendarWorkoutDetailSheet({
 
   const deleteWorkout = useCallback(async () => {
     if (!workoutId) return
-    const confirmed = window.confirm('Vill du ta bort detta pass? Detta kan inte ångras.')
+    const confirmed = window.confirm(text(locale, 'Vill du ta bort detta pass? Detta kan inte ångras.', 'Delete this workout? This cannot be undone.'))
     if (!confirmed) return
 
     setIsDeleting(true)
@@ -463,22 +485,25 @@ export function CalendarWorkoutDetailSheet({
       })
 
       if (!response.ok) {
-        throw new Error('Kunde inte ta bort passet')
+        throw new Error(text(locale, 'Kunde inte ta bort passet', 'Could not delete the workout'))
       }
 
-      toast({ title: 'Pass borttaget', description: 'Passet har tagits bort från kalendern' })
+      toast({
+        title: text(locale, 'Pass borttaget', 'Workout deleted'),
+        description: text(locale, 'Passet har tagits bort från kalendern', 'The workout has been removed from the calendar'),
+      })
       onOpenChange(false)
       onWorkoutUpdated?.()
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte ta bort passet',
+        title: text(locale, 'Fel', 'Error'),
+        description: text(locale, 'Kunde inte ta bort passet', 'Could not delete the workout'),
         variant: 'destructive',
       })
     } finally {
       setIsDeleting(false)
     }
-  }, [workoutId, toast, onOpenChange, onWorkoutUpdated])
+  }, [workoutId, toast, onOpenChange, onWorkoutUpdated, locale])
 
   const groupedSegments = workout
     ? SECTION_ORDER.reduce<Record<string, WorkoutSegment[]>>((acc, section) => {
@@ -502,7 +527,7 @@ export function CalendarWorkoutDetailSheet({
         <SheetHeader>
           <div className="flex items-center justify-between">
             <SheetTitle className={cn(isGlass && 'text-white')}>
-              Passdetaljer
+              {text(locale, 'Passdetaljer', 'Workout details')}
             </SheetTitle>
             {workout && !isLoading && !isEditing && (
               <div className="flex items-center gap-1">
@@ -516,7 +541,7 @@ export function CalendarWorkoutDetailSheet({
                   )}
                 >
                   <Pencil className="h-3.5 w-3.5" />
-                  Redigera
+                  {text(locale, 'Redigera', 'Edit')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -529,7 +554,7 @@ export function CalendarWorkoutDetailSheet({
                   )}
                 >
                   {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                  Ta bort
+                  {text(locale, 'Ta bort', 'Delete')}
                 </Button>
               </div>
             )}
@@ -550,7 +575,7 @@ export function CalendarWorkoutDetailSheet({
                   className="h-8 gap-1.5"
                 >
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                  Spara
+                  {text(locale, 'Spara', 'Save')}
                 </Button>
               </div>
             )}
@@ -577,7 +602,7 @@ export function CalendarWorkoutDetailSheet({
               <div className="space-y-4">
                 <div>
                   <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                    Namn
+                    {text(locale, 'Namn', 'Name')}
                   </label>
                   <Input
                     value={editName}
@@ -587,7 +612,7 @@ export function CalendarWorkoutDetailSheet({
                 </div>
                 <div>
                   <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                    Typ
+                    {text(locale, 'Typ', 'Type')}
                   </label>
                   <Select value={editType} onValueChange={setEditType}>
                     <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
@@ -602,7 +627,7 @@ export function CalendarWorkoutDetailSheet({
                 </div>
                 <div>
                   <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                    Intensitet
+                    {text(locale, 'Intensitet', 'Intensity')}
                   </label>
                   <Select value={editIntensity} onValueChange={setEditIntensity}>
                     <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
@@ -610,14 +635,14 @@ export function CalendarWorkoutDetailSheet({
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(INTENSITY_LABELS).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                        <SelectItem key={key} value={key}>{label[locale]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                    Instruktioner
+                    {text(locale, 'Instruktioner', 'Instructions')}
                   </label>
                   <Textarea
                     value={editInstructions}
@@ -628,7 +653,7 @@ export function CalendarWorkoutDetailSheet({
                 </div>
                 <div>
                   <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                    Tränarens anteckningar
+                    {text(locale, 'Tränarens anteckningar', "Coach's notes")}
                   </label>
                   <Textarea
                     value={editCoachNotes}
@@ -640,11 +665,11 @@ export function CalendarWorkoutDetailSheet({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className={cn('text-xs font-bold uppercase tracking-wider block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                      Segment
+                      {text(locale, 'Segment', 'Segments')}
                     </label>
                     <Button type="button" variant="outline" size="sm" onClick={addSegment}>
                       <Plus className="h-3.5 w-3.5 mr-1" />
-                      Lägg till segment
+                      {text(locale, 'Lägg till segment', 'Add segment')}
                     </Button>
                   </div>
                   <div className="space-y-3">
@@ -658,7 +683,7 @@ export function CalendarWorkoutDetailSheet({
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className={cn('text-xs font-bold uppercase tracking-wider', isGlass ? 'text-slate-400' : 'text-muted-foreground')}>
-                            Segment {index + 1}
+                            {text(locale, 'Segment', 'Segment')} {index + 1}
                           </span>
                           <Button type="button" variant="ghost" size="sm" onClick={() => removeSegment(index)}>
                             <Trash2 className="h-3.5 w-3.5" />
@@ -667,7 +692,7 @@ export function CalendarWorkoutDetailSheet({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                              Sektion
+                              {text(locale, 'Sektion', 'Section')}
                             </label>
                             <Select value={segment.section} onValueChange={(value) => updateSegment(index, 'section', value)}>
                               <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
@@ -675,14 +700,14 @@ export function CalendarWorkoutDetailSheet({
                               </SelectTrigger>
                               <SelectContent>
                                 {SECTION_ORDER.map((section) => (
-                                  <SelectItem key={section} value={section}>{SECTION_LABELS[section]}</SelectItem>
+                                  <SelectItem key={section} value={section}>{SECTION_LABELS[section][locale]}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                           <div>
                             <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                              Segmenttyp
+                              {text(locale, 'Segmenttyp', 'Segment type')}
                             </label>
                             <Select value={segment.type} onValueChange={(value) => updateSegment(index, 'type', value)}>
                               <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
@@ -697,7 +722,7 @@ export function CalendarWorkoutDetailSheet({
                           </div>
                           <div>
                             <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                              Beskrivning
+                              {text(locale, 'Beskrivning', 'Description')}
                             </label>
                             <Input
                               value={segment.description || ''}
@@ -707,7 +732,7 @@ export function CalendarWorkoutDetailSheet({
                           </div>
                           <div>
                             <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                              Anteckningar
+                              {text(locale, 'Anteckningar', 'Notes')}
                             </label>
                             <Input
                               value={segment.notes || ''}
@@ -719,7 +744,7 @@ export function CalendarWorkoutDetailSheet({
                             <>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Övning
+                                  {text(locale, 'Övning', 'Exercise')}
                                 </label>
                                 <Select
                                   value={segment.exerciseId || '__none__'}
@@ -733,15 +758,15 @@ export function CalendarWorkoutDetailSheet({
                                   }}
                                 >
                                   <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
-                                    <SelectValue placeholder="Välj övning" />
+                                    <SelectValue placeholder={text(locale, 'Välj övning', 'Choose exercise')} />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="__none__">Ingen övning</SelectItem>
+                                    <SelectItem value="__none__">{text(locale, 'Ingen övning', 'No exercise')}</SelectItem>
                                     {availableExercises
                                       .filter((exercise) => !exercise.category || STRENGTH_TYPES.has(exercise.category))
                                       .map((exercise) => (
                                         <SelectItem key={exercise.id} value={exercise.id}>
-                                          {exercise.nameSv || exercise.name}
+                                          {locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name}
                                         </SelectItem>
                                       ))}
                                   </SelectContent>
@@ -770,7 +795,7 @@ export function CalendarWorkoutDetailSheet({
                               </div>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Vikt
+                                  {text(locale, 'Vikt', 'Weight')}
                                 </label>
                                 <Input
                                   value={segment.weight || ''}
@@ -780,7 +805,7 @@ export function CalendarWorkoutDetailSheet({
                               </div>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Tempo
+                                  {text(locale, 'Tempo', 'Tempo')}
                                 </label>
                                 <Input
                                   value={segment.tempo || ''}
@@ -790,7 +815,7 @@ export function CalendarWorkoutDetailSheet({
                               </div>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Vila (sek)
+                                  {text(locale, 'Vila (sek)', 'Rest (sec)')}
                                 </label>
                                 <Input
                                   type="number"
@@ -804,7 +829,7 @@ export function CalendarWorkoutDetailSheet({
                             <>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Tid (min)
+                                  {text(locale, 'Tid (min)', 'Time (min)')}
                                 </label>
                                 <Input
                                   type="number"
@@ -815,7 +840,7 @@ export function CalendarWorkoutDetailSheet({
                               </div>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Distans (km)
+                                  {text(locale, 'Distans (km)', 'Distance (km)')}
                                 </label>
                                 <Input
                                   type="number"
@@ -827,7 +852,7 @@ export function CalendarWorkoutDetailSheet({
                               </div>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Tempo
+                                  {text(locale, 'Tempo', 'Pace')}
                                 </label>
                                 <Input
                                   value={segment.pace || ''}
@@ -837,7 +862,7 @@ export function CalendarWorkoutDetailSheet({
                               </div>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Zon
+                                  {text(locale, 'Zon', 'Zone')}
                                 </label>
                                 <Input
                                   type="number"
@@ -848,7 +873,7 @@ export function CalendarWorkoutDetailSheet({
                               </div>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Puls
+                                  {text(locale, 'Puls', 'Heart rate')}
                                 </label>
                                 <Input
                                   value={segment.heartRate || ''}
@@ -858,7 +883,7 @@ export function CalendarWorkoutDetailSheet({
                               </div>
                               <div>
                                 <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
-                                  Effekt
+                                  {text(locale, 'Effekt', 'Power')}
                                 </label>
                                 <Input
                                   type="number"
@@ -887,7 +912,7 @@ export function CalendarWorkoutDetailSheet({
                       INTENSITY_COLORS[workout.intensity] || 'bg-yellow-500'
                     )}
                   >
-                    {INTENSITY_LABELS[workout.intensity] || workout.intensity}
+                    {INTENSITY_LABELS[workout.intensity]?.[locale] || workout.intensity}
                   </Badge>
                   <Badge
                     variant="outline"
@@ -898,7 +923,7 @@ export function CalendarWorkoutDetailSheet({
                   {latestLog && (
                     <Badge className="text-xs bg-green-600 text-white gap-1">
                       <CheckCircle2 className="h-3 w-3" />
-                      Genomfört
+                      {text(locale, 'Genomfört', 'Completed')}
                     </Badge>
                   )}
                 </div>
@@ -919,7 +944,7 @@ export function CalendarWorkoutDetailSheet({
                   )}
                   <span className="flex items-center gap-1.5">
                     <Activity className="h-4 w-4" />
-                    {workout.segments.length} segment
+                    {workout.segments.length} {text(locale, 'segment', 'segments')}
                   </span>
                 </div>
               </div>
@@ -929,7 +954,7 @@ export function CalendarWorkoutDetailSheet({
             {latestLog && !isEditing && (
               <>
                 <Separator className={cn(isGlass && 'bg-white/10')} />
-                <LogResultsSection log={latestLog} workout={workout} isGlass={isGlass} />
+                <LogResultsSection log={latestLog} workout={workout} isGlass={isGlass} locale={locale} />
               </>
             )}
 
@@ -942,7 +967,7 @@ export function CalendarWorkoutDetailSheet({
                   'text-xs font-bold uppercase tracking-wider mb-2',
                   isGlass ? 'text-slate-500' : 'text-muted-foreground'
                 )}>
-                  Instruktioner
+                  {text(locale, 'Instruktioner', 'Instructions')}
                 </h4>
                 <p className={cn(
                   'text-sm whitespace-pre-wrap',
@@ -960,7 +985,7 @@ export function CalendarWorkoutDetailSheet({
                   'text-xs font-bold uppercase tracking-wider mb-2',
                   isGlass ? 'text-slate-500' : 'text-muted-foreground'
                 )}>
-                  Tränarens anteckningar
+                  {text(locale, 'Tränarens anteckningar', "Coach's notes")}
                 </h4>
                 <p className={cn(
                   'text-sm whitespace-pre-wrap',
@@ -985,7 +1010,7 @@ export function CalendarWorkoutDetailSheet({
                         SECTION_COLORS[section] || 'text-muted-foreground'
                       )}>
                         <SectionIcon section={section} />
-                        {SECTION_LABELS[section] || section}
+                        {SECTION_LABELS[section]?.[locale] || section}
                         <span className="text-muted-foreground font-normal">
                           ({segments.length})
                         </span>
@@ -996,6 +1021,7 @@ export function CalendarWorkoutDetailSheet({
                             key={seg.id}
                             segment={seg}
                             isGlass={isGlass}
+                            locale={locale}
                           />
                         ))}
                       </div>
@@ -1005,7 +1031,7 @@ export function CalendarWorkoutDetailSheet({
               </div>
             ) : !isEditing ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Inga segment i detta pass
+                {text(locale, 'Inga segment i detta pass', 'No segments in this workout')}
               </p>
             ) : null}
 
@@ -1020,7 +1046,7 @@ export function CalendarWorkoutDetailSheet({
                   }}
                 >
                   <ClipboardList className="h-4 w-4 mr-2" />
-                  Logga pass
+                  {text(locale, 'Logga pass', 'Log workout')}
                 </Button>
               </div>
             )}
@@ -1039,7 +1065,7 @@ export function CalendarWorkoutDetailSheet({
                   }}
                 >
                   <TrendingUp className="h-4 w-4 mr-2" />
-                  Visa fullständig logg
+                  {text(locale, 'Visa fullständig logg', 'View full log')}
                 </Button>
               </div>
             )}
@@ -1056,11 +1082,12 @@ interface LogResultsSectionProps {
   log: WorkoutLog
   workout: WorkoutDetail
   isGlass: boolean
+  locale: AppLocale
 }
 
-function LogResultsSection({ log, workout, isGlass }: LogResultsSectionProps) {
+function LogResultsSection({ log, workout, isGlass, locale }: LogResultsSectionProps) {
   const completedDate = log.completedAt
-    ? new Date(log.completedAt).toLocaleDateString('sv-SE', {
+    ? new Date(log.completedAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
@@ -1078,7 +1105,7 @@ function LogResultsSection({ log, workout, isGlass }: LogResultsSectionProps) {
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-green-600 dark:text-green-400">
           <CheckCircle2 className="h-4 w-4" />
-          Resultat
+          {text(locale, 'Resultat', 'Results')}
         </h4>
         {completedDate && (
           <span className="text-xs text-muted-foreground">{completedDate}</span>
@@ -1090,45 +1117,50 @@ function LogResultsSection({ log, workout, isGlass }: LogResultsSectionProps) {
         {(log.duration != null || (workout.duration != null && workout.duration > 0)) && (
           <MetricCard
             icon={<Clock className="h-4 w-4" />}
-            label="Tid"
+            label={text(locale, 'Tid', 'Time')}
             actual={log.duration != null ? `${log.duration} min` : null}
             planned={workout.duration != null && workout.duration > 0 ? `${workout.duration} min` : null}
             isGlass={isGlass}
+            locale={locale}
           />
         )}
         {(log.distance != null || (workout.distance != null && workout.distance > 0)) && (
           <MetricCard
             icon={<MapPin className="h-4 w-4" />}
-            label="Distans"
+            label={text(locale, 'Distans', 'Distance')}
             actual={log.distance != null ? `${log.distance} km` : null}
             planned={workout.distance != null && workout.distance > 0 ? `${workout.distance} km` : null}
             isGlass={isGlass}
+            locale={locale}
           />
         )}
         {log.avgPace && (
           <MetricCard
             icon={<TrendingUp className="h-4 w-4" />}
-            label="Tempo"
+            label={text(locale, 'Tempo', 'Pace')}
             actual={log.avgPace}
             isGlass={isGlass}
+            locale={locale}
           />
         )}
         {log.avgHR != null && (
           <MetricCard
             icon={<Heart className="h-4 w-4" />}
-            label="Puls"
+            label={text(locale, 'Puls', 'Heart rate')}
             actual={`${log.avgHR} bpm`}
             extra={log.maxHR != null ? `Max: ${log.maxHR}` : undefined}
             isGlass={isGlass}
+            locale={locale}
           />
         )}
         {log.avgPower != null && (
           <MetricCard
             icon={<Zap className="h-4 w-4" />}
-            label="Effekt"
+            label={text(locale, 'Effekt', 'Power')}
             actual={`${log.avgPower} W`}
             extra={log.normalizedPower != null ? `NP: ${log.normalizedPower} W` : undefined}
             isGlass={isGlass}
+            locale={locale}
           />
         )}
         {log.perceivedEffort != null && (
@@ -1137,6 +1169,7 @@ function LogResultsSection({ log, workout, isGlass }: LogResultsSectionProps) {
             label="RPE"
             actual={`${log.perceivedEffort}/10`}
             isGlass={isGlass}
+            locale={locale}
           />
         )}
       </div>
@@ -1144,8 +1177,8 @@ function LogResultsSection({ log, workout, isGlass }: LogResultsSectionProps) {
       {/* Extra cycling metrics */}
       {(log.avgCadence != null || log.elevation != null || log.tss != null) && (
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          {log.avgCadence != null && <span>Kadens: {log.avgCadence} rpm</span>}
-          {log.elevation != null && <span>Höjdmeter: {log.elevation} m</span>}
+          {log.avgCadence != null && <span>{text(locale, 'Kadens', 'Cadence')}: {log.avgCadence} rpm</span>}
+          {log.elevation != null && <span>{text(locale, 'Höjdmeter', 'Elevation gain')}: {log.elevation} m</span>}
           {log.tss != null && <span>TSS: {log.tss.toFixed(0)}</span>}
         </div>
       )}
@@ -1154,11 +1187,11 @@ function LogResultsSection({ log, workout, isGlass }: LogResultsSectionProps) {
       {log.feeling && (
         <div className="flex items-center gap-2">
           <span className={cn('text-sm font-medium', FEELING_COLORS[log.feeling] || '')}>
-            {FEELING_LABELS[log.feeling] || log.feeling}
+            {FEELING_LABELS[log.feeling]?.[locale] || log.feeling}
           </span>
           {log.difficulty != null && (
             <span className="text-xs text-muted-foreground">
-              Svårighet: {log.difficulty}/5
+              {text(locale, 'Svårighet', 'Difficulty')}: {log.difficulty}/5
             </span>
           )}
         </div>
@@ -1171,7 +1204,7 @@ function LogResultsSection({ log, workout, isGlass }: LogResultsSectionProps) {
             'text-xs font-bold uppercase tracking-wider mb-1',
             isGlass ? 'text-slate-500' : 'text-muted-foreground'
           )}>
-            Atletens anteckningar
+            {text(locale, 'Atletens anteckningar', "Athlete's notes")}
           </h5>
           <p className={cn(
             'text-sm whitespace-pre-wrap',
@@ -1190,7 +1223,7 @@ function LogResultsSection({ log, workout, isGlass }: LogResultsSectionProps) {
         )}>
           <h5 className="text-xs font-bold uppercase tracking-wider mb-1 text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
             <MessageSquare className="h-3.5 w-3.5" />
-            Tränarens feedback
+            {text(locale, 'Tränarens feedback', "Coach's feedback")}
           </h5>
           <p className={cn(
             'text-sm whitespace-pre-wrap',
@@ -1213,9 +1246,10 @@ interface MetricCardProps {
   planned?: string | null
   extra?: string
   isGlass: boolean
+  locale: AppLocale
 }
 
-function MetricCard({ icon, label, actual, planned, extra, isGlass }: MetricCardProps) {
+function MetricCard({ icon, label, actual, planned, extra, isGlass, locale }: MetricCardProps) {
   return (
     <div className={cn(
       'rounded-lg border p-2.5',
@@ -1234,7 +1268,7 @@ function MetricCard({ icon, label, actual, planned, extra, isGlass }: MetricCard
       )}
       {planned && actual && planned !== actual && (
         <p className="text-xs text-muted-foreground mt-0.5">
-          Planerat: {planned}
+          {text(locale, 'Planerat', 'Planned')}: {planned}
         </p>
       )}
       {extra && (
@@ -1263,13 +1297,17 @@ function SectionIcon({ section }: { section: string }) {
 
 // ── Segment Card ─────────────────────────────────────────────────────
 
-function SegmentCard({ segment, isGlass }: { segment: WorkoutSegment; isGlass: boolean }) {
+function SegmentCard({ segment, isGlass, locale }: { segment: WorkoutSegment; isGlass: boolean; locale: AppLocale }) {
   const isExercise = segment.type === 'exercise' || segment.type === 'work'
   const isInterval = segment.type === 'interval'
   const isRest = segment.type === 'rest' || segment.type === 'recovery'
   const isWarmupCooldown = segment.type === 'warmup' || segment.type === 'cooldown'
 
-  const exerciseName = segment.exercise?.name || segment.description || segmentTypeLabel(segment.type)
+  const exerciseName = (
+    locale === 'sv'
+      ? segment.exercise?.nameSv || segment.exercise?.name
+      : segment.exercise?.name
+  ) || segment.description || segmentTypeLabel(segment.type, locale)
 
   return (
     <div className={cn(
@@ -1309,12 +1347,12 @@ function SegmentCard({ segment, isGlass }: { segment: WorkoutSegment; isGlass: b
                   </span>
                 )}
                 {segment.tempo && (
-                  <span>Tempo: {segment.tempo}</span>
+                  <span>{text(locale, 'Tempo', 'Tempo')}: {segment.tempo}</span>
                 )}
                 {segment.rest != null && segment.rest > 0 && (
                   <span className="flex items-center gap-1">
                     <Timer className="h-3 w-3" />
-                    Vila {segment.rest}s
+                    {text(locale, 'Vila', 'Rest')} {segment.rest}s
                   </span>
                 )}
               </>
@@ -1334,10 +1372,10 @@ function SegmentCard({ segment, isGlass }: { segment: WorkoutSegment; isGlass: b
                     {segment.distance} km
                   </span>
                 )}
-                {segment.pace && <span>Tempo: {segment.pace}</span>}
+                {segment.pace && <span>{text(locale, 'Tempo', 'Pace')}: {segment.pace}</span>}
                 {segment.zone != null && (
                   <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-                    Zon {segment.zone}
+                    {text(locale, 'Zon', 'Zone')} {segment.zone}
                   </Badge>
                 )}
                 {segment.heartRate && <span>{segment.heartRate}</span>}
@@ -1350,7 +1388,7 @@ function SegmentCard({ segment, isGlass }: { segment: WorkoutSegment; isGlass: b
             {isRest && segment.duration != null && segment.duration > 0 && (
               <span className="flex items-center gap-1">
                 <Timer className="h-3 w-3" />
-                {segment.duration} min vila
+                {segment.duration} min {text(locale, 'vila', 'rest')}
               </span>
             )}
           </div>
@@ -1359,7 +1397,7 @@ function SegmentCard({ segment, isGlass }: { segment: WorkoutSegment; isGlass: b
         {/* Zone badge on the right */}
         {segment.zone != null && isExercise && (
           <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">
-            Zon {segment.zone}
+            {text(locale, 'Zon', 'Zone')} {segment.zone}
           </Badge>
         )}
       </div>
@@ -1376,15 +1414,15 @@ function SegmentCard({ segment, isGlass }: { segment: WorkoutSegment; isGlass: b
   )
 }
 
-function segmentTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    warmup: 'Uppvärmning',
-    interval: 'Intervall',
-    cooldown: 'Nedvarvning',
-    exercise: 'Övning',
-    work: 'Arbete',
-    rest: 'Vila',
-    recovery: 'Återhämtning',
+function segmentTypeLabel(type: string, locale: AppLocale): string {
+  const labels: Record<string, Record<AppLocale, string>> = {
+    warmup: { sv: 'Uppvärmning', en: 'Warm-up' },
+    interval: { sv: 'Intervall', en: 'Interval' },
+    cooldown: { sv: 'Nedvarvning', en: 'Cool-down' },
+    exercise: { sv: 'Övning', en: 'Exercise' },
+    work: { sv: 'Arbete', en: 'Work' },
+    rest: { sv: 'Vila', en: 'Rest' },
+    recovery: { sv: 'Återhämtning', en: 'Recovery' },
   }
-  return labels[type] || type
+  return labels[type]?.[locale] || type
 }
