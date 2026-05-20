@@ -34,6 +34,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id } = await params;
 
@@ -50,7 +52,7 @@ export async function POST(
       user = await requireCoach();
       isCoach = true;
     }
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('audio-journal:process', user.id, {
       limit: 5,
@@ -69,19 +71,19 @@ export async function POST(
     });
 
     if (!audioJournal) {
-      return NextResponse.json({ error: 'Audio journal not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Audio journal not found', 'Ljudjournalen hittades inte') }, { status: 404 });
     }
 
     // Verify access
     if (isCoach) {
       const hasAccess = await canAccessClient(user.id, audioJournal.clientId)
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
       }
     } else {
       // Athlete (or coach in athlete mode) - verify they own this journal
       if (resolved?.clientId !== audioJournal.clientId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
       }
     }
 
@@ -260,7 +262,7 @@ export async function POST(
       const isProd = process.env.NODE_ENV === 'production'
       return NextResponse.json(
         {
-          error: 'AI processing failed',
+          error: t(locale, 'AI processing failed', 'AI-bearbetning misslyckades'),
           details:
             isProd
               ? undefined
@@ -273,11 +275,11 @@ export async function POST(
     logger.error('Audio journal processing error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to process audio' },
+      { error: t(locale, 'Failed to process audio', 'Kunde inte bearbeta ljudet') },
       { status: 500 }
     );
   }
