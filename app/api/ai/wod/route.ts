@@ -28,7 +28,7 @@ import type {
   WODMode,
 } from '@/types/wod'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
-import { getModelById, getDefaultModel, AI_MODELS, resolveModel, isModelIntent } from '@/types/ai-models'
+import { getModelById, getDefaultModel, resolveModel, isModelIntent } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { normalizeAIModelId } from '@/lib/ai/model-compat'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -44,8 +44,15 @@ interface RequestBody extends WODRequest {
   intent?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
+  let locale: AppLocale = 'en'
 
   try {
     // Authenticate athlete (supports coaches in athlete mode)
@@ -54,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { user, clientId } = resolved
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:wod:generate', user.id, {
       limit: 10,
@@ -384,8 +391,12 @@ export async function POST(request: NextRequest) {
     if (errorMessage.includes('credit balance') || errorMessage.includes('purchase credits')) {
       return NextResponse.json(
         {
-          error: 'API-krediter slut',
-          reason: 'Din coach behöver lägga till krediter till sin Anthropic API-nyckel för att generera WOD.',
+          error: t(locale, 'API credits depleted', 'API-krediter slut'),
+          reason: t(
+            locale,
+            "Your coach needs to add credits to their Anthropic API key to generate WODs.",
+            'Din coach behöver lägga till krediter till sin Anthropic API-nyckel för att generera WOD.'
+          ),
         },
         { status: 402 }
       )
@@ -395,8 +406,12 @@ export async function POST(request: NextRequest) {
     if (errorMessage.includes('quota') || errorMessage.includes('RESOURCE_EXHAUSTED') || errorMessage.includes('billing')) {
       return NextResponse.json(
         {
-          error: 'API-kvot överskriden',
-          reason: 'Google API-kvoten är slut eller fakturering saknas. Kontrollera Google Cloud Console.',
+          error: t(locale, 'API quota exceeded', 'API-kvot överskriden'),
+          reason: t(
+            locale,
+            'The Google API quota is exhausted or billing is missing. Check Google Cloud Console.',
+            'Google API-kvoten är slut eller fakturering saknas. Kontrollera Google Cloud Console.'
+          ),
         },
         { status: 402 }
       )
@@ -406,8 +421,12 @@ export async function POST(request: NextRequest) {
     if (errorMessage.includes('API key') || errorMessage.includes('authentication') || errorMessage.includes('UNAUTHENTICATED')) {
       return NextResponse.json(
         {
-          error: 'Ogiltig API-nyckel',
-          reason: 'API-nyckeln är ogiltig eller har upphört. Kontrollera inställningarna.',
+          error: t(locale, 'Invalid API key', 'Ogiltig API-nyckel'),
+          reason: t(
+            locale,
+            'The API key is invalid or has expired. Check settings.',
+            'API-nyckeln är ogiltig eller har upphört. Kontrollera inställningarna.'
+          ),
         },
         { status: 401 }
       )
