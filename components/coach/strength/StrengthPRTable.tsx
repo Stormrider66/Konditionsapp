@@ -47,6 +47,9 @@ import {
 import { StrengthPRForm } from './StrengthPRForm'
 import { ClientBulkPRImportDialog } from './ClientBulkPRImportDialog'
 import { PR_UNITS, PR_UNIT_LABELS, isPrUnit, type PrUnit } from '@/lib/strength/units'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
 
 interface OneRepMaxEntry {
   id: string
@@ -72,14 +75,125 @@ interface StrengthPRTableProps {
   clientName: string
 }
 
-const SOURCE_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
-  TESTED: { label: 'Testat', variant: 'default' },
-  CALCULATED: { label: 'Beräknat', variant: 'secondary' },
-  ESTIMATED: { label: 'Uppskattat', variant: 'outline' },
+const SOURCE_VARIANTS: Record<string, 'default' | 'secondary' | 'outline'> = {
+  TESTED: 'default',
+  CALCULATED: 'secondary',
+  ESTIMATED: 'outline',
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
+const copy = {
+  en: {
+    source: {
+      TESTED: 'Tested',
+      CALCULATED: 'Calculated',
+      ESTIMATED: 'Estimated',
+    },
+    sourceOptions: {
+      TESTED: 'Tested (actual 1RM test)',
+      CALCULATED: 'Calculated (verified formula)',
+      ESTIMATED: 'Estimated (auto from sets)',
+    },
+    errors: {
+      positiveWeight: 'Weight must be greater than 0',
+      save: 'Could not save change',
+      delete: 'Could not delete PR',
+      fetch: 'Could not fetch PRs',
+    },
+    title: 'Strength PRs',
+    description:
+      '1RM per exercise. Add it here or via New test -> Strength. Values are used for sessions with % of 1RM.',
+    importMany: 'Import multiple',
+    addPr: 'Add PR',
+    emptyTitle: 'No PRs logged yet.',
+    emptyDescription:
+      'Add the first 1RM here, or register a full strength test under New test -> Strength.',
+    addFirst: 'Add first PR',
+    stale: (days: number) => `${days}d ago - may be outdated`,
+    measurements: (count: number) => `${count} measurements`,
+    history: 'History',
+    edit: 'Edit',
+    remove: 'Remove',
+    info:
+      'Each PR is used as the reference when sessions contain "% of 1RM". Log a new PR after tests or PR sets so prescribed weights stay accurate.',
+    addDialogTitle: (name: string) => `Add PR - ${name}`,
+    addDialogDescription:
+      'Log a new PR. 1RM is calculated automatically from reps x weight unless you test a single.',
+    editDialogTitle: 'Edit PR',
+    editDialogDescription: (exercise?: string) => `${exercise ?? 'PR'} - change weight or date.`,
+    value: 'Value',
+    unit: 'Unit',
+    date: 'Date',
+    sourceLabel: 'Source',
+    sourceHint: 'Confirm auto-estimates by moving them to "Tested" when you have verified them.',
+    cancel: 'Cancel',
+    save: 'Save',
+    deleteTitle: 'Delete PR?',
+    deleteDescription:
+      'This permanently deletes the PR log. Other measurements for the same exercise are not affected. Active sessions with "% of 1RM" use the next newest PR for the exercise.',
+    deleting: 'Deleting...',
+  },
+  sv: {
+    source: {
+      TESTED: 'Testat',
+      CALCULATED: 'Beräknat',
+      ESTIMATED: 'Uppskattat',
+    },
+    sourceOptions: {
+      TESTED: 'Testat (faktiskt 1RM-test)',
+      CALCULATED: 'Beräknat (verifierad formel)',
+      ESTIMATED: 'Uppskattat (auto från set)',
+    },
+    errors: {
+      positiveWeight: 'Vikten måste vara större än 0',
+      save: 'Kunde inte spara ändring',
+      delete: 'Kunde inte ta bort PR',
+      fetch: 'Kunde inte hämta PR',
+    },
+    title: 'Styrke-PR',
+    description:
+      '1RM per övning. Lägg till här eller via Nytt test -> Styrka. Värdena används för pass med % av 1RM.',
+    importMany: 'Importera flera',
+    addPr: 'Lägg till PR',
+    emptyTitle: 'Inga PR loggade ännu.',
+    emptyDescription:
+      'Lägg till första 1RM här, eller registrera ett fullständigt styrketest under Nytt test -> Styrka.',
+    addFirst: 'Lägg till första PR',
+    stale: (days: number) => `${days}d sedan - kan vara inaktuell`,
+    measurements: (count: number) => `${count} mätningar`,
+    history: 'Historik',
+    edit: 'Redigera',
+    remove: 'Ta bort',
+    info:
+      'Varje PR används som referens när pass innehåller "% av 1RM". Logga ny PR efter tester eller PR-set så att vikterna stämmer.',
+    addDialogTitle: (name: string) => `Lägg till PR - ${name}`,
+    addDialogDescription:
+      'Logga en ny PR. 1RM beräknas automatiskt från reps x vikt om du inte testar för en singel.',
+    editDialogTitle: 'Redigera PR',
+    editDialogDescription: (exercise?: string) => `${exercise ?? 'PR'} - ändra vikt eller datum.`,
+    value: 'Värde',
+    unit: 'Enhet',
+    date: 'Datum',
+    sourceLabel: 'Källa',
+    sourceHint: 'Bekräfta auto-uppskattningar genom att flytta dem till "Testat" när du verifierat dem.',
+    cancel: 'Avbryt',
+    save: 'Spara',
+    deleteTitle: 'Ta bort PR?',
+    deleteDescription:
+      'Detta tar permanent bort PR-loggen. Andra mätningar för samma övning påverkas inte. Aktiva pass med "% av 1RM" använder nästa nyaste PR för övningen.',
+    deleting: 'Tar bort...',
+  },
+} as const
+
+function sourceMeta(source: string, locale: AppLocale) {
+  const t = copy[locale] ?? copy.en
+  return {
+    label: t.source[source as keyof typeof t.source] ?? source,
+    variant: SOURCE_VARIANTS[source] ?? 'outline',
+  }
+}
+
+function formatDate(iso: string, locale: AppLocale): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -97,6 +211,8 @@ function staleness(iso: string): { stale: boolean; days: number } {
 }
 
 export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) {
+  const locale = useLocale() as AppLocale
+  const t = copy[locale] ?? copy.en
   const [groups, setGroups] = useState<OneRepMaxGroup[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -127,7 +243,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
     if (!editing) return
     const value = parseFloat(editing.oneRepMax)
     if (!value || value <= 0) {
-      setError('Vikten måste vara större än 0')
+      setError(t.errors.positiveWeight)
       return
     }
     setIsSavingEdit(true)
@@ -146,7 +262,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
       setEditing(null)
       await fetchPRs()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunde inte spara ändring')
+      setError(e instanceof Error ? e.message : t.errors.save)
     } finally {
       setIsSavingEdit(false)
     }
@@ -163,7 +279,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
       setDeletingId(null)
       await fetchPRs()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunde inte ta bort PR')
+      setError(e instanceof Error ? e.message : t.errors.delete)
     } finally {
       setIsDeleting(false)
     }
@@ -178,14 +294,18 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
       const data = await res.json()
       if (data.success) setGroups(data.data)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunde inte hämta PR')
+      setError(e instanceof Error ? e.message : t.errors.fetch)
     } finally {
       setIsLoading(false)
     }
-  }, [clientId])
+  }, [clientId, t.errors.fetch])
 
   useEffect(() => {
-    fetchPRs()
+    const timeoutId = window.setTimeout(() => {
+      void fetchPRs()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchPRs])
 
   const toggleExpanded = (exerciseId: string) => {
@@ -203,20 +323,20 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2 dark:text-white">
             <Trophy className="h-5 w-5 text-yellow-500" />
-            Styrke-PR
+            {t.title}
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            1RM per övning. Lägg till här eller via Nytt test → Styrka. Värdena används för pass med % av 1RM.
+            {t.description}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)}>
             <Upload className="h-4 w-4 mr-1" />
-            Importera flera
+            {t.importMany}
           </Button>
           <Button size="sm" onClick={() => setFormOpen(true)}>
             <Plus className="h-4 w-4 mr-1" />
-            Lägg till PR
+            {t.addPr}
           </Button>
         </div>
       </div>
@@ -230,13 +350,13 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
       ) : groups.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Trophy className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Inga PR loggade ännu.</p>
+          <p className="text-sm">{t.emptyTitle}</p>
           <p className="text-xs mt-1">
-            Lägg till första 1RM här, eller registrera ett fullständigt styrketest under Nytt test → Styrka.
+            {t.emptyDescription}
           </p>
           <Button size="sm" className="mt-4" onClick={() => setFormOpen(true)}>
             <Plus className="h-4 w-4 mr-1" />
-            Lägg till första PR
+            {t.addFirst}
           </Button>
         </div>
       ) : (
@@ -244,11 +364,8 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
           {groups.map((g) => {
             const isOpen = expanded.has(g.exerciseId)
             const stale = staleness(g.current.date)
-            const sourceMeta = SOURCE_LABELS[g.current.source] ?? {
-              label: g.current.source,
-              variant: 'outline' as const,
-            }
-            const displayName = g.exerciseNameSv || g.exerciseName
+            const currentSourceMeta = sourceMeta(g.current.source, locale)
+            const displayName = locale === 'sv' ? g.exerciseNameSv || g.exerciseName : g.exerciseName
 
             return (
               <div key={g.exerciseId}>
@@ -265,18 +382,18 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm truncate">{displayName}</span>
-                      <Badge variant={sourceMeta.variant} className="text-[10px] py-0">
-                        {sourceMeta.label}
+                      <Badge variant={currentSourceMeta.variant} className="text-[10px] py-0">
+                        {currentSourceMeta.label}
                       </Badge>
                       {stale.stale && (
                         <Badge variant="outline" className="text-[10px] py-0 text-orange-600 border-orange-300">
-                          {stale.days}d sedan – kan vara inaktuell
+                          {t.stale(stale.days)}
                         </Badge>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {formatDate(g.current.date)}
-                      {g.history.length > 1 && ` · ${g.history.length} mätningar`}
+                      {formatDate(g.current.date, locale)}
+                      {g.history.length > 1 && ` · ${t.measurements(g.history.length)}`}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -292,16 +409,16 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                 {isOpen && (
                   <div className="bg-muted/20 px-3 py-2 space-y-1">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                      Historik
+                      {t.history}
                     </p>
                     {g.history.map((h, idx) => {
                       const prev = g.history[idx + 1]
                       const delta = prev ? h.oneRepMax - prev.oneRepMax : null
-                      const meta = SOURCE_LABELS[h.source] ?? { label: h.source, variant: 'outline' as const }
+                      const meta = sourceMeta(h.source, locale)
                       return (
                         <div key={h.id} className="flex items-center gap-2 text-xs group">
                           <span className="w-24 text-muted-foreground tabular-nums">
-                            {formatDate(h.date)}
+                            {formatDate(h.date, locale)}
                           </span>
                           <Badge variant={meta.variant} className="text-[10px] py-0 shrink-0">
                             {meta.label}
@@ -337,7 +454,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                                   unit: isPrUnit(h.unit) ? h.unit : 'KG',
                                 })
                               }
-                              title="Redigera"
+                              title={t.edit}
                             >
                               <Pencil className="h-3 w-3" />
                             </Button>
@@ -346,7 +463,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                               size="sm"
                               className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                               onClick={() => setDeletingId(h.id)}
-                              title="Ta bort"
+                              title={t.remove}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -366,8 +483,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
         <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
           <Info className="h-3 w-3 mt-0.5 shrink-0" />
           <span>
-            Varje PR används som referens när pass innehåller &quot;% av 1RM&quot;. Logga ny PR efter
-            tester eller PR-set så att vikterna stämmer.
+            {t.info}
           </span>
         </div>
       )}
@@ -375,10 +491,9 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Lägg till PR – {clientName}</DialogTitle>
+            <DialogTitle>{t.addDialogTitle(clientName)}</DialogTitle>
             <DialogDescription>
-              Logga en ny PR. 1RM beräknas automatiskt från reps × vikt om du inte
-              testar för en singel.
+              {t.addDialogDescription}
             </DialogDescription>
           </DialogHeader>
           <StrengthPRForm
@@ -386,7 +501,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
             clientName={clientName}
             onSuccess={() => {
               setFormOpen(false)
-              fetchPRs()
+              void fetchPRs()
             }}
             onCancel={() => setFormOpen(false)}
           />
@@ -399,16 +514,16 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Redigera PR</DialogTitle>
+            <DialogTitle>{t.editDialogTitle}</DialogTitle>
             <DialogDescription>
-              {editing?.exerciseName} – ändra vikt eller datum.
+              {t.editDialogDescription(editing?.exerciseName)}
             </DialogDescription>
           </DialogHeader>
           {editing && (
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-[1fr_120px] gap-2">
                 <div>
-                  <Label htmlFor="edit-pr-weight">Värde</Label>
+                  <Label htmlFor="edit-pr-weight">{t.value}</Label>
                   <Input
                     id="edit-pr-weight"
                     type="number"
@@ -421,7 +536,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-pr-unit">Enhet</Label>
+                  <Label htmlFor="edit-pr-unit">{t.unit}</Label>
                   <Select
                     value={editing.unit}
                     onValueChange={(v) => setEditing({ ...editing, unit: v })}
@@ -440,7 +555,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                 </div>
               </div>
               <div>
-                <Label htmlFor="edit-pr-date">Datum</Label>
+                <Label htmlFor="edit-pr-date">{t.date}</Label>
                 <Input
                   id="edit-pr-date"
                   type="date"
@@ -449,7 +564,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                 />
               </div>
               <div>
-                <Label htmlFor="edit-pr-source">Källa</Label>
+                <Label htmlFor="edit-pr-source">{t.sourceLabel}</Label>
                 <Select
                   value={editing.source}
                   onValueChange={(v) => setEditing({ ...editing, source: v })}
@@ -458,13 +573,13 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TESTED">Testat (faktiskt 1RM-test)</SelectItem>
-                    <SelectItem value="CALCULATED">Beräknat (verifierad formel)</SelectItem>
-                    <SelectItem value="ESTIMATED">Uppskattat (auto från set)</SelectItem>
+                    <SelectItem value="TESTED">{t.sourceOptions.TESTED}</SelectItem>
+                    <SelectItem value="CALCULATED">{t.sourceOptions.CALCULATED}</SelectItem>
+                    <SelectItem value="ESTIMATED">{t.sourceOptions.ESTIMATED}</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Bekräfta auto-uppskattningar genom att flytta dem till &quot;Testat&quot; när du verifierat dem.
+                  {t.sourceHint}
                 </p>
               </div>
             </div>
@@ -475,11 +590,11 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
               onClick={() => setEditing(null)}
               disabled={isSavingEdit}
             >
-              Avbryt
+              {t.cancel}
             </Button>
             <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
               {isSavingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Spara
+              {t.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -492,28 +607,26 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
         clientName={clientName}
         onImported={() => {
           setBulkOpen(false)
-          fetchPRs()
+          void fetchPRs()
         }}
       />
 
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort PR?</AlertDialogTitle>
+            <AlertDialogTitle>{t.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Detta tar permanent bort PR-loggen. Andra mätningar för samma övning
-              påverkas inte. Aktiva pass med &quot;% av 1RM&quot; använder nästa nyaste PR
-              för övningen.
+              {t.deleteDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{t.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              {isDeleting ? 'Tar bort…' : 'Ta bort'}
+              {isDeleting ? t.deleting : t.remove}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
