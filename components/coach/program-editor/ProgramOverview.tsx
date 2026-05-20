@@ -49,6 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useLocale } from '@/i18n/client'
 
 interface ProgramWithWeeks extends TrainingProgram {
   weeks: (TrainingWeek & {
@@ -77,6 +78,7 @@ export function ProgramOverview({
   onRefresh,
 }: ProgramOverviewProps) {
   const { toast } = useToast()
+  const locale = useLocale() === 'sv' ? 'sv-SE' : 'en-US'
 
   // Filter state
   const [workoutTypeFilter, setWorkoutTypeFilter] = useState<WorkoutTypeFilter>('ALL')
@@ -256,7 +258,7 @@ export function ProgramOverview({
                 <CardTitle className="text-sm">{dayName}</CardTitle>
                 {day && (
                   <p className="text-xs text-gray-500">
-                    {new Date(day.date).toLocaleDateString('sv-SE', {
+                    {new Date(day.date).toLocaleDateString(locale, {
                       month: 'short',
                       day: 'numeric',
                     })}

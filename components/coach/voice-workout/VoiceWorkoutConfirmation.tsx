@@ -33,6 +33,7 @@ import {
   Send,
 } from 'lucide-react'
 import type { VoiceWorkoutPreview } from '@/types/voice-workout'
+import { useLocale } from '@/i18n/client'
 
 interface VoiceWorkoutConfirmationProps {
   preview: VoiceWorkoutPreview
@@ -46,13 +47,21 @@ interface VoiceWorkoutConfirmationProps {
   isSubmitting?: boolean
 }
 
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+const localizedText = (locale: AppLocale, svText: string, enText: string) =>
+  locale === 'sv' ? svText : enText
+
 export function VoiceWorkoutConfirmation({
   preview,
   onConfirm,
   isSubmitting,
 }: VoiceWorkoutConfirmationProps) {
-  const { parsedIntent, generatedWorkout, targetInfo, calendarPreview, guardrailWarnings } =
-    preview
+  const locale = getAppLocale(useLocale())
+  const t = (svText: string, enText: string) => localizedText(locale, svText, enText)
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const { parsedIntent, generatedWorkout, targetInfo, guardrailWarnings } = preview
 
   const [createCalendarEvent, setCreateCalendarEvent] = useState(true)
   const [calendarTime, setCalendarTime] = useState(
@@ -121,7 +130,7 @@ export function VoiceWorkoutConfirmation({
             ) : (
               <User className="h-4 w-4" />
             )}
-            Tilldelas till
+            {t('Tilldelas till', 'Assigned to')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -146,14 +155,19 @@ export function VoiceWorkoutConfirmation({
                   {athlete.warnings && athlete.warnings.length > 0 && (
                     <Badge variant="destructive" className="text-xs">
                       <AlertTriangle className="h-3 w-3 mr-1" />
-                      {athlete.warnings.length} varning(ar)
+                      {athlete.warnings.length}{' '}
+                      {athlete.warnings.length === 1
+                        ? t('varning', 'warning')
+                        : t('varningar', 'warnings')}
                     </Badge>
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Ingen mottagare vald</p>
+            <p className="text-sm text-muted-foreground">
+              {t('Ingen mottagare vald', 'No recipient selected')}
+            </p>
           )}
 
           {/* Warnings */}
@@ -183,20 +197,20 @@ export function VoiceWorkoutConfirmation({
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Datum
+            {t('Datum', 'Date')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
             <div className="text-2xl font-semibold">
               {parsedIntent.schedule.resolvedDate
-                ? new Date(parsedIntent.schedule.resolvedDate).toLocaleDateString('sv-SE', {
+                ? new Date(parsedIntent.schedule.resolvedDate).toLocaleDateString(dateLocale, {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                   })
-                : 'Ej angivet'}
+                : t('Ej angivet', 'Not specified')}
             </div>
           </div>
         </CardContent>
@@ -208,10 +222,13 @@ export function VoiceWorkoutConfirmation({
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="calendar-event" className="font-medium">
-                Skapa kalenderhändelse
+                {t('Skapa kalenderhändelse', 'Create calendar event')}
               </Label>
               <p className="text-sm text-muted-foreground">
-                Lägg till passet i atletens kalender
+                {t(
+                  'Lägg till passet i atletens kalender',
+                  "Add the workout to the athlete's calendar"
+                )}
               </p>
             </div>
             <Switch
@@ -224,7 +241,7 @@ export function VoiceWorkoutConfirmation({
           {createCalendarEvent && (
             <div className="mt-4 pt-4 border-t">
               <Label htmlFor="event-time" className="text-sm">
-                Tid (valfritt)
+                {t('Tid (valfritt)', 'Time (optional)')}
               </Label>
               <div className="flex items-center gap-2 mt-1">
                 <Clock className="h-4 w-4 text-muted-foreground" />
@@ -246,7 +263,7 @@ export function VoiceWorkoutConfirmation({
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <p className="font-medium mb-1">Varningar att notera:</p>
+            <p className="font-medium mb-1">{t('Varningar att notera:', 'Warnings to note:')}</p>
             <ul className="list-disc list-inside text-sm space-y-1">
               {guardrailWarnings.map((warning, i) => (
                 <li key={i}>{warning}</li>
@@ -260,25 +277,29 @@ export function VoiceWorkoutConfirmation({
 
       {/* Summary */}
       <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-        <p className="font-medium">Sammanfattning</p>
+        <p className="font-medium">{t('Sammanfattning', 'Summary')}</p>
         <ul className="text-sm text-muted-foreground space-y-1">
           <li className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            Skapar {generatedWorkout.type.toLowerCase()}-pass: &ldquo;{generatedWorkout.name}&rdquo;
+            {t('Skapar', 'Creating')} {generatedWorkout.type.toLowerCase()}
+            {t('-pass', ' workout')}: &ldquo;{generatedWorkout.name}&rdquo;
           </li>
           <li className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            Tilldelar till {targetInfo.athletes.length} atlet(er)
+            {t(
+              `Tilldelar till ${targetInfo.athletes.length} atlet(er)`,
+              `Assigning to ${targetInfo.athletes.length} athlete(s)`
+            )}
           </li>
           <li className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
-            Datum: {parsedIntent.schedule.resolvedDate}
+            {t('Datum:', 'Date:')} {parsedIntent.schedule.resolvedDate}
           </li>
           {createCalendarEvent && (
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
-              Skapar kalenderhändelse
-              {calendarTime && ` kl ${calendarTime}`}
+              {t('Skapar kalenderhändelse', 'Creating calendar event')}
+              {calendarTime && ` ${t('kl', 'at')} ${calendarTime}`}
             </li>
           )}
         </ul>
@@ -294,19 +315,22 @@ export function VoiceWorkoutConfirmation({
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Skapar pass...
+            {t('Skapar pass...', 'Creating workout...')}
           </>
         ) : (
           <>
             <Send className="h-4 w-4 mr-2" />
-            Bekräfta och skapa pass
+            {t('Bekräfta och skapa pass', 'Confirm and create workout')}
           </>
         )}
       </Button>
 
       {!canConfirm && !isSubmitting && (
         <p className="text-center text-sm text-muted-foreground">
-          Välj mottagare och datum för att fortsätta
+          {t(
+            'Välj mottagare och datum för att fortsätta',
+            'Select a recipient and date to continue'
+          )}
         </p>
       )}
     </div>
