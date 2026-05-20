@@ -9,6 +9,8 @@
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
 interface SocialTriggerData {
   type: 'PR_ACHIEVED' | 'MILESTONE' | 'CHALLENGE_COMPLETE' | 'WEEKLY_SUMMARY'
   clientId: string
@@ -30,6 +32,11 @@ interface SocialTriggerData {
   challengeName?: string
   winnerName?: string
   participantCount?: number
+  locale?: AppLocale
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**
@@ -37,72 +44,76 @@ interface SocialTriggerData {
  * Uses templates for fast, reliable caption generation.
  * Coaches can edit before publishing.
  */
-function generateTemplateCaption(data: SocialTriggerData): string {
+function generateTemplateCaption(data: SocialTriggerData, locale: AppLocale): string {
   const name = data.clientName.split(' ')[0]
 
   switch (data.type) {
     case 'PR_ACHIEVED':
       return [
-        `Nytt personligt rekord! ${name} slog sitt PR i ${data.exerciseName || 'styrkeövning'}`,
-        data.value ? `med ${data.value} ${data.unit || 'kg'}` : '',
-        data.improvement ? `(+${data.improvement}% förbättring)` : '',
+        t(locale, `New personal record! ${name} beat their PR in ${data.exerciseName || 'strength exercise'}`, `Nytt personligt rekord! ${name} slog sitt PR i ${data.exerciseName || 'styrkeövning'}`),
+        data.value ? t(locale, `with ${data.value} ${data.unit || 'kg'}`, `med ${data.value} ${data.unit || 'kg'}`) : '',
+        data.improvement ? t(locale, `(+${data.improvement}% improvement)`, `(+${data.improvement}% förbättring)`) : '',
         '',
-        'Fantastiskt jobbat! Hård träning ger resultat.',
+        t(locale, 'Fantastic work! Hard training pays off.', 'Fantastiskt jobbat! Hård träning ger resultat.'),
         '',
-        '#PR #PersonligtRekord #Styrketräning #GymLife #Träning',
+        t(locale, '#PR #PersonalRecord #StrengthTraining #GymLife #Training', '#PR #PersonligtRekord #Styrketräning #GymLife #Träning'),
       ].filter(Boolean).join(' ').trim()
 
     case 'MILESTONE':
       if (data.milestoneType === 'WORKOUT_COUNT') {
         return [
-          `${name} har genomfört ${data.value} träningspass!`,
+          t(locale, `${name} has completed ${data.value} training sessions!`, `${name} har genomfört ${data.value} träningspass!`),
           '',
-          `Det är konsekvens och dedikation som ger resultat.`,
-          `Grattis till denna milstolpe!`,
+          t(locale, 'Consistency and dedication create results.', 'Det är konsekvens och dedikation som ger resultat.'),
+          t(locale, 'Congratulations on this milestone!', 'Grattis till denna milstolpe!'),
           '',
-          '#Milstolpe #Träning #Konsekvens #GymLife',
+          t(locale, '#Milestone #Training #Consistency #GymLife', '#Milstolpe #Träning #Konsekvens #GymLife'),
         ].join('\n').trim()
       }
       if (data.milestoneType === 'CONSISTENCY_STREAK') {
         return [
-          `${data.value} dagar i rad! ${name} visar vad disciplin handlar om.`,
+          t(locale, `${data.value} days in a row! ${name} shows what discipline is all about.`, `${data.value} dagar i rad! ${name} visar vad disciplin handlar om.`),
           '',
-          'Konsekvens slår allt.',
+          t(locale, 'Consistency beats everything.', 'Konsekvens slår allt.'),
           '',
-          '#Streak #Konsekvens #Träning #Discipline',
+          t(locale, '#Streak #Consistency #Training #Discipline', '#Streak #Konsekvens #Träning #Discipline'),
         ].join('\n').trim()
       }
       if (data.milestoneType === 'TRAINING_ANNIVERSARY') {
         return [
-          `${name} firar ${data.value === 1 ? 'ett år' : `${data.value} år`} av träning med oss!`,
+          t(
+            locale,
+            `${name} is celebrating ${data.value === 1 ? 'one year' : `${data.value} years`} of training with us!`,
+            `${name} firar ${data.value === 1 ? 'ett år' : `${data.value} år`} av träning med oss!`
+          ),
           '',
-          'Tack för ditt engagemang och din dedikation.',
+          t(locale, 'Thank you for your commitment and dedication.', 'Tack för ditt engagemang och din dedikation.'),
           '',
-          '#Jubileum #Träning #GymFamily',
+          t(locale, '#Anniversary #Training #GymFamily', '#Jubileum #Träning #GymFamily'),
         ].join('\n').trim()
       }
-      return data.milestoneTitle || `${name} har nått en ny milstolpe!`
+      return data.milestoneTitle || t(locale, `${name} has reached a new milestone!`, `${name} har nått en ny milstolpe!`)
 
     case 'CHALLENGE_COMPLETE':
       return [
-        `Utmaningen "${data.challengeName}" är avslutad!`,
-        data.winnerName ? `Grattis till ${data.winnerName} som tog hem segern!` : '',
-        data.participantCount ? `${data.participantCount} deltagare kämpade hårt.` : '',
+        t(locale, `The challenge "${data.challengeName}" is complete!`, `Utmaningen "${data.challengeName}" är avslutad!`),
+        data.winnerName ? t(locale, `Congratulations to ${data.winnerName} for taking the win!`, `Grattis till ${data.winnerName} som tog hem segern!`) : '',
+        data.participantCount ? t(locale, `${data.participantCount} participants gave it their all.`, `${data.participantCount} deltagare kämpade hårt.`) : '',
         '',
-        '#Utmaning #Challenge #GymCommunity',
+        t(locale, '#Challenge #GymCommunity #Training', '#Utmaning #Challenge #GymCommunity'),
       ].filter(Boolean).join('\n').trim()
 
     case 'WEEKLY_SUMMARY':
       return [
-        'Veckans sammanfattning!',
-        data.value ? `${data.value} pass genomförda denna vecka.` : '',
-        'Bra jobbat alla!',
+        t(locale, 'Weekly summary!', 'Veckans sammanfattning!'),
+        data.value ? t(locale, `${data.value} sessions completed this week.`, `${data.value} pass genomförda denna vecka.`) : '',
+        t(locale, 'Great work, everyone!', 'Bra jobbat alla!'),
         '',
-        '#VeckansSammanfattning #Träning #GymLife',
+        t(locale, '#WeeklySummary #Training #GymLife', '#VeckansSammanfattning #Träning #GymLife'),
       ].filter(Boolean).join('\n').trim()
 
     default:
-      return `${name} — ${data.milestoneTitle || 'Ny prestation!'}`
+      return `${name} — ${data.milestoneTitle || t(locale, 'New achievement!', 'Ny prestation!')}`
   }
 }
 
@@ -119,6 +130,12 @@ export async function createAutoSocialDraft(data: SocialTriggerData): Promise<st
     })
 
     if (!business?.isActive) return null
+
+    const coachLocale: AppLocale = await prisma.user.findUnique({
+      where: { id: data.coachUserId },
+      select: { language: true },
+    }).then((user) => user?.language === 'sv' ? 'sv' : 'en')
+    const locale = data.locale ?? coachLocale
 
     // Check for recent duplicate (same trigger type + client in last 24h)
     const recentDuplicate = await prisma.socialPost.findFirst({
@@ -138,7 +155,7 @@ export async function createAutoSocialDraft(data: SocialTriggerData): Promise<st
       return null
     }
 
-    const caption = generateTemplateCaption(data)
+    const caption = generateTemplateCaption(data, locale)
 
     const post = await prisma.socialPost.create({
       data: {
