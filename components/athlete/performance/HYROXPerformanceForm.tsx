@@ -14,11 +14,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Flame } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface HYROXPerformanceFormProps {
   clientId: string
   onSuccess?: () => void
   onCancel?: () => void
+}
+
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
 const DIVISIONS = [
@@ -48,6 +59,7 @@ export function HYROXPerformanceForm({
   onSuccess,
   onCancel,
 }: HYROXPerformanceFormProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -168,7 +180,7 @@ export function HYROXPerformanceForm({
     setError(null)
 
     if (!eventDate) {
-      setError('Ange datum')
+      setError(text(locale, 'Ange datum', 'Enter a date'))
       setIsSubmitting(false)
       return
     }
@@ -198,7 +210,7 @@ export function HYROXPerformanceForm({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte spara')
+        throw new Error(data.error || text(locale, 'Kunde inte spara', 'Could not save'))
       }
 
       if (onSuccess) {
@@ -207,7 +219,7 @@ export function HYROXPerformanceForm({
         router.refresh()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : text(locale, 'Ett fel uppstod', 'An error occurred'))
     } finally {
       setIsSubmitting(false)
     }
@@ -217,7 +229,7 @@ export function HYROXPerformanceForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center gap-2 text-orange-600 mb-4">
         <Flame className="h-5 w-5" />
-        <span className="font-medium">HYROX - Prestationslogg</span>
+        <span className="font-medium">{text(locale, 'HYROX - Prestationslogg', 'HYROX - Performance log')}</span>
       </div>
 
       {/* Division & Date */}
@@ -239,7 +251,7 @@ export function HYROXPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Datum *</Label>
+          <Label>{text(locale, 'Datum *', 'Date *')}</Label>
           <Input
             type="date"
             value={eventDate}
@@ -251,7 +263,7 @@ export function HYROXPerformanceForm({
 
       {/* Event Name */}
       <div className="space-y-2">
-        <Label>Tävlingsnamn</Label>
+        <Label>{text(locale, 'Tävlingsnamn', 'Event name')}</Label>
         <Input
           placeholder="HYROX Stockholm, HYROX World Championships..."
           value={eventName}
@@ -261,10 +273,10 @@ export function HYROXPerformanceForm({
 
       {/* Total Time */}
       <div className="p-4 bg-orange-50 rounded-lg space-y-3">
-        <Label className="text-orange-800 font-medium">⏱️ Total tid</Label>
+        <Label className="text-orange-800 font-medium">{text(locale, '⏱️ Total tid', '⏱️ Total time')}</Label>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground">Timmar</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Timmar', 'Hours')}</Label>
             <Input
               type="number"
               min="0"
@@ -274,7 +286,7 @@ export function HYROXPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Minuter</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
             <Input
               type="number"
               min="0"
@@ -285,7 +297,7 @@ export function HYROXPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Sekunder</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
             <Input
               type="number"
               min="0"
@@ -300,7 +312,7 @@ export function HYROXPerformanceForm({
 
       {/* Station Times */}
       <div className="space-y-3">
-        <Label className="font-medium">Stationstider (valfritt)</Label>
+        <Label className="font-medium">{text(locale, 'Stationstider (valfritt)', 'Station times (optional)')}</Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {STATIONS.map((station) => (
             <div key={station.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
@@ -308,7 +320,7 @@ export function HYROXPerformanceForm({
               <Input
                 type="number"
                 min="0"
-                placeholder="min"
+                placeholder={text(locale, 'min', 'min')}
                 className="w-16 h-8 text-sm"
                 value={stationTimes[station.id].min}
                 onChange={(e) => updateStationTime(station.id, 'min', e.target.value)}
@@ -318,7 +330,7 @@ export function HYROXPerformanceForm({
                 type="number"
                 min="0"
                 max="59"
-                placeholder="sek"
+                placeholder={text(locale, 'sek', 'sec')}
                 className="w-16 h-8 text-sm"
                 value={stationTimes[station.id].sec}
                 onChange={(e) => updateStationTime(station.id, 'sec', e.target.value)}
@@ -328,14 +340,14 @@ export function HYROXPerformanceForm({
         </div>
         {totalStationTime() > 0 && (
           <p className="text-sm text-muted-foreground">
-            Total stationstid: <strong>{formatTime(totalStationTime())}</strong>
+            {text(locale, 'Total stationstid', 'Total station time')}: <strong>{formatTime(totalStationTime())}</strong>
           </p>
         )}
       </div>
 
       {/* Run Splits */}
       <div className="space-y-3">
-        <Label className="font-medium">Löpsplits 8 x 1km (valfritt)</Label>
+        <Label className="font-medium">{text(locale, 'Löpsplits 8 x 1km (valfritt)', 'Run splits 8 x 1km (optional)')}</Label>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {runSplits.map((split, index) => (
             <div key={index} className="flex items-center gap-1 p-2 bg-green-50 rounded">
@@ -363,8 +375,8 @@ export function HYROXPerformanceForm({
         </div>
         {totalRunTime() > 0 && (
           <p className="text-sm text-muted-foreground">
-            Total löptid: <strong>{formatTime(totalRunTime())}</strong>
-            {' '}(snitt {formatTime(Math.round(totalRunTime() / 8))}/km)
+            {text(locale, 'Total löptid', 'Total run time')}: <strong>{formatTime(totalRunTime())}</strong>
+            {' '}({text(locale, 'snitt', 'avg')} {formatTime(Math.round(totalRunTime() / 8))}/km)
           </p>
         )}
       </div>
@@ -372,7 +384,7 @@ export function HYROXPerformanceForm({
       {/* Heart Rate */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Snitt puls</Label>
+          <Label>{text(locale, 'Snitt puls', 'Average heart rate')}</Label>
           <Input
             type="number"
             placeholder="165"
@@ -381,7 +393,7 @@ export function HYROXPerformanceForm({
           />
         </div>
         <div className="space-y-2">
-          <Label>Max puls</Label>
+          <Label>{text(locale, 'Max puls', 'Max heart rate')}</Label>
           <Input
             type="number"
             placeholder="185"
@@ -393,9 +405,9 @@ export function HYROXPerformanceForm({
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label>Anteckningar</Label>
+        <Label>{text(locale, 'Anteckningar', 'Notes')}</Label>
         <Textarea
-          placeholder="Svaga stationer, taktik, förbättringar..."
+          placeholder={text(locale, 'Svaga stationer, taktik, förbättringar...', 'Weak stations, tactics, improvements...')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
@@ -412,17 +424,17 @@ export function HYROXPerformanceForm({
       <div className="flex justify-end gap-3">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Avbryt
+            {text(locale, 'Avbryt', 'Cancel')}
           </Button>
         )}
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {text(locale, 'Sparar...', 'Saving...')}
             </>
           ) : (
-            'Spara resultat'
+            text(locale, 'Spara resultat', 'Save result')
           )}
         </Button>
       </div>
