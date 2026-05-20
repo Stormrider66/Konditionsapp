@@ -3,11 +3,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Trophy,
   Timer,
-  Target,
   TrendingUp,
   Zap,
   Activity,
@@ -28,49 +27,165 @@ interface BasketballDashboardProps {
   settings: BasketballSettings
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  point_guard: 'Playmaker (1)',
-  shooting_guard: 'Shooting Guard (2)',
-  small_forward: 'Small Forward (3)',
-  power_forward: 'Power Forward (4)',
-  center: 'Center (5)',
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const text = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const ENGLISH_PHRASES: Record<string, string> = {
+  'Spelets regissör som styr tempo och skapar chanser. Kräver utmärkt spelförståelse, bollkontroll och uthållighet.': 'The floor general who controls tempo and creates chances. Requires excellent court vision, ball control, and endurance.',
+  'Primär poänggörare från distans. Kräver explosivitet för att skapa skottlägen och god uthållighet för konstant rörelse.': 'Primary perimeter scorer. Requires explosiveness to create shot opportunities and strong endurance for constant movement.',
+  'Allsidig spelare som bidrar i både anfall och försvar. Kombinerar guard-liknande rörlighet med forward-styrka.': 'Versatile player who contributes on offense and defense. Combines guard-like mobility with forward strength.',
+  'Fysisk spelare som dominerar i målarområdet. Kräver explosiv styrka och förmåga att spela fysiskt.': 'Physical player who dominates in the paint. Requires explosive strength and the ability to play through contact.',
+  'Lagets ankar i målarområdet. Fokus på rim protection, rebounds och inomhuspoäng. Kräver maximal styrka och vertikal kraft.': 'The team anchor in the paint. Focuses on rim protection, rebounds, and inside scoring. Requires maximal strength and vertical power.',
+  Snabbhet: 'Speed',
+  Kvickhet: 'Agility',
+  Uthållighet: 'Endurance',
+  Reaktionsförmåga: 'Reaction ability',
+  Acceleration: 'Acceleration',
+  'Vertikal hoppförmåga': 'Vertical jump ability',
+  'Core-stabilitet': 'Core stability',
+  Skottuthållighet: 'Shooting endurance',
+  'Allsidig atletik': 'All-around athleticism',
+  Styrka: 'Strength',
+  'Explosiv styrka': 'Explosive strength',
+  Kroppskontroll: 'Body control',
+  Reboundförmåga: 'Rebounding ability',
+  'Core-styrka': 'Core strength',
+  Maxstyrka: 'Maximum strength',
+  'Vertikal kraft': 'Vertical power',
+  Kroppsmassa: 'Body mass',
+  Timing: 'Timing',
+  Fotarbete: 'Footwork',
+  Explosivitet: 'Explosiveness',
+  'Aerob bas': 'Aerobic base',
+  Skadeförebyggande: 'Injury prevention',
+  Teknikutveckling: 'Technique development',
+  'Basketballspecifik kondition': 'Basketball-specific conditioning',
+  Power: 'Power',
+  Matchhärdighet: 'Match durability',
+  Taktik: 'Tactics',
+  Lagsamspel: 'Team play',
+  Styrkeunderhåll: 'Strength maintenance',
+  Återhämtning: 'Recovery',
+  Matchprestation: 'Match performance',
+  Skadeprevention: 'Injury prevention',
+  'Maximal återhämtning': 'Maximal recovery',
+  'Mental förberedelse': 'Mental preparation',
+  'Taktisk perfektion': 'Tactical precision',
+  'Peak performance': 'Peak performance',
+  'Hypertrofi och maxstyrka med fokus på compound-lyft': 'Hypertrophy and maximum strength with a focus on compound lifts',
+  'Aerob basträning och gradvis uppbyggnad av intensitet': 'Aerobic base training and gradual intensity build-up',
+  'Kraftutveckling och power med basketballspecifika rörelser': 'Power development with basketball-specific movements',
+  'Högintensiv intervallträning och spelliknande övningar': 'High-intensity interval training and game-like drills',
+  'Underhåll av styrka med låg volym, hög intensitet': 'Strength maintenance with low volume and high intensity',
+  'Matchspecifik kondition genom träning och matcher': 'Match-specific conditioning through practices and games',
+  'Minimalt underhåll för att bevara explosivitet': 'Minimal maintenance to preserve explosiveness',
+  'Endast matchspecifik aktivitet och aktiv återhämtning': 'Only match-specific activity and active recovery',
+  Balans: 'Balance',
+  Mobilitet: 'Mobility',
+  Stabilitet: 'Stability',
+  Rehab: 'Rehab',
+  Kontroll: 'Control',
+  Core: 'Core',
+  Rotatorkuff: 'Rotator cuff',
+  Excentrisk: 'Eccentric',
+  Plyometrics: 'Plyometrics',
+  Kondition: 'Conditioning',
+  Teknik: 'Technique',
+  '3x30s per ben': '3x30s per leg',
+  '2 set per fot': '2 sets per foot',
+  '3x15 per ben': '3x15 per leg',
+  '3x12 per riktning': '3x12 per direction',
+  '3x8 per ben': '3x8 per leg',
+  '3x10 per ben': '3x10 per leg',
+  '3x10 per sida': '3x10 per side',
+  '3x12 per sida': '3x12 per side',
+  '3x12 per arm': '3x12 per arm',
+  '2x8 per position': '2x8 per position',
+  '3x8 per sida': '3x8 per side',
+  'Progression: blunda, instabil yta': 'Progression: eyes closed, unstable surface',
+  'Rita alla bokstäver i luften': 'Draw every letter in the air',
+  'Full ROM, kontrollerad excentrisk fas': 'Full ROM, controlled eccentric phase',
+  'Håll knäna över tårna': 'Keep knees tracking over toes',
+  'Kontrollerad excentrisk fas': 'Controlled eccentric phase',
+  'Fokus på knäkontroll': 'Focus on knee control',
+  'Med band runt knät': 'With band around the knee',
+  'Långsam kontrollerad rörelse': 'Slow controlled movement',
+  'Håll neutral rygg': 'Keep a neutral spine',
+  'Pressa ländryggen mot golvet': 'Press the lower back into the floor',
+  'Långsamma kontrollerade rörelser': 'Slow controlled movements',
+  'Full höftextension': 'Full hip extension',
+  'Drag ihop skulderbladen': 'Squeeze the shoulder blades together',
+  'Med band eller lätt vikt': 'With a band or light weight',
+  'Fokus på bakre deltoid': 'Focus on the rear deltoid',
+  'Liggande på mage': 'Prone position',
+  'Vid 70 graders knävinkel': 'At a 70-degree knee angle',
+  'Med band runt knäna': 'With band around the knees',
+  'Långsam excentrisk fas': 'Slow eccentric phase',
+  '3s upp, 3s ner': '3s up, 3s down',
+  'Fokus på snabb riktningsändring': 'Focus on quick changes of direction',
+  'Med visuella signaler': 'With visual cues',
+  'Variera fotsteg': 'Vary footwork',
+  'Fokus på maximal höjd': 'Focus on maximum height',
+  'Full kropp explosivitet': 'Full-body explosiveness',
+  'Fullplans sprints': 'Full-court sprints',
+  'Fokus på maxstyrka': 'Focus on maximum strength',
+  'Minimal markkontakttid': 'Minimal ground-contact time',
+  'Drop steps och pivots': 'Drop steps and pivots',
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  playoffs: 'Slutspel',
+const phrase = (locale: AppLocale, value: string) => (
+  locale === 'sv' ? value : ENGLISH_PHRASES[value] ?? value
+)
+
+const POSITION_LABELS: Record<string, Record<AppLocale, string>> = {
+  point_guard: { sv: 'Playmaker (1)', en: 'Point Guard (1)' },
+  shooting_guard: { sv: 'Shooting Guard (2)', en: 'Shooting Guard (2)' },
+  small_forward: { sv: 'Small Forward (3)', en: 'Small Forward (3)' },
+  power_forward: { sv: 'Power Forward (4)', en: 'Power Forward (4)' },
+  center: { sv: 'Center (5)', en: 'Center (5)' },
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Korpen/Motion',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  basketligan: 'Basketligan',
-  sbl: 'SBL',
+const PHASE_LABELS: Record<string, Record<AppLocale, string>> = {
+  off_season: { sv: 'Off-season', en: 'Off-season' },
+  pre_season: { sv: 'Försäsong', en: 'Pre-season' },
+  in_season: { sv: 'Säsong', en: 'In-season' },
+  playoffs: { sv: 'Slutspel', en: 'Playoffs' },
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  vertical_jump: 'Vertikal hoppförmåga',
-  speed: 'Snabbhet',
-  agility: 'Kvickhet',
-  strength: 'Styrka',
-  endurance: 'Uthållighet',
-  shooting: 'Skottförmåga',
-  court_vision: 'Spelförståelse',
-  defense: 'Försvarsspel',
+const LEAGUE_LABELS: Record<string, Record<AppLocale, string>> = {
+  recreational: { sv: 'Korpen/Motion', en: 'Recreational' },
+  division_3: { sv: 'Division 3', en: 'Division 3' },
+  division_2: { sv: 'Division 2', en: 'Division 2' },
+  division_1: { sv: 'Division 1', en: 'Division 1' },
+  basketligan: { sv: 'Basketligan', en: 'Basketligan' },
+  sbl: { sv: 'SBL', en: 'SBL' },
+}
+
+const STRENGTH_LABELS: Record<string, Record<AppLocale, string>> = {
+  vertical_jump: { sv: 'Vertikal hoppförmåga', en: 'Vertical jump ability' },
+  speed: { sv: 'Snabbhet', en: 'Speed' },
+  agility: { sv: 'Kvickhet', en: 'Agility' },
+  strength: { sv: 'Styrka', en: 'Strength' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  shooting: { sv: 'Skottförmåga', en: 'Shooting ability' },
+  court_vision: { sv: 'Spelförståelse', en: 'Court vision' },
+  defense: { sv: 'Försvarsspel', en: 'Defense' },
 }
 
 export function BasketballDashboard({ settings }: BasketballDashboardProps) {
+  const locale = getAppLocale(useLocale())
   const t = useTranslations('components.athleteDashboard')
 
   if (!settings) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Basket</CardTitle>
+          <CardTitle>{text(locale, 'Basket', 'Basketball')}</CardTitle>
           <CardDescription>
             {t('basketballNoSettings')}
           </CardDescription>
@@ -138,17 +253,17 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-orange-500" />
-                {settings.teamName || 'Basket'}
+                {settings.teamName || text(locale, 'Basket', 'Basketball')}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2">
-                <Badge variant="outline">{POSITION_LABELS[position]}</Badge>
-                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]}</Badge>
-                <Badge className="bg-orange-500">{PHASE_LABELS[settings.seasonPhase]}</Badge>
+                <Badge variant="outline">{POSITION_LABELS[position]?.[locale]}</Badge>
+                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]?.[locale]}</Badge>
+                <Badge className="bg-orange-500">{PHASE_LABELS[settings.seasonPhase]?.[locale]}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold">{settings.yearsPlaying}</div>
-              <div className="text-xs text-muted-foreground">års erfarenhet</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'års erfarenhet', 'years experience')}</div>
             </div>
           </div>
         </CardHeader>
@@ -162,17 +277,17 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
             <div className="text-center">
               <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
               <div className="text-lg font-bold">{settings.matchesPerWeek}</div>
-              <div className="text-xs text-muted-foreground">matcher/v</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'matcher/v', 'matches/wk')}</div>
             </div>
             <div className="text-center">
               <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
               <div className="text-lg font-bold">{settings.weeklyTrainingSessions}</div>
-              <div className="text-xs text-muted-foreground">träning/v</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'träning/v', 'sessions/wk')}</div>
             </div>
             <div className="text-center">
               <Ruler className="h-4 w-4 mx-auto mb-1 text-purple-500" />
               <div className="text-lg font-bold">{settings.height ?? '-'}</div>
-              <div className="text-xs text-muted-foreground">cm längd</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'cm längd', 'cm height')}</div>
             </div>
           </div>
         </CardContent>
@@ -183,29 +298,29 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Calendar className="h-4 w-4" />
-            {PHASE_LABELS[settings.seasonPhase]} - Träningsfokus
+            {PHASE_LABELS[settings.seasonPhase]?.[locale]} - {text(locale, 'Träningsfokus', 'Training focus')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div>
-              <h4 className="text-sm font-medium mb-2">Fokusområden:</h4>
+              <h4 className="text-sm font-medium mb-2">{text(locale, 'Fokusområden:', 'Focus areas:')}</h4>
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
-                    {item}
+                    {phrase(locale, item)}
                   </Badge>
                 ))}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Styrka</div>
-                <div className="text-sm">{seasonPhase.strengthEmphasis}</div>
+                <div className="text-xs text-muted-foreground mb-1">{text(locale, 'Styrka', 'Strength')}</div>
+                <div className="text-sm">{phrase(locale, seasonPhase.strengthEmphasis)}</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Kondition</div>
-                <div className="text-sm">{seasonPhase.conditioningEmphasis}</div>
+                <div className="text-xs text-muted-foreground mb-1">{text(locale, 'Kondition', 'Conditioning')}</div>
+                <div className="text-sm">{phrase(locale, seasonPhase.conditioningEmphasis)}</div>
               </div>
             </div>
           </div>
@@ -217,16 +332,16 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="h-4 w-4 text-red-500" />
-            Fysiska tester - {POSITION_LABELS[position]}
+            {text(locale, 'Fysiska tester', 'Physical tests')} - {POSITION_LABELS[position]?.[locale]}
           </CardTitle>
-          <CardDescription>Dina resultat jämfört med elitnivå</CardDescription>
+          <CardDescription>{text(locale, 'Dina resultat jämfört med elitnivå', 'Your results compared with elite level')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {/* Vertical Jump */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Vertikalhopp</span>
+                <span>{text(locale, 'Vertikalhopp', 'Vertical jump')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.verticalJump,
                   benchmarks.elite.verticalJump!,
@@ -239,7 +354,7 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.verticalJump, benchmarks.elite.verticalJump!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.verticalJump} cm</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.verticalJump} cm</div>
             </div>
 
             {/* 3/4 Court Sprint */}
@@ -259,7 +374,7 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.sprint3_4Court, benchmarks.elite.sprint3_4Court!, true) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.sprint3_4Court} s</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.sprint3_4Court} s</div>
             </div>
 
             {/* Lane Agility */}
@@ -279,13 +394,13 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.laneAgility, benchmarks.elite.laneAgility!, true) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.laneAgility} s</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.laneAgility} s</div>
             </div>
 
             {/* Bench Press */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Bänkpress</span>
+                <span>{text(locale, 'Bänkpress', 'Bench press')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.benchPress,
                   benchmarks.elite.benchPress!,
@@ -298,13 +413,13 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.benchPress, benchmarks.elite.benchPress!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.benchPress} kg</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.benchPress} kg</div>
             </div>
 
             {/* Squat */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Knäböj</span>
+                <span>{text(locale, 'Knäböj', 'Squat')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.squat,
                   benchmarks.elite.squat!,
@@ -317,7 +432,7 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.squat, benchmarks.elite.squat!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.squat} kg</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.squat} kg</div>
             </div>
 
             {/* Yo-Yo IR1 */}
@@ -336,7 +451,7 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.yoyoIR1Level, benchmarks.elite.yoyoIR1Level!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.yoyoIR1Level}</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.yoyoIR1Level}</div>
             </div>
           </div>
         </CardContent>
@@ -347,14 +462,14 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4" />
-            Positionsprofil: {positionProfile.displayName}
+            {text(locale, 'Positionsprofil:', 'Position profile:')} {POSITION_LABELS[position]?.[locale]}
           </CardTitle>
-          <CardDescription>{positionProfile.description}</CardDescription>
+          <CardDescription>{phrase(locale, positionProfile.description)}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Matchdistans</div>
+              <div className="text-sm text-muted-foreground mb-1">{text(locale, 'Matchdistans', 'Match distance')}</div>
               <div className="font-medium">
                 {positionProfile.avgMatchDistanceKm.min}-{positionProfile.avgMatchDistanceKm.max} km
               </div>
@@ -366,13 +481,13 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
               </div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Hopp/match</div>
+              <div className="text-sm text-muted-foreground mb-1">{text(locale, 'Hopp/match', 'Jumps/match')}</div>
               <div className="font-medium">
                 {positionProfile.avgJumpsPerMatch.min}-{positionProfile.avgJumpsPerMatch.max}
               </div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Speltid</div>
+              <div className="text-sm text-muted-foreground mb-1">{text(locale, 'Speltid', 'Playing time')}</div>
               <div className="font-medium">
                 {positionProfile.avgMinutesPerMatch.min}-{positionProfile.avgMinutesPerMatch.max} min
               </div>
@@ -380,11 +495,11 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
           </div>
 
           <div className="mt-4">
-            <div className="text-sm font-medium mb-2">Nyckelegenskaper:</div>
+            <div className="text-sm font-medium mb-2">{text(locale, 'Nyckelegenskaper:', 'Key attributes:')}</div>
             <div className="flex flex-wrap gap-1">
               {positionProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
-                  {attr}
+                  {phrase(locale, attr)}
                 </Badge>
               ))}
             </div>
@@ -397,9 +512,9 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Dumbbell className="h-4 w-4" />
-            Rekommenderade övningar
+            {text(locale, 'Rekommenderade övningar', 'Recommended exercises')}
           </CardTitle>
-          <CardDescription>Baserat på din position och skadehistorik</CardDescription>
+          <CardDescription>{text(locale, 'Baserat på din position och skadehistorik', 'Based on your position and injury history')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -407,14 +522,14 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
               <div key={i} className="p-3 border rounded-lg">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium text-sm">{exercise.name}</div>
-                    <div className="text-xs text-muted-foreground">{exercise.setsReps}</div>
+                    <div className="font-medium text-sm">{phrase(locale, exercise.name)}</div>
+                    <div className="text-xs text-muted-foreground">{phrase(locale, exercise.setsReps)}</div>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {exercise.category}
+                    {phrase(locale, exercise.category)}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">{exercise.notes}</div>
+                <div className="text-xs text-muted-foreground mt-2">{phrase(locale, exercise.notes)}</div>
               </div>
             ))}
           </div>
@@ -427,14 +542,14 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Zap className="h-4 w-4 text-yellow-500" />
-              Dina styrkor
+              {text(locale, 'Dina styrkor', 'Your strengths')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {settings.strengthFocus.map((strength) => (
                 <Badge key={strength} variant="secondary">
-                  {STRENGTH_LABELS[strength] || strength}
+                  {STRENGTH_LABELS[strength]?.[locale] || strength}
                 </Badge>
               ))}
             </div>
