@@ -1,14 +1,14 @@
 'use client'
 
 /**
- * AddPlayersDialog — add players to a team from two sources in the same modal.
+ * AddPlayersDialog - add players to a team from two sources in the same modal.
  *
- *   Tab 1 "Befintliga"  → multiselect among the coach's clients, attach via
+ *   Tab 1 "Existing" - multiselect among the coach's clients, attach via
  *                         POST /api/coach/teams/[teamId]/members
- *   Tab 2 "Ny spelare"  → one quick-new form (name, jersey, position, email),
+ *   Tab 2 "New player" - one quick-new form (name, jersey, position, email),
  *                         POST /api/coach/teams/[teamId]/members/bulk with 1 row
  *
- * The bulk import drop-zone lives on its own page — this modal intentionally
+ * The bulk import drop-zone lives on its own page - this modal intentionally
  * stays small and keyboard-friendly for the common cases.
  */
 
@@ -37,6 +37,11 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Upload, Users } from 'lucide-react'
+import { useLocale } from 'next-intl'
+
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface ClientLite {
   id: string
@@ -62,6 +67,7 @@ export function AddPlayersDialog({
   importPath,
   trigger,
 }: AddPlayersDialogProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const { toast } = useToast()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -156,17 +162,17 @@ export function AddPlayersDialog({
         body: JSON.stringify({ clientIds: Array.from(selected) }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Kunde inte lägga till spelare')
+      if (!res.ok) throw new Error(data?.error || copy(locale, 'Could not add players', 'Kunde inte lägga till spelare'))
       toast({
-        title: `${data.attached} spelare tillagda`,
-        description: `Lades till i ${teamName}`,
+        title: copy(locale, `${data.attached} players added`, `${data.attached} spelare tillagda`),
+        description: copy(locale, `Added to ${teamName}`, `Lades till i ${teamName}`),
       })
       setOpen(false)
       router.refresh()
     } catch (e) {
       toast({
-        title: 'Fel',
-        description: e instanceof Error ? e.message : 'Okänt fel',
+        title: copy(locale, 'Error', 'Fel'),
+        description: e instanceof Error ? e.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -177,7 +183,7 @@ export function AddPlayersDialog({
   const handleCreateNew = async () => {
     const name = newName.trim()
     if (name.length < 2) {
-      toast({ title: 'Namn krävs', variant: 'destructive' })
+      toast({ title: copy(locale, 'Name is required', 'Namn krävs'), variant: 'destructive' })
       return
     }
     setCreating(true)
@@ -193,14 +199,14 @@ export function AddPlayersDialog({
         body: JSON.stringify({ rows: [row] }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Kunde inte skapa spelare')
+      if (!res.ok) throw new Error(data?.error || copy(locale, 'Could not create player', 'Kunde inte skapa spelare'))
 
       const created = data.summary?.created ?? 0
       if (created === 0) {
-        const why = data.results?.[0]?.reason ?? 'Okänt fel'
+        const why = data.results?.[0]?.reason ?? copy(locale, 'Unknown error', 'Okänt fel')
         throw new Error(why)
       }
-      toast({ title: 'Spelare tillagd', description: `${name} lades till i ${teamName}` })
+      toast({ title: copy(locale, 'Player added', 'Spelare tillagd'), description: copy(locale, `${name} was added to ${teamName}`, `${name} lades till i ${teamName}`) })
       setNewName('')
       setNewJersey('')
       setNewPosition('')
@@ -209,8 +215,8 @@ export function AddPlayersDialog({
       router.refresh()
     } catch (e) {
       toast({
-        title: 'Fel',
-        description: e instanceof Error ? e.message : 'Okänt fel',
+        title: copy(locale, 'Error', 'Fel'),
+        description: e instanceof Error ? e.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -225,27 +231,27 @@ export function AddPlayersDialog({
       ) : (
         <Button variant="outline" onClick={() => handleOpenChange(true)}>
           <Users className="mr-2 h-4 w-4" />
-          Lägg till spelare
+          {copy(locale, 'Add players', 'Lägg till spelare')}
         </Button>
       )}
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Lägg till spelare i {teamName}</DialogTitle>
+          <DialogTitle>{copy(locale, 'Add players to', 'Lägg till spelare i')} {teamName}</DialogTitle>
           <DialogDescription>
-            Välj befintliga atleter eller lägg till en ny direkt. För större listor — importera från Excel/text.
+            {copy(locale, 'Choose existing athletes or add a new one directly. For larger lists, import from Excel/text.', 'Välj befintliga atleter eller lägg till en ny direkt. För större listor, importera från Excel/text.')}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as 'existing' | 'new')}>
           <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="existing">Befintliga atleter</TabsTrigger>
-            <TabsTrigger value="new">Ny spelare</TabsTrigger>
+            <TabsTrigger value="existing">{copy(locale, 'Existing athletes', 'Befintliga atleter')}</TabsTrigger>
+            <TabsTrigger value="new">{copy(locale, 'New player', 'Ny spelare')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="existing" className="space-y-3 pt-4">
             <div className="flex gap-2">
               <Input
-                placeholder="Sök..."
+                placeholder={copy(locale, 'Search...', 'Sök...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="flex-1"
@@ -255,8 +261,8 @@ export function AddPlayersDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unassigned">Utan lag</SelectItem>
-                  <SelectItem value="all">Alla atleter</SelectItem>
+                  <SelectItem value="unassigned">{copy(locale, 'Without team', 'Utan lag')}</SelectItem>
+                  <SelectItem value="all">{copy(locale, 'All athletes', 'Alla atleter')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -265,13 +271,13 @@ export function AddPlayersDialog({
               {loadingClients ? (
                 <div className="p-6 text-center text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                  Laddar...
+                  {copy(locale, 'Loading...', 'Laddar...')}
                 </div>
               ) : visibleClients.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted-foreground">
                   {filter === 'unassigned'
-                    ? 'Inga atleter utan lag hittades.'
-                    : 'Inga atleter hittades.'}
+                    ? copy(locale, 'No athletes without a team found.', 'Inga atleter utan lag hittades.')
+                    : copy(locale, 'No athletes found.', 'Inga atleter hittades.')}
                 </div>
               ) : (
                 <ul className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -292,13 +298,13 @@ export function AddPlayersDialog({
                           <div className="min-w-0">
                             <div className="font-medium truncate">{c.name}</div>
                             <div className="text-xs text-muted-foreground truncate">
-                              {[c.email, c.position].filter(Boolean).join(' · ') || '—'}
+                              {[c.email, c.position].filter(Boolean).join(' - ') || '-'}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             {c.jerseyNumber != null && <span>#{c.jerseyNumber}</span>}
                             {inThisTeam ? (
-                              <span className="text-green-600">I detta lag</span>
+                              <span className="text-green-600">{copy(locale, 'In this team', 'I detta lag')}</span>
                             ) : c.team ? (
                               <span>{c.team.name}</span>
                             ) : null}
@@ -312,13 +318,13 @@ export function AddPlayersDialog({
             </div>
 
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{selected.size} valda</span>
+              <span>{selected.size} {copy(locale, 'selected', 'valda')}</span>
               <Link
                 href={importPath}
                 className="flex items-center gap-1 hover:underline text-blue-600"
               >
                 <Upload className="h-3.5 w-3.5" />
-                Importera från Excel/text/PDF
+                {copy(locale, 'Import from Excel/text/PDF', 'Importera från Excel/text/PDF')}
               </Link>
             </div>
           </TabsContent>
@@ -327,17 +333,17 @@ export function AddPlayersDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
                 <Label htmlFor="new-name">
-                  Namn <span className="text-red-500">*</span>
+                  {copy(locale, 'Name', 'Namn')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="new-name"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Förnamn Efternamn"
+                  placeholder={copy(locale, 'First Last', 'Förnamn Efternamn')}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="new-jersey">Tröjnummer</Label>
+                <Label htmlFor="new-jersey">{copy(locale, 'Jersey number', 'Tröjnummer')}</Label>
                 <Input
                   id="new-jersey"
                   type="number"
@@ -354,11 +360,11 @@ export function AddPlayersDialog({
                   id="new-position"
                   value={newPosition}
                   onChange={(e) => setNewPosition(e.target.value)}
-                  placeholder="Center, Back, Målvakt..."
+                  placeholder={copy(locale, 'Center, defense, goalkeeper...', 'Center, Back, Målvakt...')}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="new-email">E-post</Label>
+                <Label htmlFor="new-email">{copy(locale, 'Email', 'E-post')}</Label>
                 <Input
                   id="new-email"
                   type="email"
@@ -368,28 +374,27 @@ export function AddPlayersDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="new-gender">Kön</Label>
+                <Label htmlFor="new-gender">{copy(locale, 'Gender', 'Kön')}</Label>
                 <Select value={newGender} onValueChange={(v) => setNewGender(v as 'MALE' | 'FEMALE')}>
                   <SelectTrigger id="new-gender">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MALE">Man</SelectItem>
-                    <SelectItem value="FEMALE">Kvinna</SelectItem>
+                    <SelectItem value="MALE">{copy(locale, 'Male', 'Man')}</SelectItem>
+                    <SelectItem value="FEMALE">{copy(locale, 'Female', 'Kvinna')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Vikt, längd och födelsedatum kan fyllas i senare — krävs bara för fysiologiska beräkningar.
-              Om e-post anges skapas ett atletkonto automatiskt.
+              {copy(locale, 'Weight, height, and birth date can be filled in later - they are only required for physiological calculations. If email is provided, an athlete account is created automatically.', 'Vikt, längd och födelsedatum kan fyllas i senare - krävs bara för fysiologiska beräkningar. Om e-post anges skapas ett atletkonto automatiskt.')}
             </p>
           </TabsContent>
         </Tabs>
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Avbryt
+            {copy(locale, 'Cancel', 'Avbryt')}
           </Button>
           {tab === 'existing' ? (
             <Button
@@ -397,12 +402,12 @@ export function AddPlayersDialog({
               disabled={selected.size === 0 || attaching}
             >
               {attaching && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Lägg till {selected.size > 0 ? `(${selected.size})` : ''}
+              {copy(locale, 'Add', 'Lägg till')} {selected.size > 0 ? `(${selected.size})` : ''}
             </Button>
           ) : (
             <Button onClick={handleCreateNew} disabled={creating || newName.trim().length < 2}>
               {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Skapa spelare
+              {copy(locale, 'Create player', 'Skapa spelare')}
             </Button>
           )}
         </DialogFooter>
