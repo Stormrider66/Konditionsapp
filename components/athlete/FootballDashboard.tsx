@@ -2,8 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Shield,
   Timer,
@@ -18,7 +17,6 @@ import {
   MapPin,
   Activity,
 } from 'lucide-react'
-import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { FootballSettings } from '@/components/onboarding/FootballOnboarding'
 import { MatchScheduleWidget } from './MatchScheduleWidget'
 
@@ -38,87 +36,95 @@ interface GPSMatchData {
   minutesPlayed: number
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  goalkeeper: 'Målvakt',
-  defender: 'Försvarare',
-  midfielder: 'Mittfältare',
-  forward: 'Anfallare',
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const text = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const POSITION_LABELS: Record<string, Record<AppLocale, string>> = {
+  goalkeeper: { sv: 'Målvakt', en: 'Goalkeeper' },
+  defender: { sv: 'Försvarare', en: 'Defender' },
+  midfielder: { sv: 'Mittfältare', en: 'Midfielder' },
+  forward: { sv: 'Anfallare', en: 'Forward' },
 }
 
-const POSITION_DETAIL_LABELS: Record<string, string> = {
-  goalkeeper: 'Målvakt',
-  center_back: 'Mittback',
-  left_back: 'Vänsterback',
-  right_back: 'Högerback',
-  wing_back: 'Wingback',
-  sweeper: 'Libero',
-  defensive_mid: 'Defensiv mittfältare',
-  central_mid: 'Central mittfältare',
-  attacking_mid: 'Offensiv mittfältare',
-  left_mid: 'Vänster mittfältare',
-  right_mid: 'Höger mittfältare',
-  striker: 'Nia/Striker',
-  left_winger: 'Vänsterytter',
-  right_winger: 'Högerytter',
-  false_nine: 'Falsk nia',
-  second_striker: 'Andraspets',
+const POSITION_DETAIL_LABELS: Record<string, Record<AppLocale, string>> = {
+  goalkeeper: { sv: 'Målvakt', en: 'Goalkeeper' },
+  center_back: { sv: 'Mittback', en: 'Center back' },
+  left_back: { sv: 'Vänsterback', en: 'Left back' },
+  right_back: { sv: 'Högerback', en: 'Right back' },
+  wing_back: { sv: 'Wingback', en: 'Wingback' },
+  sweeper: { sv: 'Libero', en: 'Sweeper' },
+  defensive_mid: { sv: 'Defensiv mittfältare', en: 'Defensive midfielder' },
+  central_mid: { sv: 'Central mittfältare', en: 'Central midfielder' },
+  attacking_mid: { sv: 'Offensiv mittfältare', en: 'Attacking midfielder' },
+  left_mid: { sv: 'Vänster mittfältare', en: 'Left midfielder' },
+  right_mid: { sv: 'Höger mittfältare', en: 'Right midfielder' },
+  striker: { sv: 'Nia/Striker', en: 'Striker' },
+  left_winger: { sv: 'Vänsterytter', en: 'Left winger' },
+  right_winger: { sv: 'Högerytter', en: 'Right winger' },
+  false_nine: { sv: 'Falsk nia', en: 'False nine' },
+  second_striker: { sv: 'Andraspets', en: 'Second striker' },
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Korpen/Motion',
-  division_4: 'Division 4',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  superettan: 'Superettan',
-  allsvenskan: 'Allsvenskan',
+const LEAGUE_LABELS: Record<string, Record<AppLocale, string>> = {
+  recreational: { sv: 'Korpen/Motion', en: 'Recreational' },
+  division_4: { sv: 'Division 4', en: 'Division 4' },
+  division_3: { sv: 'Division 3', en: 'Division 3' },
+  division_2: { sv: 'Division 2', en: 'Division 2' },
+  division_1: { sv: 'Division 1', en: 'Division 1' },
+  superettan: { sv: 'Superettan', en: 'Superettan' },
+  allsvenskan: { sv: 'Allsvenskan', en: 'Allsvenskan' },
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  playoffs: 'Slutspel',
+const PHASE_LABELS: Record<string, Record<AppLocale, string>> = {
+  off_season: { sv: 'Off-season', en: 'Off-season' },
+  pre_season: { sv: 'Försäsong', en: 'Pre-season' },
+  in_season: { sv: 'Säsong', en: 'In-season' },
+  playoffs: { sv: 'Slutspel', en: 'Playoffs' },
 }
 
-const PLAYSTYLE_LABELS: Record<string, string> = {
-  possession: 'Bollinnehav',
-  counter: 'Kontring',
-  pressing: 'Högt press',
-  physical: 'Fysiskt',
+const PLAYSTYLE_LABELS: Record<string, Record<AppLocale, string>> = {
+  possession: { sv: 'Bollinnehav', en: 'Possession' },
+  counter: { sv: 'Kontring', en: 'Counterattack' },
+  pressing: { sv: 'Högt press', en: 'High press' },
+  physical: { sv: 'Fysiskt', en: 'Physical' },
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  sprint_speed: 'Sprintsnabbhet',
-  acceleration: 'Acceleration',
-  endurance: 'Uthållighet',
-  jumping: 'Hoppkraft',
-  shooting_power: 'Skottstyrka',
-  agility: 'Kvickhet',
-  strength_duels: 'Duellstyrka',
-  core_stability: 'Core-stabilitet',
+const STRENGTH_LABELS: Record<string, Record<AppLocale, string>> = {
+  sprint_speed: { sv: 'Sprintsnabbhet', en: 'Sprint speed' },
+  acceleration: { sv: 'Acceleration', en: 'Acceleration' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  jumping: { sv: 'Hoppkraft', en: 'Jump power' },
+  shooting_power: { sv: 'Skottstyrka', en: 'Shooting power' },
+  agility: { sv: 'Kvickhet', en: 'Agility' },
+  strength_duels: { sv: 'Duellstyrka', en: 'Duel strength' },
+  core_stability: { sv: 'Core-stabilitet', en: 'Core stability' },
 }
 
-const WEAKNESS_LABELS: Record<string, string> = {
-  weak_foot: 'Svaga foten',
-  heading: 'Nickar',
-  positioning: 'Positionering',
-  first_touch: 'Första touch',
-  passing: 'Passningar',
-  finishing: 'Avslut',
-  defensive_work: 'Defensivt arbete',
-  stamina: 'Uthållighet',
+const WEAKNESS_LABELS: Record<string, Record<AppLocale, string>> = {
+  weak_foot: { sv: 'Svaga foten', en: 'Weak foot' },
+  heading: { sv: 'Nickar', en: 'Heading' },
+  positioning: { sv: 'Positionering', en: 'Positioning' },
+  first_touch: { sv: 'Första touch', en: 'First touch' },
+  passing: { sv: 'Passningar', en: 'Passing' },
+  finishing: { sv: 'Avslut', en: 'Finishing' },
+  defensive_work: { sv: 'Defensivt arbete', en: 'Defensive work' },
+  stamina: { sv: 'Uthållighet', en: 'Stamina' },
 }
 
-const INJURY_LABELS: Record<string, string> = {
-  hamstring: 'Hamstring',
-  groin: 'Ljumske',
-  ankle: 'Fotled',
-  knee_acl: 'Knä (ACL)',
-  knee_meniscus: 'Knä (Menisk)',
-  quadriceps: 'Quadriceps',
-  calf: 'Vad',
-  back: 'Rygg',
+const INJURY_LABELS: Record<string, Record<AppLocale, string>> = {
+  hamstring: { sv: 'Hamstring', en: 'Hamstring' },
+  groin: { sv: 'Ljumske', en: 'Groin' },
+  ankle: { sv: 'Fotled', en: 'Ankle' },
+  knee_acl: { sv: 'Knä (ACL)', en: 'Knee (ACL)' },
+  knee_meniscus: { sv: 'Knä (Menisk)', en: 'Knee (meniscus)' },
+  quadriceps: { sv: 'Quadriceps', en: 'Quadriceps' },
+  calf: { sv: 'Vad', en: 'Calf' },
+  back: { sv: 'Rygg', en: 'Back' },
 }
 
 // Position-specific expected distances
@@ -130,28 +136,39 @@ const EXPECTED_DISTANCE: Record<string, { min: number; max: number }> = {
 }
 
 // Phase training focus
-const PHASE_FOCUS: Record<string, { focus: string[]; icon: typeof Flame }> = {
+const PHASE_FOCUS: Record<string, { focus: Record<AppLocale, string[]>; icon: typeof Flame }> = {
   off_season: {
-    focus: ['Bygga aerob bas', 'Maxstyrka', 'Åtgärda skador', 'Mental vila'],
+    focus: {
+      sv: ['Bygga aerob bas', 'Maxstyrka', 'Åtgärda skador', 'Mental vila'],
+      en: ['Build aerobic base', 'Maximum strength', 'Address injuries', 'Mental rest'],
+    },
     icon: Flame,
   },
   pre_season: {
-    focus: ['Fotbollsspecifik kondition', 'Explosivitet', 'Taktik', 'Match-simulering'],
+    focus: {
+      sv: ['Fotbollsspecifik kondition', 'Explosivitet', 'Taktik', 'Match-simulering'],
+      en: ['Football-specific conditioning', 'Explosiveness', 'Tactics', 'Match simulation'],
+    },
     icon: Zap,
   },
   in_season: {
-    focus: ['Underhåll styrka', 'Återhämtning', 'Matchförberedelse', 'Skadeförebyggande'],
+    focus: {
+      sv: ['Underhåll styrka', 'Återhämtning', 'Matchförberedelse', 'Skadeförebyggande'],
+      en: ['Maintain strength', 'Recovery', 'Match preparation', 'Injury prevention'],
+    },
     icon: Target,
   },
   playoffs: {
-    focus: ['Maximal återhämtning', 'Mental fokus', 'Toppform', 'Aktivering'],
+    focus: {
+      sv: ['Maximal återhämtning', 'Mental fokus', 'Toppform', 'Aktivering'],
+      en: ['Maximal recovery', 'Mental focus', 'Peak form', 'Activation'],
+    },
     icon: Shield,
   },
 }
 
 export function FootballDashboard({ settings, recentGPSData = [] }: FootballDashboardProps) {
-  const themeContext = useWorkoutThemeOptional()
-  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const locale = getAppLocale(useLocale())
   const t = useTranslations('components.athleteDashboard')
 
   if (!settings) {
@@ -160,7 +177,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-green-500" />
-            Fotboll
+            {text(locale, 'Fotboll', 'Football')}
           </CardTitle>
           <CardDescription>
             {t('footballNoSettings')}
@@ -191,21 +208,21 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-green-500" />
-                {settings.teamName || 'Mitt lag'}
+                {settings.teamName || text(locale, 'Mitt lag', 'My team')}
               </CardTitle>
               <CardDescription className="flex flex-wrap items-center gap-2 mt-1">
                 <Badge variant="outline">
                   {settings.positionDetail
-                    ? POSITION_DETAIL_LABELS[settings.positionDetail] || settings.positionDetail
-                    : POSITION_LABELS[settings.position]}
+                    ? POSITION_DETAIL_LABELS[settings.positionDetail]?.[locale] || settings.positionDetail
+                    : POSITION_LABELS[settings.position]?.[locale]}
                 </Badge>
-                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]}</Badge>
-                <Badge className="bg-green-500">{PHASE_LABELS[settings.seasonPhase]}</Badge>
+                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]?.[locale]}</Badge>
+                <Badge className="bg-green-500">{PHASE_LABELS[settings.seasonPhase]?.[locale]}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold">{settings.yearsPlaying}</div>
-              <div className="text-sm text-muted-foreground">års erfarenhet</div>
+              <div className="text-sm text-muted-foreground">{text(locale, 'års erfarenhet', 'years experience')}</div>
             </div>
           </div>
         </CardHeader>
@@ -216,10 +233,10 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PhaseIcon className="h-5 w-5 text-green-500" />
-            Säsongsfas: {PHASE_LABELS[settings.seasonPhase]}
+            {text(locale, 'Säsongsfas:', 'Season phase:')} {PHASE_LABELS[settings.seasonPhase]?.[locale]}
           </CardTitle>
           <CardDescription>
-            Anpassad träning för din nuvarande fas
+            {text(locale, 'Anpassad träning för din nuvarande fas', 'Training adapted to your current phase')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -242,9 +259,9 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
 
           {/* Focus areas */}
           <div className="space-y-2">
-            <h4 className="font-medium text-sm">Fokusområden denna fas:</h4>
+            <h4 className="font-medium text-sm">{text(locale, 'Fokusområden denna fas:', 'Focus areas this phase:')}</h4>
             <div className="grid grid-cols-2 gap-2">
-              {phaseFocus?.focus.map((focus, i) => (
+              {phaseFocus?.focus[locale].map((focus, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                   {focus}
@@ -261,7 +278,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Matcher/vecka</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Matcher/vecka', 'Matches/week')}</p>
                 <p className="text-2xl font-bold">{settings.matchesPerWeek}</p>
               </div>
               <Calendar className="h-8 w-8 text-blue-500" />
@@ -273,7 +290,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Minuter/match</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Minuter/match', 'Minutes/match')}</p>
                 <p className="text-2xl font-bold">{settings.avgMinutesPerMatch ?? '-'}</p>
               </div>
               <Timer className="h-8 w-8 text-green-500" />
@@ -285,7 +302,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Träning/vecka</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Träning/vecka', 'Training/week')}</p>
                 <p className="text-2xl font-bold">{settings.weeklyTrainingSessions}</p>
               </div>
               <Zap className="h-8 w-8 text-yellow-500" />
@@ -297,8 +314,8 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Spelstil</p>
-                <p className="text-lg font-bold">{PLAYSTYLE_LABELS[settings.playStyle]}</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Spelstil', 'Play style')}</p>
+                <p className="text-lg font-bold">{PLAYSTYLE_LABELS[settings.playStyle]?.[locale]}</p>
               </div>
               <Users className="h-8 w-8 text-purple-500" />
             </div>
@@ -315,7 +332,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
               GPS-data
             </CardTitle>
             <CardDescription>
-              {settings.gpsProvider ? `Från ${settings.gpsProvider}` : 'Matchbelastning'}
+              {settings.gpsProvider ? text(locale, `Från ${settings.gpsProvider}`, `From ${settings.gpsProvider}`) : text(locale, 'Matchbelastning', 'Match load')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -326,10 +343,10 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
                   {avgGPSStats?.avgDistance.toFixed(1) || settings.avgMatchDistanceKm || '-'}
                   <span className="text-sm font-normal text-muted-foreground"> km</span>
                 </div>
-                <p className="text-sm text-muted-foreground">Snitt matchdistans</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Snitt matchdistans', 'Average match distance')}</p>
                 {expectedDistance && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Förväntat: {expectedDistance.min}-{expectedDistance.max} km
+                    {text(locale, 'Förväntat:', 'Expected:')} {expectedDistance.min}-{expectedDistance.max} km
                   </p>
                 )}
               </div>
@@ -340,7 +357,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
                   {avgGPSStats?.avgSprint.toFixed(0) || settings.avgSprintDistanceM || '-'}
                   <span className="text-sm font-normal text-muted-foreground"> m</span>
                 </div>
-                <p className="text-sm text-muted-foreground">Snitt sprintdistans</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Snitt sprintdistans', 'Average sprint distance')}</p>
               </div>
 
               <div className="p-4 bg-muted rounded-lg text-center">
@@ -349,13 +366,13 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
                   {avgGPSStats?.avgMaxSpeed.toFixed(1) || '-'}
                   <span className="text-sm font-normal text-muted-foreground"> km/h</span>
                 </div>
-                <p className="text-sm text-muted-foreground">Snitt max hastighet</p>
+                <p className="text-sm text-muted-foreground">{text(locale, 'Snitt max hastighet', 'Average max speed')}</p>
               </div>
             </div>
 
             {recentGPSData.length === 0 && (
               <p className="text-sm text-muted-foreground mt-4 text-center">
-                Lägg till matchdata för att se GPS-statistik.
+                {text(locale, 'Lägg till matchdata för att se GPS-statistik.', 'Add match data to view GPS statistics.')}
               </p>
             )}
           </CardContent>
@@ -368,7 +385,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-red-500" />
-              Fysiska tester
+              {text(locale, 'Fysiska tester', 'Physical tests')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -400,7 +417,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
               {settings.benchmarks.cmjHeight && (
                 <div className="p-3 bg-muted rounded-lg text-center">
                   <p className="text-lg font-bold">{settings.benchmarks.cmjHeight} cm</p>
-                  <p className="text-xs text-muted-foreground">CMJ hopp</p>
+                  <p className="text-xs text-muted-foreground">{text(locale, 'CMJ hopp', 'CMJ jump')}</p>
                 </div>
               )}
               {settings.benchmarks.agilityTest && (
@@ -421,7 +438,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5 text-green-500" />
-              Styrkor
+              {text(locale, 'Styrkor', 'Strengths')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -429,12 +446,12 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
               <div className="flex flex-wrap gap-2">
                 {settings.strengthFocus.map((strength) => (
                   <Badge key={strength} variant="outline" className="bg-green-500/10 border-green-500">
-                    {STRENGTH_LABELS[strength] || strength}
+                    {STRENGTH_LABELS[strength]?.[locale] || strength}
                   </Badge>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Inga styrkor valda ännu.</p>
+              <p className="text-sm text-muted-foreground">{text(locale, 'Inga styrkor valda ännu.', 'No strengths selected yet.')}</p>
             )}
           </CardContent>
         </Card>
@@ -444,7 +461,7 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Target className="h-5 w-5 text-orange-500" />
-              Utvecklingsområden
+              {text(locale, 'Utvecklingsområden', 'Development areas')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -452,12 +469,12 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
               <div className="flex flex-wrap gap-2">
                 {settings.weaknesses.map((weakness) => (
                   <Badge key={weakness} variant="outline" className="bg-orange-500/10 border-orange-500">
-                    {WEAKNESS_LABELS[weakness] || weakness}
+                    {WEAKNESS_LABELS[weakness]?.[locale] || weakness}
                   </Badge>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Inga utvecklingsområden valda.</p>
+              <p className="text-sm text-muted-foreground">{text(locale, 'Inga utvecklingsområden valda.', 'No development areas selected.')}</p>
             )}
           </CardContent>
         </Card>
@@ -469,19 +486,19 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Skadehistorik
+              {text(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {settings.injuryHistory.map((injury) => (
                 <Badge key={injury} variant="outline" className="bg-yellow-500/10 border-yellow-500">
-                  {INJURY_LABELS[injury] || injury}
+                  {INJURY_LABELS[injury]?.[locale] || injury}
                 </Badge>
               ))}
             </div>
             <p className="text-sm text-muted-foreground mt-3">
-              Träningsprogrammet inkluderar FIFA 11+ och specifika förebyggande övningar.
+              {text(locale, 'Träningsprogrammet inkluderar FIFA 11+ och specifika förebyggande övningar.', 'The training program includes FIFA 11+ and specific preventive exercises.')}
             </p>
           </CardContent>
         </Card>
@@ -495,37 +512,37 @@ export function FootballDashboard({ settings, recentGPSData = [] }: FootballDash
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-orange-500" />
-            Träningsrekommendationer för {POSITION_LABELS[settings.position]}
+            {text(locale, 'Träningsrekommendationer för', 'Training recommendations for')} {POSITION_LABELS[settings.position]?.[locale]}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {settings.position === 'goalkeeper' ? (
             <ul className="text-sm text-muted-foreground space-y-2">
-              <li>• <strong>Styrka:</strong> Explosiv benkraft, axelstabilitet, core</li>
-              <li>• <strong>Kondition:</strong> Korta reaktionsintervaller, lateral rörelse</li>
-              <li>• <strong>Förebyggande:</strong> Axel-/axelmuskler, handleder, höfter</li>
-              <li>• <strong>Test att följa:</strong> Reaktionstid, vertikalt hopp, lateral push</li>
+              <li>• <strong>{text(locale, 'Styrka:', 'Strength:')}</strong> {text(locale, 'Explosiv benkraft, axelstabilitet, core', 'Explosive leg power, shoulder stability, core')}</li>
+              <li>• <strong>{text(locale, 'Kondition:', 'Conditioning:')}</strong> {text(locale, 'Korta reaktionsintervaller, lateral rörelse', 'Short reaction intervals, lateral movement')}</li>
+              <li>• <strong>{text(locale, 'Förebyggande:', 'Prevention:')}</strong> {text(locale, 'Axel-/axelmuskler, handleder, höfter', 'Shoulders/shoulder muscles, wrists, hips')}</li>
+              <li>• <strong>{text(locale, 'Test att följa:', 'Tests to track:')}</strong> {text(locale, 'Reaktionstid, vertikalt hopp, lateral push', 'Reaction time, vertical jump, lateral push')}</li>
             </ul>
           ) : settings.position === 'defender' ? (
             <ul className="text-sm text-muted-foreground space-y-2">
-              <li>• <strong>Styrka:</strong> Överkropp för dueller, hoppkraft för nickar</li>
-              <li>• <strong>Kondition:</strong> Aerob bas, repeated sprint ability</li>
-              <li>• <strong>Förebyggande:</strong> Nordic curls, Copenhagen plank, nackstyrka</li>
-              <li>• <strong>Test att följa:</strong> Yo-Yo IR2, CMJ hopp, 10m/30m sprint</li>
+              <li>• <strong>{text(locale, 'Styrka:', 'Strength:')}</strong> {text(locale, 'Överkropp för dueller, hoppkraft för nickar', 'Upper body for duels, jump power for headers')}</li>
+              <li>• <strong>{text(locale, 'Kondition:', 'Conditioning:')}</strong> {text(locale, 'Aerob bas, repeated sprint ability', 'Aerobic base, repeated sprint ability')}</li>
+              <li>• <strong>{text(locale, 'Förebyggande:', 'Prevention:')}</strong> {text(locale, 'Nordic curls, Copenhagen plank, nackstyrka', 'Nordic curls, Copenhagen plank, neck strength')}</li>
+              <li>• <strong>{text(locale, 'Test att följa:', 'Tests to track:')}</strong> {text(locale, 'Yo-Yo IR2, CMJ hopp, 10m/30m sprint', 'Yo-Yo IR2, CMJ jump, 10m/30m sprint')}</li>
             </ul>
           ) : settings.position === 'midfielder' ? (
             <ul className="text-sm text-muted-foreground space-y-2">
-              <li>• <strong>Styrka:</strong> Uthållighetsstyrka, core för dueller</li>
-              <li>• <strong>Kondition:</strong> Maximal Yo-Yo, 4x4 intervaller, repeated sprints</li>
-              <li>• <strong>Förebyggande:</strong> Hamstring (hög risk), ljumske, överbelastning</li>
-              <li>• <strong>Test att följa:</strong> Yo-Yo IR2 (primärt), VO2max, RSA</li>
+              <li>• <strong>{text(locale, 'Styrka:', 'Strength:')}</strong> {text(locale, 'Uthållighetsstyrka, core för dueller', 'Strength endurance, core for duels')}</li>
+              <li>• <strong>{text(locale, 'Kondition:', 'Conditioning:')}</strong> {text(locale, 'Maximal Yo-Yo, 4x4 intervaller, repeated sprints', 'Maximal Yo-Yo, 4x4 intervals, repeated sprints')}</li>
+              <li>• <strong>{text(locale, 'Förebyggande:', 'Prevention:')}</strong> {text(locale, 'Hamstring (hög risk), ljumske, överbelastning', 'Hamstring (high risk), groin, overload')}</li>
+              <li>• <strong>{text(locale, 'Test att följa:', 'Tests to track:')}</strong> {text(locale, 'Yo-Yo IR2 (primärt), VO2max, RSA', 'Yo-Yo IR2 (primary), VO2max, RSA')}</li>
             </ul>
           ) : (
             <ul className="text-sm text-muted-foreground space-y-2">
-              <li>• <strong>Styrka:</strong> Explosiv power, skottstyrka (rotation)</li>
-              <li>• <strong>Kondition:</strong> Sprint-uthållighet, acceleration, anaerob kapacitet</li>
-              <li>• <strong>Förebyggande:</strong> Hamstring (kritiskt!), quadriceps, ljumske</li>
-              <li>• <strong>Test att följa:</strong> 10m/20m sprint, flying 20m, RSA</li>
+              <li>• <strong>{text(locale, 'Styrka:', 'Strength:')}</strong> {text(locale, 'Explosiv power, skottstyrka (rotation)', 'Explosive power, shooting power (rotation)')}</li>
+              <li>• <strong>{text(locale, 'Kondition:', 'Conditioning:')}</strong> {text(locale, 'Sprint-uthållighet, acceleration, anaerob kapacitet', 'Sprint endurance, acceleration, anaerobic capacity')}</li>
+              <li>• <strong>{text(locale, 'Förebyggande:', 'Prevention:')}</strong> {text(locale, 'Hamstring (kritiskt!), quadriceps, ljumske', 'Hamstring (critical), quadriceps, groin')}</li>
+              <li>• <strong>{text(locale, 'Test att följa:', 'Tests to track:')}</strong> {text(locale, '10m/20m sprint, flying 20m, RSA', '10m/20m sprint, flying 20m, RSA')}</li>
             </ul>
           )}
         </CardContent>
