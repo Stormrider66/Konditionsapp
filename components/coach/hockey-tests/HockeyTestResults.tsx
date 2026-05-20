@@ -131,16 +131,16 @@ function formatDate(iso: string, locale: 'en' | 'sv'): string {
   return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function aerobicSourceLabel(source: string | null | undefined): string {
+function aerobicSourceLabel(source: string | null | undefined, locale: 'en' | 'sv'): string {
   switch (source) {
     case 'lab-test':
-      return 'labbtest'
+      return locale === 'sv' ? 'labbtest' : 'lab test'
     case 'athlete-profile':
-      return 'profil'
+      return locale === 'sv' ? 'profil' : 'profile'
     case 'manual-profile':
-      return 'manuell profil'
+      return locale === 'sv' ? 'manuell profil' : 'manual profile'
     default:
-      return 'profil/labb'
+      return locale === 'sv' ? 'profil/labb' : 'profile/lab'
   }
 }
 
@@ -184,7 +184,8 @@ function formatRampTime(seconds: number | null | undefined): string | null {
   return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
-function MuscleLabChart({ test }: { test: HockeyTest }) {
+function MuscleLabChart({ test, locale }: { test: HockeyTest; locale: 'en' | 'sv' }) {
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const rows = test.muscleLabJumps || []
   const rawTrace = test.muscleLabRaw?.traces?.[0]
   if (rows.length === 0 && !rawTrace) return null
@@ -216,7 +217,7 @@ function MuscleLabChart({ test }: { test: HockeyTest }) {
         ) : null}
         {test.muscleLabMaxima?.powerPlateauLoadsKg?.length ? (
           <Badge variant="outline" className="text-[10px]">
-            Platå +{test.muscleLabMaxima.powerPlateauLoadsKg.join('/+')} kg
+            {t('Platå', 'Plateau')} +{test.muscleLabMaxima.powerPlateauLoadsKg.join('/+')} kg
           </Badge>
         ) : null}
         {test.muscleLabMaxima?.displacementDropPercent ? (
@@ -226,7 +227,7 @@ function MuscleLabChart({ test }: { test: HockeyTest }) {
         ) : null}
         {test.muscleLabRaw?.diagnostics?.traceCount ? (
           <Badge variant="outline" className="text-[10px]">
-            {test.muscleLabRaw.diagnostics.traceCount} råkurva
+            {test.muscleLabRaw.diagnostics.traceCount} {t('råkurva', 'raw trace')}
           </Badge>
         ) : null}
         {test.muscleLabRaw?.diagnostics?.maxPeakPowerW ? (
@@ -323,10 +324,10 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
     <div className="space-y-4">
       <Select value={teamFilter} onValueChange={setTeamFilter}>
         <SelectTrigger className="w-48">
-          <SelectValue placeholder="Alla spelare" />
+          <SelectValue placeholder={t('Alla spelare', 'All players')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Alla spelare</SelectItem>
+          <SelectItem value="all">{t('Alla spelare', 'All players')}</SelectItem>
           {teams.map((t) => (
             <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
           ))}
@@ -336,7 +337,7 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}</div>
       ) : tests.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">Inga testresultat hittades</div>
+        <div className="text-center py-12 text-muted-foreground">{t('Inga testresultat hittades', 'No test results found')}</div>
       ) : (
         tests.map((test) => {
           const isExpanded = expandedId === test.id
@@ -402,10 +403,10 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                     {/* Ice tests */}
                     {(test.agility505Left || test.sprint5m || test.sprint10m || test.sprint20m || test.sprint30m || endurance) && (
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Timer className="h-3 w-3" /> Istester</p>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Timer className="h-3 w-3" /> {t('Istester', 'Ice tests')}</p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-                          <TestValue label="Agility V" value={test.agility505Left} unit="s" />
-                          <TestValue label="Agility H" value={test.agility505Right} unit="s" />
+                          <TestValue label={t('Agility V', 'Agility L')} value={test.agility505Left} unit="s" />
+                          <TestValue label={t('Agility H', 'Agility R')} value={test.agility505Right} unit="s" />
                           <TestValue label="5m" value={test.sprint5m} unit="s" />
                           <TestValue label="10m" value={test.sprint10m} unit="s" />
                           <TestValue label="20m" value={test.sprint20m} unit="s" />
@@ -417,8 +418,8 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                           <div className="mt-2">
                             <p className="text-[10px] text-muted-foreground mb-1">
                               7x40m:
-                              {enduranceSummary.bestTimeS != null && ` bästa ${enduranceSummary.bestTimeS.toFixed(2)}s`}
-                              {enduranceSummary.averageTimeS != null && ` · snitt ${enduranceSummary.averageTimeS.toFixed(2)}s`}
+                              {enduranceSummary.bestTimeS != null && ` ${t('bästa', 'best')} ${enduranceSummary.bestTimeS.toFixed(2)}s`}
+                              {enduranceSummary.averageTimeS != null && ` · ${t('snitt', 'avg')} ${enduranceSummary.averageTimeS.toFixed(2)}s`}
                               {enduranceSummary.averageSpeedKmh != null && ` · ${enduranceSummary.averageSpeedKmh.toFixed(1)} km/h`}
                               {enduranceSummary.fatigueDropPct != null && ` · drop ${enduranceSummary.fatigueDropPct.toFixed(1)}%`}
                               {enduranceSummary.fatigueResistancePct != null && ` · resistance ${enduranceSummary.fatigueResistancePct.toFixed(0)}%`}
@@ -438,8 +439,8 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                     {/* Power tests */}
                     {(test.jumpSquatLadder || test.gripStrengthLeft || test.muscleLabJumps || test.muscleLabRaw) && (
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Zap className="h-3 w-3" /> Krafttester</p>
-                        <MuscleLabChart test={test} />
+                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Zap className="h-3 w-3" /> {t('Krafttester', 'Power tests')}</p>
+                        <MuscleLabChart test={test} locale={locale} />
                         {test.jumpSquatLadder && (
                           <div className="mb-2">
                             <p className="text-[10px] text-muted-foreground mb-1">Loaded squat jump / power squat:</p>
@@ -453,12 +454,12 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                           </div>
                         )}
                         <div className="grid grid-cols-2 gap-2">
-                          <TestValue label="Grepp V" value={test.gripStrengthLeft} unit="kg" />
-                          <TestValue label="Grepp H" value={test.gripStrengthRight} unit="kg" />
+                          <TestValue label={t('Grepp V', 'Grip L')} value={test.gripStrengthLeft} unit="kg" />
+                          <TestValue label={t('Grepp H', 'Grip R')} value={test.gripStrengthRight} unit="kg" />
                         </div>
                         {gripAsymmetry != null && (
                           <p className={cn('mt-2 text-[10px]', gripAsymmetry >= 10 ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground')}>
-                            Grepp asymmetri {gripAsymmetry.toFixed(1)}%
+                            {t('Grepp asymmetri', 'Grip asymmetry')} {gripAsymmetry.toFixed(1)}%
                           </p>
                         )}
                       </div>
@@ -467,11 +468,11 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                     {/* Strength tests */}
                     {(test.backSquat1RM || test.powerClean1RM || test.benchPress1RM || test.pullUp1RM) && (
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Dumbbell className="h-3 w-3" /> Maxstyrka</p>
+                        <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><Dumbbell className="h-3 w-3" /> {t('Maxstyrka', 'Max strength')}</p>
                         <div className="grid grid-cols-4 gap-2">
-                          <TestValue label="Knäböj" value={test.backSquat1RM} unit="kg" />
+                          <TestValue label={t('Knäböj', 'Back squat')} value={test.backSquat1RM} unit="kg" />
                           <TestValue label="Power clean" value={test.powerClean1RM} unit="kg" />
-                          <TestValue label="Bänkpress" value={test.benchPress1RM} unit="kg" />
+                          <TestValue label={t('Bänkpress', 'Bench press')} value={test.benchPress1RM} unit="kg" />
                           <TestValue label="Pull-up 1RM" value={test.pullUp1RM} unit="kg" />
                         </div>
                       </div>
@@ -482,14 +483,14 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1"><ArrowUpDown className="h-3 w-3" /> Hopp</p>
                         <div className="grid grid-cols-3 gap-2">
-                          <TestValue label="Längdhopp" value={test.standingLongJump} unit="cm" />
-                          <TestValue label="3-hopp V" value={test.threeJumpLeft} unit="cm" />
-                          <TestValue label="3-hopp H" value={test.threeJumpRight} unit="cm" />
+                          <TestValue label={t('Längdhopp', 'Long jump')} value={test.standingLongJump} unit="cm" />
+                          <TestValue label={t('3-hopp V', '3-jump L')} value={test.threeJumpLeft} unit="cm" />
+                          <TestValue label={t('3-hopp H', '3-jump R')} value={test.threeJumpRight} unit="cm" />
                         </div>
                         {(bestThreeJump != null || threeJumpAsymmetry != null) && (
                           <p className={cn('mt-2 text-[10px]', threeJumpAsymmetry != null && threeJumpAsymmetry >= 8 ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground')}>
-                            {bestThreeJump != null && `Bästa 3-steg ${bestThreeJump.toFixed(0)} cm`}
-                            {threeJumpAsymmetry != null && ` · asymmetri ${threeJumpAsymmetry.toFixed(1)}%`}
+                            {bestThreeJump != null && `${t('Bästa 3-steg', 'Best triple jump')} ${bestThreeJump.toFixed(0)} cm`}
+                            {threeJumpAsymmetry != null && ` · ${t('asymmetri', 'asymmetry')} ${threeJumpAsymmetry.toFixed(1)}%`}
                           </p>
                         )}
                       </div>
@@ -499,31 +500,31 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                     {(test.beepTestLevel || endurance || test.wingate30sAveragePower || test.vo2Max || test.lt1SpeedKmh || test.lt2SpeedKmh) && (
                       <div>
                         <div className="mb-2 flex flex-wrap items-center gap-2">
-                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> Uthållighet</p>
+                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> {t('Uthållighet', 'Endurance')}</p>
                           {test.aerobicAutoLinked && (
                             <Badge variant="secondary" className="h-4 px-1.5 text-[9px] font-normal">
-                              Länkat från {aerobicSourceLabel(test.aerobicAutoLinkSource)}
+                              {t('Länkat från', 'Linked from')} {aerobicSourceLabel(test.aerobicAutoLinkSource, locale)}
                               {test.aerobicAutoLinkDate ? ` ${test.aerobicAutoLinkDate}` : ''}
                             </Badge>
                           )}
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                          <TestValue label="Beep nivå" value={test.beepTestLevel} unit="" decimals={1} />
+                          <TestValue label={t('Beep nivå', 'Beep level')} value={test.beepTestLevel} unit="" decimals={1} />
                           <TestValue label="Beep shuttle" value={test.beepTestShuttle} unit="" decimals={0} />
                           <TestValue label="Wingate 30 s" value={test.wingate30sAveragePower} unit="W" decimals={0} />
                           <TestValue label="VO2max" value={test.vo2Max} unit="ml/kg/min" decimals={1} />
-                          <TestValue label="Maxpuls" value={test.maxHeartRate} unit="bpm" decimals={0} />
-                          <TestValue label="Max laktat" value={test.maxLactate} unit="mmol/L" decimals={1} />
-                          <TestValue label="LT1 fart" value={test.lt1SpeedKmh} unit="km/h" decimals={1} />
-                          <TestValue label="LT1 puls" value={test.lt1HeartRate} unit="bpm" decimals={0} />
-                          <TestValue label="LT1 laktat" value={test.lt1Lactate} unit="mmol/L" decimals={1} />
-                          <TestValue label="LT2 fart" value={test.lt2SpeedKmh} unit="km/h" decimals={1} />
-                          <TestValue label="LT2 puls" value={test.lt2HeartRate} unit="bpm" decimals={0} />
-                          <TestValue label="LT2 laktat" value={test.lt2Lactate} unit="mmol/L" decimals={1} />
+                          <TestValue label={t('Maxpuls', 'Max HR')} value={test.maxHeartRate} unit="bpm" decimals={0} />
+                          <TestValue label={t('Max laktat', 'Max lactate')} value={test.maxLactate} unit="mmol/L" decimals={1} />
+                          <TestValue label={t('LT1 fart', 'LT1 speed')} value={test.lt1SpeedKmh} unit="km/h" decimals={1} />
+                          <TestValue label={t('LT1 puls', 'LT1 HR')} value={test.lt1HeartRate} unit="bpm" decimals={0} />
+                          <TestValue label={t('LT1 laktat', 'LT1 lactate')} value={test.lt1Lactate} unit="mmol/L" decimals={1} />
+                          <TestValue label={t('LT2 fart', 'LT2 speed')} value={test.lt2SpeedKmh} unit="km/h" decimals={1} />
+                          <TestValue label={t('LT2 puls', 'LT2 HR')} value={test.lt2HeartRate} unit="bpm" decimals={0} />
+                          <TestValue label={t('LT2 laktat', 'LT2 lactate')} value={test.lt2Lactate} unit="mmol/L" decimals={1} />
                         </div>
                         {formatRampTime(test.rampTimeSeconds) && (
                           <p className="mt-2 text-[10px] text-muted-foreground">
-                            Ramptid till avslut: {formatRampTime(test.rampTimeSeconds)}
+                            {t('Ramptid till avslut', 'Ramp time to exhaustion')}: {formatRampTime(test.rampTimeSeconds)}
                           </p>
                         )}
                       </div>
