@@ -15,6 +15,7 @@ import { Timer, Zap, ArrowUpDown, ChevronDown, ChevronUp, Dumbbell, Activity, Do
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { buildRepeatedSprintProfile } from '@/lib/hockey/ice-speed'
+import { useLocale } from '@/i18n/client'
 import {
   CartesianGrid,
   Line,
@@ -126,8 +127,8 @@ interface HockeyTestResultsProps {
   businessSlug?: string
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })
+function formatDate(iso: string, locale: 'en' | 'sv'): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function aerobicSourceLabel(source: string | null | undefined): string {
@@ -275,6 +276,8 @@ function MuscleLabChart({ test }: { test: HockeyTest }) {
 }
 
 export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProps) {
+  const locale: 'en' | 'sv' = useLocale() === 'sv' ? 'sv' : 'en'
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [tests, setTests] = useState<HockeyTest[]>([])
   const [loading, setLoading] = useState(true)
   const [teamFilter, setTeamFilter] = useState('all')
@@ -295,22 +298,22 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
           setTests(data.tests || [])
         }
       } catch {
-        toast.error('Kunde inte hämta tester')
+        toast.error(locale === 'sv' ? 'Kunde inte hämta tester' : 'Could not fetch tests')
       } finally {
         setLoading(false)
       }
     }
     void fetchTests()
-  }, [businessSlug, teamFilter])
+  }, [businessSlug, teamFilter, locale])
 
   const handleExportPDF = async (test: HockeyTest) => {
     setExportingId(test.id)
     try {
       const { downloadHockeyTestReportPDF } = await import('@/lib/exports/hockey-test-report-export')
-      downloadHockeyTestReportPDF(test)
-      toast.success('PDF exporterad')
+      downloadHockeyTestReportPDF({ ...test, locale })
+      toast.success(t('PDF exporterad', 'PDF exported'))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Kunde inte exportera PDF')
+      toast.error(error instanceof Error ? error.message : t('Kunde inte exportera PDF', 'Could not export PDF'))
     } finally {
       setExportingId(null)
     }
@@ -349,7 +352,7 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
                   <div>
                     <p className="font-semibold text-sm">{test.client.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(test.testDate)}
+                      {formatDate(test.testDate, locale)}
                       {test.team && ` · ${test.team.name}`}
                     </p>
                   </div>
