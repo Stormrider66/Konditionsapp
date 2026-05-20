@@ -318,7 +318,7 @@ async function resolveOpenAiKey(params: {
   if (params.isAthleteChat) {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      throw new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      throw new Response(JSON.stringify({ error: t(params.locale, 'Unauthorized', 'Obehörig') }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -359,7 +359,7 @@ async function resolveOpenAiKey(params: {
       select: { userId: true, businessId: true },
     })
     if (!clientRecord?.userId) {
-      throw new Response(JSON.stringify({ error: 'Athlete account not properly linked to coach' }), {
+      throw new Response(JSON.stringify({ error: t(params.locale, 'Athlete account is not properly linked to a coach', 'Atletkontot är inte korrekt kopplat till en coach') }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -404,21 +404,23 @@ async function resolveOpenAiKey(params: {
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const body = await request.json().catch(() => null)
     const parsed = requestSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Send a WebRTC SDP offer for live voice.' },
+        { error: t(locale, 'Send a WebRTC SDP offer for live voice.', 'Skicka ett WebRTC SDP offer för live voice.') },
         { status: 400 }
       )
     }
 
     const currentUser = await getCurrentUser()
     if (!currentUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = getUserLocale(currentUser.language)
+    locale = getUserLocale(currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-realtime-call', currentUser.id, {
       limit: 8,
@@ -504,7 +506,7 @@ export async function POST(request: NextRequest) {
     logger.error('Chat realtime call setup error', {}, error)
     return NextResponse.json(
       {
-        error: 'Could not start live voice.',
+        error: t(locale, 'Could not start live voice.', 'Kunde inte starta live voice.'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
