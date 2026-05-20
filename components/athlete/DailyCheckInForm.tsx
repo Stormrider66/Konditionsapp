@@ -57,6 +57,7 @@ import { AudioRecorder } from '@/components/athlete/audio-journal/AudioRecorder'
 import { NutritionTipCard, NutritionTipCardSkeleton } from '@/components/nutrition/NutritionTipCard'
 import type { NutritionTip } from '@/lib/nutrition-timing'
 import type { SportType } from '@prisma/client'
+import { useLocale } from '@/i18n/client'
 import {
   InjurySelector,
   createDefaultInjurySelectorValue,
@@ -120,6 +121,16 @@ interface DailyCheckInFormProps {
   basePath?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 // Audio recording result type
 interface AudioJournalResult {
   transcription: string;
@@ -142,6 +153,7 @@ interface AudioJournalResult {
 }
 
 export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, variant = 'default', basePath = '' }: DailyCheckInFormProps) {
+  const locale = getAppLocale(useLocale())
   const isGlass = variant === 'glass'
   const router = useRouter()
   const { toast } = useToast()
@@ -660,10 +672,10 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
               <GlassCardHeader>
                 <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
                   <Zap className="h-5 w-5 text-blue-500" />
-                  Vilopuls
+                  {text(locale, 'Vilopuls', 'Resting heart rate')}
                 </GlassCardTitle>
                 <GlassCardDescription className="text-slate-400">
-                  Mät direkt när du vaknar för bäst resultat.
+                  {text(locale, 'Mät direkt när du vaknar för bäst resultat.', 'Measure right after waking for best results.')}
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent>
@@ -672,11 +684,11 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                   name="restingHR"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">Vilopuls (bpm)</FormLabel>
+                      <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">{text(locale, 'Vilopuls (bpm)', 'Resting HR (bpm)')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
-                          placeholder="t.ex. 55"
+                          placeholder={text(locale, 't.ex. 55', 'e.g. 55')}
                           className="bg-white/5 border-white/10 h-12 text-lg font-black"
                           {...field}
                           onChange={e =>
@@ -699,21 +711,21 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
               <GlassCardHeader>
                 <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
                   <Smile className="h-5 w-5 text-yellow-500" />
-                  Mående & Återhämtning
+                  {text(locale, 'Mående & Återhämtning', 'Wellbeing & Recovery')}
                 </GlassCardTitle>
                 <GlassCardDescription className="text-slate-400 font-medium">
-                  Svara ärligt på samtliga frågor (1-10)
+                  {text(locale, 'Svara ärligt på samtliga frågor (1-10)', 'Answer every question honestly (1-10)')}
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent className="space-y-10 py-6">
                 {[
-                  { name: 'sleepQuality', label: 'Sömnkvalitet', icon: <Moon className="h-4 w-4" />, low: 'Mycket dålig', high: 'Fantastisk' },
-                  { name: 'sleepHours', label: 'Sömntimmar', icon: <Moon className="h-4 w-4" />, isHours: true },
-                  { name: 'muscleSoreness', label: 'Muskelömhet', icon: <Activity className="h-4 w-4" />, low: 'Ingen ömhet', high: 'Extrem ömhet' },
-                  { name: 'energyLevel', label: 'Energinivå', icon: <Zap className="h-4 w-4" />, low: 'Helt slut', high: 'Maxad energi' },
-                  { name: 'mood', label: 'Humör', icon: <Smile className="h-4 w-4" />, low: 'Lågt', high: 'Toppen' },
-                  { name: 'stress', label: 'Stressnivå', icon: <AlertCircle className="h-4 w-4" />, low: 'Ingen stress', high: 'Extremt stressad' },
-                  { name: 'injuryPain', label: 'Skadekänning/Smärta', icon: <Activity className="h-4 w-4" />, low: 'Ingen smärta', high: 'Problem' },
+                  { name: 'sleepQuality', label: text(locale, 'Sömnkvalitet', 'Sleep quality'), icon: <Moon className="h-4 w-4" />, low: text(locale, 'Mycket dålig', 'Very poor'), high: text(locale, 'Fantastisk', 'Fantastic') },
+                  { name: 'sleepHours', label: text(locale, 'Sömntimmar', 'Sleep hours'), icon: <Moon className="h-4 w-4" />, isHours: true },
+                  { name: 'muscleSoreness', label: text(locale, 'Muskelömhet', 'Muscle soreness'), icon: <Activity className="h-4 w-4" />, low: text(locale, 'Ingen ömhet', 'No soreness'), high: text(locale, 'Extrem ömhet', 'Extreme soreness') },
+                  { name: 'energyLevel', label: text(locale, 'Energinivå', 'Energy level'), icon: <Zap className="h-4 w-4" />, low: text(locale, 'Helt slut', 'Exhausted'), high: text(locale, 'Maxad energi', 'Maximum energy') },
+                  { name: 'mood', label: text(locale, 'Humör', 'Mood'), icon: <Smile className="h-4 w-4" />, low: text(locale, 'Lågt', 'Low'), high: text(locale, 'Toppen', 'Great') },
+                  { name: 'stress', label: text(locale, 'Stressnivå', 'Stress level'), icon: <AlertCircle className="h-4 w-4" />, low: text(locale, 'Ingen stress', 'No stress'), high: text(locale, 'Extremt stressad', 'Extremely stressed') },
+                  { name: 'injuryPain', label: text(locale, 'Skadekänning/Smärta', 'Injury sensation/Pain'), icon: <Activity className="h-4 w-4" />, low: text(locale, 'Ingen smärta', 'No pain'), high: text(locale, 'Problem', 'Problem') },
                 ].map((slider) => (
                   <FormField
                     key={slider.name}
@@ -769,9 +781,9 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
             {/* Notes Section */}
             <GlassCard>
               <GlassCardHeader>
-                <GlassCardTitle className="text-xl font-black tracking-tight">Noteringar</GlassCardTitle>
+                <GlassCardTitle className="text-xl font-black tracking-tight">{text(locale, 'Noteringar', 'Notes')}</GlassCardTitle>
                 <GlassCardDescription className="text-slate-400">
-                  Övriga observationer som kan vara relevanta för din coach.
+                  {text(locale, 'Övriga observationer som kan vara relevanta för din coach.', 'Other observations that may be relevant for your coach.')}
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent>
@@ -782,7 +794,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                     <FormItem>
                       <FormControl>
                         <Textarea
-                          placeholder="t.ex. Kände mig pigg efter en sen kväll, lite känning i knät..."
+                          placeholder={text(locale, 't.ex. Kände mig pigg efter en sen kväll, lite känning i knät...', 'e.g. Felt fresh after a late night, slight sensation in my knee...')}
                           className="min-h-[120px] rounded-2xl p-4 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white transition-colors"
                           {...field}
                           value={field.value ?? ''}
@@ -801,21 +813,23 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                 <GlassCardHeader>
                   <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
                     <Stethoscope className="h-5 w-5 text-teal-500" />
-                    Rehabilitering
+                    {text(locale, 'Rehabilitering', 'Rehabilitation')}
                   </GlassCardTitle>
                   <GlassCardDescription className="text-slate-400">
-                    Logga dina rehabövningar och eventuell smärta.
+                    {text(locale, 'Logga dina rehabövningar och eventuell smärta.', 'Log your rehab exercises and any pain.')}
                   </GlassCardDescription>
                 </GlassCardHeader>
                 <GlassCardContent className="space-y-6">
                   {/* Active rehab exercises list */}
                   {activeRehabExercises.length > 0 && (
                     <div className="p-4 rounded-2xl bg-teal-500/5 border border-teal-500/10">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-teal-500 mb-3">Dagens övningar</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-teal-500 mb-3">
+                        {text(locale, 'Dagens övningar', "Today's exercises")}
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {activeRehabExercises.map((ex, idx) => (
                           <Badge key={idx} variant="outline" className="border-teal-500/30 text-teal-400 bg-teal-500/10">
-                            {ex.nameSv}
+                            {locale === 'sv' ? ex.nameSv : ex.name}
                           </Badge>
                         ))}
                       </div>
@@ -837,10 +851,10 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                         </FormControl>
                         <div className="flex-1">
                           <FormLabel className="font-bold cursor-pointer text-slate-900 dark:text-white transition-colors">
-                            Jag har gjort mina rehabövningar idag
+                            {text(locale, 'Jag har gjort mina rehabövningar idag', 'I completed my rehab exercises today')}
                           </FormLabel>
                           <FormDescription className="text-slate-500 text-xs">
-                            Markera om du har genomfört dina tilldelade övningar.
+                            {text(locale, 'Markera om du har genomfört dina tilldelade övningar.', 'Check this if you completed your assigned exercises.')}
                           </FormDescription>
                         </div>
                       </FormItem>
@@ -857,7 +871,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                           <FormItem className="space-y-4">
                             <div className="flex justify-between items-end">
                               <FormLabel className="font-black uppercase tracking-widest text-[10px] text-slate-500">
-                                Smärta under övningarna
+                                {text(locale, 'Smärta under övningarna', 'Pain during exercises')}
                               </FormLabel>
                               <span className="text-2xl font-black leading-none text-slate-900 dark:text-white transition-colors">
                                 {field.value ?? 0}
@@ -874,8 +888,8 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                               />
                             </FormControl>
                             <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
-                              <span>Ingen smärta</span>
-                              <span>Extrem smärta</span>
+                              <span>{text(locale, 'Ingen smärta', 'No pain')}</span>
+                              <span>{text(locale, 'Extrem smärta', 'Extreme pain')}</span>
                             </div>
                           </FormItem>
                         )}
@@ -888,7 +902,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                           <FormItem className="space-y-4">
                             <div className="flex justify-between items-end">
                               <FormLabel className="font-black uppercase tracking-widest text-[10px] text-slate-500">
-                                Smärta efter övningarna
+                                {text(locale, 'Smärta efter övningarna', 'Pain after exercises')}
                               </FormLabel>
                               <span className="text-2xl font-black leading-none text-slate-900 dark:text-white transition-colors">
                                 {field.value ?? 0}
@@ -905,8 +919,8 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                               />
                             </FormControl>
                             <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
-                              <span>Ingen smärta</span>
-                              <span>Extrem smärta</span>
+                              <span>{text(locale, 'Ingen smärta', 'No pain')}</span>
+                              <span>{text(locale, 'Extrem smärta', 'Extreme pain')}</span>
                             </div>
                           </FormItem>
                         )}
@@ -921,11 +935,11 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-                          Rehabanteckningar
+                          {text(locale, 'Rehabanteckningar', 'Rehab notes')}
                         </FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="t.ex. Övningarna kändes bra, lättare att utföra än förra veckan..."
+                            placeholder={text(locale, 't.ex. Övningarna kändes bra, lättare att utföra än förra veckan...', 'e.g. The exercises felt good, easier to complete than last week...')}
                             className="min-h-[80px] rounded-2xl p-4 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white transition-colors"
                             {...field}
                             value={field.value ?? ''}
@@ -953,10 +967,10 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                           <div className="flex-1">
                             <FormLabel className="font-bold cursor-pointer flex items-center gap-2 text-slate-900 dark:text-white transition-colors">
                               <MessageCircle className="h-4 w-4 text-blue-500" />
-                              Jag vill kontakta min fysioterapeut
+                              {text(locale, 'Jag vill kontakta min fysioterapeut', 'I want to contact my physiotherapist')}
                             </FormLabel>
                             <FormDescription className="text-slate-500 text-xs">
-                              Din fysio får en notifikation och kan kontakta dig.
+                              {text(locale, 'Din fysio får en notifikation och kan kontakta dig.', 'Your physio will get a notification and can contact you.')}
                             </FormDescription>
                           </div>
                         </FormItem>
@@ -971,11 +985,11 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                         render={({ field }) => (
                           <FormItem className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
                             <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-                              Anledning till kontakt
+                              {text(locale, 'Anledning till kontakt', 'Reason for contact')}
                             </FormLabel>
                             <FormControl>
                               <Textarea
-                                placeholder="t.ex. Ökad smärta, frågor om progression, behöver justering av övningar..."
+                                placeholder={text(locale, 't.ex. Ökad smärta, frågor om progression, behöver justering av övningar...', 'e.g. Increased pain, questions about progression, need exercise adjustments...')}
                                 className="min-h-[80px] rounded-2xl p-4 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white transition-colors"
                                 {...field}
                                 value={field.value ?? ''}
@@ -999,10 +1013,10 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Skickar...
+                  {text(locale, 'Skickar...', 'Submitting...')}
                 </>
               ) : (
-                'Skicka in incheckning'
+                text(locale, 'Skicka in incheckning', 'Submit check-in')
               )}
             </Button>
           </form>
