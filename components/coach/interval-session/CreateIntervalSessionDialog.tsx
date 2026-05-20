@@ -21,6 +21,31 @@ import {
 } from '@/components/ui/select'
 import { Plus, Save, FolderOpen } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
+const getSportLabels = (locale: AppLocale) => ({
+  RUNNING: copy(locale, 'Running', 'Löpning'),
+  CYCLING: copy(locale, 'Cycling', 'Cykling'),
+  SKIING: copy(locale, 'Skiing', 'Skidåkning'),
+  SWIMMING: copy(locale, 'Swimming', 'Simning'),
+  TRIATHLON: 'Triathlon',
+  HYROX: 'HYROX',
+  GENERAL_FITNESS: copy(locale, 'General fitness', 'Allmän fitness'),
+  FUNCTIONAL_FITNESS: copy(locale, 'Functional fitness', 'Funktionell fitness'),
+  STRENGTH: copy(locale, 'Strength', 'Styrka'),
+  FOOTBALL: copy(locale, 'Football', 'Fotboll'),
+  ICE_HOCKEY: copy(locale, 'Ice hockey', 'Ishockey'),
+  HANDBALL: copy(locale, 'Handball', 'Handboll'),
+  FLOORBALL: copy(locale, 'Floorball', 'Innebandy'),
+  BASKETBALL: copy(locale, 'Basketball', 'Basket'),
+  VOLLEYBALL: copy(locale, 'Volleyball', 'Volleyboll'),
+  TENNIS: 'Tennis',
+  PADEL: 'Padel',
+})
 
 interface Team {
   id: string
@@ -52,6 +77,8 @@ export function CreateIntervalSessionDialog({
   defaultTeamId,
   autoOpen = false,
 }: CreateIntervalSessionDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const sportLabels = getSportLabels(locale)
   const router = useRouter()
   const [open, setOpen] = useState(autoOpen)
   const [loading, setLoading] = useState(false)
@@ -85,12 +112,12 @@ export function CreateIntervalSessionDialog({
     if (p.targetDurationSeconds) setTargetDuration(String(p.targetDurationSeconds))
     if (p.restDurationSeconds) setRestDuration(String(p.restDurationSeconds))
     setShowTemplates(false)
-    toast.success('Mall tillampad')
+    toast.success(copy(locale, 'Template applied', 'Mall tillämpad'))
   }
 
   const handleSaveTemplate = async () => {
     if (!name) {
-      toast.error('Ange ett namn för mallen')
+      toast.error(copy(locale, 'Enter a name for the template', 'Ange ett namn för mallen'))
       return
     }
 
@@ -114,10 +141,10 @@ export function CreateIntervalSessionDialog({
       if (res.ok) {
         const { template } = await res.json()
         setTemplates((prev) => [template, ...prev])
-        toast.success('Mall sparad')
+        toast.success(copy(locale, 'Template saved', 'Mall sparad'))
       }
     } catch {
-      toast.error('Kunde inte spara mall')
+      toast.error(copy(locale, 'Could not save template', 'Kunde inte spara mall'))
     }
   }
 
@@ -152,12 +179,12 @@ export function CreateIntervalSessionDialog({
       }
 
       const { session } = await res.json()
-      toast.success('Session skapad')
+      toast.success(copy(locale, 'Session created', 'Session skapad'))
       setOpen(false)
       const base = businessSlug ? `/${businessSlug}` : ''
       router.push(`${base}/coach/interval-sessions/${session.id}`)
     } catch {
-      toast.error('Kunde inte skapa session')
+      toast.error(copy(locale, 'Could not create session', 'Kunde inte skapa session'))
     } finally {
       setLoading(false)
     }
@@ -168,13 +195,13 @@ export function CreateIntervalSessionDialog({
       <DialogTrigger asChild>
         <Button className="shrink-0 whitespace-nowrap">
           <Plus className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Ny intervallsession</span>
-          <span className="sm:hidden">Ny session</span>
+          <span className="hidden sm:inline">{copy(locale, 'New interval session', 'Ny intervallsession')}</span>
+          <span className="sm:hidden">{copy(locale, 'New session', 'Ny session')}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Skapa intervallsession</DialogTitle>
+          <DialogTitle>{copy(locale, 'Create interval session', 'Skapa intervallsession')}</DialogTitle>
         </DialogHeader>
 
         {/* Template picker */}
@@ -182,7 +209,7 @@ export function CreateIntervalSessionDialog({
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {templates.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
-                Inga sparade mallar
+                {copy(locale, 'No saved templates', 'Inga sparade mallar')}
               </p>
             ) : (
               templates.map((t) => (
@@ -195,11 +222,11 @@ export function CreateIntervalSessionDialog({
                   <div>
                     <div className="font-medium">{t.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {t.protocol.intervalCount && `${t.protocol.intervalCount} intervaller`}
+                      {t.protocol.intervalCount && copy(locale, `${t.protocol.intervalCount} intervals`, `${t.protocol.intervalCount} intervaller`)}
                       {t.protocol.targetDurationSeconds &&
                         ` | ${t.protocol.targetDurationSeconds}s`}
                       {t.protocol.restDurationSeconds &&
-                        ` | ${t.protocol.restDurationSeconds}s vila`}
+                        copy(locale, ` | ${t.protocol.restDurationSeconds}s rest`, ` | ${t.protocol.restDurationSeconds}s vila`)}
                     </div>
                   </div>
                 </Button>
@@ -211,7 +238,7 @@ export function CreateIntervalSessionDialog({
               className="w-full"
               onClick={() => setShowTemplates(false)}
             >
-              Tillbaka
+              {copy(locale, 'Back', 'Tillbaka')}
             </Button>
           </div>
         ) : (
@@ -225,7 +252,7 @@ export function CreateIntervalSessionDialog({
                 onClick={() => setShowTemplates(true)}
               >
                 <FolderOpen className="h-3.5 w-3.5 mr-1" />
-                Ladda mall
+                {copy(locale, 'Load template', 'Ladda mall')}
               </Button>
               <Button
                 variant="outline"
@@ -234,30 +261,30 @@ export function CreateIntervalSessionDialog({
                 onClick={handleSaveTemplate}
               >
                 <Save className="h-3.5 w-3.5 mr-1" />
-                Spara som mall
+                {copy(locale, 'Save as template', 'Spara som mall')}
               </Button>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="session-name">Namn (valfritt)</Label>
+                <Label htmlFor="session-name">{copy(locale, 'Name (optional)', 'Namn (valfritt)')}</Label>
                 <Input
                   id="session-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="t.ex. 5x1000m intervaller"
+                  placeholder={copy(locale, 'e.g. 5x1000m intervals', 't.ex. 5x1000m intervaller')}
                 />
               </div>
 
               {teams.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Lag (valfritt)</Label>
+                  <Label>{copy(locale, 'Team (optional)', 'Lag (valfritt)')}</Label>
                   <Select value={teamId} onValueChange={setTeamId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Välj lag..." />
+                      <SelectValue placeholder={copy(locale, 'Select team...', 'Välj lag...')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Inget lag</SelectItem>
+                      <SelectItem value="none">{copy(locale, 'No team', 'Inget lag')}</SelectItem>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id}>
                           {team.name}
@@ -269,43 +296,43 @@ export function CreateIntervalSessionDialog({
               )}
 
               <div className="space-y-2">
-                <Label>Sport (valfritt)</Label>
+                <Label>{copy(locale, 'Sport (optional)', 'Sport (valfritt)')}</Label>
                 <Select value={sportType} onValueChange={setSportType}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Välj sport..." />
+                    <SelectValue placeholder={copy(locale, 'Select sport...', 'Välj sport...')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Ingen specifik</SelectItem>
+                    <SelectItem value="none">{copy(locale, 'No specific sport', 'Ingen specifik')}</SelectItem>
                     {/* Endurance */}
-                    <SelectItem value="RUNNING">Löpning</SelectItem>
-                    <SelectItem value="CYCLING">Cykling</SelectItem>
-                    <SelectItem value="SKIING">Skidåkning</SelectItem>
-                    <SelectItem value="SWIMMING">Simning</SelectItem>
-                    <SelectItem value="TRIATHLON">Triathlon</SelectItem>
+                    <SelectItem value="RUNNING">{sportLabels.RUNNING}</SelectItem>
+                    <SelectItem value="CYCLING">{sportLabels.CYCLING}</SelectItem>
+                    <SelectItem value="SKIING">{sportLabels.SKIING}</SelectItem>
+                    <SelectItem value="SWIMMING">{sportLabels.SWIMMING}</SelectItem>
+                    <SelectItem value="TRIATHLON">{sportLabels.TRIATHLON}</SelectItem>
                     {/* Functional */}
-                    <SelectItem value="HYROX">HYROX</SelectItem>
-                    <SelectItem value="GENERAL_FITNESS">Allmän fitness</SelectItem>
-                    <SelectItem value="FUNCTIONAL_FITNESS">Funktionell fitness</SelectItem>
-                    <SelectItem value="STRENGTH">Styrka</SelectItem>
+                    <SelectItem value="HYROX">{sportLabels.HYROX}</SelectItem>
+                    <SelectItem value="GENERAL_FITNESS">{sportLabels.GENERAL_FITNESS}</SelectItem>
+                    <SelectItem value="FUNCTIONAL_FITNESS">{sportLabels.FUNCTIONAL_FITNESS}</SelectItem>
+                    <SelectItem value="STRENGTH">{sportLabels.STRENGTH}</SelectItem>
                     {/* Team */}
-                    <SelectItem value="FOOTBALL">Fotboll</SelectItem>
-                    <SelectItem value="ICE_HOCKEY">Ishockey</SelectItem>
-                    <SelectItem value="HANDBALL">Handboll</SelectItem>
-                    <SelectItem value="FLOORBALL">Innebandy</SelectItem>
-                    <SelectItem value="BASKETBALL">Basket</SelectItem>
-                    <SelectItem value="VOLLEYBALL">Volleyboll</SelectItem>
+                    <SelectItem value="FOOTBALL">{sportLabels.FOOTBALL}</SelectItem>
+                    <SelectItem value="ICE_HOCKEY">{sportLabels.ICE_HOCKEY}</SelectItem>
+                    <SelectItem value="HANDBALL">{sportLabels.HANDBALL}</SelectItem>
+                    <SelectItem value="FLOORBALL">{sportLabels.FLOORBALL}</SelectItem>
+                    <SelectItem value="BASKETBALL">{sportLabels.BASKETBALL}</SelectItem>
+                    <SelectItem value="VOLLEYBALL">{sportLabels.VOLLEYBALL}</SelectItem>
                     {/* Racket */}
-                    <SelectItem value="TENNIS">Tennis</SelectItem>
-                    <SelectItem value="PADEL">Padel</SelectItem>
+                    <SelectItem value="TENNIS">{sportLabels.TENNIS}</SelectItem>
+                    <SelectItem value="PADEL">{sportLabels.PADEL}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-3">Protokoll (valfritt)</p>
+                <p className="text-sm font-medium mb-3">{copy(locale, 'Protocol (optional)', 'Protokoll (valfritt)')}</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Antal intervaller</Label>
+                    <Label className="text-xs">{copy(locale, 'Number of intervals', 'Antal intervaller')}</Label>
                     <Input
                       type="number"
                       inputMode="numeric"
@@ -315,7 +342,7 @@ export function CreateIntervalSessionDialog({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Målduration (s)</Label>
+                    <Label className="text-xs">{copy(locale, 'Target duration (s)', 'Målduration (s)')}</Label>
                     <Input
                       type="number"
                       inputMode="numeric"
@@ -325,7 +352,7 @@ export function CreateIntervalSessionDialog({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Vila (s)</Label>
+                    <Label className="text-xs">{copy(locale, 'Rest (s)', 'Vila (s)')}</Label>
                     <Input
                       type="number"
                       inputMode="numeric"
@@ -340,7 +367,7 @@ export function CreateIntervalSessionDialog({
               {/* Rest mode selector - only show when rest duration is set */}
               {restDuration && parseInt(restDuration) > 0 && (
                 <div className="border-t pt-4">
-                  <p className="text-sm font-medium mb-3">Viloläge</p>
+                  <p className="text-sm font-medium mb-3">{copy(locale, 'Rest mode', 'Viloläge')}</p>
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
@@ -351,8 +378,8 @@ export function CreateIntervalSessionDialog({
                           : 'border-muted hover:bg-muted/50'
                       }`}
                     >
-                      <div className="font-medium mb-0.5">Manuell</div>
-                      <div className="text-muted-foreground">Ingen auto-vila</div>
+                      <div className="font-medium mb-0.5">{copy(locale, 'Manual', 'Manuell')}</div>
+                      <div className="text-muted-foreground">{copy(locale, 'No auto-rest', 'Ingen auto-vila')}</div>
                     </button>
                     <button
                       type="button"
@@ -363,8 +390,8 @@ export function CreateIntervalSessionDialog({
                           : 'border-muted hover:bg-muted/50'
                       }`}
                     >
-                      <div className="font-medium mb-0.5">Individuell</div>
-                      <div className="text-muted-foreground">Vila per atlet</div>
+                      <div className="font-medium mb-0.5">{copy(locale, 'Individual', 'Individuell')}</div>
+                      <div className="text-muted-foreground">{copy(locale, 'Rest per athlete', 'Vila per atlet')}</div>
                     </button>
                     <button
                       type="button"
@@ -375,28 +402,28 @@ export function CreateIntervalSessionDialog({
                           : 'border-muted hover:bg-muted/50'
                       }`}
                     >
-                      <div className="font-medium mb-0.5">Grupp</div>
-                      <div className="text-muted-foreground">Gemensam vila</div>
+                      <div className="font-medium mb-0.5">{copy(locale, 'Group', 'Grupp')}</div>
+                      <div className="text-muted-foreground">{copy(locale, 'Shared rest', 'Gemensam vila')}</div>
                     </button>
                   </div>
                   {restMode === 'INDIVIDUAL' && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Vila startar för varje atlet när de registreras. Nästa intervall startar automatiskt när alla vilat klart.
+                      {copy(locale, 'Rest starts for each athlete when they are registered. The next interval starts automatically when everyone has finished resting.', 'Vila startar för varje atlet när de registreras. Nästa intervall startar automatiskt när alla vilat klart.')}
                     </p>
                   )}
                   {restMode === 'GROUP' && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Gemensam vila startar när sista atleten registreras eller manuellt. Nästa intervall startar automatiskt.
+                      {copy(locale, 'Shared rest starts when the last athlete is registered or manually. The next interval starts automatically.', 'Gemensam vila startar när sista atleten registreras eller manuellt. Nästa intervall startar automatiskt.')}
                     </p>
                   )}
                 </div>
               )}
 
               <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-3">Schemalägg (valfritt)</p>
+                <p className="text-sm font-medium mb-3">{copy(locale, 'Schedule (optional)', 'Schemalägg (valfritt)')}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Datum</Label>
+                    <Label className="text-xs">{copy(locale, 'Date', 'Datum')}</Label>
                     <Input
                       type="date"
                       value={scheduledDate}
@@ -404,7 +431,7 @@ export function CreateIntervalSessionDialog({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Tid</Label>
+                    <Label className="text-xs">{copy(locale, 'Time', 'Tid')}</Label>
                     <Input
                       type="time"
                       value={scheduledTime}
@@ -416,10 +443,10 @@ export function CreateIntervalSessionDialog({
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setOpen(false)}>
-                Avbryt
+                {copy(locale, 'Cancel', 'Avbryt')}
               </Button>
               <Button onClick={handleCreate} disabled={loading}>
-                {loading ? 'Skapar...' : 'Skapa session'}
+                {loading ? copy(locale, 'Creating...', 'Skapar...') : copy(locale, 'Create session', 'Skapa session')}
               </Button>
             </div>
           </>
