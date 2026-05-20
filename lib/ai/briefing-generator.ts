@@ -14,9 +14,12 @@ import { getGeminiThinkingOptions } from '@/lib/ai/gemini-config'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 const SWEDISH_DAYS = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag']
+const ENGLISH_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+type BriefingLocale = 'en' | 'sv'
 
 export interface BriefingContext {
   athleteName: string
+  locale: BriefingLocale
   readinessScore?: number
   sleepHours?: number
   sleepQuality?: number
@@ -297,6 +300,7 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     select: {
       name: true,
       userId: true,
+      user: { select: { language: true } },
       athleteAccount: { select: { userId: true } },
       dailyMetrics: {
         orderBy: { date: 'desc' },
@@ -352,6 +356,8 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
   if (!client) {
     return null
   }
+
+  const locale: BriefingLocale = client.user.language === 'sv' ? 'sv' : 'en'
 
   // Fetch all enrichment data in parallel
   const [
@@ -435,7 +441,8 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     currentWeeklySummary,
     recentWorkoutCompletions,
     activeInjuries,
-    dayOfWeek: SWEDISH_DAYS[now.getDay()],
+    dayOfWeek: locale === 'sv' ? SWEDISH_DAYS[now.getDay()] : ENGLISH_DAYS[now.getDay()],
+    locale,
   }
 }
 
@@ -522,7 +529,7 @@ export async function generateMorningBriefing(
 
     const parsed = JSON.parse(jsonMatch[0])
     return {
-      title: parsed.title || `God morgon ${context.athleteName}!`,
+      title: parsed.title || (context.locale === 'sv' ? `God morgon ${context.athleteName}!` : `Good morning ${context.athleteName}!`),
       content: parsed.content || '',
       highlights: parsed.highlights || [],
       alerts: parsed.alerts || [],
@@ -560,6 +567,9 @@ function getDailyAngle(dayIndex: number): string {
  * Build the AI prompt for briefing generation
  */
 function buildBriefingPrompt(context: BriefingContext): string {
+  const locale = context.locale
+  const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
+  const formatDate = (date: Date) => new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
   const sections: string[] = []
 
   // 1. Previous topics — deduplication
@@ -634,7 +644,7 @@ function buildBriefingPrompt(context: BriefingContext): string {
   // 5. Recent workout completions
   if (context.recentWorkoutCompletions.length > 0) {
     const completionLines = context.recentWorkoutCompletions.map((w) => {
-      const date = new Date(w.completedAt).toLocaleDateString('sv-SE')
+      const date = formatDate(w.completedAt)
       const details: string[] = []
       if (w.feeling) details.push(`känsla: ${w.feeling}`)
       if (w.rpe) details.push(`RPE: ${w.rpe}/10`)
@@ -646,7 +656,7 @@ function buildBriefingPrompt(context: BriefingContext): string {
   // 6. New milestones (already filtered against previous topics)
   if (context.recentMilestones.length > 0) {
     const milestoneLines = context.recentMilestones.map(
-      (m) => `- ${m.title} (${new Date(m.createdAt).toLocaleDateString('sv-SE')})`
+      (m) => `- ${m.title} (${formatDate(m.createdAt)})`
     )
     sections.push(`NYA PRESTATIONER:\n${milestoneLines.join('\n')}`)
   }
@@ -673,7 +683,7 @@ function buildBriefingPrompt(context: BriefingContext): string {
   if (context.upcomingEvents && context.upcomingEvents.length > 0) {
     for (const e of context.upcomingEvents) {
       contextNotes.push(
-        `- Händelse: ${e.name} (${e.type}) — ${new Date(e.date).toLocaleDateString('sv-SE')}`
+        `- ${locale === 'sv' ? 'Händelse' : 'Event'}: ${e.name} (${e.type}) — ${formatDate(e.date)}`
       )
     }
   }
@@ -686,6 +696,7 @@ function buildBriefingPrompt(context: BriefingContext): string {
 
   // 10. Instructions
   const instructions = `INSTRUKTIONER:
+0. Svara på ${outputLanguage}. Alla fält som visas för atleten ska vara på ${outputLanguage}.
 1. Skriv en kort, personlig morgonhälsning (max 2-3 meningar)
 2. Var ALDRIG upprepande — hitta nya vinklar varje dag
 3. Om inga nya prestationer finns, fokusera på process och framsteg
@@ -696,16 +707,16 @@ function buildBriefingPrompt(context: BriefingContext): string {
 
 SVARA I JSON-FORMAT:
 {
-  "title": "God morgon ${context.athleteName}!",
-  "content": "Kort personlig briefing här...",
-  "highlights": ["Punkt 1", "Punkt 2"],
+  "title": "${locale === 'sv' ? `God morgon ${context.athleteName}!` : `Good morning ${context.athleteName}!`}",
+  "content": "${locale === 'sv' ? 'Kort personlig briefing här...' : 'Short personal briefing here...'}",
+  "highlights": ["${locale === 'sv' ? 'Punkt 1' : 'Point 1'}", "${locale === 'sv' ? 'Punkt 2' : 'Point 2'}"],
   "alerts": [
-    {"type": "warning", "message": "Varningsmeddelande om något"},
-    {"type": "info", "message": "Informationsmeddelande"}
+    {"type": "warning", "message": "${locale === 'sv' ? 'Varningsmeddelande om något' : 'Warning message if needed'}"},
+    {"type": "info", "message": "${locale === 'sv' ? 'Informationsmeddelande' : 'Information message'}"}
   ],
   "quickActions": [
-    {"label": "Logga träning", "action": "log_workout"},
-    {"label": "Chatta med AI", "action": "open_chat"}
+    {"label": "${locale === 'sv' ? 'Logga träning' : 'Log workout'}", "action": "log_workout"},
+    {"label": "${locale === 'sv' ? 'Chatta med AI' : 'Chat with AI'}", "action": "open_chat"}
   ]
 }
 
@@ -722,30 +733,32 @@ QUICK ACTIONS:
 
 TONALITET: Vänlig, personlig, motiverande. Som en bra tränare som bryr sig.`
 
-  return `Generera en personlig morgonbriefing för atleten ${context.athleteName}.\n\n${sections.join('\n\n')}\n\n${instructions}\n`
+  return `${locale === 'sv' ? 'Generera en personlig morgonbriefing för atleten' : 'Generate a personal morning briefing for athlete'} ${context.athleteName}.\n\n${sections.join('\n\n')}\n\n${instructions}\n`
 }
 
 /**
  * Get a default briefing when AI generation fails
  */
 function getDefaultBriefing(context: BriefingContext): GeneratedBriefing {
+  const locale = context.locale
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const highlights: string[] = []
   const alerts: GeneratedBriefing['alerts'] = []
 
   if (context.todaysWorkout) {
-    highlights.push(`Dagens pass: ${context.todaysWorkout.name}`)
+    highlights.push(t(`Dagens pass: ${context.todaysWorkout.name}`, `Today's workout: ${context.todaysWorkout.name}`))
   }
 
   if (context.readinessScore !== undefined) {
     if (context.readinessScore >= 7) {
-      highlights.push('Bra readiness - kör på!')
+      highlights.push(t('Bra readiness - kör på!', 'Good readiness - go for it!'))
     } else if (context.readinessScore < 5) {
-      alerts.push({ type: 'warning', message: 'Låg readiness - överväg att ta det lugnt' })
+      alerts.push({ type: 'warning', message: t('Låg readiness - överväg att ta det lugnt', 'Low readiness - consider taking it easier') })
     }
   }
 
   if (context.sleepHours !== undefined && context.sleepHours < 6) {
-    alerts.push({ type: 'warning', message: `Du sov bara ${context.sleepHours} timmar` })
+    alerts.push({ type: 'warning', message: t(`Du sov bara ${context.sleepHours} timmar`, `You only slept ${context.sleepHours} hours`) })
   }
 
   // Add injury warnings
@@ -753,7 +766,7 @@ function getDefaultBriefing(context: BriefingContext): GeneratedBriefing {
     const sideStr = injury.side ? ` (${injury.side})` : ''
     alerts.push({
       type: 'warning',
-      message: `Aktiv skada: ${injury.bodyPart}${sideStr} — smärtnivå ${injury.painLevel}/10`,
+      message: t(`Aktiv skada: ${injury.bodyPart}${sideStr} — smärtnivå ${injury.painLevel}/10`, `Active injury: ${injury.bodyPart}${sideStr} - pain level ${injury.painLevel}/10`),
     })
   }
 
@@ -761,7 +774,7 @@ function getDefaultBriefing(context: BriefingContext): GeneratedBriefing {
   if (context.latestACWR && ['DANGER', 'CRITICAL'].includes(context.latestACWR.acwrZone)) {
     alerts.push({
       type: 'warning',
-      message: `Hög träningsbelastning (ACWR ${context.latestACWR.acwr.toFixed(2)}) — var försiktig`,
+      message: t(`Hög träningsbelastning (ACWR ${context.latestACWR.acwr.toFixed(2)}) — var försiktig`, `High training load (ACWR ${context.latestACWR.acwr.toFixed(2)}) - be careful`),
     })
   }
 
@@ -773,26 +786,26 @@ function getDefaultBriefing(context: BriefingContext): GeneratedBriefing {
   // Mention last completed workout
   if (context.recentWorkoutCompletions.length > 0) {
     const last = context.recentWorkoutCompletions[0]
-    highlights.push(`Senaste passet: ${last.name}${last.feeling ? ` (${last.feeling})` : ''}`)
+    highlights.push(t(`Senaste passet: ${last.name}${last.feeling ? ` (${last.feeling})` : ''}`, `Latest workout: ${last.name}${last.feeling ? ` (${last.feeling})` : ''}`))
   }
 
   let content: string
   if (context.todaysWorkout) {
-    content = `Idag väntar ${context.todaysWorkout.name}. Ha en bra träningsdag!`
+    content = t(`Idag väntar ${context.todaysWorkout.name}. Ha en bra träningsdag!`, `${context.todaysWorkout.name} is scheduled today. Have a good training day!`)
   } else if (context.recentWorkoutCompletions.length > 0) {
-    content = `Bra jobbat med ${context.recentWorkoutCompletions[0].name}! Ha en bra dag.`
+    content = t(`Bra jobbat med ${context.recentWorkoutCompletions[0].name}! Ha en bra dag.`, `Good work on ${context.recentWorkoutCompletions[0].name}! Have a good day.`)
   } else {
-    content = 'Ha en bra dag! Glöm inte att röra på dig.'
+    content = t('Ha en bra dag! Glöm inte att röra på dig.', 'Have a good day! Remember to move.')
   }
 
   return {
-    title: `God morgon ${context.athleteName}!`,
+    title: t(`God morgon ${context.athleteName}!`, `Good morning ${context.athleteName}!`),
     content,
     highlights,
     alerts,
     quickActions: [
-      { label: 'Logga träning', action: 'log_workout' },
-      { label: 'Chatta med AI', action: 'open_chat' },
+      { label: t('Logga träning', 'Log workout'), action: 'log_workout' },
+      { label: t('Chatta med AI', 'Chat with AI'), action: 'open_chat' },
     ],
   }
 }
