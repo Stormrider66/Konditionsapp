@@ -37,32 +37,13 @@ import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
 import { AssignmentStatus } from '@prisma/client'
 import { getLocale, getTranslations } from '@/i18n/server'
+import { getSportLabelKey } from '@/lib/sports/catalog'
 
 interface TeamPageProps {
   params: Promise<{
     businessSlug: string
     teamId: string
   }>
-}
-
-const sportTypeLabelKeys: Record<string, string> = {
-  TEAM_FOOTBALL: 'football',
-  TEAM_ICE_HOCKEY: 'iceHockey',
-  TEAM_HANDBALL: 'handball',
-  TEAM_FLOORBALL: 'floorball',
-  TEAM_BASKETBALL: 'basketball',
-  TEAM_VOLLEYBALL: 'volleyball',
-  TENNIS: 'tennis',
-  PADEL: 'padel',
-  RUNNING: 'running',
-  CYCLING: 'cycling',
-  SKIING: 'skiing',
-  SWIMMING: 'swimming',
-  TRIATHLON: 'triathlon',
-  HYROX: 'hyrox',
-  GENERAL_FITNESS: 'generalFitness',
-  FUNCTIONAL_FITNESS: 'functionalFitness',
-  STRENGTH: 'strength',
 }
 
 function PilotReadinessItem({
@@ -144,6 +125,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
   if (!team) {
     notFound()
   }
+  const sportLabelKey = getSportLabelKey(team.sportType)
 
   // Fetch dashboard data (last 30 days)
   const thirtyDaysAgo = new Date()
@@ -559,7 +541,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             <h1 className="text-3xl font-bold dark:text-white">{team.name}</h1>
             {team.sportType && (
               <Badge variant="secondary" className="text-sm">
-                {sportTypeLabelKeys[team.sportType] ? tSports(sportTypeLabelKeys[team.sportType]) : team.sportType}
+                {sportLabelKey ? tSports(sportLabelKey) : team.sportType}
               </Badge>
             )}
           </div>

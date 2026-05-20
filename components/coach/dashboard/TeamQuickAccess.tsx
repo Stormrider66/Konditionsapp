@@ -18,26 +18,9 @@ import {
   type TeamCoachAction,
 } from '@/components/coach/dashboard/TeamCoachActionDialog'
 import { useTranslations } from '@/i18n/client'
+import { getSportLabelKey } from '@/lib/sports/catalog'
 
 type TeamSummary = TeamDashboardData['teams'][number]
-
-const sportLabelKeys: Record<string, string> = {
-  TEAM_FOOTBALL: 'football',
-  TEAM_ICE_HOCKEY: 'iceHockey',
-  TEAM_HANDBALL: 'handball',
-  TEAM_FLOORBALL: 'floorball',
-  TEAM_BASKETBALL: 'basketball',
-  TEAM_VOLLEYBALL: 'volleyball',
-  TENNIS: 'tennis',
-  PADEL: 'padel',
-  RUNNING: 'running',
-  CYCLING: 'cycling',
-  SKIING: 'skiing',
-  SWIMMING: 'swimming',
-  GENERAL_FITNESS: 'generalFitness',
-  FUNCTIONAL_FITNESS: 'functionalFitness',
-  STRENGTH: 'strength',
-}
 
 function readinessTone(team: TeamSummary) {
   if (team.attentionCount > 0) return 'border-amber-200 bg-amber-50/70 dark:border-amber-800/40 dark:bg-amber-950/20'
@@ -85,7 +68,10 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {teams.map(team => (
+              {teams.map(team => {
+                const sportLabelKey = getSportLabelKey(team.sportType)
+
+                return (
                 <div
                   key={team.id}
                   className={cn(
@@ -99,8 +85,8 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
                       <p className="truncate text-sm font-semibold dark:text-slate-100">{team.name}</p>
                       <p className="text-[11px] text-muted-foreground">
                         {team.sportType
-                          ? sportLabelKeys[team.sportType]
-                            ? tSports(sportLabelKeys[team.sportType])
+                          ? sportLabelKey
+                            ? tSports(sportLabelKey)
                             : team.sportType
                           : t('teamFallback')}
                       </p>
@@ -161,7 +147,8 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
                     </Button>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </GlassCardContent>

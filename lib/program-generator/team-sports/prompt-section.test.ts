@@ -77,4 +77,28 @@ describe('buildTeamSportPromptSection', () => {
     expect(basketballSection).toContain('Position')
     expect(basketballSection).toContain('hoppbelastning')
   })
+
+  it('adds useful sport guidance even when profile settings are missing', () => {
+    const hockeySection = buildTeamSportPromptSection({
+      sport: 'TEAM_ICE_HOCKEY',
+      sessionsPerWeek: 4,
+      locale: 'en',
+      variant: 'compact',
+    })
+
+    expect(hockeySection).toContain('ICE HOCKEY CONTEXT')
+    expect(hockeySection).toContain('skating acceleration')
+    expect(hockeySection).toContain('safe defaults')
+
+    const padelSection = buildTeamSportPromptSection({
+      sport: 'PADEL',
+      sessionsPerWeek: 3,
+      locale: 'sv',
+      variant: 'markdown',
+    })
+
+    expect(padelSection).toContain('PADELSPECIFIK PROFIL')
+    expect(padelSection).toContain('rotationskraft')
+    expect(padelSection).toContain('Planerade pass')
+  })
 })

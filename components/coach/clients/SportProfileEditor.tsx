@@ -21,6 +21,7 @@ import { DEFAULT_BASKETBALL_SETTINGS } from '@/components/onboarding/BasketballO
 import { DEFAULT_VOLLEYBALL_SETTINGS } from '@/components/onboarding/VolleyballOnboarding'
 import { DEFAULT_TENNIS_SETTINGS } from '@/components/onboarding/TennisOnboarding'
 import { DEFAULT_PADEL_SETTINGS } from '@/components/onboarding/PadelOnboarding'
+import { SPORT_OPTIONS as SHARED_SPORT_OPTIONS } from '@/lib/sports/catalog'
 
 interface SportProfileEditorProps {
   clientId: string
@@ -41,23 +42,7 @@ interface SportProfileEditorProps {
 }
 
 const SPORT_OPTIONS = [
-  { value: 'RUNNING', label: 'Löpning' },
-  { value: 'CYCLING', label: 'Cykling' },
-  { value: 'SKIING', label: 'Längdskidåkning' },
-  { value: 'SWIMMING', label: 'Simning' },
-  { value: 'TRIATHLON', label: 'Triathlon' },
-  { value: 'HYROX', label: 'HYROX' },
-  { value: 'GENERAL_FITNESS', label: 'Allmän fitness' },
-  { value: 'FUNCTIONAL_FITNESS', label: 'Funktionell fitness' },
-  { value: 'STRENGTH', label: 'Styrketräning' },
-  { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey' },
-  { value: 'TEAM_FOOTBALL', label: 'Fotboll' },
-  { value: 'TEAM_HANDBALL', label: 'Handboll' },
-  { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
-  { value: 'TEAM_BASKETBALL', label: 'Basket' },
-  { value: 'TEAM_VOLLEYBALL', label: 'Volleyboll' },
-  { value: 'TENNIS', label: 'Tennis' },
-  { value: 'PADEL', label: 'Padel' },
+  ...SHARED_SPORT_OPTIONS.map((sport) => ({ value: sport.value, label: sport.sv })),
   { value: 'NUTRITION', label: 'Nutrition' },
 ]
 

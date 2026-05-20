@@ -26,6 +26,25 @@ import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignme
 import { getProgramSportSettings, normalizeProgramSport } from '@/lib/ai/program-generator/sport-normalization'
 import type { StrengthPhase } from '@prisma/client'
 
+const CARDIO_TOOL_SPORTS = [
+  'RUNNING',
+  'CYCLING',
+  'SWIMMING',
+  'SKIING',
+  'TRIATHLON',
+  'HYROX',
+  'GENERAL_FITNESS',
+  'FUNCTIONAL_FITNESS',
+  'TEAM_ICE_HOCKEY',
+  'TEAM_FOOTBALL',
+  'TEAM_HANDBALL',
+  'TEAM_FLOORBALL',
+  'TEAM_BASKETBALL',
+  'TEAM_VOLLEYBALL',
+  'TENNIS',
+  'PADEL',
+] as const
+
 type CoachToolClient = {
   id: string
   name: string
@@ -1246,11 +1265,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
     }),
 
     createCardioSession: tool({
-      description: 'Skapa ett konditionspass/intervallpass. Sparas i Cardio Studio. Stödjer löpning, cykling, simning, rodd, HYROX och hockeyspecifika repeated-sprint/shift-repeat-pass. Segmenten kan vara intervaller, steady state, repeat groups (upprepningsblock med flera steg), uppvärmning och nedvarvning.',
+      description: 'Skapa ett konditionspass/intervallpass. Sparas i Cardio Studio. Stödjer uthållighetssporter, HYROX, funktionell fitness, lagidrotter och racketsporter. För lag/racket: gör passen sportnära med repeated sprints, court/field intervals, change-of-direction, point/shift repeats och relevant prevention.',
       inputSchema: z.object({
         name: z.string().describe('Passnamn på svenska'),
         description: z.string().optional().describe('Kort beskrivning'),
-        sport: z.enum(['RUNNING', 'CYCLING', 'SWIMMING', 'SKIING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'TEAM_ICE_HOCKEY']).default('RUNNING').describe('Sport/aktivitet. Använd TEAM_ICE_HOCKEY för hockeyspecifika 7x40, RSA och shift-repeat-pass.'),
+        sport: z.enum(CARDIO_TOOL_SPORTS).default('RUNNING').describe('Sport/aktivitet. Använd TEAM_ICE_HOCKEY för hockeyspecifika 7x40/RSA/shift-repeat, TEAM_BASKETBALL för court repeats, TENNIS/PADEL för point-intervals, och motsvarande sport för övriga lagidrotter.'),
         segments: z.array(z.object({
           type: z.enum(['WARMUP', 'COOLDOWN', 'INTERVAL', 'STEADY', 'RECOVERY', 'HILL', 'DRILLS', 'REPEAT_GROUP']).describe('Segmenttyp'),
           duration: z.number().optional().describe('Tid i sekunder'),

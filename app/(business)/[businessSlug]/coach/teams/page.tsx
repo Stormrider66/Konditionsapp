@@ -12,6 +12,7 @@ import { TeamForm } from '@/components/forms/TeamForm'
 import { Trash2, Edit2, Users, Plus, BarChart3, Building2, Calendar } from 'lucide-react'
 import type { Team } from '@/types'
 import { useTranslations } from '@/i18n/client'
+import { getSportLabelKey } from '@/lib/sports/catalog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,17 +42,6 @@ interface TeamWithPartialOrg {
 
 type ExtendedTeam = TeamWithPartialOrg
 
-const sportTypeLabelKeys: Record<string, string> = {
-  TEAM_FOOTBALL: 'football',
-  TEAM_ICE_HOCKEY: 'iceHockey',
-  TEAM_HANDBALL: 'handball',
-  TEAM_FLOORBALL: 'floorball',
-  TEAM_BASKETBALL: 'basketball',
-  TEAM_VOLLEYBALL: 'volleyball',
-  TENNIS: 'tennis',
-  PADEL: 'padel',
-}
-
 function TeamCard({
   team,
   basePath,
@@ -65,6 +55,7 @@ function TeamCard({
 }) {
   const t = useTranslations('coach.pages.teams')
   const tSports = useTranslations('sports')
+  const sportLabelKey = getSportLabelKey(team.sportType)
 
   return (
     <GlassCard glow="blue" className="hover:scale-[1.01] transition-all duration-300">
@@ -75,7 +66,7 @@ function TeamCard({
               <h3 className="text-lg font-semibold dark:text-white">{team.name}</h3>
               {team.sportType && (
                 <Badge variant="secondary" className="text-xs">
-                  {sportTypeLabelKeys[team.sportType] ? tSports(sportTypeLabelKeys[team.sportType]) : team.sportType}
+                  {sportLabelKey ? tSports(sportLabelKey) : team.sportType}
                 </Badge>
               )}
             </div>

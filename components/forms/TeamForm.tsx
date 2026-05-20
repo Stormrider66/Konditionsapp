@@ -15,6 +15,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useTranslations } from '@/i18n/client'
 import type { Team } from '@/types'
+import { TEAM_AND_RACKET_SPORT_OPTIONS } from '@/lib/sports/catalog'
 
 interface Organization {
   id: string
@@ -31,16 +32,7 @@ interface TeamFormProps {
 export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormProps) {
   const t = useTranslations('components.teamForm')
   const tSports = useTranslations('sports')
-  const sportTypeOptions = [
-    { value: 'TEAM_FOOTBALL', label: tSports('football') },
-    { value: 'TEAM_ICE_HOCKEY', label: tSports('iceHockey') },
-    { value: 'TEAM_HANDBALL', label: tSports('handball') },
-    { value: 'TEAM_FLOORBALL', label: tSports('floorball') },
-    { value: 'TEAM_BASKETBALL', label: tSports('basketball') },
-    { value: 'TEAM_VOLLEYBALL', label: tSports('volleyball') },
-    { value: 'TENNIS', label: tSports('tennis') },
-    { value: 'PADEL', label: tSports('padel') },
-  ]
+  const sportTypeOptions = TEAM_AND_RACKET_SPORT_OPTIONS
   const [name, setName] = useState(team?.name || '')
   const [description, setDescription] = useState(team?.description || '')
   const [organizationId, setOrganizationId] = useState<string>(
@@ -196,7 +188,7 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
                 <SelectItem value="none">{t('fields.sport.noSelection')}</SelectItem>
                 {sportTypeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {tSports(option.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>

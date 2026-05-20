@@ -46,6 +46,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { PROGRAM_GENERATION_SPORT_VALUES, getSportLabelKey } from '@/lib/sports/catalog'
 
 const getDateLocale = (locale: string) => (locale === 'sv' ? sv : enUS)
 
@@ -55,6 +56,7 @@ const createFormSchema = (t: TranslateFn) =>
   z.object({
   clientId: z.string().min(1, t('validation.clientRequired')),
   testId: z.string().optional(), // Optional for CUSTOM methodology
+  sport: z.enum(PROGRAM_GENERATION_SPORT_VALUES).default('RUNNING'),
 
   // Goal Configuration
   goalType: z.enum([
@@ -177,6 +179,7 @@ function recommendMethodology(data: Partial<FormData>, t: TranslateFn): string {
 
 export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   const t = useTranslations('components.careTeam.programGenerationForm')
+  const tSports = useTranslations('sports')
   const locale = useLocale()
   const router = useRouter()
   const pathname = usePathname()
@@ -193,6 +196,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
     defaultValues: {
       clientId: '',
       testId: '',
+      sport: 'RUNNING',
       goalType: 'marathon',
       targetTime: '',
       fitnessGoal: 'general_health',
@@ -225,6 +229,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   })
 
   const selectedClient = clients.find((c) => c.id === selectedClientId)
+  const selectedClientPrimarySport = selectedClient?.sportProfile?.primarySport
 
   // Update methodology recommendation when profile changes
   const watchedFields = form.watch([
@@ -279,6 +284,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         },
         body: JSON.stringify({
           ...data,
+          sport: data.sport || selectedClientPrimarySport || 'RUNNING',
+          goal: data.goalType,
           targetRaceDate: data.targetRaceDate?.toISOString(),
         }),
       })
@@ -401,6 +408,11 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       field.onChange(value)
                       setSelectedClientId(value)
                       form.setValue('testId', '')
+                      const nextClient = clients.find((client) => client.id === value)
+                      const primarySport = nextClient?.sportProfile?.primarySport
+                      if (primarySport && PROGRAM_GENERATION_SPORT_VALUES.includes(primarySport)) {
+                        form.setValue('sport', primarySport, { shouldValidate: true, shouldDirty: true })
+                      }
                     }}
                     value={field.value}
                     >
@@ -460,6 +472,40 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 )}
               />
             )}
+
+            <FormField
+              control={form.control}
+              name="sport"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sport</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {PROGRAM_GENERATION_SPORT_VALUES.map((sport) => {
+                        const labelKey = getSportLabelKey(sport)
+
+                        return (
+                          <SelectItem key={sport} value={sport}>
+                            {labelKey ? tSports(labelKey) : sport}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {locale === 'sv'
+                      ? 'Styr programgeneratorn till rätt sportmotor.'
+                      : 'Routes the generator through the correct sport engine.'}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {selectedClient && form.watch('methodology') === 'CUSTOM' && (
               <Alert className="bg-blue-50 border-blue-200">

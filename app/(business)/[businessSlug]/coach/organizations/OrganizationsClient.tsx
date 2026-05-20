@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { OrganizationDayPrintDialog } from '@/components/coach/organizations/OrganizationDayPrintDialog'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import { useTranslations } from '@/i18n/client'
+import { getSportLabelKey, TEAM_AND_RACKET_SPORT_OPTIONS } from '@/lib/sports/catalog'
 import {
   Select,
   SelectContent,
@@ -69,28 +70,6 @@ interface Organization {
   createdAt: string
   updatedAt: string
 }
-
-const sportTypeLabelKeys: Record<string, string> = {
-  TEAM_FOOTBALL: 'football',
-  TEAM_ICE_HOCKEY: 'iceHockey',
-  TEAM_HANDBALL: 'handball',
-  TEAM_FLOORBALL: 'floorball',
-  TEAM_BASKETBALL: 'basketball',
-  TEAM_VOLLEYBALL: 'volleyball',
-  TENNIS: 'tennis',
-  PADEL: 'padel',
-}
-
-const sportTypeOptions = [
-  { value: 'TEAM_FOOTBALL', labelKey: 'football' },
-  { value: 'TEAM_ICE_HOCKEY', labelKey: 'iceHockey' },
-  { value: 'TEAM_HANDBALL', labelKey: 'handball' },
-  { value: 'TEAM_FLOORBALL', labelKey: 'floorball' },
-  { value: 'TEAM_BASKETBALL', labelKey: 'basketball' },
-  { value: 'TEAM_VOLLEYBALL', labelKey: 'volleyball' },
-  { value: 'TENNIS', labelKey: 'tennis' },
-  { value: 'PADEL', labelKey: 'padel' },
-]
 
 interface OrganizationsClientProps {
   basePath?: string
@@ -356,7 +335,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                         {org.name}
                         {org.sportType && (
                           <Badge variant="secondary" className="text-xs">
-                            {sportTypeLabelKeys[org.sportType] ? tSports(sportTypeLabelKeys[org.sportType]) : org.sportType}
+                            {getSportLabelKey(org.sportType) ? tSports(getSportLabelKey(org.sportType)!) : org.sportType}
                           </Badge>
                         )}
                       </GlassCardTitle>
@@ -471,7 +450,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                   <SelectValue placeholder={t('placeholders.sport')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {sportTypeOptions.map((option) => (
+                  {TEAM_AND_RACKET_SPORT_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {tSports(option.labelKey)}
                     </SelectItem>

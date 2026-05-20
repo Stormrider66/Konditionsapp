@@ -111,6 +111,16 @@ export function buildTeamSportPromptSection(input: TeamSportPromptInput): string
     return formatHockeySection(planning, input.hockeySettings, locale, variant)
   }
 
+  if (input.sport === 'TEAM_ICE_HOCKEY') {
+    return formatGenericTeamSportSection({
+      markdownSv: 'ISHOCKEYSPECIFIK PROFIL',
+      compactSv: 'ISHOCKEYSPECIFIKT:',
+      compactEn: 'ICE HOCKEY CONTEXT:',
+      requirementSv: 'Krav: bygg programmet runt skridskoacceleration, bytestålighet, repeated sprint ability, bål/höftstyrka och höft/ljumske/axelprevention. Lägg hårda off-ice-pass långt från match.',
+      requirementEn: 'Requirement: build around skating acceleration, shift repeatability, repeated sprint ability, trunk/hip strength, and hip/groin/shoulder prevention. Place hard off-ice sessions away from games.',
+    }, input.sessionsPerWeek, locale, variant)
+  }
+
   if (input.sport === 'TEAM_FOOTBALL' && input.footballSettings) {
     const planning = buildFootballPlanningContext({
       goal,
@@ -120,13 +130,47 @@ export function buildTeamSportPromptSection(input: TeamSportPromptInput): string
     return formatFootballSection(planning, input.footballSettings, locale, variant)
   }
 
+  if (input.sport === 'TEAM_FOOTBALL') {
+    return formatGenericTeamSportSection({
+      markdownSv: 'FOTBOLLSSPECIFIK PROFIL',
+      compactSv: 'FOTBOLLSSPECIFIKT:',
+      compactEn: 'FOOTBALL CONTEXT:',
+      requirementSv: 'Krav: bygg programmet runt acceleration, riktningsförändringar, repeated sprint ability, aerob bas, hamstring/adduktor/knäprevention och matchveckans MD-1/MD+1-logik.',
+      requirementEn: 'Requirement: build around acceleration, change of direction, repeated sprint ability, aerobic base, hamstring/adductor/knee prevention, and match-week MD-1/MD+1 logic.',
+    }, input.sessionsPerWeek, locale, variant)
+  }
+
   const courtSportConfig = COURT_SPORT_PROMPTS[input.sport]
   const courtSportSettings = courtSportConfig ? input[courtSportConfig.settingsKey] : null
-  if (courtSportConfig && courtSportSettings) {
-    return formatCourtSportSection(courtSportConfig, courtSportSettings, input.sessionsPerWeek, locale, variant)
+  if (courtSportConfig) {
+    return formatCourtSportSection(courtSportConfig, courtSportSettings || {}, input.sessionsPerWeek, locale, variant)
   }
 
   return ''
+}
+
+function formatGenericTeamSportSection(
+  config: {
+    markdownSv: string
+    compactSv: string
+    compactEn: string
+    requirementSv: string
+    requirementEn: string
+  },
+  sessionsPerWeek: number | undefined,
+  locale: AppLocale,
+  variant: PromptVariant
+): string {
+  const lines = [
+    heading(locale, variant, config.markdownSv, config.compactSv, config.compactEn),
+    formatSetting(locale, variant, 'Planerade pass', 'Planned sessions', sessionsPerWeek),
+    locale === 'sv' ? config.requirementSv : config.requirementEn,
+    locale === 'sv'
+      ? 'Om profil saknas: använd säkra standardantaganden, men gör passen tydligt sportspecifika med relevant prevention, energisystem och veckostruktur.'
+      : 'If profile details are missing: use safe defaults, but keep sessions clearly sport-specific with relevant prevention, energy systems, and weekly structure.',
+  ].filter(Boolean)
+
+  return withVariantSpacing(lines, variant)
 }
 
 function formatHockeySection(

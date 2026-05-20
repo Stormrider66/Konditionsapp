@@ -253,7 +253,8 @@ Generera och spara styrkepass direkt. Använd detta när coachen ber dig skapa s
 
 ### createCardioSession
 Skapa konditions- och intervallpass. Sparas i Cardio Studio.
-- Stödjer löpning, cykling, simning, rodd, skidåkning, HYROX m.m.
+- Stödjer löpning, cykling, simning, rodd, skidåkning, HYROX, lagsporter och racketsporter.
+- För lag/racket: använd sportnära repeat blocks, repeated sprints, riktningsförändringar, point/shift repeats och relevant prevention.
 - Segmenttyper: WARMUP, COOLDOWN, INTERVAL, STEADY, RECOVERY, HILL, DRILLS, REPEAT_GROUP
 - REPEAT_GROUP för komplexa block (t.ex. 4×[3 min Wattbike + 1 min vila + 20 cal rodd])
 - Varje segment kan ha tempo, pulszon, distans, tid, kalorier, vila

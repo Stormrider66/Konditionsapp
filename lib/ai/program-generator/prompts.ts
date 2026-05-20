@@ -7,6 +7,7 @@
 import type { GenerationContext, PhaseConfig, GeneratedPhase, ProgramOutline } from './types'
 import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 import { buildTeamSportPromptSection } from '@/lib/program-generator/team-sports/prompt-section'
+import { getSportLabel } from '@/lib/sports/catalog'
 
 type AppLocale = 'en' | 'sv'
 
@@ -457,45 +458,7 @@ function formatDayShort(day: string, locale: AppLocale): string {
 }
 
 function formatSport(sport: string, locale: AppLocale = 'sv'): string {
-  const svNames: Record<string, string> = {
-    RUNNING: 'löpning',
-    CYCLING: 'cykling',
-    SWIMMING: 'simning',
-    TRIATHLON: 'triathlon',
-    SKIING: 'längdskidåkning',
-    HYROX: 'HYROX',
-    GENERAL_FITNESS: 'allmän kondition',
-    FUNCTIONAL_FITNESS: 'funktionell träning',
-    STRENGTH: 'styrka',
-    TEAM_ICE_HOCKEY: 'ishockey',
-    TEAM_FOOTBALL: 'fotboll',
-    TEAM_HANDBALL: 'handboll',
-    TEAM_FLOORBALL: 'innebandy',
-    TEAM_BASKETBALL: 'basket',
-    TEAM_VOLLEYBALL: 'volleyboll',
-    TENNIS: 'tennis',
-    PADEL: 'padel',
-  }
-  const enNames: Record<string, string> = {
-    RUNNING: 'running',
-    CYCLING: 'cycling',
-    SWIMMING: 'swimming',
-    TRIATHLON: 'triathlon',
-    SKIING: 'cross-country skiing',
-    HYROX: 'HYROX',
-    GENERAL_FITNESS: 'general fitness',
-    FUNCTIONAL_FITNESS: 'functional fitness',
-    STRENGTH: 'strength',
-    TEAM_ICE_HOCKEY: 'ice hockey',
-    TEAM_FOOTBALL: 'football',
-    TEAM_HANDBALL: 'handball',
-    TEAM_FLOORBALL: 'floorball',
-    TEAM_BASKETBALL: 'basketball',
-    TEAM_VOLLEYBALL: 'volleyball',
-    TENNIS: 'tennis',
-    PADEL: 'padel',
-  }
-  return (locale === 'sv' ? svNames : enNames)[sport] || sport.toLowerCase()
+  return getSportLabel(sport, locale).toLowerCase()
 }
 
 function buildTeamSportSection(context: GenerationContext, locale: AppLocale): string {

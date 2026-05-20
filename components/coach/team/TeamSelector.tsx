@@ -20,6 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Users } from 'lucide-react'
 import { SportType } from '@/types'
+import { getSportLabel } from '@/lib/sports/catalog'
 
 interface Team {
   id: string
@@ -40,27 +41,6 @@ interface TeamSelectorProps {
   showMemberCount?: boolean
   showSportBadge?: boolean
   className?: string
-}
-
-// Sport type labels in Swedish
-const sportTypeLabels: Record<string, string> = {
-  TEAM_FOOTBALL: 'Fotboll',
-  TEAM_ICE_HOCKEY: 'Ishockey',
-  TEAM_HANDBALL: 'Handboll',
-  TEAM_FLOORBALL: 'Innebandy',
-  TEAM_BASKETBALL: 'Basket',
-  TEAM_VOLLEYBALL: 'Volleyboll',
-  TENNIS: 'Tennis',
-  PADEL: 'Padel',
-  RUNNING: 'Löpning',
-  CYCLING: 'Cykling',
-  SKIING: 'Skidåkning',
-  SWIMMING: 'Simning',
-  TRIATHLON: 'Triathlon',
-  HYROX: 'HYROX',
-  GENERAL_FITNESS: 'Allmän träning',
-  FUNCTIONAL_FITNESS: 'Funktionell fitness',
-  STRENGTH: 'Styrka',
 }
 
 export function TeamSelector({
@@ -147,7 +127,7 @@ export function TeamSelector({
                     )}
                     {showSportBadge && team.sportType && (
                       <Badge variant="outline" className="text-xs">
-                        {sportTypeLabels[team.sportType] || team.sportType}
+                        {getSportLabel(team.sportType, 'sv')}
                       </Badge>
                     )}
                   </div>
@@ -169,7 +149,7 @@ export function TeamSelector({
                 )}
                 {showSportBadge && team.sportType && (
                   <Badge variant="outline" className="text-xs">
-                    {sportTypeLabels[team.sportType] || team.sportType}
+                    {getSportLabel(team.sportType, 'sv')}
                   </Badge>
                 )}
               </div>
