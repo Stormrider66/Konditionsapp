@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Trophy,
   Timer,
@@ -27,56 +27,173 @@ interface HandballDashboardProps {
   settings: HandballSettings
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  goalkeeper: 'Målvakt',
-  wing: 'Ytter',
-  back: 'Vänster-/Högernia',
-  center_back: 'Mittnia',
-  pivot: 'Lansen',
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const text = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const ENGLISH_PHRASES: Record<string, string> = {
+  'Sista utposten - reaktionsförmåga, positionering och explosivitet': 'Last line of defense - reaction ability, positioning, and explosiveness',
+  'Snabb och smidig - löpningar, genombrott och avslut från vinkel': 'Fast and agile - runs, breakthroughs, and finishes from wide angles',
+  'Skyttekung - kraftfulla avslut, genombrott och speluppbyggnad': 'Shooter - powerful finishes, breakthroughs, and build-up play',
+  'Spelmotor - dirigerar spelet, skapar lägen och överblick': 'Playmaker - directs play, creates chances, and reads the game',
+  'Murbrytare - spärrar, blockerar och avslutar i trängsel': 'Screen setter - blocks, seals, and finishes in traffic',
+  'Reaktionsförmåga': 'Reaction ability',
+  'Lateral rörlighet': 'Lateral mobility',
+  'Explosiv kraft': 'Explosive power',
+  Flexibilitet: 'Flexibility',
+  Sprintsnabbhet: 'Sprint speed',
+  Kvickhet: 'Agility',
+  Hoppkraft: 'Jump power',
+  Uthållighet: 'Endurance',
+  Skottstyrka: 'Shot power',
+  Överkroppsstyrka: 'Upper-body strength',
+  Acceleration: 'Acceleration',
+  Spelsinne: 'Game sense',
+  Beslutsfattande: 'Decision-making',
+  Kroppsstyrka: 'Body strength',
+  Balans: 'Balance',
+  Kontaktstyrka: 'Contact strength',
+  'Snabba fötter': 'Quick feet',
+  'Aerob basträning': 'Aerobic base training',
+  'Maxstyrka uppbyggnad': 'Maximum strength build-up',
+  'Rörlighet och mobilitet': 'Flexibility and mobility',
+  Skaderehabilitering: 'Injury rehabilitation',
+  Teknikutveckling: 'Technique development',
+  'Explosiv styrka och power': 'Explosive strength and power',
+  'Sport-specifik kondition': 'Sport-specific conditioning',
+  'Repeated sprint ability': 'Repeated sprint ability',
+  'Plyometrics och hopp': 'Plyometrics and jumping',
+  'Taktisk träning': 'Tactical training',
+  'Underhåll av styrka och power': 'Strength and power maintenance',
+  Matchförberedelse: 'Match preparation',
+  Återhämtning: 'Recovery',
+  Skadeförebyggande: 'Injury prevention',
+  'Taktisk anpassning': 'Tactical adaptation',
+  'Optimal återhämtning': 'Optimal recovery',
+  'Mental förberedelse': 'Mental preparation',
+  Matchskärpa: 'Match sharpness',
+  'Injury prevention': 'Injury prevention',
+  Lagsammanhållning: 'Team cohesion',
+  'Hypertrofi och maxstyrka (4-8 rep, 70-85% 1RM)': 'Hypertrophy and maximum strength (4-8 reps, 70-85% 1RM)',
+  'Aerob bas (låg-medel intensitet, 30-60 min)': 'Aerobic base (low-medium intensity, 30-60 min)',
+  'Power och explosivitet (3-5 rep, 75-90% 1RM + plyometrics)': 'Power and explosiveness (3-5 reps, 75-90% 1RM + plyometrics)',
+  'Intervaller (15-60 sek arbete, kortare vila)': 'Intervals (15-60 sec work, shorter rest)',
+  'Underhåll (2-4 rep, 80-90% 1RM, låg volym)': 'Maintenance (2-4 reps, 80-90% 1RM, low volume)',
+  'Matchspecifik (korta intervaller, spelsimulering)': 'Match-specific (short intervals, game simulation)',
+  'Aktivering endast (lätt, explosivt)': 'Activation only (light, explosive)',
+  'Minimal - endast aktivering': 'Minimal - activation only',
+  'External Rotation med band': 'Band external rotation',
+  'Calf Raises (raka knän)': 'Calf raises (straight knees)',
+  'Finger Extensions med band': 'Band finger extensions',
+  '3x10 varje position': '3x10 each position',
+  '3x30 sek per arm': '3x30 sec per arm',
+  '3x8 per ben': '3x8 per leg',
+  '3x15 per ben': '3x15 per leg',
+  '3x30 sek per ben': '3x30 sec per leg',
+  '1x A-Z per fot': '1x A-Z per foot',
+  '3x8 per sida': '3x8 per side',
+  '3x12 per sida': '3x12 per side',
+  '3x10 per sida': '3x10 per side',
+  '3x10 sek håll': '3x10 sec hold',
+  '3x6 per sida': '3x6 per side',
+  '8x20m, 30 sek vila': '8x20m, 30 sec rest',
+  '5x genomgång': '5x walkthroughs',
+  'Armbågen fixerad vid sidan, kontrollerad rörelse': 'Elbow fixed at the side, controlled movement',
+  'Liggande på mage, aktivera rotatorkuffen': 'Prone position, activate the rotator cuff',
+  'Dra mot ansiktet, externa rotation i slutposition': 'Pull toward the face, external rotation at end range',
+  'Liggande på sidan, försiktig stretch': 'Side-lying position, gentle stretch',
+  'Kontrollerad excentrisk fas, partner eller maskin': 'Controlled eccentric phase, partner or machine',
+  'Kontrollerad rörelse, aktivera hamstrings': 'Controlled movement, activate hamstrings',
+  'Band runt knä, aktivera VMO': 'Band around knee, activate VMO',
+  'Band runt knä bakom, skjut knäna framåt': 'Band behind knees, drive knees forward',
+  'Full range of motion, kontrollera nedfasen': 'Full range of motion, control the lowering phase',
+  'Progressera till instabil yta': 'Progress to an unstable surface',
+  'Rita alfabetet med tårna': 'Draw the alphabet with your toes',
+  'Gradvis progression, börja med kort hävarm': 'Gradual progression, start with a short lever',
+  'Lyft underbenet, håll kvar i toppen': 'Lift the lower leg, pause at the top',
+  'Bred ställning, aktivera adduktorer': 'Wide stance, activate adductors',
+  'Aktivera core, håll ryggen neutral': 'Activate core, keep the spine neutral',
+  'Pressa ländryggen mot golvet': 'Press the lower back into the floor',
+  'Långsam, kontrollerad rörelse': 'Slow, controlled movement',
+  'Band runt fingrarna, spreta ut': 'Band around fingers, spread them out',
+  'Tennisboll eller grip trainer': 'Tennis ball or grip trainer',
+  'Explosiv sidoförflyttning, stabil landning': 'Explosive lateral movement, stable landing',
+  'Explosiv uppåt, mjuk landning': 'Explosive upward movement, soft landing',
+  'Maximal intensitet, full återhämtning': 'Maximum intensity, full recovery',
+  'Fokus på snabb respons från golvet': 'Focus on quick response from the floor',
+  'Kraftfull rotation från höfterna': 'Powerful rotation from the hips',
+  'Stående, enkelarms press med rotation': 'Standing single-arm press with rotation',
+  'Olika mönster, fokus på snabba fötter': 'Different patterns, focus on quick feet',
+  'Snabba vändningar, simulerar matchrörelser': 'Quick turns, simulates match movements',
+  'Djup position, upprätthåll bålstabilitet': 'Deep position, maintain trunk stability',
+  'Anti-rotation, stabil bål': 'Anti-rotation, stable trunk',
+  strength: 'Strength',
+  power: 'Power',
+  endurance: 'Endurance',
+  agility: 'Agility',
+  mobility: 'Mobility',
+  prevention: 'Prevention',
 }
 
-const SIDE_LABELS: Record<string, string> = {
-  left: 'Vänster',
-  right: 'Höger',
-  both: 'Båda',
-  center: '',
+const phrase = (locale: AppLocale, value: string) => (
+  locale === 'sv' ? value : ENGLISH_PHRASES[value] ?? value
+)
+
+const POSITION_LABELS: Record<string, Record<AppLocale, string>> = {
+  goalkeeper: { sv: 'Målvakt', en: 'Goalkeeper' },
+  wing: { sv: 'Ytter', en: 'Wing' },
+  back: { sv: 'Vänster-/Högernia', en: 'Left/right back' },
+  center_back: { sv: 'Mittnia', en: 'Center back' },
+  pivot: { sv: 'Lansen', en: 'Pivot' },
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  playoffs: 'Slutspel',
+const SIDE_LABELS: Record<string, Record<AppLocale, string>> = {
+  left: { sv: 'Vänster', en: 'Left' },
+  right: { sv: 'Höger', en: 'Right' },
+  both: { sv: 'Båda', en: 'Both' },
+  center: { sv: '', en: '' },
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Korpen/Motion',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  allsvenskan: 'Allsvenskan',
-  handbollsligan: 'Handbollsligan',
+const PHASE_LABELS: Record<string, Record<AppLocale, string>> = {
+  off_season: { sv: 'Off-season', en: 'Off-season' },
+  pre_season: { sv: 'Försäsong', en: 'Pre-season' },
+  in_season: { sv: 'Säsong', en: 'In-season' },
+  playoffs: { sv: 'Slutspel', en: 'Playoffs' },
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  throwing_power: 'Skottstyrka',
-  sprint_speed: 'Sprintsnabbhet',
-  jumping: 'Hoppkraft',
-  agility: 'Kvickhet',
-  endurance: 'Uthållighet',
-  upper_body: 'Överkroppsstyrka',
-  core_stability: 'Core-stabilitet',
-  contact_strength: 'Kontaktstyrka',
+const LEAGUE_LABELS: Record<string, Record<AppLocale, string>> = {
+  recreational: { sv: 'Korpen/Motion', en: 'Recreational' },
+  division_3: { sv: 'Division 3', en: 'Division 3' },
+  division_2: { sv: 'Division 2', en: 'Division 2' },
+  division_1: { sv: 'Division 1', en: 'Division 1' },
+  allsvenskan: { sv: 'Allsvenskan', en: 'Allsvenskan' },
+  handbollsligan: { sv: 'Handbollsligan', en: 'Handbollsligan' },
+}
+
+const STRENGTH_LABELS: Record<string, Record<AppLocale, string>> = {
+  throwing_power: { sv: 'Skottstyrka', en: 'Throwing power' },
+  sprint_speed: { sv: 'Sprintsnabbhet', en: 'Sprint speed' },
+  jumping: { sv: 'Hoppkraft', en: 'Jump power' },
+  agility: { sv: 'Kvickhet', en: 'Agility' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  upper_body: { sv: 'Överkroppsstyrka', en: 'Upper-body strength' },
+  core_stability: { sv: 'Core-stabilitet', en: 'Core stability' },
+  contact_strength: { sv: 'Kontaktstyrka', en: 'Contact strength' },
 }
 
 export function HandballDashboard({ settings }: HandballDashboardProps) {
+  const locale = getAppLocale(useLocale())
   const t = useTranslations('components.athleteDashboard')
 
   if (!settings) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Handboll</CardTitle>
+          <CardTitle>{text(locale, 'Handboll', 'Handball')}</CardTitle>
           <CardDescription>
             {t('handballNoSettings')}
           </CardDescription>
@@ -93,9 +210,14 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
   // Get position display name with side
   const getPositionDisplay = () => {
     if (settings.positionSide && settings.positionSide !== 'center') {
-      return `${SIDE_LABELS[settings.positionSide]}${POSITION_LABELS[position].toLowerCase()}`
+      if (position === 'back') {
+        return locale === 'sv'
+          ? `${SIDE_LABELS[settings.positionSide]?.[locale]}nia`
+          : `${SIDE_LABELS[settings.positionSide]?.[locale]} back`
+      }
+      return `${SIDE_LABELS[settings.positionSide]?.[locale]} ${POSITION_LABELS[position]?.[locale].toLowerCase()}`
     }
-    return POSITION_LABELS[position]
+    return POSITION_LABELS[position]?.[locale]
   }
 
   // Calculate benchmark percentage
@@ -152,17 +274,17 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-orange-500" />
-                {settings.teamName || 'Handboll'}
+                {settings.teamName || text(locale, 'Handboll', 'Handball')}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2">
                 <Badge variant="outline">{getPositionDisplay()}</Badge>
-                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]}</Badge>
-                <Badge className="bg-orange-500">{PHASE_LABELS[settings.seasonPhase]}</Badge>
+                <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]?.[locale]}</Badge>
+                <Badge className="bg-orange-500">{PHASE_LABELS[settings.seasonPhase]?.[locale]}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold">{settings.yearsPlaying}</div>
-              <div className="text-xs text-muted-foreground">års erfarenhet</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'års erfarenhet', 'years experience')}</div>
             </div>
           </div>
         </CardHeader>
@@ -176,17 +298,17 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
             <div className="text-center">
               <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
               <div className="text-lg font-bold">{settings.matchesPerWeek}</div>
-              <div className="text-xs text-muted-foreground">matcher/v</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'matcher/v', 'matches/wk')}</div>
             </div>
             <div className="text-center">
               <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
               <div className="text-lg font-bold">{settings.weeklyTrainingSessions}</div>
-              <div className="text-xs text-muted-foreground">träning/v</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'träning/v', 'sessions/wk')}</div>
             </div>
             <div className="text-center">
               <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
-              <div className="text-lg font-bold">{settings.throwingArm === 'right' ? 'Höger' : 'Vänster'}</div>
-              <div className="text-xs text-muted-foreground">kastararm</div>
+              <div className="text-lg font-bold">{settings.throwingArm === 'right' ? text(locale, 'Höger', 'Right') : text(locale, 'Vänster', 'Left')}</div>
+              <div className="text-xs text-muted-foreground">{text(locale, 'kastararm', 'throwing arm')}</div>
             </div>
           </div>
         </CardContent>
@@ -197,29 +319,29 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Calendar className="h-4 w-4" />
-            {PHASE_LABELS[settings.seasonPhase]} - Träningsfokus
+            {PHASE_LABELS[settings.seasonPhase]?.[locale]} - {text(locale, 'Träningsfokus', 'Training focus')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div>
-              <h4 className="text-sm font-medium mb-2">Fokusområden:</h4>
+              <h4 className="text-sm font-medium mb-2">{text(locale, 'Fokusområden:', 'Focus areas:')}</h4>
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
-                    {item}
+                    {phrase(locale, item)}
                   </Badge>
                 ))}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Styrka</div>
-                <div className="text-sm">{seasonPhase.strengthEmphasis}</div>
+                <div className="text-xs text-muted-foreground mb-1">{text(locale, 'Styrka', 'Strength')}</div>
+                <div className="text-sm">{phrase(locale, seasonPhase.strengthEmphasis)}</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Kondition</div>
-                <div className="text-sm">{seasonPhase.conditioningEmphasis}</div>
+                <div className="text-xs text-muted-foreground mb-1">{text(locale, 'Kondition', 'Conditioning')}</div>
+                <div className="text-sm">{phrase(locale, seasonPhase.conditioningEmphasis)}</div>
               </div>
             </div>
           </div>
@@ -231,9 +353,9 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="h-4 w-4 text-red-500" />
-            Fysiska tester - {POSITION_LABELS[position]}
+            {text(locale, 'Fysiska tester', 'Physical tests')} - {POSITION_LABELS[position]?.[locale]}
           </CardTitle>
-          <CardDescription>Dina resultat jämfört med elitnivå</CardDescription>
+          <CardDescription>{text(locale, 'Dina resultat jämfört med elitnivå', 'Your results compared with elite level')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -254,7 +376,7 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
                 className="h-2"
               />
               <div className="text-xs text-muted-foreground">
-                Elit: {benchmarks.elite.yoyoIR1Level}
+                {text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.yoyoIR1Level}
               </div>
             </div>
 
@@ -276,14 +398,14 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
                 className="h-2"
               />
               <div className="text-xs text-muted-foreground">
-                Elit: {benchmarks.elite.sprint10m} s
+                {text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.sprint10m} s
               </div>
             </div>
 
             {/* CMJ */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>CMJ hopp</span>
+                <span>{text(locale, 'CMJ hopp', 'CMJ jump')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.cmjHeight,
                   benchmarks.elite.cmjHeight,
@@ -297,14 +419,14 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
                 className="h-2"
               />
               <div className="text-xs text-muted-foreground">
-                Elit: {benchmarks.elite.cmjHeight} cm
+                {text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.cmjHeight} cm
               </div>
             </div>
 
             {/* Medicine Ball */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Medicinboll</span>
+                <span>{text(locale, 'Medicinboll', 'Medicine ball')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.medicineBallThrow,
                   benchmarks.elite.medicineBallThrow,
@@ -318,7 +440,7 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
                 className="h-2"
               />
               <div className="text-xs text-muted-foreground">
-                Elit: {benchmarks.elite.medicineBallThrow} m
+                {text(locale, 'Elit:', 'Elite:')} {benchmarks.elite.medicineBallThrow} m
               </div>
             </div>
           </div>
@@ -330,14 +452,14 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4" />
-            Positionsprofil: {positionProfile.displayName}
+            {text(locale, 'Positionsprofil:', 'Position profile:')} {POSITION_LABELS[position]?.[locale]}
           </CardTitle>
-          <CardDescription>{positionProfile.description}</CardDescription>
+          <CardDescription>{phrase(locale, positionProfile.description)}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Matchdistans</div>
+              <div className="text-sm text-muted-foreground mb-1">{text(locale, 'Matchdistans', 'Match distance')}</div>
               <div className="font-medium">
                 {positionProfile.avgMatchDistanceKm.min}-{positionProfile.avgMatchDistanceKm.max} km
               </div>
@@ -349,7 +471,7 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
               </div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Hopp/match</div>
+              <div className="text-sm text-muted-foreground mb-1">{text(locale, 'Hopp/match', 'Jumps/match')}</div>
               <div className="font-medium">
                 {positionProfile.avgJumpsPerMatch.min}-{positionProfile.avgJumpsPerMatch.max}
               </div>
@@ -357,11 +479,11 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
           </div>
 
           <div className="mt-4">
-            <div className="text-sm font-medium mb-2">Nyckelegenskaper:</div>
+            <div className="text-sm font-medium mb-2">{text(locale, 'Nyckelegenskaper:', 'Key attributes:')}</div>
             <div className="flex flex-wrap gap-1">
               {positionProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
-                  {attr}
+                  {phrase(locale, attr)}
                 </Badge>
               ))}
             </div>
@@ -374,9 +496,9 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Dumbbell className="h-4 w-4" />
-            Rekommenderade övningar
+            {text(locale, 'Rekommenderade övningar', 'Recommended exercises')}
           </CardTitle>
-          <CardDescription>Baserat på din position och skadehistorik</CardDescription>
+          <CardDescription>{text(locale, 'Baserat på din position och skadehistorik', 'Based on your position and injury history')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -384,14 +506,14 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
               <div key={i} className="p-3 border rounded-lg">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium text-sm">{exercise.name}</div>
-                    <div className="text-xs text-muted-foreground">{exercise.setsReps}</div>
+                    <div className="font-medium text-sm">{phrase(locale, exercise.name)}</div>
+                    <div className="text-xs text-muted-foreground">{phrase(locale, exercise.setsReps)}</div>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {exercise.category}
+                    {phrase(locale, exercise.category)}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">{exercise.notes}</div>
+                <div className="text-xs text-muted-foreground mt-2">{phrase(locale, exercise.notes)}</div>
               </div>
             ))}
           </div>
@@ -404,14 +526,14 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Zap className="h-4 w-4 text-yellow-500" />
-              Dina styrkor
+              {text(locale, 'Dina styrkor', 'Your strengths')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {settings.strengthFocus.map((strength) => (
                 <Badge key={strength} variant="secondary">
-                  {STRENGTH_LABELS[strength] || strength}
+                  {STRENGTH_LABELS[strength]?.[locale] || strength}
                 </Badge>
               ))}
             </div>
