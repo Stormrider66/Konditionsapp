@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,10 +22,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import {
   GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard';
 import { cn } from '@/lib/utils';
 import {
@@ -34,7 +31,6 @@ import {
   Flame,
   Heart,
   Activity,
-  ArrowUpRight,
   Loader2,
   ChevronDown,
   ChevronUp,
@@ -68,22 +64,35 @@ interface Concept2WorkoutListProps {
 }
 
 const EQUIPMENT_LABELS: Record<string, string> = {
-  rower: 'Roddmaskin',
+  rower: 'RowErg',
   skierg: 'SkiErg',
   bike: 'BikeErg',
   dynamic: 'DynamicErg',
   slides: 'Slides',
   multierg: 'MultiErg',
-  water: 'Rodd (vatten)',
-  snow: 'Längdskidor',
-  rollerski: 'Rullskidor',
+  water: 'Rowing (water)',
+  snow: 'Nordic skiing',
+  rollerski: 'Roller skiing',
   paddle: 'Paddling',
 };
 
-const EQUIPMENT_ICONS: Record<string, string> = {
-  rower: 'Waves',
-  skierg: 'Activity',
-  bike: 'Activity',
+type AppLocale = 'en' | 'sv';
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en');
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+);
+
+const getEquipmentLabel = (type: string, locale: AppLocale) => {
+  if (locale !== 'sv') return EQUIPMENT_LABELS[type] || type;
+  const labels: Record<string, string> = {
+    rower: 'Roddmaskin',
+    water: 'Rodd (vatten)',
+    snow: 'Längdskidor',
+    rollerski: 'Rullskidor',
+  };
+  return labels[type] || EQUIPMENT_LABELS[type] || type;
 };
 
 export function Concept2WorkoutList({
@@ -91,6 +100,7 @@ export function Concept2WorkoutList({
   variant = 'default',
   maxItems = 20,
 }: Concept2WorkoutListProps) {
+  const locale = getAppLocale(useLocale());
   const { toast } = useToast();
   const isGlass = variant === 'glass';
   const [workouts, setWorkouts] = useState<Concept2Workout[]>([]);
@@ -118,7 +128,7 @@ export function Concept2WorkoutList({
   }, [clientId, filter, maxItems]);
 
   useEffect(() => {
-    fetchWorkouts();
+    void fetchWorkouts();
   }, [fetchWorkouts]);
 
   const handleImportAsTest = async (workout: Concept2Workout) => {
@@ -138,20 +148,20 @@ export function Concept2WorkoutList({
       if (response.ok) {
         setImportedIds(prev => new Set(prev).add(workout.id));
         toast({
-          title: 'Import klar',
-          description: `Träningspass importerat som ${data.protocol || 'test'}`,
+          title: t(locale, 'Import klar', 'Import complete'),
+          description: t(locale, `Träningspass importerat som ${data.protocol || 'test'}`, `Workout imported as ${data.protocol || 'test'}`),
         });
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte importera passet',
+          title: t(locale, 'Fel', 'Error'),
+          description: data.error || t(locale, 'Kunde inte importera passet', 'Could not import workout'),
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte importera passet',
+        title: t(locale, 'Fel', 'Error'),
+        description: t(locale, 'Kunde inte importera passet', 'Could not import workout'),
         variant: 'destructive',
       });
     } finally {
@@ -175,7 +185,7 @@ export function Concept2WorkoutList({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('sv-SE', {
+    return new Date(dateString).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -191,7 +201,7 @@ export function Concept2WorkoutList({
       <CardWrapper>
         <CardHeader>
           <CardTitle className={cn(isGlass ? 'text-white font-black uppercase italic' : '')}>
-            Concept2 Träningspass
+            Concept2 {t(locale, 'Träningspass', 'Workouts')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -209,7 +219,7 @@ export function Concept2WorkoutList({
         <CardHeader>
           <CardTitle className={cn(isGlass ? 'text-white font-black uppercase italic' : '')}>
             <Waves className="h-5 w-5 inline mr-2" />
-            Concept2 Träningspass
+            Concept2 {t(locale, 'Träningspass', 'Workouts')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -218,9 +228,9 @@ export function Concept2WorkoutList({
             isGlass ? 'text-slate-500' : 'text-muted-foreground'
           )}>
             <Waves className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium">Inga träningspass synkroniserade</p>
+            <p className="font-medium">{t(locale, 'Inga träningspass synkroniserade', 'No workouts synced')}</p>
             <p className="text-sm mt-1">
-              Anslut ditt Concept2-konto och synka för att se dina pass här.
+              {t(locale, 'Anslut ditt Concept2-konto och synka för att se dina pass här.', 'Connect your Concept2 account and sync to see your workouts here.')}
             </p>
           </div>
         </CardContent>
@@ -237,25 +247,25 @@ export function Concept2WorkoutList({
             isGlass ? 'text-white font-black uppercase italic' : ''
           )}>
             <Waves className={cn('h-5 w-5', isGlass ? 'text-cyan-400' : 'text-cyan-600')} />
-            Concept2 Träningspass
+            Concept2 {t(locale, 'Träningspass', 'Workouts')}
           </CardTitle>
           <Select value={filter} onValueChange={setFilter}>
             <SelectTrigger className={cn(
               'w-[140px] h-8 text-xs',
               isGlass ? 'bg-white/5 border-white/10 text-white' : ''
             )}>
-              <SelectValue placeholder="Alla typer" />
+              <SelectValue placeholder={t(locale, 'Alla typer', 'All types')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alla typer</SelectItem>
-              <SelectItem value="rower">Roddmaskin</SelectItem>
+              <SelectItem value="all">{t(locale, 'Alla typer', 'All types')}</SelectItem>
+              <SelectItem value="rower">{getEquipmentLabel('rower', locale)}</SelectItem>
               <SelectItem value="skierg">SkiErg</SelectItem>
               <SelectItem value="bike">BikeErg</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <CardDescription className={cn(isGlass ? 'text-slate-500' : '')}>
-          {workouts.length} synkroniserade pass
+          {workouts.length} {t(locale, 'synkroniserade pass', 'synced workouts')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -284,7 +294,7 @@ export function Concept2WorkoutList({
                       'font-bold text-sm',
                       isGlass ? 'text-white' : ''
                     )}>
-                      {EQUIPMENT_LABELS[workout.type] || workout.type}
+                      {getEquipmentLabel(workout.type, locale)}
                     </span>
                     {workout.isVerified && (
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
@@ -321,7 +331,7 @@ export function Concept2WorkoutList({
                 ) : (
                   <FileInput className="h-3.5 w-3.5 mr-1.5" />
                 )}
-                {importedIds.has(workout.id) ? 'Importerad' : 'Importera som test'}
+                {importedIds.has(workout.id) ? t(locale, 'Importerad', 'Imported') : t(locale, 'Importera som test', 'Import as test')}
               </Button>
             </div>
 
@@ -333,7 +343,7 @@ export function Concept2WorkoutList({
                   isGlass ? 'text-slate-500' : 'text-muted-foreground'
                 )}>
                   <Ruler className="h-3 w-3 inline mr-1" />
-                  Distans
+                  {t(locale, 'Distans', 'Distance')}
                 </div>
                 <div className={cn(
                   'text-sm font-bold',
@@ -349,7 +359,7 @@ export function Concept2WorkoutList({
                   isGlass ? 'text-slate-500' : 'text-muted-foreground'
                 )}>
                   <Timer className="h-3 w-3 inline mr-1" />
-                  Tid
+                  {t(locale, 'Tid', 'Time')}
                 </div>
                 <div className={cn(
                   'text-sm font-bold',
@@ -381,7 +391,7 @@ export function Concept2WorkoutList({
                   isGlass ? 'text-slate-500' : 'text-muted-foreground'
                 )}>
                   <Heart className="h-3 w-3 inline mr-1" />
-                  Puls
+                  {t(locale, 'Puls', 'Heart rate')}
                 </div>
                 <div className={cn(
                   'text-sm font-bold',
@@ -455,12 +465,12 @@ export function Concept2WorkoutList({
             {expanded ? (
               <>
                 <ChevronUp className="h-4 w-4 mr-2" />
-                Visa mindre
+                {t(locale, 'Visa mindre', 'Show less')}
               </>
             ) : (
               <>
                 <ChevronDown className="h-4 w-4 mr-2" />
-                Visa alla {workouts.length} pass
+                {t(locale, 'Visa alla', 'Show all')} {workouts.length} {t(locale, 'pass', 'workouts')}
               </>
             )}
           </Button>

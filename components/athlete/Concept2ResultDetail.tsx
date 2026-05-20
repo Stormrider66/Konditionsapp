@@ -9,7 +9,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   Ship,
   Clock,
@@ -24,7 +23,8 @@ import {
   Activity,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
+import { useLocale } from 'next-intl';
 
 interface Concept2Result {
   id: string;
@@ -61,6 +61,16 @@ interface Concept2ResultDetailProps {
   result: Concept2Result;
 }
 
+type AppLocale = 'en' | 'sv';
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en');
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+);
+
+const dateLocale = (locale: AppLocale) => (locale === 'sv' ? sv : enUS);
+
 const EQUIPMENT_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   rower: { label: 'RowErg', icon: <Ship className="h-5 w-5" />, color: 'bg-blue-100 text-blue-800' },
   skierg: { label: 'SkiErg', icon: <PersonStanding className="h-5 w-5" />, color: 'bg-sky-100 text-sky-800' },
@@ -70,10 +80,10 @@ const EQUIPMENT_CONFIG: Record<string, { label: string; icon: React.ReactNode; c
   multierg: { label: 'MultiErg', icon: <Activity className="h-5 w-5" />, color: 'bg-orange-100 text-orange-800' },
 };
 
-const INTENSITY_CONFIG: Record<string, { label: string; color: string }> = {
-  EASY: { label: 'Lätt', color: 'bg-green-100 text-green-800' },
-  MODERATE: { label: 'Måttlig', color: 'bg-yellow-100 text-yellow-800' },
-  HARD: { label: 'Hård', color: 'bg-red-100 text-red-800' },
+const INTENSITY_CONFIG: Record<string, { label: Record<AppLocale, string>; color: string }> = {
+  EASY: { label: { en: 'Easy', sv: 'Lätt' }, color: 'bg-green-100 text-green-800' },
+  MODERATE: { label: { en: 'Moderate', sv: 'Måttlig' }, color: 'bg-yellow-100 text-yellow-800' },
+  HARD: { label: { en: 'Hard', sv: 'Hård' }, color: 'bg-red-100 text-red-800' },
 };
 
 /**
@@ -106,6 +116,7 @@ function formatDistance(meters: number): string {
 }
 
 export function Concept2ResultDetail({ result }: Concept2ResultDetailProps) {
+  const locale = getAppLocale(useLocale());
   const equipment = EQUIPMENT_CONFIG[result.type] || EQUIPMENT_CONFIG.rower;
   const intensity = result.mappedIntensity
     ? INTENSITY_CONFIG[result.mappedIntensity]
@@ -128,16 +139,16 @@ export function Concept2ResultDetail({ result }: Concept2ResultDetailProps) {
               )}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              {format(workoutDate, 'EEEE d MMMM yyyy, HH:mm', { locale: sv })}
+              {format(workoutDate, 'EEEE d MMMM yyyy, HH:mm', { locale: dateLocale(locale) })}
             </p>
           </div>
           <div className="flex gap-2">
             {intensity && (
-              <Badge className={intensity.color}>{intensity.label}</Badge>
+              <Badge className={intensity.color}>{intensity.label[locale]}</Badge>
             )}
             {result.isVerified && (
               <Badge variant="outline" className="text-green-600 border-green-300">
-                Verifierad
+                {t(locale, 'Verifierad', 'Verified')}
               </Badge>
             )}
           </div>
@@ -149,25 +160,25 @@ export function Concept2ResultDetail({ result }: Concept2ResultDetailProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard
             icon={<Timer className="h-4 w-4" />}
-            label="Tid"
+            label={t(locale, 'Tid', 'Time')}
             value={formatTime(result.time)}
           />
           <MetricCard
             icon={<TrendingUp className="h-4 w-4" />}
-            label="Distans"
+            label={t(locale, 'Distans', 'Distance')}
             value={formatDistance(result.distance)}
           />
           {result.pace && (
             <MetricCard
               icon={<Gauge className="h-4 w-4" />}
-              label="Tempo"
+              label={t(locale, 'Tempo', 'Pace')}
               value={formatPace(result.pace)}
             />
           )}
           {result.calories && (
             <MetricCard
               icon={<Flame className="h-4 w-4" />}
-              label="Kalorier"
+              label={t(locale, 'Kalorier', 'Calories')}
               value={`${result.calories} kcal`}
             />
           )}
@@ -178,14 +189,14 @@ export function Concept2ResultDetail({ result }: Concept2ResultDetailProps) {
           {result.strokeRate && (
             <MetricCard
               icon={<Activity className="h-4 w-4" />}
-              label={result.type === 'bike' ? 'RPM' : 'Årtag/min'}
+              label={result.type === 'bike' ? 'RPM' : t(locale, 'Årtag/min', 'Strokes/min')}
               value={result.strokeRate.toFixed(1)}
             />
           )}
           {result.dragFactor && (
             <MetricCard
               icon={<Waves className="h-4 w-4" />}
-              label="Dragfaktor"
+              label={t(locale, 'Dragfaktor', 'Drag factor')}
               value={String(result.dragFactor)}
             />
           )}
@@ -210,13 +221,13 @@ export function Concept2ResultDetail({ result }: Concept2ResultDetailProps) {
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Heart className="h-4 w-4" />
-              Puls
+              {t(locale, 'Puls', 'Heart rate')}
             </h4>
             <div className="grid grid-cols-3 gap-4">
               {result.avgHeartRate && (
                 <div className="text-center p-3 bg-muted/50 rounded-lg">
                   <p className="text-2xl font-bold">{Math.round(result.avgHeartRate)}</p>
-                  <p className="text-xs text-muted-foreground">Medel bpm</p>
+                  <p className="text-xs text-muted-foreground">{t(locale, 'Medel bpm', 'Avg bpm')}</p>
                 </div>
               )}
               {result.maxHeartRate && (
@@ -244,7 +255,7 @@ export function Concept2ResultDetail({ result }: Concept2ResultDetailProps) {
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Intervaller/Splits
+              {t(locale, 'Intervaller/Splits', 'Intervals/Splits')}
             </h4>
             <div className="space-y-2">
               {result.splits.map((split, index) => (
@@ -257,7 +268,7 @@ export function Concept2ResultDetail({ result }: Concept2ResultDetailProps) {
         {/* Comments */}
         {result.comments && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium">Anteckningar</h4>
+            <h4 className="text-sm font-medium">{t(locale, 'Anteckningar', 'Notes')}</h4>
             <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
               {result.comments}
             </p>
