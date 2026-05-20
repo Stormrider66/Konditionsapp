@@ -27,6 +27,12 @@ import {
 import { syncHockeyStrengthPrsFromTest } from '@/lib/hockey/test-package-server'
 import { jsonWithPerfDebug, startPerfDebug } from '@/lib/api/perf-debug'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const createTestSchema = z.object({
   clientId: z.string().uuid(),
   teamId: z.string().uuid().optional(),
@@ -155,6 +161,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
     const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
@@ -162,7 +169,7 @@ export async function POST(req: NextRequest) {
     const parsed = createTestSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Ogiltig indata', details: parsed.error.flatten() }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() }, { status: 400 })
     }
 
     if (parsed.data.teamId) {

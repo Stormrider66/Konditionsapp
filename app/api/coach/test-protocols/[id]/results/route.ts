@@ -14,6 +14,12 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const recordResultSchema = z.object({
   clientId: z.string().uuid(),
   teamId: z.string().uuid().optional(),
@@ -24,7 +30,7 @@ const recordResultSchema = z.object({
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const user = await requireCoach()
+    await requireCoach()
     const { id: protocolId } = await context.params
 
     const results = await prisma.customTestResult.findMany({
@@ -49,12 +55,13 @@ export async function GET(req: NextRequest, context: RouteContext) {
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { id: protocolId } = await context.params
     const body = await req.json()
     const parsed = recordResultSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Ogiltig indata', details: parsed.error.flatten() }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() }, { status: 400 })
     }
 
     const result = await prisma.customTestResult.create({
