@@ -22,12 +22,12 @@ import {
 import { Switch } from '@/components/ui/switch'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
-  TEAM_EVENT_CONTENT_OWNER_LABELS,
   TEAM_EVENT_CONTENT_OWNERS,
-  TEAM_EVENT_CONTENT_STATUS_LABELS,
   TEAM_EVENT_CONTENT_STATUSES,
-  TEAM_EVENT_TYPE_LABELS,
   TEAM_EVENT_TYPES,
+  teamEventContentOwnerLabel,
+  teamEventContentStatusLabel,
+  teamEventTypeLabel,
   type TeamCalendarLocale,
   type TeamEventContentOwner,
   type TeamEventContentStatus,
@@ -259,53 +259,57 @@ function physicalWorkflowCopy({
   }
 }
 
-const PRACTICE_BLOCK_TYPES: Array<{ value: PracticeBlock['type']; label: string }> = [
-  { value: 'warmup', label: 'Uppvärmning' },
-  { value: 'technical', label: 'Teknik' },
-  { value: 'tactical', label: 'Taktik' },
-  { value: 'small_game', label: 'Smålagsspel' },
-  { value: 'special_teams', label: 'Special teams' },
-  { value: 'goalie', label: 'Målvakt' },
-  { value: 'cooldown', label: 'Nedvarvning' },
+const PRACTICE_BLOCK_TYPES: Array<{ value: PracticeBlock['type']; label: Record<TeamCalendarLocale, string> }> = [
+  { value: 'warmup', label: { en: 'Warmup', sv: 'Uppvärmning' } },
+  { value: 'technical', label: { en: 'Technical', sv: 'Teknik' } },
+  { value: 'tactical', label: { en: 'Tactical', sv: 'Taktik' } },
+  { value: 'small_game', label: { en: 'Small-area game', sv: 'Smålagsspel' } },
+  { value: 'special_teams', label: { en: 'Special teams', sv: 'Special teams' } },
+  { value: 'goalie', label: { en: 'Goalie', sv: 'Målvakt' } },
+  { value: 'cooldown', label: { en: 'Cooldown', sv: 'Nedvarvning' } },
 ]
 
-const RINK_ZONE_OPTIONS: Array<{ value: NonNullable<PracticeBlock['rinkZone']>; label: string }> = [
-  { value: 'full_ice', label: 'Helplan' },
-  { value: 'offensive_zone', label: 'Anfallszon' },
-  { value: 'defensive_zone', label: 'Försvarszon' },
-  { value: 'neutral_zone', label: 'Mittzon' },
-  { value: 'half_ice', label: 'Halvplan' },
-  { value: 'stations', label: 'Stationer' },
+const RINK_ZONE_OPTIONS: Array<{ value: NonNullable<PracticeBlock['rinkZone']>; label: Record<TeamCalendarLocale, string> }> = [
+  { value: 'full_ice', label: { en: 'Full ice', sv: 'Helplan' } },
+  { value: 'offensive_zone', label: { en: 'Offensive zone', sv: 'Anfallszon' } },
+  { value: 'defensive_zone', label: { en: 'Defensive zone', sv: 'Försvarszon' } },
+  { value: 'neutral_zone', label: { en: 'Neutral zone', sv: 'Mittzon' } },
+  { value: 'half_ice', label: { en: 'Half ice', sv: 'Halvplan' } },
+  { value: 'stations', label: { en: 'Stations', sv: 'Stationer' } },
 ]
 
-const INTENSITY_OPTIONS: Array<{ value: NonNullable<PracticeBlock['intensity']>; label: string }> = [
-  { value: 'low', label: 'Låg' },
-  { value: 'medium', label: 'Medel' },
-  { value: 'high', label: 'Hög' },
-  { value: 'game', label: 'Matchlik' },
+const INTENSITY_OPTIONS: Array<{ value: NonNullable<PracticeBlock['intensity']>; label: Record<TeamCalendarLocale, string> }> = [
+  { value: 'low', label: { en: 'Low', sv: 'Låg' } },
+  { value: 'medium', label: { en: 'Medium', sv: 'Medel' } },
+  { value: 'high', label: { en: 'High', sv: 'Hög' } },
+  { value: 'game', label: { en: 'Game-like', sv: 'Matchlik' } },
 ]
 
-const TACTICAL_CATEGORY_OPTIONS: Array<{ value: NonNullable<PracticeBlock['tacticalCategory']>; label: string }> = [
-  { value: 'skills', label: 'Teknik' },
-  { value: 'breakout', label: 'Uppspel' },
-  { value: 'forecheck', label: 'Forecheck' },
-  { value: 'transition', label: 'Omställning' },
-  { value: 'special_teams', label: 'Special teams' },
-  { value: 'small_area', label: 'Smålagsspel' },
-  { value: 'finishing', label: 'Avslut' },
-  { value: 'goalie', label: 'Målvakt' },
+const TACTICAL_CATEGORY_OPTIONS: Array<{ value: NonNullable<PracticeBlock['tacticalCategory']>; label: Record<TeamCalendarLocale, string> }> = [
+  { value: 'skills', label: { en: 'Skills', sv: 'Teknik' } },
+  { value: 'breakout', label: { en: 'Breakout', sv: 'Uppspel' } },
+  { value: 'forecheck', label: { en: 'Forecheck', sv: 'Forecheck' } },
+  { value: 'transition', label: { en: 'Transition', sv: 'Omställning' } },
+  { value: 'special_teams', label: { en: 'Special teams', sv: 'Special teams' } },
+  { value: 'small_area', label: { en: 'Small-area game', sv: 'Smålagsspel' } },
+  { value: 'finishing', label: { en: 'Finishing', sv: 'Avslut' } },
+  { value: 'goalie', label: { en: 'Goalie', sv: 'Målvakt' } },
 ]
 
-const optionLabel = <T extends string>(options: Array<{ value: T; label: string }>, value?: T | null) => {
-  return options.find((option) => option.value === value)?.label
+const optionLabel = <T extends string>(
+  options: Array<{ value: T; label: Record<TeamCalendarLocale, string> }>,
+  value: T | null | undefined,
+  locale: TeamCalendarLocale
+) => {
+  return options.find((option) => option.value === value)?.label[locale]
 }
 
-function blockFromSavedDrill(drill: SavedDrill): PracticeBlock {
+function blockFromSavedDrill(drill: SavedDrill, locale: TeamCalendarLocale): PracticeBlock {
   return makePracticeBlock({
     type: 'technical',
     title: drill.title,
     duration: 15,
-    focus: 'Övning',
+    focus: text(locale, 'Övning', 'Drill'),
     description: drill.description ?? '',
     coachingPoints: '',
     groups: '',
@@ -393,7 +397,7 @@ export function EditEventDialog({
   const goalieBlockCount = practiceBlocks.filter((block) => block.type === 'goalie' || block.tacticalCategory === 'goalie' || Boolean(block.goalieNotes?.trim())).length
   const practiceZoneSummary = Array.from(new Set(
     practiceBlocks
-      .map((block) => optionLabel(RINK_ZONE_OPTIONS, block.rinkZone))
+      .map((block) => optionLabel(RINK_ZONE_OPTIONS, block.rinkZone, locale))
       .filter(Boolean) as string[]
   )).slice(0, 3).join(', ')
   const filteredSavedDrills = savedDrills.filter((drill) => {
@@ -531,35 +535,39 @@ export function EditEventDialog({
   }
 
   const applyPracticeTemplate = (kind: PracticeTemplateKind) => {
-    const blocks = icePracticeTemplate(kind)
+    const blocks = icePracticeTemplate(kind, locale)
     setPracticeBlocks(blocks)
-    setDescription(practiceBlocksToDescription(blocks))
+    setDescription(practiceBlocksToDescription(blocks, locale))
   }
 
   const updatePracticeBlock = (id: string, patch: Partial<PracticeBlock>) => {
     const nextBlocks = practiceBlocks.map((block) => block.id === id ? { ...block, ...patch } : block)
     setPracticeBlocks(nextBlocks)
-    setDescription(practiceBlocksToDescription(nextBlocks))
+    setDescription(practiceBlocksToDescription(nextBlocks, locale))
   }
 
   const addPracticeBlock = () => {
-    const nextBlocks = [...practiceBlocks, newPracticeBlock()]
+    const block = newPracticeBlock()
+    const nextBlocks = [
+      ...practiceBlocks,
+      locale === 'sv' ? block : { ...block, title: 'New block' },
+    ]
     setPracticeBlocks(nextBlocks)
-    setDescription(practiceBlocksToDescription(nextBlocks))
+    setDescription(practiceBlocksToDescription(nextBlocks, locale))
   }
 
   const addSavedDrillBlock = (drillId: string) => {
     const drill = savedDrills.find((item) => item.id === drillId)
     if (!drill) return
-    const nextBlocks = [...practiceBlocks, blockFromSavedDrill(drill)]
+    const nextBlocks = [...practiceBlocks, blockFromSavedDrill(drill, locale)]
     setPracticeBlocks(nextBlocks)
-    setDescription(practiceBlocksToDescription(nextBlocks))
+    setDescription(practiceBlocksToDescription(nextBlocks, locale))
   }
 
   const removePracticeBlock = (id: string) => {
     const nextBlocks = practiceBlocks.filter((block) => block.id !== id)
     setPracticeBlocks(nextBlocks)
-    setDescription(practiceBlocksToDescription(nextBlocks))
+    setDescription(practiceBlocksToDescription(nextBlocks, locale))
   }
 
   const handleDuplicateNextWeek = async () => {
@@ -640,21 +648,21 @@ export function EditEventDialog({
     <Dialog open={Boolean(event)} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Planera pass</DialogTitle>
+          <DialogTitle>{text(locale, 'Planera pass', 'Plan session')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Titel</Label>
+            <Label>{text(locale, 'Titel', 'Title')}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="t.ex. Is + styrka"
+              placeholder={text(locale, 't.ex. Is + styrka', 'e.g. Ice + strength')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Typ</Label>
+            <Label>{text(locale, 'Typ', 'Type')}</Label>
             <Select value={type} onValueChange={(value) => setType(value as TeamEventType)}>
               <SelectTrigger>
                 <SelectValue />
@@ -662,7 +670,7 @@ export function EditEventDialog({
               <SelectContent>
                 {TEAM_EVENT_TYPES.map((eventType) => (
                   <SelectItem key={eventType} value={eventType}>
-                    {TEAM_EVENT_TYPE_LABELS[eventType]}
+                    {teamEventTypeLabel(eventType, locale)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -674,9 +682,9 @@ export function EditEventDialog({
               <div className="space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <div className="text-sm font-medium">Fys-pass med byggbart innehåll</div>
+                    <div className="text-sm font-medium">{text(locale, 'Fys-pass med byggbart innehåll', 'Physical session with buildable content')}</div>
                     <div className="text-xs text-muted-foreground">
-                      Koppla ett färdigt pass eller öppna rätt studio för att bygga innehållet.
+                      {text(locale, 'Koppla ett färdigt pass eller öppna rätt studio för att bygga innehållet.', 'Link a completed workout or open the right studio to build the content.')}
                     </div>
                   </div>
                   {builderLink && (
@@ -733,7 +741,7 @@ export function EditEventDialog({
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-xs">Status</Label>
+                    <Label className="text-xs">{text(locale, 'Status', 'Status')}</Label>
                     <Select value={contentStatus} onValueChange={(value) => setContentStatus(value as TeamEventContentStatus)}>
                       <SelectTrigger>
                         <SelectValue />
@@ -741,14 +749,14 @@ export function EditEventDialog({
                       <SelectContent>
                         {TEAM_EVENT_CONTENT_STATUSES.map((status) => (
                           <SelectItem key={status} value={status}>
-                            {TEAM_EVENT_CONTENT_STATUS_LABELS[status]}
+                            {teamEventContentStatusLabel(status, locale)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Innehållsansvarig</Label>
+                    <Label className="text-xs">{text(locale, 'Innehållsansvarig', 'Content owner')}</Label>
                     <Select value={contentOwner} onValueChange={(value) => setContentOwner(value as TeamEventContentOwner)}>
                       <SelectTrigger>
                         <SelectValue />
@@ -756,7 +764,7 @@ export function EditEventDialog({
                       <SelectContent>
                         {TEAM_EVENT_CONTENT_OWNERS.map((owner) => (
                           <SelectItem key={owner} value={owner}>
-                            {TEAM_EVENT_CONTENT_OWNER_LABELS[owner]}
+                            {teamEventContentOwnerLabel(owner, locale)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -765,7 +773,7 @@ export function EditEventDialog({
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs">Kopplat pass</Label>
+                  <Label className="text-xs">{text(locale, 'Kopplat pass', 'Linked workout')}</Label>
                   <Select
                     value={linkedWorkoutId}
                     disabled={!canAssignContent}
@@ -780,7 +788,7 @@ export function EditEventDialog({
                           <SelectValue placeholder={loadingWorkouts ? text(locale, 'Hämtar pass...', 'Fetching workouts...') : text(locale, 'Välj pass', 'Select workout')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Inget kopplat pass</SelectItem>
+                      <SelectItem value="none">{text(locale, 'Inget kopplat pass', 'No linked workout')}</SelectItem>
                       {workoutOptions.map((option) => (
                         <SelectItem key={option.id} value={option.id}>
                           {option.name}
@@ -790,7 +798,7 @@ export function EditEventDialog({
                   </Select>
                   {linkedWorkoutName && (
                     <div className="text-xs text-muted-foreground">
-                      Kopplat: {linkedWorkoutName}
+                      {text(locale, 'Kopplat', 'Linked')}: {linkedWorkoutName}
                     </div>
                   )}
                 </div>
@@ -874,16 +882,20 @@ export function EditEventDialog({
                       </div>
                       <Button type="button" size="sm" onClick={handleAssignToTeam} disabled={assigning}>
                         <Send className="mr-1.5 h-3.5 w-3.5" />
-                        {assigning ? 'Tilldelar...' : 'Tilldela laget'}
+                        {assigning ? text(locale, 'Tilldelar...', 'Assigning...') : text(locale, 'Tilldela laget', 'Assign team')}
                       </Button>
                     </div>
                   ) : linkedWorkoutId !== 'none' ? (
                     <div className="text-xs text-muted-foreground">
-                      {canAssignContent ? 'Spara händelsen först, sedan kan passet tilldelas laget.' : 'Din roll kan se passet men inte tilldela workout-innehåll.'}
+                      {canAssignContent
+                        ? text(locale, 'Spara händelsen först, sedan kan passet tilldelas laget.', 'Save the event first, then the session can be assigned to the team.')
+                        : text(locale, 'Din roll kan se passet men inte tilldela workout-innehåll.', 'Your role can view the session but cannot assign workout content.')}
                     </div>
                   ) : (
                     <div className="text-xs text-muted-foreground">
-                      {canAssignContent ? 'Koppla ett färdigt pass för att kunna tilldela laget.' : 'Din roll kan se passet men inte tilldela workout-innehåll.'}
+                      {canAssignContent
+                        ? text(locale, 'Koppla ett färdigt pass för att kunna tilldela laget.', 'Link a completed workout before assigning it to the team.')
+                        : text(locale, 'Din roll kan se passet men inte tilldela workout-innehåll.', 'Your role can view the session but cannot assign workout content.')}
                     </div>
                   )}
                 </div>
@@ -896,20 +908,20 @@ export function EditEventDialog({
               <div className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <div className="text-sm font-medium">Ispass-plan</div>
+                    <div className="text-sm font-medium">{text(locale, 'Ispass-plan', 'Ice practice plan')}</div>
                     <div className="text-xs text-muted-foreground">
-                      Bygg passet i block med tid, zoner, roller, målvaktsnoter och coachingpunkter.
+                      {text(locale, 'Bygg passet i block med tid, zoner, roller, målvaktsnoter och coachingpunkter.', 'Build the session in blocks with time, zones, roles, goalie notes, and coaching points.')}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-xs text-muted-foreground">
-                      {practiceMinutes} min totalt
+                      {practiceMinutes} {text(locale, 'min totalt', 'min total')}
                     </div>
                     {practiceSheetHref && (
                       <Button asChild type="button" variant="outline" size="sm">
                         <Link href={practiceSheetHref} target="_blank">
                           <Printer className="mr-1.5 h-3.5 w-3.5" />
-                          Passblad
+                          {text(locale, 'Passblad', 'Session sheet')}
                         </Link>
                       </Button>
                     )}
@@ -918,19 +930,19 @@ export function EditEventDialog({
                 {practiceBlocks.length > 0 && (
                   <div className="grid gap-2 text-xs sm:grid-cols-4">
                     <div className="rounded-md border bg-background px-3 py-2">
-                      <div className="text-muted-foreground">Block</div>
-                      <div className="font-semibold">{practiceBlocks.length} st</div>
+                      <div className="text-muted-foreground">{text(locale, 'Block', 'Blocks')}</div>
+                      <div className="font-semibold">{practiceBlocks.length} {text(locale, 'st', 'pcs')}</div>
                     </div>
                     <div className="rounded-md border bg-background px-3 py-2">
-                      <div className="text-muted-foreground">Zoner</div>
-                      <div className="font-semibold">{practiceZoneSummary || 'Ej satt'}</div>
+                      <div className="text-muted-foreground">{text(locale, 'Zoner', 'Zones')}</div>
+                      <div className="font-semibold">{practiceZoneSummary || text(locale, 'Ej satt', 'Not set')}</div>
                     </div>
                     <div className="rounded-md border bg-background px-3 py-2">
-                      <div className="text-muted-foreground">Hög belastning</div>
+                      <div className="text-muted-foreground">{text(locale, 'Hög belastning', 'High load')}</div>
                       <div className="font-semibold">{highIntensityBlocks} block</div>
                     </div>
                     <div className="rounded-md border bg-background px-3 py-2">
-                      <div className="text-muted-foreground">Målvakt</div>
+                      <div className="text-muted-foreground">{text(locale, 'Målvakt', 'Goalie')}</div>
                       <div className="font-semibold">{goalieBlockCount} block</div>
                     </div>
                   </div>
@@ -943,7 +955,7 @@ export function EditEventDialog({
                     disabled={!canEdit}
                     onClick={() => applyPracticeTemplate('skills')}
                   >
-                    Teknik + fart
+                    {text(locale, 'Teknik + fart', 'Skills + speed')}
                   </Button>
                   <Button
                     type="button"
@@ -952,7 +964,7 @@ export function EditEventDialog({
                     disabled={!canEdit}
                     onClick={() => applyPracticeTemplate('tactical')}
                   >
-                    Taktik
+                    {text(locale, 'Taktik', 'Tactics')}
                   </Button>
                   <Button
                     type="button"
@@ -961,7 +973,7 @@ export function EditEventDialog({
                     disabled={!canEdit}
                     onClick={() => applyPracticeTemplate('gamePrep')}
                   >
-                    Matchförberedelse
+                    {text(locale, 'Matchförberedelse', 'Game prep')}
                   </Button>
                   <Button
                     type="button"
@@ -979,12 +991,12 @@ export function EditEventDialog({
                         value={drillSearch}
                         disabled={!canEdit}
                         onChange={(e) => setDrillSearch(e.target.value)}
-                        placeholder="Sök övning..."
+                        placeholder={text(locale, 'Sök övning...', 'Search drill...')}
                         className="h-9 w-[170px]"
                       />
                       <Select onValueChange={addSavedDrillBlock} disabled={!canEdit || filteredSavedDrills.length === 0}>
                         <SelectTrigger className="h-9 w-[190px]">
-                          <SelectValue placeholder="+ Sparad övning" />
+                          <SelectValue placeholder={text(locale, '+ Sparad övning', '+ Saved drill')} />
                         </SelectTrigger>
                         <SelectContent>
                           {filteredSavedDrills.map((drill) => (
@@ -1004,20 +1016,20 @@ export function EditEventDialog({
                       <div key={block.id} className="rounded-md border bg-background p-3">
                         <div className="mb-3 flex items-center justify-between gap-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-xs font-medium text-muted-foreground">Block {index + 1}</div>
+                            <div className="text-xs font-medium text-muted-foreground">{text(locale, 'Block', 'Block')} {index + 1}</div>
                             {block.rinkZone && (
                               <Badge variant="outline" className="text-[10px]">
-                                {optionLabel(RINK_ZONE_OPTIONS, block.rinkZone)}
+                                {optionLabel(RINK_ZONE_OPTIONS, block.rinkZone, locale)}
                               </Badge>
                             )}
                             {block.intensity && (
                               <Badge variant={block.intensity === 'high' || block.intensity === 'game' ? 'default' : 'secondary'} className="text-[10px]">
-                                {optionLabel(INTENSITY_OPTIONS, block.intensity)}
+                                {optionLabel(INTENSITY_OPTIONS, block.intensity, locale)}
                               </Badge>
                             )}
                             {block.tacticalCategory && (
                               <Badge variant="secondary" className="text-[10px]">
-                                {optionLabel(TACTICAL_CATEGORY_OPTIONS, block.tacticalCategory)}
+                                {optionLabel(TACTICAL_CATEGORY_OPTIONS, block.tacticalCategory, locale)}
                               </Badge>
                             )}
                           </div>
@@ -1028,14 +1040,14 @@ export function EditEventDialog({
                             className="h-7 w-7 text-destructive"
                             disabled={!canEdit}
                             onClick={() => removePracticeBlock(block.id)}
-                            aria-label="Ta bort block"
+                            aria-label={text(locale, 'Ta bort block', 'Remove block')}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_90px]">
                           <div className="space-y-1">
-                            <Label className="text-xs">Titel</Label>
+                            <Label className="text-xs">{text(locale, 'Titel', 'Title')}</Label>
                             <Input
                               value={block.title}
                               disabled={!canEdit}
@@ -1055,7 +1067,7 @@ export function EditEventDialog({
                         </div>
                         {block.drillId && (
                           <div className="mt-2 rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-800">
-                            Kopplad till sparad övning
+                            {text(locale, 'Kopplad till sparad övning', 'Linked to saved drill')}
                           </div>
                         )}
                         {isDrillStructure(block.drillStructure) && (
@@ -1065,7 +1077,7 @@ export function EditEventDialog({
                         )}
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
-                            <Label className="text-xs">Blocktyp</Label>
+                            <Label className="text-xs">{text(locale, 'Blocktyp', 'Block type')}</Label>
                             <Select
                               value={block.type}
                               disabled={!canEdit}
@@ -1077,25 +1089,25 @@ export function EditEventDialog({
                               <SelectContent>
                                 {PRACTICE_BLOCK_TYPES.map((blockType) => (
                                   <SelectItem key={blockType.value} value={blockType.value}>
-                                    {blockType.label}
+                                    {blockType.label[locale]}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">Fokus</Label>
+                            <Label className="text-xs">{text(locale, 'Fokus', 'Focus')}</Label>
                             <Input
                               value={block.focus}
                               disabled={!canEdit}
                               onChange={(e) => updatePracticeBlock(block.id, { focus: e.target.value })}
-                              placeholder="t.ex. breakout, skott, tempo"
+                              placeholder={text(locale, 't.ex. breakout, skott, tempo', 'e.g. breakout, shot, tempo')}
                             />
                           </div>
                         </div>
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                           <div className="space-y-1">
-                            <Label className="text-xs">Rinkzon</Label>
+                            <Label className="text-xs">{text(locale, 'Rinkzon', 'Rink zone')}</Label>
                             <Select
                               value={block.rinkZone ?? 'full_ice'}
                               disabled={!canEdit}
@@ -1107,14 +1119,14 @@ export function EditEventDialog({
                               <SelectContent>
                                 {RINK_ZONE_OPTIONS.map((option) => (
                                   <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
+                                    {option.label[locale]}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">Intensitet</Label>
+                            <Label className="text-xs">{text(locale, 'Intensitet', 'Intensity')}</Label>
                             <Select
                               value={block.intensity ?? 'medium'}
                               disabled={!canEdit}
@@ -1126,14 +1138,14 @@ export function EditEventDialog({
                               <SelectContent>
                                 {INTENSITY_OPTIONS.map((option) => (
                                   <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
+                                    {option.label[locale]}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">Taktisk kategori</Label>
+                            <Label className="text-xs">{text(locale, 'Taktisk kategori', 'Tactical category')}</Label>
                             <Select
                               value={block.tacticalCategory ?? 'skills'}
                               disabled={!canEdit}
@@ -1145,7 +1157,7 @@ export function EditEventDialog({
                               <SelectContent>
                                 {TACTICAL_CATEGORY_OPTIONS.map((option) => (
                                   <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
+                                    {option.label[locale]}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1154,46 +1166,46 @@ export function EditEventDialog({
                         </div>
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
-                            <Label className="text-xs">Grupp / kedja</Label>
+                            <Label className="text-xs">{text(locale, 'Grupp / kedja', 'Group / line')}</Label>
                             <Input
                               value={block.groups ?? ''}
                               disabled={!canEdit}
                               onChange={(e) => updatePracticeBlock(block.id, { groups: e.target.value })}
-                              placeholder="t.ex. alla, kedja 1-2, backar, målvakter"
+                              placeholder={text(locale, 't.ex. alla, kedja 1-2, backar, målvakter', 'e.g. all, line 1-2, defenders, goalies')}
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">Material</Label>
+                            <Label className="text-xs">{text(locale, 'Material', 'Equipment')}</Label>
                             <Input
                               value={block.equipment ?? ''}
                               disabled={!canEdit}
                               onChange={(e) => updatePracticeBlock(block.id, { equipment: e.target.value })}
-                              placeholder="t.ex. puckar, koner, småmål"
+                              placeholder={text(locale, 't.ex. puckar, koner, småmål', 'e.g. pucks, cones, mini nets')}
                             />
                           </div>
                         </div>
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
-                            <Label className="text-xs">Kedjor / roller</Label>
+                            <Label className="text-xs">{text(locale, 'Kedjor / roller', 'Lines / roles')}</Label>
                             <Input
                               value={block.lineGroups ?? ''}
                               disabled={!canEdit}
                               onChange={(e) => updatePracticeBlock(block.id, { lineGroups: e.target.value })}
-                              placeholder="t.ex. femma 1 mot femma 2, PP1/BP1"
+                              placeholder={text(locale, 't.ex. femma 1 mot femma 2, PP1/BP1', 'e.g. unit 1 vs unit 2, PP1/PK1')}
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">Målvaktsnoter</Label>
+                            <Label className="text-xs">{text(locale, 'Målvaktsnoter', 'Goalie notes')}</Label>
                             <Input
                               value={block.goalieNotes ?? ''}
                               disabled={!canEdit}
                               onChange={(e) => updatePracticeBlock(block.id, { goalieNotes: e.target.value })}
-                              placeholder="t.ex. returkontroll, sidled, puckstart"
+                              placeholder={text(locale, 't.ex. returkontroll, sidled, puckstart', 'e.g. rebound control, lateral movement, puck start')}
                             />
                           </div>
                         </div>
                         <div className="mt-3 space-y-1">
-                          <Label className="text-xs">Beskrivning</Label>
+                          <Label className="text-xs">{text(locale, 'Beskrivning', 'Description')}</Label>
                           <Textarea
                             value={block.description}
                             disabled={!canEdit}
@@ -1202,12 +1214,12 @@ export function EditEventDialog({
                           />
                         </div>
                         <div className="mt-3 space-y-1">
-                          <Label className="text-xs">Coachingpunkter</Label>
+                          <Label className="text-xs">{text(locale, 'Coachingpunkter', 'Coaching points')}</Label>
                           <Input
                             value={block.coachingPoints}
                             disabled={!canEdit}
                             onChange={(e) => updatePracticeBlock(block.id, { coachingPoints: e.target.value })}
-                            placeholder="1-2 saker tränarna ska trycka på"
+                            placeholder={text(locale, '1-2 saker tränarna ska trycka på', '1-2 things coaches should emphasize')}
                           />
                         </div>
                       </div>
@@ -1219,7 +1231,7 @@ export function EditEventDialog({
           )}
 
           <div className="space-y-2">
-            <Label>Datum</Label>
+            <Label>{text(locale, 'Datum', 'Date')}</Label>
             <Input
               type="date"
               value={startDate}
@@ -1233,13 +1245,13 @@ export function EditEventDialog({
               checked={allDay}
               onCheckedChange={setAllDay}
             />
-            <Label htmlFor="edit-all-day" className="text-sm">Heldag</Label>
+            <Label htmlFor="edit-all-day" className="text-sm">{text(locale, 'Heldag', 'All day')}</Label>
           </div>
 
           {!allDay && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Starttid</Label>
+                <Label className="text-xs">{text(locale, 'Starttid', 'Start time')}</Label>
                 <Input
                   type="time"
                   value={startTime}
@@ -1247,7 +1259,7 @@ export function EditEventDialog({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Sluttid</Label>
+                <Label className="text-xs">{text(locale, 'Sluttid', 'End time')}</Label>
                 <Input
                   type="time"
                   value={endTime}
@@ -1258,20 +1270,20 @@ export function EditEventDialog({
           )}
 
           <div className="space-y-2">
-            <Label>Plats</Label>
+            <Label>{text(locale, 'Plats', 'Location')}</Label>
             <Input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="t.ex. Isrinken, Gymmet"
+              placeholder={text(locale, 't.ex. Isrinken, Gymmet', 'e.g. Ice rink, Gym')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Plan och innehåll</Label>
+            <Label>{text(locale, 'Plan och innehåll', 'Plan and content')}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Fyll i passets innehåll, fokus, övningar eller ansvar..."
+              placeholder={text(locale, 'Fyll i passets innehåll, fokus, övningar eller ansvar...', 'Add session content, focus, exercises, or responsibilities...')}
               rows={6}
             />
           </div>
@@ -1285,14 +1297,16 @@ export function EditEventDialog({
             disabled={duplicating || !canEdit || !event}
           >
             <Copy className="mr-1.5 h-3.5 w-3.5" />
-            {duplicating ? 'Kopierar...' : 'Kopiera +7 dagar'}
+            {duplicating ? text(locale, 'Kopierar...', 'Copying...') : text(locale, 'Kopiera +7 dagar', 'Copy +7 days')}
           </Button>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Avbryt
+              {text(locale, 'Avbryt', 'Cancel')}
             </Button>
             <Button onClick={handleUpdate} disabled={loading || !canEdit}>
-              {canEdit ? (loading ? 'Sparar...' : 'Spara') : 'Endast visning'}
+              {canEdit
+                ? (loading ? text(locale, 'Sparar...', 'Saving...') : text(locale, 'Spara', 'Save'))
+                : text(locale, 'Endast visning', 'View only')}
             </Button>
           </div>
         </div>
