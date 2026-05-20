@@ -86,6 +86,7 @@ import { toast } from 'sonner'
 import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
 import { buildTeamIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
+import { useLocale } from '@/i18n/client'
 
 interface PRRow {
   id: string
@@ -250,14 +251,27 @@ interface TeamTestsClientProps {
   basePath: string
 }
 
-const SOURCE_LABEL: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
-  TESTED: { label: 'Testat', variant: 'default' },
-  CALCULATED: { label: 'Beräknat', variant: 'secondary' },
-  ESTIMATED: { label: 'Auto', variant: 'outline' },
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
+const SOURCE_LABEL: Record<AppLocale, Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }>> = {
+  en: {
+    TESTED: { label: 'Tested', variant: 'default' },
+    CALCULATED: { label: 'Calculated', variant: 'secondary' },
+    ESTIMATED: { label: 'Auto', variant: 'outline' },
+  },
+  sv: {
+    TESTED: { label: 'Testat', variant: 'default' },
+    CALCULATED: { label: 'Beräknat', variant: 'secondary' },
+    ESTIMATED: { label: 'Auto', variant: 'outline' },
+  },
+}
+
+function formatDate(iso: string, locale: AppLocale): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     weekday: 'short',
     year: 'numeric',
     month: 'short',
@@ -265,17 +279,55 @@ function formatDate(iso: string): string {
   })
 }
 
-function aerobicSourceLabel(source: string | null | undefined): string {
+function formatShortDate(iso: string, locale: AppLocale): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
+}
+
+function formatChartDate(iso: string, locale: AppLocale): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { month: 'short', day: 'numeric' })
+}
+
+function aerobicSourceLabel(source: string | null | undefined, locale: AppLocale): string {
   switch (source) {
     case 'lab-test':
-      return 'labb'
+      return t(locale, 'lab', 'labb')
     case 'athlete-profile':
-      return 'profil'
+      return t(locale, 'profile', 'profil')
     case 'manual-profile':
-      return 'manuell'
+      return t(locale, 'manual', 'manuell')
     default:
-      return 'labb/profil'
+      return t(locale, 'lab/profile', 'labb/profil')
   }
+}
+
+const SIMCA_PRESET_LINKS: Record<AppLocale, Array<{ id: string; label: string; description: string }>> = {
+  en: [
+    { id: 'full', label: 'Full', description: 'All variables' },
+    { id: 'explosive_power', label: 'Power', description: 'MuscleLab, jumps, acceleration' },
+    { id: 'on_ice_speed', label: 'Ice speed', description: 'Sprint stints and distance gaps' },
+    { id: 'repeated_sprint', label: '7x40', description: 'RSA, drop, and resistance' },
+    { id: 'aerobic_profile', label: 'Aerobic', description: 'VO2, LT1/LT2, lactate, ramp' },
+    { id: 'development_pathway', label: 'Pathway', description: 'J18 to A-team across seasons' },
+  ],
+  sv: [
+    { id: 'full', label: 'Full', description: 'Alla variabler' },
+    { id: 'explosive_power', label: 'Power', description: 'MuscleLab, hopp, acceleration' },
+    { id: 'on_ice_speed', label: 'Isfart', description: 'Sprintstints och avståndsgap' },
+    { id: 'repeated_sprint', label: '7x40', description: 'RSA, drop och resistance' },
+    { id: 'aerobic_profile', label: 'Aerob', description: 'VO2, LT1/LT2, laktat, ramp' },
+    { id: 'development_pathway', label: 'Pathway', description: 'J18 till A-lag över säsonger' },
+  ],
+}
+
+function teamTestSummary(count: number, totalPrs: number, locale: AppLocale): string {
+  return count === 0
+    ? t(locale, 'No test sessions registered yet.', 'Inga testpass registrerade ännu.')
+    : t(locale, `${count} test sessions · ${totalPrs} logged PRs`, `${count} testpass · ${totalPrs} loggade PRs`)
+}
+
+function plural(locale: AppLocale, count: number, enSingular: string, enPlural: string, svSingular: string, svPlural: string): string {
+  if (locale === 'sv') return `${count} ${count === 1 ? svSingular : svPlural}`
+  return `${count} ${count === 1 ? enSingular : enPlural}`
 }
 
 function formatMetricValue(value: number | null | undefined, unit: string): string {
@@ -326,18 +378,18 @@ function getRankVariant(percentile: number): 'default' | 'secondary' | 'outline'
   return 'outline'
 }
 
-function getBenchmarkLabel(band: HockeyBenchmarkBand): string {
+function getBenchmarkLabel(band: HockeyBenchmarkBand, locale: AppLocale): string {
   switch (band) {
     case 'top':
-      return 'Topp 20%'
+      return t(locale, 'Top 20%', 'Topp 20%')
     case 'above':
-      return 'Över snitt'
+      return t(locale, 'Above average', 'Över snitt')
     case 'watch':
-      return 'Följ upp'
+      return t(locale, 'Follow up', 'Följ upp')
     case 'priority':
-      return 'Prioritet'
+      return t(locale, 'Priority', 'Prioritet')
     default:
-      return 'Lagspann'
+      return t(locale, 'Team range', 'Lagspann')
   }
 }
 
@@ -357,8 +409,8 @@ function metricByKey(metrics: HockeyMetric[] | undefined, key: string): HockeyMe
   return metrics?.find((metric) => metric.key === key)
 }
 
-function buildSimcaReadiness(hockey: HockeyTeamSummary | null): Array<{ tone: 'ok' | 'watch'; label: string }> {
-  if (!hockey) return [{ tone: 'watch', label: 'Ingen hockeymatris laddad ännu.' }]
+function buildSimcaReadiness(hockey: HockeyTeamSummary | null, locale: AppLocale): Array<{ tone: 'ok' | 'watch'; label: string }> {
+  if (!hockey) return [{ tone: 'watch', label: t(locale, 'No hockey matrix loaded yet.', 'Ingen hockeymatris laddad ännu.') }]
 
   const testedAthletes = hockey.athletes.filter((athlete) => athlete.latestTestDate).length
   const seasonCount = hockey.pathway.seasonSummaries.length
@@ -370,30 +422,25 @@ function buildSimcaReadiness(hockey: HockeyTeamSummary | null): Array<{ tone: 'o
     {
       tone: testedAthletes >= 8 ? 'ok' : 'watch',
       label: testedAthletes >= 8
-        ? `${testedAthletes} spelare med testdata: bra för första PCA-karta.`
-        : `${testedAthletes} spelare med testdata: använd SIMCA som deskriptiv översikt tills gruppen är större.`,
+        ? t(locale, `${testedAthletes} players with test data: good for a first PCA map.`, `${testedAthletes} spelare med testdata: bra för första PCA-karta.`)
+        : t(locale, `${testedAthletes} players with test data: use SIMCA as a descriptive overview until the group is larger.`, `${testedAthletes} spelare med testdata: använd SIMCA som deskriptiv översikt tills gruppen är större.`),
     },
     {
       tone: seasonCount >= 2 ? 'ok' : 'watch',
       label: seasonCount >= 2
-        ? `${seasonCount} säsonger: pathway-variabler kan börja tolkas.`
-        : 'Minst två säsonger behövs innan pathway-slopes bör tolkas.',
+        ? t(locale, `${seasonCount} seasons: pathway variables can start to be interpreted.`, `${seasonCount} säsonger: pathway-variabler kan börja tolkas.`)
+        : t(locale, 'At least two seasons are needed before pathway slopes should be interpreted.', 'Minst två säsonger behövs innan pathway-slopes bör tolkas.'),
     },
     {
       tone: aerobicCoverage >= Math.max(4, Math.ceil(testedAthletes * 0.6)) ? 'ok' : 'watch',
-      label: `${aerobicCoverage}/${testedAthletes || hockey.athletes.length} spelare har VO2/LT2/beep-ankare.`,
+      label: t(
+        locale,
+        `${aerobicCoverage}/${testedAthletes || hockey.athletes.length} players have VO2/LT2/beep anchors.`,
+        `${aerobicCoverage}/${testedAthletes || hockey.athletes.length} spelare har VO2/LT2/beep-ankare.`
+      ),
     },
   ]
 }
-
-const SIMCA_PRESET_LINKS: Array<{ id: string; label: string; description: string }> = [
-  { id: 'full', label: 'Full', description: 'Alla variabler' },
-  { id: 'explosive_power', label: 'Power', description: 'MuscleLab, hopp, acceleration' },
-  { id: 'on_ice_speed', label: 'Isfart', description: 'Sprintstints och avståndsgap' },
-  { id: 'repeated_sprint', label: '7x40', description: 'RSA, drop och resistance' },
-  { id: 'aerobic_profile', label: 'Aerob', description: 'VO2, LT1/LT2, laktat, ramp' },
-  { id: 'development_pathway', label: 'Pathway', description: 'J18 till A-lag över säsonger' },
-]
 
 function businessSlugFromBasePath(basePath: string): string | null {
   const parts = basePath.split('/').filter(Boolean)
@@ -401,6 +448,7 @@ function businessSlugFromBasePath(basePath: string): string | null {
 }
 
 export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const pageContext = usePageContextOptional()
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
@@ -435,6 +483,19 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const businessSlug = businessSlugFromBasePath(basePath)
+  const copy = {
+    tested: t(locale, 'tested', 'testat'),
+    calculated: t(locale, 'calculated', 'beräknat'),
+    athlete: t(locale, 'athlete', 'atlet'),
+    athletes: t(locale, 'athletes', 'atleter'),
+    exercise: t(locale, 'exercise', 'övning'),
+    exercises: t(locale, 'exercises', 'övningar'),
+    average: t(locale, 'avg', 'snitt'),
+    open: t(locale, 'Open', 'Öppna'),
+    save: t(locale, 'Save', 'Spara'),
+    cancel: t(locale, 'Cancel', 'Avbryt'),
+    delete: t(locale, 'Delete', 'Ta bort'),
+  }
 
   const scopedTeamApiUrl = useCallback((path: string, params?: Record<string, string>) => {
     const search = new URLSearchParams()
@@ -492,9 +553,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         teamName,
         ...hockey,
       })
-      toast.success('Lagrapport exporterad')
+      toast.success(t(locale, 'Team report exported', 'Lagrapport exporterad'))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Kunde inte exportera lagrapport')
+      toast.error(error instanceof Error ? error.message : t(locale, 'Could not export team report', 'Kunde inte exportera lagrapport'))
     } finally {
       setIsExportingTeamReport(false)
     }
@@ -513,11 +574,11 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         setNormDrafts(body.data.hockey?.normReferences ?? [])
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunde inte hämta testdata')
+      setError(e instanceof Error ? e.message : t(locale, 'Could not fetch test data', 'Kunde inte hämta testdata'))
     } finally {
       setIsLoading(false)
     }
-  }, [scopedTeamApiUrl, teamId])
+  }, [locale, scopedTeamApiUrl, teamId])
 
   useEffect(() => {
     void fetchSessions()
@@ -563,10 +624,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
       if (!res.ok || body?.success === false) {
         throw new Error(body?.error ?? `HTTP ${res.status}`)
       }
-      toast.success('Hockeynormer sparade')
+      toast.success(t(locale, 'Hockey norms saved', 'Hockeynormer sparade'))
       await fetchSessions()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Kunde inte spara hockeynormer')
+      toast.error(error instanceof Error ? error.message : t(locale, 'Could not save hockey norms', 'Kunde inte spara hockeynormer'))
     } finally {
       setIsSavingNorms(false)
     }
@@ -583,7 +644,8 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
 
   const hockeyExportHref = scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`)
   const hockeyAerobicExportHref = scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`, { preset: 'aerobic_profile' })
-  const simcaReadiness = useMemo(() => buildSimcaReadiness(hockey), [hockey])
+  const simcaReadiness = useMemo(() => buildSimcaReadiness(hockey, locale), [hockey, locale])
+  const simcaPresetLinks = SIMCA_PRESET_LINKS[locale]
   const hockeyAthletes = hockey?.athletes
     .filter((athlete) => selectedPosition === 'all' || athlete.position.key === selectedPosition) ?? []
   const selectedHistory = hockey?.history.find((metric) => metric.key === selectedHockeyMetric)
@@ -627,7 +689,11 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     setPageContext({
       type: 'hockey-team-tests',
       title: `${teamName} hockey tests`,
-      summary: 'Hockeyteamets testvy är öppen. AI:n kan använda lagets laddade testmatris, leaders, action plan, pathway, normer och SIMCA-exportflöde som sidkontext.',
+      summary: t(
+        locale,
+        "The hockey team's test view is open. AI can use the team's loaded test matrix, leaders, action plan, pathway, norms, and SIMCA export flow as page context.",
+        'Hockeyteamets testvy är öppen. AI:n kan använda lagets laddade testmatris, leaders, action plan, pathway, normer och SIMCA-exportflöde som sidkontext.'
+      ),
       conceptKeys: ['vo2max', 'wattsPerKg', 'oneRM', 'trainingZones'],
       data: {
         teamId,
@@ -683,7 +749,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         } : null,
         simca: {
           fullExportEndpoint: `/api/teams/${teamId}/hockey-tests/export`,
-          presets: SIMCA_PRESET_LINKS.map((preset) => preset.id),
+          presets: simcaPresetLinks.map((preset) => preset.id),
           readiness: simcaReadiness,
           variableGroups: ['explosive_power', 'strength', 'ice_speed', 'repeated_sprint', 'aerobic', 'pathway'],
         },
@@ -698,9 +764,11 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     selectedHockeyMetric,
     selectedPosition,
     simcaReadiness,
+    simcaPresetLinks,
     sessions.length,
     teamId,
     teamName,
+    locale,
   ])
 
   return (
@@ -712,14 +780,14 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
               <div>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Shield className="h-4 w-4 text-cyan-500" />
-                  Hockey testmatris
+                  {t(locale, 'Hockey test matrix', 'Hockey testmatris')}
                 </CardTitle>
                 <CardDescription>
-                  Senaste hockeysession per spelare med lagets nyckelvärden, rank och percentil.
+                  {t(locale, "Latest hockey session per player with the team's key values, rank, and percentile.", 'Senaste hockeysession per spelare med lagets nyckelvärden, rank och percentil.')}
                 </CardDescription>
               </div>
               <Badge variant="secondary">
-                {hockey.testCount} hockeytester
+                {plural(locale, hockey.testCount, 'hockey test', 'hockey tests', 'hockeytest', 'hockeytester')}
               </Badge>
             </div>
           </CardHeader>
@@ -734,7 +802,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     <p className="text-sm font-semibold truncate">{leader.leader?.athleteName}</p>
                     <p className="font-mono text-xs text-muted-foreground">
                       {formatMetricValue(leader.leader?.value, leader.unit)}
-                      {leader.average != null && ` · snitt ${formatMetricValue(leader.average, leader.unit)}`}
+                      {leader.average != null && ` · ${copy.average} ${formatMetricValue(leader.average, leader.unit)}`}
                     </p>
                   </div>
                 ))}
@@ -749,11 +817,11 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       Coach action plan
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Automatiskt sammanfattat från positionpercentiler, z-score och testhistorik.
+                      {t(locale, 'Automatically summarized from position percentiles, z-score, and test history.', 'Automatiskt sammanfattat från positionpercentiler, z-score och testhistorik.')}
                     </p>
                   </div>
                   <Badge variant="outline" className="text-[10px]">
-                    {hockeyActionItems.length} åtgärder
+                    {plural(locale, hockeyActionItems.length, 'action', 'actions', 'åtgärd', 'åtgärder')}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
@@ -771,7 +839,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           variant={item.severity === 'priority' ? 'destructive' : item.severity === 'watch' ? 'secondary' : 'outline'}
                           className="shrink-0 text-[10px]"
                         >
-                          {item.severity === 'priority' ? 'Prioritet' : item.severity === 'watch' ? 'Följ upp' : 'Info'}
+                          {item.severity === 'priority' ? t(locale, 'Priority', 'Prioritet') : item.severity === 'watch' ? t(locale, 'Follow up', 'Följ upp') : 'Info'}
                         </Badge>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -785,7 +853,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                         {item.href && (
                           <Link href={item.href}>
                             <Badge variant="secondary" className="text-[10px] hover:bg-muted">
-                              Öppna
+                              {copy.open}
                             </Badge>
                           </Link>
                         )}
@@ -805,7 +873,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       Development pathway
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Flerårig översikt för J18 → J20 → A-team: nivåfördelning, säsongssnitt och spelare att följa.
+                      {t(locale, 'Multi-year overview for J18 -> J20 -> A-team: level distribution, season averages, and players to follow.', 'Flerårig översikt för J18 → J20 → A-team: nivåfördelning, säsongssnitt och spelare att följa.')}
                     </p>
                   </div>
                   <div className="flex gap-1.5 flex-wrap">
@@ -821,9 +889,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   <div className="lg:col-span-2 rounded-md border bg-background p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs font-medium">Säsongstrend</p>
+                        <p className="text-xs font-medium">{t(locale, 'Season trend', 'Säsongstrend')}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          Lagets snitt per säsong för vald pathway-metrik.
+                          {t(locale, 'Team average by season for the selected pathway metric.', 'Lagets snitt per säsong för vald pathway-metrik.')}
                         </p>
                       </div>
                       {selectedPathwayMetric && (
@@ -846,7 +914,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                               ]}
                               labelFormatter={(value, payload) => {
                                 const point = payload?.[0]?.payload as { athleteCount?: number; testCount?: number } | undefined
-                                return `${value} · ${point?.athleteCount ?? 0} spelare · ${point?.testCount ?? 0} tester`
+                                return `${value} · ${plural(locale, point?.athleteCount ?? 0, 'player', 'players', 'spelare', 'spelare')} · ${plural(locale, point?.testCount ?? 0, 'test', 'tests', 'test', 'tester')}`
                               }}
                             />
                             <Line
@@ -863,20 +931,20 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       </div>
                     ) : (
                       <div className="rounded-md border border-dashed py-8 text-center text-xs text-muted-foreground">
-                        Minst två säsonger med samma metrik behövs för pathway-trend.
+                        {t(locale, 'At least two seasons with the same metric are needed for a pathway trend.', 'Minst två säsonger med samma metrik behövs för pathway-trend.')}
                       </div>
                     )}
                   </div>
 
                   <div className="rounded-md border bg-background p-3 space-y-2">
-                    <p className="text-xs font-medium">Säsonger</p>
+                    <p className="text-xs font-medium">{t(locale, 'Seasons', 'Säsonger')}</p>
                     <div className="space-y-2">
                       {pathway.seasonSummaries.slice(-5).map((season) => (
                         <div key={season.season} className="rounded-md border px-2 py-1.5">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-xs font-semibold">{season.season}</span>
                             <span className="text-[10px] text-muted-foreground">
-                              {season.athleteCount} spelare · {season.testCount} tester
+                              {plural(locale, season.athleteCount, 'player', 'players', 'spelare', 'spelare')} · {plural(locale, season.testCount, 'test', 'tests', 'test', 'tester')}
                             </span>
                           </div>
                           <div className="mt-1 flex gap-1 flex-wrap">
@@ -907,7 +975,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                             <div className="min-w-0">
                               <span className="font-medium">{athlete.name}</span>
                               <p className="text-[10px] text-muted-foreground truncate">
-                                {athlete.position ?? 'Position saknas'} · {athlete.seasonCount} säsonger · {athlete.testCount} tester
+                                {athlete.position ?? t(locale, 'Position missing', 'Position saknas')} · {plural(locale, athlete.seasonCount, 'season', 'seasons', 'säsong', 'säsonger')} · {plural(locale, athlete.testCount, 'test', 'tests', 'test', 'tester')}
                               </p>
                             </div>
                             <Badge variant="secondary" className="text-[10px] shrink-0">{athlete.currentLevel}</Badge>
@@ -916,7 +984,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       </div>
                     ) : (
                       <div className="rounded-md border border-dashed py-5 text-center text-xs text-muted-foreground">
-                        Lägg in flera säsonger för att se spelare som rört sig mellan nivåer.
+                        {t(locale, 'Add multiple seasons to see players who have moved between levels.', 'Lägg in flera säsonger för att se spelare som rört sig mellan nivåer.')}
                       </div>
                     )}
                   </div>
@@ -936,12 +1004,12 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                             <div className="min-w-0">
                               <span className="font-medium">{athlete.name}</span>
                               <p className="text-[10px] text-muted-foreground truncate">
-                                {latestSeason?.season ?? 'Ingen säsong'} · {athlete.latestTestDate ?? 'saknar datum'}
+                                {latestSeason?.season ?? t(locale, 'No season', 'Ingen säsong')} · {athlete.latestTestDate ?? t(locale, 'missing date', 'saknar datum')}
                               </p>
                             </div>
                             <div className="text-right shrink-0">
                               <Badge variant={athlete.watchCount > 0 ? 'outline' : 'secondary'} className="text-[10px]">
-                                {athlete.watchCount} luckor
+                                {plural(locale, athlete.watchCount, 'gap', 'gaps', 'lucka', 'luckor')}
                               </Badge>
                               {latestSeason && selectedPathwayMetric && (
                                 <p className="mt-1 font-mono text-[10px] text-muted-foreground">
@@ -962,7 +1030,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       <p className="text-xs font-medium">Player pathway drill-down</p>
                       {selectedPathwayAthlete && (
                         <Link href={`${basePath}/clients/${selectedPathwayAthlete.id}?tab=development`}>
-                          <Badge variant="outline" className="text-[10px] hover:bg-muted">Profil</Badge>
+                          <Badge variant="outline" className="text-[10px] hover:bg-muted">{t(locale, 'Profile', 'Profil')}</Badge>
                         </Link>
                       )}
                     </div>
@@ -972,7 +1040,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           <div>
                             <p className="text-sm font-semibold">{selectedPathwayAthlete.name}</p>
                             <p className="text-[10px] text-muted-foreground">
-                              {selectedPathwayAthlete.currentLevel} · {selectedPathwayAthlete.seasonCount} säsonger · {selectedPathwayAthlete.positiveChangeCount} positiva säsongsförändringar
+                              {selectedPathwayAthlete.currentLevel} · {plural(locale, selectedPathwayAthlete.seasonCount, 'season', 'seasons', 'säsong', 'säsonger')} · {plural(locale, selectedPathwayAthlete.positiveChangeCount, 'positive seasonal change', 'positive seasonal changes', 'positiv säsongsförändring', 'positiva säsongsförändringar')}
                             </p>
                           </div>
                           <Badge variant="secondary" className="text-[10px]">{selectedPathwayAthlete.currentLevel}</Badge>
@@ -981,10 +1049,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           <table className="w-full text-[11px]">
                             <thead>
                               <tr className="border-b text-muted-foreground">
-                                <th className="py-1 text-left font-medium">Säsong</th>
-                                <th className="py-1 text-left font-medium">Nivå</th>
-                                <th className="py-1 text-right font-medium">Ålder</th>
-                                <th className="py-1 text-right font-medium">Förändring</th>
+                                <th className="py-1 text-left font-medium">{t(locale, 'Season', 'Säsong')}</th>
+                                <th className="py-1 text-left font-medium">{t(locale, 'Level', 'Nivå')}</th>
+                                <th className="py-1 text-right font-medium">{t(locale, 'Age', 'Ålder')}</th>
+                                <th className="py-1 text-right font-medium">{t(locale, 'Change', 'Förändring')}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1006,7 +1074,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       </div>
                     ) : (
                       <div className="rounded-md border border-dashed py-5 text-center text-xs text-muted-foreground">
-                        Välj en spelare från listorna ovan.
+                        {t(locale, 'Select a player from the lists above.', 'Välj en spelare från listorna ovan.')}
                       </div>
                     )}
                   </div>
@@ -1016,12 +1084,12 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       <div>
                         <p className="text-xs font-medium">Configurable norm reference</p>
                         <p className="text-[10px] text-muted-foreground">
-                          Sparas per lag och används i target-gap, rapport och SIMCA-export.
+                          {t(locale, 'Saved per team and used in target gaps, reports, and SIMCA export.', 'Sparas per lag och används i target-gap, rapport och SIMCA-export.')}
                         </p>
                       </div>
                       <div className="flex gap-1.5">
                         <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-[10px]" onClick={addNormDraft}>
-                          Lägg till
+                          {t(locale, 'Add', 'Lägg till')}
                         </Button>
                         <Button
                           type="button"
@@ -1031,7 +1099,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           disabled={isSavingNorms}
                         >
                           {isSavingNorms && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                          Spara
+                          {copy.save}
                         </Button>
                       </div>
                     </div>
@@ -1140,7 +1208,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       </div>
                     ) : (
                       <div className="rounded-md border border-dashed py-5 text-center text-xs text-muted-foreground">
-                        Lägg till en normrad för vald pathway-metrik.
+                        {t(locale, 'Add a norm row for the selected pathway metric.', 'Lägg till en normrad för vald pathway-metrik.')}
                       </div>
                     )}
                   </div>
@@ -1150,9 +1218,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
 
             <div className="flex items-center justify-between gap-3 flex-wrap rounded-md border bg-muted/10 px-3 py-2">
               <div>
-                <p className="text-sm font-semibold">Normer och percentiler</p>
+                <p className="text-sm font-semibold">{t(locale, 'Norms and percentiles', 'Normer och percentiler')}</p>
                 <p className="text-xs text-muted-foreground">
-                  Z-score räknas mot laget, percentil mot både lag och spelarens position.
+                  {t(locale, "Z-score is calculated against the team; percentile is calculated against both team and the player's position.", 'Z-score räknas mot laget, percentil mot både lag och spelarens position.')}
                 </p>
               </div>
               <Select value={selectedPosition} onValueChange={setSelectedPosition}>
@@ -1160,7 +1228,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Alla positioner</SelectItem>
+                  <SelectItem value="all">{t(locale, 'All positions', 'Alla positioner')}</SelectItem>
                   {hockey.positions.map((position) => (
                     <SelectItem key={position.key} value={position.key}>
                       {position.label} ({position.athleteCount})
@@ -1176,10 +1244,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   <thead>
                     <tr className="border-b text-muted-foreground">
                       <th className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-medium min-w-40">
-                        Spelare
+                        {t(locale, 'Player', 'Spelare')}
                       </th>
                       <th className="px-3 py-2 text-left font-medium whitespace-nowrap">Position</th>
-                      <th className="px-3 py-2 text-left font-medium whitespace-nowrap">Senast</th>
+                      <th className="px-3 py-2 text-left font-medium whitespace-nowrap">{t(locale, 'Latest', 'Senast')}</th>
                       {hockey.metrics.map((metric) => (
                         <th key={metric.key} className="px-3 py-2 text-right font-medium whitespace-nowrap">
                           {metric.label}
@@ -1197,7 +1265,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           {athlete.qualityFlags.some((flag) => flag.severity === 'warning') && (
                             <div className="mt-1">
                               <Badge variant="destructive" className="h-4 px-1.5 text-[9px] font-normal">
-                                {athlete.qualityFlags.filter((flag) => flag.severity === 'warning').length} kvalitetsflaggor
+                                {plural(locale, athlete.qualityFlags.filter((flag) => flag.severity === 'warning').length, 'quality flag', 'quality flags', 'kvalitetsflagga', 'kvalitetsflaggor')}
                               </Badge>
                             </div>
                           )}
@@ -1206,10 +1274,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                           {athlete.position.label}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                          <div>{athlete.latestTestDate ? new Date(athlete.latestTestDate).toLocaleDateString('sv-SE') : '–'}</div>
+                          <div>{athlete.latestTestDate ? formatShortDate(athlete.latestTestDate, locale) : '–'}</div>
                           {athlete.aerobicAutoLinked && (
                             <Badge variant="secondary" className="mt-1 h-4 px-1.5 text-[9px] font-normal">
-                              Aerob {aerobicSourceLabel(athlete.aerobicAutoLinkSource)}
+                              {t(locale, 'Aerobic', 'Aerob')} {aerobicSourceLabel(athlete.aerobicAutoLinkSource, locale)}
                             </Badge>
                           )}
                         </td>
@@ -1232,7 +1300,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                   {benchmark && (
                                     <div className="mt-1 flex justify-end gap-1">
                                       <Badge variant={getRankVariant(benchmark.positionPercentile ?? benchmark.percentile ?? 0)} className="h-4 px-1.5 text-[9px] font-normal">
-                                        {getBenchmarkLabel(benchmark.band)}
+                                        {getBenchmarkLabel(benchmark.band, locale)}
                                       </Badge>
                                       {benchmark.positionRank && benchmark.positionCoverage > 1 && (
                                         <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-normal">
@@ -1268,7 +1336,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
               </div>
             ) : (
               <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
-                Inga hockeysessioner registrerade ännu. Logga tester från hockeysidan för att fylla matrisen.
+                {t(locale, 'No hockey sessions registered yet. Log tests from the hockey page to fill the matrix.', 'Inga hockeysessioner registrerade ännu. Logga tester från hockeysidan för att fylla matrisen.')}
               </div>
             )}
 
@@ -1278,14 +1346,14 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   <div>
                     <p className="text-sm font-semibold flex items-center gap-2">
                       <Timer className="h-4 w-4 text-sky-500" />
-                      Isfart och avståndsgap
+                      {t(locale, 'Ice speed and distance gaps', 'Isfart och avståndsgap')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Fart räknas som distans/tid i km/h. Avståndsgap visar meter bakom snabbaste spelaren när snabbaste spelaren passerar målmarkeringen.
+                      {t(locale, 'Speed is calculated as distance/time in km/h. Distance gap shows meters behind the fastest player when that player reaches the finish marker.', 'Fart räknas som distans/tid i km/h. Avståndsgap visar meter bakom snabbaste spelaren när snabbaste spelaren passerar målmarkeringen.')}
                     </p>
                   </div>
                   <Badge variant="outline" className="text-[10px]">
-                    {selectedPosition === 'all' ? 'Alla positioner' : 'Positionsfilter aktivt'}
+                    {selectedPosition === 'all' ? t(locale, 'All positions', 'Alla positioner') : t(locale, 'Position filter active', 'Positionsfilter aktivt')}
                   </Badge>
                 </div>
                 <div className="overflow-x-auto">
@@ -1293,10 +1361,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     <thead>
                       <tr className="border-b text-muted-foreground">
                         <th className="px-2 py-1.5 text-left font-medium">Stint</th>
-                        <th className="px-2 py-1.5 text-right font-medium">Snabbast</th>
-                        <th className="px-2 py-1.5 text-right font-medium">Lagfart</th>
-                        <th className="px-2 py-1.5 text-right font-medium">Median bakom</th>
-                        <th className="px-2 py-1.5 text-right font-medium">Störst gap</th>
+                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Fastest', 'Snabbast')}</th>
+                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Team speed', 'Lagfart')}</th>
+                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Median behind', 'Median bakom')}</th>
+                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Largest gap', 'Störst gap')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1304,7 +1372,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                         <tr key={row.key} className="border-b last:border-0">
                           <td className="px-2 py-1.5 font-medium">
                             {row.label}
-                            <div className="text-[10px] text-muted-foreground">{row.coverage} spelare</div>
+                            <div className="text-[10px] text-muted-foreground">{plural(locale, row.coverage, 'player', 'players', 'spelare', 'spelare')}</div>
                           </td>
                           <td className="px-2 py-1.5 text-right font-mono">
                             {row.leader ? (
@@ -1348,19 +1416,19 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   <div>
                     <p className="text-sm font-semibold flex items-center gap-2">
                       <Activity className="h-4 w-4 text-emerald-500" />
-                      Aerob profil
+                      {t(locale, 'Aerobic profile', 'Aerob profil')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      VO2max, LT2, laktat och ramptid jämförs mot laget och kan exporteras till SIMCA.
+                      {t(locale, 'VO2max, LT2, lactate, and ramp time are compared against the team and can be exported to SIMCA.', 'VO2max, LT2, laktat och ramptid jämförs mot laget och kan exporteras till SIMCA.')}
                       {hockeyAthletes.some((athlete) => athlete.aerobicAutoLinked)
-                        ? ' Badge i tabellen visar när värden är länkade från labb/profil.'
+                        ? t(locale, ' The table badge shows when values are linked from lab/profile.', ' Badge i tabellen visar när värden är länkade från labb/profil.')
                         : ''}
                     </p>
                   </div>
                   <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">
                     <a href={hockeyAerobicExportHref}>
                       <Download className="mr-1.5 h-3.5 w-3.5" />
-                      SIMCA aerob
+                      {t(locale, 'SIMCA aerobic', 'SIMCA aerob')}
                     </a>
                   </Button>
                 </div>
@@ -1371,7 +1439,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       <p className="text-sm font-semibold truncate">{leader.leader?.athleteName}</p>
                       <p className="font-mono text-xs text-muted-foreground">
                         {formatMetricValue(leader.leader?.value, leader.unit)}
-                        {leader.average != null && ` · snitt ${formatMetricValue(leader.average, leader.unit)}`}
+                        {leader.average != null && ` · ${copy.average} ${formatMetricValue(leader.average, leader.unit)}`}
                       </p>
                     </div>
                   ))}
@@ -1385,10 +1453,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   <div>
                     <p className="text-sm font-semibold flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-emerald-500" />
-                      Historik och förändring
+                      {t(locale, 'History and change', 'Historik och förändring')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Lagtrend och senaste förändring per spelare för vald hockeymetrik.
+                      {t(locale, 'Team trend and latest change per player for the selected hockey metric.', 'Lagtrend och senaste förändring per spelare för vald hockeymetrik.')}
                     </p>
                   </div>
                   <Select value={selectedHistory.key} onValueChange={setSelectedHockeyMetric}>
@@ -1413,23 +1481,23 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                         <XAxis
                           dataKey="date"
                           tick={{ fontSize: 10 }}
-                          tickFormatter={(value) => new Date(value).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' })}
+                          tickFormatter={(value) => formatChartDate(String(value), locale)}
                         />
                         <YAxis tick={{ fontSize: 10 }} width={42} />
                         <Tooltip
-                          labelFormatter={(value) => new Date(String(value)).toLocaleDateString('sv-SE')}
+                          labelFormatter={(value) => formatShortDate(String(value), locale)}
                           formatter={(value, _name, item) => [
                             formatMetricValue(typeof value === 'number' ? value : null, selectedHistory.unit),
-                            `Lagsnitt (${(item.payload as { count?: number }).count ?? 0} spelare)`,
+                            t(locale, `Team average (${plural(locale, (item.payload as { count?: number }).count ?? 0, 'player', 'players', 'spelare', 'spelare')})`, `Lagsnitt (${plural(locale, (item.payload as { count?: number }).count ?? 0, 'player', 'players', 'spelare', 'spelare')})`),
                           ]}
                         />
-                        <Line type="monotone" dataKey="average" name="Lagsnitt" stroke="#0891b2" strokeWidth={2} dot />
+                        <Line type="monotone" dataKey="average" name={t(locale, 'Team average', 'Lagsnitt')} stroke="#0891b2" strokeWidth={2} dot />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
                   <div className="rounded-md border border-dashed py-6 text-center text-xs text-muted-foreground">
-                    Minst två testdatum behövs för lagtrend.
+                    {t(locale, 'At least two test dates are needed for a team trend.', 'Minst två testdatum behövs för lagtrend.')}
                   </div>
                 )}
 
@@ -1437,10 +1505,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b text-muted-foreground">
-                        <th className="px-2 py-1.5 text-left font-medium">Spelare</th>
-                        <th className="px-2 py-1.5 text-right font-medium">Senast</th>
-                        <th className="px-2 py-1.5 text-right font-medium">Föregående</th>
-                        <th className="px-2 py-1.5 text-right font-medium">Förändring</th>
+                        <th className="px-2 py-1.5 text-left font-medium">{t(locale, 'Player', 'Spelare')}</th>
+                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Latest', 'Senast')}</th>
+                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Previous', 'Föregående')}</th>
+                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Change', 'Förändring')}</th>
                         <th className="px-2 py-1.5 text-right font-medium">Rank</th>
                       </tr>
                     </thead>
@@ -1456,7 +1524,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                             {formatMetricValue(athlete.latest, selectedHistory.unit)}
                             {athlete.latestTestDate && (
                               <div className="text-[10px] text-muted-foreground">
-                                {new Date(athlete.latestTestDate).toLocaleDateString('sv-SE')}
+                                {formatShortDate(athlete.latestTestDate, locale)}
                               </div>
                             )}
                           </td>
@@ -1464,7 +1532,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                             {formatMetricValue(athlete.previous, selectedHistory.unit)}
                             {athlete.previousTestDate && (
                               <div className="text-[10px] text-muted-foreground">
-                                {new Date(athlete.previousTestDate).toLocaleDateString('sv-SE')}
+                                {formatShortDate(athlete.previousTestDate, locale)}
                               </div>
                             )}
                           </td>
@@ -1502,22 +1570,22 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                 <div>
                   <p className="text-sm font-semibold flex items-center gap-2">
                     <FlaskConical className="h-4 w-4 text-violet-500" />
-                    SIMCA exportpaket
+                    {t(locale, 'SIMCA export package', 'SIMCA exportpaket')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Välj smal preset först, och använd full export när SIMCA-projektet är stabilt.
+                    {t(locale, 'Choose a narrow preset first, then use full export once the SIMCA project is stable.', 'Välj smal preset först, och använd full export när SIMCA-projektet är stabilt.')}
                   </p>
                 </div>
                 <Link href={`${basePath}/teams/${teamId}/multivariate`}>
                   <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
                     <Trophy className="h-3.5 w-3.5 mr-1.5" />
-                    Öppna MVA
+                    {t(locale, 'Open MVA', 'Öppna MVA')}
                   </Button>
                 </Link>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div className="md:col-span-2 grid grid-cols-2 lg:grid-cols-3 gap-2">
-                  {SIMCA_PRESET_LINKS.map((preset) => (
+                  {simcaPresetLinks.map((preset) => (
                     <a key={preset.id} href={scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`, { preset: preset.id })}>
                       <Button variant="outline" size="sm" className="h-auto w-full justify-start px-2 py-2 text-left">
                         <Download className="mr-2 h-3.5 w-3.5 shrink-0" />
@@ -1533,7 +1601,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   {simcaReadiness.map((item) => (
                     <div key={item.label} className="flex items-start gap-2 rounded-md border bg-background px-2 py-1.5 text-[11px]">
                       <Badge variant={item.tone === 'ok' ? 'secondary' : 'outline'} className="mt-0.5 h-4 px-1.5 text-[9px]">
-                        {item.tone === 'ok' ? 'OK' : 'Följ'}
+                        {item.tone === 'ok' ? 'OK' : t(locale, 'Watch', 'Följ')}
                       </Badge>
                       <span className="text-muted-foreground">{item.label}</span>
                     </div>
@@ -1554,18 +1622,18 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                 ) : (
                   <Download className="h-4 w-4 mr-1.5" />
                 )}
-                Exportera lagrapport PDF
+                {t(locale, 'Export team report PDF', 'Exportera lagrapport PDF')}
               </Button>
               <a href={hockeyExportHref}>
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-1.5" />
-                  Exportera full SIMCA CSV
+                  {t(locale, 'Export full SIMCA CSV', 'Exportera full SIMCA CSV')}
                 </Button>
               </a>
               <Link href={`${basePath}/hockey-tests`}>
                 <Button variant="outline" size="sm">
                   <Shield className="h-4 w-4 mr-1.5" />
-                  Logga hockeytest
+                  {t(locale, 'Log hockey test', 'Logga hockeytest')}
                 </Button>
               </Link>
             </div>
@@ -1576,17 +1644,17 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-sm text-muted-foreground">
           {sessions.length === 0
-            ? 'Inga testpass registrerade ännu.'
-            : `${sessions.length} testpass · ${sessions.reduce((s, r) => s + r.totalPRs, 0)} loggade PRs`}
+            ? t(locale, 'No test sessions registered yet.', 'Inga testpass registrerade ännu.')
+            : teamTestSummary(sessions.length, sessions.reduce((s, r) => s + r.totalPRs, 0), locale)}
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>
             <Pencil className="h-4 w-4 mr-1.5" />
-            Manuell inmatning
+            {t(locale, 'Manual entry', 'Manuell inmatning')}
           </Button>
           <Button size="sm" onClick={() => setImportOpen(true)}>
             <Upload className="h-4 w-4 mr-1.5" />
-            Importera testresultat
+            {t(locale, 'Import test results', 'Importera testresultat')}
           </Button>
         </div>
       </div>
@@ -1601,14 +1669,13 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground space-y-3">
             <Activity className="h-10 w-10 mx-auto opacity-30" />
-            <p className="text-sm">Inga testpass registrerade för {teamName}.</p>
+            <p className="text-sm">{t(locale, `No test sessions registered for ${teamName}.`, `Inga testpass registrerade för ${teamName}.`)}</p>
             <p className="text-xs">
-              Klistra in en testtabell från en träning för att börja bygga PR-historik —
-              värdena används direkt för att lösa upp &quot;% av 1RM&quot;-pass per atlet.
+              {t(locale, 'Paste a test table from training to start building PR history - values are used directly to resolve "% of 1RM" sessions per athlete.', 'Klistra in en testtabell från en träning för att börja bygga PR-historik - värdena används direkt för att lösa upp "% av 1RM"-pass per atlet.')}
             </p>
             <Button size="sm" className="mt-2" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4 mr-1.5" />
-              Importera första testet
+              {t(locale, 'Import first test', 'Importera första testet')}
             </Button>
           </CardContent>
         </Card>
@@ -1631,10 +1698,10 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Calendar className="h-4 w-4 text-blue-500 shrink-0" />
-                      <span className="font-medium text-sm">{formatDate(s.date)}</span>
+                      <span className="font-medium text-sm">{formatDate(s.date, locale)}</span>
                       {s.bySource.TESTED > 0 && (
                         <Badge variant="default" className="text-[10px] py-0">
-                          {s.bySource.TESTED} testat
+                          {s.bySource.TESTED} {copy.tested}
                         </Badge>
                       )}
                       {s.bySource.ESTIMATED > 0 && (
@@ -1644,18 +1711,18 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       )}
                       {s.bySource.CALCULATED > 0 && (
                         <Badge variant="secondary" className="text-[10px] py-0">
-                          {s.bySource.CALCULATED} beräknat
+                          {s.bySource.CALCULATED} {copy.calculated}
                         </Badge>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-3 flex-wrap">
                       <span className="inline-flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {s.athleteCount} atlet{s.athleteCount === 1 ? '' : 'er'}
+                        {plural(locale, s.athleteCount, 'athlete', 'athletes', 'atlet', 'atleter')}
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <Activity className="h-3 w-3" />
-                        {s.exerciseCount} övning{s.exerciseCount === 1 ? '' : 'ar'}
+                        {plural(locale, s.exerciseCount, 'exercise', 'exercises', 'övning', 'övningar')}
                       </span>
                       <span className="tabular-nums">{s.totalPRs} PRs</span>
                     </div>
@@ -1668,16 +1735,16 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="text-muted-foreground border-b">
-                            <th className="text-left font-medium px-3 py-2">Atlet</th>
-                            <th className="text-left font-medium px-3 py-2">Övning</th>
-                            <th className="text-right font-medium px-3 py-2">Värde</th>
-                            <th className="text-right font-medium px-3 py-2">Källa</th>
+                            <th className="text-left font-medium px-3 py-2">{t(locale, 'Athlete', 'Atlet')}</th>
+                            <th className="text-left font-medium px-3 py-2">{t(locale, 'Exercise', 'Övning')}</th>
+                            <th className="text-right font-medium px-3 py-2">{t(locale, 'Value', 'Värde')}</th>
+                            <th className="text-right font-medium px-3 py-2">{t(locale, 'Source', 'Källa')}</th>
                             <th className="px-3 py-2"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {s.rows.map((r) => {
-                            const meta = SOURCE_LABEL[r.source] ?? {
+                            const meta = SOURCE_LABEL[locale][r.source] ?? {
                               label: r.source,
                               variant: 'outline' as const,
                             }
@@ -1717,7 +1784,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                           source: r.source,
                                         })
                                       }
-                                      title="Redigera"
+                                      title={t(locale, 'Edit', 'Redigera')}
                                     >
                                       <Pencil className="h-3 w-3" />
                                     </Button>
@@ -1726,7 +1793,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                       size="sm"
                                       className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                                       onClick={() => setDeletingId(r.id)}
-                                      title="Ta bort"
+                                      title={t(locale, 'Delete', 'Ta bort')}
                                     >
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
@@ -1737,7 +1804,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                                         variant="ghost"
                                         size="sm"
                                         className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                                        title="Öppna atletvy"
+                                        title={t(locale, 'Open athlete view', 'Öppna atletvy')}
                                       >
                                         <ExternalLink className="h-3 w-3" />
                                       </Button>
@@ -1760,11 +1827,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
 
       <Card className="bg-muted/20">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Hur testdata används</CardTitle>
+          <CardTitle className="text-sm">{t(locale, 'How test data is used', 'Hur testdata används')}</CardTitle>
           <CardDescription className="text-xs">
-            Manuell inmatning använder lagets hockeytestpaket. Styrketester sparas både
-            som hockeytest och som PR när testet har en kopplad övning, så analys, SIMCA
-            och &quot;% av 1RM&quot;-pass får samma källa.
+            {t(locale, 'Manual entry uses the team hockey test package. Strength tests are saved both as hockey tests and as PRs when the test has a linked exercise, so analysis, SIMCA, and "% of 1RM" sessions use the same source.', 'Manuell inmatning använder lagets hockeytestpaket. Styrketester sparas både som hockeytest och som PR när testet har en kopplad övning, så analys, SIMCA och "% av 1RM"-pass får samma källa.')}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -1800,7 +1865,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Redigera PR</DialogTitle>
+            <DialogTitle>{t(locale, 'Edit PR', 'Redigera PR')}</DialogTitle>
             <DialogDescription>
               {editing?.athleteName} – {editing?.exerciseName}
             </DialogDescription>
@@ -1809,7 +1874,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-[1fr_120px] gap-2">
                 <div>
-                  <Label htmlFor="session-edit-value">Värde</Label>
+                  <Label htmlFor="session-edit-value">{t(locale, 'Value', 'Värde')}</Label>
                   <Input
                     id="session-edit-value"
                     type="number"
@@ -1822,7 +1887,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                   />
                 </div>
                 <div>
-                  <Label htmlFor="session-edit-unit">Enhet</Label>
+                  <Label htmlFor="session-edit-unit">{t(locale, 'Unit', 'Enhet')}</Label>
                   <Select
                     value={editing.unit}
                     onValueChange={(v) => setEditing({ ...editing, unit: v })}
@@ -1841,7 +1906,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                 </div>
               </div>
               <div>
-                <Label htmlFor="session-edit-source">Källa</Label>
+                <Label htmlFor="session-edit-source">{t(locale, 'Source', 'Källa')}</Label>
                 <Select
                   value={editing.source}
                   onValueChange={(v) => setEditing({ ...editing, source: v })}
@@ -1850,9 +1915,9 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TESTED">Testat</SelectItem>
-                    <SelectItem value="CALCULATED">Beräknat</SelectItem>
-                    <SelectItem value="ESTIMATED">Auto-uppskattat</SelectItem>
+                    <SelectItem value="TESTED">{t(locale, 'Tested', 'Testat')}</SelectItem>
+                    <SelectItem value="CALCULATED">{t(locale, 'Calculated', 'Beräknat')}</SelectItem>
+                    <SelectItem value="ESTIMATED">{t(locale, 'Auto-estimated', 'Auto-uppskattat')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1864,11 +1929,11 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
               onClick={() => setEditing(null)}
               disabled={isSavingEdit}
             >
-              Avbryt
+              {copy.cancel}
             </Button>
             <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
               {isSavingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Spara
+              {copy.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1880,20 +1945,19 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort PR?</AlertDialogTitle>
+            <AlertDialogTitle>{t(locale, 'Delete PR?', 'Ta bort PR?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Detta tar permanent bort PR-loggen från detta testpass. Andra rader
-              i passet och tidigare PR-historik påverkas inte.
+              {t(locale, 'This permanently deletes the PR log from this test session. Other rows in the session and previous PR history are not affected.', 'Detta tar permanent bort PR-loggen från detta testpass. Andra rader i passet och tidigare PR-historik påverkas inte.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{copy.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              {isDeleting ? 'Tar bort…' : 'Ta bort'}
+              {isDeleting ? t(locale, 'Deleting...', 'Tar bort...') : copy.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
