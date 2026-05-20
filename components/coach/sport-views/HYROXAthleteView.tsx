@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -54,11 +55,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   relay: 'Relay',
 }
 
-const LEVEL_LABELS: Record<string, string> = {
-  beginner: 'Nybörjare',
-  intermediate: 'Mellanliggande',
-  advanced: 'Avancerad',
-  elite: 'Elit',
+const LEVEL_LABELS: Record<string, { sv: string; en: string }> = {
+  beginner: { sv: 'Nybörjare', en: 'Beginner' },
+  intermediate: { sv: 'Mellanliggande', en: 'Intermediate' },
+  advanced: { sv: 'Avancerad', en: 'Advanced' },
+  elite: { sv: 'Elit', en: 'Elite' },
 }
 
 function formatTime(seconds: number): string {
@@ -76,7 +77,10 @@ function formatRunTime(seconds: number): string {
 // Race simulation constants
 const ROXZONE_ESTIMATE = 15 // Average roxzone transition time in seconds
 
-export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthleteViewProps) {
+export function HYROXAthleteView({ clientId, clientName: _clientName, settings }: HYROXAthleteViewProps) {
+  const locale = useLocale()
+  const isSv = locale === 'sv'
+  const t = (sv: string, en: string) => isSv ? sv : en
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
 
@@ -144,11 +148,11 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <span>💪</span> HYROX Profil
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen HYROX-data tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t('Ingen HYROX-data tillgänglig', 'No HYROX data available')}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-            Atleten har inte angett HYROX-inställningar ännu.
+            {t('Atleten har inte angett HYROX-inställningar ännu.', 'The athlete has not entered HYROX settings yet.')}
           </p>
         </CardContent>
       </Card>
@@ -216,7 +220,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                 {CATEGORY_LABELS[category] || category}
               </Badge>
               <Badge variant="secondary">
-                {LEVEL_LABELS[hyroxSettings.experienceLevel || 'beginner']}
+                {LEVEL_LABELS[hyroxSettings.experienceLevel || 'beginner'][isSv ? 'sv' : 'en']}
               </Badge>
             </div>
           </div>
@@ -228,7 +232,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
               style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
             >
               <Clock className="h-5 w-5 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Uppskattad tid</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Uppskattad tid', 'Estimated time')}</p>
               <p className="font-bold text-lg" style={{ color: theme.colors.textPrimary }}>
                 {totalStationTime > 0 ? formatTime(Math.round(estimatedTotalTime)) : '-'}
               </p>
@@ -238,7 +242,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
               style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
             >
               <Target className="h-5 w-5 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>5K tid</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('5K tid', '5K time')}</p>
               <p className="font-bold text-lg" style={{ color: theme.colors.textPrimary }}>
                 {hyroxSettings.fiveKmTime ? formatRunTime(hyroxSettings.fiveKmTime) : '-'}
               </p>
@@ -248,7 +252,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
               style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.15)' : '#f0fdf4' }}
             >
               <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-600" />
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Starkast</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Starkast', 'Strongest')}</p>
               <p className="font-medium text-sm truncate" style={{ color: theme.colors.textPrimary }}>
                 {bestStation?.name.split(' ')[0] || hyroxSettings.strongestStation || '-'}
               </p>
@@ -258,7 +262,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
               style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.15)' : '#fff7ed' }}
             >
               <TrendingDown className="h-5 w-5 mx-auto mb-1 text-orange-600" />
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Fokusera på</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Fokusera på', 'Focus on')}</p>
               <p className="font-medium text-sm truncate" style={{ color: theme.colors.textPrimary }}>
                 {worstStation?.name.split(' ')[0] || hyroxSettings.weakestStation || '-'}
               </p>
@@ -270,8 +274,8 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
       {/* Station Times Grid */}
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base" style={{ color: theme.colors.textPrimary }}>Stationstider</CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Jämfört med {category === 'pro' ? 'Pro' : 'Open'} benchmarks</CardDescription>
+          <CardTitle className="text-base" style={{ color: theme.colors.textPrimary }}>{t('Stationstider', 'Station Times')}</CardTitle>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t('Jämfört med', 'Compared with')} {category === 'pro' ? 'Pro' : 'Open'} benchmarks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -318,9 +322,9 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                         station.status === 'average' ? 'text-yellow-600' :
                         'text-orange-600'
                       }>
-                        {station.status === 'good' ? 'Bra!' :
+                        {station.status === 'good' ? t('Bra!', 'Good!') :
                          station.status === 'average' ? 'OK' :
-                         'Behöver träning'}
+                         t('Behöver träning', 'Needs training')}
                       </span>
                     </div>
                   </div>
@@ -328,7 +332,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                 {!station.time && (
                   <p className="text-xs flex items-center gap-1" style={{ color: theme.colors.textMuted }}>
                     <AlertCircle className="h-3 w-3" />
-                    Ingen tid registrerad
+                    {t('Ingen tid registrerad', 'No time recorded')}
                   </p>
                 )}
               </div>
@@ -340,7 +344,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
       {/* Running Fitness */}
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base" style={{ color: theme.colors.textPrimary }}>Löpkondition</CardTitle>
+          <CardTitle className="text-base" style={{ color: theme.colors.textPrimary }}>{t('Löpkondition', 'Running Fitness')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
@@ -357,7 +361,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
               </p>
             </div>
             <div>
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>km/vecka</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('km/vecka', 'km/week')}</p>
               <p className="font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hyroxSettings.currentWeeklyRunKm || '-'}
               </p>
@@ -376,7 +380,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                 Race Simulation
               </CardTitle>
               <CardDescription style={{ color: theme.colors.textMuted }}>
-                Beräkna din uppskattade sluttid
+                {t('Beräkna din uppskattade sluttid', 'Calculate your estimated finish time')}
               </CardDescription>
             </div>
             <Button
@@ -384,7 +388,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
               size="sm"
               onClick={() => setShowSimulation(!showSimulation)}
             >
-              {showSimulation ? 'Dölj' : 'Simulera'}
+              {showSimulation ? t('Dölj', 'Hide') : t('Simulera', 'Simulate')}
             </Button>
           </div>
         </CardHeader>
@@ -394,20 +398,20 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
             {stationsWithData.length === 0 ? (
               <div className="text-center py-4" style={{ color: theme.colors.textMuted }}>
                 <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Inga stationstider registrerade.</p>
-                <p className="text-xs">Lägg till dina stationstider för att kunna simulera.</p>
+                <p className="text-sm">{t('Inga stationstider registrerade.', 'No station times recorded.')}</p>
+                <p className="text-xs">{t('Lägg till dina stationstider för att kunna simulera.', 'Add station times to run a simulation.')}</p>
               </div>
             ) : (
               <>
                 {/* Pace Input */}
                 <div className="space-y-2">
                   <Label style={{ color: theme.colors.textPrimary }}>
-                    Löptempo (min:sek/km)
+                    {t('Löptempo (min:sek/km)', 'Running pace (min:sec/km)')}
                   </Label>
                   <div className="flex gap-2">
                     <Input
                       placeholder={hyroxSettings.fiveKmTime
-                        ? `${formatTime(Math.round((hyroxSettings.fiveKmTime / 5) * 1.1))} (baserat på 5K)`
+                        ? `${formatTime(Math.round((hyroxSettings.fiveKmTime / 5) * 1.1))} (${t('baserat på 5K', 'based on 5K')})`
                         : '5:30'}
                       value={simulationPace}
                       onChange={(e) => setSimulationPace(e.target.value)}
@@ -415,11 +419,11 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                     />
                     <Button onClick={calculateSimulation}>
                       <Play className="h-4 w-4 mr-1" />
-                      Beräkna
+                      {t('Beräkna', 'Calculate')}
                     </Button>
                   </div>
                   <p className="text-xs" style={{ color: theme.colors.textMuted }}>
-                    Lämna tomt för att använda uppskattning från din 5K-tid
+                    {t('Lämna tomt för att använda uppskattning från din 5K-tid', 'Leave blank to use an estimate from your 5K time')}
                   </p>
                 </div>
 
@@ -435,7 +439,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                   >
                     <div className="text-center">
                       <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-                        Uppskattad sluttid
+                        {t('Uppskattad sluttid', 'Estimated finish time')}
                       </p>
                       <p className="text-3xl font-bold text-green-600">
                         {Math.floor(simulationResult.totalTime / 3600)}:{formatTime(simulationResult.totalTime % 3600)}
@@ -447,7 +451,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                         className="p-2 rounded"
                         style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
                       >
-                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>Löpning</p>
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Löpning', 'Running')}</p>
                         <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
                           {formatTime(simulationResult.runTime)}
                         </p>
@@ -459,19 +463,19 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                         className="p-2 rounded"
                         style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
                       >
-                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>Stationer</p>
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Stationer', 'Stations')}</p>
                         <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
                           {formatTime(simulationResult.stationTime)}
                         </p>
                         <p className="text-xs" style={{ color: theme.colors.textMuted }}>
-                          {stationsWithData.length}/8 inmatade
+                          {stationsWithData.length}/8 {t('inmatade', 'entered')}
                         </p>
                       </div>
                       <div
                         className="p-2 rounded"
                         style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
                       >
-                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>Roxzoner</p>
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Roxzoner', 'Roxzones')}</p>
                         <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
                           {formatTime(simulationResult.roxzoneTime)}
                         </p>
@@ -483,7 +487,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
 
                     {stationsWithData.length < 8 && (
                       <p className="text-xs text-center text-orange-600">
-                        ⚠️ {8 - stationsWithData.length} station(er) saknar data - resultatet är en uppskattning
+                        ⚠️ {8 - stationsWithData.length} {t('station(er) saknar data - resultatet är en uppskattning', 'station(s) missing data - result is an estimate')}
                       </p>
                     )}
                   </div>
@@ -498,7 +502,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
       <SportTestHistory
         clientId={clientId}
         sport="HYROX"
-        title="Testhistorik - HYROX"
+        title={t('Testhistorik - HYROX', 'Test History - HYROX')}
         protocolLabels={{
           HYROX_SKIERG_1K: 'SkiErg 1K',
           HYROX_ROW_1K: 'Row 1K',
