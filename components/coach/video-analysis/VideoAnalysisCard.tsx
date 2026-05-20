@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -47,7 +47,8 @@ import {
   Zap,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale } from 'next-intl'
 import { PoseAnalyzer, PoseFrame } from './PoseAnalyzer'
 import { SkiingTechniqueDashboard } from './SkiingTechniqueDashboard'
 import { HyroxStationDashboard } from './HyroxStationDashboard'
@@ -95,27 +96,33 @@ interface VideoAnalysisCardProps {
   onAnalysisComplete: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, svText: string): string {
+  return locale === 'sv' ? svText : en
+}
+
 const VIDEO_TYPE_INFO = {
-  STRENGTH: { label: 'Styrkeövning', icon: Dumbbell, color: 'text-orange-500' },
-  RUNNING_GAIT: { label: 'Löpteknik', icon: PersonStanding, color: 'text-blue-500' },
-  SKIING_CLASSIC: { label: 'Klassisk skidåkning', icon: Snowflake, color: 'text-cyan-500' },
-  SKIING_SKATING: { label: 'Skate-skidåkning', icon: Snowflake, color: 'text-cyan-500' },
-  SKIING_DOUBLE_POLE: { label: 'Dubbelstakning', icon: Snowflake, color: 'text-cyan-500' },
-  HYROX_STATION: { label: 'HYROX Station', icon: Zap, color: 'text-orange-600' },
-  SPORT_SPECIFIC: { label: 'Sportspecifik', icon: Activity, color: 'text-purple-500' },
+  STRENGTH: { label: { en: 'Strength exercise', sv: 'Styrkeövning' }, icon: Dumbbell, color: 'text-orange-500' },
+  RUNNING_GAIT: { label: { en: 'Running technique', sv: 'Löpteknik' }, icon: PersonStanding, color: 'text-blue-500' },
+  SKIING_CLASSIC: { label: { en: 'Classic skiing', sv: 'Klassisk skidåkning' }, icon: Snowflake, color: 'text-cyan-500' },
+  SKIING_SKATING: { label: { en: 'Skate skiing', sv: 'Skate-skidåkning' }, icon: Snowflake, color: 'text-cyan-500' },
+  SKIING_DOUBLE_POLE: { label: { en: 'Double poling', sv: 'Dubbelstakning' }, icon: Snowflake, color: 'text-cyan-500' },
+  HYROX_STATION: { label: { en: 'HYROX Station', sv: 'HYROX Station' }, icon: Zap, color: 'text-orange-600' },
+  SPORT_SPECIFIC: { label: { en: 'Sport-specific', sv: 'Sportspecifik' }, icon: Activity, color: 'text-purple-500' },
 }
 
 const STATUS_INFO = {
-  PENDING: { label: 'Väntar', color: 'bg-gray-100 text-gray-700' },
-  PROCESSING: { label: 'Analyserar...', color: 'bg-blue-100 text-blue-700' },
-  COMPLETED: { label: 'Klar', color: 'bg-green-100 text-green-700' },
-  FAILED: { label: 'Misslyckades', color: 'bg-red-100 text-red-700' },
+  PENDING: { label: { en: 'Pending', sv: 'Väntar' }, color: 'bg-gray-100 text-gray-700' },
+  PROCESSING: { label: { en: 'Analyzing...', sv: 'Analyserar...' }, color: 'bg-blue-100 text-blue-700' },
+  COMPLETED: { label: { en: 'Complete', sv: 'Klar' }, color: 'bg-green-100 text-green-700' },
+  FAILED: { label: { en: 'Failed', sv: 'Misslyckades' }, color: 'bg-red-100 text-red-700' },
 }
 
 const SEVERITY_INFO = {
-  LOW: { label: 'Låg', color: 'bg-yellow-100 text-yellow-800', icon: Info },
-  MEDIUM: { label: 'Medel', color: 'bg-orange-100 text-orange-800', icon: AlertTriangle },
-  HIGH: { label: 'Hög', color: 'bg-red-100 text-red-800', icon: AlertTriangle },
+  LOW: { label: { en: 'Low', sv: 'Låg' }, color: 'bg-yellow-100 text-yellow-800', icon: Info },
+  MEDIUM: { label: { en: 'Medium', sv: 'Medel' }, color: 'bg-orange-100 text-orange-800', icon: AlertTriangle },
+  HIGH: { label: { en: 'High', sv: 'Hög' }, color: 'bg-red-100 text-red-800', icon: AlertTriangle },
 }
 
 function getScoreColor(score: number): string {
@@ -125,13 +132,13 @@ function getScoreColor(score: number): string {
   return 'text-red-600'
 }
 
-function getScoreLabel(score: number): string {
-  if (score >= 90) return 'Utmärkt'
-  if (score >= 80) return 'Mycket bra'
-  if (score >= 70) return 'Bra'
-  if (score >= 60) return 'Godkänt'
-  if (score >= 50) return 'Behöver förbättras'
-  return 'Behöver betydande förbättring'
+function getScoreLabel(score: number, locale: AppLocale): string {
+  if (score >= 90) return t(locale, 'Excellent', 'Utmärkt')
+  if (score >= 80) return t(locale, 'Very good', 'Mycket bra')
+  if (score >= 70) return t(locale, 'Good', 'Bra')
+  if (score >= 60) return t(locale, 'Approved', 'Godkänt')
+  if (score >= 50) return t(locale, 'Needs improvement', 'Behöver förbättras')
+  return t(locale, 'Needs significant improvement', 'Behöver betydande förbättring')
 }
 
 // Helper to parse AI analysis that might be JSON or plain text
@@ -181,7 +188,7 @@ function parseAIAnalysis(aiAnalysis: string): { isJson: boolean; data: unknown; 
 }
 
 // Render parsed AI analysis in a formatted way
-function FormattedAIAnalysis({ aiAnalysis }: { aiAnalysis: string }) {
+function FormattedAIAnalysis({ aiAnalysis, locale }: { aiAnalysis: string; locale: AppLocale }) {
   const { isJson, data, introText } = parseAIAnalysis(aiAnalysis)
 
   if (!isJson || !data || typeof data !== 'object') {
@@ -209,7 +216,7 @@ function FormattedAIAnalysis({ aiAnalysis }: { aiAnalysis: string }) {
       {/* Score */}
       {analysis.formScore && (
         <div className="flex items-center gap-2">
-          <span className="font-medium">Poäng:</span>
+          <span className="font-medium">{t(locale, 'Score:', 'Poäng:')}</span>
           <span className={`text-lg font-bold ${getScoreColor(analysis.formScore)}`}>
             {analysis.formScore}/100
           </span>
@@ -219,7 +226,7 @@ function FormattedAIAnalysis({ aiAnalysis }: { aiAnalysis: string }) {
       {/* Summary/Interpretation */}
       {(analysis.summary || analysis.interpretation) && (
         <div>
-          <h4 className="font-medium mb-1">Sammanfattning</h4>
+          <h4 className="font-medium mb-1">{t(locale, 'Summary', 'Sammanfattning')}</h4>
           <p className="text-sm text-muted-foreground">{analysis.summary || analysis.interpretation}</p>
         </div>
       )}
@@ -227,7 +234,7 @@ function FormattedAIAnalysis({ aiAnalysis }: { aiAnalysis: string }) {
       {/* Issues */}
       {analysis.issues && analysis.issues.length > 0 && (
         <div>
-          <h4 className="font-medium mb-2">Identifierade problem</h4>
+          <h4 className="font-medium mb-2">{t(locale, 'Identified issues', 'Identifierade problem')}</h4>
           <div className="space-y-2">
             {analysis.issues.map((issue, idx) => (
               <div key={idx} className="p-3 rounded-lg bg-background border">
@@ -248,12 +255,12 @@ function FormattedAIAnalysis({ aiAnalysis }: { aiAnalysis: string }) {
       {/* Recommendations */}
       {analysis.recommendations && analysis.recommendations.length > 0 && (
         <div>
-          <h4 className="font-medium mb-2">Rekommendationer</h4>
+          <h4 className="font-medium mb-2">{t(locale, 'Recommendations', 'Rekommendationer')}</h4>
           <div className="space-y-2">
             {analysis.recommendations.map((rec, idx) => (
               <div key={idx} className="p-3 rounded-lg bg-background border">
                 <div className="flex items-center gap-2 mb-1">
-                  {rec.priority && <Badge variant="outline">Prioritet {rec.priority}</Badge>}
+                  {rec.priority && <Badge variant="outline">{t(locale, 'Priority', 'Prioritet')} {rec.priority}</Badge>}
                   <span className="font-medium text-sm">{rec.recommendation || rec.title}</span>
                 </div>
                 {(rec.explanation || rec.description) && (
@@ -268,7 +275,7 @@ function FormattedAIAnalysis({ aiAnalysis }: { aiAnalysis: string }) {
       {/* Patterns */}
       {analysis.patterns && analysis.patterns.length > 0 && (
         <div>
-          <h4 className="font-medium mb-2">Observerade mönster</h4>
+          <h4 className="font-medium mb-2">{t(locale, 'Observed patterns', 'Observerade mönster')}</h4>
           <div className="space-y-2">
             {analysis.patterns.map((pattern, idx) => (
               <div key={idx} className="p-3 rounded-lg bg-background border">
@@ -283,7 +290,7 @@ function FormattedAIAnalysis({ aiAnalysis }: { aiAnalysis: string }) {
       {/* Overall Assessment */}
       {analysis.overallAssessment && (
         <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-          <h4 className="font-medium mb-1 text-green-800">Övergripande bedömning</h4>
+          <h4 className="font-medium mb-1 text-green-800">{t(locale, 'Overall assessment', 'Övergripande bedömning')}</h4>
           <p className="text-sm text-green-700">{analysis.overallAssessment}</p>
         </div>
       )}
@@ -297,6 +304,8 @@ export function VideoAnalysisCard({
   onAnalysisComplete,
 }: VideoAnalysisCardProps) {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateFnsLocale = locale === 'sv' ? sv : enUS
   const branding = useBusinessBrandingOptional()
   const printBrandName = branding?.hasWhiteLabel && branding.hidePlatformBranding ? branding.businessName : PLATFORM_NAME
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -306,7 +315,7 @@ export function VideoAnalysisCard({
   const [showPoseDialog, setShowPoseDialog] = useState(false)
   const [isSavingPose, setIsSavingPose] = useState(false)
   const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
-  const [poseAnalysisData, setPoseAnalysisData] = useState<Record<string, unknown> | null>(null)
+  const [, setPoseAnalysisData] = useState<Record<string, unknown> | null>(null)
   // Use ref to avoid stale closure issues when saving
   const poseAnalysisDataRef = useRef<Record<string, unknown> | null>(null)
   const [showExtendedPoseData, setShowExtendedPoseData] = useState(false)
@@ -320,6 +329,8 @@ export function VideoAnalysisCard({
   const typeInfo = VIDEO_TYPE_INFO[analysis.videoType as keyof typeof VIDEO_TYPE_INFO] || VIDEO_TYPE_INFO.SPORT_SPECIFIC
   const statusInfo = STATUS_INFO[analysis.status as keyof typeof STATUS_INFO] || STATUS_INFO.PENDING
   const TypeIcon = typeInfo.icon
+  const typeLabel = typeInfo.label[locale]
+  const statusLabel = statusInfo.label[locale]
 
   const showAiAllowanceToast = (allowanceError: AiAllowanceExhaustedError) => {
     setAiAllowanceAction({
@@ -327,7 +338,7 @@ export function VideoAnalysisCard({
       url: allowanceError.actionUrl,
     })
     toast({
-      title: 'AI-krediter slut',
+      title: t(locale, 'AI credits exhausted', 'AI-krediter slut'),
       description: `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`,
       variant: 'destructive',
     })
@@ -353,7 +364,7 @@ export function VideoAnalysisCard({
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte hämta posedata')
+        throw new Error(data.error || t(locale, 'Could not fetch pose data', 'Kunde inte hämta posedata'))
       }
 
       setExtendedPoseData({
@@ -364,8 +375,8 @@ export function VideoAnalysisCard({
       setShowExtendedPoseData(true)
     } catch (error) {
       toast({
-        title: 'Kunde inte hämta posedata',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t(locale, 'Could not fetch pose data', 'Kunde inte hämta posedata'),
+        description: error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -394,14 +405,14 @@ export function VideoAnalysisCard({
     }
 
     const stats: Record<string, { min: number; max: number; name: string }> = {
-      leftKnee: { min: Infinity, max: -Infinity, name: 'Vänster knä' },
-      rightKnee: { min: Infinity, max: -Infinity, name: 'Höger knä' },
-      leftHip: { min: Infinity, max: -Infinity, name: 'Vänster höft' },
-      rightHip: { min: Infinity, max: -Infinity, name: 'Höger höft' },
-      leftShin: { min: Infinity, max: -Infinity, name: 'Vänster skenben' },
-      rightShin: { min: Infinity, max: -Infinity, name: 'Höger skenben' },
-      leftFoot: { min: Infinity, max: -Infinity, name: 'Vänster fot' },
-      rightFoot: { min: Infinity, max: -Infinity, name: 'Höger fot' },
+      leftKnee: { min: Infinity, max: -Infinity, name: t(locale, 'Left knee', 'Vänster knä') },
+      rightKnee: { min: Infinity, max: -Infinity, name: t(locale, 'Right knee', 'Höger knä') },
+      leftHip: { min: Infinity, max: -Infinity, name: t(locale, 'Left hip', 'Vänster höft') },
+      rightHip: { min: Infinity, max: -Infinity, name: t(locale, 'Right hip', 'Höger höft') },
+      leftShin: { min: Infinity, max: -Infinity, name: t(locale, 'Left shin', 'Vänster skenben') },
+      rightShin: { min: Infinity, max: -Infinity, name: t(locale, 'Right shin', 'Höger skenben') },
+      leftFoot: { min: Infinity, max: -Infinity, name: t(locale, 'Left foot', 'Vänster fot') },
+      rightFoot: { min: Infinity, max: -Infinity, name: t(locale, 'Right foot', 'Höger fot') },
     }
 
     frames.forEach(frame => {
@@ -458,23 +469,23 @@ export function VideoAnalysisCard({
       if (!response.ok) {
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) throw allowanceError
-        throw new Error(data?.error || 'Analys misslyckades')
+        throw new Error(data?.error || t(locale, 'Analysis failed', 'Analys misslyckades'))
       }
 
       toast({
-        title: 'Analys klar',
-        description: `Teknisk bedömning: ${data.result?.formScore || 'N/A'}/100`,
+        title: t(locale, 'Analysis complete', 'Analys klar'),
+        description: `${t(locale, 'Technical assessment', 'Teknisk bedömning')}: ${data.result?.formScore || 'N/A'}/100`,
       })
 
       onAnalysisComplete()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Okänt fel'
+      const message = error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel')
       if (isAiAllowanceExhaustedError(error)) {
         showAiAllowanceToast(error)
         return
       }
       toast({
-        title: 'Analys misslyckades',
+        title: t(locale, 'Analysis failed', 'Analys misslyckades'),
         description: message,
         variant: 'destructive',
       })
@@ -484,7 +495,7 @@ export function VideoAnalysisCard({
   }
 
   const handleDelete = async () => {
-    if (!confirm('Är du säker på att du vill ta bort denna analys?')) return
+    if (!confirm(t(locale, 'Are you sure you want to delete this analysis?', 'Är du säker på att du vill ta bort denna analys?'))) return
 
     setIsDeleting(true)
     try {
@@ -494,19 +505,19 @@ export function VideoAnalysisCard({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte ta bort')
+        throw new Error(data.error || t(locale, 'Could not delete', 'Kunde inte ta bort'))
       }
 
       toast({
-        title: 'Analys borttagen',
-        description: 'Videoanalysen har tagits bort.',
+        title: t(locale, 'Analysis deleted', 'Analys borttagen'),
+        description: t(locale, 'The video analysis has been deleted.', 'Videoanalysen har tagits bort.'),
       })
 
       onDelete()
     } catch (error) {
       toast({
-        title: 'Kunde inte ta bort',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t(locale, 'Could not delete', 'Kunde inte ta bort'),
+        description: error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -539,22 +550,22 @@ export function VideoAnalysisCard({
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Kunde inte spara posedata')
+        throw new Error(result.error || t(locale, 'Could not save pose data', 'Kunde inte spara posedata'))
       }
 
       const hasAiAnalysis = currentAiPoseAnalysis !== null
       toast({
-        title: hasAiAnalysis ? 'Analys sparad!' : 'Poseanalys sparad!',
+        title: hasAiAnalysis ? t(locale, 'Analysis saved!', 'Analys sparad!') : t(locale, 'Pose analysis saved!', 'Poseanalys sparad!'),
         description: hasAiAnalysis
-          ? `${result.frameCount} frames och Gemini AI-analys sparade. Klicka på "Visa resultat" för att se analysen.`
-          : `${result.frameCount} frames sparade till "${analysis.exercise?.nameSv || analysis.exercise?.name || 'videoanalysen'}". Klicka på "Visa resultat" för att se analysen.`,
+          ? t(locale, `${result.frameCount} frames and Gemini AI analysis saved. Click "View results" to see the analysis.`, `${result.frameCount} frames och Gemini AI-analys sparade. Klicka på "Visa resultat" för att se analysen.`)
+          : t(locale, `${result.frameCount} frames saved to "${analysis.exercise?.name || 'the video analysis'}". Click "View results" to see the analysis.`, `${result.frameCount} frames sparade till "${analysis.exercise?.nameSv || analysis.exercise?.name || 'videoanalysen'}". Klicka på "Visa resultat" för att se analysen.`),
       })
 
       onAnalysisComplete()
     } catch (error) {
       toast({
-        title: 'Kunde inte spara posedata',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t(locale, 'Could not save pose data', 'Kunde inte spara posedata'),
+        description: error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -570,8 +581,8 @@ export function VideoAnalysisCard({
     const printWindow = window.open('', '_blank')
     if (!printWindow) {
       toast({
-        title: 'Kunde inte öppna utskriftsfönster',
-        description: 'Kontrollera att popup-blockerare är avstängda',
+        title: t(locale, 'Could not open print window', 'Kunde inte öppna utskriftsfönster'),
+        description: t(locale, 'Check that popup blockers are disabled', 'Kontrollera att popup-blockerare är avstängda'),
         variant: 'destructive',
       })
       return
@@ -583,7 +594,7 @@ export function VideoAnalysisCard({
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Videoanalys - ${escapeHtml(analysis.athlete?.name || 'Rapport')}</title>
+        <title>${t(locale, 'Video analysis', 'Videoanalys')} - ${escapeHtml(analysis.athlete?.name || t(locale, 'Report', 'Rapport'))}</title>
         <style>
           body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
           h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -618,53 +629,53 @@ export function VideoAnalysisCard({
       <body>
         <div class="header">
           <div>
-            <h1>Videoanalys Rapport</h1>
-            <p style="color: #6b7280;">${escapeHtml(analysis.athlete?.name || 'Okänd atlet')} - ${format(new Date(analysis.createdAt), 'PPP', { locale: sv })}</p>
+            <h1>${t(locale, 'Video Analysis Report', 'Videoanalys Rapport')}</h1>
+            <p style="color: #6b7280;">${escapeHtml(analysis.athlete?.name || t(locale, 'Unknown athlete', 'Okänd atlet'))} - ${format(new Date(analysis.createdAt), 'PPP', { locale: dateFnsLocale })}</p>
           </div>
           ${analysis.formScore !== null ? `
           <div style="text-align: center;">
             <div class="score">${analysis.formScore}</div>
-            <div class="score-label">${getScoreLabel(analysis.formScore)}</div>
+            <div class="score-label">${getScoreLabel(analysis.formScore, locale)}</div>
           </div>
           ` : ''}
         </div>
 
         <div class="meta">
           <div class="meta-item">
-            <label>Analystyp</label>
-            <p>${escapeHtml(typeInfo.label)}</p>
+            <label>${t(locale, 'Analysis type', 'Analystyp')}</label>
+            <p>${escapeHtml(typeLabel)}</p>
           </div>
           <div class="meta-item">
-            <label>Övning</label>
-            <p>${escapeHtml(analysis.exercise?.nameSv || analysis.exercise?.name || 'Ej angiven')}</p>
+            <label>${t(locale, 'Exercise', 'Övning')}</label>
+            <p>${escapeHtml((locale === 'sv' ? analysis.exercise?.nameSv : null) || analysis.exercise?.name || t(locale, 'Not specified', 'Ej angiven'))}</p>
           </div>
           <div class="meta-item">
-            <label>Datum</label>
-            <p>${format(new Date(analysis.createdAt), 'PPP HH:mm', { locale: sv })}</p>
+            <label>${t(locale, 'Date', 'Datum')}</label>
+            <p>${format(new Date(analysis.createdAt), 'PPP HH:mm', { locale: dateFnsLocale })}</p>
           </div>
           <div class="meta-item">
             <label>Status</label>
-            <p>${escapeHtml(analysis.status === 'COMPLETED' ? 'Klar' : analysis.status)}</p>
+            <p>${escapeHtml(statusLabel)}</p>
           </div>
         </div>
 
         ${issues && issues.length > 0 ? `
-        <h2>Identifierade problem (${issues.length})</h2>
+        <h2>${t(locale, 'Identified issues', 'Identifierade problem')} (${issues.length})</h2>
         ${issues.map(issue => `
           <div class="issue ${issue.severity === 'HIGH' || issue.severity === 'MEDIUM' || issue.severity === 'LOW' ? issue.severity : 'LOW'}">
             <div class="issue-title">${escapeHtml(issue.issue)}</div>
             <div class="issue-desc">${escapeHtml(issue.description)}</div>
-            ${issue.timestamp ? `<div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">Tidpunkt: ${escapeHtml(issue.timestamp)}</div>` : ''}
+            ${issue.timestamp ? `<div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${t(locale, 'Timestamp', 'Tidpunkt')}: ${escapeHtml(issue.timestamp)}</div>` : ''}
           </div>
         `).join('')}
         ` : ''}
 
         ${recommendations && recommendations.length > 0 ? `
-        <h2>Rekommendationer (${recommendations.length})</h2>
+        <h2>${t(locale, 'Recommendations', 'Rekommendationer')} (${recommendations.length})</h2>
         ${recommendations.sort((a, b) => a.priority - b.priority).map(rec => `
           <div class="recommendation">
             <div class="rec-title">
-              <span class="rec-priority">Prioritet ${rec.priority}</span>
+              <span class="rec-priority">${t(locale, 'Priority', 'Prioritet')} ${rec.priority}</span>
               ${escapeHtml(rec.recommendation)}
             </div>
             <div class="rec-desc">${escapeHtml(rec.explanation)}</div>
@@ -673,23 +684,23 @@ export function VideoAnalysisCard({
         ` : ''}
 
         ${angleStats ? `
-        <h2>Ledvinkelstatistik</h2>
+        <h2>${t(locale, 'Joint angle statistics', 'Ledvinkelstatistik')}</h2>
         <div class="angles">
           ${Object.entries(angleStats).filter(([, stat]) => stat.min !== Infinity).map(([, stat]) => `
             <div class="angle-card">
               <div class="angle-name">${stat.name}</div>
               <div class="angle-values">
-                <span class="angle-min">Min: ${Math.round(stat.min)}°</span>
-                <span class="angle-max">Max: ${Math.round(stat.max)}°</span>
+                <span class="angle-min">${t(locale, 'Min', 'Min')}: ${Math.round(stat.min)}°</span>
+                <span class="angle-max">${t(locale, 'Max', 'Max')}: ${Math.round(stat.max)}°</span>
               </div>
-              <div class="angle-range">Intervall: ${Math.round(stat.max - stat.min)}°</div>
+              <div class="angle-range">${t(locale, 'Range', 'Intervall')}: ${Math.round(stat.max - stat.min)}°</div>
             </div>
           `).join('')}
         </div>
         ` : ''}
 
         <div class="footer">
-          <p>Genererad ${format(new Date(), 'PPP HH:mm', { locale: sv })} | ${printBrandName}</p>
+          <p>${t(locale, 'Generated', 'Genererad')} ${format(new Date(), 'PPP HH:mm', { locale: dateFnsLocale })} | ${printBrandName}</p>
         </div>
       </body>
       </html>
@@ -726,7 +737,7 @@ export function VideoAnalysisCard({
             <div className="absolute top-2 right-2">
               <Badge className={statusInfo.color}>
                 {analysis.status === 'PROCESSING' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                {statusInfo.label}
+                {statusLabel}
               </Badge>
             </div>
             {/* Score badge if completed */}
@@ -745,11 +756,11 @@ export function VideoAnalysisCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TypeIcon className={`h-4 w-4 ${typeInfo.color}`} />
-              <span className="text-sm font-medium">{typeInfo.label}</span>
+              <span className="text-sm font-medium">{typeLabel}</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3" />
-              {new Date(analysis.createdAt).toLocaleDateString('sv-SE')}
+              {new Date(analysis.createdAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')}
             </div>
           </div>
 
@@ -765,7 +776,7 @@ export function VideoAnalysisCard({
               {analysis.exercise && (
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Dumbbell className="h-3 w-3" />
-                  {analysis.exercise.nameSv || analysis.exercise.name}
+                  {(locale === 'sv' ? analysis.exercise.nameSv : null) || analysis.exercise.name}
                 </div>
               )}
             </div>
@@ -775,9 +786,9 @@ export function VideoAnalysisCard({
           {analysis.status === 'COMPLETED' && analysis.formScore !== null && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Teknisk bedömning</span>
+                <span className="text-muted-foreground">{t(locale, 'Technical assessment', 'Teknisk bedömning')}</span>
                 <span className={`font-semibold ${getScoreColor(analysis.formScore)}`}>
-                  {getScoreLabel(analysis.formScore)}
+                  {getScoreLabel(analysis.formScore, locale)}
                 </span>
               </div>
               <Progress value={analysis.formScore} className="h-2" />
@@ -796,7 +807,7 @@ export function VideoAnalysisCard({
                 )
               })}
               {issues.length > 3 && (
-                <Badge variant="outline">+{issues.length - 3} till</Badge>
+                <Badge variant="outline">+{issues.length - 3} {t(locale, 'more', 'till')}</Badge>
               )}
             </div>
           )}
@@ -817,12 +828,12 @@ export function VideoAnalysisCard({
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analyserar...
+                    {t(locale, 'Analyzing...', 'Analyserar...')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Analysera
+                    {t(locale, 'Analyze', 'Analysera')}
                   </>
                 )}
               </Button>
@@ -834,7 +845,7 @@ export function VideoAnalysisCard({
                 className="flex-1"
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                Visa resultat
+                {t(locale, 'View results', 'Visa resultat')}
               </Button>
             )}
             {analysis.status === 'FAILED' && (
@@ -847,12 +858,12 @@ export function VideoAnalysisCard({
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Försöker igen...
+                    {t(locale, 'Trying again...', 'Försöker igen...')}
                   </>
                 ) : (
                   <>
                     <AlertTriangle className="h-4 w-4 mr-2" />
-                    Försök igen
+                    {t(locale, 'Try again', 'Försök igen')}
                   </>
                 )}
               </Button>
@@ -861,7 +872,7 @@ export function VideoAnalysisCard({
               variant="outline"
               size="icon"
               onClick={() => setShowPoseDialog(true)}
-              title="Poseanalys (skelettspårning)"
+              title={t(locale, 'Pose analysis (skeleton tracking)', 'Poseanalys (skelettspårning)')}
             >
               <Scan className="h-4 w-4" />
             </Button>
@@ -870,7 +881,7 @@ export function VideoAnalysisCard({
               size="icon"
               onClick={handleDelete}
               disabled={isDeleting}
-              aria-label="Radera videoanalys"
+              aria-label={t(locale, 'Delete video analysis', 'Radera videoanalys')}
             >
               {isDeleting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -888,10 +899,10 @@ export function VideoAnalysisCard({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Video className="h-5 w-5" />
-              {typeInfo.label}
+              {typeLabel}
               {analysis.athlete && ` - ${analysis.athlete.name}`}
             </DialogTitle>
-            <DialogDescription className="sr-only">Videouppspelning</DialogDescription>
+            <DialogDescription className="sr-only">{t(locale, 'Video playback', 'Videouppspelning')}</DialogDescription>
           </DialogHeader>
           <div className="aspect-video bg-black rounded-lg overflow-hidden">
             <video
@@ -911,7 +922,7 @@ export function VideoAnalysisCard({
             <div className="flex items-center justify-between">
               <DialogTitle className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Analysresultat
+                {t(locale, 'Analysis results', 'Analysresultat')}
               </DialogTitle>
               <Button
                 variant="outline"
@@ -920,7 +931,7 @@ export function VideoAnalysisCard({
                 className="mr-6"
               >
                 <Printer className="h-4 w-4 mr-2" />
-                Skriv ut
+                {t(locale, 'Print', 'Skriv ut')}
               </Button>
             </div>
           </DialogHeader>
@@ -951,7 +962,7 @@ export function VideoAnalysisCard({
                   {analysis.formScore}
                 </div>
                 <div className="text-lg text-muted-foreground mt-1">
-                  {getScoreLabel(analysis.formScore)}
+                  {getScoreLabel(analysis.formScore, locale)}
                 </div>
                 <Progress value={analysis.formScore} className="h-3 mt-4" />
               </div>
@@ -962,7 +973,7 @@ export function VideoAnalysisCard({
               <div className="space-y-3">
                 <h3 className="font-semibold flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-orange-500" />
-                  Identifierade problem ({issues.length})
+                  {t(locale, 'Identified issues', 'Identifierade problem')} ({issues.length})
                 </h3>
                 <Accordion type="single" collapsible className="w-full">
                   {issues.map((issue, i) => {
@@ -974,7 +985,7 @@ export function VideoAnalysisCard({
                           <div className="flex items-center gap-2">
                             <Badge className={severity.color}>
                               <SeverityIcon className="h-3 w-3 mr-1" />
-                              {severity.label}
+                              {severity.label[locale]}
                             </Badge>
                             <span>{issue.issue}</span>
                           </div>
@@ -983,7 +994,7 @@ export function VideoAnalysisCard({
                           <p className="text-muted-foreground">{issue.description}</p>
                           {issue.timestamp && (
                             <p className="text-sm text-muted-foreground mt-2">
-                              Tidpunkt i video: {issue.timestamp}
+                              {t(locale, 'Timestamp in video', 'Tidpunkt i video')}: {issue.timestamp}
                             </p>
                           )}
                         </AccordionContent>
@@ -999,7 +1010,7 @@ export function VideoAnalysisCard({
               <div className="space-y-3">
                 <h3 className="font-semibold flex items-center gap-2">
                   <Target className="h-4 w-4 text-blue-500" />
-                  Rekommendationer ({recommendations.length})
+                  {t(locale, 'Recommendations', 'Rekommendationer')} ({recommendations.length})
                 </h3>
                 <div className="space-y-3">
                   {recommendations
@@ -1028,10 +1039,10 @@ export function VideoAnalysisCard({
               <div className="space-y-3">
                 <h3 className="font-semibold flex items-center gap-2">
                   <ThumbsUp className="h-4 w-4 text-green-500" />
-                  Fullständig analys
+                  {t(locale, 'Full analysis', 'Fullständig analys')}
                 </h3>
                 <div className="p-4 bg-muted rounded-lg text-sm">
-                  <FormattedAIAnalysis aiAnalysis={analysis.aiAnalysis} />
+                  <FormattedAIAnalysis aiAnalysis={analysis.aiAnalysis} locale={locale} />
                 </div>
               </div>
             )}
@@ -1048,12 +1059,12 @@ export function VideoAnalysisCard({
                 {isLoadingPoseData ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Hämtar posedata...
+                    {t(locale, 'Fetching pose data...', 'Hämtar posedata...')}
                   </>
                 ) : (
                   <>
                     <BarChart3 className="h-4 w-4 mr-2" />
-                    {showExtendedPoseData ? 'Dölj' : 'Visa'} detaljerad posedata
+                    {showExtendedPoseData ? t(locale, 'Hide', 'Dölj') : t(locale, 'Show', 'Visa')} {t(locale, 'detailed pose data', 'detaljerad posedata')}
                     {showExtendedPoseData ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
                   </>
                 )}
@@ -1063,21 +1074,21 @@ export function VideoAnalysisCard({
                 <div className="mt-4 space-y-4">
                   {/* Metadata */}
                   <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-medium text-blue-800 mb-2">Analysmetadata</h4>
+                    <h4 className="font-medium text-blue-800 mb-2">{t(locale, 'Analysis metadata', 'Analysmetadata')}</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="text-blue-600">Antal frames:</span>
+                        <span className="text-blue-600">{t(locale, 'Frame count:', 'Antal frames:')}</span>
                         <span className="font-mono ml-2">{extendedPoseData.frameCount}</span>
                       </div>
                       <div>
-                        <span className="text-blue-600">Modell:</span>
+                        <span className="text-blue-600">{t(locale, 'Model:', 'Modell:')}</span>
                         <span className="font-mono ml-2">{extendedPoseData.metadata?.model || 'MediaPipe BlazePose'}</span>
                       </div>
                       {extendedPoseData.metadata?.analyzedAt && (
                         <div className="col-span-2">
-                          <span className="text-blue-600">Analyserad:</span>
+                          <span className="text-blue-600">{t(locale, 'Analyzed:', 'Analyserad:')}</span>
                           <span className="font-mono ml-2">
-                            {new Date(extendedPoseData.metadata.analyzedAt).toLocaleString('sv-SE')}
+                            {new Date(extendedPoseData.metadata.analyzedAt).toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')}
                           </span>
                         </div>
                       )}
@@ -1091,7 +1102,7 @@ export function VideoAnalysisCard({
 
                     return (
                       <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                        <h4 className="font-medium text-purple-800 mb-2">Ledvinkelstatistik (min/max)</h4>
+                        <h4 className="font-medium text-purple-800 mb-2">{t(locale, 'Joint angle statistics (min/max)', 'Ledvinkelstatistik (min/max)')}</h4>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           {Object.entries(angleStats).map(([key, stat]) => (
                             stat.min !== Infinity && (
@@ -1106,7 +1117,7 @@ export function VideoAnalysisCard({
                                   </span>
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-1">
-                                  Intervall: {Math.round(stat.max - stat.min)}°
+                                  {t(locale, 'Range', 'Intervall')}: {Math.round(stat.max - stat.min)}°
                                 </div>
                               </div>
                             )
@@ -1118,9 +1129,9 @@ export function VideoAnalysisCard({
 
                   {/* Frame Timeline Preview */}
                   <div className="p-3 bg-gray-50 rounded-lg border">
-                    <h4 className="font-medium text-gray-800 mb-2">Tidslinje</h4>
+                    <h4 className="font-medium text-gray-800 mb-2">{t(locale, 'Timeline', 'Tidslinje')}</h4>
                     <div className="text-sm text-muted-foreground mb-2">
-                      {extendedPoseData.frames.length} frames över{' '}
+                      {extendedPoseData.frames.length} frames {t(locale, 'over', 'över')}{' '}
                       {extendedPoseData.frames.length > 0
                         ? `${(extendedPoseData.frames[extendedPoseData.frames.length - 1].timestamp - extendedPoseData.frames[0].timestamp).toFixed(2)}s`
                         : '0s'}
@@ -1149,10 +1160,10 @@ export function VideoAnalysisCard({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Scan className="h-5 w-5" />
-              Poseanalys - Skelettspårning
+              {t(locale, 'Pose analysis - Skeleton tracking', 'Poseanalys - Skelettspårning')}
               {analysis.athlete && ` - ${analysis.athlete.name}`}
             </DialogTitle>
-            <DialogDescription className="sr-only">MediaPipe BlazePose skelettspårning och analys</DialogDescription>
+            <DialogDescription className="sr-only">{t(locale, 'MediaPipe BlazePose skeleton tracking and analysis', 'MediaPipe BlazePose skelettspårning och analys')}</DialogDescription>
           </DialogHeader>
           <PoseAnalyzer
             videoUrl={analysis.videoUrl}
