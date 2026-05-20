@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -37,39 +38,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowUp, Zap, Timer, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
-import { TestResultDisplay, CompactResult } from '@/components/tests/shared/TestResultDisplay'
-import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
+import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
+import { TestBenchmarkBadge } from '@/components/tests/shared/TestBenchmarkBadge'
 import {
   calculateJumpPower,
   calculateRSI,
-  calculateFlightTime,
   classifyVerticalJump,
-  type JumpPowerFormula,
 } from '@/lib/calculations/sport-tests/power-tests'
 
 // Zod schemas for each jump type
-const baseJumpSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createBaseJumpSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   bodyWeight: z.number().min(30).max(200),
   notes: z.string().optional(),
 })
 
-const cmjSchema = baseJumpSchema.extend({
+const createCmjSchema = (locale: string) => createBaseJumpSchema(locale).extend({
   protocol: z.literal('VERTICAL_JUMP_CMJ'),
   jumpHeight: z.number().min(10).max(100),
   armSwing: z.boolean().optional(),
   attempts: z.number().min(1).max(5).optional(),
 })
 
-const sjSchema = baseJumpSchema.extend({
+const createSjSchema = (locale: string) => createBaseJumpSchema(locale).extend({
   protocol: z.literal('VERTICAL_JUMP_SJ'),
   jumpHeight: z.number().min(10).max(90),
   squatDepth: z.number().min(60).max(120).optional(), // knee angle in degrees
   attempts: z.number().min(1).max(5).optional(),
 })
 
-const djSchema = baseJumpSchema.extend({
+const createDjSchema = (locale: string) => createBaseJumpSchema(locale).extend({
   protocol: z.literal('VERTICAL_JUMP_DJ'),
   jumpHeight: z.number().min(10).max(80),
   contactTime: z.number().min(100).max(500), // milliseconds
@@ -77,9 +76,9 @@ const djSchema = baseJumpSchema.extend({
   attempts: z.number().min(1).max(5).optional(),
 })
 
-type CMJFormData = z.infer<typeof cmjSchema>
-type SJFormData = z.infer<typeof sjSchema>
-type DJFormData = z.infer<typeof djSchema>
+type CMJFormData = z.infer<ReturnType<typeof createCmjSchema>>
+type SJFormData = z.infer<ReturnType<typeof createSjSchema>>
+type DJFormData = z.infer<ReturnType<typeof createDjSchema>>
 
 interface Client {
   id: string
@@ -96,6 +95,7 @@ interface VerticalJumpFormProps {
 type JumpType = 'CMJ' | 'SJ' | 'DJ'
 
 export function VerticalJumpForm({ clients, onTestSaved }: VerticalJumpFormProps) {
+  const locale = useLocale()
   const [jumpType, setJumpType] = useState<JumpType>('CMJ')
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
@@ -108,7 +108,7 @@ export function VerticalJumpForm({ clients, onTestSaved }: VerticalJumpFormProps
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       // Calculate derived metrics
       const power = calculateJumpPower(data.jumpHeight, data.bodyWeight)
@@ -151,7 +151,7 @@ export function VerticalJumpForm({ clients, onTestSaved }: VerticalJumpFormProps
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -167,7 +167,7 @@ export function VerticalJumpForm({ clients, onTestSaved }: VerticalJumpFormProps
       onTestSaved?.(resultData.data)
     } catch (err) {
       console.error('Failed to save vertical jump test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -192,15 +192,15 @@ export function VerticalJumpForm({ clients, onTestSaved }: VerticalJumpFormProps
         </TabsList>
 
         <TabsContent value="CMJ">
-          <CMJForm clients={clients} onSubmit={handleSubmit} submitting={submitting} />
+          <CMJForm clients={clients} onSubmit={handleSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="SJ">
-          <SJForm clients={clients} onSubmit={handleSubmit} submitting={submitting} />
+          <SJForm clients={clients} onSubmit={handleSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="DJ">
-          <DJForm clients={clients} onSubmit={handleSubmit} submitting={submitting} />
+          <DJForm clients={clients} onSubmit={handleSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
       </Tabs>
 
@@ -211,7 +211,7 @@ export function VerticalJumpForm({ clients, onTestSaved }: VerticalJumpFormProps
         </Alert>
       )}
 
-      {result && <JumpTestResult result={result} />}
+      {result && <JumpTestResult result={result} locale={locale} />}
     </div>
   )
 }
@@ -221,13 +221,15 @@ function CMJForm({
   clients,
   onSubmit,
   submitting,
+  locale,
 }: {
   clients: Client[]
   onSubmit: (data: CMJFormData) => void
   submitting: boolean
+  locale: string
 }) {
   const form = useForm<CMJFormData>({
-    resolver: zodResolver(cmjSchema),
+    resolver: zodResolver(createCmjSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       protocol: 'VERTICAL_JUMP_CMJ',
@@ -264,7 +266,9 @@ function CMJForm({
               <span className="text-slate-900 dark:text-white">Counter Movement Jump (CMJ)</span>
             </GlassCardTitle>
             <GlassCardDescription className="text-slate-500 dark:text-slate-400">
-              Standard vertikalhopp med motrörelse. Mest använda hopptest för explosiv styrka.
+              {locale === 'sv'
+                ? 'Standard vertikalhopp med motrörelse. Mest använda hopptest för explosiv styrka.'
+                : 'Standard countermovement vertical jump. The most common jump test for explosive power.'}
             </GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent className="space-y-4">
@@ -274,11 +278,11 @@ function CMJForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Klient</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
-                          <SelectValue placeholder="Välj klient" />
+                          <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -299,7 +303,7 @@ function CMJForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -315,20 +319,22 @@ function CMJForm({
                 name="jumpHeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Hopphöjd (cm)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Hopphöjd (cm)' : 'Jump height (cm)'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.1"
                         min={10}
                         max={100}
-                        placeholder="t.ex. 42.5"
+                        placeholder={locale === 'sv' ? 't.ex. 42.5' : 'e.g. 42.5'}
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
                         className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
-                    <FormDescription className="text-slate-500 dark:text-slate-400">Bästa hopp av alla försök</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-400">
+                      {locale === 'sv' ? 'Bästa hopp av alla försök' : 'Best jump across all attempts'}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -339,7 +345,7 @@ function CMJForm({
                 name="bodyWeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Kroppsvikt (kg)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Kroppsvikt (kg)' : 'Body weight (kg)'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -351,7 +357,9 @@ function CMJForm({
                         className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
-                    <FormDescription className="text-slate-500 dark:text-slate-400">Vikt vid testtillfället</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-400">
+                      {locale === 'sv' ? 'Vikt vid testtillfället' : 'Weight at the time of testing'}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -364,7 +372,7 @@ function CMJForm({
                 name="armSwing"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Armsving</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Armsving' : 'Arm swing'}</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(v === 'true')}
                       value={field.value ? 'true' : 'false'}
@@ -375,8 +383,8 @@ function CMJForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="false">Händer på höfterna</SelectItem>
-                        <SelectItem value="true">Med armsving</SelectItem>
+                        <SelectItem value="false">{locale === 'sv' ? 'Händer på höfterna' : 'Hands on hips'}</SelectItem>
+                        <SelectItem value="true">{locale === 'sv' ? 'Med armsving' : 'With arm swing'}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -389,7 +397,7 @@ function CMJForm({
                 name="attempts"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Antal försök</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Antal försök' : 'Number of attempts'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -410,7 +418,7 @@ function CMJForm({
               <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm font-medium mb-2 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
-                  Beräknad effekt (Sayers formel)
+                  {locale === 'sv' ? 'Beräknad effekt (Sayers formel)' : 'Estimated power (Sayers formula)'}
                 </p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -434,10 +442,12 @@ function CMJForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Anteckningar</FormLabel>
+                  <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Eventuella observationer, teknik, uppvärmning..."
+                      placeholder={locale === 'sv'
+                        ? 'Eventuella observationer, teknik, uppvärmning...'
+                        : 'Observations, technique, warm-up...'}
                       {...field}
                     />
                   </FormControl>
@@ -449,7 +459,9 @@ function CMJForm({
         </GlassCard>
 
         <Button type="submit" disabled={submitting} className="w-full">
-          {submitting ? 'Sparar...' : 'Spara CMJ-test'}
+          {submitting
+            ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+            : locale === 'sv' ? 'Spara CMJ-test' : 'Save CMJ test'}
         </Button>
       </form>
     </Form>
@@ -461,13 +473,15 @@ function SJForm({
   clients,
   onSubmit,
   submitting,
+  locale,
 }: {
   clients: Client[]
   onSubmit: (data: SJFormData) => void
   submitting: boolean
+  locale: string
 }) {
   const form = useForm<SJFormData>({
-    resolver: zodResolver(sjSchema),
+    resolver: zodResolver(createSjSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       protocol: 'VERTICAL_JUMP_SJ',
@@ -500,7 +514,9 @@ function SJForm({
               <span className="text-slate-900 dark:text-white">Squat Jump (SJ)</span>
             </GlassCardTitle>
             <GlassCardDescription className="text-slate-500 dark:text-slate-400">
-              Hopp från stillastående knäböjläge utan motrörelse. Mäter ren koncentrisk styrka.
+              {locale === 'sv'
+                ? 'Hopp från stillastående knäböjläge utan motrörelse. Mäter ren koncentrisk styrka.'
+                : 'Jump from a static squat position without countermovement. Measures pure concentric strength.'}
             </GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent className="space-y-4">
@@ -510,11 +526,11 @@ function SJForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Klient</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
-                          <SelectValue placeholder="Välj klient" />
+                          <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -535,7 +551,7 @@ function SJForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Testdatum</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10" />
                     </FormControl>
@@ -551,20 +567,22 @@ function SJForm({
                 name="jumpHeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Hopphöjd (cm)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Hopphöjd (cm)' : 'Jump height (cm)'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.1"
                         min={10}
                         max={90}
-                        placeholder="t.ex. 38.0"
+                        placeholder={locale === 'sv' ? 't.ex. 38.0' : 'e.g. 38.0'}
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
                         className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
-                    <FormDescription className="text-slate-500 dark:text-slate-400">SJ är typiskt 5-10cm lägre än CMJ</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-400">
+                      {locale === 'sv' ? 'SJ är typiskt 5-10cm lägre än CMJ' : 'SJ is typically 5-10 cm lower than CMJ'}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -575,7 +593,7 @@ function SJForm({
                 name="bodyWeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Kroppsvikt (kg)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Kroppsvikt (kg)' : 'Body weight (kg)'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -598,7 +616,7 @@ function SJForm({
               name="squatDepth"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-900 dark:text-white">Knävinkel (grader)</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Knävinkel (grader)' : 'Knee angle (degrees)'}</FormLabel>
                   <Select
                     onValueChange={(v) => field.onChange(parseInt(v))}
                     value={field.value?.toString()}
@@ -610,11 +628,13 @@ function SJForm({
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="90">90° (standard)</SelectItem>
-                      <SelectItem value="80">80° (djupare)</SelectItem>
-                      <SelectItem value="100">100° (grundare)</SelectItem>
+                      <SelectItem value="80">{locale === 'sv' ? '80° (djupare)' : '80° (deeper)'}</SelectItem>
+                      <SelectItem value="100">{locale === 'sv' ? '100° (grundare)' : '100° (shallower)'}</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription className="text-slate-500 dark:text-slate-400">Standardiserad knävinkel vid startposition</FormDescription>
+                  <FormDescription className="text-slate-500 dark:text-slate-400">
+                    {locale === 'sv' ? 'Standardiserad knävinkel vid startposition' : 'Standardized knee angle in the start position'}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -624,7 +644,7 @@ function SJForm({
               <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm font-medium mb-2 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
-                  Beräknad effekt
+                  {locale === 'sv' ? 'Beräknad effekt' : 'Estimated power'}
                 </p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -648,9 +668,13 @@ function SJForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-900 dark:text-white">Anteckningar</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Teknik, startposition, observationer..." {...field} className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10" />
+                    <Textarea
+                      placeholder={locale === 'sv' ? 'Teknik, startposition, observationer...' : 'Technique, start position, observations...'}
+                      {...field}
+                      className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -660,7 +684,9 @@ function SJForm({
         </GlassCard>
 
         <Button type="submit" disabled={submitting} className="w-full">
-          {submitting ? 'Sparar...' : 'Spara SJ-test'}
+          {submitting
+            ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+            : locale === 'sv' ? 'Spara SJ-test' : 'Save SJ test'}
         </Button>
       </form>
     </Form>
@@ -672,13 +698,15 @@ function DJForm({
   clients,
   onSubmit,
   submitting,
+  locale,
 }: {
   clients: Client[]
   onSubmit: (data: DJFormData) => void
   submitting: boolean
+  locale: string
 }) {
   const form = useForm<DJFormData>({
-    resolver: zodResolver(djSchema),
+    resolver: zodResolver(createDjSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       protocol: 'VERTICAL_JUMP_DJ',
@@ -711,10 +739,14 @@ function DJForm({
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <Timer className="h-5 w-5 text-slate-900 dark:text-white" />
-              <span className="text-slate-900 dark:text-white">Drop Jump (DJ) - Reaktiv styrka</span>
+              <span className="text-slate-900 dark:text-white">
+                {locale === 'sv' ? 'Drop Jump (DJ) - Reaktiv styrka' : 'Drop Jump (DJ) - Reactive strength'}
+              </span>
             </GlassCardTitle>
             <GlassCardDescription className="text-slate-500 dark:text-slate-400">
-              Hopp från upphöjning med minimal markkontakttid. Mäter Reactive Strength Index (RSI).
+              {locale === 'sv'
+                ? 'Hopp från upphöjning med minimal markkontakttid. Mäter Reactive Strength Index (RSI).'
+                : 'Jump from a box with minimal ground contact time. Measures Reactive Strength Index (RSI).'}
             </GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent className="space-y-4">
@@ -724,11 +756,11 @@ function DJForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Klient</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
-                          <SelectValue placeholder="Välj klient" />
+                          <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -749,7 +781,7 @@ function DJForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Testdatum</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10" />
                     </FormControl>
@@ -764,7 +796,7 @@ function DJForm({
               name="dropHeight"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-900 dark:text-white">Dropphöjd (cm)</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Dropphöjd (cm)' : 'Drop height (cm)'}</FormLabel>
                   <Select
                     onValueChange={(v) => field.onChange(parseInt(v))}
                     value={field.value?.toString()}
@@ -782,7 +814,9 @@ function DJForm({
                       <SelectItem value="60">60 cm</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription className="text-slate-500 dark:text-slate-400">Höjd på lådan/upphöjningen</FormDescription>
+                  <FormDescription className="text-slate-500 dark:text-slate-400">
+                    {locale === 'sv' ? 'Höjd på lådan/upphöjningen' : 'Height of the box/platform'}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -794,14 +828,14 @@ function DJForm({
                 name="jumpHeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Hopphöjd (cm)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Hopphöjd (cm)' : 'Jump height (cm)'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.1"
                         min={10}
                         max={80}
-                        placeholder="t.ex. 35.0"
+                        placeholder={locale === 'sv' ? 't.ex. 35.0' : 'e.g. 35.0'}
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
                         className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
@@ -817,19 +851,21 @@ function DJForm({
                 name="contactTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-slate-900 dark:text-white">Markkontakttid (ms)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Markkontakttid (ms)' : 'Ground contact time (ms)'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min={100}
                         max={500}
-                        placeholder="t.ex. 180"
+                        placeholder={locale === 'sv' ? 't.ex. 180' : 'e.g. 180'}
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
                         className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
-                    <FormDescription className="text-slate-500 dark:text-slate-400">Kontakttid i millisekunder</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-400">
+                      {locale === 'sv' ? 'Kontakttid i millisekunder' : 'Contact time in milliseconds'}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -841,7 +877,7 @@ function DJForm({
               name="bodyWeight"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-900 dark:text-white">Kroppsvikt (kg)</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Kroppsvikt (kg)' : 'Body weight (kg)'}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -863,7 +899,7 @@ function DJForm({
               <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm font-medium mb-2 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
-                  Beräknade värden
+                  {locale === 'sv' ? 'Beräknade värden' : 'Calculated values'}
                 </p>
                 <div className="grid grid-cols-3 gap-4">
                   {liveRSI && (
@@ -871,21 +907,25 @@ function DJForm({
                       <p className="text-xs text-muted-foreground">RSI</p>
                       <span className="text-2xl font-bold text-primary">{liveRSI}</span>
                       <span className="text-xs text-muted-foreground ml-1">
-                        {liveRSI >= 2.0 ? '(Bra)' : liveRSI >= 1.5 ? '(Medel)' : '(Utveckla)'}
+                        {liveRSI >= 2.0
+                          ? locale === 'sv' ? '(Bra)' : '(Good)'
+                          : liveRSI >= 1.5
+                            ? locale === 'sv' ? '(Medel)' : '(Average)'
+                            : locale === 'sv' ? '(Utveckla)' : '(Develop)'}
                       </span>
                     </div>
                   )}
                   {liveCalculation && (
                     <>
                       <div>
-                        <p className="text-xs text-muted-foreground">Effekt</p>
+                        <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Effekt' : 'Power'}</p>
                         <span className="text-2xl font-bold text-primary">
                           {liveCalculation.peakPower}
                         </span>
                         <span className="text-muted-foreground ml-1">W</span>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Relativ</p>
+                        <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Relativ' : 'Relative'}</p>
                         <span className="text-2xl font-bold text-primary">
                           {liveCalculation.relativePower}
                         </span>
@@ -902,10 +942,12 @@ function DJForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-slate-900 dark:text-white">Anteckningar</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Landningsteknik, styvhet, observationer..."
+                      placeholder={locale === 'sv'
+                        ? 'Landningsteknik, styvhet, observationer...'
+                        : 'Landing technique, stiffness, observations...'}
                       {...field}
                       className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                     />
@@ -918,7 +960,9 @@ function DJForm({
         </GlassCard>
 
         <Button type="submit" disabled={submitting} className="w-full">
-          {submitting ? 'Sparar...' : 'Spara DJ-test'}
+          {submitting
+            ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+            : locale === 'sv' ? 'Spara DJ-test' : 'Save DJ test'}
         </Button>
       </form>
     </Form>
@@ -926,7 +970,8 @@ function DJForm({
 }
 
 // Result display component
-function JumpTestResult({ result }: { result: any }) {
+function JumpTestResult({ result, locale }: { result: any; locale: string }) {
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const rsi =
     result.rawData?.contactTime && result.primaryResult
       ? calculateRSI(result.primaryResult, result.rawData.contactTime)
@@ -937,27 +982,27 @@ function JumpTestResult({ result }: { result: any }) {
       <GlassCardHeader>
         <GlassCardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
           <CheckCircle className="h-5 w-5" />
-          Test sparat
+          {locale === 'sv' ? 'Test sparat' : 'Test saved'}
         </GlassCardTitle>
         <GlassCardDescription className="text-green-600/80 dark:text-green-400/80">
-          {result.client?.name} - {new Date(result.testDate).toLocaleDateString('sv-SE')}
+          {result.client?.name} - {new Date(result.testDate).toLocaleDateString(dateLocale)}
         </GlassCardDescription>
       </GlassCardHeader>
       <GlassCardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <CompactResult
-            label="Hopphöjd"
+            label={locale === 'sv' ? 'Hopphöjd' : 'Jump height'}
             value={result.primaryResult}
             unit="cm"
             tier={result.tier}
           />
           <CompactResult
-            label="Effekt"
+            label={locale === 'sv' ? 'Effekt' : 'Power'}
             value={result.calculatedPower?.peakPower || result.peakPower}
             unit="W"
           />
           <CompactResult
-            label="Relativ effekt"
+            label={locale === 'sv' ? 'Relativ effekt' : 'Relative power'}
             value={result.calculatedPower?.relativePower || result.relativePower}
             unit="W/kg"
           />
@@ -966,7 +1011,7 @@ function JumpTestResult({ result }: { result: any }) {
 
         {result.tier && (
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Prestandanivå:</span>
+            <span className="text-sm text-muted-foreground">{locale === 'sv' ? 'Prestandanivå:' : 'Performance level:'}</span>
             <TestBenchmarkBadge tier={result.tier} />
           </div>
         )}
