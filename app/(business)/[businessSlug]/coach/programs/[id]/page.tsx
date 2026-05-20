@@ -1,5 +1,6 @@
 // app/(business)/[businessSlug]/coach/programs/[id]/page.tsx
 import { notFound, redirect } from 'next/navigation'
+import { getLocale } from 'next-intl/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
@@ -21,6 +22,7 @@ interface ProgramPageProps {
 
 export default async function BusinessProgramPage({ params }: ProgramPageProps) {
   const { businessSlug, id } = await params
+  const locale = await getLocale()
   const user = await requireCoach()
 
   // Validate business membership
@@ -129,14 +131,14 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
       <Link href={`${basePath}/programs`}>
         <Button variant="ghost" className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till program
+          {locale === 'sv' ? 'Tillbaka till program' : 'Back to programs'}
         </Button>
       </Link>
 
       <ProgramOverview program={program} basePath={basePath} />
 
       <div className="mt-8">
-        <ProgramFuelingOverview program={program} />
+        <ProgramFuelingOverview program={program} locale={locale} />
       </div>
 
       <div className="mt-8">

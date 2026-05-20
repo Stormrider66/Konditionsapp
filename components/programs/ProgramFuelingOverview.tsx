@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { CheckCircle2, FlaskConical, TrendingUp, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -66,9 +66,19 @@ interface ProgramFuelingOverviewProps {
     weeks?: ProgramFuelingWeek[]
   }
   className?: string
+  locale?: string
 }
 
-export function ProgramFuelingOverview({ program, className }: ProgramFuelingOverviewProps) {
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string | undefined): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, svText: string, enText: string) => locale === 'sv' ? svText : enText
+
+const dateFnsLocale = (locale: AppLocale) => locale === 'sv' ? sv : enUS
+
+export function ProgramFuelingOverview({ program, className, locale: rawLocale }: ProgramFuelingOverviewProps) {
+  const locale = getAppLocale(rawLocale)
   const sessions = collectFuelingSessions(program)
 
   if (sessions.length === 0) return null
@@ -79,7 +89,7 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
   const loggedCount = sessions.filter((session) => session.log).length
   const latestPlan = sessions.find((session) => session.prescription.plan)?.prescription.plan ?? null
   const raceTarget = latestPlan?.recommendedCarbsGPerHour ?? peakTarget
-  const planContext = formatFuelingPlanContext(latestPlan, { includeRaceDate: true })
+  const planContext = formatFuelingPlanContext(latestPlan, { includeRaceDate: true, locale })
   const peakProgress = raceTarget > 0 ? Math.min(100, Math.round((peakTarget / raceTarget) * 100)) : 0
   const nextSession = sessions.find((session) => !session.log) ?? sessions[sessions.length - 1]
   const recommendation = buildFuelingCoachingRecommendation({
@@ -101,25 +111,29 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
           <div>
             <GlassCardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight">
               <FlaskConical className="h-5 w-5 text-orange-500" />
-              Kolhydratsträning i programmet
+              {t(locale, 'Kolhydratsträning i programmet', 'Carbohydrate training in the program')}
             </GlassCardTitle>
             <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-300">
-              Planerade pass där energiintaget tränas upp inför målet, med faktisk tolerans från loggade pass.
+              {t(
+                locale,
+                'Planerade pass där energiintaget tränas upp inför målet, med faktisk tolerans från loggade pass.',
+                'Planned sessions that build fueling toward the goal, using real tolerance from logged sessions.'
+              )}
             </p>
           </div>
           <Badge className="w-fit rounded-full bg-orange-100 px-3 py-1 text-orange-700 hover:bg-orange-100 dark:bg-orange-500/15 dark:text-orange-300">
-            {sessions.length} pass
+            {sessions.length} {t(locale, 'pass', sessions.length === 1 ? 'session' : 'sessions')}
           </Badge>
         </div>
       </GlassCardHeader>
 
       <GlassCardContent className="space-y-6">
         <div className="grid gap-3 md:grid-cols-4">
-          <MetricTile label="Startnivå" value={firstTarget ? `${Math.round(firstTarget)} g/h` : '-'} />
-          <MetricTile label="Högsta mål" value={`${Math.round(peakTarget)} g/h`} tone="orange" />
-          <MetricTile label="Loggade pass" value={`${loggedCount}/${sessions.length}`} tone="green" />
+          <MetricTile label={t(locale, 'Startnivå', 'Starting level')} value={firstTarget ? `${Math.round(firstTarget)} g/h` : '-'} />
+          <MetricTile label={t(locale, 'Högsta mål', 'Highest target')} value={`${Math.round(peakTarget)} g/h`} tone="orange" />
+          <MetricTile label={t(locale, 'Loggade pass', 'Logged sessions')} value={`${loggedCount}/${sessions.length}`} tone="green" />
           <MetricTile
-            label="Racemål"
+            label={t(locale, 'Racemål', 'Race target')}
             value={raceTarget ? `${Math.round(raceTarget)} g/h` : '-'}
             tone="blue"
           />
@@ -129,10 +143,11 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                Progression mot racenivå
+                {t(locale, 'Progression mot racenivå', 'Progression toward race level')}
               </p>
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                {latestPlan?.name ?? 'Senaste fuelingplan'} {nextSession ? `- nästa fokus: ${Math.round(nextSession.prescription.targetCarbsGPerHour)} g/h` : ''}
+                {latestPlan?.name ?? t(locale, 'Senaste fuelingplan', 'Latest fueling plan')}{' '}
+                {nextSession ? `- ${t(locale, 'nästa fokus', 'next focus')}: ${Math.round(nextSession.prescription.targetCarbsGPerHour)} g/h` : ''}
               </p>
               {planContext && (
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -153,11 +168,11 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
           </div>
         </div>
 
-        <ProgramFuelingRecommendationBox recommendation={recommendation} />
+        <ProgramFuelingRecommendationBox recommendation={recommendation} locale={locale} />
 
         <div className="space-y-3">
           {sessions.map((session) => (
-            <FuelingSessionRow key={session.workout.id} session={session} />
+            <FuelingSessionRow key={session.workout.id} session={session} locale={locale} />
           ))}
         </div>
       </GlassCardContent>
@@ -165,17 +180,24 @@ export function ProgramFuelingOverview({ program, className }: ProgramFuelingOve
   )
 }
 
-function ProgramFuelingRecommendationBox({ recommendation }: { recommendation: FuelingCoachingRecommendation }) {
+function ProgramFuelingRecommendationBox({
+  recommendation,
+  locale,
+}: {
+  recommendation: FuelingCoachingRecommendation
+  locale: AppLocale
+}) {
+  const copy = getRecommendationCopy(recommendation, locale)
   return (
     <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-300">
-            Rekommendation
+            {t(locale, 'Rekommendation', 'Recommendation')}
           </p>
-          <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">{recommendation.labelSv}</p>
+          <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">{copy.label}</p>
           <p className="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            {recommendation.actionSv}
+            {copy.action}
           </p>
         </div>
         {recommendation.nextTargetGPerHour && (
@@ -184,8 +206,8 @@ function ProgramFuelingRecommendationBox({ recommendation }: { recommendation: F
           </Badge>
         )}
       </div>
-      <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">{recommendation.reasonSv}</p>
-      {recommendation.productSv && (
+      <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">{copy.reason}</p>
+      {locale === 'sv' && recommendation.productSv && (
         <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
           {recommendation.productSv}
         </p>
@@ -218,33 +240,37 @@ function MetricTile({
   )
 }
 
-function FuelingSessionRow({ session }: { session: FuelingSession }) {
+function FuelingSessionRow({ session, locale }: { session: FuelingSession; locale: AppLocale }) {
   const prescription = session.prescription
   const log = session.log
   const actual = log?.actualCarbsGPerHour ?? null
   const target = prescription.targetCarbsGPerHour
   const targetLabel = `${Math.round(target)} g/h`
-  const totalLabel = prescription.targetCarbsTotalG ? `${Math.round(prescription.targetCarbsTotalG)} g totalt` : null
-  const dateLabel = session.date ? format(new Date(session.date), 'd MMM', { locale: sv }) : `Dag ${session.dayNumber}`
+  const totalLabel = prescription.targetCarbsTotalG
+    ? `${Math.round(prescription.targetCarbsTotalG)} g ${t(locale, 'totalt', 'total')}`
+    : null
+  const dateLabel = session.date
+    ? format(new Date(session.date), 'd MMM', { locale: dateFnsLocale(locale) })
+    : `${t(locale, 'Dag', 'Day')} ${session.dayNumber}`
 
   return (
     <div className="grid gap-3 rounded-xl border border-slate-200 bg-white/60 p-4 dark:border-white/10 dark:bg-slate-950/30 md:grid-cols-[1fr_auto] md:items-center">
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="rounded-full border-slate-300 text-slate-600 dark:border-white/20 dark:text-slate-300">
-            Vecka {session.weekNumber} · {dateLabel}
+            {t(locale, 'Vecka', 'Week')} {session.weekNumber} · {dateLabel}
           </Badge>
           {log && (
             <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300">
               <CheckCircle2 className="mr-1 h-3 w-3" />
-              Loggad
+              {t(locale, 'Loggad', 'Logged')}
             </Badge>
           )}
         </div>
         <div>
           <p className="truncate text-sm font-black text-slate-900 dark:text-white">{session.workout.name}</p>
           <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-            {session.workout.duration ? `${session.workout.duration} min` : 'Tid saknas'}
+            {session.workout.duration ? `${session.workout.duration} min` : t(locale, 'Tid saknas', 'Time missing')}
             {session.workout.distance ? ` · ${session.workout.distance.toFixed(1)} km` : ''}
             {totalLabel ? ` · ${totalLabel}` : ''}
           </p>
@@ -258,17 +284,63 @@ function FuelingSessionRow({ session }: { session: FuelingSession }) {
         </div>
         {actual != null && (
           <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-black text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-            {Math.round(actual)} g/h faktiskt
+            {Math.round(actual)} g/h {t(locale, 'faktiskt', 'actual')}
           </div>
         )}
         {log?.stomachRating != null && (
           <div className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700 dark:bg-white/10 dark:text-slate-200">
-            Mage {log.stomachRating}/5
+            {t(locale, 'Mage', 'Stomach')} {log.stomachRating}/5
           </div>
         )}
       </div>
     </div>
   )
+}
+
+function getRecommendationCopy(recommendation: FuelingCoachingRecommendation, locale: AppLocale) {
+  if (locale === 'sv') {
+    return {
+      label: recommendation.labelSv,
+      action: recommendation.actionSv,
+      reason: recommendation.reasonSv,
+    }
+  }
+
+  const nextTarget = recommendation.nextTargetGPerHour
+  const copy: Record<FuelingCoachingRecommendation['status'], { label: string; action: string; reason: string }> = {
+    NO_DATA: {
+      label: 'No clear recommendation yet',
+      action: 'Log carbohydrates, stomach response, and energy after the next long session.',
+      reason: 'The coaching recommendation needs at least one fueling log.',
+    },
+    REDUCE: {
+      label: 'Step back next session',
+      action: `Next long session: aim for ${nextTarget ?? 30} g/h and spread intake more evenly.`,
+      reason: 'Stomach response was low, so the target should be stabilized before increasing again.',
+    },
+    HOLD: {
+      label: 'Hold this level',
+      action: `Next long session: repeat ${nextTarget ?? 'the current target'} g/h before increasing.`,
+      reason: 'The latest signal is not stable enough for a clear progression.',
+    },
+    PROGRESS: {
+      label: 'Increase carefully',
+      action: `Next long session: test ${nextTarget ?? 'a slightly higher target'} g/h if the session is race-like.`,
+      reason: 'The latest log shows stable stomach response and energy.',
+    },
+    RACE_READY: {
+      label: 'Ready for race target',
+      action: `Keep the race target ${nextTarget ?? ''} g/h and repeat with race products.`.trim(),
+      reason: 'Multiple sessions show stable stomach response and energy close to the target intake.',
+    },
+    ON_TRACK: {
+      label: 'Follow up',
+      action: `Next long session: continue with ${nextTarget ?? 'the current target'} g/h and log the response.`,
+      reason: 'There is data, but not a clear enough signal to increase or reduce.',
+    },
+  }
+
+  return copy[recommendation.status]
 }
 
 type FuelingSession = {

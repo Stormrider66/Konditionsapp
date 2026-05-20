@@ -1,5 +1,6 @@
 // app/(business)/[businessSlug]/athlete/programs/[id]/page.tsx
 import { notFound } from 'next/navigation'
+import { getLocale } from 'next-intl/server'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
@@ -19,6 +20,7 @@ interface BusinessProgramPageProps {
 
 export default async function BusinessAthleteProgramPage({ params }: BusinessProgramPageProps) {
   const { businessSlug, id } = await params
+  const locale = await getLocale()
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -117,14 +119,14 @@ export default async function BusinessAthleteProgramPage({ params }: BusinessPro
       <Link href={`${basePath}/athlete/programs`}>
         <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
           <ArrowLeft className="mr-2 h-3.5 w-3.5" />
-          Mina Program
+          {locale === 'sv' ? 'Mina Program' : 'My Programs'}
         </Button>
       </Link>
 
       <AthleteProgramOverview program={program as any} basePath={basePath} />
 
       <div className="mt-8">
-        <ProgramFuelingOverview program={program} />
+        <ProgramFuelingOverview program={program} locale={locale} />
       </div>
 
       <div className="mt-12">

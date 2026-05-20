@@ -4,9 +4,9 @@ export interface FuelingTargetIntensity {
   targetPaceMinKm?: number | null
 }
 
-export function formatFuelingTargetIntensity(target: FuelingTargetIntensity): string | null {
+export function formatFuelingTargetIntensity(target: FuelingTargetIntensity, locale: string = 'sv'): string | null {
   const parts = [
-    target.targetSpeedKmh != null ? `${formatNumber(target.targetSpeedKmh)} km/h` : null,
+    target.targetSpeedKmh != null ? `${formatNumber(target.targetSpeedKmh, locale)} km/h` : null,
     target.targetPaceMinKm != null ? `${formatPace(target.targetPaceMinKm)} min/km` : null,
     target.targetPowerWatts != null ? `${Math.round(target.targetPowerWatts)} W` : null,
   ].filter(Boolean)
@@ -14,8 +14,8 @@ export function formatFuelingTargetIntensity(target: FuelingTargetIntensity): st
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-function formatNumber(value: number): string {
-  return value.toLocaleString('sv-SE', { maximumFractionDigits: 1 })
+function formatNumber(value: number, locale: string): string {
+  return value.toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', { maximumFractionDigits: 1 })
 }
 
 function formatPace(value: number): string {
