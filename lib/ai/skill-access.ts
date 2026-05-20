@@ -35,17 +35,46 @@ export function getKnowledgeSkillMaxSelectable(mode: KnowledgeSkillAccessMode): 
   return mode === 'athlete_self_coached' ? 3 : 5
 }
 
-export function getAthleteSkillSafetyNote(mode: KnowledgeSkillAccessMode): string {
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+export function getAthleteSkillSafetyNote(
+  mode: KnowledgeSkillAccessMode,
+  locale: AppLocale = 'en'
+): string {
   if (mode === 'athlete_self_coached') {
     return [
-      'Atleten är self-coached. Håll användningen av valda kunskapsskills pedagogisk och försiktig.',
-      'Ge inte medicinska slutsatser, aggressiv prestationsprogrammering eller avancerad testtolkning som kräver coachgranskning.',
-      'Föreslå att atleten kontaktar vård/coach vid smärta, skada, oroande symtom eller osäkerhet.',
+      t(
+        locale,
+        'The athlete is self-coached. Keep use of selected knowledge skills educational and cautious.',
+        'Atleten är self-coached. Håll användningen av valda kunskapsskills pedagogisk och försiktig.'
+      ),
+      t(
+        locale,
+        'Do not provide medical conclusions, aggressive performance programming, or advanced test interpretation that requires coach review.',
+        'Ge inte medicinska slutsatser, aggressiv prestationsprogrammering eller avancerad testtolkning som kräver coachgranskning.'
+      ),
+      t(
+        locale,
+        'Suggest that the athlete contacts healthcare or a coach for pain, injury, concerning symptoms, or uncertainty.',
+        'Föreslå att atleten kontaktar vård/coach vid smärta, skada, oroande symtom eller osäkerhet.'
+      ),
     ].join(' ')
   }
 
   return [
-    'Atleten har en coachkoppling. Håll valda kunskapsskills pedagogiska och stödjande.',
-    'Vid testtolkning, rehab eller större träningsändringar: förklara med reservationer och föreslå coachgranskning.',
+    t(
+      locale,
+      'The athlete has a coach connection. Keep selected knowledge skills educational and supportive.',
+      'Atleten har en coachkoppling. Håll valda kunskapsskills pedagogiska och stödjande.'
+    ),
+    t(
+      locale,
+      'For test interpretation, rehab, or larger training changes: explain with appropriate caveats and suggest coach review.',
+      'Vid testtolkning, rehab eller större träningsändringar: förklara med reservationer och föreslå coachgranskning.'
+    ),
   ].join(' ')
 }

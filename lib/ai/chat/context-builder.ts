@@ -29,6 +29,11 @@ import type { ChatRequestMessage } from './types'
 import { getMessageContent } from './message-format'
 
 type StaffPermissions = Awaited<ReturnType<typeof getStaffPermissions>>
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export interface BuildChatContextInput {
   messages: ChatRequestMessage[]
@@ -236,7 +241,7 @@ export async function buildChatContext(
         const skills = await listKnowledgeSkills({ accessMode: skillAccessMode })
         skillContext = formatKnowledgeSkillCatalog(skills)
         if (isAthleteChat) {
-          skillContext += `\n## ATLET-SÄKERHET FÖR KUNSKAPSSKILLS\n${getAthleteSkillSafetyNote(skillAccessMode)}\n`
+          skillContext += `\n## ${t(locale, 'ATHLETE SAFETY FOR KNOWLEDGE SKILLS', 'ATLET-SÄKERHET FÖR KUNSKAPSSKILLS')}\n${getAthleteSkillSafetyNote(skillAccessMode, locale)}\n`
         }
       } else if (hasEmbeddingKeys(embeddingKeys)) {
         const selected = selectedSkillIds.length > 0
@@ -264,23 +269,23 @@ export async function buildChatContext(
         if (matched.length > 0) {
           const result = await fetchSkillContext(userContent, matched, embeddingKeys)
           const selectedIntro = selected.matched.length > 0
-            ? `\n## ANVÄNDAREN VALDE DESSA KUNSKAPSSKILLS I UI\n${selected.matched.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            ? `\n## ${t(locale, 'THE USER SELECTED THESE KNOWLEDGE SKILLS IN THE UI', 'ANVÄNDAREN VALDE DESSA KUNSKAPSSKILLS I UI')}\n${selected.matched.map((skill) => `- ${skill.name}`).join('\n')}\n`
             : ''
           const requestedIntro = selected.matched.length === 0 && requested.length > 0
-            ? `\n## ANVÄNDAREN BAD UTTRYCKLIGEN OM DESSA KUNSKAPSSKILLS\n${requested.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            ? `\n## ${t(locale, 'THE USER EXPLICITLY REQUESTED THESE KNOWLEDGE SKILLS', 'ANVÄNDAREN BAD UTTRYCKLIGEN OM DESSA KUNSKAPSSKILLS')}\n${requested.map((skill) => `- ${skill.name}`).join('\n')}\n`
             : ''
           const missingIntro = missingSelectedSkillIds.length > 0
-            ? `\n## VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nSäg synligt att dessa valda skills inte kunde användas om det är relevant för svaret.\n`
+            ? `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED', 'VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS')}\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\n${t(locale, 'Say visibly that these selected skills could not be used if it is relevant to the answer.', 'Säg synligt att dessa valda skills inte kunde användas om det är relevant för svaret.')}\n`
             : ''
           const athleteSafetyIntro = isAthleteChat
-            ? `\n## ATLET-SÄKERHET FÖR KUNSKAPSSKILLS\n${getAthleteSkillSafetyNote(skillAccessMode)}\n`
+            ? `\n## ${t(locale, 'ATHLETE SAFETY FOR KNOWLEDGE SKILLS', 'ATLET-SÄKERHET FÖR KUNSKAPSSKILLS')}\n${getAthleteSkillSafetyNote(skillAccessMode, locale)}\n`
             : ''
           skillContext = `${selectedIntro}${requestedIntro}${missingIntro}${athleteSafetyIntro}${result.context}`
           skillsUsed = result.skillsUsed.length > 0
             ? result.skillsUsed
             : matched.map((skill) => skill.name)
         } else if (missingSelectedSkillIds.length > 0) {
-          skillContext = `\n## VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nSäg synligt att dessa valda skills inte kunde användas.\n`
+          skillContext = `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED', 'VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS')}\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\n${t(locale, 'Say visibly that these selected skills could not be used.', 'Säg synligt att dessa valda skills inte kunde användas.')}\n`
         }
       }
     } catch (error) {
