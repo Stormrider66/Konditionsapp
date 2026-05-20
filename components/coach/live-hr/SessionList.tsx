@@ -20,8 +20,9 @@ import { Button } from '@/components/ui/button'
 import { Users, Clock, Radio, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { toast } from 'sonner'
-import { LiveHRSessionListItem, LiveHRSessionStatus } from '@/lib/live-hr/types'
+import { LiveHRSessionListItem } from '@/lib/live-hr/types'
 
 interface Team {
   id: string
@@ -32,8 +33,45 @@ interface LiveHRSessionListProps {
   teams: Team[]
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY = {
+  en: {
+    fetchError: 'Could not fetch sessions',
+    createSuccess: 'Session created',
+    createError: 'Could not create session',
+    active: 'Active',
+    all: 'All',
+    activeSessions: 'Active sessions',
+    allSessions: 'All sessions',
+    pausedSessions: 'Paused sessions',
+    noSessions: 'No sessions',
+    emptyHint: 'Start a new session to begin monitoring athlete heart rates',
+    paused: 'PAUSED',
+    ended: 'ENDED',
+    defaultSessionName: 'Live HR Session',
+  },
+  sv: {
+    fetchError: 'Kunde inte hämta sessioner',
+    createSuccess: 'Session skapad',
+    createError: 'Kunde inte skapa session',
+    active: 'Aktiva',
+    all: 'Alla',
+    activeSessions: 'Aktiva sessioner',
+    allSessions: 'Alla sessioner',
+    pausedSessions: 'Pausade sessioner',
+    noSessions: 'Inga sessioner',
+    emptyHint: 'Starta en ny session för att börja övervaka atleters puls',
+    paused: 'PAUSAD',
+    ended: 'AVSLUTAD',
+    defaultSessionName: 'Live HR Session',
+  },
+} as const
+
 export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
   const router = useRouter()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [sessions, setSessions] = useState<LiveHRSessionListItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showEnded, setShowEnded] = useState(false)
@@ -46,14 +84,14 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
         const data = await res.json()
         setSessions(data.sessions || [])
       } catch {
-        toast.error('Kunde inte hämta sessioner')
+        toast.error(copy.fetchError)
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchSessions()
-  }, [showEnded])
+    void fetchSessions()
+  }, [copy.fetchError, showEnded])
 
   // Create new session
   const handleCreate = async (data: { name?: string; teamId?: string }) => {
@@ -77,31 +115,10 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
         })
       }
 
-      toast.success('Session skapad')
+      toast.success(copy.createSuccess)
       router.push(`/coach/live-hr/${session.id}`)
     } catch {
-      toast.error('Kunde inte skapa session')
-    }
-  }
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleString('sv-SE', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  const getStatusBadge = (status: LiveHRSessionStatus) => {
-    switch (status) {
-      case 'ACTIVE':
-        return <Badge variant="destructive">LIVE</Badge>
-      case 'PAUSED':
-        return <Badge variant="secondary">PAUSAD</Badge>
-      case 'ENDED':
-        return <Badge variant="outline">AVSLUTAD</Badge>
+      toast.error(copy.createError)
     }
   }
 
@@ -127,7 +144,7 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
             onClick={() => setShowEnded(false)}
             className={`rounded-lg px-3 ${!showEnded ? 'bg-white dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-slate-200/80 dark:border-blue-500/30 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
           >
-            Aktiva
+            {copy.active}
           </Button>
           <Button
             variant="ghost"
@@ -135,7 +152,7 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
             onClick={() => setShowEnded(true)}
             className={`rounded-lg px-3 ${showEnded ? 'bg-white dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-slate-200/80 dark:border-blue-500/30 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
           >
-            Alla
+            {copy.all}
           </Button>
         </div>
         <CreateSessionDialog teams={teams} onCreate={handleCreate} />
@@ -146,11 +163,11 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
         <div>
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
             <Radio className="h-5 w-5 text-red-500 animate-pulse" />
-            Aktiva sessioner
+            {copy.activeSessions}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeSessions.map((session) => (
-              <SessionCard key={session.id} session={session} />
+              <SessionCard key={session.id} session={session} locale={locale} copy={copy} />
             ))}
           </div>
         </div>
@@ -160,11 +177,11 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
       {otherSessions.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
-            {showEnded ? 'Alla sessioner' : 'Pausade sessioner'}
+            {showEnded ? copy.allSessions : copy.pausedSessions}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {otherSessions.map((session) => (
-              <SessionCard key={session.id} session={session} />
+              <SessionCard key={session.id} session={session} locale={locale} copy={copy} />
             ))}
           </div>
         </div>
@@ -175,9 +192,9 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
         <GlassCard glow="red" className="border border-slate-200 dark:border-white/5">
           <GlassCardContent className="flex flex-col items-center justify-center py-12">
             <Radio className="h-12 w-12 text-rose-500 mb-4 animate-pulse" />
-            <p className="text-lg font-semibold text-slate-900 dark:text-white">Inga sessioner</p>
+            <p className="text-lg font-semibold text-slate-900 dark:text-white">{copy.noSessions}</p>
             <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
-              Starta en ny session för att börja övervaka atleters puls
+              {copy.emptyHint}
             </p>
             <CreateSessionDialog teams={teams} onCreate={handleCreate} />
           </GlassCardContent>
@@ -187,22 +204,31 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
   )
 }
 
-function SessionCard({ session }: { session: LiveHRSessionListItem }) {
+function SessionCard({
+  session,
+  locale,
+  copy,
+}: {
+  session: LiveHRSessionListItem
+  locale: AppLocale
+  copy: (typeof COPY)[AppLocale]
+}) {
   const isLive = session.status === 'ACTIVE'
+  const timeLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   return (
     <Link href={`/coach/live-hr/${session.id}`}>
       <GlassCard glow={isLive ? 'red' : 'blue'} className="hover:shadow-lg transition-all cursor-pointer border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/10">
         <GlassCardHeader className="pb-2">
           <div className="flex items-center justify-between gap-3">
             <GlassCardTitle className="text-lg truncate text-slate-900 dark:text-white">
-              {session.name || 'Live HR Session'}
+              {session.name || copy.defaultSessionName}
             </GlassCardTitle>
             {session.status === 'ACTIVE' ? (
               <Badge variant="destructive" className="animate-pulse bg-red-600 text-white border-none">LIVE</Badge>
             ) : session.status === 'PAUSED' ? (
-              <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">PAUSAD</Badge>
+              <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">{copy.paused}</Badge>
             ) : (
-              <Badge variant="outline" className="border-slate-350 dark:border-white/10 text-slate-600 dark:text-slate-400">AVSLUTAD</Badge>
+              <Badge variant="outline" className="border-slate-350 dark:border-white/10 text-slate-600 dark:text-slate-400">{copy.ended}</Badge>
             )}
           </div>
           {session.teamName && (
@@ -220,7 +246,7 @@ function SessionCard({ session }: { session: LiveHRSessionListItem }) {
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4 text-emerald-500" />
-                <span>{new Date(session.startedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>{new Date(session.startedAt).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             </div>
             <ChevronRight className="h-4 w-4" />
