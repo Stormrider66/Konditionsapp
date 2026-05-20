@@ -35,7 +35,8 @@ export interface ChatToolCapabilities {
 export function createChatTools(
   clientId: string,
   conversationId?: string,
-  capabilities?: ChatToolCapabilities
+  capabilities?: ChatToolCapabilities,
+  locale: 'en' | 'sv' = 'en'
 ) {
   const tools: Record<string, any> = { // eslint-disable-line
     createTodayWorkout: tool({
@@ -847,6 +848,7 @@ export function createChatTools(
           const generationContext: GenerationContext = {
             sport,
             totalWeeks,
+            locale,
             sessionsPerWeek,
             methodology: methodology || undefined,
             goal,

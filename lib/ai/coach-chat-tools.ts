@@ -251,7 +251,7 @@ function parseCoachToolDateBoundary(value: string | undefined, fallback: Date, e
 /**
  * Create all chat tools for a coach session.
  */
-export function createCoachChatTools(coachUserId: string, businessSlug?: string) {
+export function createCoachChatTools(coachUserId: string, businessSlug?: string, locale: 'en' | 'sv' = 'en') {
   return {
     generateStrengthSession: tool({
       description: 'Generera ett styrkepass automatiskt baserat på mål, fas, utrustning och atletprofil. Kan skapa enskilt pass eller veckoprogram (2-3 pass A/B/C). Passet sparas i databasen och kan sedan redigeras i Strength Studio.',
@@ -1696,6 +1696,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string)
           const generationContext: GenerationContext = {
             sport,
             totalWeeks,
+            locale,
             sessionsPerWeek,
             methodology: methodology || undefined,
             goal,

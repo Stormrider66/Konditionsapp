@@ -16,9 +16,10 @@ import type {
   PhaseConfig,
   MergedProgram,
 } from './types'
-import { calculatePhases, parseWeekRange } from './types'
+import { parseWeekRange } from './types'
 import {
   PROGRAM_GENERATOR_SYSTEM_PROMPT,
+  buildProgramGeneratorSystemPrompt,
   buildOutlinePrompt,
   buildPhasePrompt,
   parseOutlineResponse,
@@ -37,7 +38,6 @@ import { logAiUsage, type AiProviderTag } from '@/lib/ai/usage-logger'
 
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 2000
-const PHASE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes per phase
 
 // ============================================
 // Main Orchestrator
@@ -66,10 +66,12 @@ interface ProgramGenerationAiMeta {
  * Falls back to the static PROGRAM_GENERATOR_SYSTEM_PROMPT if no variant exists.
  */
 async function getEnrichedSystemPrompt(context: GenerationContext): Promise<string> {
+  const locale = context.locale === 'sv' ? 'sv' : 'en'
+
   try {
     const variant = await getActiveVariant('full_program')
     if (!variant?.promptTemplate) {
-      return PROGRAM_GENERATOR_SYSTEM_PROMPT
+      return buildProgramGeneratorSystemPrompt(locale)
     }
 
     // Strip conditional blocks based on sport category and methodology
@@ -86,14 +88,17 @@ async function getEnrichedSystemPrompt(context: GenerationContext): Promise<stri
       .replace(/\{\{totalWeeks\}\}/g, String(context.totalWeeks))
       .replace(/\{\{sessionsPerWeek\}\}/g, String(context.sessionsPerWeek || 5))
       .replace(/\{\{experienceLevel\}\}/g, context.experienceLevel || 'intermediate')
-      .replace(/\{\{goal\}\}/g, context.goal || 'Förbättra prestanda')
+      .replace(/\{\{goal\}\}/g, context.goal || (locale === 'sv' ? 'Förbättra prestanda' : 'Improve performance'))
 
     // Prepend constitution preamble (same as the static prompt does)
     const preamble = buildConstitutionPreamble('program')
-    return `${preamble}${prompt}`
+    const languageInstruction = locale === 'sv'
+      ? '\n\nSvara alltid på svenska i allt användarvänt innehåll.'
+      : '\n\nAlways write all user-facing generated content in English.'
+    return `${preamble}${prompt}${languageInstruction}`
   } catch {
     // On any error (DB down, etc.), fall back gracefully
-    return PROGRAM_GENERATOR_SYSTEM_PROMPT
+    return buildProgramGeneratorSystemPrompt(locale)
   }
 }
 
@@ -120,7 +125,7 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
     await updateProgress(sessionId, {
       status: 'GENERATING_OUTLINE',
       progressPercent: 5,
-      progressMessage: 'Skapar programstruktur...',
+      progressMessage: t(context, 'Creating program structure...', 'Skapar programstruktur...'),
     })
 
     const outline = await generateOutlineWithRetry(context, apiKey, provider, modelId, systemPrompt, aiMeta)
@@ -148,7 +153,11 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
         status: 'GENERATING_PHASE',
         currentPhase: phaseNumber,
         progressPercent: Math.round(progressBase),
-        progressMessage: `Genererar ${phaseConfig.name} (fas ${phaseNumber}/${outline.phases.length})...`,
+        progressMessage: t(
+          context,
+          `Generating ${phaseConfig.name} (phase ${phaseNumber}/${outline.phases.length})...`,
+          `Genererar ${phaseConfig.name} (fas ${phaseNumber}/${outline.phases.length})...`
+        ),
       })
 
       // Generate phase with retry
@@ -180,7 +189,7 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
       await logProgress(
         sessionId,
         `phase_${phaseNumber}`,
-        `${phaseConfig.name} genererad`,
+        t(context, `${phaseConfig.name} generated`, `${phaseConfig.name} genererad`),
         Math.round(progressBase + (80 / outline.phases.length)),
         { phaseNumber, phaseName: phaseConfig.name }
       )
@@ -190,7 +199,7 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
     await updateProgress(sessionId, {
       status: 'MERGING',
       progressPercent: 95,
-      progressMessage: 'Sammanställer programmet...',
+      progressMessage: t(context, 'Assembling the program...', 'Sammanställer programmet...'),
     })
 
     const mergedProgram = mergePhases(completedPhases, outline)
@@ -207,12 +216,12 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
         status: 'COMPLETED',
         mergedProgram: mergedProgram as object,
         progressPercent: 100,
-        progressMessage: 'Programmet är klart!',
+        progressMessage: t(context, 'The program is ready!', 'Programmet är klart!'),
         completedAt: new Date(),
       },
     })
 
-    await logProgress(sessionId, 'complete', 'Programmet är klart!', 100, {
+    await logProgress(sessionId, 'complete', t(context, 'The program is ready!', 'Programmet är klart!'), 100, {
       totalWeeks: mergedProgram.totalWeeks,
       totalPhases: mergedProgram.phases.length,
       warnings: validation.warnings,
@@ -481,6 +490,10 @@ async function logProgress(
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function t(context: GenerationContext, en: string, sv: string): string {
+  return context.locale === 'sv' ? sv : en
 }
 
 // ============================================

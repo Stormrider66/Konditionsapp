@@ -324,12 +324,13 @@ export async function POST(request: NextRequest) {
           conversationId,
           athleteCapabilities
             ? { canGenerateProgram: athleteCapabilities.canGenerateProgram }
-            : undefined
+            : undefined,
+          responseLocale
         ),
         maxSteps: 4,
       }),
       ...(!isAthleteChat && {
-        tools: createCoachChatTools(userId, explicitBusinessSlug || undefined),
+        tools: createCoachChatTools(userId, explicitBusinessSlug || undefined, responseLocale),
         maxSteps: 4,
       }),
       ...(provider === 'GOOGLE' && deepThinkEnabled && {

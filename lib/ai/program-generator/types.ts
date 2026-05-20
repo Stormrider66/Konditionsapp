@@ -34,6 +34,8 @@ export interface ProgramOutline {
 // ============================================
 
 export interface GenerationContext {
+  locale?: 'en' | 'sv'
+
   // From wizard
   sport: string
   totalWeeks: number

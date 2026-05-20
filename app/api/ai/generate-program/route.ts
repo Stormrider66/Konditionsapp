@@ -74,13 +74,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (programContext.athleteId) {
-      const access = await canAccessAthlete(user.id, programContext.athleteId)
+    const localizedProgramContext: GenerationContext = {
+      ...programContext,
+      locale,
+    }
+
+    if (localizedProgramContext.athleteId) {
+      const access = await canAccessAthlete(user.id, localizedProgramContext.athleteId)
       if (!access.allowed) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
-      const allowanceDenied = await requireAiAllowance(programContext.athleteId, {
+      const allowanceDenied = await requireAiAllowance(localizedProgramContext.athleteId, {
         minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.longRunning,
       })
       if (allowanceDenied) return allowanceDenied
@@ -119,12 +124,12 @@ export async function POST(request: NextRequest) {
       data: {
         coachId: user.id,
         conversationId: conversationId || null,
-        query: programContext.goal || `${totalWeeks}-week ${programContext.sport} program`,
+        query: localizedProgramContext.goal || `${totalWeeks}-week ${localizedProgramContext.sport} program`,
         totalWeeks,
-        sport: programContext.sport,
-        methodology: programContext.methodology || null,
-        athleteContext: programContext as object,
-        athleteId: programContext.athleteId || null,
+        sport: localizedProgramContext.sport,
+        methodology: localizedProgramContext.methodology || null,
+        athleteContext: localizedProgramContext as object,
+        athleteId: localizedProgramContext.athleteId || null,
         status: 'PENDING',
         totalPhases: phases.length,
         modelUsed: modelId || null,
@@ -136,7 +141,7 @@ export async function POST(request: NextRequest) {
     // The cron job will pick this up, or we can start it directly
     if (process.env.VERCEL !== '1') {
       // Local development: start immediately in background
-      startGenerationBackground(session.id, programContext, apiKey, selectedProvider, modelId)
+      startGenerationBackground(session.id, localizedProgramContext, apiKey, selectedProvider, modelId)
     }
     // On Vercel, the cron job will poll and process pending sessions
 
