@@ -3,10 +3,16 @@ import { METHODOLOGIES } from '../../program-prompts'
 import { calculateZonesFromTest } from '../zones'
 import { formatSecondsToTime, formatSwimTime, formatTime } from '../formatters'
 
+type SportContextLocale = 'en' | 'sv'
+
+function dateLocale(locale: SportContextLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
 /**
  * Build Running-specific context
  */
-export function buildRunningContext(athlete: AthleteData): string {
+export function buildRunningContext(athlete: AthleteData, locale: SportContextLocale = 'en'): string {
   const sp = athlete.sportProfile;
   const settings = sp?.runningSettings as RunningSettings | null;
   const test = athlete.tests?.[0];
@@ -75,7 +81,7 @@ export function buildRunningContext(athlete: AthleteData): string {
   if (races.length > 0) {
     context += `\n### Senaste tävlingsresultat\n`;
     for (const race of races.slice(0, 5)) {
-      context += `- **${race.raceName || race.distance}** (${new Date(race.raceDate).toLocaleDateString('sv-SE')}): ${race.timeFormatted}`;
+      context += `- **${race.raceName || race.distance}** (${new Date(race.raceDate).toLocaleDateString(dateLocale(locale))}): ${race.timeFormatted}`;
       if (race.vdot) context += ` (VDOT: ${race.vdot.toFixed(1)})`;
       context += '\n';
     }
@@ -272,5 +278,4 @@ export function buildSkiingContext(athlete: AthleteData): string {
 
   return context;
 }
-
 

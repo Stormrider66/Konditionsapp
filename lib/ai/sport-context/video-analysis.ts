@@ -6,10 +6,19 @@ import {
   translateRiskLevel,
 } from './formatters'
 
+type SportContextLocale = 'en' | 'sv'
+
+function dateLocale(locale: SportContextLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
 /**
  * Build video analysis context from running gait analysis
  */
-export function buildVideoAnalysisContext(videoAnalyses: VideoAnalysis[]): string {
+export function buildVideoAnalysisContext(
+  videoAnalyses: VideoAnalysis[],
+  locale: SportContextLocale = 'en'
+): string {
   if (!videoAnalyses || videoAnalyses.length === 0) return '';
 
   let context = `\n## VIDEOANALYSER - LÖPTEKNIK\n`;
@@ -22,7 +31,7 @@ export function buildVideoAnalysisContext(videoAnalyses: VideoAnalysis[]): strin
   const hasMultipleViews = new Set(availableAngles).size > 1;
 
   for (const video of videoAnalyses) {
-    const date = new Date(video.createdAt).toLocaleDateString('sv-SE');
+    const date = new Date(video.createdAt).toLocaleDateString(dateLocale(locale));
     const angleLabel = translateCameraAngle(video.cameraAngle);
     const angleInfo = angleLabel ? ` (${angleLabel})` : '';
     context += `\n### Analys från ${date}${angleInfo}\n`;

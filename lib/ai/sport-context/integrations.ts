@@ -1,11 +1,17 @@
 import type { GarminMetricsData, StravaActivityData } from './types'
 
+type SportContextLocale = 'en' | 'sv'
+
+function dateLocale(locale: SportContextLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
 /**
  * Build Strava integration context (PRO tier only)
  *
  * Provides AI with recent training data from Strava for better analysis.
  */
-export function buildStravaContext(activities: StravaActivityData[]): string {
+export function buildStravaContext(activities: StravaActivityData[], locale: SportContextLocale = 'en'): string {
   if (!activities || activities.length === 0) return '';
 
   let context = `\n## STRAVA-DATA (Senaste 14 dagarna)\n`;
@@ -47,7 +53,7 @@ export function buildStravaContext(activities: StravaActivityData[]): string {
   // Recent activities list
   context += `\n### Senaste aktiviteter\n`;
   for (const activity of recentActivities.slice(0, 5)) {
-    const date = new Date(activity.startDate).toLocaleDateString('sv-SE');
+    const date = new Date(activity.startDate).toLocaleDateString(dateLocale(locale));
     const distance = activity.distance ? `${(activity.distance / 1000).toFixed(1)} km` : '';
     const time = activity.movingTime ? formatDuration(activity.movingTime) : '';
     const hr = activity.averageHeartrate ? `${Math.round(activity.averageHeartrate)} bpm` : '';
@@ -81,7 +87,7 @@ export function buildStravaContext(activities: StravaActivityData[]): string {
  *
  * Provides AI with health metrics from Garmin for holistic analysis.
  */
-export function buildGarminContext(metrics: GarminMetricsData): string {
+export function buildGarminContext(metrics: GarminMetricsData, locale: SportContextLocale = 'en'): string {
   if (!metrics) return '';
 
   let context = `\n## GARMIN HÄLSODATA (Senaste 7 dagarna)\n`;
@@ -143,7 +149,7 @@ export function buildGarminContext(metrics: GarminMetricsData): string {
   context += `| Datum | Sömn | HRV | RHR | Steg |\n`;
   context += `|-------|------|-----|-----|------|\n`;
   for (const day of recentDays.slice(0, 7)) {
-    const date = new Date(day.date).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric' });
+    const date = new Date(day.date).toLocaleDateString(dateLocale(locale), { weekday: 'short', day: 'numeric' });
     const sleep = day.sleepHours ? `${day.sleepHours.toFixed(1)}h` : '-';
     const hrv = day.hrv ? `${Math.round(day.hrv)}` : '-';
     const rhr = day.restingHR ? `${Math.round(day.restingHR)}` : '-';

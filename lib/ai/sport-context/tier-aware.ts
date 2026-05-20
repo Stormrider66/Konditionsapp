@@ -84,7 +84,8 @@ export function tierHasAIAccess(tier: AthleteSubscriptionTier): boolean {
  */
 export function buildTierAwareContext(
   athlete: AthleteData,
-  tier: AthleteSubscriptionTier
+  tier: AthleteSubscriptionTier,
+  locale: 'en' | 'sv' = 'en'
 ): string {
   const config = getTierContextConfig(tier);
 
@@ -109,7 +110,7 @@ export function buildTierAwareContext(
     // Add sport-specific data based on tier
     switch (primarySport) {
       case 'RUNNING':
-        context += buildRunningContext(athlete);
+        context += buildRunningContext(athlete, locale);
         break;
       case 'CYCLING':
         context += buildCyclingContext(athlete);
@@ -143,12 +144,12 @@ export function buildTierAwareContext(
 
   // Test data (for STANDARD and PRO)
   if (config.includeTests && athlete.tests.length > 0) {
-    context += buildTestContext(athlete.tests);
+    context += buildTestContext(athlete.tests, locale);
   }
 
   // Video analysis (PRO only)
   if (config.includeVideoAnalysis && athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
-    context += buildVideoAnalysisContext(athlete.videoAnalyses);
+    context += buildVideoAnalysisContext(athlete.videoAnalyses, locale);
   }
 
   // Readiness data (for STANDARD and PRO)
@@ -162,7 +163,7 @@ export function buildTierAwareContext(
     if (athlete.stravaActivities && athlete.stravaActivities.length > 0) {
       if (tier === 'PRO') {
         // Full context for PRO
-        context += buildStravaContext(athlete.stravaActivities);
+        context += buildStravaContext(athlete.stravaActivities, locale);
       } else {
         // Summary for STANDARD
         const totalDistance = athlete.stravaActivities.reduce((sum, a) => sum + (a.distance || 0), 0) / 1000;
@@ -178,7 +179,7 @@ export function buildTierAwareContext(
     if (athlete.garminMetrics) {
       if (tier === 'PRO') {
         // Full context for PRO
-        context += buildGarminContext(athlete.garminMetrics);
+        context += buildGarminContext(athlete.garminMetrics, locale);
       } else {
         // Summary for STANDARD
         context += `\n## Garmin-sammanfattning\n`;

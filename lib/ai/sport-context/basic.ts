@@ -1,5 +1,11 @@
 import type { AthleteData, TestData } from './types'
 
+type SportContextLocale = 'en' | 'sv'
+
+function dateLocale(locale: SportContextLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
 /**
  * Build basic profile context
  */
@@ -50,13 +56,13 @@ export function buildBasicProfileContext(athlete: AthleteData): string {
 /**
  * Build test data context
  */
-export function buildTestContext(tests: TestData[]): string {
+export function buildTestContext(tests: TestData[], locale: SportContextLocale = 'en'): string {
   if (tests.length === 0) return '';
 
   const latestTest = tests[0]; // Assuming sorted by date desc
 
   let context = `\n## Senaste testresultat\n`;
-  context += `- **Testdatum**: ${new Date(latestTest.testDate).toLocaleDateString('sv-SE')}\n`;
+  context += `- **Testdatum**: ${new Date(latestTest.testDate).toLocaleDateString(dateLocale(locale))}\n`;
   context += `- **Testtyp**: ${latestTest.testType}\n`;
 
   if (latestTest.maxHR) {

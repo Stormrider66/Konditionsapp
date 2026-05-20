@@ -26,7 +26,7 @@ import { buildHockeyContext, buildFootballContext } from './sports/team'
 /**
  * Main function: Build complete sport-specific context
  */
-export function buildSportSpecificContext(athlete: AthleteData): string {
+export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | 'sv' = 'en'): string {
   const primarySport = athlete.sportProfile?.primarySport;
 
   if (!primarySport) {
@@ -42,17 +42,17 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
   // Add sport-specific data
   switch (primarySport) {
     case 'RUNNING':
-      context += buildRunningContext(athlete);
+      context += buildRunningContext(athlete, locale);
       // Include video analysis for running gait
       if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
-        context += buildVideoAnalysisContext(athlete.videoAnalyses);
+        context += buildVideoAnalysisContext(athlete.videoAnalyses, locale);
       }
       break;
     case 'HYROX':
       context += buildHyroxContext(athlete);
       // Include running video analysis for HYROX (has running component)
       if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
-        context += buildVideoAnalysisContext(athlete.videoAnalyses);
+        context += buildVideoAnalysisContext(athlete.videoAnalyses, locale);
       }
       break;
     case 'CYCLING':
@@ -65,10 +65,10 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
       context += buildTriathlonContext(athlete);
       context += buildSwimmingContext(athlete); // Include swim data
       context += buildCyclingContext(athlete); // Include cycling data
-      context += buildRunningContext(athlete); // Include running data
+      context += buildRunningContext(athlete, locale); // Include running data
       // Include video analysis for the running component
       if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
-        context += buildVideoAnalysisContext(athlete.videoAnalyses);
+        context += buildVideoAnalysisContext(athlete.videoAnalyses, locale);
       }
       break;
     case 'SKIING':
@@ -116,7 +116,7 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
 
   // Add strength training context if available (NEW)
   if (athlete.strengthSessions && athlete.strengthSessions.length > 0) {
-    context += buildStrengthContextForCoach(athlete.strengthSessions);
+    context += buildStrengthContextForCoach(athlete.strengthSessions, locale);
   }
 
   // Add athlete self-description if available (NEW)
@@ -126,7 +126,7 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
 
   // Add coach notes if available (NEW)
   if (athlete.coachNotes && athlete.coachNotes.length > 0) {
-    context += buildCoachNotesContext(athlete.coachNotes);
+    context += buildCoachNotesContext(athlete.coachNotes, locale);
   }
 
   // Add session types and periodization notes

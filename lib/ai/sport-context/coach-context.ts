@@ -6,6 +6,12 @@ import type {
   TrainingLoadData,
 } from './types'
 
+type SportContextLocale = 'en' | 'sv'
+
+function dateLocale(locale: SportContextLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
 // ==================== NEW CONTEXT BUILDERS ====================
 
 export function buildTrainingLoadContextForCoach(load: TrainingLoadData): string {
@@ -71,7 +77,10 @@ export function buildComplianceContextForCoach(rate: number): string {
   return context;
 }
 
-export function buildStrengthContextForCoach(sessions: StrengthSessionData[]): string {
+export function buildStrengthContextForCoach(
+  sessions: StrengthSessionData[],
+  locale: SportContextLocale = 'en'
+): string {
   let context = `\n### Styrketräning (senaste)\n`;
 
   const phaseMap: Record<string, string> = {
@@ -83,7 +92,7 @@ export function buildStrengthContextForCoach(sessions: StrengthSessionData[]): s
   };
 
   for (const session of sessions.slice(0, 3)) {
-    const date = new Date(session.assignedDate).toLocaleDateString('sv-SE');
+    const date = new Date(session.assignedDate).toLocaleDateString(dateLocale(locale));
     const phase = phaseMap[session.phase] || session.phase;
     context += `- **${session.name}** (${date}) - ${phase}\n`;
 
@@ -183,13 +192,13 @@ export function buildAthleteProfileContextForCoach(
   return context;
 }
 
-export function buildCoachNotesContext(notes: CoachNoteData[]): string {
+export function buildCoachNotesContext(notes: CoachNoteData[], locale: SportContextLocale = 'en'): string {
   if (notes.length === 0) return '';
 
   let context = `\n### Tidigare anteckningar\n`;
 
   for (const note of notes.slice(0, 5)) {
-    const date = new Date(note.createdAt).toLocaleDateString('sv-SE');
+    const date = new Date(note.createdAt).toLocaleDateString(dateLocale(locale));
     const truncated = note.content.length > 150 ? note.content.slice(0, 150) + '...' : note.content;
     context += `- (${date}) ${truncated}\n`;
   }
