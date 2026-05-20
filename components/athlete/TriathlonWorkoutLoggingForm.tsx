@@ -10,14 +10,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Waves,
   Bike,
   PersonStanding,
-  Clock,
   Activity,
   TrendingUp,
   Save,
@@ -27,6 +24,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 interface TriathlonWorkoutLoggingFormProps {
   workout: {
@@ -78,20 +76,56 @@ interface TriathlonWorkoutLoggingFormProps {
   }
 }
 
+type AppLocale = 'en' | 'sv'
+type TriathlonFormData = {
+  swimDuration: number
+  swimDistance: number
+  swimPace: number | null
+  swimStrokeRate: number | null
+  includeSwim: boolean
+  bikeDuration: number
+  bikeDistance: number
+  bikePower: number | null
+  bikeNormalizedPower: number | null
+  bikeCadence: number | null
+  bikeElevation: number | null
+  includeBike: boolean
+  runDuration: number
+  runDistance: number
+  runPace: number | null
+  runCadence: number | null
+  includeRun: boolean
+  t1Duration: number | null
+  t2Duration: number | null
+  avgHR: number | null
+  maxHR: number | null
+  perceivedEffort: number
+  feeling: string
+  notes: string
+}
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 const FEELINGS = [
-  { value: 'Great', label: 'Utmärkt', emoji: '😀' },
-  { value: 'Good', label: 'Bra', emoji: '🙂' },
-  { value: 'Okay', label: 'Okej', emoji: '😐' },
-  { value: 'Tired', label: 'Trött', emoji: '😓' },
-  { value: 'Struggled', label: 'Kämpigt', emoji: '😩' },
+  { value: 'Great', label: { sv: 'Utmärkt', en: 'Excellent' }, emoji: '😀' },
+  { value: 'Good', label: { sv: 'Bra', en: 'Good' }, emoji: '🙂' },
+  { value: 'Okay', label: { sv: 'Okej', en: 'Okay' }, emoji: '😐' },
+  { value: 'Tired', label: { sv: 'Trött', en: 'Tired' }, emoji: '😓' },
+  { value: 'Struggled', label: { sv: 'Kämpigt', en: 'Struggled' }, emoji: '😩' },
 ]
 
 const WORKOUT_TYPES = [
-  { value: 'swim', label: 'Simning', icon: Waves, color: 'text-blue-500' },
-  { value: 'bike', label: 'Cykling', icon: Bike, color: 'text-yellow-500' },
-  { value: 'run', label: 'Löpning', icon: PersonStanding, color: 'text-green-500' },
-  { value: 'brick', label: 'Brick (Cykel+Löp)', icon: Medal, color: 'text-purple-500' },
-  { value: 'full', label: 'Full Triathlon', icon: Medal, color: 'text-orange-500' },
+  { value: 'swim', label: { sv: 'Simning', en: 'Swim' }, icon: Waves, color: 'text-blue-500' },
+  { value: 'bike', label: { sv: 'Cykling', en: 'Bike' }, icon: Bike, color: 'text-yellow-500' },
+  { value: 'run', label: { sv: 'Löpning', en: 'Run' }, icon: PersonStanding, color: 'text-green-500' },
+  { value: 'brick', label: { sv: 'Brick (Cykel+Löp)', en: 'Brick (Bike+Run)' }, icon: Medal, color: 'text-purple-500' },
+  { value: 'full', label: { sv: 'Full Triathlon', en: 'Full triathlon' }, icon: Medal, color: 'text-orange-500' },
 ]
 
 // Format seconds to MM:SS
@@ -129,6 +163,7 @@ export function TriathlonWorkoutLoggingForm({
   existingLog,
   athleteSettings,
 }: TriathlonWorkoutLoggingFormProps) {
+  const locale = getAppLocale(useLocale())
   const basePath = useBasePath()
   const router = useRouter()
   const { toast } = useToast()
@@ -144,7 +179,7 @@ export function TriathlonWorkoutLoggingForm({
   const [workoutType, setWorkoutType] = useState(defaultWorkoutType)
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TriathlonFormData>({
     // Swim
     swimDuration: existingLog?.swimDuration ?? 0,
     swimDistance: existingLog?.swimDistance ?? 0,
@@ -190,7 +225,7 @@ export function TriathlonWorkoutLoggingForm({
     formData.runPace ? formatPace(formData.runPace) : ''
   )
 
-  const updateField = (field: string, value: any) => {
+  const updateField = <K extends keyof TriathlonFormData>(field: K, value: TriathlonFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -283,16 +318,18 @@ export function TriathlonWorkoutLoggingForm({
       }
 
       toast({
-        title: existingLog ? 'Pass uppdaterat!' : 'Pass loggat!',
-        description: 'Din triathlonträning har sparats.',
+        title: existingLog
+          ? text(locale, 'Pass uppdaterat!', 'Workout updated!')
+          : text(locale, 'Pass loggat!', 'Workout logged!'),
+        description: text(locale, 'Din triathlonträning har sparats.', 'Your triathlon training has been saved.'),
       })
 
       router.push(`${basePath}/athlete/programs/${workout.id}`)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara träningspasset. Försök igen.',
+        title: text(locale, 'Fel', 'Error'),
+        description: text(locale, 'Kunde inte spara träningspasset. Försök igen.', 'Could not save the workout. Please try again.'),
         variant: 'destructive',
       })
     } finally {
@@ -301,7 +338,9 @@ export function TriathlonWorkoutLoggingForm({
   }
 
   const getRPELabel = (rpe: number) => {
-    const labels = ['', 'Mycket lätt', 'Lätt', 'Måttlig', 'Något hård', 'Hård', 'Mycket hård', 'Mycket mycket hård', 'Nära max', 'Maximal', 'Max+']
+    const labels = locale === 'sv'
+      ? ['', 'Mycket lätt', 'Lätt', 'Måttlig', 'Något hård', 'Hård', 'Mycket hård', 'Mycket mycket hård', 'Nära max', 'Maximal', 'Max+']
+      : ['', 'Very easy', 'Easy', 'Moderate', 'Somewhat hard', 'Hard', 'Very hard', 'Very very hard', 'Near max', 'Maximal', 'Max+']
     return labels[rpe] || ''
   }
 
@@ -328,7 +367,7 @@ export function TriathlonWorkoutLoggingForm({
       {/* Workout Type Selection */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Välj passtyp</CardTitle>
+          <CardTitle className="text-base">{text(locale, 'Välj passtyp', 'Choose workout type')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -340,7 +379,7 @@ export function TriathlonWorkoutLoggingForm({
                 className="flex flex-col h-auto py-3 gap-1"
               >
                 <type.icon className={`h-5 w-5 ${workoutType === type.value ? '' : type.color}`} />
-                <span className="text-xs">{type.label}</span>
+                <span className="text-xs">{type.label[locale]}</span>
               </Button>
             ))}
           </div>
@@ -352,15 +391,15 @@ export function TriathlonWorkoutLoggingForm({
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="swim" disabled={!formData.includeSwim} className="flex items-center gap-1">
             <Waves className="h-4 w-4" />
-            Sim
+            {text(locale, 'Sim', 'Swim')}
           </TabsTrigger>
           <TabsTrigger value="bike" disabled={!formData.includeBike} className="flex items-center gap-1">
             <Bike className="h-4 w-4" />
-            Cykel
+            {text(locale, 'Cykel', 'Bike')}
           </TabsTrigger>
           <TabsTrigger value="run" disabled={!formData.includeRun} className="flex items-center gap-1">
             <PersonStanding className="h-4 w-4" />
-            Löp
+            {text(locale, 'Löp', 'Run')}
           </TabsTrigger>
         </TabsList>
 
@@ -370,7 +409,7 @@ export function TriathlonWorkoutLoggingForm({
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Waves className="h-4 w-4 text-blue-500" />
-                Simdata
+                {text(locale, 'Simdata', 'Swim data')}
                 {athleteSettings?.currentCss && (
                   <Badge variant="outline" className="ml-auto">
                     CSS: {formatPace(athleteSettings.currentCss)}/100m
@@ -381,7 +420,7 @@ export function TriathlonWorkoutLoggingForm({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Tid (minuter)</Label>
+                  <Label>{text(locale, 'Tid (minuter)', 'Time (minutes)')}</Label>
                   <Input
                     type="number"
                     value={formData.swimDuration || ''}
@@ -390,7 +429,7 @@ export function TriathlonWorkoutLoggingForm({
                   />
                 </div>
                 <div>
-                  <Label>Distans (meter)</Label>
+                  <Label>{text(locale, 'Distans (meter)', 'Distance (meters)')}</Label>
                   <Input
                     type="number"
                     step="25"
@@ -402,17 +441,17 @@ export function TriathlonWorkoutLoggingForm({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Tempo (/100m)</Label>
+                  <Label>{text(locale, 'Tempo (/100m)', 'Pace (/100m)')}</Label>
                   <Input
                     type="text"
                     value={swimPaceInput}
                     onChange={(e) => handlePaceChange('swim', e.target.value)}
                     placeholder="1:45"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Format: M:SS</p>
+                  <p className="text-xs text-muted-foreground mt-1">{text(locale, 'Format: M:SS', 'Format: M:SS')}</p>
                 </div>
                 <div>
-                  <Label>Simtagsfrekvens (spm)</Label>
+                  <Label>{text(locale, 'Simtagsfrekvens (spm)', 'Stroke rate (spm)')}</Label>
                   <Input
                     type="number"
                     value={formData.swimStrokeRate || ''}
@@ -431,7 +470,7 @@ export function TriathlonWorkoutLoggingForm({
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Bike className="h-4 w-4 text-yellow-500" />
-                Cykeldata
+                {text(locale, 'Cykeldata', 'Bike data')}
                 {athleteSettings?.currentFtp && (
                   <Badge variant="outline" className="ml-auto">
                     FTP: {athleteSettings.currentFtp}W
@@ -442,7 +481,7 @@ export function TriathlonWorkoutLoggingForm({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Tid (minuter)</Label>
+                  <Label>{text(locale, 'Tid (minuter)', 'Time (minutes)')}</Label>
                   <Input
                     type="number"
                     value={formData.bikeDuration || ''}
@@ -451,7 +490,7 @@ export function TriathlonWorkoutLoggingForm({
                   />
                 </div>
                 <div>
-                  <Label>Distans (km)</Label>
+                  <Label>{text(locale, 'Distans (km)', 'Distance (km)')}</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -463,7 +502,7 @@ export function TriathlonWorkoutLoggingForm({
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label>Snitt watt</Label>
+                  <Label>{text(locale, 'Snitt watt', 'Average watts')}</Label>
                   <Input
                     type="number"
                     value={formData.bikePower || ''}
@@ -481,7 +520,7 @@ export function TriathlonWorkoutLoggingForm({
                   />
                 </div>
                 <div>
-                  <Label>Kadens (rpm)</Label>
+                  <Label>{text(locale, 'Kadens (rpm)', 'Cadence (rpm)')}</Label>
                   <Input
                     type="number"
                     value={formData.bikeCadence || ''}
@@ -491,7 +530,7 @@ export function TriathlonWorkoutLoggingForm({
                 </div>
               </div>
               <div>
-                <Label>Höjdmeter (m)</Label>
+                <Label>{text(locale, 'Höjdmeter (m)', 'Elevation gain (m)')}</Label>
                 <Input
                   type="number"
                   className="max-w-[150px]"
@@ -510,10 +549,10 @@ export function TriathlonWorkoutLoggingForm({
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <PersonStanding className="h-4 w-4 text-green-500" />
-                Löpdata
+                {text(locale, 'Löpdata', 'Run data')}
                 {athleteSettings?.currentThresholdPace && (
                   <Badge variant="outline" className="ml-auto">
-                    Tröskel: {formatPace(athleteSettings.currentThresholdPace)}/km
+                    {text(locale, 'Tröskel', 'Threshold')}: {formatPace(athleteSettings.currentThresholdPace)}/km
                   </Badge>
                 )}
               </CardTitle>
@@ -521,7 +560,7 @@ export function TriathlonWorkoutLoggingForm({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Tid (minuter)</Label>
+                  <Label>{text(locale, 'Tid (minuter)', 'Time (minutes)')}</Label>
                   <Input
                     type="number"
                     value={formData.runDuration || ''}
@@ -530,7 +569,7 @@ export function TriathlonWorkoutLoggingForm({
                   />
                 </div>
                 <div>
-                  <Label>Distans (km)</Label>
+                  <Label>{text(locale, 'Distans (km)', 'Distance (km)')}</Label>
                   <Input
                     type="number"
                     step="0.1"
@@ -542,17 +581,17 @@ export function TriathlonWorkoutLoggingForm({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Tempo (/km)</Label>
+                  <Label>{text(locale, 'Tempo (/km)', 'Pace (/km)')}</Label>
                   <Input
                     type="text"
                     value={runPaceInput}
                     onChange={(e) => handlePaceChange('run', e.target.value)}
                     placeholder="5:00"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Format: M:SS</p>
+                  <p className="text-xs text-muted-foreground mt-1">{text(locale, 'Format: M:SS', 'Format: M:SS')}</p>
                 </div>
                 <div>
-                  <Label>Kadens (spm)</Label>
+                  <Label>{text(locale, 'Kadens (spm)', 'Cadence (spm)')}</Label>
                   <Input
                     type="number"
                     value={formData.runCadence || ''}
@@ -572,14 +611,14 @@ export function TriathlonWorkoutLoggingForm({
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <ArrowRight className="h-4 w-4" />
-              Övergångar (Transitions)
+              {text(locale, 'Övergångar (Transitions)', 'Transitions')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               {workoutType === 'full' && (
                 <div>
-                  <Label>T1: Sim → Cykel (sekunder)</Label>
+                  <Label>{text(locale, 'T1: Sim → Cykel (sekunder)', 'T1: Swim to bike (seconds)')}</Label>
                   <Input
                     type="number"
                     value={formData.t1Duration || ''}
@@ -589,7 +628,7 @@ export function TriathlonWorkoutLoggingForm({
                 </div>
               )}
               <div>
-                <Label>T2: Cykel → Löp (sekunder)</Label>
+                <Label>{text(locale, 'T2: Cykel → Löp (sekunder)', 'T2: Bike to run (seconds)')}</Label>
                 <Input
                   type="number"
                   value={formData.t2Duration || ''}
@@ -607,13 +646,13 @@ export function TriathlonWorkoutLoggingForm({
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Heart className="h-4 w-4 text-red-500" />
-            Pulsdata (övergripande)
+            {text(locale, 'Pulsdata (övergripande)', 'Heart rate data (overall)')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Snittpuls (bpm)</Label>
+              <Label>{text(locale, 'Snittpuls (bpm)', 'Average heart rate (bpm)')}</Label>
               <Input
                 type="number"
                 value={formData.avgHR || ''}
@@ -622,7 +661,7 @@ export function TriathlonWorkoutLoggingForm({
               />
             </div>
             <div>
-              <Label>Maxpuls (bpm)</Label>
+              <Label>{text(locale, 'Maxpuls (bpm)', 'Max heart rate (bpm)')}</Label>
               <Input
                 type="number"
                 value={formData.maxHR || ''}
@@ -639,13 +678,13 @@ export function TriathlonWorkoutLoggingForm({
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Activity className="h-4 w-4" />
-            Känsla & Ansträngning
+            {text(locale, 'Känsla & Ansträngning', 'Feeling & Effort')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <Label>RPE (upplevd ansträngning)</Label>
+              <Label>{text(locale, 'RPE (upplevd ansträngning)', 'RPE (perceived effort)')}</Label>
               <Badge variant="secondary">
                 {formData.perceivedEffort} - {getRPELabel(formData.perceivedEffort || 5)}
               </Badge>
@@ -659,15 +698,15 @@ export function TriathlonWorkoutLoggingForm({
               className="py-2"
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>Lätt</span>
-              <span>Måttlig</span>
-              <span>Hård</span>
+              <span>{text(locale, 'Lätt', 'Easy')}</span>
+              <span>{text(locale, 'Måttlig', 'Moderate')}</span>
+              <span>{text(locale, 'Hård', 'Hard')}</span>
               <span>Max</span>
             </div>
           </div>
 
           <div>
-            <Label className="mb-3 block">Hur kändes passet?</Label>
+            <Label className="mb-3 block">{text(locale, 'Hur kändes passet?', 'How did the session feel?')}</Label>
             <div className="flex flex-wrap gap-2">
               {FEELINGS.map((f) => (
                 <Button
@@ -678,7 +717,7 @@ export function TriathlonWorkoutLoggingForm({
                   className="flex items-center gap-2"
                 >
                   <span className="text-lg">{f.emoji}</span>
-                  {f.label}
+                  {f.label[locale]}
                 </Button>
               ))}
             </div>
@@ -689,14 +728,14 @@ export function TriathlonWorkoutLoggingForm({
       {/* Notes */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Anteckningar</CardTitle>
+          <CardTitle className="text-base">{text(locale, 'Anteckningar', 'Notes')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
             value={formData.notes}
             onChange={(e) => updateField('notes', e.target.value)}
             rows={4}
-            placeholder="Hur gick passet? Hur funkade övergångarna? Något speciellt att notera?"
+            placeholder={text(locale, 'Hur gick passet? Hur funkade övergångarna? Något speciellt att notera?', 'How did the session go? How did the transitions work? Anything specific to note?')}
           />
         </CardContent>
       </Card>
@@ -707,7 +746,7 @@ export function TriathlonWorkoutLoggingForm({
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Sammanfattning
+              {text(locale, 'Sammanfattning', 'Summary')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -746,7 +785,7 @@ export function TriathlonWorkoutLoggingForm({
               <div className="border-l pl-4 ml-2 flex flex-col items-center">
                 <Timer className="h-4 w-4 text-primary mb-1" />
                 <p className="font-bold text-primary">{formatDuration(totalDuration)}</p>
-                <p className="text-xs text-muted-foreground">Totalt</p>
+                <p className="text-xs text-muted-foreground">{text(locale, 'Totalt', 'Total')}</p>
               </div>
             </div>
           </CardContent>
@@ -761,7 +800,7 @@ export function TriathlonWorkoutLoggingForm({
           className="flex-1"
           disabled={isSubmitting}
         >
-          Avbryt
+          {text(locale, 'Avbryt', 'Cancel')}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -769,7 +808,11 @@ export function TriathlonWorkoutLoggingForm({
           disabled={isSubmitting}
         >
           <Save className="h-4 w-4 mr-2" />
-          {isSubmitting ? 'Sparar...' : existingLog ? 'Uppdatera pass' : 'Spara pass'}
+          {isSubmitting
+            ? text(locale, 'Sparar...', 'Saving...')
+            : existingLog
+              ? text(locale, 'Uppdatera pass', 'Update workout')
+              : text(locale, 'Spara pass', 'Save workout')}
         </Button>
       </div>
     </div>
