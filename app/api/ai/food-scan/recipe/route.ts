@@ -47,13 +47,21 @@ const recipeSchema = z.object({
   notes: z.string().nullable().optional(),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
@@ -71,20 +79,29 @@ export async function POST(request: NextRequest) {
     const imageFile = formData.get('image') as File | null
 
     if (!imageFile) {
-      return NextResponse.json({ error: 'Ingen bild uppladdad' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No image uploaded', 'Ingen bild uppladdad') }, { status: 400 })
     }
 
     const normalizedType = imageFile.type === 'image/jpg' ? 'image/jpeg' : imageFile.type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
     if (!validTypes.includes(normalizedType)) {
       return NextResponse.json(
-        { error: `Ogiltigt bildformat (${imageFile.type || 'okänt'}). Använd JPEG, PNG eller WebP.` },
+        {
+          error: t(
+            locale,
+            `Invalid image format (${imageFile.type || 'unknown'}). Use JPEG, PNG, or WebP.`,
+            `Ogiltigt bildformat (${imageFile.type || 'okänt'}). Använd JPEG, PNG eller WebP.`
+          ),
+        },
         { status: 400 }
       )
     }
 
     if (imageFile.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Bilden får inte vara större än 10MB.' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'The image cannot be larger than 10MB.', 'Bilden får inte vara större än 10MB.') },
+        { status: 400 }
+      )
     }
 
     const keyContext = await resolveAthleteGoogleKeyContext({
@@ -98,7 +115,13 @@ export async function POST(request: NextRequest) {
     const googleKey = keyContext.googleKey
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.' },
+        {
+          error: t(
+            locale,
+            'Google/Gemini API key is missing for image analysis. Enable Gemini in AI settings.',
+            'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -216,7 +239,7 @@ VIKTIGT:
     }
     return NextResponse.json(
       {
-        error: 'Kunde inte tolka receptet',
+        error: t(locale, 'Could not parse the recipe', 'Kunde inte tolka receptet'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
