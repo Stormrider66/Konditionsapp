@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
+import { useLocale } from '@/i18n/client'
 
 interface BlockDraft {
   draftId: string
@@ -61,7 +62,141 @@ interface CreateBlockPlanDialogProps {
   initialPlan?: AthletePlanSummary
 }
 
-const PLAN_TEMPLATES: PlanTemplate[] = [
+type AppLocale = 'en' | 'sv'
+
+const COPY = {
+  en: {
+    defaultSubjectLabel: 'athlete',
+    createPlan: 'Create block plan',
+    editPlan: 'Edit block plan',
+    createPlanFor: (subjectName: string) => `Create block plan for ${subjectName}`,
+    editDescription: 'Adjust name, dates, and blocks without recreating workouts.',
+    createDescription: 'Build the plan first. Workouts can be filled into the calendar later.',
+    template: 'Template',
+    existingPlan: 'Existing plan',
+    chooseTemplate: 'Choose template',
+    startDate: 'Start date',
+    length: 'Length',
+    weeks: 'weeks',
+    description: 'Description',
+    blocks: 'Blocks',
+    blocksHelp: (subjectLabel: string) =>
+      `Adjust phases for ${subjectLabel}, season, calendar, and goals.`,
+    addBlock: 'Add block',
+    block: 'Block',
+    easyWeek: 'Easy week',
+    easyWeekFocus: 'Reduce volume, keep quality, and recover',
+    easyWeekDescription: 'Planned deload week without disrupting the main phases.',
+    remove: 'Remove',
+    title: 'Title',
+    focus: 'Focus',
+    start: 'Start',
+    end: 'End',
+    comment: 'Comment',
+    commentPlaceholder: 'What should the coach and athlete keep in mind during this block?',
+    cancel: 'Cancel',
+    saveChanges: 'Save changes',
+    created: 'Block plan created',
+    updated: 'Block plan updated',
+    createError: 'Could not create block plan',
+    updateError: 'Could not update block plan',
+  },
+  sv: {
+    defaultSubjectLabel: 'atlet',
+    createPlan: 'Skapa blockplan',
+    editPlan: 'Redigera blockplan',
+    createPlanFor: (subjectName: string) => `Skapa blockplan för ${subjectName}`,
+    editDescription: 'Justera namn, datum och block utan att skapa om passen.',
+    createDescription: 'Lägg planen först. Workouts kan fyllas på i kalendern senare.',
+    template: 'Mall',
+    existingPlan: 'Befintlig plan',
+    chooseTemplate: 'Välj mall',
+    startDate: 'Startdatum',
+    length: 'Längd',
+    weeks: 'veckor',
+    description: 'Beskrivning',
+    blocks: 'Block',
+    blocksHelp: (subjectLabel: string) =>
+      `Anpassa faserna efter ${subjectLabel}, säsong, kalender och mål.`,
+    addBlock: 'Lägg till block',
+    block: 'Block',
+    easyWeek: 'Easy week',
+    easyWeekFocus: 'Sänk volym, håll kvalitet och återhämtning',
+    easyWeekDescription: 'Planerad avlastningsvecka utan att störa huvudfaserna.',
+    remove: 'Ta bort',
+    title: 'Titel',
+    focus: 'Fokus',
+    start: 'Start',
+    end: 'Slut',
+    comment: 'Kommentar',
+    commentPlaceholder: 'Vad ska coachen och atleten tänka på i detta block?',
+    cancel: 'Avbryt',
+    saveChanges: 'Spara ändringar',
+    created: 'Blockplan skapad',
+    updated: 'Blockplan uppdaterad',
+    createError: 'Kunde inte skapa blockplan',
+    updateError: 'Kunde inte uppdatera blockplan',
+  },
+} as const
+
+const PLAN_TEMPLATES_BY_LOCALE: Record<AppLocale, PlanTemplate[]> = {
+  en: [
+    {
+      key: 'hockey-9',
+      label: '9 weeks: Base, max, power',
+      planName: '9-week strength block',
+      description: '3 weeks base, 3 weeks max strength, 3 weeks power.',
+      blocks: [
+        { title: 'Base', focus: 'Build tolerance, technique, and work capacity', weeks: 3 },
+        { title: 'Max strength', focus: 'Heavy strength and clear progression', weeks: 3 },
+        { title: 'Power', focus: 'Explosiveness, speed, and transfer to sport', weeks: 3 },
+      ],
+    },
+    {
+      key: 'preseason-12',
+      label: '12 weeks: Preseason',
+      planName: '12-week preseason',
+      description: 'Build a base, raise max strength, and shift toward power before the season.',
+      blocks: [
+        { title: 'Base', focus: 'Volume, technique, and robustness', weeks: 4 },
+        { title: 'Max strength', focus: 'Higher intensity and progressive loading', weeks: 4 },
+        { title: 'Power', focus: 'Explosiveness, speed, and sport transfer', weeks: 4 },
+      ],
+    },
+    {
+      key: 'return-6',
+      label: '6 weeks: Return',
+      planName: '6-week return plan',
+      description: 'Controlled return with two weeks per step.',
+      blocks: [
+        { title: 'Rebuild', focus: 'Tolerance, movement quality, and low risk', weeks: 2 },
+        { title: 'Capacity', focus: 'Progress load and training volume', weeks: 2 },
+        { title: 'Match demands', focus: 'Power, tempo, and sport-specific demands', weeks: 2 },
+      ],
+    },
+    {
+      key: 'competition-4',
+      label: '4 weeks: Taper',
+      planName: '4-week competition block',
+      description: 'Maintain capacity, reduce fatigue, and peak toward a test or match.',
+      blocks: [
+        { title: 'Maintenance', focus: 'Maintain strength and capacity with controlled volume', weeks: 2 },
+        { title: 'Taper', focus: 'Reduce volume while keeping quality and freshness', weeks: 2 },
+      ],
+    },
+    {
+      key: 'custom-3',
+      label: '3 blocks: Custom plan',
+      planName: 'New block plan',
+      description: '',
+      blocks: [
+        { title: 'Block 1', focus: '', weeks: 2 },
+        { title: 'Block 2', focus: '', weeks: 2 },
+        { title: 'Block 3', focus: '', weeks: 2 },
+      ],
+    },
+  ],
+  sv: [
   {
     key: 'hockey-9',
     label: '9 veckor: Base, max, power',
@@ -116,7 +251,8 @@ const PLAN_TEMPLATES: PlanTemplate[] = [
       { title: 'Block 3', focus: '', weeks: 2 },
     ],
   },
-]
+  ],
+}
 
 function dateInput(date: Date) {
   return format(date, 'yyyy-MM-dd')
@@ -202,15 +338,19 @@ function recalculateFromBlock(blocks: BlockDraft[], startIndex: number, startDat
 export function CreateBlockPlanDialog({
   endpoint,
   subjectName,
-  subjectLabel = 'atlet',
+  subjectLabel,
   onCreated,
   onSaved,
   trigger,
   defaultTemplateKey = 'hockey-9',
   initialPlan,
 }: CreateBlockPlanDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
+  const planTemplates = PLAN_TEMPLATES_BY_LOCALE[locale]
+  const resolvedSubjectLabel = subjectLabel ?? copy.defaultSubjectLabel
   const today = useMemo(() => new Date(), [])
-  const initialTemplate = PLAN_TEMPLATES.find((template) => template.key === defaultTemplateKey) ?? PLAN_TEMPLATES[0]
+  const initialTemplate = planTemplates.find((template) => template.key === defaultTemplateKey) ?? planTemplates[0]
   const isEditing = Boolean(initialPlan)
   const [open, setOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -247,7 +387,7 @@ export function CreateBlockPlanDialog({
   }, 0)
 
   function applyTemplate(nextTemplateKey: string, startDate = new Date(planStartDate)) {
-    const template = PLAN_TEMPLATES.find((candidate) => candidate.key === nextTemplateKey)
+    const template = planTemplates.find((candidate) => candidate.key === nextTemplateKey)
     if (!template) return
     setTemplateKey(nextTemplateKey)
     setName(template.planName)
@@ -315,9 +455,9 @@ export function CreateBlockPlanDialog({
       const start = reference ? addDays(dateFromInput(reference.endDate, today), 1) : today
       const easyWeek: BlockDraft = {
         draftId: draftId('easy', current.length, dateInput(start)),
-        title: 'Easy week',
-        focus: 'Sänk volym, håll kvalitet och återhämtning',
-        description: 'Planerad avlastningsvecka utan att störa huvudfaserna.',
+        title: copy.easyWeek,
+        focus: copy.easyWeekFocus,
+        description: copy.easyWeekDescription,
         startDate: dateInput(start),
         endDate: dateInput(blockEndFromWeeks(start, 1)),
       }
@@ -362,7 +502,7 @@ export function CreateBlockPlanDialog({
 
       const body = await response.json()
       if (!response.ok || !body.success) {
-        throw new Error(body.error || (isEditing ? 'Kunde inte uppdatera blockplan' : 'Kunde inte skapa blockplan'))
+        throw new Error(body.error || (isEditing ? copy.updateError : copy.createError))
       }
 
       if (isEditing) {
@@ -370,11 +510,11 @@ export function CreateBlockPlanDialog({
       } else {
         onCreated?.(body.data)
       }
-      toast.success(isEditing ? 'Blockplan uppdaterad' : 'Blockplan skapad')
+      toast.success(isEditing ? copy.updated : copy.created)
       setOpen(false)
       if ((isEditing && !onSaved) || (!isEditing && !onCreated)) window.location.reload()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : (isEditing ? 'Kunde inte uppdatera blockplan' : 'Kunde inte skapa blockplan'))
+      toast.error(error instanceof Error ? error.message : (isEditing ? copy.updateError : copy.createError))
     } finally {
       setIsSaving(false)
     }
@@ -386,31 +526,31 @@ export function CreateBlockPlanDialog({
         {trigger ?? (
           <Button size="sm">
             <Plus className="mr-2 h-4 w-4" />
-            Skapa blockplan
+            {copy.createPlan}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Redigera blockplan' : `Skapa blockplan för ${subjectName}`}</DialogTitle>
+          <DialogTitle>{isEditing ? copy.editPlan : copy.createPlanFor(subjectName)}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Justera namn, datum och block utan att skapa om passen.' : 'Lägg planen först. Workouts kan fyllas på i kalendern senare.'}
+            {isEditing ? copy.editDescription : copy.createDescription}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
           <div className="grid gap-3 md:grid-cols-[1fr_220px]">
             <div className="grid gap-2">
-              <Label htmlFor="block-plan-template">Mall</Label>
+              <Label htmlFor="block-plan-template">{copy.template}</Label>
               <Select value={templateKey} onValueChange={applyTemplate} disabled={isEditing}>
                 <SelectTrigger id="block-plan-template">
-                  <SelectValue placeholder={isEditing ? 'Befintlig plan' : 'Välj mall'} />
+                  <SelectValue placeholder={isEditing ? copy.existingPlan : copy.chooseTemplate} />
                 </SelectTrigger>
                 <SelectContent>
                   {isEditing && (
-                    <SelectItem value="custom-edit">Befintlig plan</SelectItem>
+                    <SelectItem value="custom-edit">{copy.existingPlan}</SelectItem>
                   )}
-                  {PLAN_TEMPLATES.map((template) => (
+                  {planTemplates.map((template) => (
                     <SelectItem key={template.key} value={template.key}>
                       {template.label}
                     </SelectItem>
@@ -419,7 +559,7 @@ export function CreateBlockPlanDialog({
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="block-plan-start">Startdatum</Label>
+              <Label htmlFor="block-plan-start">{copy.startDate}</Label>
               <Input
                 id="block-plan-start"
                 type="date"
@@ -437,16 +577,16 @@ export function CreateBlockPlanDialog({
             <div className="rounded-md border bg-muted/30 px-3 py-2">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CalendarDays className="h-3.5 w-3.5" />
-                Längd
+                {copy.length}
               </div>
               <div className="mt-1 text-sm font-semibold">
-                {blocks.length} block · {totalWeeks} veckor
+                {blocks.length} {copy.block.toLowerCase()} · {totalWeeks} {copy.weeks}
               </div>
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="block-plan-description">Beskrivning</Label>
+            <Label htmlFor="block-plan-description">{copy.description}</Label>
             <Textarea
               id="block-plan-description"
               value={description}
@@ -458,14 +598,14 @@ export function CreateBlockPlanDialog({
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold">Block</p>
+                <p className="text-sm font-semibold">{copy.blocks}</p>
                 <p className="text-xs text-muted-foreground">
-                  Anpassa faserna efter {subjectLabel}, säsong, kalender och mål.
+                  {copy.blocksHelp(resolvedSubjectLabel)}
                 </p>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={addBlock} disabled={blocks.length >= 24}>
                 <Plus className="mr-2 h-4 w-4" />
-                Lägg till block
+                {copy.addBlock}
               </Button>
             </div>
 
@@ -473,14 +613,14 @@ export function CreateBlockPlanDialog({
               <div key={block.draftId} className="rounded-lg border p-3">
                 <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold">Block {index + 1}</p>
+                    <p className="text-sm font-semibold">{copy.block} {index + 1}</p>
                     <p className="text-xs text-muted-foreground">
                       {block.startDate} - {block.endDate}
                     </p>
                   </div>
                   <div className="flex items-end gap-2">
                     <div className="grid w-28 gap-1">
-                      <Label className="text-xs">Veckor</Label>
+                      <Label className="text-xs">{copy.weeks}</Label>
                       <Input
                         type="number"
                         min={1}
@@ -498,7 +638,7 @@ export function CreateBlockPlanDialog({
                       disabled={blocks.length >= 24}
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      Easy week
+                      {copy.easyWeek}
                     </Button>
                     <Button
                       type="button"
@@ -509,34 +649,34 @@ export function CreateBlockPlanDialog({
                       disabled={blocks.length <= 1}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Ta bort
+                      {copy.remove}
                     </Button>
                   </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="grid gap-1.5">
-                    <Label>Titel</Label>
+                    <Label>{copy.title}</Label>
                     <Input value={block.title} onChange={(event) => updateBlock(index, { title: event.target.value })} />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label>Fokus</Label>
+                    <Label>{copy.focus}</Label>
                     <Input value={block.focus} onChange={(event) => updateBlock(index, { focus: event.target.value })} />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label>Start</Label>
+                    <Label>{copy.start}</Label>
                     <Input type="date" value={block.startDate} onChange={(event) => updateBlockStartDate(index, event.target.value)} />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label>Slut</Label>
+                    <Label>{copy.end}</Label>
                     <Input type="date" value={block.endDate} onChange={(event) => updateBlockEndDate(index, event.target.value)} />
                   </div>
                   <div className="grid gap-1.5 md:col-span-2">
-                    <Label>Kommentar</Label>
+                    <Label>{copy.comment}</Label>
                     <Textarea
                       value={block.description}
                       onChange={(event) => updateBlock(index, { description: event.target.value })}
                       rows={2}
-                      placeholder="Vad ska coachen och atleten tänka på i detta block?"
+                      placeholder={copy.commentPlaceholder}
                     />
                   </div>
                 </div>
@@ -547,11 +687,11 @@ export function CreateBlockPlanDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isSaving}>
-            Avbryt
+            {copy.cancel}
           </Button>
           <Button onClick={handleSubmit} disabled={isSaving || !name.trim() || blocks.length === 0}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-            {isEditing ? 'Spara ändringar' : 'Skapa blockplan'}
+            {isEditing ? copy.saveChanges : copy.createPlan}
           </Button>
         </DialogFooter>
       </DialogContent>
