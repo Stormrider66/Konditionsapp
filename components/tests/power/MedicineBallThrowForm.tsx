@@ -9,7 +9,8 @@
  * - General upper body power assessment
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,12 +37,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Target, CheckCircle, AlertTriangle } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
-import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
+import { TestBenchmarkBadge } from '@/components/tests/shared/TestBenchmarkBadge'
 import { classifyMedicineBallThrow } from '@/lib/calculations/sport-tests/power-tests'
 
-const medicineBallThrowSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createMedicineBallThrowSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   throwDistance: z.number().min(3).max(20),
   ballWeight: z.number().min(1).max(5),
   throwType: z.enum(['OVERHEAD', 'CHEST_PASS', 'ROTATIONAL']),
@@ -49,7 +50,7 @@ const medicineBallThrowSchema = z.object({
   notes: z.string().optional(),
 })
 
-type MedicineBallThrowFormData = z.infer<typeof medicineBallThrowSchema>
+type MedicineBallThrowFormData = z.infer<ReturnType<typeof createMedicineBallThrowSchema>>
 
 interface Client {
   id: string
@@ -64,12 +65,14 @@ interface MedicineBallThrowFormProps {
 }
 
 export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThrowFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<MedicineBallThrowFormData>({
-    resolver: zodResolver(medicineBallThrowSchema),
+    resolver: zodResolver(createMedicineBallThrowSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -96,7 +99,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       const tier = classifyMedicineBallThrow(data.throwDistance, data.ballWeight, client.gender)
 
@@ -121,7 +124,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -142,7 +145,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
       })
     } catch (err) {
       console.error('Failed to save medicine ball throw test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -156,10 +159,12 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                Medicinbollskast
+                {locale === 'sv' ? 'Medicinbollskast' : 'Medicine ball throw'}
               </CardTitle>
               <CardDescription>
-                Mäter explosiv överkroppsstyrka. Standard test för handbollsspelare.
+                {locale === 'sv'
+                  ? 'Mäter explosiv överkroppsstyrka. Standard test för handbollsspelare.'
+                  : 'Measures explosive upper-body power. Standard test for handball players.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -169,11 +174,11 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -194,7 +199,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -210,19 +215,21 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                   name="throwDistance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Kastlängd (m)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Kastlängd (m)' : 'Throw distance (m)'}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.1"
                           min={3}
                           max={20}
-                          placeholder="t.ex. 12.5"
+                          placeholder={locale === 'sv' ? 't.ex. 12.5' : 'e.g. 12.5'}
                           {...field}
                           onChange={(e) => field.onChange(parseFloat(e.target.value))}
                         />
                       </FormControl>
-                      <FormDescription>Bästa kast av alla försök</FormDescription>
+                      <FormDescription>
+                        {locale === 'sv' ? 'Bästa kast av alla försök' : 'Best throw from all attempts'}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -233,7 +240,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                   name="ballWeight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Bollvikt (kg)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Bollvikt (kg)' : 'Ball weight (kg)'}</FormLabel>
                       <Select
                         onValueChange={(v) => field.onChange(parseFloat(v))}
                         value={field.value?.toString()}
@@ -244,8 +251,12 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="2">2 kg (kvinnor standard)</SelectItem>
-                          <SelectItem value="3">3 kg (män standard)</SelectItem>
+                          <SelectItem value="2">
+                            {locale === 'sv' ? '2 kg (kvinnor standard)' : '2 kg (women standard)'}
+                          </SelectItem>
+                          <SelectItem value="3">
+                            {locale === 'sv' ? '3 kg (män standard)' : '3 kg (men standard)'}
+                          </SelectItem>
                           <SelectItem value="4">4 kg</SelectItem>
                           <SelectItem value="5">5 kg</SelectItem>
                         </SelectContent>
@@ -261,7 +272,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                 name="throwType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kasttyp</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Kasttyp' : 'Throw type'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -269,12 +280,20 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="OVERHEAD">Överhands (stående)</SelectItem>
-                        <SelectItem value="CHEST_PASS">Bröstkast</SelectItem>
-                        <SelectItem value="ROTATIONAL">Rotationskast</SelectItem>
+                        <SelectItem value="OVERHEAD">
+                          {locale === 'sv' ? 'Överhands (stående)' : 'Overhead (standing)'}
+                        </SelectItem>
+                        <SelectItem value="CHEST_PASS">
+                          {locale === 'sv' ? 'Bröstkast' : 'Chest pass'}
+                        </SelectItem>
+                        <SelectItem value="ROTATIONAL">
+                          {locale === 'sv' ? 'Rotationskast' : 'Rotational throw'}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>Standard: överhands stående kast</FormDescription>
+                    <FormDescription>
+                      {locale === 'sv' ? 'Standard: överhands stående kast' : 'Standard: standing overhead throw'}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -285,7 +304,7 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                 name="attempts"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Antal försök</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Antal försök' : 'Number of attempts'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -302,7 +321,9 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
 
               {liveTier && (
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">Prestandanivå:</span>
+                  <span className="text-sm text-muted-foreground">
+                    {locale === 'sv' ? 'Prestandanivå:' : 'Performance level:'}
+                  </span>
                   <TestBenchmarkBadge tier={liveTier} />
                 </div>
               )}
@@ -312,10 +333,10 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Teknik, kastvarianter, observationer..."
+                        placeholder={locale === 'sv' ? 'Teknik, kastvarianter, observationer...' : 'Technique, throw variations, observations...'}
                         {...field}
                       />
                     </FormControl>
@@ -327,7 +348,9 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara medicinbollskast'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara medicinbollskast' : 'Save medicine ball throw'}
           </Button>
         </form>
       </Form>
@@ -344,22 +367,22 @@ export function MedicineBallThrowForm({ clients, onTestSaved }: MedicineBallThro
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {locale === 'sv' ? 'Test sparat' : 'Test saved'}
             </CardTitle>
             <CardDescription>
-              {result.client?.name} - {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {result.client?.name} - {new Date(result.testDate).toLocaleDateString(dateLocale)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <CompactResult
-                label="Kastlängd"
+                label={locale === 'sv' ? 'Kastlängd' : 'Throw distance'}
                 value={result.primaryResult}
                 unit="m"
                 tier={result.tier}
               />
               <CompactResult
-                label="Bollvikt"
+                label={locale === 'sv' ? 'Bollvikt' : 'Ball weight'}
                 value={result.rawData?.ballWeight}
                 unit="kg"
               />
