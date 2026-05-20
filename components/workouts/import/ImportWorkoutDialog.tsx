@@ -14,7 +14,7 @@
  * Lifecycle (two phases inside the dialog):
  *   1. Input  — paste/upload + model-tier selector + parse button
  *   2. Review — parse summary + library-matching panel for unmatched names,
- *               then "Öppna i byggaren" hands the workout to the parent
+ *               then "Open in builder" hands the workout to the parent
  *
  * Library matching covers Exercise (strength + hybrid) and AgilityDrill
  * (agility). Cardio doesn't need matching.
@@ -55,6 +55,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 import { toast } from 'sonner'
 import type { ModelIntent } from '@/types/ai-models'
 import type { WorkoutImportType, ParsedWorkoutImport } from '@/lib/ai/workout-parser'
@@ -104,30 +105,51 @@ interface ImportWorkoutDialogProps {
   workoutType: WorkoutImportType
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** Called when the coach clicks "Öppna i byggaren" with confirmed data. */
+  /** Called when the coach clicks "Open in builder" with confirmed data. */
   onImported: (payload: ImportedWorkoutPayload) => void
 }
 
-const WORKOUT_TYPE_LABELS: Record<WorkoutImportType, { sv: string; placeholder: string }> = {
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
+const WORKOUT_TYPE_LABELS: Record<
+  WorkoutImportType,
+  { label: Record<AppLocale, string>; placeholder: Record<AppLocale, string> }
+> = {
   STRENGTH: {
-    sv: 'styrkepass',
-    placeholder:
-      'T.ex.\n\nPass A — Knäböj-fokus\nUppvärmning: 5 min cykel + dynamisk mobility\n\nHuvudpass:\n- Knäböj 5x5 @ 80 kg, vila 3 min\n- Rumänsk marklyft 4x8 @ 70 kg\n- Bulgariska utfall 3x10/sida\n- Plankan 3x45s\n\nNedvarvning: foam rolling + stretch',
+    label: { sv: 'styrkepass', en: 'strength workout' },
+    placeholder: {
+      sv: 'T.ex.\n\nPass A — Knäböj-fokus\nUppvärmning: 5 min cykel + dynamisk mobility\n\nHuvudpass:\n- Knäböj 5x5 @ 80 kg, vila 3 min\n- Rumänsk marklyft 4x8 @ 70 kg\n- Bulgariska utfall 3x10/sida\n- Plankan 3x45s\n\nNedvarvning: foam rolling + stretch',
+      en: 'E.g.\n\nSession A — Squat focus\nWarm-up: 5 min bike + dynamic mobility\n\nMain session:\n- Back squat 5x5 @ 80 kg, rest 3 min\n- Romanian deadlift 4x8 @ 70 kg\n- Bulgarian split squat 3x10/side\n- Plank 3x45s\n\nCool-down: foam rolling + stretch',
+    },
   },
   CARDIO: {
-    sv: 'konditionspass',
-    placeholder:
-      'T.ex.\n\nIntervaller 5x1km\n10 min uppvärmning zon 1-2\n5 x 1 km @ 3:40/km, 90s vila lugn jogg\n10 min nedvarvning zon 1',
+    label: { sv: 'konditionspass', en: 'cardio workout' },
+    placeholder: {
+      sv: 'T.ex.\n\nIntervaller 5x1km\n10 min uppvärmning zon 1-2\n5 x 1 km @ 3:40/km, 90s vila lugn jogg\n10 min nedvarvning zon 1',
+      en: 'E.g.\n\n5x1 km intervals\n10 min warm-up zone 1-2\n5 x 1 km @ 3:40/km, 90s easy jog recovery\n10 min cool-down zone 1',
+    },
   },
   HYBRID: {
-    sv: 'hybridpass',
-    placeholder:
-      'T.ex.\n\n"Fran"\nFor time — Cap 8 min\n21-15-9\nThruster 43/30 kg\nPull-ups',
+    label: { sv: 'hybridpass', en: 'hybrid workout' },
+    placeholder: {
+      sv: 'T.ex.\n\n"Fran"\nFor time — Cap 8 min\n21-15-9\nThruster 43/30 kg\nPull-ups',
+      en: 'E.g.\n\n"Fran"\nFor time — Cap 8 min\n21-15-9\nThruster 43/30 kg\nPull-ups',
+    },
   },
   AGILITY: {
-    sv: 'agilitypass',
-    placeholder:
-      'T.ex.\n\nFotarbete + reaktiv agility (45 min)\nUppvärmning: ladder in-in-out-out 3 set, ankle hops 2x10\n\nHuvudpass:\n- 5-10-5 Pro Agility 6 reps, 30s vila\n- T-test 4 reps, 60s vila\n- Reactive mirror drill 3x30s\n\nNedvarvning: walking + breathing 5 min',
+    label: { sv: 'agilitypass', en: 'agility workout' },
+    placeholder: {
+      sv: 'T.ex.\n\nFotarbete + reaktiv agility (45 min)\nUppvärmning: ladder in-in-out-out 3 set, ankle hops 2x10\n\nHuvudpass:\n- 5-10-5 Pro Agility 6 reps, 30s vila\n- T-test 4 reps, 60s vila\n- Reactive mirror drill 3x30s\n\nNedvarvning: walking + breathing 5 min',
+      en: 'E.g.\n\nFootwork + reactive agility (45 min)\nWarm-up: ladder in-in-out-out 3 sets, ankle hops 2x10\n\nMain session:\n- 5-10-5 Pro Agility 6 reps, 30s rest\n- T-test 4 reps, 60s rest\n- Reactive mirror drill 3x30s\n\nCool-down: walking + breathing 5 min',
+    },
   },
 }
 
@@ -141,21 +163,34 @@ function isImageFile(f: File | null): boolean {
   return f.type.startsWith('image/') || IMAGE_EXTENSION_RE.test(f.name)
 }
 
-const INTENT_OPTIONS: { value: ModelIntent; label: string; hint: string }[] = [
+const INTENT_OPTIONS: {
+  value: ModelIntent
+  label: Record<AppLocale, string>
+  hint: Record<AppLocale, string>
+}[] = [
   {
     value: 'fast',
-    label: 'Snabb (billigast)',
-    hint: 'Lättast text. Kan missa nyanser i komplexa Excel/PDF.',
+    label: { sv: 'Snabb (billigast)', en: 'Fast (lowest cost)' },
+    hint: {
+      sv: 'Lättast text. Kan missa nyanser i komplexa Excel/PDF.',
+      en: 'Best for simple text. May miss nuance in complex Excel/PDF files.',
+    },
   },
   {
     value: 'balanced',
-    label: 'Balanserad (rekommenderas)',
-    hint: 'Bäst kostnad/kvalitet för enstaka pass.',
+    label: { sv: 'Balanserad (rekommenderas)', en: 'Balanced (recommended)' },
+    hint: {
+      sv: 'Bäst kostnad/kvalitet för enstaka pass.',
+      en: 'Best cost/quality balance for single workouts.',
+    },
   },
   {
     value: 'powerful',
-    label: 'Kraftfull',
-    hint: 'Använd för bilder och röriga källor.',
+    label: { sv: 'Kraftfull', en: 'Powerful' },
+    hint: {
+      sv: 'Använd för bilder och röriga källor.',
+      en: 'Use for images and messy source material.',
+    },
   },
 ]
 
@@ -178,6 +213,7 @@ export function ImportWorkoutDialog({
   onOpenChange,
   onImported,
 }: ImportWorkoutDialogProps) {
+  const locale = getAppLocale(useLocale())
   const labels = WORKOUT_TYPE_LABELS[workoutType]
 
   const [tab, setTab] = useState<'paste' | 'upload'>('paste')
@@ -284,7 +320,7 @@ export function ImportWorkoutDialog({
     if (!response.ok || !data?.success) {
       const allowanceError = parseAiAllowanceError(data)
       if (allowanceError) throw allowanceError
-      throw new Error(data?.error || 'Kunde inte tolka passet')
+      throw new Error(data?.error || text(locale, 'Kunde inte tolka passet', 'Could not parse the workout'))
     }
     return data as ParseResponse
   }
@@ -306,13 +342,13 @@ export function ImportWorkoutDialog({
     try {
       applyParseResult(await runParse())
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Okänt fel'
+      const msg = e instanceof Error ? e.message : text(locale, 'Okänt fel', 'Unknown error')
       const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
       if (!isAiAllowanceExhaustedError(e)) {
         setParseError(description)
         setAiAllowanceAction(null)
       }
-      toast.error('Import misslyckades', { description })
+      toast.error(text(locale, 'Import misslyckades', 'Import failed'), { description })
     } finally {
       setParsing(false)
     }
@@ -330,17 +366,17 @@ export function ImportWorkoutDialog({
     try {
       const next = await runParse('powerful')
       applyParseResult(next)
-      toast.success('Tolkning uppdaterad', {
-        description: `Kör igen med ${next.modelUsed}.`,
+      toast.success(text(locale, 'Tolkning uppdaterad', 'Parsing updated'), {
+        description: text(locale, `Kör igen med ${next.modelUsed}.`, `Reran with ${next.modelUsed}.`),
       })
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Okänt fel'
+      const msg = e instanceof Error ? e.message : text(locale, 'Okänt fel', 'Unknown error')
       const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
       if (!isAiAllowanceExhaustedError(e)) {
         setParseError(description)
         setAiAllowanceAction(null)
       }
-      toast.error('Omkörningen misslyckades', { description })
+      toast.error(text(locale, 'Omkörningen misslyckades', 'Retry failed'), { description })
     } finally {
       setFixingFormat(false)
     }
@@ -393,12 +429,14 @@ export function ImportWorkoutDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-blue-500" />
-            Importera {labels.sv}
+            {text(locale, 'Importera', 'Import')} {labels.label[locale]}
           </DialogTitle>
           <DialogDescription>
-            Klistra in eller ladda upp en källa — AI tolkar innehållet och
-            fyller byggaren åt dig. Inga ändringar sparas förrän du klickar
-            spara i byggaren.
+            {text(
+              locale,
+              'Klistra in eller ladda upp en källa — AI tolkar innehållet och fyller byggaren åt dig. Inga ändringar sparas förrän du klickar spara i byggaren.',
+              'Paste or upload a source — AI parses the content and fills the builder for you. Nothing is saved until you click save in the builder.'
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -408,11 +446,11 @@ export function ImportWorkoutDialog({
               <TabsList className="grid grid-cols-2 max-w-md">
                 <TabsTrigger value="paste">
                   <FileText className="h-4 w-4 mr-1" />
-                  Klistra in text
+                  {text(locale, 'Klistra in text', 'Paste text')}
                 </TabsTrigger>
                 <TabsTrigger value="upload">
                   <FileUp className="h-4 w-4 mr-1" />
-                  Ladda upp fil
+                  {text(locale, 'Ladda upp fil', 'Upload file')}
                 </TabsTrigger>
               </TabsList>
 
@@ -421,7 +459,7 @@ export function ImportWorkoutDialog({
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}
                   rows={12}
-                  placeholder={labels.placeholder}
+                  placeholder={labels.placeholder[locale]}
                   className="font-mono text-sm"
                 />
               </TabsContent>
@@ -463,7 +501,8 @@ export function ImportWorkoutDialog({
                           <div className="font-medium truncate">{file.name}</div>
                           <div className="text-xs text-muted-foreground">
                             {(file.size / 1024).toFixed(1)} KB
-                            {fileIsImage && ' · Bild → vision-läge'}
+                            {fileIsImage &&
+                              text(locale, ' · Bild → vision-läge', ' · Image -> vision mode')}
                           </div>
                         </div>
                       </div>
@@ -471,7 +510,7 @@ export function ImportWorkoutDialog({
                         variant="ghost"
                         size="icon"
                         onClick={() => setFile(null)}
-                        aria-label="Ta bort filen"
+                        aria-label={text(locale, 'Ta bort filen', 'Remove file')}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -480,10 +519,14 @@ export function ImportWorkoutDialog({
                     <>
                       <Upload className="h-8 w-8 mx-auto text-slate-400 mb-2" />
                       <p className="text-sm font-medium mb-1">
-                        Släpp en fil här, eller klicka för att välja
+                        {text(
+                          locale,
+                          'Släpp en fil här, eller klicka för att välja',
+                          'Drop a file here, or click to choose'
+                        )}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Excel · CSV · PDF · text · bild
+                        {text(locale, 'Excel · CSV · PDF · text · bild', 'Excel · CSV · PDF · text · image')}
                       </p>
                       <input
                         type="file"
@@ -505,7 +548,7 @@ export function ImportWorkoutDialog({
                             ?.click()
                         }
                       >
-                        Välj fil
+                        {text(locale, 'Välj fil', 'Choose file')}
                       </Button>
                     </>
                   )}
@@ -515,7 +558,7 @@ export function ImportWorkoutDialog({
 
             <div className="flex flex-col sm:flex-row sm:items-end gap-3">
               <div className="space-y-1 flex-1 max-w-sm">
-                <Label className="text-xs">AI-kvalitet</Label>
+                <Label className="text-xs">{text(locale, 'AI-kvalitet', 'AI quality')}</Label>
                 <Select
                   value={intent}
                   onValueChange={(v) => setIntent(v as ModelIntent)}
@@ -527,8 +570,8 @@ export function ImportWorkoutDialog({
                     {INTENT_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         <div className="flex flex-col">
-                          <span>{opt.label}</span>
-                          <span className="text-xs text-muted-foreground">{opt.hint}</span>
+                          <span>{opt.label[locale]}</span>
+                          <span className="text-xs text-muted-foreground">{opt.hint[locale]}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -546,9 +589,13 @@ export function ImportWorkoutDialog({
                   htmlFor={`prefer-claude-${workoutType}`}
                   className="text-xs cursor-pointer select-none"
                 >
-                  <div className="font-medium">Prioritera Claude</div>
+                  <div className="font-medium">{text(locale, 'Prioritera Claude', 'Prioritize Claude')}</div>
                   <div className="text-muted-foreground">
-                    Mer ordagrann — kräver Anthropic-nyckel
+                    {text(
+                      locale,
+                      'Mer ordagrann — kräver Anthropic-nyckel',
+                      'More literal — requires an Anthropic key'
+                    )}
                   </div>
                 </label>
               </div>
@@ -559,12 +606,12 @@ export function ImportWorkoutDialog({
                 {parsing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Tolkar…
+                    {text(locale, 'Tolkar…', 'Parsing…')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Tolka med AI
+                    {text(locale, 'Tolka med AI', 'Parse with AI')}
                   </>
                 )}
               </Button>
@@ -587,25 +634,25 @@ export function ImportWorkoutDialog({
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <CardTitle className="text-base flex items-center gap-2">
-                      Förhandsgranska
+                      {text(locale, 'Förhandsgranska', 'Preview')}
                       <Badge variant="outline">{parseResult.inputKind}</Badge>
                       <Badge variant="secondary">{parseResult.modelUsed}</Badge>
                     </CardTitle>
                     <CardDescription>
                       {parseResult.workout
                         ? parseResult.workout.name
-                        : 'Schemavalidering misslyckades'}
+                        : text(locale, 'Schemavalidering misslyckades', 'Schema validation failed')}
                     </CardDescription>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setParseResult(null)}>
                     <ArrowLeft className="h-4 w-4 mr-1" />
-                    Ändra
+                    {text(locale, 'Ändra', 'Edit')}
                   </Button>
                 </div>
               </CardHeader>
               {parseResult.workout && (
                 <CardContent className="text-xs space-y-1">
-                  <WorkoutSummary workout={parseResult.workout} />
+                  <WorkoutSummary workout={parseResult.workout} locale={locale} />
                 </CardContent>
               )}
             </Card>
@@ -619,7 +666,13 @@ export function ImportWorkoutDialog({
                       <li key={i}>{w}</li>
                     ))}
                     {!parseResult.parsedOk && parseResult.warnings.length === 0 && (
-                      <li>Schemavalideringen misslyckades — innehållet kanske inte fyller byggaren korrekt.</li>
+                      <li>
+                        {text(
+                          locale,
+                          'Schemavalideringen misslyckades — innehållet kanske inte fyller byggaren korrekt.',
+                          'Schema validation failed — the content may not fill the builder correctly.'
+                        )}
+                      </li>
                     )}
                   </ul>
                   <Button
@@ -632,12 +685,16 @@ export function ImportWorkoutDialog({
                     {fixingFormat ? (
                       <>
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        Försöker igen…
+                        {text(locale, 'Försöker igen…', 'Retrying…')}
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-3 w-3 mr-1" />
-                        Fixa format med kraftfullare modell
+                        {text(
+                          locale,
+                          'Fixa format med kraftfullare modell',
+                          'Fix format with a more powerful model'
+                        )}
                       </>
                     )}
                   </Button>
@@ -650,7 +707,9 @@ export function ImportWorkoutDialog({
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center justify-between">
                     <span>
-                      {workoutType === 'AGILITY' ? 'Drillkoppling' : 'Övningskoppling'}
+                      {workoutType === 'AGILITY'
+                        ? text(locale, 'Drillkoppling', 'Drill matching')
+                        : text(locale, 'Övningskoppling', 'Exercise matching')}
                     </span>
                     <Badge
                       variant={needsMapping.length === 0 ? 'outline' : 'secondary'}
@@ -660,14 +719,23 @@ export function ImportWorkoutDialog({
                           : ''
                       }
                     >
-                      {mappedCount}/{totalToMap} mappade
-                      {skippedCount > 0 && ` · ${skippedCount} hoppade över`}
+                      {mappedCount}/{totalToMap} {text(locale, 'mappade', 'mapped')}
+                      {skippedCount > 0 &&
+                        text(locale, ` · ${skippedCount} hoppade över`, ` · ${skippedCount} skipped`)}
                     </Badge>
                   </CardTitle>
                   <CardDescription className="text-xs">
                     {needsMapping.length === 0
-                      ? 'Alla namn kopplade. Resterande stannar som fritext.'
-                      : 'Välj rätt rad för att länka till biblioteket — eller hoppa över för att låta dem stanna som fritext.'}
+                      ? text(
+                          locale,
+                          'Alla namn kopplade. Resterande stannar som fritext.',
+                          'All names are matched. Remaining items stay as free text.'
+                        )
+                      : text(
+                          locale,
+                          'Välj rätt rad för att länka till biblioteket — eller hoppa över för att låta dem stanna som fritext.',
+                          'Choose the right row to link it to the library, or skip it to keep it as free text.'
+                        )}
                   </CardDescription>
                 </CardHeader>
                 {needsMapping.length > 0 && (
@@ -676,6 +744,7 @@ export function ImportWorkoutDialog({
                       <NeedsMappingRow
                         key={r.name}
                         resolution={r}
+                        locale={locale}
                         onPick={(id) => setMapping(r.name, id)}
                         onSkip={() =>
                           setSkipped((prev) => {
@@ -693,11 +762,11 @@ export function ImportWorkoutDialog({
 
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => handleClose(false)}>
-                Avbryt
+                {text(locale, 'Avbryt', 'Cancel')}
               </Button>
               <Button onClick={handleConfirm} disabled={!parseResult.workout}>
                 <Sparkles className="h-4 w-4 mr-2" />
-                Öppna i byggaren
+                {text(locale, 'Öppna i byggaren', 'Open in builder')}
               </Button>
             </div>
           </div>
@@ -707,7 +776,13 @@ export function ImportWorkoutDialog({
   )
 }
 
-function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
+function WorkoutSummary({
+  workout,
+  locale,
+}: {
+  workout: ParsedWorkoutImport
+  locale: AppLocale
+}) {
   switch (workout.workoutType) {
     case 'STRENGTH': {
       const main = workout.exercises.length
@@ -718,11 +793,12 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
       return (
         <>
           <div className="text-muted-foreground">
-            Fas: {workout.phase || '—'} · {main} huvudövningar
-            {warm > 0 && ` · ${warm} uppvärmning`}
+            {text(locale, 'Fas', 'Phase')}: {workout.phase || '—'} · {main}{' '}
+            {text(locale, 'huvudövningar', 'main exercises')}
+            {warm > 0 && text(locale, ` · ${warm} uppvärmning`, ` · ${warm} warm-up`)}
             {prehab > 0 && ` · ${prehab} prehab`}
             {core > 0 && ` · ${core} core`}
-            {cool > 0 && ` · ${cool} nedvarvning`}
+            {cool > 0 && text(locale, ` · ${cool} nedvarvning`, ` · ${cool} cool-down`)}
           </div>
           {workout.exercises.slice(0, 5).map((e, i) => (
             <div key={i}>
@@ -731,7 +807,11 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
               {e.weight ? ` @ ${e.weight} kg` : e.weightLabel ? ` @ ${e.weightLabel}` : ''}
             </div>
           ))}
-          {main > 5 && <div className="text-muted-foreground">… +{main - 5} till</div>}
+          {main > 5 && (
+            <div className="text-muted-foreground">
+              … +{main - 5} {text(locale, 'till', 'more')}
+            </div>
+          )}
         </>
       )
     }
@@ -757,7 +837,13 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
               return (
                 <div key={i}>
                   {s.repeats}× ({stepSummary})
-                  {s.restBetweenRounds ? `, ${s.restBetweenRounds}s mellan varv` : ''}
+                  {s.restBetweenRounds
+                    ? text(
+                        locale,
+                        `, ${s.restBetweenRounds}s mellan varv`,
+                        `, ${s.restBetweenRounds}s between rounds`
+                      )
+                    : ''}
                 </div>
               )
             }
@@ -767,12 +853,14 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
                 {s.duration ? ` — ${Math.round(s.duration / 60)} min` : ''}
                 {s.distance ? ` — ${s.distance >= 1000 ? `${(s.distance / 1000).toFixed(1)} km` : `${s.distance} m`}` : ''}
                 {s.pace ? ` @ ${s.pace}` : ''}
-                {s.zone ? ` · zon ${s.zone}` : ''}
+                {s.zone ? text(locale, ` · zon ${s.zone}`, ` · zone ${s.zone}`) : ''}
               </div>
             )
           })}
           {workout.segments.length > 5 && (
-            <div className="text-muted-foreground">… +{workout.segments.length - 5} till</div>
+            <div className="text-muted-foreground">
+              … +{workout.segments.length - 5} {text(locale, 'till', 'more')}
+            </div>
           )}
         </>
       )
@@ -781,7 +869,8 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
       return (
         <>
           <div className="text-muted-foreground">
-            Format: {workout.format} · {workout.movements.length} rörelser
+            Format: {workout.format} · {workout.movements.length}{' '}
+            {text(locale, 'rörelser', 'movements')}
             {workout.repScheme ? ` · ${workout.repScheme}` : ''}
             {workout.timeCap ? ` · cap ${Math.round(workout.timeCap / 60)} min` : ''}
             {workout.totalMinutes ? ` · ${workout.totalMinutes} min` : ''}
@@ -798,7 +887,9 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
             </div>
           ))}
           {workout.movements.length > 5 && (
-            <div className="text-muted-foreground">… +{workout.movements.length - 5} till</div>
+            <div className="text-muted-foreground">
+              … +{workout.movements.length - 5} {text(locale, 'till', 'more')}
+            </div>
           )}
         </>
       )
@@ -819,7 +910,9 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
             </div>
           ))}
           {workout.drills.length > 5 && (
-            <div className="text-muted-foreground">… +{workout.drills.length - 5} till</div>
+            <div className="text-muted-foreground">
+              … +{workout.drills.length - 5} {text(locale, 'till', 'more')}
+            </div>
           )}
         </>
       )
@@ -829,10 +922,12 @@ function WorkoutSummary({ workout }: { workout: ParsedWorkoutImport }) {
 
 function NeedsMappingRow({
   resolution,
+  locale,
   onPick,
   onSkip,
 }: {
   resolution: Resolution
+  locale: AppLocale
   onPick: (id: string) => void
   onSkip: () => void
 }) {
@@ -844,7 +939,9 @@ function NeedsMappingRow({
           <div className="font-medium text-sm truncate" title={resolution.name}>
             {resolution.name}
           </div>
-          <div className="text-[10px] text-muted-foreground">Från importen</div>
+          <div className="text-[10px] text-muted-foreground">
+            {text(locale, 'Från importen', 'From import')}
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -852,12 +949,16 @@ function NeedsMappingRow({
           className="h-7 text-xs text-muted-foreground"
           onClick={onSkip}
         >
-          Hoppa över
+          {text(locale, 'Hoppa över', 'Skip')}
         </Button>
       </div>
       {top.length === 0 ? (
         <div className="text-xs text-muted-foreground italic py-1">
-          Inga rimliga träffar — namnet stannar som fritext.
+          {text(
+            locale,
+            'Inga rimliga träffar — namnet stannar som fritext.',
+            'No reasonable matches — the name will stay as free text.'
+          )}
         </div>
       ) : (
         <div className="space-y-1">
