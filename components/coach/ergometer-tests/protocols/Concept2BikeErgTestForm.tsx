@@ -10,10 +10,11 @@
  */
 
 import { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ErgometerTestProtocol } from '@prisma/client';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -37,10 +38,22 @@ interface Concept2BikeErgTestFormProps {
 
 // ==================== ZOD SCHEMAS ====================
 
-const tt2kSchema = z.object({
+function localized(locale: string, sv: string, en: string) {
+  return locale === 'sv' ? sv : en;
+}
+
+function athleteRequired(locale: string) {
+  return localized(locale, 'Välj en atlet', 'Select an athlete');
+}
+
+function testDateRequired(locale: string) {
+  return localized(locale, 'Ange testdatum', 'Enter a test date');
+}
+
+const createTt2kSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.TT_2K),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   dragFactor: z.number().min(80).max(200).optional(),
   rawData: z.object({
     distance: z.literal(2000),
@@ -58,10 +71,10 @@ const tt2kSchema = z.object({
   notes: z.string().optional(),
 });
 
-const tt20MinSchema = z.object({
+const createTt20MinSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.TT_20MIN),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   dragFactor: z.number().min(80).max(200).optional(),
   rawData: z.object({
     avgPower: z.number().min(50).max(500),
@@ -75,18 +88,23 @@ const tt20MinSchema = z.object({
   notes: z.string().optional(),
 });
 
-type TT2KData = z.infer<typeof tt2kSchema>;
-type TT20MinData = z.infer<typeof tt20MinSchema>;
+type TT2KData = z.infer<ReturnType<typeof createTt2kSchema>>;
+type TT20MinData = z.infer<ReturnType<typeof createTt20MinSchema>>;
 
 export function Concept2BikeErgTestForm({ athletes, onSubmit, submitting }: Concept2BikeErgTestFormProps) {
   const [protocol, setProtocol] = useState<'TT_2K' | 'TT_20MIN'>('TT_2K');
+  const locale = useLocale();
+  const t = (sv: string, en: string) => localized(locale, sv, en);
 
   return (
     <div className="space-y-4">
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          BikeErg testar cykelkondition med luftmotstând. Perfekt for crosstraining utan belastning pa lederna.
+          {t(
+            'BikeErg testar cykelkondition med luftmotstånd. Perfekt för crosstraining utan belastning på lederna.',
+            'BikeErg tests cycling fitness with air resistance. Ideal for cross-training without joint impact.'
+          )}
         </AlertDescription>
       </Alert>
 
@@ -103,11 +121,11 @@ export function Concept2BikeErgTestForm({ athletes, onSubmit, submitting }: Conc
         </TabsList>
 
         <TabsContent value="TT_2K">
-          <BikeErg2KForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <BikeErg2KForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="TT_20MIN">
-          <BikeErg20MinForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <BikeErg20MinForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
       </Tabs>
     </div>
@@ -120,13 +138,16 @@ function BikeErg2KForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<TT2KData>({
-    resolver: zodResolver(tt2kSchema),
+    resolver: zodResolver(createTt2kSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.TT_2K,
       testDate: new Date().toISOString().split('T')[0],
@@ -146,7 +167,7 @@ function BikeErg2KForm({
       <CardHeader>
         <CardTitle>2000m Time Trial (BikeErg)</CardTitle>
         <CardDescription>
-          Kort intensivt cykeltest pa BikeErg.
+          {t('Kort intensivt cykeltest på BikeErg.', 'Short, intensive cycling test on the BikeErg.')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -158,11 +179,11 @@ function BikeErg2KForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -183,7 +204,7 @@ function BikeErg2KForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -207,7 +228,7 @@ function BikeErg2KForm({
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>Typiskt 80-130 for BikeErg</FormDescription>
+                    <FormDescription>{t('Typiskt 80-130 för BikeErg', 'Typically 80-130 for BikeErg')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -220,7 +241,7 @@ function BikeErg2KForm({
                 name="rawData.time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Total tid (sek)</FormLabel>
+                    <FormLabel>{t('Total tid (sek)', 'Total time (sec)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -241,7 +262,7 @@ function BikeErg2KForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -261,7 +282,7 @@ function BikeErg2KForm({
                 name="rawData.avgStrokeRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kadens (RPM)</FormLabel>
+                    <FormLabel>{t('Kadens (RPM)', 'Cadence (RPM)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -281,7 +302,7 @@ function BikeErg2KForm({
                 name="rawData.avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -301,7 +322,7 @@ function BikeErg2KForm({
                 name="rawData.maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -341,10 +362,10 @@ function BikeErg2KForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -360,13 +381,16 @@ function BikeErg20MinForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<TT20MinData>({
-    resolver: zodResolver(tt20MinSchema),
+    resolver: zodResolver(createTt20MinSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.TT_20MIN,
       testDate: new Date().toISOString().split('T')[0],
@@ -387,7 +411,10 @@ function BikeErg20MinForm({
       <CardHeader>
         <CardTitle>20-Minute FTP Test (BikeErg)</CardTitle>
         <CardDescription>
-          Standard FTP-test. Cykla i jamn hog intensitet i 20 minuter. FTP = 95% av snitteffekt.
+          {t(
+            'Standard FTP-test. Cykla i jämn hög intensitet i 20 minuter. FTP = 95% av snitteffekt.',
+            'Standard FTP test. Ride at steady high intensity for 20 minutes. FTP = 95% of average power.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -399,11 +426,11 @@ function BikeErg20MinForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -424,7 +451,7 @@ function BikeErg20MinForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -460,7 +487,7 @@ function BikeErg20MinForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -490,7 +517,7 @@ function BikeErg20MinForm({
                         onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       />
                     </FormControl>
-                    <FormDescription>Valfritt</FormDescription>
+                    <FormDescription>{t('Valfritt', 'Optional')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -501,7 +528,7 @@ function BikeErg20MinForm({
                 name="rawData.avgCadence"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittkadens (RPM)</FormLabel>
+                    <FormLabel>{t('Snittkadens (RPM)', 'Average cadence (RPM)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -521,7 +548,7 @@ function BikeErg20MinForm({
                 name="rawData.correctionFactor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Korrektionsfaktor</FormLabel>
+                    <FormLabel>{t('Korrektionsfaktor', 'Correction factor')}</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(parseFloat(v))}
                       defaultValue={field.value?.toString()}
@@ -532,12 +559,12 @@ function BikeErg20MinForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="0.95">0.95 (Standard)</SelectItem>
-                        <SelectItem value="0.90">0.90 (Ej cyklister)</SelectItem>
-                        <SelectItem value="0.92">0.92 (Mellanting)</SelectItem>
+                        <SelectItem value="0.95">0.95 ({t('Standard', 'Standard')})</SelectItem>
+                        <SelectItem value="0.90">0.90 ({t('Ej cyklister', 'Non-cyclists')})</SelectItem>
+                        <SelectItem value="0.92">0.92 ({t('Mellanting', 'Intermediate')})</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>FTP = snitt × faktor</FormDescription>
+                    <FormDescription>{t('FTP = snitt × faktor', 'FTP = average × factor')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -548,7 +575,7 @@ function BikeErg20MinForm({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Uppskattad FTP: {estimatedFTP}W</strong> ({avgPower}W × {correctionFactor})
+                <strong>{t('Uppskattad FTP', 'Estimated FTP')}: {estimatedFTP}W</strong> ({avgPower}W × {correctionFactor})
               </AlertDescription>
             </Alert>
 
@@ -558,7 +585,7 @@ function BikeErg20MinForm({
                 name="avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -578,7 +605,7 @@ function BikeErg20MinForm({
                 name="maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -618,10 +645,10 @@ function BikeErg20MinForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
