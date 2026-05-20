@@ -40,7 +40,6 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     handleSubmit,
     getValues,
     setValue,
-    reset,
     watch,
     formState: { errors },
   } = useForm<CreateTestFormData>({
@@ -197,7 +196,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           variant: 'destructive',
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: t('Fel', 'Error'),
         description: t('Kunde inte ansluta till OCR-tjänsten', 'Could not connect to the OCR service'),
@@ -576,7 +575,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor={`stages.${index}.cadence`} className="text-xs">
-                        Kadens (rpm)
+                        {t('Kadens (rpm)', 'Cadence (rpm)')}
                       </Label>
                       <Input
                         id={`stages.${index}.cadence`}
@@ -588,7 +587,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                 ) : (
                   <div className="space-y-1">
                     <Label htmlFor={`stages.${index}.pace`} className="text-xs">
-                      Tempo (min/km)
+                      {t('Tempo (min/km)', 'Pace (min/km)')}
                     </Label>
                     <Input
                       id={`stages.${index}.pace`}
@@ -612,7 +611,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
                 <div className="space-y-1">
                   <Label htmlFor={`stages.${index}.lactate`} className="text-xs">
-                    Laktat (mmol/L)
+                    {t('Laktat (mmol/L)', 'Lactate (mmol/L)')}
                   </Label>
                   <div className="flex gap-1">
                     <Input
@@ -853,7 +852,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label className="text-xs whitespace-nowrap">Laktat:</Label>
+                    <Label className="text-xs whitespace-nowrap">{t('Laktat:', 'Lactate:')}</Label>
                     <Input
                       type="number"
                       step="0.1"
