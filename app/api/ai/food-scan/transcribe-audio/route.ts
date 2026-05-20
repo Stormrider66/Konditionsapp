@@ -28,13 +28,21 @@ export const dynamic = 'force-dynamic'
 
 const MAX_AUDIO_SIZE = 5 * 1024 * 1024 // 5MB
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
@@ -52,21 +60,27 @@ export async function POST(request: NextRequest) {
     const audioFile = formData.get('audio') as File | null
 
     if (!audioFile) {
-      return NextResponse.json({ error: 'Ingen ljudfil uppladdad' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No audio file uploaded', 'Ingen ljudfil uppladdad') }, { status: 400 })
     }
 
     const validTypes = ['audio/webm', 'audio/mp4', 'audio/wav', 'audio/mpeg', 'audio/ogg', 'audio/3gpp', 'audio/aac']
     const baseType = audioFile.type.split(';')[0].trim()
     if (!validTypes.includes(baseType)) {
       return NextResponse.json(
-        { error: 'Ogiltigt ljudformat. Använd WebM, MP4, WAV eller MP3.' },
+        {
+          error: t(
+            locale,
+            'Invalid audio format. Use WebM, MP4, WAV, or MP3.',
+            'Ogiltigt ljudformat. Använd WebM, MP4, WAV eller MP3.'
+          ),
+        },
         { status: 400 }
       )
     }
 
     if (audioFile.size > MAX_AUDIO_SIZE) {
       return NextResponse.json(
-        { error: 'Ljudfilen får inte vara större än 5MB.' },
+        { error: t(locale, 'The audio file cannot be larger than 5MB.', 'Ljudfilen får inte vara större än 5MB.') },
         { status: 400 }
       )
     }
@@ -87,7 +101,13 @@ export async function POST(request: NextRequest) {
 
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google/Gemini API-nyckel saknas för ljudtranskribering. Aktivera Gemini i AI-inställningar.' },
+        {
+          error: t(
+            locale,
+            'Google/Gemini API key is missing for audio transcription. Enable Gemini in AI settings.',
+            'Google/Gemini API-nyckel saknas för ljudtranskribering. Aktivera Gemini i AI-inställningar.'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -104,7 +124,11 @@ export async function POST(request: NextRequest) {
       { userId: user.id, clientId, category: 'food_scan_audio_transcription' },
       () => generateContent(genaiClient, modelId, [
         createText(
-          'Transkribera denna korta ljudinspelning till svensk text. Inspelningen handlar om mat och näring — användaren korrigerar eller lägger till information om en måltid. Returnera BARA den transkriberade texten, inget annat.'
+          t(
+            locale,
+            'Transcribe this short audio recording to English text. The recording is about food and nutrition; the user is correcting or adding information about a meal. Return ONLY the transcribed text, nothing else.',
+            'Transkribera denna korta ljudinspelning till svensk text. Inspelningen handlar om mat och näring - användaren korrigerar eller lägger till information om en måltid. Returnera BARA den transkriberade texten, inget annat.'
+          )
         ),
         createInlineData(base64, audioFile.type),
       ], { thinkingLevel: 'low' }),
@@ -123,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Kunde inte transkribera ljudet',
+        error: t(locale, 'Could not transcribe the audio', 'Kunde inte transkribera ljudet'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined

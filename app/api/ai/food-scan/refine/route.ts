@@ -30,6 +30,62 @@ const REFINE_TIMEOUT_MS = 35_000
 const REFINE_MAX_OUTPUT_TOKENS = 4_096
 const REFINE_RETRY_DELAYS_MS = [600, 1_500]
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function buildRefinementPrompt({
+  originalAnalysis,
+  refinementText,
+  enhancedMode,
+  locale,
+}: {
+  originalAnalysis: unknown
+  refinementText: string
+  enhancedMode: boolean
+  locale: AppLocale
+}): string {
+  if (locale === 'sv') {
+    return `Du är en expert på näringslära. Här är en tidigare analys av en måltid:
+
+${JSON.stringify(originalAnalysis, null, 2)}
+
+Användaren säger: "${refinementText}"
+
+Uppdatera analysen baserat på användarens korrigering. Behåll all befintlig information men justera det som användaren påpekar. Om användaren nämner nya livsmedel, lägg till dem. Om användaren korrigerar portionsstorlekar eller mängder, uppdatera kalorier och makros därefter. Om användaren säger att en matvara egentligen är något annat, byt ut den och räkna om näringsvärden.
+
+VIKTIGT OM RECEPT OCH DRYCKER: Om en befintlig rad är ett helt recept/en hel sats (t.ex. "1 hel sats (ca 8 dl)") och användaren skriver att hen drack/åt en mindre mängd (t.ex. "jag drack 2 dl"), ska du skala raden proportionellt. Exempel: 2 dl av en sats på 8 dl = 25% av kalorier och makron, inte hela satsen.
+
+VIKTIGT OM KÖTT/FISK/FÅGEL MED BEN: Om användaren anger vikt med ben eller matvaran är t.ex. kycklingklubbor, kycklingvingar, revben, kotlett med ben eller hel fisk, behåll vikten inklusive ben i estimatedGrams men beräkna kalorier och makros på ätbar del efter ben. Skriv gärna i portionDescription, t.ex. "300 g med ben (ca 200 g ätbart)".
+
+VIKTIGT: Sätt alltid success till true - maten har redan identifierats och vi uppdaterar bara analysen.
+
+Returnera en komplett uppdaterad analys med alla matvaror - inte bara de ändrade. Skriv alla användarsynliga namn, portionsbeskrivningar, måltidsbeskrivningar och anteckningar på svenska.${enhancedMode ? `
+
+UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, fleromättat), kolhydratfördelning (socker, komplexa kolhydrater), proteinkvalitet (isCompleteProtein) och proteinkälla (proteinSource: ANIMAL, PLANT, MIXED eller UNKNOWN) per matvara och i totals.` : ''}`
+  }
+
+  return `You are a nutrition expert. Here is a previous meal analysis:
+
+${JSON.stringify(originalAnalysis, null, 2)}
+
+The user says: "${refinementText}"
+
+Update the analysis based on the user's correction. Keep all existing information, but adjust what the user points out. If the user mentions new foods, add them. If the user corrects portion sizes or quantities, update calories and macros accordingly. If the user says a food item is actually something else, replace it and recalculate nutrition values.
+
+IMPORTANT FOR RECIPES AND DRINKS: If an existing row represents a whole recipe/batch (for example "1 whole batch (about 8 dl)") and the user says they drank/ate a smaller amount (for example "I drank 2 dl"), scale the row proportionally. Example: 2 dl from an 8 dl batch = 25% of calories and macros, not the whole batch.
+
+IMPORTANT FOR MEAT/FISH/POULTRY WITH BONES: If the user gives weight with bones, or the food is chicken drumsticks, chicken wings, ribs, bone-in chop, or whole fish, keep the bone-in weight in estimatedGrams but calculate calories and macros from the edible portion after bones. Mention this in portionDescription, for example "300 g with bone (about 200 g edible)".
+
+IMPORTANT: Always set success to true - the food has already been identified and we are only updating the analysis.
+
+Return a complete updated analysis with all food items, not only the changed ones. Write all user-facing names, portion descriptions, meal descriptions, and notes in English.${enhancedMode ? `
+
+ENHANCED ANALYSIS: Also include fat breakdown (saturated, monounsaturated, polyunsaturated), carbohydrate breakdown (sugar, complex carbohydrates), protein quality (isCompleteProtein), and protein source (proteinSource: ANIMAL, PLANT, MIXED, or UNKNOWN) per food item and in totals.` : ''}`
+}
+
 function createTimeoutSignal(timeoutMs: number): AbortSignal {
   const timeout = (AbortSignal as typeof AbortSignal & {
     timeout?: (ms: number) => AbortSignal
@@ -90,6 +146,7 @@ function isTransientAiError(error: unknown): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   let logContext:
     | {
         clientId: string
@@ -105,6 +162,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
     logContext = {
       clientId,
       isCoachInAthleteMode,
@@ -130,7 +188,13 @@ export async function POST(request: NextRequest) {
 
     if (!originalAnalysis || !refinementText) {
       return NextResponse.json(
-        { error: 'originalAnalysis och refinementText krävs' },
+        {
+          error: t(
+            locale,
+            'originalAnalysis and refinementText are required',
+            'originalAnalysis och refinementText krävs'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -155,7 +219,13 @@ export async function POST(request: NextRequest) {
         keyOwnerId: keyContext.keyOwnerId,
       })
       return NextResponse.json(
-        { error: 'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.' },
+        {
+          error: t(
+            locale,
+            'Google/Gemini API key is missing for image analysis. Enable Gemini in AI settings.',
+            'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -187,23 +257,12 @@ export async function POST(request: NextRequest) {
 
     content.push({
       type: 'text',
-      text: `Du är en expert på näringslära. Här är en tidigare analys av en måltid:
-
-${JSON.stringify(originalAnalysis, null, 2)}
-
-Användaren säger: "${refinementText}"
-
-Uppdatera analysen baserat på användarens korrigering. Behåll all befintlig information men justera det som användaren påpekar. Om användaren nämner nya livsmedel, lägg till dem. Om användaren korrigerar portionsstorlekar eller mängder, uppdatera kalorier och makros därefter. Om användaren säger att en matvara egentligen är något annat, byt ut den och räkna om näringsvärden.
-
-VIKTIGT OM RECEPT OCH DRYCKER: Om en befintlig rad är ett helt recept/en hel sats (t.ex. "1 hel sats (ca 8 dl)") och användaren skriver att hen drack/åt en mindre mängd (t.ex. "jag drack 2 dl"), ska du skala raden proportionellt. Exempel: 2 dl av en sats på 8 dl = 25% av kalorier och makron, inte hela satsen.
-
-VIKTIGT OM KÖTT/FISK/FÅGEL MED BEN: Om användaren anger vikt med ben eller matvaran är t.ex. kycklingklubbor, kycklingvingar, revben, kotlett med ben eller hel fisk, behåll vikten inklusive ben i estimatedGrams men beräkna kalorier och makros på ätbar del efter ben. Skriv gärna i portionDescription, t.ex. "300 g med ben (ca 200 g ätbart)".
-
-VIKTIGT: Sätt alltid success till true — maten har redan identifierats och vi uppdaterar bara analysen.
-
-Returnera en komplett uppdaterad analys med alla matvaro — inte bara de ändrade.${enhancedMode ? `
-
-UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, fleromättat), kolhydratfördelning (socker, komplexa kolhydrater), proteinkvalitet (isCompleteProtein) och proteinkälla (proteinSource: ANIMAL, PLANT, MIXED eller UNKNOWN) per matvara och i totals.` : ''}`,
+      text: buildRefinementPrompt({
+        originalAnalysis,
+        refinementText,
+        enhancedMode,
+        locale,
+      }),
     })
 
     requestLogger.info('Food scan refine started', {
@@ -279,16 +338,24 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
 
     // Surface a more helpful message when possible
     const errMsg = getErrorText(error)
-    let userMessage = 'Kunde inte uppdatera analysen'
+    let userMessage = t(locale, 'Could not update the analysis', 'Kunde inte uppdatera analysen')
     if (
       isAbortError(error) ||
       errMsg.includes('abort') ||
       errMsg.includes('timed out') ||
       errMsg.includes('timeout')
     ) {
-      userMessage = 'Uppdateringen tog för lång tid. Försök igen eller beskriv ändringen kortare.'
+      userMessage = t(
+        locale,
+        'The update took too long. Try again or describe the change more briefly.',
+        'Uppdateringen tog för lång tid. Försök igen eller beskriv ändringen kortare.'
+      )
     } else if (errMsg.includes('quota')) {
-      userMessage = 'AI-kvoten hos Gemini verkar vara tillfälligt slut. Försök igen om en stund.'
+      userMessage = t(
+        locale,
+        'The Gemini AI quota seems temporarily exhausted. Try again in a moment.',
+        'AI-kvoten hos Gemini verkar vara tillfälligt slut. Försök igen om en stund.'
+      )
     } else if (
       errMsg.includes('429') ||
       errMsg.includes('rate') ||
@@ -296,9 +363,17 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
       errMsg.includes('503') ||
       errMsg.includes('unavailable')
     ) {
-      userMessage = 'AI-tjänsten är tillfälligt överbelastad. Försök igen om en stund.'
+      userMessage = t(
+        locale,
+        'The AI service is temporarily overloaded. Try again in a moment.',
+        'AI-tjänsten är tillfälligt överbelastad. Försök igen om en stund.'
+      )
     } else if (errMsg.includes('body') || errMsg.includes('too large') || errMsg.includes('entity_too_large')) {
-      userMessage = 'Bilden är för stor. Försök utan bild eller ta en ny bild.'
+      userMessage = t(
+        locale,
+        'The image is too large. Try without the image or take a new photo.',
+        'Bilden är för stor. Försök utan bild eller ta en ny bild.'
+      )
     }
 
     return NextResponse.json(
