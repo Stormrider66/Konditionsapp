@@ -48,21 +48,30 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useLocale } from 'next-intl'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
+type AppLocale = 'en' | 'sv'
 type Modality = 'DWR' | 'XC_SKIING' | 'ALTERG' | 'AIR_BIKE' | 'CYCLING' | 'ROWING' | 'ELLIPTICAL' | 'SWIMMING' | 'NONE'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 const MODALITY_CONFIG = {
   DWR: { icon: '🏊', label: 'DWR', color: '#3b82f6' },
-  XC_SKIING: { icon: '⛷️', label: 'Längdskidåkning', color: '#64748b' },
+  XC_SKIING: { icon: '⛷️', label: { en: 'Cross-country skiing', sv: 'Längdskidåkning' }, color: '#64748b' },
   ALTERG: { icon: '🏃', label: 'AlterG', color: '#6366f1' },
   AIR_BIKE: { icon: '🚴‍♂️', label: 'Air Bike', color: '#ef4444' },
-  CYCLING: { icon: '🚴', label: 'Cykling', color: '#10b981' },
-  ROWING: { icon: '🚣', label: 'Rodd', color: '#8b5cf6' },
-  ELLIPTICAL: { icon: '🏃‍♂️', label: 'Crosstrainer', color: '#f97316' },
-  SWIMMING: { icon: '🏊‍♂️', label: 'Simning', color: '#06b6d4' },
-  NONE: { icon: '🚫', label: 'Ingen träning', color: '#dc2626' },
+  CYCLING: { icon: '🚴', label: { en: 'Cycling', sv: 'Cykling' }, color: '#10b981' },
+  ROWING: { icon: '🚣', label: { en: 'Rowing', sv: 'Rodd' }, color: '#8b5cf6' },
+  ELLIPTICAL: { icon: '🏃‍♂️', label: { en: 'Elliptical', sv: 'Crosstrainer' }, color: '#f97316' },
+  SWIMMING: { icon: '🏊‍♂️', label: { en: 'Swimming', sv: 'Simning' }, color: '#06b6d4' },
+  NONE: { icon: '🚫', label: { en: 'No training', sv: 'Ingen träning' }, color: '#dc2626' },
+}
+
+function getModalityLabel(modality: Modality, locale: AppLocale): string {
+  const label = MODALITY_CONFIG[modality].label
+  return typeof label === 'string' ? label : label[locale]
 }
 
 interface WeeklyProjection {
@@ -103,15 +112,23 @@ interface FitnessProjectionProps {
   initialClientId?: string
 }
 
+interface ClientOption {
+  id: string
+  name: string
+}
+
+type ProjectionChartPoint = { week: number } & Partial<Record<Modality, number>>
+
 export default function FitnessProjection({
   initialClientId,
 }: FitnessProjectionProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [selectedClient, setSelectedClient] = useState<string>(initialClientId || '')
   const [weeks, setWeeks] = useState<number>(4)
-  const [selectedModality, setSelectedModality] = useState<Modality>('DWR')
+  const [selectedModality] = useState<Modality>('DWR')
 
   // Fetch clients
-  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher)
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: ClientOption[] }>('/api/clients', fetcher)
   const clients = clientsResponse?.data || []
 
   // Fetch projection data
@@ -131,15 +148,15 @@ export default function FitnessProjection({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Fitness Retention Projektion</CardTitle>
+          <CardTitle>{copy(locale, 'Fitness retention projection', 'Fitness Retention Projektion')}</CardTitle>
           <CardDescription>
-            Välj en atlet för att visa VO2max-retention under skadeperiod
+            {copy(locale, 'Select an athlete to show VO2max retention during an injury period', 'Välj en atlet för att visa VO2max-retention under skadeperiod')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Select onValueChange={handleClientChange}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Välj atlet..." />
+              <SelectValue placeholder={copy(locale, 'Select athlete...', 'Välj atlet...')} />
             </SelectTrigger>
             <SelectContent>
               {clients?.map((client) => (
@@ -155,25 +172,21 @@ export default function FitnessProjection({
   }
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Laddar projektion...</div>
+    return <div className="text-muted-foreground">{copy(locale, 'Loading projection...', 'Laddar projektion...')}</div>
   }
 
   if (error || !data) {
     return (
       <Alert variant="destructive">
         <AlertDescription>
-          Kunde inte ladda fitnessprojektion. Kontrollera att atleten har ett VO2max-test.
+          {copy(locale, 'Could not load fitness projection. Check that the athlete has a VO2max test.', 'Kunde inte ladda fitnessprojektion. Kontrollera att atleten har ett VO2max-test.')}
         </AlertDescription>
       </Alert>
     )
   }
 
   // Prepare chart data - combine all modalities into single dataset
-  const chartData = []
-  const maxWeeks = Math.max(...data.comparison.map((c) => {
-    const modalityData = data.comparison.find((comp) => comp.modality === c.modality)
-    return weeks
-  }))
+  const chartData: ProjectionChartPoint[] = []
 
   // Fetch all modality projections for chart
   const allModalityProjections = new Map<Modality, WeeklyProjection[]>()
@@ -184,7 +197,7 @@ export default function FitnessProjection({
 
   // Build combined chart data
   for (let week = 0; week <= weeks; week++) {
-    const dataPoint: any = { week }
+    const dataPoint: ProjectionChartPoint = { week }
 
     // Add each modality's VO2max at this week
     data.comparison.forEach((comp) => {
@@ -203,16 +216,16 @@ export default function FitnessProjection({
       {/* Header with controls */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold flex items-center gap-1.5">Fitness Retention Projektion <InfoTooltip conceptKey="detraining" /></h2>
+          <h2 className="text-2xl font-bold flex items-center gap-1.5">{copy(locale, 'Fitness retention projection', 'Fitness Retention Projektion')} <InfoTooltip conceptKey="detraining" /></h2>
           <p className="text-sm text-muted-foreground">
-            VO2max-förlust över tid beroende på korstr.träningsmodalitet
+            {copy(locale, 'VO2max loss over time depending on cross-training modality', 'VO2max-förlust över tid beroende på korstr.träningsmodalitet')}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Weeks selector */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Skadeperiod:</label>
+            <label className="text-sm font-medium">{copy(locale, 'Injury period', 'Skadeperiod')}:</label>
             <Select value={weeks.toString()} onValueChange={(v) => setWeeks(parseInt(v))}>
               <SelectTrigger className="w-32">
                 <SelectValue />
@@ -220,7 +233,7 @@ export default function FitnessProjection({
               <SelectContent>
                 {[1, 2, 3, 4, 6, 8, 10, 12].map((w) => (
                   <SelectItem key={w} value={w.toString()}>
-                    {w} veckor
+                    {w} {copy(locale, 'weeks', 'veckor')}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -258,7 +271,7 @@ export default function FitnessProjection({
                 <Badge variant="outline" className="text-lg px-4 py-2">
                   {data.injuryType}
                 </Badge>
-                <div className="text-sm text-muted-foreground mt-1">Aktiv skada</div>
+                <div className="text-sm text-muted-foreground mt-1">{copy(locale, 'Active injury', 'Aktiv skada')}</div>
               </div>
             )}
           </div>
@@ -269,8 +282,8 @@ export default function FitnessProjection({
       <Alert>
         <Award className="h-4 w-4" />
         <AlertDescription>
-          <strong>Rekommendation:</strong> {MODALITY_CONFIG[data.recommendedModality].icon}{' '}
-          {MODALITY_CONFIG[data.recommendedModality].label}
+          <strong>{copy(locale, 'Recommendation', 'Rekommendation')}:</strong> {MODALITY_CONFIG[data.recommendedModality].icon}{' '}
+          {getModalityLabel(data.recommendedModality, locale)}
           <br />
           <span className="text-sm">{data.recommendations.reasoning}</span>
           <br />
@@ -283,9 +296,9 @@ export default function FitnessProjection({
       {/* VO2max Retention Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>VO2max-retention över tid</CardTitle>
+          <CardTitle>{copy(locale, 'VO2max retention over time', 'VO2max-retention över tid')}</CardTitle>
           <CardDescription>
-            Jämförelse av olika korstr.träningsmodaliteter ({weeks} veckor)
+            {copy(locale, 'Comparison of different cross-training modalities', 'Jämförelse av olika korstr.träningsmodaliteter')} ({weeks} {copy(locale, 'weeks', 'veckor')})
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -294,7 +307,7 @@ export default function FitnessProjection({
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="week"
-                label={{ value: 'Veckor', position: 'insideBottom', offset: -5 }}
+                label={{ value: copy(locale, 'Weeks', 'Veckor'), position: 'insideBottom', offset: -5 }}
               />
               <YAxis
                 label={{ value: 'VO2max (ml/kg/min)', angle: -90, position: 'insideLeft' }}
@@ -308,16 +321,16 @@ export default function FitnessProjection({
                   if (!active || !payload || payload.length === 0) return null
                   return (
                     <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-                      <div className="font-semibold mb-2">Vecka {payload[0].payload.week}</div>
+                      <div className="font-semibold mb-2">{copy(locale, 'Week', 'Vecka')} {payload[0].payload.week}</div>
                       {payload
                         .sort((a, b) => (b.value as number) - (a.value as number))
-                        .map((entry: any) => (
+                        .map((entry) => (
                           <div key={entry.dataKey} className="text-sm">
                             <span
                               className="inline-block w-3 h-3 rounded-full mr-2"
                               style={{ backgroundColor: entry.stroke }}
                             />
-                            {MODALITY_CONFIG[entry.dataKey as Modality]?.label}:{' '}
+                            {getModalityLabel(entry.dataKey as Modality, locale)}:{' '}
                             <strong>{entry.value}</strong> ml/kg/min
                           </div>
                         ))}
@@ -337,7 +350,7 @@ export default function FitnessProjection({
               <Line
                 type="monotone"
                 dataKey="DWR"
-                name={MODALITY_CONFIG.DWR.label}
+                name={getModalityLabel('DWR', locale)}
                 stroke={MODALITY_CONFIG.DWR.color}
                 strokeWidth={2}
                 dot={false}
@@ -345,7 +358,7 @@ export default function FitnessProjection({
               <Line
                 type="monotone"
                 dataKey="XC_SKIING"
-                name={MODALITY_CONFIG.XC_SKIING.label}
+                name={getModalityLabel('XC_SKIING', locale)}
                 stroke={MODALITY_CONFIG.XC_SKIING.color}
                 strokeWidth={2}
                 dot={false}
@@ -353,7 +366,7 @@ export default function FitnessProjection({
               <Line
                 type="monotone"
                 dataKey="ALTERG"
-                name={MODALITY_CONFIG.ALTERG.label}
+                name={getModalityLabel('ALTERG', locale)}
                 stroke={MODALITY_CONFIG.ALTERG.color}
                 strokeWidth={2}
                 dot={false}
@@ -361,7 +374,7 @@ export default function FitnessProjection({
               <Line
                 type="monotone"
                 dataKey="AIR_BIKE"
-                name={MODALITY_CONFIG.AIR_BIKE.label}
+                name={getModalityLabel('AIR_BIKE', locale)}
                 stroke={MODALITY_CONFIG.AIR_BIKE.color}
                 strokeWidth={2}
                 dot={false}
@@ -369,7 +382,7 @@ export default function FitnessProjection({
               <Line
                 type="monotone"
                 dataKey="CYCLING"
-                name={MODALITY_CONFIG.CYCLING.label}
+                name={getModalityLabel('CYCLING', locale)}
                 stroke={MODALITY_CONFIG.CYCLING.color}
                 strokeWidth={2}
                 dot={false}
@@ -377,7 +390,7 @@ export default function FitnessProjection({
               <Line
                 type="monotone"
                 dataKey="SWIMMING"
-                name={MODALITY_CONFIG.SWIMMING.label}
+                name={getModalityLabel('SWIMMING', locale)}
                 stroke={MODALITY_CONFIG.SWIMMING.color}
                 strokeWidth={2}
                 dot={false}
@@ -385,7 +398,7 @@ export default function FitnessProjection({
               <Line
                 type="monotone"
                 dataKey="NONE"
-                name={MODALITY_CONFIG.NONE.label}
+                name={getModalityLabel('NONE', locale)}
                 stroke={MODALITY_CONFIG.NONE.color}
                 strokeWidth={2}
                 strokeDasharray="5 5"
@@ -399,21 +412,21 @@ export default function FitnessProjection({
       {/* Comparison Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Modalitetsjämförelse</CardTitle>
+          <CardTitle>{copy(locale, 'Modality comparison', 'Modalitetsjämförelse')}</CardTitle>
           <CardDescription>
-            VO2max-retention och återhämtningstid efter {weeks} veckor
+            {copy(locale, 'VO2max retention and recovery time after', 'VO2max-retention och återhämtningstid efter')} {weeks} {copy(locale, 'weeks', 'veckor')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Modalitet</TableHead>
-                <TableHead className="text-right">Slut-VO2max</TableHead>
+                <TableHead>{copy(locale, 'Modality', 'Modalitet')}</TableHead>
+                <TableHead className="text-right">{copy(locale, 'Final VO2max', 'Slut-VO2max')}</TableHead>
                 <TableHead className="text-right">Retention</TableHead>
-                <TableHead className="text-right">Förlust</TableHead>
-                <TableHead className="text-right">Återh.tid</TableHead>
-                <TableHead className="text-right">Total tid</TableHead>
+                <TableHead className="text-right">{copy(locale, 'Loss', 'Förlust')}</TableHead>
+                <TableHead className="text-right">{copy(locale, 'Return time', 'Återh.tid')}</TableHead>
+                <TableHead className="text-right">{copy(locale, 'Total time', 'Total tid')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -430,12 +443,12 @@ export default function FitnessProjection({
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{MODALITY_CONFIG[comp.modality].icon}</span>
                           <span className="font-medium">
-                            {MODALITY_CONFIG[comp.modality].label}
+                            {getModalityLabel(comp.modality, locale)}
                           </span>
                           {isRecommended && (
                             <Badge variant="outline" className="bg-green-100 text-green-800">
                               <Award className="h-3 w-3 mr-1" />
-                              Rekommenderad
+                              {copy(locale, 'Recommended', 'Rekommenderad')}
                             </Badge>
                           )}
                         </div>
@@ -458,11 +471,11 @@ export default function FitnessProjection({
                       <TableCell className="text-right">
                         <Badge variant="outline">
                           <Calendar className="h-3 w-3 mr-1" />
-                          {comp.returnWeeks} v
+                          {comp.returnWeeks} {copy(locale, 'w', 'v')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {comp.totalTimeToBaseline} veckor
+                        {comp.totalTimeToBaseline} {copy(locale, 'weeks', 'veckor')}
                       </TableCell>
                     </TableRow>
                   )
@@ -476,7 +489,7 @@ export default function FitnessProjection({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{MODALITY_CONFIG.NONE.icon}</span>
-                        <span className="font-medium">{MODALITY_CONFIG.NONE.label}</span>
+                        <span className="font-medium">{getModalityLabel('NONE', locale)}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold text-red-600">
@@ -489,10 +502,10 @@ export default function FitnessProjection({
                       <Badge variant="destructive">-{comp.lossPercent}%</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Badge variant="destructive">{comp.returnWeeks} v</Badge>
+                      <Badge variant="destructive">{comp.returnWeeks} {copy(locale, 'w', 'v')}</Badge>
                     </TableCell>
                     <TableCell className="text-right font-semibold text-red-600">
-                      {comp.totalTimeToBaseline} veckor
+                      {comp.totalTimeToBaseline} {copy(locale, 'weeks', 'veckor')}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -505,9 +518,7 @@ export default function FitnessProjection({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Viktigt:</strong> Dessa projektioner är baserade på vetenskaplig forskning om
-          korstr.träning. Individuella resultat kan variera beroende på träningsintensitet,
-          volym och individuell återhämtning.
+          <strong>{copy(locale, 'Important', 'Viktigt')}:</strong> {copy(locale, 'These projections are based on scientific research on cross-training. Individual results may vary depending on training intensity, volume, and individual recovery.', 'Dessa projektioner är baserade på vetenskaplig forskning om korstr.träning. Individuella resultat kan variera beroende på träningsintensitet, volym och individuell återhämtning.')}
         </AlertDescription>
       </Alert>
     </div>
