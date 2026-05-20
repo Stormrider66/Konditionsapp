@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   AlertTriangle,
   Bot,
@@ -35,6 +35,9 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
 
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
 type TicketPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
@@ -96,17 +99,22 @@ const priorityLabels: Record<TicketPriority, string> = {
   URGENT: 'Urgent',
 }
 
-function formatDate(value: string) {
+function formatDate(value: string, locale: AppLocale) {
   try {
-    return format(new Date(value), 'd MMM HH:mm', { locale: sv })
+    return format(new Date(value), locale === 'sv' ? 'd MMM HH:mm' : 'MMM d, h:mm a', {
+      locale: locale === 'sv' ? sv : enUS,
+    })
   } catch {
     return value
   }
 }
 
-function formatRelativeDate(value: string) {
+function formatRelativeDate(value: string, locale: AppLocale) {
   try {
-    return formatDistanceToNow(new Date(value), { addSuffix: true, locale: sv })
+    return formatDistanceToNow(new Date(value), {
+      addSuffix: true,
+      locale: locale === 'sv' ? sv : enUS,
+    })
   } catch {
     return value
   }
@@ -157,6 +165,7 @@ function getStatusClass(status: TicketStatus) {
 }
 
 export function SupportTicketsPanel() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'ALL'>('OPEN')
   const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
@@ -200,7 +209,11 @@ export function SupportTicketsPanel() {
   }, [statusFilter])
 
   useEffect(() => {
-    fetchTickets()
+    const timeout = window.setTimeout(() => {
+      void fetchTickets()
+    }, 0)
+
+    return () => window.clearTimeout(timeout)
   }, [fetchTickets])
 
   async function updateTicket(ticketId: string, payload: Record<string, unknown>) {
@@ -385,7 +398,7 @@ export function SupportTicketsPanel() {
                       </Badge>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span>{formatRelativeDate(ticket.createdAt)}</span>
+                      <span>{formatRelativeDate(ticket.createdAt, locale)}</span>
                       {ticket.category && <span>{ticket.category}</span>}
                       {ticket.agentClassified && <span>agent triaged</span>}
                     </div>
@@ -400,6 +413,7 @@ export function SupportTicketsPanel() {
                   onUpdate={(payload) => updateTicket(selectedTicket.id, payload)}
                   onCreateGitHubIssue={() => createGitHubIssue(selectedTicket)}
                   onDraftCodexBrief={() => draftCodexBrief(selectedTicket)}
+                  locale={locale}
                 />
               )}
             </div>
@@ -460,12 +474,14 @@ function TicketDetail({
   onUpdate,
   onCreateGitHubIssue,
   onDraftCodexBrief,
+  locale,
 }: {
   ticket: SupportTicket
   updating: boolean
   onUpdate: (payload: Record<string, unknown>) => void
   onCreateGitHubIssue: () => void
   onDraftCodexBrief: () => void
+  locale: AppLocale
 }) {
   const metadata = getMetadataRecord(ticket.metadata)
   const viewport = getViewportLabel(metadata)
@@ -489,7 +505,7 @@ function TicketDetail({
         </div>
         <h3 className="text-lg font-semibold">{ticket.title}</h3>
         <p className="text-sm text-muted-foreground">
-          {formatDate(ticket.createdAt)} · {ticket.reporterEmail || ticket.userId || 'Unknown reporter'}
+          {formatDate(ticket.createdAt, locale)} · {ticket.reporterEmail || ticket.userId || 'Unknown reporter'}
         </p>
       </div>
 
