@@ -21,6 +21,11 @@ import { Mic } from 'lucide-react'
 import { VoiceWorkoutCreator } from './VoiceWorkoutCreator'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface VoiceWorkoutButtonProps {
   variant?: 'default' | 'outline' | 'ghost' | 'link' | 'card'
@@ -36,11 +41,15 @@ export function VoiceWorkoutButton({
   className,
   basePath = '',
 }: VoiceWorkoutButtonProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(frame)
+  }, [])
 
   const coachPath = basePath ? `${basePath}/coach` : null
 
@@ -79,7 +88,7 @@ export function VoiceWorkoutButton({
           )}
         >
           <Mic className="h-5 w-5 text-pink-500" />
-          <span className="text-xs dark:text-slate-300">Röstpass</span>
+          <span className="text-xs dark:text-slate-300">{copy(locale, 'Voice workout', 'Röstpass')}</span>
         </button>
       )
     }
@@ -94,13 +103,13 @@ export function VoiceWorkoutButton({
             )}
           >
             <Mic className="h-5 w-5 text-pink-500" />
-            <span className="text-xs dark:text-slate-300">Röstpass</span>
+            <span className="text-xs dark:text-slate-300">{copy(locale, 'Voice workout', 'Röstpass')}</span>
           </button>
         </SheetTrigger>
         <SheetContent side="right" className="w-full sm:max-w-lg p-0">
           <SheetHeader className="sr-only">
-            <SheetTitle>Skapa träningspass med röst</SheetTitle>
-            <SheetDescription>Spela in ett röstkommando för att skapa ett träningspass</SheetDescription>
+            <SheetTitle>{copy(locale, 'Create workout by voice', 'Skapa träningspass med röst')}</SheetTitle>
+            <SheetDescription>{copy(locale, 'Record a voice command to create a workout', 'Spela in ett röstkommando för att skapa ett träningspass')}</SheetDescription>
           </SheetHeader>
           <VoiceWorkoutCreator
             onComplete={handleComplete}
@@ -116,7 +125,7 @@ export function VoiceWorkoutButton({
     return (
       <Button variant={variant} size={size} className={cn('gap-2', className)}>
         <Mic className="h-4 w-4" />
-        Skapa med röst
+        {copy(locale, 'Create by voice', 'Skapa med röst')}
       </Button>
     )
   }
@@ -126,13 +135,13 @@ export function VoiceWorkoutButton({
       <SheetTrigger asChild>
         <Button variant={variant} size={size} className={cn('gap-2', className)}>
           <Mic className="h-4 w-4" />
-          Skapa med röst
+          {copy(locale, 'Create by voice', 'Skapa med röst')}
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-lg p-0">
         <SheetHeader className="sr-only">
-          <SheetTitle>Skapa träningspass med röst</SheetTitle>
-          <SheetDescription>Spela in ett röstkommando för att skapa ett träningspass</SheetDescription>
+          <SheetTitle>{copy(locale, 'Create workout by voice', 'Skapa träningspass med röst')}</SheetTitle>
+          <SheetDescription>{copy(locale, 'Record a voice command to create a workout', 'Spela in ett röstkommando för att skapa ett träningspass')}</SheetDescription>
         </SheetHeader>
         <VoiceWorkoutCreator
           onComplete={handleComplete}

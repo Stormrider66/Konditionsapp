@@ -23,19 +23,20 @@ import {
   Pause,
   Trash2,
   Loader2,
-  CheckCircle2,
   AlertTriangle,
   ArrowRight,
   ArrowLeft,
-  Send,
   X,
 } from 'lucide-react'
 import { WorkoutIntentPreview } from './WorkoutIntentPreview'
-import { TargetSelector } from './TargetSelector'
 import { VoiceWorkoutConfirmation } from './VoiceWorkoutConfirmation'
 import type { VoiceWorkoutPreview, VoiceWorkoutIntent } from '@/types/voice-workout'
+import { useLocale } from 'next-intl'
 
 type Step = 'record' | 'processing' | 'review' | 'confirm'
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface VoiceWorkoutCreatorProps {
   onComplete?: (result: { workoutId: string; workoutType: string }) => void
@@ -48,6 +49,7 @@ export function VoiceWorkoutCreator({
   onCancel,
   maxDuration = 180,
 }: VoiceWorkoutCreatorProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [step, setStep] = useState<Step>('record')
   const [duration, setDuration] = useState(0)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
@@ -185,7 +187,7 @@ export function VoiceWorkoutCreator({
       setTimeout(drawWaveform, 100)
     } catch (err) {
       console.error('Error accessing microphone:', err)
-      setError('Kunde inte komma åt mikrofonen. Kontrollera att du har gett tillstånd.')
+      setError(copy(locale, 'Could not access the microphone. Check that you have granted permission.', 'Kunde inte komma åt mikrofonen. Kontrollera att du har gett tillstånd.'))
     }
   }
 
@@ -211,7 +213,7 @@ export function VoiceWorkoutCreator({
     if (isPlaying) {
       audioRef.current.pause()
     } else {
-      audioRef.current.play()
+      void audioRef.current.play()
     }
     setIsPlaying(!isPlaying)
   }
@@ -250,7 +252,7 @@ export function VoiceWorkoutCreator({
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Uppladdning misslyckades')
+        throw new Error(error.error || copy(locale, 'Upload failed', 'Uppladdning misslyckades'))
       }
 
       const result = await response.json()
@@ -259,7 +261,7 @@ export function VoiceWorkoutCreator({
       setStep('review')
     } catch (err) {
       console.error('Upload/process error:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : copy(locale, 'An error occurred', 'Ett fel uppstod'))
       setStep('record')
     }
   }
@@ -276,14 +278,14 @@ export function VoiceWorkoutCreator({
       })
 
       if (!response.ok) {
-        throw new Error('Kunde inte uppdatera')
+        throw new Error(copy(locale, 'Could not update', 'Kunde inte uppdatera'))
       }
 
       const result = await response.json()
       setPreview(result.preview)
     } catch (err) {
       console.error('Update error:', err)
-      setError(err instanceof Error ? err.message : 'Kunde inte uppdatera')
+      setError(err instanceof Error ? err.message : copy(locale, 'Could not update', 'Kunde inte uppdatera'))
     }
   }
 
@@ -316,7 +318,7 @@ export function VoiceWorkoutCreator({
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Kunde inte spara pass')
+        throw new Error(error.error || copy(locale, 'Could not save workout', 'Kunde inte spara pass'))
       }
 
       const result = await response.json()
@@ -326,7 +328,7 @@ export function VoiceWorkoutCreator({
       })
     } catch (err) {
       console.error('Confirm error:', err)
-      setError(err instanceof Error ? err.message : 'Kunde inte spara pass')
+      setError(err instanceof Error ? err.message : copy(locale, 'Could not save workout', 'Kunde inte spara pass'))
       setIsSubmitting(false)
     }
   }
@@ -338,17 +340,27 @@ export function VoiceWorkoutCreator({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  const getStepDescription = () => {
+    switch (step) {
+      case 'record':
+        return copy(locale, 'Describe the workout you want to create', 'Beskriv passet du vill skapa')
+      case 'processing':
+        return copy(locale, 'AI is analyzing your description...', 'AI analyserar din beskrivning...')
+      case 'review':
+        return copy(locale, 'Review and adjust', 'Granska och justera')
+      case 'confirm':
+        return copy(locale, 'Confirm and save', 'Bekräfta och spara')
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div>
-          <h2 className="text-lg font-semibold">Skapa pass med röst</h2>
+          <h2 className="text-lg font-semibold">{copy(locale, 'Create workout by voice', 'Skapa pass med röst')}</h2>
           <p className="text-sm text-muted-foreground">
-            {step === 'record' && 'Beskriv passet du vill skapa'}
-            {step === 'processing' && 'AI analyserar din beskrivning...'}
-            {step === 'review' && 'Granska och justera'}
-            {step === 'confirm' && 'Bekräfta och spara'}
+            {getStepDescription()}
           </p>
         </div>
         {onCancel && (
@@ -411,7 +423,7 @@ export function VoiceWorkoutCreator({
                   className="w-full h-24 rounded-lg"
                 />
                 <Badge className="absolute top-2 right-2 bg-red-500 animate-pulse">
-                  Spelar in
+                  {copy(locale, 'Recording', 'Spelar in')}
                 </Badge>
               </div>
             )}
@@ -440,14 +452,12 @@ export function VoiceWorkoutCreator({
             {/* Tips */}
             {!isRecording && !audioUrl && (
               <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <p className="font-medium">Exempel:</p>
+                <p className="font-medium">{copy(locale, 'Examples:', 'Exempel:')}</p>
                 <p className="text-sm text-muted-foreground">
-                  &ldquo;Skapa ett intervallpass till Johan på torsdag. 4 gånger 4 minuter i zon 4
-                  med 3 minuters vila mellan.&rdquo;
+                  &ldquo;{copy(locale, 'Create an interval workout for Johan on Thursday. 4 times 4 minutes in zone 4 with 3 minutes rest between.', 'Skapa ett intervallpass till Johan på torsdag. 4 gånger 4 minuter i zon 4 med 3 minuters vila mellan.')}&rdquo;
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  &ldquo;Styrkepass för Team Alpha på måndag. Fokus på underkropp med knäböj,
-                  utfall och marklyft.&rdquo;
+                  &ldquo;{copy(locale, 'Strength workout for Team Alpha on Monday. Focus on lower body with squats, lunges, and deadlifts.', 'Styrkepass för Team Alpha på måndag. Fokus på underkropp med knäböj, utfall och marklyft.')}&rdquo;
                 </p>
               </div>
             )}
@@ -457,14 +467,14 @@ export function VoiceWorkoutCreator({
               {!isRecording && !audioUrl && (
                 <Button onClick={startRecording} size="lg" className="gap-2">
                   <Mic className="h-5 w-5" />
-                  Starta inspelning
+                  {copy(locale, 'Start recording', 'Starta inspelning')}
                 </Button>
               )}
 
               {isRecording && (
                 <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2">
                   <Square className="h-5 w-5" />
-                  Stoppa inspelning
+                  {copy(locale, 'Stop recording', 'Stoppa inspelning')}
                 </Button>
               )}
 
@@ -472,18 +482,18 @@ export function VoiceWorkoutCreator({
                 <>
                   <Button onClick={uploadAndProcess} size="lg" className="gap-2">
                     <ArrowRight className="h-5 w-5" />
-                    Analysera med AI
+                    {copy(locale, 'Analyze with AI', 'Analysera med AI')}
                   </Button>
 
                   <div className="flex gap-2">
                     <Button onClick={togglePlayback} variant="outline" className="flex-1 gap-2">
                       {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                      {isPlaying ? 'Pausa' : 'Lyssna'}
+                      {isPlaying ? copy(locale, 'Pause', 'Pausa') : copy(locale, 'Listen', 'Lyssna')}
                     </Button>
 
                     <Button onClick={deleteRecording} variant="ghost" className="flex-1 gap-2">
                       <Trash2 className="h-4 w-4" />
-                      Ta bort
+                      {copy(locale, 'Delete', 'Ta bort')}
                     </Button>
                   </div>
                 </>
@@ -497,9 +507,9 @@ export function VoiceWorkoutCreator({
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
             <Loader2 className="h-12 w-12 text-primary animate-spin" />
             <div className="text-center">
-              <p className="font-medium">AI analyserar din beskrivning...</p>
+              <p className="font-medium">{copy(locale, 'AI is analyzing your description...', 'AI analyserar din beskrivning...')}</p>
               <p className="text-sm text-muted-foreground">
-                Transkriberar ljud och extraherar passstruktur
+                {copy(locale, 'Transcribing audio and extracting workout structure', 'Transkriberar ljud och extraherar passstruktur')}
               </p>
             </div>
           </div>
@@ -530,14 +540,14 @@ export function VoiceWorkoutCreator({
         <div className="p-4 border-t flex gap-2">
           <Button variant="outline" onClick={deleteRecording} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Börja om
+            {copy(locale, 'Start over', 'Börja om')}
           </Button>
           <Button
             onClick={() => setStep('confirm')}
             className="flex-1 gap-2"
             disabled={!preview.canSave}
           >
-            Fortsätt till bekräftelse
+            {copy(locale, 'Continue to confirmation', 'Fortsätt till bekräftelse')}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -547,7 +557,7 @@ export function VoiceWorkoutCreator({
         <div className="p-4 border-t">
           <Button variant="outline" onClick={() => setStep('review')} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Tillbaka
+            {copy(locale, 'Back', 'Tillbaka')}
           </Button>
         </div>
       )}
