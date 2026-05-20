@@ -11,7 +11,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   HybridProgressChart,
@@ -22,16 +21,14 @@ import {
   TrendingUp,
   TrendingDown,
   Dumbbell,
-  Clock,
   Target,
   Flame,
-  Calendar,
-  ChevronRight,
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { enUS, sv } from 'date-fns/locale';
+import { useLocale } from 'next-intl';
 
 interface AnalyticsData {
   results: HybridWorkoutResultData[];
@@ -72,11 +69,117 @@ interface HybridAnalyticsDashboardProps {
   isCoachView?: boolean;
 }
 
+type AppLocale = 'en' | 'sv';
+
+const labels: Record<AppLocale, {
+  loadError: string;
+  noData: string;
+  noResultsTitle: string;
+  noResultsCoach: string;
+  noResultsAthlete: string;
+  totalWorkouts: string;
+  perWeek: string;
+  personalRecords: string;
+  workoutsRx: string;
+  averageRpe: string;
+  perceivedEffort: string;
+  increasingActivity: string;
+  decreasingActivity: string;
+  more: string;
+  fewer: string;
+  trendComparison: string;
+  overview: string;
+  progressOverview: string;
+  progressDescription: string;
+  noRepeatsTitle: string;
+  noRepeatsDescription: string;
+  attempts: string;
+  prsTitle: string;
+  prsDescription: string;
+  noPrsTitle: string;
+  noPrsDescription: string;
+  benchmarksDescription: string;
+  noBenchmarksTitle: string;
+  noBenchmarksDescription: string;
+  first: string;
+  latest: string;
+}> = {
+  en: {
+    loadError: 'Could not load analytics',
+    noData: 'No data available',
+    noResultsTitle: 'No results yet',
+    noResultsCoach: 'This athlete has not logged any hybrid workouts yet',
+    noResultsAthlete: 'Start logging your workouts to see stats here',
+    totalWorkouts: 'Total workouts',
+    perWeek: 'per week',
+    personalRecords: 'Personal records',
+    workoutsRx: 'workouts Rx',
+    averageRpe: 'Average RPE',
+    perceivedEffort: 'Perceived effort',
+    increasingActivity: 'Increasing activity',
+    decreasingActivity: 'Decreasing activity',
+    more: 'more',
+    fewer: 'fewer',
+    trendComparison: 'workouts in the last 4 weeks compared with the previous period',
+    overview: 'Overview',
+    progressOverview: 'Progress overview',
+    progressDescription: 'See how you have improved in recurring workouts',
+    noRepeatsTitle: 'No recurring workouts to compare yet',
+    noRepeatsDescription: 'Repeat the same workout several times to see progression',
+    attempts: 'attempts',
+    prsTitle: 'Personal Records',
+    prsDescription: 'All your personal best results',
+    noPrsTitle: 'No PRs registered yet',
+    noPrsDescription: 'Keep training - new records will come.',
+    benchmarksDescription: 'Standardized workouts for measuring your fitness',
+    noBenchmarksTitle: 'No benchmark results yet',
+    noBenchmarksDescription: 'Try classic benchmarks like Fran, Grace, or Murph',
+    first: 'First',
+    latest: 'Latest',
+  },
+  sv: {
+    loadError: 'Kunde inte ladda statistik',
+    noData: 'Ingen data tillgänglig',
+    noResultsTitle: 'Inga resultat ännu',
+    noResultsCoach: 'Denna atlet har inte loggat några hybrid-pass ännu',
+    noResultsAthlete: 'Börja logga dina pass för att se statistik här',
+    totalWorkouts: 'Totalt pass',
+    perWeek: 'vecka',
+    personalRecords: 'Personliga rekord',
+    workoutsRx: 'pass Rx',
+    averageRpe: 'Snitt RPE',
+    perceivedEffort: 'Upplevd ansträngning',
+    increasingActivity: 'Ökande aktivitet!',
+    decreasingActivity: 'Minskande aktivitet',
+    more: 'fler',
+    fewer: 'färre',
+    trendComparison: 'pass senaste 4 veckorna jämfört med föregående period',
+    overview: 'Översikt',
+    progressOverview: 'Progressionsöversikt',
+    progressDescription: 'Se hur du förbättrats i dina återkommande pass',
+    noRepeatsTitle: 'Inga återkommande pass att jämföra ännu',
+    noRepeatsDescription: 'Gör samma pass flera gånger för att se progression',
+    attempts: 'försök',
+    prsTitle: 'Personliga Rekord',
+    prsDescription: 'Alla dina personbästa resultat',
+    noPrsTitle: 'Inga PRs registrerade ännu',
+    noPrsDescription: 'Fortsätt träna - nya rekord kommer!',
+    benchmarksDescription: 'Standardiserade pass för att mäta din fitness',
+    noBenchmarksTitle: 'Inga benchmark-resultat ännu',
+    noBenchmarksDescription: 'Prova klassiska benchmarks som Fran, Grace, eller Murph',
+    first: 'Första',
+    latest: 'Senaste',
+  },
+};
+
 export function HybridAnalyticsDashboard({
   athleteId,
   athleteName,
   isCoachView = false,
 }: HybridAnalyticsDashboardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = labels[locale];
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,14 +201,14 @@ export function HybridAnalyticsDashboard({
       setData(data);
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
-      setError('Kunde inte ladda statistik');
+      setError(copy.loadError);
     } finally {
       setLoading(false);
     }
-  }, [athleteId, isCoachView]);
+  }, [athleteId, copy.loadError, isCoachView]);
 
   useEffect(() => {
-    fetchAnalytics();
+    void fetchAnalytics();
   }, [fetchAnalytics]);
 
   if (loading) {
@@ -116,7 +219,7 @@ export function HybridAnalyticsDashboard({
     return (
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground">
-          <p>{error || 'Ingen data tillgänglig'}</p>
+          <p>{error || copy.noData}</p>
         </CardContent>
       </Card>
     );
@@ -127,11 +230,11 @@ export function HybridAnalyticsDashboard({
       <Card>
         <CardContent className="py-12 text-center">
           <Dumbbell className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-          <h3 className="text-lg font-medium mb-2">Inga resultat ännu</h3>
+          <h3 className="text-lg font-medium mb-2">{copy.noResultsTitle}</h3>
           <p className="text-muted-foreground">
             {isCoachView
-              ? 'Denna atlet har inte loggat några hybrid-pass ännu'
-              : 'Börja logga dina pass för att se statistik här'}
+              ? copy.noResultsCoach
+              : copy.noResultsAthlete}
           </p>
         </CardContent>
       </Card>
@@ -152,13 +255,13 @@ export function HybridAnalyticsDashboard({
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
-          title="Totalt pass"
+          title={copy.totalWorkouts}
           value={data.stats.totalWorkouts.toString()}
           icon={<Dumbbell className="h-5 w-5" />}
-          description={`${data.stats.averageWeeklyVolume.toFixed(1)} / vecka`}
+          description={`${data.stats.averageWeeklyVolume.toFixed(1)} / ${copy.perWeek}`}
         />
         <StatCard
-          title="Personliga rekord"
+          title={copy.personalRecords}
           value={data.stats.totalPRs.toString()}
           icon={<Trophy className="h-5 w-5 text-yellow-500" />}
           highlight="yellow"
@@ -167,13 +270,13 @@ export function HybridAnalyticsDashboard({
           title="Rx rate"
           value={`${data.stats.rxPercentage}%`}
           icon={<Target className="h-5 w-5 text-blue-500" />}
-          description={`${data.stats.rxCount} pass Rx`}
+          description={`${data.stats.rxCount} ${copy.workoutsRx}`}
         />
         <StatCard
-          title="Snitt RPE"
+          title={copy.averageRpe}
           value={data.stats.averageEffort?.toString() || '-'}
           icon={<Flame className="h-5 w-5 text-red-500" />}
-          description="Upplevd ansträngning"
+          description={copy.perceivedEffort}
         />
       </div>
 
@@ -193,12 +296,11 @@ export function HybridAnalyticsDashboard({
               )}
               <div>
                 <p className="font-medium">
-                  {data.stats.recentTrend > 0 ? 'Ökande aktivitet!' : 'Minskande aktivitet'}
+                  {data.stats.recentTrend > 0 ? copy.increasingActivity : copy.decreasingActivity}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {Math.abs(data.stats.recentTrend)}%{' '}
-                  {data.stats.recentTrend > 0 ? 'fler' : 'färre'} pass senaste 4 veckorna jämfört
-                  med föregående period
+                  {data.stats.recentTrend > 0 ? copy.more : copy.fewer} {copy.trendComparison}
                 </p>
               </div>
             </div>
@@ -209,7 +311,7 @@ export function HybridAnalyticsDashboard({
       {/* Main content tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview">Översikt</TabsTrigger>
+          <TabsTrigger value="overview">{copy.overview}</TabsTrigger>
           <TabsTrigger value="progress">Progression</TabsTrigger>
           <TabsTrigger value="prs">PRs</TabsTrigger>
           <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
@@ -222,17 +324,17 @@ export function HybridAnalyticsDashboard({
         <TabsContent value="progress" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Progressionsöversikt</CardTitle>
+              <CardTitle>{copy.progressOverview}</CardTitle>
               <CardDescription>
-                Se hur du förbättrats i dina återkommande pass
+                {copy.progressDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {data.benchmarkProgress.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>Inga återkommande pass att jämföra ännu</p>
+                  <p>{copy.noRepeatsTitle}</p>
                   <p className="text-sm mt-2">
-                    Gör samma pass flera gånger för att se progression
+                    {copy.noRepeatsDescription}
                   </p>
                 </div>
               ) : (
@@ -252,7 +354,7 @@ export function HybridAnalyticsDashboard({
                           )}
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
-                          {item.attempts} försök · {item.firstAttempt.score} →{' '}
+                          {item.attempts} {copy.attempts} · {item.firstAttempt.score} →{' '}
                           {item.latestAttempt.score}
                         </div>
                       </div>
@@ -288,19 +390,19 @@ export function HybridAnalyticsDashboard({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                Personliga Rekord
+                {copy.prsTitle}
               </CardTitle>
               <CardDescription>
-                Alla dina personbästa resultat
+                {copy.prsDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {data.prs.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Trophy className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p>Inga PRs registrerade ännu</p>
+                  <p>{copy.noPrsTitle}</p>
                   <p className="text-sm mt-2">
-                    Fortsätt träna - nya rekord kommer!
+                    {copy.noPrsDescription}
                   </p>
                 </div>
               ) : (
@@ -315,7 +417,7 @@ export function HybridAnalyticsDashboard({
                         <div>
                           <div className="font-medium">{pr.workoutName}</div>
                           <div className="text-sm text-muted-foreground">
-                            {format(new Date(pr.completedAt), 'PPP', { locale: sv })}
+                            {format(new Date(pr.completedAt), 'PPP', { locale: dateLocale })}
                           </div>
                         </div>
                       </div>
@@ -342,16 +444,16 @@ export function HybridAnalyticsDashboard({
             <CardHeader>
               <CardTitle>Benchmark Workouts</CardTitle>
               <CardDescription>
-                Standardiserade pass för att mäta din fitness
+                {copy.benchmarksDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {data.benchmarkProgress.filter((b) => b.isBenchmark).length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Target className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p>Inga benchmark-resultat ännu</p>
+                  <p>{copy.noBenchmarksTitle}</p>
                   <p className="text-sm mt-2">
-                    Prova klassiska benchmarks som Fran, Grace, eller Murph
+                    {copy.noBenchmarksDescription}
                   </p>
                 </div>
               ) : (
@@ -382,15 +484,15 @@ export function HybridAnalyticsDashboard({
                         </div>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Första:</span>
+                            <span className="text-muted-foreground">{copy.first}:</span>
                             <span>{benchmark.firstAttempt.score}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Senaste:</span>
+                            <span className="text-muted-foreground">{copy.latest}:</span>
                             <span className="font-medium">{benchmark.latestAttempt.score}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Försök:</span>
+                            <span className="text-muted-foreground">{copy.attempts}:</span>
                             <span>{benchmark.attempts}</span>
                           </div>
                         </div>
