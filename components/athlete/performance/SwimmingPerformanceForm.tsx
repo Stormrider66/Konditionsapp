@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Waves } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface SwimmingPerformanceFormProps {
   clientId: string
@@ -21,24 +22,34 @@ interface SwimmingPerformanceFormProps {
   onCancel?: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 const EVENT_TYPES = [
-  { value: 'CSS_TEST', label: 'CSS-test (400m + 200m)' },
-  { value: '50M', label: '50m' },
-  { value: '100M', label: '100m' },
-  { value: '200M', label: '200m' },
-  { value: '400M', label: '400m' },
-  { value: '800M', label: '800m' },
-  { value: '1500M', label: '1500m' },
-  { value: 'OPEN_WATER', label: 'Öppet vatten' },
-  { value: 'RACE', label: 'Tävling' },
+  { value: 'CSS_TEST', label: { sv: 'CSS-test (400m + 200m)', en: 'CSS test (400m + 200m)' } },
+  { value: '50M', label: { sv: '50m', en: '50m' } },
+  { value: '100M', label: { sv: '100m', en: '100m' } },
+  { value: '200M', label: { sv: '200m', en: '200m' } },
+  { value: '400M', label: { sv: '400m', en: '400m' } },
+  { value: '800M', label: { sv: '800m', en: '800m' } },
+  { value: '1500M', label: { sv: '1500m', en: '1500m' } },
+  { value: 'OPEN_WATER', label: { sv: 'Öppet vatten', en: 'Open water' } },
+  { value: 'RACE', label: { sv: 'Tävling', en: 'Race' } },
 ]
 
 const STROKE_TYPES = [
-  { value: 'FREESTYLE', label: 'Frisim' },
-  { value: 'BACKSTROKE', label: 'Ryggsim' },
-  { value: 'BREASTSTROKE', label: 'Bröstsim' },
-  { value: 'BUTTERFLY', label: 'Fjärilsim' },
-  { value: 'IM', label: 'Medley' },
+  { value: 'FREESTYLE', label: { sv: 'Frisim', en: 'Freestyle' } },
+  { value: 'BACKSTROKE', label: { sv: 'Ryggsim', en: 'Backstroke' } },
+  { value: 'BREASTSTROKE', label: { sv: 'Bröstsim', en: 'Breaststroke' } },
+  { value: 'BUTTERFLY', label: { sv: 'Fjärilsim', en: 'Butterfly' } },
+  { value: 'IM', label: { sv: 'Medley', en: 'Individual medley' } },
 ]
 
 export function SwimmingPerformanceForm({
@@ -46,6 +57,7 @@ export function SwimmingPerformanceForm({
   onSuccess,
   onCancel,
 }: SwimmingPerformanceFormProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -150,7 +162,7 @@ export function SwimmingPerformanceForm({
     setError(null)
 
     if (!eventDate) {
-      setError('Ange datum')
+      setError(text(locale, 'Ange datum', 'Enter a date'))
       setIsSubmitting(false)
       return
     }
@@ -185,7 +197,7 @@ export function SwimmingPerformanceForm({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte spara')
+        throw new Error(data.error || text(locale, 'Kunde inte spara', 'Could not save'))
       }
 
       if (onSuccess) {
@@ -194,7 +206,7 @@ export function SwimmingPerformanceForm({
         router.refresh()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : text(locale, 'Ett fel uppstod', 'An error occurred'))
     } finally {
       setIsSubmitting(false)
     }
@@ -204,13 +216,13 @@ export function SwimmingPerformanceForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center gap-2 text-cyan-600 mb-4">
         <Waves className="h-5 w-5" />
-        <span className="font-medium">Simning - Prestationslogg</span>
+        <span className="font-medium">{text(locale, 'Simning - Prestationslogg', 'Swimming - Performance log')}</span>
       </div>
 
       {/* Event Type & Date */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Typ av test/distans *</Label>
+          <Label>{text(locale, 'Typ av test/distans *', 'Test/distance type *')}</Label>
           <Select value={eventType} onValueChange={setEventType}>
             <SelectTrigger>
               <SelectValue />
@@ -218,7 +230,7 @@ export function SwimmingPerformanceForm({
             <SelectContent>
               {EVENT_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
-                  {type.label}
+                  {type.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -226,7 +238,7 @@ export function SwimmingPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Datum *</Label>
+          <Label>{text(locale, 'Datum *', 'Date *')}</Label>
           <Input
             type="date"
             value={eventDate}
@@ -239,7 +251,7 @@ export function SwimmingPerformanceForm({
       {/* Stroke & Pool */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Simsätt</Label>
+          <Label>{text(locale, 'Simsätt', 'Stroke')}</Label>
           <Select value={strokeType} onValueChange={setStrokeType}>
             <SelectTrigger>
               <SelectValue />
@@ -247,7 +259,7 @@ export function SwimmingPerformanceForm({
             <SelectContent>
               {STROKE_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
-                  {type.label}
+                  {type.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -255,14 +267,14 @@ export function SwimmingPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Bassänglängd</Label>
+          <Label>{text(locale, 'Bassänglängd', 'Pool length')}</Label>
           <Select value={poolLength} onValueChange={(v) => setPoolLength(v as '25' | '50')}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="25">25m (kortbana)</SelectItem>
-              <SelectItem value="50">50m (långbana)</SelectItem>
+              <SelectItem value="25">{text(locale, '25m (kortbana)', '25m (short course)')}</SelectItem>
+              <SelectItem value="50">{text(locale, '50m (långbana)', '50m (long course)')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -272,7 +284,7 @@ export function SwimmingPerformanceForm({
       {(eventType === 'OPEN_WATER' || eventType === 'RACE') && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Distans (meter) *</Label>
+            <Label>{text(locale, 'Distans (meter) *', 'Distance (meters) *')}</Label>
             <Input
               type="number"
               placeholder="1500"
@@ -282,9 +294,9 @@ export function SwimmingPerformanceForm({
             />
           </div>
           <div className="space-y-2">
-            <Label>Namn</Label>
+            <Label>{text(locale, 'Namn', 'Name')}</Label>
             <Input
-              placeholder="Vansbrosimningen..."
+              placeholder={text(locale, 'Vansbrosimningen...', 'Open water race...')}
               value={eventName}
               onChange={(e) => setEventName(e.target.value)}
             />
@@ -296,10 +308,10 @@ export function SwimmingPerformanceForm({
       {eventType === 'CSS_TEST' ? (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>400m tid *</Label>
+            <Label>{text(locale, '400m tid *', '400m time *')}</Label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">Minuter</Label>
+                <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -309,7 +321,7 @@ export function SwimmingPerformanceForm({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Sekunder</Label>
+                <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -323,10 +335,10 @@ export function SwimmingPerformanceForm({
           </div>
 
           <div className="space-y-2">
-            <Label>200m tid *</Label>
+            <Label>{text(locale, '200m tid *', '200m time *')}</Label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">Minuter</Label>
+                <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -336,7 +348,7 @@ export function SwimmingPerformanceForm({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Sekunder</Label>
+                <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -355,7 +367,7 @@ export function SwimmingPerformanceForm({
                 CSS: <strong>{cssResult.css} m/s</strong>
               </p>
               <p className="text-sm text-cyan-700">
-                Tröskeltempo: <strong>{cssResult.pace}</strong>
+                {text(locale, 'Tröskeltempo', 'Threshold pace')}: <strong>{cssResult.pace}</strong>
               </p>
             </div>
           )}
@@ -363,10 +375,10 @@ export function SwimmingPerformanceForm({
       ) : (
         /* Regular time input */
         <div className="space-y-2">
-          <Label>Tid *</Label>
+          <Label>{text(locale, 'Tid *', 'Time *')}</Label>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <Label className="text-xs text-muted-foreground">Minuter</Label>
+              <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
               <Input
                 type="number"
                 min="0"
@@ -376,7 +388,7 @@ export function SwimmingPerformanceForm({
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Sekunder</Label>
+              <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
               <Input
                 type="number"
                 min="0"
@@ -387,7 +399,7 @@ export function SwimmingPerformanceForm({
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Hundradelar</Label>
+              <Label className="text-xs text-muted-foreground">{text(locale, 'Hundradelar', 'Hundredths')}</Label>
               <Input
                 type="number"
                 min="0"
@@ -400,7 +412,7 @@ export function SwimmingPerformanceForm({
           </div>
           {calculatePace() && (
             <p className="text-sm text-muted-foreground mt-2">
-              Tempo: <strong>{calculatePace()}</strong>
+              {text(locale, 'Tempo', 'Pace')}: <strong>{calculatePace()}</strong>
             </p>
           )}
         </div>
@@ -409,7 +421,7 @@ export function SwimmingPerformanceForm({
       {/* Heart Rate */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Snitt puls</Label>
+          <Label>{text(locale, 'Snitt puls', 'Average heart rate')}</Label>
           <Input
             type="number"
             placeholder="155"
@@ -418,7 +430,7 @@ export function SwimmingPerformanceForm({
           />
         </div>
         <div className="space-y-2">
-          <Label>Max puls</Label>
+          <Label>{text(locale, 'Max puls', 'Max heart rate')}</Label>
           <Input
             type="number"
             placeholder="175"
@@ -430,9 +442,9 @@ export function SwimmingPerformanceForm({
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label>Anteckningar</Label>
+        <Label>{text(locale, 'Anteckningar', 'Notes')}</Label>
         <Textarea
-          placeholder="Känsla, teknik, utrustning..."
+          placeholder={text(locale, 'Känsla, teknik, utrustning...', 'Feeling, technique, equipment...')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
@@ -449,17 +461,17 @@ export function SwimmingPerformanceForm({
       <div className="flex justify-end gap-3">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Avbryt
+            {text(locale, 'Avbryt', 'Cancel')}
           </Button>
         )}
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {text(locale, 'Sparar...', 'Saving...')}
             </>
           ) : (
-            'Spara resultat'
+            text(locale, 'Spara resultat', 'Save result')
           )}
         </Button>
       </div>
