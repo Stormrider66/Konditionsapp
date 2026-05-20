@@ -16,6 +16,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Plus, Trash2, Save, GripVertical } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
 
 interface Metric {
   id: string
@@ -28,20 +29,24 @@ interface Metric {
   ladderLoads?: number[]
 }
 
-const CATEGORIES = [
-  { value: 'ice', label: 'Is' },
-  { value: 'power', label: 'Kraft' },
-  { value: 'jump', label: 'Hopp' },
-  { value: 'endurance', label: 'Uthållighet' },
-  { value: 'flexibility', label: 'Rörlighet' },
-  { value: 'other', label: 'Övrigt' },
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
+
+const getCategories = (locale: Locale) => [
+  { value: 'ice', label: copy(locale, 'Ice', 'Is') },
+  { value: 'power', label: copy(locale, 'Power', 'Kraft') },
+  { value: 'jump', label: copy(locale, 'Jump', 'Hopp') },
+  { value: 'endurance', label: copy(locale, 'Endurance', 'Uthållighet') },
+  { value: 'flexibility', label: copy(locale, 'Flexibility', 'Rörlighet') },
+  { value: 'other', label: copy(locale, 'Other', 'Övrigt') },
 ]
 
-const METRIC_TYPES = [
-  { value: 'number', label: 'Tal (t.ex. 6.50)' },
-  { value: 'time', label: 'Tid (sekunder)' },
-  { value: 'array', label: 'Serie (t.ex. 7x40m)' },
-  { value: 'ladder', label: 'Stege (kg → watt)' },
+const getMetricTypes = (locale: Locale) => [
+  { value: 'number', label: copy(locale, 'Number (e.g. 6.50)', 'Tal (t.ex. 6.50)') },
+  { value: 'time', label: copy(locale, 'Time (seconds)', 'Tid (sekunder)') },
+  { value: 'array', label: copy(locale, 'Series (e.g. 7x40m)', 'Serie (t.ex. 7x40m)') },
+  { value: 'ladder', label: copy(locale, 'Ladder (kg to watts)', 'Stege (kg till watt)') },
 ]
 
 const UNITS = ['s', 'kg', 'cm', 'W', 'bpm', 'ml/kg/min', 'reps', 'm', '%', '']
@@ -51,6 +56,9 @@ interface ProtocolBuilderProps {
 }
 
 export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const categories = getCategories(locale)
+  const metricTypes = getMetricTypes(locale)
   const [saving, setSaving] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -88,7 +96,7 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
 
   const handleSave = async () => {
     if (!name.trim() || metrics.length === 0) {
-      toast.error('Ange namn och minst en mätning')
+      toast.error(copy(locale, 'Enter a name and at least one measurement', 'Ange namn och minst en mätning'))
       return
     }
     setSaving(true)
@@ -105,17 +113,17 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
         }),
       })
       if (res.ok) {
-        toast.success('Testprotokoll sparat')
+        toast.success(copy(locale, 'Test protocol saved', 'Testprotokoll sparat'))
         setName('')
         setDescription('')
         setMetrics([])
         onSaved?.()
       } else {
         const err = await res.json()
-        toast.error(err.error || 'Kunde inte spara')
+        toast.error(err.error || copy(locale, 'Could not save', 'Kunde inte spara'))
       }
     } catch {
-      toast.error('Nätverksfel')
+      toast.error(copy(locale, 'Network error', 'Nätverksfel'))
     } finally {
       setSaving(false)
     }
@@ -126,25 +134,25 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
       {/* Protocol info */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Nytt testprotokoll</CardTitle>
+          <CardTitle className="text-base">{copy(locale, 'New test protocol', 'Nytt testprotokoll')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1">
-            <Label>Namn</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="t.ex. Försäsongstest 2026" />
+            <Label>{copy(locale, 'Name', 'Namn')}</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={copy(locale, 'e.g. Preseason test 2026', 't.ex. Försäsongstest 2026')} />
           </div>
           <div className="space-y-1">
-            <Label>Beskrivning (valfritt)</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Beskriv testbatteriet..." />
+            <Label>{copy(locale, 'Description (optional)', 'Beskrivning (valfritt)')}</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={copy(locale, 'Describe the test battery...', 'Beskriv testbatteriet...')} />
           </div>
           <div className="flex gap-3">
             <div className="flex-1 space-y-1">
-              <Label>Sport (valfritt)</Label>
-              <Input value={sportType} onChange={(e) => setSportType(e.target.value)} placeholder="t.ex. Ishockey" />
+              <Label>{copy(locale, 'Sport (optional)', 'Sport (valfritt)')}</Label>
+              <Input value={sportType} onChange={(e) => setSportType(e.target.value)} placeholder={copy(locale, 'e.g. Ice hockey', 't.ex. Ishockey')} />
             </div>
             <div className="flex items-end gap-2 pb-0.5">
               <Switch id="published" checked={isPublished} onCheckedChange={setIsPublished} />
-              <Label htmlFor="published" className="text-xs">Dela med kollegor</Label>
+              <Label htmlFor="published" className="text-xs">{copy(locale, 'Share with colleagues', 'Dela med kollegor')}</Label>
             </div>
           </div>
         </CardContent>
@@ -153,7 +161,7 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
       {/* Add metrics */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Mätningar ({metrics.length})</CardTitle>
+          <CardTitle className="text-base">{copy(locale, 'Measurements', 'Mätningar')} ({metrics.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Existing metrics */}
@@ -163,8 +171,8 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
               <div className="flex-1 min-w-0">
                 <span className="font-medium text-sm">{m.name}</span>
                 <span className="text-xs text-muted-foreground ml-2">
-                  {m.unit} · {METRIC_TYPES.find((t) => t.value === m.type)?.label}
-                  {m.type === 'array' && ` (${m.arraySize}st)`}
+                  {m.unit} · {metricTypes.find((t) => t.value === m.type)?.label}
+                  {m.type === 'array' && ` (${m.arraySize} ${copy(locale, 'items', 'st')})`}
                   {m.type === 'ladder' && ` (${m.ladderLoads?.join(', ')} kg)`}
                 </span>
               </div>
@@ -177,18 +185,18 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
           {/* Add new metric form */}
           <div className="border-t pt-3 space-y-2">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Input value={mName} onChange={(e) => setMName(e.target.value)} placeholder="Namn, t.ex. Sprint 40m"
+              <Input value={mName} onChange={(e) => setMName(e.target.value)} placeholder={copy(locale, 'Name, e.g. 40m sprint', 'Namn, t.ex. Sprint 40m')}
                 onKeyDown={(e) => e.key === 'Enter' && addMetric()} className="col-span-2" />
               <Select value={mUnit} onValueChange={setMUnit}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {UNITS.map((u) => <SelectItem key={u || 'none'} value={u || 'none'}>{u || '(ingen)'}</SelectItem>)}
+                  {UNITS.map((u) => <SelectItem key={u || 'none'} value={u || 'none'}>{u || copy(locale, '(none)', '(ingen)')}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={mCategory} onValueChange={(v) => setMCategory(v as Metric['category'])}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  {categories.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -196,11 +204,11 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
               <Select value={mType} onValueChange={(v) => setMType(v as Metric['type'])}>
                 <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {METRIC_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  {metricTypes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
               {mType === 'array' && (
-                <Input value={mArraySize} onChange={(e) => setMArraySize(e.target.value)} placeholder="Antal" className="w-20" type="number" />
+                <Input value={mArraySize} onChange={(e) => setMArraySize(e.target.value)} placeholder={copy(locale, 'Count', 'Antal')} className="w-20" type="number" />
               )}
               {mType === 'ladder' && (
                 <Input value={mLadderLoads} onChange={(e) => setMLadderLoads(e.target.value)} placeholder="20,40,60,80" className="flex-1" />
@@ -215,7 +223,7 @@ export function ProtocolBuilder({ onSaved }: ProtocolBuilderProps) {
 
       <Button onClick={handleSave} disabled={saving || !name.trim() || metrics.length === 0} className="w-full" size="lg">
         <Save className="h-4 w-4 mr-2" />
-        {saving ? 'Sparar...' : 'Spara protokoll'}
+        {saving ? copy(locale, 'Saving...', 'Sparar...') : copy(locale, 'Save protocol', 'Spara protokoll')}
       </Button>
     </div>
   )

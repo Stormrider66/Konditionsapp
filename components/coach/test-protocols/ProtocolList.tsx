@@ -3,9 +3,13 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { ClipboardList, Users, ChevronRight } from 'lucide-react'
+import { ClipboardList, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
+
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface Protocol {
   id: string
@@ -24,6 +28,7 @@ interface ProtocolListProps {
 }
 
 export function ProtocolList({ onSelect }: ProtocolListProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [protocols, setProtocols] = useState<Protocol[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -36,13 +41,13 @@ export function ProtocolList({ onSelect }: ProtocolListProps) {
           setProtocols(data.protocols || [])
         }
       } catch {
-        toast.error('Kunde inte hämta protokoll')
+        toast.error(copy(locale, 'Could not fetch protocols', 'Kunde inte hämta protokoll'))
       } finally {
         setLoading(false)
       }
     }
-    fetchProtocols()
-  }, [])
+    void fetchProtocols()
+  }, [locale])
 
   if (loading) {
     return <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}</div>
@@ -52,8 +57,8 @@ export function ProtocolList({ onSelect }: ProtocolListProps) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-40" />
-        <p>Inga testprotokoll skapade ännu</p>
-        <p className="text-xs mt-1">Skapa ditt första protokoll under &quot;Skapa protokoll&quot;</p>
+        <p>{copy(locale, 'No test protocols created yet', 'Inga testprotokoll skapade ännu')}</p>
+        <p className="text-xs mt-1">{copy(locale, 'Create your first protocol under "Create protocol"', 'Skapa ditt första protokoll under "Skapa protokoll"')}</p>
       </div>
     )
   }
@@ -71,13 +76,13 @@ export function ProtocolList({ onSelect }: ProtocolListProps) {
               <div>
                 <h3 className="font-semibold text-sm">{p.name}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {p.metrics.length} mätningar · {p._count.results} resultat
+                  {p.metrics.length} {copy(locale, 'measurements', 'mätningar')} · {p._count.results} {copy(locale, 'results', 'resultat')}
                   {p.sportType && ` · ${p.sportType}`}
                   {' · '}{p.createdBy.name}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
-                {p.isPublished && <Badge variant="outline" className="text-[10px]">Delad</Badge>}
+                {p.isPublished && <Badge variant="outline" className="text-[10px]">{copy(locale, 'Shared', 'Delad')}</Badge>}
                 {onSelect && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               </div>
             </div>
