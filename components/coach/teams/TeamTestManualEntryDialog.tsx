@@ -32,6 +32,11 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Loader2, Plus, X, Pencil, Check, AlertCircle } from 'lucide-react'
+import { useLocale } from 'next-intl'
+
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface Member {
   id: string
@@ -67,6 +72,7 @@ export function TeamTestManualEntryDialog({
   businessSlug,
   onSaved,
 }: TeamTestManualEntryDialogProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [testDate, setTestDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [members, setMembers] = useState<Member[]>([])
   const [packageItems, setPackageItems] = useState<PackageItem[]>([])
@@ -80,9 +86,9 @@ export function TeamTestManualEntryDialog({
   const [excludedAthleteIds, setExcludedAthleteIds] = useState<Set<string>>(new Set())
   const [exercisePickerOpen, setExercisePickerOpen] = useState(false)
 
-  // Cell values keyed by `${clientId}:${packageItemId}` — sparse storage
+  // Cell values keyed by `${clientId}:${packageItemId}` - sparse storage
   // so empty cells stay empty (vs. a 2D array of 0s the bulk endpoint
-  // would reject as ogiltig vikt).
+  // would reject as an invalid weight).
   const [values, setValues] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -115,7 +121,7 @@ export function TeamTestManualEntryDialog({
           }
         } else if (!cancelled) {
           setPackageItems([])
-          setExerciseLoadError('Kunde inte hämta lagets testpaket just nu.')
+          setExerciseLoadError(copy(locale, 'Could not fetch the team test package right now.', 'Kunde inte hämta lagets testpaket just nu.'))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -125,7 +131,7 @@ export function TeamTestManualEntryDialog({
     return () => {
       cancelled = true
     }
-  }, [businessSlug, open, teamId])
+  }, [businessSlug, locale, open, teamId])
 
   const resetDialogState = () => {
     setSelectedItems([])
@@ -198,7 +204,7 @@ export function TeamTestManualEntryDialog({
 
   // Build entries from non-empty, valid cells. Cells whose values
   // can't parse as positive numbers are silently skipped (server
-  // would reject them anyway with `ogiltig vikt`).
+  // would reject them anyway as invalid values.
   const entries = useMemo(() => {
     const out: Array<{
       clientId: string
@@ -242,11 +248,11 @@ export function TeamTestManualEntryDialog({
       const body = await res.json()
       const prCount = (body.prCreated ?? 0) + (body.prUpdated ?? 0)
       const hockeyCount = (body.hockeyCreated ?? 0) + (body.hockeyUpdated ?? 0)
-      setResultMsg(`Sparade ${hockeyCount} hockeytester · ${prCount} PR-rader.`)
+      setResultMsg(copy(locale, `Saved ${hockeyCount} hockey tests - ${prCount} PR rows.`, `Sparade ${hockeyCount} hockeytester - ${prCount} PR-rader.`))
       setValues({})
       onSaved?.()
     } catch (e) {
-      setServerError(e instanceof Error ? e.message : 'Kunde inte spara')
+      setServerError(e instanceof Error ? e.message : copy(locale, 'Could not save', 'Kunde inte spara'))
     } finally {
       setIsSubmitting(false)
     }
@@ -258,19 +264,17 @@ export function TeamTestManualEntryDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-5 w-5 text-blue-500" />
-            Manuell inmatning – {teamName}
+            {copy(locale, 'Manual entry', 'Manuell inmatning')} - {teamName}
           </DialogTitle>
           <DialogDescription>
-            Välj tester från lagets hockeypaket (kolumner) och atleter (rader).
-            Tom cell hoppas över. Styrketester sparas även till PR-historik när
-            testet har en kopplad övning.
+            {copy(locale, 'Choose tests from the team hockey package (columns) and athletes (rows). Empty cells are skipped. Strength tests are also saved to PR history when the test has a linked exercise.', 'Välj tester från lagets hockeypaket (kolumner) och atleter (rader). Tom cell hoppas över. Styrketester sparas även till PR-historik när testet har en kopplad övning.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="grid grid-cols-[200px_1fr] gap-4 items-start">
             <div>
-              <Label htmlFor="manual-test-date">Testdatum</Label>
+              <Label htmlFor="manual-test-date">{copy(locale, 'Test date', 'Testdatum')}</Label>
               <Input
                 id="manual-test-date"
                 type="date"
@@ -280,7 +284,7 @@ export function TeamTestManualEntryDialog({
               />
             </div>
             <div>
-              <Label>Tester</Label>
+              <Label>{copy(locale, 'Tests', 'Tester')}</Label>
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-1.5 items-center min-h-[36px]">
                   {selectedItems.map((item) => (
@@ -290,7 +294,7 @@ export function TeamTestManualEntryDialog({
                         type="button"
                         onClick={() => removeItem(item.id)}
                         className="hover:text-destructive transition-colors"
-                        aria-label="Ta bort test"
+                        aria-label={copy(locale, 'Remove test', 'Ta bort test')}
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -310,17 +314,17 @@ export function TeamTestManualEntryDialog({
                     ) : (
                       <Plus className="h-3 w-3 mr-1" />
                     )}
-                    Lägg till test
+                    {copy(locale, 'Add test', 'Lägg till test')}
                   </Button>
                 </div>
 
                 {exercisePickerOpen && (
                   <div className="w-full max-w-sm overflow-hidden rounded-md border bg-background shadow-sm">
                     <Command>
-                      <CommandInput placeholder="Sök test…" className="h-9" />
+                      <CommandInput placeholder={copy(locale, 'Search test...', 'Sök test...')} className="h-9" />
                       <CommandList>
                         <CommandEmpty>
-                          {exerciseLoadError ?? 'Inga tester hittades'}
+                          {exerciseLoadError ?? copy(locale, 'No tests found', 'Inga tester hittades')}
                         </CommandEmpty>
                         <CommandGroup>
                           {packageItems
@@ -354,7 +358,7 @@ export function TeamTestManualEntryDialog({
 
           {members.length > 0 && (
             <div>
-              <Label>Atleter</Label>
+              <Label>{copy(locale, 'Athletes', 'Atleter')}</Label>
               <div className="rounded-md border bg-muted/20 p-2 flex flex-wrap gap-2">
                 {members.map((m) => {
                   const included = !excludedAthleteIds.has(m.id)
@@ -375,27 +379,27 @@ export function TeamTestManualEntryDialog({
                 })}
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">
-                {includedAthletes.length} av {members.length} atleter inkluderade.
+                {copy(locale, `${includedAthletes.length} of ${members.length} athletes included.`, `${includedAthletes.length} av ${members.length} atleter inkluderade.`)}
               </p>
             </div>
           )}
 
           {includedAthletes.length === 0 && (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Välj minst en atlet för att starta inmatning.
+              {copy(locale, 'Select at least one athlete to start entry.', 'Välj minst en atlet för att starta inmatning.')}
             </p>
           )}
 
           {selectedItems.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Lägg till minst ett test för att starta inmatning.
+              {copy(locale, 'Add at least one test to start entry.', 'Lägg till minst ett test för att starta inmatning.')}
             </p>
           ) : includedAthletes.length > 0 ? (
             <div className="rounded-md border overflow-auto max-h-[50vh]">
               <table className="text-xs min-w-max">
                 <thead className="bg-muted/40 sticky top-0">
                   <tr>
-                    <th className="px-2 py-1.5 text-left min-w-[180px]">Atlet</th>
+                    <th className="px-2 py-1.5 text-left min-w-[180px]">{copy(locale, 'Athlete', 'Atlet')}</th>
                     {selectedItems.map((item) => (
                       <th key={item.id} className="px-2 py-1.5 text-left min-w-[170px]">
                         <span className="inline-block max-w-[130px] truncate align-bottom">
@@ -417,7 +421,7 @@ export function TeamTestManualEntryDialog({
                           <Input
                             type="text"
                             inputMode="decimal"
-                            placeholder="—"
+                            placeholder="-"
                             value={values[cellKey(m.id, item.id)] ?? ''}
                             onChange={(e) => setCell(m.id, item.id, e.target.value)}
                             className="h-7 w-40 text-xs px-2 tabular-nums"
@@ -448,21 +452,21 @@ export function TeamTestManualEntryDialog({
 
           {entries.length > 0 && !isSubmitting && (
             <p className="text-xs text-muted-foreground text-center">
-              {entries.length} resultat redo att sparas.
+              {copy(locale, `${entries.length} results ready to save.`, `${entries.length} resultat redo att sparas.`)}
             </p>
           )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={isSubmitting}>
-            Stäng
+            {copy(locale, 'Close', 'Stäng')}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || entries.length === 0 || isLoading}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Spara {entries.length > 0 ? `${entries.length} ` : ''}resultat
+            {copy(locale, `Save ${entries.length > 0 ? `${entries.length} ` : ''}results`, `Spara ${entries.length > 0 ? `${entries.length} ` : ''}resultat`)}
           </Button>
         </DialogFooter>
       </DialogContent>
