@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Trophy,
   Target,
@@ -27,19 +27,40 @@ interface VolleyballDashboardProps {
   settings: VolleyballSettings
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  setter: 'Passare',
-  outside_hitter: 'Vänsterspiker',
-  opposite_hitter: 'Diagonal',
-  middle_blocker: 'Centerblockare',
-  libero: 'Libero',
+type AppLocale = 'en' | 'sv'
+
+const appLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const POSITION_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    setter: 'Setter',
+    outside_hitter: 'Outside hitter',
+    opposite_hitter: 'Opposite hitter',
+    middle_blocker: 'Middle blocker',
+    libero: 'Libero',
+  },
+  sv: {
+    setter: 'Passare',
+    outside_hitter: 'Vänsterspiker',
+    opposite_hitter: 'Diagonal',
+    middle_blocker: 'Centerblockare',
+    libero: 'Libero',
+  },
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  playoffs: 'Slutspel',
+const PHASE_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    off_season: 'Off-season',
+    pre_season: 'Pre-season',
+    in_season: 'In-season',
+    playoffs: 'Playoffs',
+  },
+  sv: {
+    off_season: 'Off-season',
+    pre_season: 'Försäsong',
+    in_season: 'Säsong',
+    playoffs: 'Slutspel',
+  },
 }
 
 const LEAGUE_LABELS: Record<string, string> = {
@@ -51,19 +72,36 @@ const LEAGUE_LABELS: Record<string, string> = {
   ssl: 'Svenska Superligan',
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  vertical_jump: 'Vertikal hoppförmåga',
-  spike_power: 'Slagstyrka',
-  blocking: 'Blockteknik',
-  serving: 'Serve',
-  reception: 'Mottagning',
-  defense: 'Försvarsspel',
-  court_vision: 'Spelförståelse',
-  agility: 'Kvickhet',
+const STRENGTH_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    vertical_jump: 'Vertical jumping ability',
+    spike_power: 'Spike power',
+    blocking: 'Blocking technique',
+    serving: 'Serving',
+    reception: 'Reception',
+    defense: 'Defense',
+    court_vision: 'Court vision',
+    agility: 'Agility',
+  },
+  sv: {
+    vertical_jump: 'Vertikal hoppförmåga',
+    spike_power: 'Slagstyrka',
+    blocking: 'Blockteknik',
+    serving: 'Serve',
+    reception: 'Mottagning',
+    defense: 'Försvarsspel',
+    court_vision: 'Spelförståelse',
+    agility: 'Kvickhet',
+  },
 }
 
 export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
   const t = useTranslations('components.athleteDashboard')
+  const locale = appLocale(useLocale())
+  const text = (sv: string, en: string) => (locale === 'sv' ? sv : en)
+  const positionLabels = POSITION_LABELS[locale]
+  const phaseLabels = PHASE_LABELS[locale]
+  const strengthLabels = STRENGTH_LABELS[locale]
 
   if (!settings) {
     return (
@@ -140,14 +178,14 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
                 {settings.teamName || 'Volleyboll'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2">
-                <Badge variant="outline">{POSITION_LABELS[position]}</Badge>
+                <Badge variant="outline">{positionLabels[position]}</Badge>
                 <Badge variant="secondary">{LEAGUE_LABELS[settings.leagueLevel]}</Badge>
-                <Badge className="bg-yellow-500">{PHASE_LABELS[settings.seasonPhase]}</Badge>
+                <Badge className="bg-yellow-500">{phaseLabels[settings.seasonPhase]}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold">{settings.yearsPlaying}</div>
-              <div className="text-xs text-muted-foreground">års erfarenhet</div>
+              <div className="text-xs text-muted-foreground">{text('års erfarenhet', 'years experience')}</div>
             </div>
           </div>
         </CardHeader>
@@ -156,7 +194,7 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
             <div className="text-center">
               <Ruler className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
               <div className="text-lg font-bold">{settings.height ?? '-'}</div>
-              <div className="text-xs text-muted-foreground">cm längd</div>
+              <div className="text-xs text-muted-foreground">{text('cm längd', 'cm height')}</div>
             </div>
             <div className="text-center">
               <Zap className="h-4 w-4 mx-auto mb-1 text-green-500" />
@@ -171,7 +209,7 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
             <div className="text-center">
               <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
               <div className="text-lg font-bold">{settings.weeklyTrainingSessions}</div>
-              <div className="text-xs text-muted-foreground">träning/v</div>
+              <div className="text-xs text-muted-foreground">{text('träning/v', 'sessions/wk')}</div>
             </div>
           </div>
         </CardContent>
@@ -182,13 +220,13 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Calendar className="h-4 w-4" />
-            {PHASE_LABELS[settings.seasonPhase]} - Träningsfokus
+            {phaseLabels[settings.seasonPhase]} - {text('Träningsfokus', 'Training focus')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div>
-              <h4 className="text-sm font-medium mb-2">Fokusområden:</h4>
+              <h4 className="text-sm font-medium mb-2">{text('Fokusområden:', 'Focus areas:')}</h4>
               <div className="flex flex-wrap gap-1">
                 {seasonPhase.focus.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs">
@@ -199,11 +237,11 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Styrka</div>
+                <div className="text-xs text-muted-foreground mb-1">{text('Styrka', 'Strength')}</div>
                 <div className="text-sm">{seasonPhase.strengthEmphasis}</div>
               </div>
               <div className="p-3 bg-muted rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Kondition</div>
+                <div className="text-xs text-muted-foreground mb-1">{text('Kondition', 'Conditioning')}</div>
                 <div className="text-sm">{seasonPhase.conditioningEmphasis}</div>
               </div>
             </div>
@@ -216,16 +254,16 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Activity className="h-4 w-4 text-red-500" />
-            Hopptester - {POSITION_LABELS[position]}
+            {text('Hopptester', 'Jump tests')} - {positionLabels[position]}
           </CardTitle>
-          <CardDescription>Dina resultat jämfört med elitnivå</CardDescription>
+          <CardDescription>{text('Dina resultat jämfört med elitnivå', 'Your results compared with elite level')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {/* Vertical Jump */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Vertikalhopp</span>
+                <span>{text('Vertikalhopp', 'Vertical jump')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.verticalJump,
                   benchmarks.elite.verticalJump!,
@@ -238,13 +276,13 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.verticalJump, benchmarks.elite.verticalJump!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.verticalJump} cm</div>
+              <div className="text-xs text-muted-foreground">{text('Elit', 'Elite')}: {benchmarks.elite.verticalJump} cm</div>
             </div>
 
             {/* Spike Jump */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Smash-hopp</span>
+                <span>{text('Smash-hopp', 'Spike jump')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.spikeJump,
                   benchmarks.elite.spikeJump!,
@@ -257,13 +295,13 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.spikeJump, benchmarks.elite.spikeJump!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.spikeJump} cm</div>
+              <div className="text-xs text-muted-foreground">{text('Elit', 'Elite')}: {benchmarks.elite.spikeJump} cm</div>
             </div>
 
             {/* Block Jump */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Block-hopp</span>
+                <span>{text('Block-hopp', 'Block jump')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.blockJump,
                   benchmarks.elite.blockJump!,
@@ -276,7 +314,7 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.blockJump, benchmarks.elite.blockJump!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.blockJump} cm</div>
+              <div className="text-xs text-muted-foreground">{text('Elit', 'Elite')}: {benchmarks.elite.blockJump} cm</div>
             </div>
 
             {/* T-Test Agility */}
@@ -296,13 +334,13 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.agilityTTest, benchmarks.elite.agilityTTest!, true) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.agilityTTest} s</div>
+              <div className="text-xs text-muted-foreground">{text('Elit', 'Elite')}: {benchmarks.elite.agilityTTest} s</div>
             </div>
 
             {/* Squat */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Knäböj</span>
+                <span>{text('Knäböj', 'Squat')}</span>
                 <span className={getRatingColor(getBenchmarkRating(
                   settings.benchmarks.squat,
                   benchmarks.elite.squat!,
@@ -315,7 +353,7 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.squat, benchmarks.elite.squat!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.squat} kg</div>
+              <div className="text-xs text-muted-foreground">{text('Elit', 'Elite')}: {benchmarks.elite.squat} kg</div>
             </div>
 
             {/* Power Clean */}
@@ -334,7 +372,7 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
                 value={getBenchmarkPercentage(settings.benchmarks.powerClean, benchmarks.elite.powerClean!) ?? 0}
                 className="h-2"
               />
-              <div className="text-xs text-muted-foreground">Elit: {benchmarks.elite.powerClean} kg</div>
+              <div className="text-xs text-muted-foreground">{text('Elit', 'Elite')}: {benchmarks.elite.powerClean} kg</div>
             </div>
           </div>
         </CardContent>
@@ -345,27 +383,27 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="h-4 w-4" />
-            Positionsprofil: {positionProfile.displayName}
+            {text('Positionsprofil', 'Position profile')}: {positionLabels[position] || positionProfile.displayName}
           </CardTitle>
           <CardDescription>{positionProfile.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Hopp/set</div>
+              <div className="text-sm text-muted-foreground mb-1">{text('Hopp/set', 'Jumps/set')}</div>
               <div className="font-medium">
                 {positionProfile.avgJumpsPerSet.min}-{positionProfile.avgJumpsPerSet.max}
               </div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Hopp/match</div>
+                <div className="text-sm text-muted-foreground mb-1">{text('Hopp/match', 'Jumps/match')}</div>
               <div className="font-medium">
                 {positionProfile.avgJumpsPerMatch.min}-{positionProfile.avgJumpsPerMatch.max}
               </div>
             </div>
             {position !== 'libero' && (
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Smash-höjd</div>
+                <div className="text-sm text-muted-foreground mb-1">{text('Smash-höjd', 'Spike height')}</div>
                 <div className="font-medium">
                   +{positionProfile.avgSpikeHeight.min}-{positionProfile.avgSpikeHeight.max} cm
                 </div>
@@ -374,7 +412,7 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
           </div>
 
           <div className="mt-4">
-            <div className="text-sm font-medium mb-2">Nyckelegenskaper:</div>
+            <div className="text-sm font-medium mb-2">{text('Nyckelegenskaper:', 'Key attributes:')}</div>
             <div className="flex flex-wrap gap-1">
               {positionProfile.keyPhysicalAttributes.map((attr, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
@@ -391,9 +429,9 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <Dumbbell className="h-4 w-4" />
-            Rekommenderade övningar
+            {text('Rekommenderade övningar', 'Recommended exercises')}
           </CardTitle>
-          <CardDescription>Baserat på din position och skadehistorik</CardDescription>
+          <CardDescription>{text('Baserat på din position och skadehistorik', 'Based on your position and injury history')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -421,14 +459,14 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Zap className="h-4 w-4 text-yellow-500" />
-              Dina styrkor
+              {text('Dina styrkor', 'Your strengths')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {settings.strengthFocus.map((strength) => (
                 <Badge key={strength} variant="secondary">
-                  {STRENGTH_LABELS[strength] || strength}
+                  {strengthLabels[strength] || strength}
                 </Badge>
               ))}
             </div>
