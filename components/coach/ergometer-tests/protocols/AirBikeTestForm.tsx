@@ -16,6 +16,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ErgometerTestProtocol } from '@prisma/client';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -39,10 +40,22 @@ interface AirBikeTestFormProps {
 
 // ==================== ZOD SCHEMAS ====================
 
-const tt10MinSchema = z.object({
+function localized(locale: string, sv: string, en: string) {
+  return locale === 'sv' ? sv : en;
+}
+
+function athleteRequired(locale: string) {
+  return localized(locale, 'Välj en atlet', 'Select an athlete');
+}
+
+function testDateRequired(locale: string) {
+  return localized(locale, 'Ange testdatum', 'Enter a test date');
+}
+
+const createTt10MinSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.TT_10MIN),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   bikeBrand: z.enum(['ASSAULT', 'ECHO', 'SCHWINN']),
   rawData: z.object({
     totalCalories: z.number().min(50).max(500),
@@ -58,10 +71,10 @@ const tt10MinSchema = z.object({
   notes: z.string().optional(),
 });
 
-const peakPower30sSchema = z.object({
+const createPeakPower30sSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.PEAK_POWER_30S),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   bikeBrand: z.enum(['ASSAULT', 'ECHO', 'SCHWINN']),
   rawData: z.object({
     duration: z.number().min(1).max(60),
@@ -78,20 +91,28 @@ const peakPower30sSchema = z.object({
   notes: z.string().optional(),
 });
 
-type TT10MinData = z.infer<typeof tt10MinSchema>;
-type PeakPower30sData = z.infer<typeof peakPower30sSchema>;
+type TT10MinData = z.infer<ReturnType<typeof createTt10MinSchema>>;
+type PeakPower30sData = z.infer<ReturnType<typeof createPeakPower30sSchema>>;
 
 export function AirBikeTestForm({ athletes, onSubmit, submitting }: AirBikeTestFormProps) {
   const [protocol, setProtocol] = useState<'10MIN' | '30S'>('10MIN');
+  const locale = useLocale();
+  const t = (sv: string, en: string) => localized(locale, sv, en);
 
   return (
     <div className="space-y-4">
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Air Bike testar helkroppsuthallighet. Varden lagras per marke utan automatisk konvertering.
+          {t(
+            'Air Bike testar helkroppsuthållighet. Värden lagras per märke utan automatisk konvertering.',
+            'Air Bike tests full-body endurance. Values are stored per brand without automatic conversion.'
+          )}
           <br />
-          <strong>OBS:</strong> Assault ≠ Echo ≠ Schwinn - jamfor endast inom samma marke.
+          <strong>{t('OBS', 'Note')}:</strong> {t(
+            'Assault ≠ Echo ≠ Schwinn - jämför endast inom samma märke.',
+            'Assault ≠ Echo ≠ Schwinn - compare only within the same brand.'
+          )}
         </AlertDescription>
       </Alert>
 
@@ -99,7 +120,7 @@ export function AirBikeTestForm({ athletes, onSubmit, submitting }: AirBikeTestF
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="10MIN" className="flex items-center gap-1">
             <Flame className="h-3 w-3" />
-            10min Kalorier
+            {t('10 min kalorier', '10 min calories')}
           </TabsTrigger>
           <TabsTrigger value="30S" className="flex items-center gap-1">
             <Zap className="h-3 w-3" />
@@ -108,11 +129,11 @@ export function AirBikeTestForm({ athletes, onSubmit, submitting }: AirBikeTestF
         </TabsList>
 
         <TabsContent value="10MIN">
-          <TT10MinForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <TT10MinForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="30S">
-          <Sprint30sForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <Sprint30sForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
       </Tabs>
     </div>
@@ -125,13 +146,16 @@ function TT10MinForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<TT10MinData>({
-    resolver: zodResolver(tt10MinSchema),
+    resolver: zodResolver(createTt10MinSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.TT_10MIN,
       testDate: new Date().toISOString().split('T')[0],
@@ -150,7 +174,10 @@ function TT10MinForm({
       <CardHeader>
         <CardTitle>10-Minute Max Calories Test</CardTitle>
         <CardDescription>
-          Standard Air Bike-test for HYROX och CrossFit. Cykla sa manga kalorier som mojligt pa 10 minuter.
+          {t(
+            'Standard Air Bike-test för HYROX och CrossFit. Cykla så många kalorier som möjligt på 10 minuter.',
+            'Standard Air Bike test for HYROX and CrossFit. Ride for as many calories as possible in 10 minutes.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -162,11 +189,11 @@ function TT10MinForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -187,7 +214,7 @@ function TT10MinForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -201,7 +228,7 @@ function TT10MinForm({
                 name="bikeBrand"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cykelmarke</FormLabel>
+                    <FormLabel>{t('Cykelmärke', 'Bike brand')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -214,7 +241,7 @@ function TT10MinForm({
                         <SelectItem value="SCHWINN">Schwinn Airdyne</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>Viktigt for benchmark</FormDescription>
+                    <FormDescription>{t('Viktigt för benchmark', 'Important for benchmarking')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -227,7 +254,7 @@ function TT10MinForm({
                 name="rawData.totalCalories"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Total kalorier</FormLabel>
+                    <FormLabel>{t('Totala kalorier', 'Total calories')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -248,7 +275,7 @@ function TT10MinForm({
                 name="rawData.totalDistance"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Distans (m)</FormLabel>
+                    <FormLabel>{t('Distans (m)', 'Distance (m)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -258,7 +285,7 @@ function TT10MinForm({
                         onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       />
                     </FormControl>
-                    <FormDescription>Valfritt</FormDescription>
+                    <FormDescription>{t('Valfritt', 'Optional')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -269,7 +296,7 @@ function TT10MinForm({
                 name="rawData.avgRPM"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitt RPM</FormLabel>
+                    <FormLabel>{t('Snitt-RPM', 'Average RPM')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -289,7 +316,7 @@ function TT10MinForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -299,7 +326,7 @@ function TT10MinForm({
                         onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       />
                     </FormControl>
-                    <FormDescription>Om visas</FormDescription>
+                    <FormDescription>{t('Om visas', 'If shown')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -332,7 +359,7 @@ function TT10MinForm({
                 name="avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -352,7 +379,7 @@ function TT10MinForm({
                 name="maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -372,9 +399,9 @@ function TT10MinForm({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Valfria anteckningar..." />
+                      <Input {...field} placeholder={t('Valfria anteckningar...', 'Optional notes...')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -386,10 +413,10 @@ function TT10MinForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -405,13 +432,16 @@ function Sprint30sForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<PeakPower30sData>({
-    resolver: zodResolver(peakPower30sSchema),
+    resolver: zodResolver(createPeakPower30sSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.PEAK_POWER_30S,
       testDate: new Date().toISOString().split('T')[0],
@@ -428,7 +458,10 @@ function Sprint30sForm({
       <CardHeader>
         <CardTitle>30-Second Sprint Test</CardTitle>
         <CardDescription>
-          Maximal sprint for att mäta anaerob kapacitet pa Air Bike.
+          {t(
+            'Maximal sprint för att mäta anaerob kapacitet på Air Bike.',
+            'Maximal sprint for measuring anaerobic capacity on the Air Bike.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -440,11 +473,11 @@ function Sprint30sForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -465,7 +498,7 @@ function Sprint30sForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -479,7 +512,7 @@ function Sprint30sForm({
                 name="bikeBrand"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cykelmarke</FormLabel>
+                    <FormLabel>{t('Cykelmärke', 'Bike brand')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -504,7 +537,7 @@ function Sprint30sForm({
                 name="rawData.totalCalories"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kalorier (30s)</FormLabel>
+                    <FormLabel>{t('Kalorier (30 s)', 'Calories (30 s)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -524,7 +557,7 @@ function Sprint30sForm({
                 name="rawData.peakPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Toppeffekt (W)</FormLabel>
+                    <FormLabel>{t('Toppeffekt (W)', 'Peak power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -534,7 +567,7 @@ function Sprint30sForm({
                         onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       />
                     </FormControl>
-                    <FormDescription>Om visas</FormDescription>
+                    <FormDescription>{t('Om visas', 'If shown')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -545,7 +578,7 @@ function Sprint30sForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -565,7 +598,7 @@ function Sprint30sForm({
                 name="rawData.peakRPM"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Topp RPM</FormLabel>
+                    <FormLabel>{t('Topp-RPM', 'Peak RPM')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -585,7 +618,7 @@ function Sprint30sForm({
                 name="rawData.bodyWeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kroppsvikt (kg)</FormLabel>
+                    <FormLabel>{t('Kroppsvikt (kg)', 'Body weight (kg)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -608,7 +641,7 @@ function Sprint30sForm({
                 name="avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -628,7 +661,7 @@ function Sprint30sForm({
                 name="maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -668,10 +701,10 @@ function Sprint30sForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
