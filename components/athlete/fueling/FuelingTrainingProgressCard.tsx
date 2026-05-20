@@ -29,6 +29,7 @@ import {
   summarizeRaceFuelingProductItems,
 } from '@/lib/fueling/product-plan'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
+import { useLocale } from '@/i18n/client'
 
 type FuelingStatus = 'NO_DATA' | 'READY_TO_PROGRESS' | 'HOLD' | 'REDUCE' | 'ON_TRACK'
 
@@ -89,41 +90,51 @@ interface FuelingTrainingProgressCardProps {
 }
 
 const STATUS_META: Record<FuelingStatus, {
-  label: string
-  body: string
+  label: Record<AppLocale, string>
+  body: Record<AppLocale, string>
   badgeClass: string
   icon: LucideIcon
 }> = {
   READY_TO_PROGRESS: {
-    label: 'Redo att höja',
-    body: 'Din senaste nivå verkar fungera. Nästa långpass kan testa en liten höjning.',
+    label: { sv: 'Redo att höja', en: 'Ready to progress' },
+    body: { sv: 'Din senaste nivå verkar fungera. Nästa långpass kan testa en liten höjning.', en: 'Your latest level seems to be working. The next long session can test a small increase.' },
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     icon: TrendingUp,
   },
   HOLD: {
-    label: 'Behåll nivån',
-    body: 'Upprepa samma nivå tills intaget känns stabilt innan du höjer igen.',
+    label: { sv: 'Behåll nivån', en: 'Hold level' },
+    body: { sv: 'Upprepa samma nivå tills intaget känns stabilt innan du höjer igen.', en: 'Repeat the same level until intake feels stable before increasing again.' },
     badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
     icon: Flame,
   },
   REDUCE: {
-    label: 'Backa lite',
-    body: 'Magen verkar ha protesterat. Sänk nästa mål och bygg upp igen stegvis.',
+    label: { sv: 'Backa lite', en: 'Back off slightly' },
+    body: { sv: 'Magen verkar ha protesterat. Sänk nästa mål och bygg upp igen stegvis.', en: 'Your gut seems to have pushed back. Lower the next target and build up gradually.' },
     badgeClass: 'bg-red-50 text-red-700 border-red-200',
     icon: AlertTriangle,
   },
   ON_TRACK: {
-    label: 'På rätt väg',
-    body: 'Du ligger nära planen. Fortsätt logga intag, mage och energi efter långpassen.',
+    label: { sv: 'På rätt väg', en: 'On track' },
+    body: { sv: 'Du ligger nära planen. Fortsätt logga intag, mage och energi efter långpassen.', en: 'You are close to the plan. Keep logging intake, gut feel, and energy after long sessions.' },
     badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
     icon: CheckCircle2,
   },
   NO_DATA: {
-    label: 'Börja logga',
-    body: 'Efter nästa långpass, fyll i kolhydrater per timme och magkänsla så byggs planen upp.',
+    label: { sv: 'Börja logga', en: 'Start logging' },
+    body: { sv: 'Efter nästa långpass, fyll i kolhydrater per timme och magkänsla så byggs planen upp.', en: 'After your next long session, enter carbs per hour and gut feel so the plan can build up.' },
     badgeClass: 'bg-slate-50 text-slate-600 border-slate-200',
     icon: Utensils,
   },
+}
+
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale.startsWith('sv') ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
 export function FuelingTrainingProgressCard({
@@ -131,6 +142,7 @@ export function FuelingTrainingProgressCard({
   variant = 'default',
   plansHref = '/athlete/fueling',
 }: FuelingTrainingProgressCardProps) {
+  const locale = getAppLocale(useLocale())
   const [data, setData] = useState<FuelingSummaryResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -151,7 +163,7 @@ export function FuelingTrainingProgressCard({
         if (body.success) setData(body.data)
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
-        setError(err instanceof Error ? err.message : 'Kunde inte hämta magträning')
+        setError(err instanceof Error ? err.message : text(locale, 'Kunde inte hämta magträning', 'Could not load gut training'))
       } finally {
         if (!controller.signal.aborted) setIsLoading(false)
       }
@@ -160,7 +172,7 @@ export function FuelingTrainingProgressCard({
     void loadSummary()
 
     return () => controller.abort()
-  }, [clientId])
+  }, [clientId, locale])
 
   const isGlass = variant === 'glass'
   const summary = data?.summary
@@ -170,8 +182,8 @@ export function FuelingTrainingProgressCard({
   const target = summary?.averagePlannedCarbsGPerHour ?? data?.latestPlan?.recommendedCarbsGPerHour ?? null
   const latestLog = data?.recentLogs[0] ?? null
   const hasRacePlan = Boolean(data?.latestPlan)
-  const planContext = formatFuelingPlanContext(data?.latestPlan, { includeRaceDate: true })
-  const trend = buildAthleteFuelingTrend(data?.recentLogs ?? [], target)
+  const planContext = formatFuelingPlanContext(data?.latestPlan, { includeRaceDate: true, locale })
+  const trend = buildAthleteFuelingTrend(data?.recentLogs ?? [], target, locale)
   const recommendation = data
     ? buildFuelingCoachingRecommendation({
         logs: data.recentLogs,
@@ -186,15 +198,15 @@ export function FuelingTrainingProgressCard({
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <Flame className="h-4 w-4 text-orange-600" />
-              Magträning
+              {text(locale, 'Magträning', 'Gut training')}
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              Bygg tolerans mot tävlingsmålet
+              {text(locale, 'Bygg tolerans mot tävlingsmålet', 'Build tolerance toward the race target')}
             </p>
           </div>
           {!isLoading && (
             <Badge variant="outline" className={meta.badgeClass}>
-              {meta.label}
+              {meta.label[locale]}
             </Badge>
           )}
         </div>
@@ -210,21 +222,21 @@ export function FuelingTrainingProgressCard({
           <div className="space-y-4">
             <div className="flex gap-3 rounded-lg border bg-orange-50/70 p-3 dark:bg-orange-900/10 dark:border-orange-900/30">
               <StatusIcon className="h-4 w-4 mt-0.5 text-orange-700 dark:text-orange-400" />
-              <p className="text-sm text-slate-700 dark:text-slate-200">{meta.body}</p>
+              <p className="text-sm text-slate-700 dark:text-slate-200">{meta.body[locale]}</p>
             </div>
 
             {!hasRacePlan && (
               <div className="rounded-lg border bg-white p-3 dark:bg-slate-950/40 dark:border-white/10">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Ingen raceplan ännu</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{text(locale, 'Ingen raceplan ännu', 'No race plan yet')}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Skapa ett mål för distans, tid eller intensitet så kan långpassen få tydliga carb-mål.
+                      {text(locale, 'Skapa ett mål för distans, tid eller intensitet så kan långpassen få tydliga carb-mål.', 'Create a distance, time, or intensity goal so long sessions can get clear carb targets.')}
                     </p>
                   </div>
                   <Button asChild size="sm" className="w-full sm:w-auto">
                     <Link href={plansHref}>
-                      Skapa plan
+                      {text(locale, 'Skapa plan', 'Create plan')}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
@@ -233,32 +245,32 @@ export function FuelingTrainingProgressCard({
             )}
 
             <div className="grid grid-cols-3 gap-3">
-              <Metric label="Mål" value={formatGramHour(target)} />
-              <Metric label="Senast" value={formatGramHour(summary?.latestActualCarbsGPerHour)} />
-              <Metric label="Mage" value={formatRating(summary?.averageStomachRating)} />
+              <Metric label={text(locale, 'Mål', 'Target')} value={formatGramHour(target)} />
+              <Metric label={text(locale, 'Senast', 'Latest')} value={formatGramHour(summary?.latestActualCarbsGPerHour)} />
+              <Metric label={text(locale, 'Mage', 'Gut')} value={formatRating(summary?.averageStomachRating)} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Metric label="Bäst tålt" value={formatGramHour(summary?.bestToleratedCarbsGPerHour)} />
-              <Metric label="Nästa steg" value={formatGramHour(trend.nextTarget)} />
+              <Metric label={text(locale, 'Bäst tålt', 'Best tolerated')} value={formatGramHour(summary?.bestToleratedCarbsGPerHour)} />
+              <Metric label={text(locale, 'Nästa steg', 'Next step')} value={formatGramHour(trend.nextTarget)} />
             </div>
 
             {data?.latestPlan?.fuelingProgress && (
-              <AthleteFuelingProgressBox progress={data.latestPlan.fuelingProgress} />
+              <AthleteFuelingProgressBox progress={data.latestPlan.fuelingProgress} locale={locale} />
             )}
 
             {planContext && (
               <div className="rounded-lg border bg-white p-3 dark:bg-slate-950/40 dark:border-white/10">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Aktiv raceplan</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{text(locale, 'Aktiv raceplan', 'Active race plan')}</p>
                 <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                  {data?.latestPlan?.name ?? 'Nästa tävling'}
+                  {data?.latestPlan?.name ?? text(locale, 'Nästa tävling', 'Next race')}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">{planContext}</p>
               </div>
             )}
 
             {recommendation && (
-              <AthleteRecommendationBox recommendation={recommendation} />
+              <AthleteRecommendationBox recommendation={recommendation} locale={locale} />
             )}
 
             <div className="rounded-lg border bg-slate-50 p-3 dark:bg-slate-800/60 dark:border-white/10">
@@ -280,26 +292,26 @@ export function FuelingTrainingProgressCard({
                     {latestLog.workoutName}
                   </p>
                   <span className="text-muted-foreground">
-                    {new Date(latestLog.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                    {new Date(latestLog.completedAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })}
                   </span>
                 </div>
                 <p className="text-muted-foreground mt-1">
-                  Loggat: {formatGramHour(latestLog.actualCarbsGPerHour)}
-                  {latestLog.actualCarbsTotalG ? `, ${Math.round(latestLog.actualCarbsTotalG)} g totalt` : ''}
-                  {latestLog.energyRating ? `, energi ${latestLog.energyRating}/5` : ''}
+                  {text(locale, 'Loggat', 'Logged')}: {formatGramHour(latestLog.actualCarbsGPerHour)}
+                  {latestLog.actualCarbsTotalG ? `, ${Math.round(latestLog.actualCarbsTotalG)} g ${text(locale, 'totalt', 'total')}` : ''}
+                  {latestLog.energyRating ? `, ${text(locale, 'energi', 'energy')} ${latestLog.energyRating}/5` : ''}
                 </p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Tips: välj samma produkter som du tänker använda på tävling och logga responsen direkt efter passet.
+                {text(locale, 'Tips: välj samma produkter som du tänker använda på tävling och logga responsen direkt efter passet.', 'Tip: choose the same products you plan to use on race day and log the response right after the session.')}
               </p>
             )}
 
             {data?.recentLogs.length ? (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">Senaste loggar</p>
+                <p className="text-xs font-medium text-muted-foreground">{text(locale, 'Senaste loggar', 'Latest logs')}</p>
                 {[...data.recentLogs].reverse().map((log) => (
-                  <FuelingLogBar key={log.id} log={log} />
+                  <FuelingLogBar key={log.id} log={log} locale={locale} />
                 ))}
               </div>
             ) : null}
@@ -310,42 +322,43 @@ export function FuelingTrainingProgressCard({
   )
 }
 
-function AthleteFuelingProgressBox({ progress }: { progress: FuelingProgressSummary }) {
+function AthleteFuelingProgressBox({ progress, locale }: { progress: FuelingProgressSummary; locale: AppLocale }) {
   const isSynced = progress.linkedWorkoutCount > 0
   return (
     <div className="rounded-lg border bg-blue-50/70 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {isSynced ? 'Planen finns i dina pass' : 'Planen är redo att läggas i passen'}
+            {isSynced ? text(locale, 'Planen finns i dina pass', 'The plan is in your sessions') : text(locale, 'Planen är redo att läggas i passen', 'The plan is ready to add to sessions')}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {isSynced
-              ? `${progress.linkedWorkoutCount} pass kopplade och ${progress.loggedWorkoutCount} loggade.`
-              : 'När planen synkas får du tydliga carb-mål på långpassen.'}
+              ? text(locale, `${progress.linkedWorkoutCount} pass kopplade och ${progress.loggedWorkoutCount} loggade.`, `${progress.linkedWorkoutCount} sessions linked and ${progress.loggedWorkoutCount} logged.`)
+              : text(locale, 'När planen synkas får du tydliga carb-mål på långpassen.', 'When the plan syncs, long sessions get clear carb targets.')}
           </p>
         </div>
         {progress.buildUpWeeks && (
           <Badge variant="outline" className="shrink-0 bg-white/70 text-[10px] dark:bg-slate-950/40">
-            {progress.buildUpWeeks} veckor
+            {progress.buildUpWeeks} {text(locale, 'veckor', 'weeks')}
           </Badge>
         )}
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <Metric label="Nästa mål" value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
-        <Metric label="Bäst tålt" value={formatGramHour(progress.bestToleratedGPerHour)} />
+        <Metric label={text(locale, 'Nästa mål', 'Next target')} value={formatGramHour(progress.nextBuildUpTargetGPerHour)} />
+        <Metric label={text(locale, 'Bäst tålt', 'Best tolerated')} value={formatGramHour(progress.bestToleratedGPerHour)} />
       </div>
     </div>
   )
 }
 
-function AthleteRecommendationBox({ recommendation }: { recommendation: FuelingCoachingRecommendation }) {
+function AthleteRecommendationBox({ recommendation, locale }: { recommendation: FuelingCoachingRecommendation; locale: AppLocale }) {
+  const localized = localizeRecommendation(recommendation, locale)
   return (
     <div className="rounded-lg border bg-blue-50/70 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">{recommendation.labelSv}</p>
-          <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{recommendation.actionSv}</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">{localized.label}</p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{localized.action}</p>
         </div>
         {recommendation.nextTargetGPerHour && (
           <Badge variant="outline" className="shrink-0 bg-white/70 dark:bg-slate-950/40">
@@ -353,14 +366,14 @@ function AthleteRecommendationBox({ recommendation }: { recommendation: FuelingC
           </Badge>
         )}
       </div>
-      {recommendation.productSv && (
-        <p className="mt-2 text-xs text-muted-foreground">{recommendation.productSv}</p>
+      {localized.product && (
+        <p className="mt-2 text-xs text-muted-foreground">{localized.product}</p>
       )}
     </div>
   )
 }
 
-function FuelingLogBar({ log }: { log: FuelingLogSummary }) {
+function FuelingLogBar({ log, locale }: { log: FuelingLogSummary; locale: AppLocale }) {
   const plannedWidth = getBarWidth(log.plannedCarbsGPerHour)
   const actualWidth = getBarWidth(log.actualCarbsGPerHour)
   const productsUsed = normalizeRaceFuelingProductItems(log.productsUsed)
@@ -370,25 +383,30 @@ function FuelingLogBar({ log }: { log: FuelingLogSummary }) {
       <div className="flex items-center justify-between gap-3">
         <p className="truncate font-medium text-slate-900 dark:text-white">{log.workoutName}</p>
         <span className="text-muted-foreground">
-          {new Date(log.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+          {new Date(log.completedAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })}
         </span>
       </div>
       <div className="mt-2 space-y-1">
         <BarLine label="Plan" width={plannedWidth} className="bg-slate-300 dark:bg-slate-600" />
-        <BarLine label="Utfört" width={actualWidth} className="bg-orange-500" />
+        <BarLine label={text(locale, 'Utfört', 'Done')} width={actualWidth} className="bg-orange-500" />
       </div>
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
         <span>{formatGramHour(log.actualCarbsGPerHour)}</span>
-        <span>Mage {formatRating(log.stomachRating)}</span>
-        <span>Energi {formatRating(log.energyRating)}</span>
+        <span>{text(locale, 'Mage', 'Gut')} {formatRating(log.stomachRating)}</span>
+        <span>{text(locale, 'Energi', 'Energy')} {formatRating(log.energyRating)}</span>
       </div>
       {productsUsed.length > 0 && (
         <p className="mt-1 line-clamp-2 text-muted-foreground">
-          Produkter: {summarizeRaceFuelingProductItems(productsUsed)}
+          {text(locale, 'Produkter', 'Products')}: {formatProductSummary(productsUsed, locale)}
         </p>
       )}
     </div>
   )
+}
+
+function formatProductSummary(productsUsed: ReturnType<typeof normalizeRaceFuelingProductItems>, locale: AppLocale): string | null {
+  const summary = summarizeRaceFuelingProductItems(productsUsed)
+  return locale === 'en' ? summary?.replaceAll(' à ', ' at ') ?? null : summary
 }
 
 function BarLine({ label, width, className }: { label: string; width: number; className: string }) {
@@ -427,7 +445,7 @@ interface AthleteFuelingTrend {
   nextTarget: number | null
 }
 
-function buildAthleteFuelingTrend(logs: FuelingLogSummary[], target: number | null): AthleteFuelingTrend {
+function buildAthleteFuelingTrend(logs: FuelingLogSummary[], target: number | null, locale: AppLocale): AthleteFuelingTrend {
   const latest = logs[0]
   const recent = logs.slice(0, 3)
   const bestTolerated = Math.max(
@@ -443,9 +461,9 @@ function buildAthleteFuelingTrend(logs: FuelingLogSummary[], target: number | nu
 
   if (lowStomach) {
     return {
-      title: 'Nästa pass: backa lite',
-      body: 'Prioritera lugn mage före högre intag. Välj produkter som fungerat tidigare.',
-      badge: 'Backa',
+      title: text(locale, 'Nästa pass: backa lite', 'Next session: back off slightly'),
+      body: text(locale, 'Prioritera lugn mage före högre intag. Välj produkter som fungerat tidigare.', 'Prioritize a calm gut before higher intake. Choose products that have worked before.'),
+      badge: text(locale, 'Backa', 'Back off'),
       badgeClass: 'bg-red-50 text-red-700 border-red-200',
       nextTarget,
     }
@@ -453,20 +471,80 @@ function buildAthleteFuelingTrend(logs: FuelingLogSummary[], target: number | nu
 
   if (stable && latestActual != null) {
     return {
-      title: 'Nästa pass: liten höjning möjlig',
-      body: 'Du verkar tåla nivån bra. Höj försiktigt och logga känslan direkt efter passet.',
-      badge: 'Höj',
+      title: text(locale, 'Nästa pass: liten höjning möjlig', 'Next session: small increase possible'),
+      body: text(locale, 'Du verkar tåla nivån bra. Höj försiktigt och logga känslan direkt efter passet.', 'You seem to tolerate this level well. Increase carefully and log how it felt right after the session.'),
+      badge: text(locale, 'Höj', 'Increase'),
       badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       nextTarget,
     }
   }
 
   return {
-    title: 'Nästa pass: samla mer data',
-    body: 'Upprepa en tydlig nivå så vi ser hur mage och energi svarar.',
-    badge: 'Följ upp',
+    title: text(locale, 'Nästa pass: samla mer data', 'Next session: collect more data'),
+    body: text(locale, 'Upprepa en tydlig nivå så vi ser hur mage och energi svarar.', 'Repeat a clear level so we can see how gut and energy respond.'),
+    badge: text(locale, 'Följ upp', 'Follow up'),
     badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
     nextTarget,
+  }
+}
+
+function localizeRecommendation(
+  recommendation: FuelingCoachingRecommendation,
+  locale: AppLocale
+): { label: string; action: string; product: string | null } {
+  if (locale === 'sv') {
+    return {
+      label: recommendation.labelSv,
+      action: recommendation.actionSv,
+      product: recommendation.productSv,
+    }
+  }
+
+  const nextTarget = recommendation.nextTargetGPerHour
+  const product = recommendation.productSv
+    ?.replace('Produkt/timing att justera:', 'Product/timing to adjust:')
+    .replace('Fungerande produkter att repetera:', 'Working products to repeat:')
+    .replace('Produkter från senaste logg:', 'Products from latest log:')
+    .replaceAll(' à ', ' at ') ?? null
+
+  switch (recommendation.status) {
+    case 'NO_DATA':
+      return {
+        label: 'No clear recommendation yet',
+        action: 'Log carbs, gut feel, and energy after your next long session.',
+        product,
+      }
+    case 'REDUCE':
+      return {
+        label: 'Back off next session',
+        action: nextTarget ? `Next long session: aim for ${nextTarget} g/h and spread intake more evenly.` : recommendation.actionSv,
+        product,
+      }
+    case 'HOLD':
+      return {
+        label: recommendation.labelSv === 'Bygg upp till planen' ? 'Build up to the plan' : 'Hold level',
+        action: nextTarget ? `Next long session: repeat ${nextTarget} g/h before increasing.` : recommendation.actionSv,
+        product,
+      }
+    case 'RACE_READY':
+      return {
+        label: 'Ready for race target',
+        action: nextTarget ? `Hold the race target at ${nextTarget} g/h and repeat with race-day products.` : recommendation.actionSv,
+        product,
+      }
+    case 'PROGRESS':
+      return {
+        label: 'Increase carefully',
+        action: nextTarget ? `Next long session: test ${nextTarget} g/h if the session is race-like.` : recommendation.actionSv,
+        product,
+      }
+    case 'ON_TRACK':
+    default:
+      return {
+        label: 'Follow up',
+        action: nextTarget ? `Next long session: continue with ${nextTarget} g/h and log the response.` : recommendation.actionSv,
+        product,
+      }
   }
 }
 
