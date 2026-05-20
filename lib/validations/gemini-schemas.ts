@@ -425,10 +425,10 @@ export const FoodPhotoAnalysisSchema = z.object({
 
   items: z.array(
     z.object({
-      name: z.string().describe('Food item name in Swedish'),
+      name: z.string().describe('Food item name in the requested output language'),
       category: z.enum(['PROTEIN', 'CARB', 'FAT', 'VEGETABLE', 'FRUIT', 'DAIRY', 'GRAIN', 'BEVERAGE', 'OTHER']).describe('Primary nutritional category of this food item'),
       estimatedGrams: z.number().describe('Estimated weight in grams'),
-      portionDescription: z.string().describe('Portion description, e.g. "1 skiva", "2 dl"'),
+      portionDescription: z.string().describe('Portion description in the requested output language, e.g. "1 slice", "2 dl"'),
       calories: z.number().describe('Estimated calories (kcal)'),
       proteinGrams: z.number().describe('Estimated protein in grams'),
       carbsGrams: z.number().describe('Estimated carbs in grams'),
@@ -457,7 +457,7 @@ export const FoodPhotoAnalysisSchema = z.object({
     complexCarbsGrams: z.number().optional().describe('Total complex carbs in grams'),
   }),
 
-  mealDescription: z.string().describe('Brief Swedish description of the meal for MealLog'),
+  mealDescription: z.string().describe('Brief description of the meal in the requested output language for MealLog'),
   suggestedMealType: z
     .enum(['BREAKFAST', 'MORNING_SNACK', 'LUNCH', 'AFTERNOON_SNACK', 'PRE_WORKOUT', 'POST_WORKOUT', 'DINNER', 'EVENING_SNACK'])
     .optional()
