@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -40,6 +41,14 @@ interface SwimZone {
   color: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
 // Format pace as mm:ss per 100m
 function formatPace(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -48,36 +57,36 @@ function formatPace(seconds: number): string {
 }
 
 // Calculate swimming pace zones based on CSS
-function calculateSwimmingPaceZones(css: number): SwimZone[] {
+function calculateSwimmingPaceZones(css: number, locale: AppLocale): SwimZone[] {
   return [
     {
       zone: 1,
-      name: 'Återhämtning',
+      name: t(locale, 'Återhämtning', 'Recovery'),
       paceMin: Math.round(css * 1.20),
       paceMax: Math.round(css * 1.35),
       percentMin: 74,
       percentMax: 83,
-      description: 'Lätt simning för återhämtning och uppvärmning',
+      description: t(locale, 'Lätt simning för återhämtning och uppvärmning', 'Easy swimming for recovery and warm-ups'),
       color: 'bg-blue-100 text-blue-800',
     },
     {
       zone: 2,
-      name: 'Uthållighet',
+      name: t(locale, 'Uthållighet', 'Endurance'),
       paceMin: Math.round(css * 1.08),
       paceMax: Math.round(css * 1.20),
       percentMin: 83,
       percentMax: 93,
-      description: 'Aerob basträning, längre intervaller',
+      description: t(locale, 'Aerob basträning, längre intervaller', 'Aerobic base work and longer intervals'),
       color: 'bg-green-100 text-green-800',
     },
     {
       zone: 3,
-      name: 'Tröskel (CSS)',
+      name: t(locale, 'Tröskel (CSS)', 'Threshold (CSS)'),
       paceMin: Math.round(css * 0.98),
       paceMax: Math.round(css * 1.08),
       percentMin: 93,
       percentMax: 102,
-      description: 'CSS-tempo, tävlingsfart på längre distanser',
+      description: t(locale, 'CSS-tempo, tävlingsfart på längre distanser', 'CSS pace and race pace for longer distances'),
       color: 'bg-yellow-100 text-yellow-800',
     },
     {
@@ -87,7 +96,7 @@ function calculateSwimmingPaceZones(css: number): SwimZone[] {
       paceMax: Math.round(css * 0.98),
       percentMin: 102,
       percentMax: 111,
-      description: 'Hög intensitet, medellånga intervaller (200-400m)',
+      description: t(locale, 'Hög intensitet, medellånga intervaller (200-400m)', 'High intensity, medium-length intervals (200-400m)'),
       color: 'bg-orange-100 text-orange-800',
     },
     {
@@ -97,81 +106,80 @@ function calculateSwimmingPaceZones(css: number): SwimZone[] {
       paceMax: Math.round(css * 0.90),
       percentMin: 111,
       percentMax: 122,
-      description: 'Maximal intensitet, korta intervaller (25-100m)',
+      description: t(locale, 'Maximal intensitet, korta intervaller (25-100m)', 'Maximum intensity, short intervals (25-100m)'),
       color: 'bg-red-100 text-red-800',
     },
   ]
 }
 
-// Get stroke name in Swedish
-function getStrokeName(stroke: string): string {
-  const names: Record<string, string> = {
-    freestyle: 'Frisim',
-    backstroke: 'Ryggsim',
-    breaststroke: 'Bröstsim',
-    butterfly: 'Fjärilsim',
-    im: 'Medley',
+function getStrokeName(stroke: string, locale: AppLocale): string {
+  const names: Record<string, Record<AppLocale, string>> = {
+    freestyle: { sv: 'Frisim', en: 'Freestyle' },
+    backstroke: { sv: 'Ryggsim', en: 'Backstroke' },
+    breaststroke: { sv: 'Bröstsim', en: 'Breaststroke' },
+    butterfly: { sv: 'Fjärilsim', en: 'Butterfly' },
+    im: { sv: 'Medley', en: 'Individual medley' },
   }
-  return names[stroke] || stroke
+  return names[stroke]?.[locale] || stroke
 }
 
-// Get discipline name in Swedish
-function getDisciplineName(discipline: string): string {
-  const names: Record<string, string> = {
-    pool_distance: 'Pool Distans',
-    pool_sprint: 'Pool Sprint',
-    open_water: 'Öppet vatten',
-    triathlon: 'Triathlon',
-    masters: 'Mastersim',
-    recreational: 'Motionssim',
+function getDisciplineName(discipline: string, locale: AppLocale): string {
+  const names: Record<string, Record<AppLocale, string>> = {
+    pool_distance: { sv: 'Pool Distans', en: 'Pool distance' },
+    pool_sprint: { sv: 'Pool Sprint', en: 'Pool sprint' },
+    open_water: { sv: 'Öppet vatten', en: 'Open water' },
+    triathlon: { sv: 'Triathlon', en: 'Triathlon' },
+    masters: { sv: 'Mastersim', en: 'Masters swimming' },
+    recreational: { sv: 'Motionssim', en: 'Recreational swimming' },
   }
-  return names[discipline] || discipline
+  return names[discipline]?.[locale] || discipline
 }
 
 // Get experience level display
-function getExperienceLevel(exp: string): { label: string; color: string } {
-  const levels: Record<string, { label: string; color: string }> = {
-    beginner: { label: 'Nybörjare', color: 'bg-blue-100 text-blue-800' },
-    intermediate: { label: 'Medel', color: 'bg-green-100 text-green-800' },
-    advanced: { label: 'Avancerad', color: 'bg-yellow-100 text-yellow-800' },
-    elite: { label: 'Elit', color: 'bg-purple-100 text-purple-800' },
+function getExperienceLevel(exp: string, locale: AppLocale): { label: string; color: string } {
+  const levels: Record<string, { label: Record<AppLocale, string>; color: string }> = {
+    beginner: { label: { sv: 'Nybörjare', en: 'Beginner' }, color: 'bg-blue-100 text-blue-800' },
+    intermediate: { label: { sv: 'Medel', en: 'Intermediate' }, color: 'bg-green-100 text-green-800' },
+    advanced: { label: { sv: 'Avancerad', en: 'Advanced' }, color: 'bg-yellow-100 text-yellow-800' },
+    elite: { label: { sv: 'Elit', en: 'Elite' }, color: 'bg-purple-100 text-purple-800' },
   }
-  return levels[exp] || { label: exp, color: 'bg-gray-100 text-gray-800' }
+  const level = levels[exp]
+  return level ? { label: level.label[locale], color: level.color } : { label: exp, color: 'bg-gray-100 text-gray-800' }
 }
 
 // Get training tips based on discipline and experience
-function getTrainingTips(discipline: string, experience: string): string[] {
+function getTrainingTips(discipline: string, experience: string, locale: AppLocale): string[] {
   const tips: string[] = []
 
   if (discipline === 'triathlon') {
-    tips.push('Fokusera på CSS-intervaller för effektivitet')
-    tips.push('Träna simdragning med pull buoy regelbundet')
-    tips.push('Öva våtdräktssimning före tävling')
-    tips.push('Inkludera open water-pass om möjligt')
+    tips.push(t(locale, 'Fokusera på CSS-intervaller för effektivitet', 'Focus on CSS intervals for efficiency'))
+    tips.push(t(locale, 'Träna simdragning med pull buoy regelbundet', 'Practice pull-buoy work regularly'))
+    tips.push(t(locale, 'Öva våtdräktssimning före tävling', 'Practice wetsuit swimming before race day'))
+    tips.push(t(locale, 'Inkludera open water-pass om möjligt', 'Include open-water sessions when possible'))
   } else if (discipline === 'pool_distance') {
-    tips.push('Bygg aerob bas med längre lågintensiva pass')
-    tips.push('Inkludera CSS-set för att höja tröskeln')
-    tips.push('Arbeta med simteknik och effektivitet')
+    tips.push(t(locale, 'Bygg aerob bas med längre lågintensiva pass', 'Build aerobic base with longer low-intensity sessions'))
+    tips.push(t(locale, 'Inkludera CSS-set för att höja tröskeln', 'Include CSS sets to lift threshold'))
+    tips.push(t(locale, 'Arbeta med simteknik och effektivitet', 'Work on swim technique and efficiency'))
   } else if (discipline === 'pool_sprint') {
-    tips.push('Fokusera på teknik vid låg hastighet')
-    tips.push('Inkludera sprintset med full återhämtning')
-    tips.push('Träna starts och vändningar')
+    tips.push(t(locale, 'Fokusera på teknik vid låg hastighet', 'Focus on technique at low speed'))
+    tips.push(t(locale, 'Inkludera sprintset med full återhämtning', 'Include sprint sets with full recovery'))
+    tips.push(t(locale, 'Träna starts och vändningar', 'Practice starts and turns'))
   } else if (discipline === 'open_water') {
-    tips.push('Träna navigation och siktning')
-    tips.push('Öva massstart och positionering')
-    tips.push('Bygg uthållighet med långa, kontinuerliga pass')
+    tips.push(t(locale, 'Träna navigation och siktning', 'Practice navigation and sighting'))
+    tips.push(t(locale, 'Öva massstart och positionering', 'Practice mass starts and positioning'))
+    tips.push(t(locale, 'Bygg uthållighet med långa, kontinuerliga pass', 'Build endurance with long continuous sessions'))
   } else {
-    tips.push('Variera simsätten för allsidig träning')
-    tips.push('Fokusera på teknik framför hastighet')
-    tips.push('Inkludera återhämtningspass mellan hårda pass')
+    tips.push(t(locale, 'Variera simsätten för allsidig träning', 'Vary strokes for well-rounded training'))
+    tips.push(t(locale, 'Fokusera på teknik framför hastighet', 'Prioritize technique over speed'))
+    tips.push(t(locale, 'Inkludera återhämtningspass mellan hårda pass', 'Include recovery swims between hard sessions'))
   }
 
   if (experience === 'beginner') {
-    tips.push('Prioritera simteknik över volym')
-    tips.push('Börja med kortare intervaller och bygg upp')
+    tips.push(t(locale, 'Prioritera simteknik över volym', 'Prioritize swim technique over volume'))
+    tips.push(t(locale, 'Börja med kortare intervaller och bygg upp', 'Start with shorter intervals and build gradually'))
   } else if (experience === 'elite') {
-    tips.push('Periodisera träningen mot huvudtävlingar')
-    tips.push('Använd videanalys för teknikförbättring')
+    tips.push(t(locale, 'Periodisera träningen mot huvudtävlingar', 'Periodize training toward key races'))
+    tips.push(t(locale, 'Använd videanalys för teknikförbättring', 'Use video analysis to refine technique'))
   }
 
   return tips.slice(0, 4)
@@ -180,22 +188,23 @@ function getTrainingTips(discipline: string, experience: string): string[] {
 export function SwimmingDashboard({
   swimmingSettings,
   experience,
-  clientName,
+  clientName: _clientName,
 }: SwimmingDashboardProps) {
+  const locale = getAppLocale(useLocale())
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
   const settings = swimmingSettings || {}
   const css = settings.currentCss
-  const paceZones = css ? calculateSwimmingPaceZones(css) : []
+  const paceZones = css ? calculateSwimmingPaceZones(css, locale) : []
 
   const primaryStroke = settings.primaryStroke || 'freestyle'
   const primaryDiscipline = settings.primaryDiscipline || 'recreational'
   const poolLength = settings.preferredPoolLength || '25'
   const swimExperience = settings.swimmingExperience || experience || 'intermediate'
 
-  const trainingTips = getTrainingTips(primaryDiscipline, swimExperience)
-  const expLevel = getExperienceLevel(swimExperience)
+  const trainingTips = getTrainingTips(primaryDiscipline, swimExperience, locale)
+  const expLevel = getExperienceLevel(swimExperience, locale)
 
   return (
     <div className="space-y-6">
@@ -206,7 +215,7 @@ export function SwimmingDashboard({
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Timer className="h-4 w-4 text-cyan-500" />
-              CSS (Tröskel)
+              CSS ({t(locale, 'Tröskel', 'Threshold')})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -217,15 +226,15 @@ export function SwimmingDashboard({
                 </p>
                 {settings.cssTestDate && (
                   <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                    Testad: {new Date(settings.cssTestDate).toLocaleDateString('sv-SE')}
+                    {t(locale, 'Testad:', 'Tested:')} {new Date(settings.cssTestDate).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')}
                   </p>
                 )}
               </div>
             ) : (
               <div>
-                <p className="text-lg" style={{ color: theme.colors.textMuted }}>Ej angiven</p>
+                <p className="text-lg" style={{ color: theme.colors.textMuted }}>{t(locale, 'Ej angiven', 'Not set')}</p>
                 <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                  Gör ett CSS-test för att få träningszoner
+                  {t(locale, 'Gör ett CSS-test för att få träningszoner', 'Complete a CSS test to get training zones')}
                 </p>
               </div>
             )}
@@ -237,14 +246,14 @@ export function SwimmingDashboard({
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Waves className="h-4 w-4 text-blue-500" />
-              Huvudsimsätt
+              {t(locale, 'Huvudsimsätt', 'Primary stroke')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>{getStrokeName(primaryStroke)}</p>
+            <p className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>{getStrokeName(primaryStroke, locale)}</p>
             {settings.strokeTypes && settings.strokeTypes.length > 1 && (
               <p className="text-xs" style={{ color: theme.colors.textMuted }}>
-                +{settings.strokeTypes.length - 1} andra
+                +{settings.strokeTypes.length - 1} {t(locale, 'andra', 'others')}
               </p>
             )}
           </CardContent>
@@ -259,8 +268,8 @@ export function SwimmingDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>{getDisciplineName(primaryDiscipline)}</p>
-            <p className="text-xs" style={{ color: theme.colors.textMuted }}>{poolLength}m bassäng</p>
+            <p className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>{getDisciplineName(primaryDiscipline, locale)}</p>
+            <p className="text-xs" style={{ color: theme.colors.textMuted }}>{poolLength}m {t(locale, 'bassäng', 'pool')}</p>
           </CardContent>
         </Card>
 
@@ -269,14 +278,14 @@ export function SwimmingDashboard({
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-4 w-4 text-purple-500" />
-              Nivå
+              {t(locale, 'Nivå', 'Level')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Badge className={cn('text-sm', expLevel.color)}>{expLevel.label}</Badge>
             {settings.weeklySwimSessions && (
               <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                {settings.weeklySwimSessions} pass/vecka
+                {settings.weeklySwimSessions} {t(locale, 'pass/vecka', 'sessions/week')}
               </p>
             )}
           </CardContent>
@@ -289,10 +298,10 @@ export function SwimmingDashboard({
           <CardHeader>
             <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Droplets className="h-5 w-5 text-cyan-500" />
-              Simzoner
+              {t(locale, 'Simzoner', 'Swim zones')}
             </CardTitle>
             <CardDescription style={{ color: theme.colors.textMuted }}>
-              Baserade på din CSS ({formatPace(css)}/100m)
+              {t(locale, 'Baserade på din CSS', 'Based on your CSS')} ({formatPace(css)}/100m)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -326,7 +335,7 @@ export function SwimmingDashboard({
 
             {/* Estimated Race Paces */}
             <div className="mt-6 pt-4 border-t" style={{ borderColor: theme.colors.border }}>
-              <h4 className="font-medium text-sm mb-3" style={{ color: theme.colors.textPrimary }}>Beräknade tävlingstempo</h4>
+              <h4 className="font-medium text-sm mb-3" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Beräknade tävlingstempo', 'Estimated race paces')}</h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div className="p-2 rounded" style={{ backgroundColor: theme.colors.background }}>
                   <span style={{ color: theme.colors.textMuted }}>400m:</span>
@@ -355,7 +364,7 @@ export function SwimmingDashboard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Info className="h-5 w-5 text-blue-500" />
-            Träningstips för {getDisciplineName(primaryDiscipline)}
+            {t(locale, 'Träningstips för', 'Training tips for')} {getDisciplineName(primaryDiscipline, locale)}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -384,8 +393,8 @@ export function SwimmingDashboard({
                 style={{ color: theme.id === 'FITAPP_DARK' ? '#fcd34d' : '#92400e' }}
               >
                 {!css
-                  ? 'Gör ett CSS-test för att få personliga träningszoner. Ett enkelt test: simma 400m + vila 10 min + simma 200m på tid.'
-                  : 'Din CSS är över 2 månader gammal. Överväg att göra ett nytt test för att uppdatera dina zoner.'}
+                  ? t(locale, 'Gör ett CSS-test för att få personliga träningszoner. Ett enkelt test: simma 400m + vila 10 min + simma 200m på tid.', 'Complete a CSS test to get personal training zones. Simple test: swim 400m, rest 10 min, then swim 200m for time.')
+                  : t(locale, 'Din CSS är över 2 månader gammal. Överväg att göra ett nytt test för att uppdatera dina zoner.', 'Your CSS is over 2 months old. Consider retesting to update your zones.')}
               </p>
             </div>
           )}
@@ -393,11 +402,11 @@ export function SwimmingDashboard({
           {/* Equipment Tips */}
           {settings.equipment && settings.equipment.length > 0 && (
             <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.colors.border }}>
-              <h4 className="font-medium text-sm mb-2" style={{ color: theme.colors.textPrimary }}>Din utrustning</h4>
+              <h4 className="font-medium text-sm mb-2" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Din utrustning', 'Your equipment')}</h4>
               <div className="flex flex-wrap gap-2">
                 {settings.equipment.map((equip) => (
                   <Badge key={equip} variant="outline" className="text-xs">
-                    {getEquipmentName(equip)}
+                    {getEquipmentName(equip, locale)}
                   </Badge>
                 ))}
               </div>
@@ -409,17 +418,16 @@ export function SwimmingDashboard({
   )
 }
 
-// Helper to get equipment name in Swedish
-function getEquipmentName(equip: string): string {
-  const names: Record<string, string> = {
-    pull_buoy: 'Pull buoy',
-    paddles: 'Paddlar',
-    fins: 'Fenor',
-    snorkel: 'Snorkel',
-    kickboard: 'Simplatta',
-    wetsuit: 'Våtdräkt',
+function getEquipmentName(equip: string, locale: AppLocale): string {
+  const names: Record<string, Record<AppLocale, string>> = {
+    pull_buoy: { sv: 'Pull buoy', en: 'Pull buoy' },
+    paddles: { sv: 'Paddlar', en: 'Paddles' },
+    fins: { sv: 'Fenor', en: 'Fins' },
+    snorkel: { sv: 'Snorkel', en: 'Snorkel' },
+    kickboard: { sv: 'Simplatta', en: 'Kickboard' },
+    wetsuit: { sv: 'Våtdräkt', en: 'Wetsuit' },
   }
-  return names[equip] || equip
+  return names[equip]?.[locale] || equip
 }
 
 // Helper to calculate days since a date
