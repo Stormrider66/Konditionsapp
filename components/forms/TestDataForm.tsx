@@ -222,6 +222,7 @@ export function TestDataForm({
   const recordingStreamRef = useRef<MediaStream | null>(null)
   const recordedChunksRef = useRef<BlobPart[]>([])
   const recordingPreviewRef = useRef<HTMLVideoElement | null>(null)
+  const videoFileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
   const [recordingStageIndex, setRecordingStageIndex] = useState<number | null>(null)
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [stageVideoStates, setStageVideoStates] = useState<Record<number, StageVideoState>>({})
@@ -327,19 +328,25 @@ export function TestDataForm({
     }
   }, [])
 
-  const uploadAndAnalyzeStageVideo = useCallback(async (stageIndex: number, blob: Blob, recordedMimeType: string) => {
+  const uploadAndAnalyzeStageVideo = useCallback(async (stageIndex: number, video: Blob | File, recordedMimeType: string) => {
     if (!clientId) return
 
     const cameraAngle = runningCameraAngleRef.current
-    const uploadMimeType = (recordedMimeType || blob.type || 'video/webm').split(';')[0]
-    const extension = uploadMimeType.includes('mp4') ? 'mp4' : 'webm'
+    const uploadMimeType = (recordedMimeType || video.type || 'video/webm').split(';')[0]
+    const extension = uploadMimeType.includes('mp4')
+      ? 'mp4'
+      : uploadMimeType.includes('quicktime')
+        ? 'mov'
+        : 'webm'
     const stages = getValues('stages')
     const stage = stages[stageIndex]
     const speed = stage?.speed
     const safeSpeed = typeof speed === 'number' ? `${speed.toString().replace('.', '-')}kmh` : 'speed'
-    const file = new File([blob], `running-stage-${stageIndex + 1}-${safeSpeed}.${extension}`, {
-      type: uploadMimeType,
-    })
+    const file = video instanceof File
+      ? video
+      : new File([video], `running-stage-${stageIndex + 1}-${safeSpeed}.${extension}`, {
+          type: uploadMimeType,
+        })
 
     setStageVideoStates((prev) => ({
       ...prev,
@@ -373,7 +380,8 @@ export function TestDataForm({
       })
 
       if (!uploadResponse.ok) {
-        throw new Error(t('Videouppladdning misslyckades', 'Video upload failed'))
+        const uploadErrorText = await uploadResponse.text().catch(() => '')
+        throw new Error(uploadErrorText || t('Videouppladdning misslyckades', 'Video upload failed'))
       }
 
       const confirmResponse = await fetch('/api/video-analysis/upload', {
@@ -492,10 +500,10 @@ export function TestDataForm({
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       toast({
-        title: t('Videoinspelning stöds inte', 'Video recording is not supported'),
-        description: t('Prova i Safari eller Chrome med kamerabehörighet.', 'Try Safari or Chrome with camera permission.'),
-        variant: 'destructive',
+        title: t('Öppnar videoinspelning', 'Opening video recording'),
+        description: t('Direktkamera stöds inte här, så vi använder en vanlig videouppladdning.', 'Direct camera is not supported here, so we are using a normal video upload.'),
       })
+      videoFileInputRefs.current[stageIndex]?.click()
       return
     }
 
@@ -539,13 +547,13 @@ export function TestDataForm({
       }
 
       recorder.start()
-    } catch (error) {
+    } catch (_error) {
       stopRecordingStream()
       setRecordingStageIndex(null)
+      videoFileInputRefs.current[stageIndex]?.click()
       toast({
-        title: t('Kameran kunde inte startas', 'Could not start camera'),
-        description: error instanceof Error ? error.message : t('Kontrollera kamerabehörighet.', 'Check camera permission.'),
-        variant: 'destructive',
+        title: t('Kamerabehörighet saknas', 'Camera permission is missing'),
+        description: t('Vi öppnar videoväljaren istället. Tillåt kamera för webbplatsen om du vill spela in direkt i formuläret.', 'We are opening the video picker instead. Allow camera for the site if you want to record directly in the form.'),
       })
     }
   }
@@ -967,6 +975,18 @@ export function TestDataForm({
                             <Video className="h-4 w-4" />
                           )}
                         </Button>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          capture="environment"
+                          className="hidden"
+                          ref={(el) => { videoFileInputRefs.current[index] = el }}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0]
+                            if (file) void uploadAndAnalyzeStageVideo(index, file, file.type)
+                            event.target.value = ''
+                          }}
+                        />
                       </div>
                       {stageVideoStates[index] && (
                         <div className={`text-xs ${stageVideoStates[index].status === 'failed' ? 'text-red-600' : 'text-muted-foreground'}`}>
