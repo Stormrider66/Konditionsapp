@@ -15,7 +15,6 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -45,8 +44,9 @@ import {
   Target,
 } from 'lucide-react'
 import { format, addDays, differenceInDays } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useLocale } from '@/i18n/client'
 
 interface InjuryWithProgress {
   id: string
@@ -67,6 +67,12 @@ interface PainDataPoint {
   soreness: number
 }
 
+interface DailyMetric {
+  date: string | Date
+  injuryPain?: number | null
+  muscleSoreness?: number | null
+}
+
 interface PhaseInfo {
   phase: number
   name: string
@@ -78,7 +84,13 @@ interface PhaseInfo {
   duration: number
 }
 
-const RETURN_TO_RUNNING_PHASES: PhaseInfo[] = [
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+const localizedText = (locale: AppLocale, svText: string, enText: string) =>
+  locale === 'sv' ? svText : enText
+
+const RETURN_TO_RUNNING_PHASES_SV: PhaseInfo[] = [
   {
     phase: 1,
     name: 'Gång',
@@ -156,9 +168,96 @@ const RETURN_TO_RUNNING_PHASES: PhaseInfo[] = [
   },
 ]
 
+const RETURN_TO_RUNNING_PHASES_EN: PhaseInfo[] = [
+  {
+    phase: 1,
+    name: 'Walking',
+    weeks: 1,
+    description: 'Walking only, no running',
+    criteria: [
+      '7 days of pain-free walking',
+      'No morning stiffness',
+      'Full mobility',
+      'Coach/physio approval',
+    ],
+    runWalkRatio: '0:1 (walking only)',
+    frequency: 5,
+    duration: 20,
+  },
+  {
+    phase: 2,
+    name: 'Walk/Run Introduction',
+    weeks: 2,
+    description: 'Careful reintroduction of running',
+    criteria: [
+      '6 sessions without pain',
+      'No pain 24h after',
+      'HRV within 5% of baseline',
+      'Sleep quality maintained',
+    ],
+    runWalkRatio: '1:4 (1 min run, 4 min walk)',
+    frequency: 3,
+    duration: 30,
+  },
+  {
+    phase: 3,
+    name: 'Progressive Walk/Run',
+    weeks: 2,
+    description: 'Gradual increase in running',
+    criteria: [
+      '8 sessions without pain',
+      'ACWR <1.3',
+      'Functional test approved',
+      'Strength exercises pain-free',
+    ],
+    runWalkRatio: '2:3 -> 3:2 (gradual progression)',
+    frequency: 4,
+    duration: 35,
+  },
+  {
+    phase: 4,
+    name: 'Continuous Running',
+    weeks: 2,
+    description: 'Full running without walk breaks',
+    criteria: [
+      '8 continuous runs',
+      '50% of pre-injury volume',
+      'No symptoms for 2 weeks',
+      'Ready for 10% weekly increase',
+    ],
+    runWalkRatio: '1:0 (continuous running)',
+    frequency: 4,
+    duration: 40,
+  },
+  {
+    phase: 5,
+    name: 'Return to Full Training',
+    weeks: 4,
+    description: 'Gradual return to normal training',
+    criteria: [
+      '80% of pre-injury volume',
+      'Intensity progression reintroduced',
+      'No symptoms for 4 weeks',
+      'Competition-ready according to coach',
+    ],
+    runWalkRatio: '1:0',
+    frequency: 5,
+    duration: 60,
+  },
+]
+
+const RETURN_TO_RUNNING_PHASES_BY_LOCALE: Record<AppLocale, PhaseInfo[]> = {
+  en: RETURN_TO_RUNNING_PHASES_EN,
+  sv: RETURN_TO_RUNNING_PHASES_SV,
+}
+
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
 export function InjuryProgressTimeline() {
+  const locale = getAppLocale(useLocale())
+  const t = (svText: string, enText: string) => localizedText(locale, svText, enText)
+  const dateFnsLocale = locale === 'sv' ? sv : enUS
+  const phases = RETURN_TO_RUNNING_PHASES_BY_LOCALE[locale]
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [dateRange, setDateRange] = useState<'7' | '30' | 'all'>('30')
 
@@ -178,15 +277,15 @@ export function InjuryProgressTimeline() {
 
   // Transform pain data for chart
   const painChartData: PainDataPoint[] =
-    painData?.metrics?.map((m: any) => ({
-      date: format(new Date(m.date), 'dd MMM', { locale: sv }),
+    painData?.metrics?.map((m: DailyMetric) => ({
+      date: format(new Date(m.date), 'dd MMM', { locale: dateFnsLocale }),
       pain: m.injuryPain ? 11 - m.injuryPain : 0, // Convert back to athlete-facing scale
       soreness: m.muscleSoreness ? 11 - m.muscleSoreness : 0,
     })) || []
 
   // Calculate progress metrics
   const currentPhase = selectedInjury?.phase || 1
-  const phaseInfo = RETURN_TO_RUNNING_PHASES[currentPhase - 1]
+  const phaseInfo = phases[currentPhase - 1]
   const daysInPhase = selectedInjury?.daysInCurrentPhase || 0
   const expectedDaysInPhase = (phaseInfo?.weeks || 1) * 7
   const phaseProgress = Math.min((daysInPhase / expectedDaysInPhase) * 100, 100)
@@ -209,9 +308,12 @@ export function InjuryProgressTimeline() {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center justify-center gap-2 py-8">
             <CheckCircle2 className="h-12 w-12 text-green-500" />
-            <p className="text-lg font-medium">Inga aktiva skador</p>
+            <p className="text-lg font-medium">{t('Inga aktiva skador', 'No active injuries')}</p>
             <p className="text-sm text-muted-foreground">
-              Det finns inga skador att följa upp just nu
+              {t(
+                'Det finns inga skador att följa upp just nu',
+                'There are no injuries to follow up right now'
+              )}
             </p>
           </div>
         </CardContent>
@@ -224,15 +326,21 @@ export function InjuryProgressTimeline() {
       {/* Header with Athlete Selector */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-2xl font-bold">Skadeåterhämtning <InfoTooltip conceptKey="rehabPhases" /></h3>
+          <h3 className="text-2xl font-bold">
+            {t('Skadeåterhämtning', 'Injury recovery')}{' '}
+            <InfoTooltip conceptKey="rehabPhases" />
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Följ progressionen tillbaka till full träning
+            {t(
+              'Följ progressionen tillbaka till full träning',
+              'Track progression back to full training'
+            )}
           </p>
         </div>
 
         <Select value={selectedClientId} onValueChange={setSelectedClientId}>
           <SelectTrigger className="w-[250px]">
-            <SelectValue placeholder="Välj atleet" />
+            <SelectValue placeholder={t('Välj atleet', 'Select athlete')} />
           </SelectTrigger>
           <SelectContent>
             {injuries.map(injury => (
@@ -247,7 +355,12 @@ export function InjuryProgressTimeline() {
       {!selectedInjury ? (
         <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Välj en atleet för att se återhämtningsprogress</AlertDescription>
+          <AlertDescription>
+            {t(
+              'Välj en atleet för att se återhämtningsprogress',
+              'Select an athlete to view recovery progress'
+            )}
+          </AlertDescription>
         </Alert>
       ) : (
         <>
@@ -255,31 +368,42 @@ export function InjuryProgressTimeline() {
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Nuvarande Fas</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {t('Nuvarande Fas', 'Current Phase')}
+                </CardTitle>
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Fas {currentPhase}/5</div>
+                <div className="text-2xl font-bold">
+                  {t(`Fas ${currentPhase}/5`, `Phase ${currentPhase}/5`)}
+                </div>
                 <p className="text-xs text-muted-foreground">{phaseInfo.name}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Fasens Progress</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {t('Fasens Progress', 'Phase Progress')}
+                </CardTitle>
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{Math.round(phaseProgress)}%</div>
                 <p className="text-xs text-muted-foreground">
-                  {daysInPhase} av {expectedDaysInPhase} dagar
+                  {t(
+                    `${daysInPhase} av ${expectedDaysInPhase} dagar`,
+                    `${daysInPhase} of ${expectedDaysInPhase} days`
+                  )}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Smärttrend</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {t('Smärttrend', 'Pain trend')}
+                </CardTitle>
                 {painTrend < 0 ? (
                   <TrendingDown className="h-4 w-4 text-green-500" />
                 ) : (
@@ -292,20 +416,27 @@ export function InjuryProgressTimeline() {
                   {Math.abs(painTrend).toFixed(1)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {painTrend < 0 ? 'Förbättring' : painTrend > 0 ? 'Försämring' : 'Stabilt'} (7 dagar)
+                  {painTrend < 0
+                    ? t('Förbättring', 'Improving')
+                    : painTrend > 0
+                      ? t('Försämring', 'Worsening')
+                      : t('Stabilt', 'Stable')}{' '}
+                  {t('(7 dagar)', '(7 days)')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Beräknad Återgång</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {t('Beräknad Återgång', 'Estimated Return')}
+                </CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{daysUntilReturn}d</div>
                 <p className="text-xs text-muted-foreground">
-                  {format(estimatedReturnDate, 'd MMM', { locale: sv })}
+                  {format(estimatedReturnDate, 'd MMM', { locale: dateFnsLocale })}
                 </p>
               </CardContent>
             </Card>
@@ -314,22 +445,24 @@ export function InjuryProgressTimeline() {
           {/* Phase Timeline */}
           <Card>
             <CardHeader>
-              <CardTitle>Återhämtningsfaser</CardTitle>
+              <CardTitle>{t('Återhämtningsfaser', 'Recovery phases')}</CardTitle>
               <CardDescription>
-                5-fas protokoll för säker återgång till full träning
+                {t(
+                  '5-fas protokoll för säker återgång till full träning',
+                  '5-phase protocol for a safe return to full training'
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {RETURN_TO_RUNNING_PHASES.map((phase, idx) => {
+                {phases.map((phase, idx) => {
                   const isCompleted = currentPhase > phase.phase
                   const isCurrent = currentPhase === phase.phase
-                  const isFuture = currentPhase < phase.phase
 
                   return (
                     <div key={phase.phase} className="relative">
                       {/* Connector Line */}
-                      {idx < RETURN_TO_RUNNING_PHASES.length - 1 && (
+                      {idx < phases.length - 1 && (
                         <div
                           className={`absolute left-4 top-12 w-0.5 h-full ${
                             isCompleted ? 'bg-green-500' : 'bg-muted'
@@ -364,15 +497,15 @@ export function InjuryProgressTimeline() {
                               <h4 className="font-semibold text-lg">{phase.name}</h4>
                               <p className="text-sm text-muted-foreground">
                                 {phase.description} · {phase.weeks}{' '}
-                                {phase.weeks === 1 ? 'vecka' : 'veckor'}
+                                {phase.weeks === 1 ? t('vecka', 'week') : t('veckor', 'weeks')}
                               </p>
                             </div>
                             {isCurrent && (
-                              <Badge variant="default">Pågående</Badge>
+                              <Badge variant="default">{t('Pågående', 'Current')}</Badge>
                             )}
                             {isCompleted && (
                               <Badge variant="secondary" className="bg-green-100 text-green-700">
-                                Slutförd
+                                {t('Slutförd', 'Completed')}
                               </Badge>
                             )}
                           </div>
@@ -389,20 +522,29 @@ export function InjuryProgressTimeline() {
 
                           <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                             <div>
-                              <span className="text-muted-foreground">Gång/Löp:</span>
+                              <span className="text-muted-foreground">
+                                {t('Gång/Löp:', 'Walk/Run:')}
+                              </span>
                               <span className="ml-2 font-medium">{phase.runWalkRatio}</span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Frekvens:</span>
+                              <span className="text-muted-foreground">
+                                {t('Frekvens:', 'Frequency:')}
+                              </span>
                               <span className="ml-2 font-medium">
-                                {phase.frequency}x/vecka, {phase.duration} min
+                                {t(
+                                  `${phase.frequency}x/vecka, ${phase.duration} min`,
+                                  `${phase.frequency}x/week, ${phase.duration} min`
+                                )}
                               </span>
                             </div>
                           </div>
 
                           {(isCurrent || !isCompleted) && (
                             <div>
-                              <p className="text-sm font-medium mb-1">Kriterier för nästa fas:</p>
+                              <p className="text-sm font-medium mb-1">
+                                {t('Kriterier för nästa fas:', 'Criteria for next phase:')}
+                              </p>
                               <ul className="text-sm space-y-1">
                                 {phase.criteria.map((criterion, i) => (
                                   <li key={i} className="flex items-start gap-2">
@@ -427,19 +569,25 @@ export function InjuryProgressTimeline() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Smärttrend</CardTitle>
+                  <CardTitle>{t('Smärttrend', 'Pain trend')}</CardTitle>
                   <CardDescription>
-                    Daglig smärta från check-ins (0 = ingen smärta, 10 = extrem smärta)
+                    {t(
+                      'Daglig smärta från check-ins (0 = ingen smärta, 10 = extrem smärta)',
+                      'Daily pain from check-ins (0 = no pain, 10 = extreme pain)'
+                    )}
                   </CardDescription>
                 </div>
-                <Select value={dateRange} onValueChange={(v: any) => setDateRange(v)}>
+                <Select
+                  value={dateRange}
+                  onValueChange={(value: '7' | '30' | 'all') => setDateRange(value)}
+                >
                   <SelectTrigger className="w-[140px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">7 dagar</SelectItem>
-                    <SelectItem value="30">30 dagar</SelectItem>
-                    <SelectItem value="all">90 dagar</SelectItem>
+                    <SelectItem value="7">{t('7 dagar', '7 days')}</SelectItem>
+                    <SelectItem value="30">{t('30 dagar', '30 days')}</SelectItem>
+                    <SelectItem value="all">{t('90 dagar', '90 days')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -447,7 +595,7 @@ export function InjuryProgressTimeline() {
             <CardContent>
               {painChartData.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  Ingen smärtdata tillgänglig
+                  {t('Ingen smärtdata tillgänglig', 'No pain data available')}
                 </p>
               ) : (
                 <ResponsiveContainer width="100%" height={300}>
@@ -474,7 +622,12 @@ export function InjuryProgressTimeline() {
                         borderRadius: '6px',
                       }}
                     />
-                    <ReferenceLine y={5} stroke="#ef4444" strokeDasharray="3 3" label="Tröskelvärde" />
+                    <ReferenceLine
+                      y={5}
+                      stroke="#ef4444"
+                      strokeDasharray="3 3"
+                      label={t('Tröskelvärde', 'Threshold')}
+                    />
                     <ReferenceLine y={3} stroke="#f59e0b" strokeDasharray="3 3" />
                     <Line
                       type="monotone"
@@ -482,7 +635,7 @@ export function InjuryProgressTimeline() {
                       stroke="#3b82f6"
                       strokeWidth={2}
                       dot={{ fill: '#3b82f6', r: 4 }}
-                      name="Smärta"
+                      name={t('Smärta', 'Pain')}
                     />
                     <Line
                       type="monotone"
@@ -490,7 +643,7 @@ export function InjuryProgressTimeline() {
                       stroke="#8b5cf6"
                       strokeWidth={2}
                       dot={{ fill: '#8b5cf6', r: 4 }}
-                      name="Ömhet"
+                      name={t('Ömhet', 'Soreness')}
                       strokeDasharray="5 5"
                     />
                   </LineChart>
