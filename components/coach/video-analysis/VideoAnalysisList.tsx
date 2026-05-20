@@ -51,6 +51,12 @@ interface VideoAnalysis {
   createdAt: string
   athlete: { id: string; name: string } | null
   exercise: { id: string; name: string; nameSv: string | null } | null
+  poseDataSummary?: {
+    hasPoseData: boolean
+    frameCount: number | null
+    analyzedAt: string | null
+    hasAiPoseAnalysis: boolean
+  } | null
 }
 
 interface Athlete {

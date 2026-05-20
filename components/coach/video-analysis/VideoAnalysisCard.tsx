@@ -49,6 +49,7 @@ import {
   Printer,
   Snowflake,
   Zap,
+  Brain,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
@@ -78,6 +79,13 @@ interface Recommendation {
   explanation: string
 }
 
+interface PoseDataSummary {
+  hasPoseData: boolean
+  frameCount: number | null
+  analyzedAt: string | null
+  hasAiPoseAnalysis: boolean
+}
+
 interface VideoAnalysis {
   id: string
   videoUrl: string
@@ -92,6 +100,7 @@ interface VideoAnalysis {
   exercise: { id: string; name: string; nameSv: string | null } | null
   skiingTechniqueAnalysis?: Record<string, unknown> | null
   hyroxStationAnalysis?: Record<string, unknown> | null
+  poseDataSummary?: PoseDataSummary | null
 }
 
 interface VideoAnalysisCardProps {
@@ -368,8 +377,29 @@ export function VideoAnalysisCard({
   const [showExtendedPoseData, setShowExtendedPoseData] = useState(false)
   const [extendedPoseData, setExtendedPoseData] = useState<{
     frameCount: number
-    frames: Array<{ timestamp: number; landmarks: Array<{ x: number; y: number; z: number; visibility: number }> }>
+    frames: Array<{ timestamp: number; landmarks: Array<{ x: number; y: number; z: number; visibility?: number }> }>
     metadata?: { analyzedAt: string; model: string }
+    aiPoseAnalysis?: {
+      interpretation?: string
+      overallAssessment?: string
+      score?: number
+      technicalFeedback?: Array<{
+        area: string
+        observation: string
+        impact: string
+        suggestion: string
+      }>
+      patterns?: Array<{
+        pattern: string
+        significance: string
+      }>
+      recommendations?: Array<{
+        priority: number
+        title: string
+        description: string
+        exercises?: string[]
+      }>
+    } | null
   } | null>(null)
 
   const [isLoadingPoseData, setIsLoadingPoseData] = useState(false)
@@ -384,6 +414,11 @@ export function VideoAnalysisCard({
   const displayedStatusColor = invalidRunningAnalysis
     ? 'bg-amber-100 text-amber-800 border border-amber-200'
     : statusInfo.color
+  const poseDataSummary = analysis.poseDataSummary
+  const hasSavedPoseData = Boolean(poseDataSummary?.hasPoseData)
+  const poseSavedAt = poseDataSummary?.analyzedAt
+    ? new Date(poseDataSummary.analyzedAt).toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')
+    : null
 
   const showAiAllowanceToast = (allowanceError: AiAllowanceExhaustedError) => {
     setAiAllowanceAction({
@@ -424,6 +459,7 @@ export function VideoAnalysisCard({
         frameCount: data.frameCount,
         frames: data.frames,
         metadata: data.metadata,
+        aiPoseAnalysis: data.aiPoseAnalysis || null,
       })
       setShowExtendedPoseData(true)
     } catch (error) {
@@ -438,7 +474,7 @@ export function VideoAnalysisCard({
   }
 
   // Calculate angle statistics from pose data
-  const calculateAngleStats = (frames: Array<{ landmarks: Array<{ x: number; y: number; z: number; visibility: number }> }>) => {
+  const calculateAngleStats = (frames: Array<{ landmarks: Array<{ x: number; y: number; z: number; visibility?: number }> }>) => {
     if (!frames || frames.length === 0) return null
 
     const POSE_LANDMARKS = {
@@ -610,8 +646,15 @@ export function VideoAnalysisCard({
       toast({
         title: hasAiAnalysis ? t(locale, 'Analysis saved!', 'Analys sparad!') : t(locale, 'Pose analysis saved!', 'Poseanalys sparad!'),
         description: hasAiAnalysis
-          ? t(locale, `${result.frameCount} frames and Gemini AI analysis saved. Click "View results" to see the analysis.`, `${result.frameCount} frames och Gemini AI-analys sparade. Klicka på "Visa resultat" för att se analysen.`)
-          : t(locale, `${result.frameCount} frames saved to "${analysis.exercise?.name || 'the video analysis'}". Click "View results" to see the analysis.`, `${result.frameCount} frames sparade till "${analysis.exercise?.nameSv || analysis.exercise?.name || 'videoanalysen'}". Klicka på "Visa resultat" för att se analysen.`),
+          ? t(locale, `${result.frameCount} frames and Gemini AI analysis saved under View results > Pose analysis.`, `${result.frameCount} frames och Gemini AI-analys sparade under Visa resultat > Poseanalys.`)
+          : t(locale, `${result.frameCount} frames saved under View results > Pose analysis.`, `${result.frameCount} frames sparade under Visa resultat > Poseanalys.`),
+      })
+
+      setExtendedPoseData({
+        frameCount: result.frameCount,
+        frames: data.frames,
+        metadata: result.analysis?.landmarksData?.metadata,
+        aiPoseAnalysis: result.aiPoseAnalysis || currentAiPoseAnalysis || null,
       })
 
       onAnalysisComplete()
@@ -837,6 +880,21 @@ export function VideoAnalysisCard({
             </div>
           )}
 
+          {hasSavedPoseData && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900">
+              <Scan className="h-3.5 w-3.5" />
+              <span className="font-medium">{t(locale, 'Pose analysis saved', 'Poseanalys sparad')}</span>
+              {poseDataSummary?.frameCount ? (
+                <span className="text-blue-700">{poseDataSummary.frameCount} frames</span>
+              ) : null}
+              {poseDataSummary?.hasAiPoseAnalysis ? (
+                <Badge variant="outline" className="border-purple-200 bg-purple-50 px-1.5 py-0 text-[11px] text-purple-700">
+                  Gemini
+                </Badge>
+              ) : null}
+            </div>
+          )}
+
           {invalidRunningAnalysis && (
             <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
@@ -931,12 +989,15 @@ export function VideoAnalysisCard({
               </Button>
             )}
             <Button
-              variant="outline"
-              size="icon"
+              variant={hasSavedPoseData ? 'secondary' : 'outline'}
               onClick={() => setShowPoseDialog(true)}
+              className="flex-1"
               title={t(locale, 'Pose analysis (skeleton tracking)', 'Poseanalys (skelettspårning)')}
             >
-              <Scan className="h-4 w-4" />
+              <Scan className="h-4 w-4 mr-2" />
+              {hasSavedPoseData
+                ? t(locale, 'Pose saved', 'Pose sparad')
+                : t(locale, 'Pose analysis', 'Poseanalys')}
             </Button>
             <Button
               variant="ghost"
@@ -1122,31 +1183,85 @@ export function VideoAnalysisCard({
               </div>
             )}
 
-            {/* Extended Pose Data Section */}
-            <div className="border-t pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchExtendedPoseData}
-                disabled={isLoadingPoseData}
-                className="w-full"
-              >
-                {isLoadingPoseData ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {t(locale, 'Fetching pose data...', 'Hämtar posedata...')}
-                  </>
-                ) : (
-                  <>
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    {showExtendedPoseData ? t(locale, 'Hide', 'Dölj') : t(locale, 'Show', 'Visa')} {t(locale, 'detailed pose data', 'detaljerad posedata')}
-                    {showExtendedPoseData ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
-                  </>
-                )}
-              </Button>
+            {/* Pose Data Section */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <h3 className="font-semibold flex items-center gap-2 text-blue-950">
+                      <Scan className="h-4 w-4 text-blue-600" />
+                      {t(locale, 'Pose analysis', 'Poseanalys')}
+                    </h3>
+                    <p className="text-sm text-blue-800">
+                      {hasSavedPoseData
+                        ? t(locale, 'Skeleton tracking is saved for this video.', 'Skelettspårning är sparad för den här videon.')
+                        : t(locale, 'Run skeleton tracking to save frame-by-frame joint data.', 'Kör skelettspårning för att spara leddata frame för frame.')}
+                    </p>
+                    {hasSavedPoseData && (
+                      <div className="flex flex-wrap gap-2 pt-1 text-xs text-blue-700">
+                        {poseDataSummary?.frameCount ? <span>{poseDataSummary.frameCount} frames</span> : null}
+                        {poseSavedAt ? <span>{poseSavedAt}</span> : null}
+                        {poseDataSummary?.hasAiPoseAnalysis ? <span>Gemini</span> : null}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={hasSavedPoseData ? 'outline' : 'default'}
+                      size="sm"
+                      onClick={() => setShowPoseDialog(true)}
+                    >
+                      <Scan className="h-4 w-4 mr-2" />
+                      {hasSavedPoseData
+                        ? t(locale, 'Run again', 'Kör igen')
+                        : t(locale, 'Start pose analysis', 'Starta poseanalys')}
+                    </Button>
+                    {hasSavedPoseData && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchExtendedPoseData}
+                        disabled={isLoadingPoseData}
+                      >
+                        {isLoadingPoseData ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t(locale, 'Fetching...', 'Hämtar...')}
+                          </>
+                        ) : (
+                          <>
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            {showExtendedPoseData
+                              ? t(locale, 'Hide data', 'Dölj data')
+                              : t(locale, 'View saved data', 'Visa sparad data')}
+                            {showExtendedPoseData ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {showExtendedPoseData && extendedPoseData && (
                 <div className="mt-4 space-y-4">
+                  {extendedPoseData.aiPoseAnalysis && (
+                    <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <h4 className="font-medium text-purple-800 mb-2 flex items-center gap-2">
+                        <Brain className="h-4 w-4" />
+                        {t(locale, 'Saved Gemini pose analysis', 'Sparad Gemini-poseanalys')}
+                      </h4>
+                      {typeof extendedPoseData.aiPoseAnalysis.score === 'number' && (
+                        <p className="text-sm text-purple-700 mb-2">
+                          {t(locale, 'Pose score', 'Posepoäng')}: <span className="font-semibold">{extendedPoseData.aiPoseAnalysis.score}/100</span>
+                        </p>
+                      )}
+                      <p className="text-sm text-purple-700">
+                        {extendedPoseData.aiPoseAnalysis.overallAssessment || extendedPoseData.aiPoseAnalysis.interpretation}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Metadata */}
                   <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <h4 className="font-medium text-blue-800 mb-2">{t(locale, 'Analysis metadata', 'Analysmetadata')}</h4>
@@ -1255,6 +1370,9 @@ export function VideoAnalysisCard({
             onAnalysisComplete={handlePoseAnalysisComplete}
             onAIPoseAnalysis={handlePoseAnalysisUpdate}
             isSaving={isSavingPose}
+            hasSavedPoseData={hasSavedPoseData}
+            savedFrameCount={poseDataSummary?.frameCount ?? null}
+            poseSavedAt={poseSavedAt}
           />
         </DialogContent>
       </Dialog>

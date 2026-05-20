@@ -100,6 +100,9 @@ interface PoseAnalyzerProps {
   /** Called when secondary AI pose analysis (Gemini) completes */
   onAIPoseAnalysis?: (data: Record<string, unknown>) => void
   isSaving?: boolean
+  hasSavedPoseData?: boolean
+  savedFrameCount?: number | null
+  poseSavedAt?: string | null
 }
 
 export function PoseAnalyzer({
@@ -112,6 +115,9 @@ export function PoseAnalyzer({
   onAnalysisComplete,
   onAIPoseAnalysis,
   isSaving = false,
+  hasSavedPoseData = false,
+  savedFrameCount,
+  poseSavedAt,
 }: PoseAnalyzerProps) {
   const { toast } = useToast()
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -990,6 +996,39 @@ export function PoseAnalyzer({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Scan className="h-4 w-4 text-blue-600" />
+                1. Starta
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Skannar videon och ritar skelettspår.</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Eye className="h-4 w-4 text-blue-600" />
+                2. Granska
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Spela frame för frame och justera punkter vid behov.</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Save className="h-4 w-4 text-blue-600" />
+                3. Spara
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Sparas på videon och visas under resultat.</p>
+            </div>
+          </div>
+
+          {hasSavedPoseData && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="font-medium">Poseanalys är sparad</span>
+              {savedFrameCount ? <span>{savedFrameCount} frames</span> : null}
+              {poseSavedAt ? <span>{poseSavedAt}</span> : null}
+            </div>
+          )}
+
           {/* Video and Canvas overlay */}
           <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', maxHeight: '50vh' }}>
             <video
@@ -1097,7 +1136,7 @@ export function PoseAnalyzer({
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-2" />
-                          Spara poseanalys
+                          {hasSavedPoseData ? 'Uppdatera poseanalys' : 'Spara poseanalys'}
                         </>
                       )}
                     </Button>

@@ -16,6 +16,32 @@ import { logger } from '@/lib/logger'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 
+type PoseDataSummary = {
+  hasPoseData: boolean
+  frameCount: number | null
+  analyzedAt: string | null
+  hasAiPoseAnalysis: boolean
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function getPoseDataSummary(landmarksData: unknown, aiPoseAnalysis: unknown): PoseDataSummary | null {
+  if (!isRecord(landmarksData)) return null
+
+  const metadata = isRecord(landmarksData.metadata) ? landmarksData.metadata : null
+  const frameCount = typeof landmarksData.frameCount === 'number' ? landmarksData.frameCount : null
+  const analyzedAt = typeof metadata?.analyzedAt === 'string' ? metadata.analyzedAt : null
+
+  return {
+    hasPoseData: true,
+    frameCount,
+    analyzedAt,
+    hasAiPoseAnalysis: Boolean(aiPoseAnalysis),
+  }
+}
+
 const createAnalysisSchema = z.object({
   // Accept either a Supabase storage path or a Supabase Storage URL (signed/public).
   videoUrl: z.string().min(1),
@@ -190,12 +216,14 @@ export async function GET(request: NextRequest) {
     const signedAnalyses = await Promise.all(
       analyses.map(async (a) => {
         const path = normalizeStoragePath('video-analysis', a.videoUrl)
-        if (!path) return a
+        const { landmarksData, aiPoseAnalysis, ...analysis } = a
+        const poseDataSummary = getPoseDataSummary(landmarksData, aiPoseAnalysis)
+        if (!path) return { ...analysis, poseDataSummary }
         try {
           const signedUrl = await createSignedUrl('video-analysis', path, 60 * 60)
-          return { ...a, videoUrl: signedUrl }
+          return { ...analysis, videoUrl: signedUrl, poseDataSummary }
         } catch {
-          return a
+          return { ...analysis, poseDataSummary }
         }
       })
     )
