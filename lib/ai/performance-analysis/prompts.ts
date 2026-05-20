@@ -45,7 +45,8 @@ export function generateTestAnalysisPrompt(
   test: TestDataForAnalysis,
   previousTests: TestDataForAnalysis[],
   trainingContext: TrainingContextForAnalysis | null,
-  athlete: AthleteProfileForAnalysis
+  athlete: AthleteProfileForAnalysis,
+  locale: 'en' | 'sv' = 'en'
 ): string {
   const testTypeLabel = getTestTypeLabel(test.testType)
   const hasTrainingData = trainingContext !== null
@@ -61,13 +62,13 @@ export function generateTestAnalysisPrompt(
 - Träningstimmar/vecka: ${athlete.weeklyTrainingHours}
 ${athlete.primaryGoal ? `- Mål: ${athlete.primaryGoal}` : ''}
 
-### Testresultat (${formatDate(test.date)})
+### Testresultat (${formatDate(test.date, locale)})
 ${formatTestData(test)}
 
 ${previousTests.length > 0 ? `
 ### Tidigare tester (för kontext)
 ${previousTests.map((t, i) => `
-**Test ${i + 1} (${formatDate(t.date)}):**
+**Test ${i + 1} (${formatDate(t.date, locale)}):**
 - VO2max: ${t.vo2max ?? 'Ej mätt'} ml/kg/min
 - Aerob tröskel HR: ${t.aerobicThreshold?.hr ?? 'N/A'} bpm
 - Anaerob tröskel HR: ${t.anaerobicThreshold?.hr ?? 'N/A'} bpm
@@ -155,7 +156,8 @@ export function generateTestComparisonPrompt(
   current: TestDataForAnalysis,
   previous: TestDataForAnalysis,
   trainingBetween: TrainingContextForAnalysis | null,
-  athlete: AthleteProfileForAnalysis
+  athlete: AthleteProfileForAnalysis,
+  locale: 'en' | 'sv' = 'en'
 ): string {
   const testTypeLabel = getTestTypeLabel(current.testType)
   const daysBetween = Math.floor(
@@ -170,10 +172,10 @@ export function generateTestComparisonPrompt(
 - Sport: ${athlete.sport}
 - Erfarenhet: ${athlete.experienceYears} år
 
-### Tidigare test (${formatDate(previous.date)})
+### Tidigare test (${formatDate(previous.date, locale)})
 ${formatTestData(previous)}
 
-### Aktuellt test (${formatDate(current.date)})
+### Aktuellt test (${formatDate(current.date, locale)})
 ${formatTestData(current)}
 
 ### Tidsperiod mellan tester
@@ -257,7 +259,8 @@ Svara i JSON-format enligt denna struktur:
 export function generateTrendAnalysisPrompt(
   tests: TestDataForAnalysis[],
   athlete: AthleteProfileForAnalysis,
-  overallTraining: TrainingContextForAnalysis | null
+  overallTraining: TrainingContextForAnalysis | null,
+  locale: 'en' | 'sv' = 'en'
 ): string {
   const months = tests.length > 1
     ? Math.ceil(
@@ -277,7 +280,7 @@ export function generateTrendAnalysisPrompt(
 
 ### Testhistorik
 ${tests.map((t, i) => `
-**Test ${i + 1} (${formatDate(t.date)}):**
+**Test ${i + 1} (${formatDate(t.date, locale)}):**
 - VO2max: ${t.vo2max ?? 'N/A'} ml/kg/min
 - Aerob tröskel: HR ${t.aerobicThreshold?.hr ?? 'N/A'}, Intensitet ${t.aerobicThreshold?.intensity ?? 'N/A'}
 - Anaerob tröskel: HR ${t.anaerobicThreshold?.hr ?? 'N/A'}, Intensitet ${t.anaerobicThreshold?.intensity ?? 'N/A'}
@@ -368,7 +371,8 @@ Svara i JSON-format enligt denna struktur:
 export function generateTrainingCorrelationPrompt(
   tests: TestDataForAnalysis[],
   trainingPeriods: TrainingContextForAnalysis[],
-  athlete: AthleteProfileForAnalysis
+  athlete: AthleteProfileForAnalysis,
+  locale: 'en' | 'sv' = 'en'
 ): string {
   return `
 ## Träning-Prestationskorrelation för ${athlete.name}
@@ -382,7 +386,7 @@ export function generateTrainingCorrelationPrompt(
 - Träningsperioder: ${trainingPeriods.length}
 
 ### Testresultat
-${tests.map((t, i) => `Test ${i + 1} (${formatDate(t.date)}): VO2max ${t.vo2max ?? 'N/A'}, LT2 HR ${t.anaerobicThreshold?.hr ?? 'N/A'}`).join('\n')}
+${tests.map((t, i) => `Test ${i + 1} (${formatDate(t.date, locale)}): VO2max ${t.vo2max ?? 'N/A'}, LT2 HR ${t.anaerobicThreshold?.hr ?? 'N/A'}`).join('\n')}
 
 ### Träningsperioder
 ${trainingPeriods.map((tp, i) => `
@@ -455,8 +459,8 @@ function getTestTypeLabel(testType: string): string {
   return labels[testType] ?? 'konditionstest'
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('sv-SE')
+function formatDate(dateStr: string, locale: 'en' | 'sv' = 'en'): string {
+  return new Date(dateStr).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
 }
 
 function formatTestData(test: TestDataForAnalysis): string {

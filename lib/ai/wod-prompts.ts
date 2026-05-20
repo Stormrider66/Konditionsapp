@@ -69,7 +69,7 @@ ${sportContext}
 - **Nuvarande mål**: ${context.currentGoal || 'Ej angivet'}
 
 ## SENASTE TRÄNING (4 dagar)
-${formatRecentWorkouts(context.recentWorkouts)}
+${formatRecentWorkouts(context.recentWorkouts, locale)}
 
 ## BEGRÄNSNINGAR OCH JUSTERINGAR
 ${constraintsSection}
@@ -937,7 +937,8 @@ function translateExperience(level: string): string {
 }
 
 function formatRecentWorkouts(
-  workouts: WODAthleteContext['recentWorkouts']
+  workouts: WODAthleteContext['recentWorkouts'],
+  locale: 'en' | 'sv' = 'en'
 ): string {
   if (workouts.length === 0) {
     return '- Inga loggade pass de senaste 4 dagarna'
@@ -946,7 +947,7 @@ function formatRecentWorkouts(
   return workouts
     .slice(0, 5)
     .map(w => {
-      const date = new Date(w.date).toLocaleDateString('sv-SE', { weekday: 'short' })
+      const date = new Date(w.date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { weekday: 'short' })
       const muscles = w.muscleGroups?.length ? ` (${w.muscleGroups.slice(0, 2).join(', ')})` : ''
       const name = w.name ? ` ${w.name}` : ''
       const source = w.source ? ` [${translateWorkoutSource(w.source)}]` : ''

@@ -172,6 +172,11 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         height: true,
         weight: true,
         aiInstructions: true,
+        user: {
+          select: {
+            language: true,
+          },
+        },
       },
     }),
 
@@ -555,6 +560,8 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
     return 'Ingen atletdata hittades.'
   }
 
+  const locale: 'en' | 'sv' = client.user.language === 'sv' ? 'sv' : 'en'
+
   // Build context string
   let context = ''
 
@@ -585,7 +592,7 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   if (!runSettings?.longestRun && longestStravaRun?.distance) {
     const distKm = (longestStravaRun.distance / 1000).toFixed(1)
     const timeMin = longestStravaRun.movingTime ? Math.round(longestStravaRun.movingTime / 60) : null
-    const date = formatDate(longestStravaRun.startDate)
+    const date = formatDate(longestStravaRun.startDate, locale)
     let line = `## LÄNGSTA LÖPPASS (senaste 8 veckorna, Strava)\n`
     line += `- **Distans**: ${distKm} km`
     if (timeMin) line += ` (${timeMin} min)`
@@ -606,37 +613,37 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
 
   // Readiness and wellness section
   if (dailyCheckIns.length > 0) {
-    context += buildReadinessContext(dailyCheckIns as DailyCheckInData[])
+    context += buildReadinessContext(dailyCheckIns as DailyCheckInData[], locale)
   }
 
   // Recent tests section (expanded to 10)
   if (recentTests.length > 0) {
-    context += buildTestContext(recentTests as TestData[])
+    context += buildTestContext(recentTests as TestData[], locale)
   }
 
   // Active program section
   if (activeProgram) {
-    context += buildProgramContext(activeProgram)
+    context += buildProgramContext(activeProgram, locale)
   }
 
   // Recent workouts section
   if (recentWorkouts.length > 0) {
-    context += buildWorkoutHistoryContext(recentWorkouts as WorkoutLogData[])
+    context += buildWorkoutHistoryContext(recentWorkouts as WorkoutLogData[], locale)
   }
 
   // Strength training section (NEW)
   if (strengthSessions.length > 0) {
-    context += buildStrengthContext(strengthSessions)
+    context += buildStrengthContext(strengthSessions, locale)
   }
 
   // Agent actions section (NEW)
   if (agentActions.length > 0) {
-    context += buildAgentActionsContext(agentActions as AgentActionData[])
+    context += buildAgentActionsContext(agentActions as AgentActionData[], locale)
   }
 
   // Race results section
   if (races.length > 0) {
-    context += buildRaceContext(races as RaceResultData[])
+    context += buildRaceContext(races as RaceResultData[], locale)
   }
 
   // Injuries section
@@ -650,11 +657,12 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
       recentMeals as MealLogData[],
       nutritionGoal as NutritionGoalData | null,
       dietaryPreferences as DietaryPreferencesData | null,
+      locale,
     )
   }
 
   // Integration data section
-  const integrationData = buildIntegrationSummary(stravaActivities, dailyMetrics)
+  const integrationData = buildIntegrationSummary(stravaActivities, dailyMetrics, locale)
   if (integrationData) {
     context += integrationData
   }
@@ -797,13 +805,13 @@ function buildSportProfileContext(sportProfile: {
   return context + '\n'
 }
 
-function buildReadinessContext(checkIns: DailyCheckInData[]): string {
+function buildReadinessContext(checkIns: DailyCheckInData[], locale: 'en' | 'sv' = 'en'): string {
   let context = `## BEREDSKAP & ÅTERHÄMTNING (senaste 7 dagarna)\n`
 
   // Latest check-in
   const latest = checkIns[0]
   if (latest) {
-    context += `\n### Senaste incheckning (${formatDate(latest.date)})\n`
+    context += `\n### Senaste incheckning (${formatDate(latest.date, locale)})\n`
     if (latest.readinessScore !== null) {
       context += `- **Beredskapspoäng**: ${latest.readinessScore.toFixed(1)}/10\n`
     }
@@ -847,12 +855,12 @@ function buildReadinessContext(checkIns: DailyCheckInData[]): string {
   return context + '\n'
 }
 
-function buildTestContext(tests: TestData[]): string {
+function buildTestContext(tests: TestData[], locale: 'en' | 'sv' = 'en'): string {
   let context = `## TESTRESULTAT\n`
 
   const latest = tests[0]
   if (latest) {
-    context += `\n### Senaste test (${formatDate(latest.testDate)})\n`
+    context += `\n### Senaste test (${formatDate(latest.testDate, locale)})\n`
     context += `- **Testtyp**: ${latest.testType}\n`
 
     if (latest.vo2max) {
@@ -904,7 +912,7 @@ function buildProgramContext(program: {
       }[]
     }[]
   }[]
-}): string {
+}, locale: 'en' | 'sv' = 'en'): string {
   let context = `## AKTIVT TRÄNINGSPROGRAM\n`
 
   context += `- **Program**: ${program.name}\n`
@@ -912,11 +920,11 @@ function buildProgramContext(program: {
     context += `- **Mål**: ${program.goalRace}\n`
   }
   if (program.goalDate) {
-    context += `- **Måldatum**: ${formatDate(program.goalDate)}\n`
+    context += `- **Måldatum**: ${formatDate(program.goalDate, locale)}\n`
   }
-  context += `- **Period**: ${formatDate(program.startDate)}`
+  context += `- **Period**: ${formatDate(program.startDate, locale)}`
   if (program.endDate) {
-    context += ` - ${formatDate(program.endDate)}`
+    context += ` - ${formatDate(program.endDate, locale)}`
   }
   context += '\n'
   context += `- **Totalt antal veckor**: ${program.weeks.length}\n`
@@ -955,11 +963,11 @@ function buildProgramContext(program: {
   return context + '\n'
 }
 
-function buildWorkoutHistoryContext(workouts: WorkoutLogData[]): string {
+function buildWorkoutHistoryContext(workouts: WorkoutLogData[], locale: 'en' | 'sv' = 'en'): string {
   let context = `## SENASTE GENOMFÖRDA PASS\n`
 
   for (const log of workouts.slice(0, 5)) {
-    const date = log.completedAt ? formatDate(log.completedAt) : 'Okänt datum'
+    const date = log.completedAt ? formatDate(log.completedAt, locale) : 'Okänt datum'
     const name = log.workout?.name || 'Träningspass'
     const type = log.workout?.type || ''
 
@@ -975,12 +983,12 @@ function buildWorkoutHistoryContext(workouts: WorkoutLogData[]): string {
   return context + '\n'
 }
 
-function buildRaceContext(races: RaceResultData[]): string {
+function buildRaceContext(races: RaceResultData[], locale: 'en' | 'sv' = 'en'): string {
   let context = `## TÄVLINGSRESULTAT\n`
 
   for (const race of races) {
     const name = race.raceName || race.distance
-    context += `- **${name}** (${formatDate(race.raceDate)}): ${race.timeFormatted}`
+    context += `- **${name}** (${formatDate(race.raceDate, locale)}): ${race.timeFormatted}`
     if (race.vdot) {
       context += ` (VDOT: ${race.vdot.toFixed(1)})`
     }
@@ -1027,7 +1035,8 @@ function buildIntegrationSummary(
     restingHR: number | null
     wellnessScore: number | null
     readinessScore: number | null
-  }[]
+  }[],
+  locale: 'en' | 'sv' = 'en'
 ): string {
   let context = ''
 
@@ -1051,7 +1060,7 @@ function buildIntegrationSummary(
     for (const activity of stravaActivities.slice(0, 3)) {
       const dist = activity.distance ? (activity.distance / 1000).toFixed(1) : '-'
       const time = activity.movingTime ? Math.round(activity.movingTime / 60) : '-'
-      context += `- ${formatDate(activity.startDate)}: ${activity.name} (${activity.type}) - ${dist} km, ${time} min\n`
+      context += `- ${formatDate(activity.startDate, locale)}: ${activity.name} (${activity.type}) - ${dist} km, ${time} min\n`
     }
 
     context += '\n'
@@ -1095,7 +1104,7 @@ function buildAthleteProfileContext(
     runningSettings: unknown
     equipment: unknown
     preferredSessionLength: number | null
-  },
+  }
 ): string {
   const fields = [
     { key: 'trainingBackground', label: 'Träningsbakgrund' },
@@ -1258,7 +1267,8 @@ function buildStrengthContext(
       phase: string
       exercises: unknown
     }
-  }[]
+  }[],
+  locale: 'en' | 'sv' = 'en'
 ): string {
   let context = `## STYRKETRÄNING\n`
 
@@ -1272,7 +1282,7 @@ function buildStrengthContext(
 
   for (const assignment of sessions.slice(0, 3)) {
     const phase = phaseTranslations[assignment.session.phase] || assignment.session.phase
-    context += `\n### ${assignment.session.name} (${formatDate(assignment.assignedDate)})\n`
+    context += `\n### ${assignment.session.name} (${formatDate(assignment.assignedDate, locale)})\n`
     context += `- **Fas**: ${phase}\n`
 
     // Count exercises
@@ -1290,7 +1300,7 @@ function buildStrengthContext(
   return context + '\n'
 }
 
-function buildAgentActionsContext(actions: AgentActionData[]): string {
+function buildAgentActionsContext(actions: AgentActionData[], locale: 'en' | 'sv' = 'en'): string {
   let context = `## AI-AGENTENS REKOMMENDATIONER\n`
 
   const actionTypeTranslations: Record<string, string> = {
@@ -1319,7 +1329,7 @@ function buildAgentActionsContext(actions: AgentActionData[]): string {
     context += `- **Status**: ${status}\n`
     context += `- **Motivering**: ${action.reasoning}\n`
     if (action.targetDate) {
-      context += `- **Gäller**: ${formatDate(action.targetDate)}\n`
+      context += `- **Gäller**: ${formatDate(action.targetDate, locale)}\n`
     }
   }
 
@@ -1332,6 +1342,7 @@ function buildNutritionContext(
   meals: MealLogData[],
   goal: NutritionGoalData | null,
   prefs: DietaryPreferencesData | null,
+  locale: 'en' | 'sv' = 'en',
 ): string {
   let context = `## KOST & NÄRING\n`
 
@@ -1380,7 +1391,7 @@ function buildNutritionContext(
   if (meals.length > 0) {
     const byDay = new Map<string, { calories: number; protein: number; carbs: number; fat: number; count: number }>()
     for (const meal of meals) {
-      const dateStr = formatDate(meal.date)
+      const dateStr = formatDate(meal.date, locale)
       const day = byDay.get(dateStr) || { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 }
       day.calories += meal.calories ?? 0
       day.protein += meal.proteinGrams ?? 0
@@ -1409,8 +1420,8 @@ function buildNutritionContext(
 }
 
 // Helper functions
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('sv-SE')
+function formatDate(date: Date, locale: 'en' | 'sv' = 'en'): string {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
 }
 
 function average(values: (number | null)[]): number | null {
