@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -42,7 +43,7 @@ import { Dumbbell, CheckCircle, AlertTriangle, TrendingUp, Calculator } from 'lu
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
-import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
+import { TestBenchmarkBadge } from '@/components/tests/shared/TestBenchmarkBadge'
 import {
   estimateOneRepMax,
   calculateRelativeStrength,
@@ -52,9 +53,9 @@ import {
   type StrengthExercise,
 } from '@/lib/calculations/sport-tests/strength-tests'
 
-const strengthTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createStrengthTestSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   exercise: z.enum(['BENCH_PRESS', 'SQUAT', 'DEADLIFT', 'POWER_CLEAN', 'LEG_PRESS', 'OVERHEAD_PRESS']),
   weight: z.number().min(10).max(500),
   reps: z.number().min(1).max(20),
@@ -64,7 +65,7 @@ const strengthTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type StrengthTestFormData = z.infer<typeof strengthTestSchema>
+type StrengthTestFormData = z.infer<ReturnType<typeof createStrengthTestSchema>>
 
 interface Client {
   id: string
@@ -79,21 +80,23 @@ interface StrengthTestFormProps {
 }
 
 const exerciseOptions = [
-  { value: 'BENCH_PRESS', label: 'Bänkpress', protocol: 'BENCH_PRESS_1RM' },
-  { value: 'SQUAT', label: 'Knäböj', protocol: 'SQUAT_1RM' },
-  { value: 'DEADLIFT', label: 'Marklyft', protocol: 'DEADLIFT_1RM' },
-  { value: 'POWER_CLEAN', label: 'Frivändning', protocol: 'POWER_CLEAN_1RM' },
-  { value: 'LEG_PRESS', label: 'Benpress', protocol: 'LEG_PRESS_1RM' },
-  { value: 'OVERHEAD_PRESS', label: 'Axelpress', protocol: 'OVERHEAD_PRESS_1RM' },
+  { value: 'BENCH_PRESS', label: 'Bench press', svLabel: 'Bänkpress', protocol: 'BENCH_PRESS_1RM' },
+  { value: 'SQUAT', label: 'Squat', svLabel: 'Knäböj', protocol: 'SQUAT_1RM' },
+  { value: 'DEADLIFT', label: 'Deadlift', svLabel: 'Marklyft', protocol: 'DEADLIFT_1RM' },
+  { value: 'POWER_CLEAN', label: 'Power clean', svLabel: 'Frivändning', protocol: 'POWER_CLEAN_1RM' },
+  { value: 'LEG_PRESS', label: 'Leg press', svLabel: 'Benpress', protocol: 'LEG_PRESS_1RM' },
+  { value: 'OVERHEAD_PRESS', label: 'Overhead press', svLabel: 'Axelpress', protocol: 'OVERHEAD_PRESS_1RM' },
 ]
 
 export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<StrengthTestFormData>({
-    resolver: zodResolver(strengthTestSchema),
+    resolver: zodResolver(createStrengthTestSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -152,7 +155,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       const oneRM =
         data.isEstimated && data.reps > 1
@@ -189,7 +192,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -202,7 +205,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
         relativeStrength: relStr,
         trainingWeights,
         client,
-        exerciseLabel: selectedExercise?.label,
+        exerciseLabel: locale === 'sv' ? selectedExercise?.svLabel : selectedExercise?.label,
       })
 
       onTestSaved?.(resultData.data)
@@ -218,7 +221,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
       })
     } catch (err) {
       console.error('Failed to save strength test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -230,12 +233,14 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Dumbbell className="h-5 w-5" />
-            Styrketest (1RM)
+            {locale === 'sv' ? 'Styrketest (1RM)' : 'Strength test (1RM)'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {locale === 'sv'
+              ? 'Inga klienter hittades. Lägg till klienter för att kunna registrera test.'
+              : 'No clients found. Add clients before registering a test.'}
           </p>
         </CardContent>
       </Card>
@@ -250,10 +255,12 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Dumbbell className="h-5 w-5" />
-                Styrketest (1RM)
+                {locale === 'sv' ? 'Styrketest (1RM)' : 'Strength test (1RM)'}
               </CardTitle>
               <CardDescription>
-                Registrera maxstyrka direkt eller beräkna från submaximal belastning
+                {locale === 'sv'
+                  ? 'Registrera maxstyrka direkt eller beräkna från submaximal belastning'
+                  : 'Record max strength directly or estimate it from a submaximal load'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -263,11 +270,11 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -288,7 +295,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -303,7 +310,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                 name="exercise"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Övning</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Övning' : 'Exercise'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -313,7 +320,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                       <SelectContent>
                         {exerciseOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                            {locale === 'sv' ? option.svLabel : option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -332,10 +339,12 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                     <div>
                       <FormLabel className="flex items-center gap-2">
                         <Calculator className="h-4 w-4" />
-                        Beräkna 1RM
+                        {locale === 'sv' ? 'Beräkna 1RM' : 'Calculate 1RM'}
                       </FormLabel>
                       <FormDescription>
-                        Uppskatta 1RM från submaximal belastning
+                        {locale === 'sv'
+                          ? 'Uppskatta 1RM från submaximal belastning'
+                          : 'Estimate 1RM from a submaximal load'}
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -351,20 +360,22 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                   name="weight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Vikt (kg)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Vikt (kg)' : 'Weight (kg)'}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.5"
                           min={10}
                           max={500}
-                          placeholder="t.ex. 100"
+                          placeholder={locale === 'sv' ? 't.ex. 100' : 'e.g. 100'}
                           {...field}
                           onChange={(e) => field.onChange(parseFloat(e.target.value))}
                         />
                       </FormControl>
                       <FormDescription>
-                        {isEstimated ? 'Vikt som lyfts för beräkning' : 'Direkt 1RM vikt'}
+                        {isEstimated
+                          ? locale === 'sv' ? 'Vikt som lyfts för beräkning' : 'Weight lifted for the estimate'
+                          : locale === 'sv' ? 'Direkt 1RM vikt' : 'Direct 1RM weight'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -376,7 +387,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                   name="reps"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Antal repetitioner</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Antal repetitioner' : 'Number of reps'}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -387,7 +398,9 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                         />
                       </FormControl>
                       <FormDescription>
-                        {isEstimated ? 'Reps gjorda vid given vikt' : '1 för direkt 1RM'}
+                        {isEstimated
+                          ? locale === 'sv' ? 'Reps gjorda vid given vikt' : 'Reps completed at the given weight'
+                          : locale === 'sv' ? '1 för direkt 1RM' : '1 for direct 1RM'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -401,7 +414,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                   name="formula"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Beräkningsformel</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Beräkningsformel' : 'Estimation formula'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -409,13 +422,17 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="EPLEY">Epley (rekommenderad)</SelectItem>
+                          <SelectItem value="EPLEY">
+                            {locale === 'sv' ? 'Epley (rekommenderad)' : 'Epley (recommended)'}
+                          </SelectItem>
                           <SelectItem value="BRZYCKI">Brzycki</SelectItem>
                           <SelectItem value="LANDER">Lander</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Epley: 1RM = vikt × (1 + reps/30)
+                        {locale === 'sv'
+                          ? 'Epley: 1RM = vikt × (1 + reps/30)'
+                          : 'Epley: 1RM = weight × (1 + reps/30)'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -428,7 +445,7 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                 name="bodyWeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kroppsvikt (kg)</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Kroppsvikt (kg)' : 'Body weight (kg)'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -439,7 +456,9 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>För beräkning av relativ styrka</FormDescription>
+                    <FormDescription>
+                      {locale === 'sv' ? 'För beräkning av relativ styrka' : 'Used to calculate relative strength'}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -450,7 +469,9 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm font-medium mb-3 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
-                    {isEstimated && reps > 1 ? 'Beräknad 1RM' : 'Resultat'}
+                    {isEstimated && reps > 1
+                      ? locale === 'sv' ? 'Beräknad 1RM' : 'Estimated 1RM'
+                      : locale === 'sv' ? 'Resultat' : 'Result'}
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
@@ -460,7 +481,9 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                     </div>
                     {relativeStrength && (
                       <div>
-                        <p className="text-xs text-muted-foreground">Relativ styrka</p>
+                        <p className="text-xs text-muted-foreground">
+                          {locale === 'sv' ? 'Relativ styrka' : 'Relative strength'}
+                        </p>
                         <span className="text-2xl font-bold text-primary">
                           {relativeStrength}
                         </span>
@@ -481,10 +504,12 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Teknik, utrustning, observationer..."
+                        placeholder={locale === 'sv'
+                          ? 'Teknik, utrustning, observationer...'
+                          : 'Technique, equipment, observations...'}
                         {...field}
                       />
                     </FormControl>
@@ -496,7 +521,9 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara styrketest'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara styrketest' : 'Save strength test'}
           </Button>
         </form>
       </Form>
@@ -513,12 +540,12 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {locale === 'sv' ? 'Test sparat' : 'Test saved'}
             </CardTitle>
             <CardDescription>
               {result.client?.name} - {result.exerciseLabel} 1RM -{' '}
-              {new Date(result.testDate).toLocaleDateString('sv-SE')}
-              {result.strengthPrSync?.success && ' · Styrke-PR uppdaterad'}
+              {new Date(result.testDate).toLocaleDateString(dateLocale)}
+              {result.strengthPrSync?.success && (locale === 'sv' ? ' · Styrke-PR uppdaterad' : ' · Strength PR updated')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -530,13 +557,13 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
                 tier={result.tier}
               />
               <CompactResult
-                label="Relativ styrka"
+                label={locale === 'sv' ? 'Relativ styrka' : 'Relative strength'}
                 value={result.relativeStrength}
                 unit="× BW"
               />
               {result.rawData?.isEstimated && (
                 <CompactResult
-                  label="Testad vikt"
+                  label={locale === 'sv' ? 'Testad vikt' : 'Tested weight'}
                   value={result.rawData.weight}
                   unit={`kg × ${result.rawData.reps} reps`}
                 />
@@ -546,18 +573,26 @@ export function StrengthTestForm({ clients, onTestSaved }: StrengthTestFormProps
             {/* Training recommendations */}
             {result.trainingWeights && (
               <div className="pt-3 border-t">
-                <p className="text-sm font-medium mb-2">Träningsvikter baserat på 1RM:</p>
+                <p className="text-sm font-medium mb-2">
+                  {locale === 'sv' ? 'Träningsvikter baserat på 1RM:' : 'Training weights based on 1RM:'}
+                </p>
                 <div className="grid grid-cols-3 gap-3 text-sm">
                   <div className="p-2 bg-muted rounded">
-                    <p className="text-muted-foreground">Styrka ({result.trainingWeights.strength.reps} reps)</p>
+                    <p className="text-muted-foreground">
+                      {locale === 'sv' ? 'Styrka' : 'Strength'} ({result.trainingWeights.strength.reps} reps)
+                    </p>
                     <p className="font-semibold">{result.trainingWeights.strength.weight} kg</p>
                   </div>
                   <div className="p-2 bg-muted rounded">
-                    <p className="text-muted-foreground">Hypertrofi ({result.trainingWeights.hypertrophy.reps} reps)</p>
+                    <p className="text-muted-foreground">
+                      {locale === 'sv' ? 'Hypertrofi' : 'Hypertrophy'} ({result.trainingWeights.hypertrophy.reps} reps)
+                    </p>
                     <p className="font-semibold">{result.trainingWeights.hypertrophy.weight} kg</p>
                   </div>
                   <div className="p-2 bg-muted rounded">
-                    <p className="text-muted-foreground">Uthållighet ({result.trainingWeights.endurance.reps} reps)</p>
+                    <p className="text-muted-foreground">
+                      {locale === 'sv' ? 'Uthållighet' : 'Endurance'} ({result.trainingWeights.endurance.reps} reps)
+                    </p>
                     <p className="font-semibold">{result.trainingWeights.endurance.weight} kg</p>
                   </div>
                 </div>
