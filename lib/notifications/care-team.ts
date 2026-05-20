@@ -11,6 +11,16 @@
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export interface CareTeamNotificationData {
   type: 'NEW_MESSAGE' | 'THREAD_CREATED' | 'URGENT_THREAD' | 'RESTRICTION_CREATED' | 'REHAB_PROGRAM_CREATED' | 'MENTIONED'
   threadId?: string
@@ -43,6 +53,12 @@ export async function sendCareTeamNotification(data: CareTeamNotificationData): 
       select: { name: true },
     })
 
+    const recipient = await prisma.user.findUnique({
+      where: { id: recipientId },
+      select: { language: true },
+    })
+    const locale = resolveLocale(recipient?.language)
+
     // Determine notification title and message based on type
     let title: string
     let message: string
@@ -50,44 +66,86 @@ export async function sendCareTeamNotification(data: CareTeamNotificationData): 
 
     switch (type) {
       case 'NEW_MESSAGE':
-        title = `Nytt meddelande från ${sender?.name || 'Okänd'}`
-        message = content ? (content.length > 100 ? content.substring(0, 97) + '...' : content) : 'Du har ett nytt meddelande i vårdteamet.'
+        title = t(
+          locale,
+          `New message from ${sender?.name || 'Unknown'}`,
+          `Nytt meddelande från ${sender?.name || 'Okänd'}`
+        )
+        message = content
+          ? (content.length > 100 ? content.substring(0, 97) + '...' : content)
+          : t(locale, 'You have a new message in the care team.', 'Du har ett nytt meddelande i vårdteamet.')
         notificationType = 'CARE_TEAM_MESSAGE'
         break
 
       case 'THREAD_CREATED':
-        title = `Ny konversation: ${subject || 'Utan ämne'}`
-        message = `${sender?.name || 'Någon'} har startat en ny vårdteamkonversation angående ${client?.name || 'en atlet'}.`
+        title = t(
+          locale,
+          `New conversation: ${subject || 'No subject'}`,
+          `Ny konversation: ${subject || 'Utan ämne'}`
+        )
+        message = t(
+          locale,
+          `${sender?.name || 'Someone'} started a new care-team conversation about ${client?.name || 'an athlete'}.`,
+          `${sender?.name || 'Någon'} har startat en ny vårdteamkonversation angående ${client?.name || 'en atlet'}.`
+        )
         notificationType = 'CARE_TEAM_THREAD'
         break
 
       case 'URGENT_THREAD':
-        title = `BRÅDSKANDE: ${subject || 'Vårdteammeddelande'}`
-        message = `${sender?.name || 'Någon'} har markerat en konversation som brådskande.`
+        title = t(
+          locale,
+          `URGENT: ${subject || 'Care-team message'}`,
+          `BRÅDSKANDE: ${subject || 'Vårdteammeddelande'}`
+        )
+        message = t(
+          locale,
+          `${sender?.name || 'Someone'} marked a conversation as urgent.`,
+          `${sender?.name || 'Någon'} har markerat en konversation som brådskande.`
+        )
         notificationType = 'CARE_TEAM_URGENT'
         break
 
       case 'RESTRICTION_CREATED':
-        title = `Träningsrestriktion skapad för ${client?.name || 'atlet'}`
-        message = `En fysioterapeut har skapat en ny träningsrestriktion. Se över atletens träningsprogram.`
+        title = t(
+          locale,
+          `Training restriction created for ${client?.name || 'athlete'}`,
+          `Träningsrestriktion skapad för ${client?.name || 'atlet'}`
+        )
+        message = t(
+          locale,
+          'A physiotherapist has created a new training restriction. Review the athlete training plan.',
+          'En fysioterapeut har skapat en ny träningsrestriktion. Se över atletens träningsprogram.'
+        )
         notificationType = 'RESTRICTION_ALERT'
         break
 
       case 'REHAB_PROGRAM_CREATED':
-        title = `Nytt rehabprogram för ${client?.name || 'atlet'}`
-        message = `Ett nytt rehabiliteringsprogram har skapats. En konversation har startats för koordinering.`
+        title = t(
+          locale,
+          `New rehab program for ${client?.name || 'athlete'}`,
+          `Nytt rehabprogram för ${client?.name || 'atlet'}`
+        )
+        message = t(
+          locale,
+          'A new rehabilitation program has been created. A conversation has been started for coordination.',
+          'Ett nytt rehabiliteringsprogram har skapats. En konversation har startats för koordinering.'
+        )
         notificationType = 'REHAB_PROGRAM_ALERT'
         break
 
       case 'MENTIONED':
-        title = `Du nämndes i en konversation`
-        message = `${sender?.name || 'Någon'} nämnde dig i en vårdteamkonversation.`
+        title = t(locale, 'You were mentioned in a conversation', 'Du nämndes i en konversation')
+        message = t(
+          locale,
+          `${sender?.name || 'Someone'} mentioned you in a care-team conversation.`,
+          `${sender?.name || 'Någon'} nämnde dig i en vårdteamkonversation.`
+        )
         notificationType = 'CARE_TEAM_MENTION'
         break
 
       default:
-        title = 'Vårdteamnotifikation'
-        message = 'Du har en ny vårdteamnotifikation.'
+        title = t(locale, 'Care-team notification', 'Vårdteamnotifikation')
+        message = t(locale, 'You have a new care-team notification.', 'Du har en ny vårdteamnotifikation.')
         notificationType = 'CARE_TEAM'
     }
 
@@ -291,8 +349,10 @@ export async function createRehabProgramThread(
     // Get physio info
     const physio = await prisma.user.findUnique({
       where: { id: physioUserId },
-      select: { name: true },
+      select: { name: true, language: true },
     })
+    const locale = resolveLocale(physio?.language)
+    const rehabSubject = t(locale, `Rehab program: ${programName}`, `Rehabprogram: ${programName}`)
 
     // Build participant list
     const participantUserIds = new Set<string>([physioUserId])
@@ -310,8 +370,12 @@ export async function createRehabProgramThread(
         data: {
           clientId,
           createdById: physioUserId,
-          subject: `Rehabprogram: ${programName}`,
-          description: `Koordinering av rehabiliteringsprogram för ${client?.name || 'atlet'}.`,
+          subject: rehabSubject,
+          description: t(
+            locale,
+            `Coordination of rehabilitation program for ${client?.name || 'athlete'}.`,
+            `Koordinering av rehabiliteringsprogram för ${client?.name || 'atlet'}.`
+          ),
           rehabProgramId,
           priority: 'NORMAL',
           status: 'OPEN',
@@ -332,7 +396,9 @@ export async function createRehabProgramThread(
       })
 
       // Create initial message with program summary
-      const initialMessage = `Nytt rehabiliteringsprogram har skapats för ${client?.name || 'atleten'}.\n\n**Program:** ${programName}\n\n${exerciseSummary ? `**Övningar:**\n${exerciseSummary}` : ''}\n\nKontakta mig om du har frågor om programmet eller behöver justera träningen.`
+      const initialMessage = locale === 'sv'
+        ? `Nytt rehabiliteringsprogram har skapats för ${client?.name || 'atleten'}.\n\n**Program:** ${programName}\n\n${exerciseSummary ? `**Övningar:**\n${exerciseSummary}` : ''}\n\nKontakta mig om du har frågor om programmet eller behöver justera träningen.`
+        : `A new rehabilitation program has been created for ${client?.name || 'the athlete'}.\n\n**Program:** ${programName}\n\n${exerciseSummary ? `**Exercises:**\n${exerciseSummary}` : ''}\n\nContact me if you have questions about the program or need to adjust the training.`
 
       await tx.careTeamMessage.create({
         data: {
@@ -352,7 +418,7 @@ export async function createRehabProgramThread(
 
     // Notify participants
     await notifyThreadParticipants(thread.id, physioUserId, 'THREAD_CREATED', {
-      subject: `Rehabprogram: ${programName}`,
+      subject: rehabSubject,
       priority: 'NORMAL',
     })
 
