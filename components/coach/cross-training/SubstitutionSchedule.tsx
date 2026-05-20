@@ -20,7 +20,7 @@
 import React, { useState } from 'react'
 import useSWR from 'swr'
 import { format, parseISO } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Calendar,
   ArrowRight,
@@ -44,22 +44,116 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
+import { useLocale } from 'next-intl'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
+type AppLocale = 'en' | 'sv'
+
+const labels: Record<AppLocale, {
+  unavailableTitle: string
+  unavailableDescription: string
+  scheduleTitle: string
+  selectAthleteDescription: string
+  selectAthlete: string
+  loading: string
+  loadError: string
+  noActiveInjury: string
+  noActiveInjuryDescription: string
+  subtitle: string
+  days: string
+  weeklySummary: string
+  runningTssReplaced: string
+  crossTrainingTss: string
+  averageRetention: string
+  mostUsedModality: string
+  daysConverted: string
+  recommendedModalities: string
+  change: string
+  noRunPlanned: string
+  originalWorkout: string
+  crossTraining: string
+  selectModality: string
+  save: string
+  cancel: string
+  fitnessRetention: string
+}> = {
+  en: {
+    unavailableTitle: 'Not available yet',
+    unavailableDescription: 'Changing modality will be available in a future update.',
+    scheduleTitle: 'Cross-training schedule',
+    selectAthleteDescription: 'Select an athlete to view automatic cross-training conversions',
+    selectAthlete: 'Select athlete...',
+    loading: 'Loading cross-training schedule...',
+    loadError: 'Could not load cross-training schedule.',
+    noActiveInjury: 'No active injury',
+    noActiveInjuryDescription: 'This athlete has no active injury. Cross-training conversions are not needed.',
+    subtitle: 'Automatic conversions based on {injuryType} injury',
+    days: 'days',
+    weeklySummary: 'Weekly summary',
+    runningTssReplaced: 'Run TSS replaced',
+    crossTrainingTss: 'Cross-training TSS',
+    averageRetention: 'Average retention',
+    mostUsedModality: 'Most used modality',
+    daysConverted: 'Days converted',
+    recommendedModalities: 'Recommended modalities for {injuryType}:',
+    change: 'Change',
+    noRunPlanned: 'No run planned for this day',
+    originalWorkout: 'Original workout',
+    crossTraining: 'Cross-training',
+    selectModality: 'Select modality...',
+    save: 'Save',
+    cancel: 'Cancel',
+    fitnessRetention: 'fitness retention',
+  },
+  sv: {
+    unavailableTitle: 'Inte tillgängligt ännu',
+    unavailableDescription: 'Möjligheten att ändra modalitet kommer i en framtida uppdatering.',
+    scheduleTitle: 'Korstr.träningsschema',
+    selectAthleteDescription: 'Välj en atlet för att visa automatiska korstr.träningskonverteringar',
+    selectAthlete: 'Välj atlet...',
+    loading: 'Laddar korstr.träningsschema...',
+    loadError: 'Kunde inte ladda korstr.träningsschema.',
+    noActiveInjury: 'Ingen aktiv skada',
+    noActiveInjuryDescription: 'Denna atlet har ingen aktiv skada. Korstr.träningskonverteringar är inte nödvändiga.',
+    subtitle: 'Automatiska konverteringar baserat på {injuryType} skada',
+    days: 'dagar',
+    weeklySummary: 'Veckosammanfattning',
+    runningTssReplaced: 'Löp-TSS ersatt',
+    crossTrainingTss: 'Korstr.-TSS',
+    averageRetention: 'Genomsnittlig retention',
+    mostUsedModality: 'Mest använd modalitet',
+    daysConverted: 'Dagar konverterade',
+    recommendedModalities: 'Rekommenderade modaliteter för {injuryType}:',
+    change: 'Ändra',
+    noRunPlanned: 'Inget löppass planerat denna dag',
+    originalWorkout: 'Originalpass',
+    crossTraining: 'Korstr.träning',
+    selectModality: 'Välj modalitet...',
+    save: 'Spara',
+    cancel: 'Avbryt',
+    fitnessRetention: 'fitnessretention',
+  },
+}
 
 // Modality icons and colors
 const MODALITY_CONFIG = {
   DWR: { icon: '🏊', label: 'DWR', color: 'bg-blue-500' },
-  XC_SKIING: { icon: '⛷️', label: 'Längdskidåkning', color: 'bg-slate-600' },
+  XC_SKIING: { icon: '⛷️', label: { en: 'Cross-country skiing', sv: 'Längdskidåkning' }, color: 'bg-slate-600' },
   ALTERG: { icon: '🏃', label: 'AlterG', color: 'bg-indigo-500' },
   AIR_BIKE: { icon: '🚴‍♂️', label: 'Air Bike', color: 'bg-red-500' },
-  CYCLING: { icon: '🚴', label: 'Cykling', color: 'bg-green-500' },
-  SWIMMING: { icon: '🏊‍♂️', label: 'Simning', color: 'bg-cyan-500' },
-  ROWING: { icon: '🚣', label: 'Rodd', color: 'bg-purple-500' },
-  ELLIPTICAL: { icon: '🏃‍♂️', label: 'Crosstrainer', color: 'bg-orange-500' },
+  CYCLING: { icon: '🚴', label: { en: 'Cycling', sv: 'Cykling' }, color: 'bg-green-500' },
+  SWIMMING: { icon: '🏊‍♂️', label: { en: 'Swimming', sv: 'Simning' }, color: 'bg-cyan-500' },
+  ROWING: { icon: '🚣', label: { en: 'Rowing', sv: 'Rodd' }, color: 'bg-purple-500' },
+  ELLIPTICAL: { icon: '🏃‍♂️', label: { en: 'Elliptical', sv: 'Crosstrainer' }, color: 'bg-orange-500' },
 }
 
 type Modality = keyof typeof MODALITY_CONFIG
+
+function getModalityLabel(modality: Modality, locale: AppLocale): string {
+  const label = MODALITY_CONFIG[modality].label
+  return typeof label === 'string' ? label : label[locale]
+}
 
 interface SubstitutionDay {
   date: string
@@ -104,10 +198,18 @@ interface SubstitutionScheduleProps {
   initialClientId?: string
 }
 
+interface ClientOption {
+  id: string
+  name: string
+}
+
 export default function SubstitutionSchedule({
   initialClientId,
 }: SubstitutionScheduleProps) {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = labels[locale]
+  const dateLocale = locale === 'sv' ? sv : enUS
 
   const [selectedClient, setSelectedClient] = useState<string>(initialClientId || '')
   const [dateRange, setDateRange] = useState<7 | 14>(7)
@@ -115,13 +217,13 @@ export default function SubstitutionSchedule({
   const [selectedModality, setSelectedModality] = useState<Modality | null>(null)
 
   // Fetch clients
-  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher, {
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: ClientOption[] }>('/api/clients', fetcher, {
     refreshInterval: 30000,
   })
   const clients = clientsResponse?.data || []
 
   // Fetch substitutions
-  const { data, error, isLoading, mutate } = useSWR<SubstitutionData>(
+  const { data, error, isLoading } = useSWR<SubstitutionData>(
     selectedClient
       ? `/api/cross-training/substitutions/${selectedClient}?dateRange=${dateRange}`
       : null,
@@ -143,8 +245,8 @@ export default function SubstitutionSchedule({
     if (!editingDay || !selectedModality) return
 
     toast({
-      title: 'Inte tillgängligt ännu',
-      description: 'Möjligheten att ändra modalitet kommer i en framtida uppdatering.',
+      title: copy.unavailableTitle,
+      description: copy.unavailableDescription,
       variant: 'destructive',
     })
 
@@ -160,15 +262,15 @@ export default function SubstitutionSchedule({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Korstr.träningsschema</CardTitle>
+          <CardTitle>{copy.scheduleTitle}</CardTitle>
           <CardDescription>
-            Välj en atlet för att visa automatiska korstr.träningskonverteringar
+            {copy.selectAthleteDescription}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Select onValueChange={handleClientChange}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Välj atlet..." />
+              <SelectValue placeholder={copy.selectAthlete} />
             </SelectTrigger>
             <SelectContent>
               {clients?.map((client) => (
@@ -184,14 +286,14 @@ export default function SubstitutionSchedule({
   }
 
   if (isLoading) {
-    return <div className="text-muted-foreground">Laddar korstr.träningsschema...</div>
+    return <div className="text-muted-foreground">{copy.loading}</div>
   }
 
   if (error) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>Kunde inte ladda korstr.träningsschema.</AlertDescription>
+        <AlertDescription>{copy.loadError}</AlertDescription>
       </Alert>
     )
   }
@@ -200,9 +302,9 @@ export default function SubstitutionSchedule({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Ingen aktiv skada</CardTitle>
+          <CardTitle>{copy.noActiveInjury}</CardTitle>
           <CardDescription>
-            Denna atlet har ingen aktiv skada. Korstr.träningskonverteringar är inte nödvändiga.
+            {copy.noActiveInjuryDescription}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -216,9 +318,9 @@ export default function SubstitutionSchedule({
       {/* Header with filters */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Korstr.träningsschema</h2>
+          <h2 className="text-2xl font-bold">{copy.scheduleTitle}</h2>
           <p className="text-sm text-muted-foreground">
-            Automatiska konverteringar baserat på {injuryType} skada
+            {copy.subtitle.replace('{injuryType}', injuryType ?? '')}
           </p>
         </div>
 
@@ -232,8 +334,8 @@ export default function SubstitutionSchedule({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7">7 dagar</SelectItem>
-              <SelectItem value="14">14 dagar</SelectItem>
+              <SelectItem value="7">7 {copy.days}</SelectItem>
+              <SelectItem value="14">14 {copy.days}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -256,21 +358,21 @@ export default function SubstitutionSchedule({
       {/* Weekly summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Veckosammanfattning</CardTitle>
+          <CardTitle className="text-lg">{copy.weeklySummary}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-5 gap-4">
             <div>
               <div className="text-2xl font-bold">{summary.totalRunningTSS}</div>
-              <div className="text-xs text-muted-foreground">Löp-TSS ersatt</div>
+              <div className="text-xs text-muted-foreground">{copy.runningTssReplaced}</div>
             </div>
             <div>
               <div className="text-2xl font-bold">{summary.totalCrossTrainingTSS}</div>
-              <div className="text-xs text-muted-foreground">Korstr.-TSS</div>
+              <div className="text-xs text-muted-foreground">{copy.crossTrainingTss}</div>
             </div>
             <div>
               <div className="text-2xl font-bold">{summary.averageRetention}%</div>
-              <div className="text-xs text-muted-foreground">Genomsnittlig retention</div>
+              <div className="text-xs text-muted-foreground">{copy.averageRetention}</div>
             </div>
             <div>
               <div className="text-2xl font-bold">
@@ -278,13 +380,13 @@ export default function SubstitutionSchedule({
                   ? MODALITY_CONFIG[summary.mostUsedModality].icon
                   : '-'}
               </div>
-              <div className="text-xs text-muted-foreground">Mest använd modalitet</div>
+              <div className="text-xs text-muted-foreground">{copy.mostUsedModality}</div>
             </div>
             <div>
               <div className="text-2xl font-bold">
                 {summary.daysSubstituted}/{summary.totalDays}
               </div>
-              <div className="text-xs text-muted-foreground">Dagar konverterade</div>
+              <div className="text-xs text-muted-foreground">{copy.daysConverted}</div>
             </div>
           </div>
         </CardContent>
@@ -295,8 +397,8 @@ export default function SubstitutionSchedule({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>Rekommenderade modaliteter för {injuryType}:</strong>{' '}
-            {recommendedModalities.map((m) => MODALITY_CONFIG[m].label).join(', ')}
+            <strong>{copy.recommendedModalities.replace('{injuryType}', injuryType ?? '')}</strong>{' '}
+            {recommendedModalities.map((m) => getModalityLabel(m, locale)).join(', ')}
           </AlertDescription>
         </Alert>
       )}
@@ -321,7 +423,7 @@ export default function SubstitutionSchedule({
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <div className="font-semibold">
-                        {format(parseISO(day.date), 'EEEE d MMMM', { locale: sv })}
+                        {format(parseISO(day.date), 'EEEE d MMMM', { locale: dateLocale })}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {format(parseISO(day.date), 'yyyy-MM-dd')}
@@ -338,14 +440,14 @@ export default function SubstitutionSchedule({
                       }
                     >
                       <Edit2 className="h-4 w-4 mr-1" />
-                      Ändra
+                      {copy.change}
                     </Button>
                   )}
                 </div>
 
                 {!day.hasSubstitution ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Inget löppass planerat denna dag
+                    {copy.noRunPlanned}
                   </div>
                 ) : (
                   <div className="grid grid-cols-[1fr_auto_1fr] gap-6 items-center">
@@ -353,7 +455,7 @@ export default function SubstitutionSchedule({
                     <div className="p-4 bg-white border border-gray-200 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <Activity className="h-4 w-4 text-gray-500" />
-                        <span className="font-semibold">Originalpass</span>
+                        <span className="font-semibold">{copy.originalWorkout}</span>
                       </div>
                       <div className="space-y-1">
                         <div className="text-lg font-bold">
@@ -386,7 +488,7 @@ export default function SubstitutionSchedule({
                               ? MODALITY_CONFIG[selectedModality].icon
                               : MODALITY_CONFIG[day.convertedWorkout!.modality].icon}
                           </span>
-                          <span className="font-semibold">Korstr.träning</span>
+                          <span className="font-semibold">{copy.crossTraining}</span>
                         </div>
                         <Badge
                           className={
@@ -396,8 +498,8 @@ export default function SubstitutionSchedule({
                           }
                         >
                           {isEditing && selectedModality
-                            ? MODALITY_CONFIG[selectedModality].label
-                            : MODALITY_CONFIG[day.convertedWorkout!.modality].label}
+                            ? getModalityLabel(selectedModality, locale)
+                            : getModalityLabel(day.convertedWorkout!.modality, locale)}
                         </Badge>
                       </div>
 
@@ -410,14 +512,14 @@ export default function SubstitutionSchedule({
                             }
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Välj modalitet..." />
+                              <SelectValue placeholder={copy.selectModality} />
                             </SelectTrigger>
                             <SelectContent>
                               {(Object.keys(MODALITY_CONFIG) as Modality[]).map(
                                 (modality) => (
                                   <SelectItem key={modality} value={modality}>
                                     {MODALITY_CONFIG[modality].icon}{' '}
-                                    {MODALITY_CONFIG[modality].label}
+                                    {getModalityLabel(modality, locale)}
                                   </SelectItem>
                                 )
                               )}
@@ -431,11 +533,11 @@ export default function SubstitutionSchedule({
                               disabled={!selectedModality}
                             >
                               <Check className="h-4 w-4 mr-1" />
-                              Spara
+                              {copy.save}
                             </Button>
                             <Button size="sm" variant="outline" onClick={handleCancelEdit}>
                               <X className="h-4 w-4 mr-1" />
-                              Avbryt
+                              {copy.cancel}
                             </Button>
                           </div>
                         </div>
@@ -462,7 +564,7 @@ export default function SubstitutionSchedule({
                             )
                           </div>
                           <Badge variant="outline" className="mt-2">
-                            {day.convertedWorkout!.retentionPercent}% fitnessretention
+                            {day.convertedWorkout!.retentionPercent}% {copy.fitnessRetention}
                           </Badge>
                           <div className="text-xs text-muted-foreground italic mt-2">
                             {day.convertedWorkout!.reasoning}
