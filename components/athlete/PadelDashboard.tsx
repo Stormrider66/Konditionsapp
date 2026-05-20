@@ -264,7 +264,7 @@ export function PadelDashboard({ settings }: PadelDashboardProps) {
   const essentialExercises = recommendations.filter((r) => r.priority === 'essential').slice(0, 4)
 
   // Get partner synergy tips
-  const partnerTips = getPartnerSynergyTips(position)
+  const partnerTips = getPartnerSynergyTips(position, locale)
 
   return (
     <div className="space-y-6">

@@ -21,6 +21,9 @@ export {
   calculateWeeklyMatchLoad,
   getLoadRecommendation,
   getPartnerSynergyTips,
+  getPadelLocale,
+  translatePadelText,
+  translatePadelList,
 } from './position-training';
 
 export type {
@@ -32,4 +35,5 @@ export type {
   TournamentProtocol,
   PhysicalBenchmarks,
   MatchData,
+  PadelLocale,
 } from './position-training';

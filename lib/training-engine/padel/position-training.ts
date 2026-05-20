@@ -68,6 +68,157 @@ export interface PhysicalBenchmarks {
   reactionTime: number | null; // ms
 }
 
+export type PadelLocale = 'en' | 'sv';
+
+const ENGLISH_PHRASES: Record<string, string> = {
+  'Högersida (Derechos)': 'Right side (Derechos)',
+  'Vänstersida (Revés)': 'Left side (Revés)',
+  Allroundspelare: 'All-court player',
+  'Offensiv spelare som dominerar med forehand från högersidan. Ansvarar för avslut och smash. Kräver explosiv kraft och aggressivt spel.': 'Offensive player who dominates with the forehand from the right side. Responsible for finishing and smashes. Requires explosive power and aggressive play.',
+  'Strategisk spelare som styr spelet från vänstersidan. Stark backhand och utmärkt läsförmåga. Fokus på placering och lobbar.': 'Strategic player who controls play from the left side. Strong backhand and excellent reading ability. Focuses on placement and lobs.',
+  'Flexibel spelare som kan spela båda sidorna effektivt. Anpassar sig efter partner och motståndarpar. Taktiskt mångsidig.': 'Flexible player who can play both sides effectively. Adapts to partner and opponents. Tactically versatile.',
+  Explosivitet: 'Explosiveness',
+  Smashkraft: 'Smash power',
+  Forehandstyrka: 'Forehand strength',
+  Reaktionssnabbhet: 'Reaction speed',
+  'Vertikalt hopp': 'Vertical jump',
+  Spelförståelse: 'Game understanding',
+  Backhandstyrka: 'Backhand strength',
+  Uthållighet: 'Endurance',
+  Positionering: 'Positioning',
+  'Lateralt snabbhet': 'Lateral speed',
+  Mångsidighet: 'Versatility',
+  Anpassningsförmåga: 'Adaptability',
+  Kondition: 'Conditioning',
+  'Taktisk förståelse': 'Tactical understanding',
+  Balans: 'Balance',
+  'Höger sida, fokus på nätspel och smash': 'Right side, focused on net play and smash',
+  'Vänster sida, täcker mittplan och lobbar': 'Left side, covers the middle and lobs',
+  'Hela banan, flexibel positionering': 'Whole court, flexible positioning',
+  Framåtrush: 'Forward rushes',
+  'Vertikala hopp': 'Vertical jumps',
+  'Snabba starter': 'Fast starts',
+  'Rotation för smash': 'Smash rotation',
+  Sidledsförflyttning: 'Lateral movement',
+  Positionsväxlingar: 'Position switches',
+  'Defensiva rörelser': 'Defensive movements',
+  'Snabb återhämtning': 'Fast recovery',
+  'Alla riktningar': 'All directions',
+  'Varierad hastighet': 'Varied speed',
+  'Snabba positionsbyten': 'Fast position changes',
+  'Anpassad rörelse': 'Adapted movement',
+  Grundstyrka: 'Base strength',
+  'Aerob bas': 'Aerobic base',
+  Skadeförebyggande: 'Injury prevention',
+  Teknikutveckling: 'Technique development',
+  Rörlighet: 'Mobility',
+  'Explosiv kraft': 'Explosive power',
+  'Padelspecifik kondition': 'Padel-specific conditioning',
+  Matchsimulering: 'Match simulation',
+  Partnerspel: 'Partner play',
+  Styrkeunderhåll: 'Strength maintenance',
+  Återhämtning: 'Recovery',
+  Matchförberedelse: 'Match preparation',
+  'Taktisk anpassning': 'Tactical adaptation',
+  'Peak performance': 'Peak performance',
+  'Mental förberedelse': 'Mental preparation',
+  'Taktisk perfektion': 'Tactical precision',
+  'Maximal återhämtning': 'Maximal recovery',
+  'Hypertrofi och maxstyrka med fokus på bål, axlar och ben': 'Hypertrophy and maximum strength focused on trunk, shoulders, and legs',
+  'Aerob basträning och gradvis uppbyggnad av intensitet': 'Aerobic base training and gradual intensity build-up',
+  'Kraftutveckling och rotationsstyrka för slag': 'Power development and rotational strength for shots',
+  'Intervallträning och padelspecifika löpövningar': 'Interval training and padel-specific running drills',
+  'Underhåll av styrka och explosivitet med låg volym': 'Strength and explosiveness maintenance with low volume',
+  'Matchspecifik kondition och aktiv återhämtning': 'Match-specific conditioning and active recovery',
+  'Endast aktiveringsövningar och lätt underhåll': 'Activation drills and light maintenance only',
+  'Lätt rörelse och återhämtning mellan matcher': 'Light movement and recovery between matches',
+  Rotatorkuff: 'Rotator cuff',
+  Mobilitet: 'Mobility',
+  Stabilitet: 'Stability',
+  Styrka: 'Strength',
+  Rehab: 'Rehab',
+  Core: 'Core',
+  'Anti-rotation': 'Anti-rotation',
+  Kontroll: 'Control',
+  Power: 'Power',
+  Plyometrics: 'Plyometrics',
+  Kvickhet: 'Agility',
+  Reaktion: 'Reaction',
+  'External rotation med band': 'Band external rotation',
+  Greppträning: 'Grip training',
+  'Greppträning med boll': 'Ball grip training',
+  'Smash-hopp med medicinboll': 'Medicine ball smash jumps',
+  Rotationskast: 'Rotational throws',
+  '3x15 per arm': '3x15 per arm',
+  '3x30s per sida': '3x30s per side',
+  '3x12 per riktning': '3x12 per direction',
+  '3x10 per sida': '3x10 per side',
+  '3x8 per ben': '3x8 per leg',
+  '3x30s per ben': '3x30s per leg',
+  '3x12 per sida': '3x12 per side',
+  '3x8 per sida': '3x8 per side',
+  '3x8 per riktning': '3x8 per direction',
+  'Armbågen vid sidan': 'Elbow at the side',
+  'Försiktig posterior kapselstretch': 'Gentle posterior capsule stretch',
+  'Fokus på scapula protraction': 'Focus on scapular protraction',
+  'Hög kabel, utåtrotation': 'High cable, external rotation',
+  'Både flexion och extension': 'Both flexion and extension',
+  'Långsam excentrisk fas': 'Slow eccentric phase',
+  'Med lätt vikt': 'With light weight',
+  'Variera greppstyrka': 'Vary grip strength',
+  'Kontrollerad rörelse': 'Controlled movement',
+  'Ryggen i golvet': 'Back on the floor',
+  'Flödande rörelse': 'Flowing movement',
+  'Kontrollerad anti-rotation': 'Controlled anti-rotation',
+  'Fokus på knäkontroll': 'Focus on knee control',
+  'Padelspecifik rörelse': 'Padel-specific movement',
+  'Med band': 'With band',
+  Kontrollerad: 'Controlled',
+  'Progressivt instabilt underlag': 'Progressively unstable surface',
+  'Band runt fotleder': 'Band around ankles',
+  'Full ROM': 'Full ROM',
+  'Försiktig stretch': 'Gentle stretch',
+  'Kläm och släpp': 'Squeeze and release',
+  Höftrotation: 'Hip rotation',
+  Halvknästående: 'Half-kneeling',
+  'Gluteus medius': 'Gluteus medius',
+  'Simulera smashrörelse': 'Simulate smash motion',
+  'Forehand-specifik': 'Forehand-specific',
+  'Backhand-specifik': 'Backhand-specific',
+  Sidledsrörelse: 'Lateral movement',
+  'Korta pauser': 'Short rests',
+  'Alla plan': 'All planes',
+  'Varierade mönster': 'Varied patterns',
+  'Följ partnerns rörelser': "Follow your partner's movements",
+  'Kommunicera tydligt med din partner om vem som tar lobben': 'Communicate clearly with your partner about who takes the lob',
+  'Var beredd att täcka mitten när din partner går för smash': 'Be ready to cover the middle when your partner goes for a smash',
+  'Fokusera på att avsluta poäng när du får chansen vid nätet': 'Focus on finishing points when you get the chance at the net',
+  'Håll koll på motståndarnas positioner för att hitta öppningar': 'Track opponent positions to find openings',
+  'Styr tempot i spelet och diktera var bollen ska gå': 'Control the pace and dictate where the ball should go',
+  'Var beredd att täcka hela vänster sida inklusive lobbar': 'Be ready to cover the entire left side including lobs',
+  'Kommunicera med din partner om positionsbyten': 'Communicate with your partner about position switches',
+  'Använd lobbar strategiskt för att skapa tid': 'Use lobs strategically to create time',
+  'Anpassa ditt spel efter din partners styrkor': "Adapt your game to your partner's strengths",
+  'Var flexibel med sidbyten under matchen': 'Stay flexible with side switches during the match',
+  'Kommunicera konstant om vem som tar vilken boll': 'Communicate constantly about who takes each ball',
+  'Utnyttja din mångsidighet för att överraska motståndarna': 'Use your versatility to surprise opponents',
+  'Låg matchbelastning - kan öka volymen': 'Low match load - can increase volume',
+  'Hög matchbelastning - prioritera återhämtning': 'High match load - prioritize recovery',
+  'Optimal matchbelastning': 'Optimal match load',
+};
+
+export function getPadelLocale(locale: string): PadelLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+export function translatePadelText(locale: string, value: string): string {
+  return getPadelLocale(locale) === 'sv' ? value : ENGLISH_PHRASES[value] ?? value;
+}
+
+export function translatePadelList(locale: string, values: string[]): string[] {
+  return values.map((value) => translatePadelText(locale, value));
+}
+
 // Match data interface
 export interface MatchData {
   matchId: string;
@@ -462,7 +613,7 @@ export function calculateWeeklyMatchLoad(matches: MatchData[]): number {
 }
 
 // Get load recommendation based on position
-export function getLoadRecommendation(weeklyMinutes: number, position: PadelPosition): string {
+export function getLoadRecommendation(weeklyMinutes: number, position: PadelPosition, locale: string = 'sv'): string {
   const thresholds: Record<PadelPosition, { low: number; high: number }> = {
     right_side: { low: 180, high: 480 },
     left_side: { low: 200, high: 520 },
@@ -471,13 +622,13 @@ export function getLoadRecommendation(weeklyMinutes: number, position: PadelPosi
 
   const { low, high } = thresholds[position];
 
-  if (weeklyMinutes < low) return 'Låg matchbelastning - kan öka volymen';
-  if (weeklyMinutes > high) return 'Hög matchbelastning - prioritera återhämtning';
-  return 'Optimal matchbelastning';
+  if (weeklyMinutes < low) return translatePadelText(locale, 'Låg matchbelastning - kan öka volymen');
+  if (weeklyMinutes > high) return translatePadelText(locale, 'Hög matchbelastning - prioritera återhämtning');
+  return translatePadelText(locale, 'Optimal matchbelastning');
 }
 
 // Partner synergy tips
-export function getPartnerSynergyTips(position: PadelPosition): string[] {
+export function getPartnerSynergyTips(position: PadelPosition, locale: string = 'sv'): string[] {
   const tips: Record<PadelPosition, string[]> = {
     right_side: [
       'Kommunicera tydligt med din partner om vem som tar lobben',
@@ -499,7 +650,7 @@ export function getPartnerSynergyTips(position: PadelPosition): string[] {
     ],
   };
 
-  return tips[position];
+  return translatePadelList(locale, tips[position]);
 }
 
 const padelExports = {
@@ -518,6 +669,9 @@ const padelExports = {
   calculateWeeklyMatchLoad,
   getLoadRecommendation,
   getPartnerSynergyTips,
+  getPadelLocale,
+  translatePadelText,
+  translatePadelList,
 };
 
 export default padelExports;
