@@ -22,6 +22,8 @@ interface SelfAssignRequestBody {
   notes?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
 export async function POST(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
@@ -32,6 +34,7 @@ export async function POST(request: NextRequest) {
       )
     }
     const { user, clientId, isCoachInAthleteMode } = resolved
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const body: SelfAssignRequestBody = await request.json()
 
@@ -82,67 +85,67 @@ export async function POST(request: NextRequest) {
     // Create strength session from template
     const session = await prisma.strengthSession.create({
       data: {
-        name: template.nameSv,
-        description: template.descriptionSv,
+        name: locale === 'sv' ? template.nameSv : template.name,
+        description: locale === 'sv' ? template.descriptionSv : template.description,
         phase: template.phase,
         estimatedDuration: template.estimatedDuration,
         exercises: template.exercises
           .filter((ex) => ex.section === 'MAIN')
           .map((ex, idx) => ({
             exerciseId: `template-${ex.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
-            exerciseName: ex.exerciseNameSv,
+            exerciseName: locale === 'sv' ? ex.exerciseNameSv : ex.exerciseName,
             order: idx,
             sets: ex.sets,
             reps: ex.reps,
             restSeconds: ex.restSeconds,
             tempo: ex.tempo,
-            notes: ex.notes,
+            notes: locale === 'sv' ? ex.notes : undefined,
           })),
         warmupData: template.includesWarmup
           ? {
-              notes: 'Uppvärmning från mall',
+              notes: t(locale, 'Warm-up from template', 'Uppvärmning från mall'),
               duration: 8,
               exercises: template.exercises
                 .filter((ex) => ex.section === 'WARMUP')
                 .map((ex) => ({
                   exerciseId: `template-warmup-${ex.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
-                  exerciseName: ex.exerciseNameSv,
+                  exerciseName: locale === 'sv' ? ex.exerciseNameSv : ex.exerciseName,
                   sets: ex.sets,
                   reps: ex.reps,
                   restSeconds: ex.restSeconds,
-                  notes: ex.notes,
+                  notes: locale === 'sv' ? ex.notes : undefined,
                 })),
             }
           : undefined,
         coreData: template.includesCore
           ? {
-              notes: 'Core-övningar från mall',
+              notes: t(locale, 'Core exercises from template', 'Core-övningar från mall'),
               duration: 5,
               exercises: template.exercises
                 .filter((ex) => ex.section === 'CORE')
                 .map((ex) => ({
                   exerciseId: `template-core-${ex.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
-                  exerciseName: ex.exerciseNameSv,
+                  exerciseName: locale === 'sv' ? ex.exerciseNameSv : ex.exerciseName,
                   sets: ex.sets,
                   reps: ex.reps,
                   restSeconds: ex.restSeconds,
-                  notes: ex.notes,
+                  notes: locale === 'sv' ? ex.notes : undefined,
                 })),
             }
           : undefined,
         cooldownData: template.includesCooldown
           ? {
-              notes: 'Stretcha alla stora muskelgrupper',
+              notes: t(locale, 'Stretch all major muscle groups', 'Stretcha alla stora muskelgrupper'),
               duration: 7,
               exercises: template.exercises
                 .filter((ex) => ex.section === 'COOLDOWN')
                 .map((ex) => ({
                   exerciseId: `template-cooldown-${ex.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
-                  exerciseName: ex.exerciseNameSv,
+                  exerciseName: locale === 'sv' ? ex.exerciseNameSv : ex.exerciseName,
                   sets: ex.sets,
                   reps: ex.reps,
                   restSeconds: ex.restSeconds,
-                  notes: ex.notes,
+                  notes: locale === 'sv' ? ex.notes : undefined,
                 })),
             }
           : undefined,
@@ -161,7 +164,7 @@ export async function POST(request: NextRequest) {
         athleteId: clientId,
         assignedDate: new Date(assignedDate),
         assignedBy: user.id, // Self-assigned
-        notes: notes || `Självtilldelad från mall: ${template.nameSv}`,
+        notes: notes || t(locale, `Self-assigned from template: ${template.name}`, `Självtilldelad från mall: ${template.nameSv}`),
         status: 'PENDING',
       },
     })
@@ -178,7 +181,7 @@ export async function POST(request: NextRequest) {
           assignedDate: assignment.assignedDate,
         },
       },
-      message: 'Styrkepass tilldelat!',
+      message: t(locale, 'Strength session assigned.', 'Styrkepass tilldelat!'),
     })
   } catch (error) {
     logger.error('Error self-assigning strength session', {}, error)
@@ -187,4 +190,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
