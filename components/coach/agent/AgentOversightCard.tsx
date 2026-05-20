@@ -136,6 +136,12 @@ const priorityColors: Record<string, string> = {
   CRITICAL: 'bg-red-500/10 text-red-600',
 }
 
+type AppLocale = 'en' | 'sv'
+
+function formatDate(date: Date | string, locale: AppLocale) {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
+}
+
 export function AgentOversightCard({
   action,
   onApprove,
@@ -144,8 +150,9 @@ export function AgentOversightCard({
   isProcessing = false,
 }: AgentOversightCardProps) {
   const [expanded, setExpanded] = useState(false)
-  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
+  const targetLabel = locale === 'sv' ? 'Mål' : 'Target'
 
   const typeConfig = actionTypeConfig[action.actionType] || {
     icon: <Bot className="h-4 w-4" />,
@@ -256,7 +263,7 @@ export function AgentOversightCard({
 
           {action.targetDate && (
             <Badge variant="outline" className="text-xs">
-              Target: {new Date(action.targetDate).toLocaleDateString('sv-SE')}
+              {targetLabel}: {formatDate(action.targetDate, locale)}
             </Badge>
           )}
         </div>
