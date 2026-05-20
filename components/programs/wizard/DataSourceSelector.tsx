@@ -1,6 +1,7 @@
 'use client'
 
 import { SportType } from '@prisma/client'
+import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { FlaskConical, User, PenLine, Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -23,39 +24,45 @@ interface DataSourceSelectorProps {
   dataSources: DataSourceInfo[]
 }
 
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
+
 export function DataSourceSelector({
   sport,
   selectedSource,
   onSelect,
   dataSources,
 }: DataSourceSelectorProps) {
+  const locale = getAppLocale(useLocale())
   const getSourceInfo = (type: DataSourceType) => {
     return dataSources.find((d) => d.type === type) || { type, available: false }
   }
 
   const testSource = getSourceInfo('TEST')
   const profileSource = getSourceInfo('PROFILE')
-  const manualSource = getSourceInfo('MANUAL')
 
-  const sportLabels: Record<string, { value: string; unit: string }> = {
-    RUNNING: { value: 'VDOT', unit: '' },
-    CYCLING: { value: 'FTP', unit: 'W' },
-    SKIING: { value: 'Tröskel', unit: '' },
-    SWIMMING: { value: 'CSS', unit: '/100m' },
-    TRIATHLON: { value: 'Multi', unit: '' },
-    HYROX: { value: 'Zoner', unit: '' },
-    GENERAL_FITNESS: { value: 'Nivå', unit: '' },
-    STRENGTH: { value: 'Nivå', unit: '' },
+  const sportLabels: Record<string, { value: Record<AppLocale, string>; unit: string }> = {
+    RUNNING: { value: { en: 'VDOT', sv: 'VDOT' }, unit: '' },
+    CYCLING: { value: { en: 'FTP', sv: 'FTP' }, unit: 'W' },
+    SKIING: { value: { en: 'Threshold', sv: 'Tröskel' }, unit: '' },
+    SWIMMING: { value: { en: 'CSS', sv: 'CSS' }, unit: '/100m' },
+    TRIATHLON: { value: { en: 'Multi', sv: 'Multi' }, unit: '' },
+    HYROX: { value: { en: 'Zones', sv: 'Zoner' }, unit: '' },
+    GENERAL_FITNESS: { value: { en: 'Level', sv: 'Nivå' }, unit: '' },
+    STRENGTH: { value: { en: 'Level', sv: 'Nivå' }, unit: '' },
   }
 
-  const metric = sportLabels[sport] || { value: 'Värde', unit: '' }
+  const metric = sportLabels[sport] || { value: { en: 'Value', sv: 'Värde' }, unit: '' }
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Datakälla</h2>
+        <h2 className="text-2xl font-bold mb-2">{t(locale, 'Datakälla', 'Data source')}</h2>
         <p className="text-muted-foreground">
-          Hur ska vi beräkna träningszoner och intensitet?
+          {t(locale, 'Hur ska vi beräkna träningszoner och intensitet?', 'How should training zones and intensity be calculated?')}
         </p>
       </div>
 
@@ -82,22 +89,22 @@ export function DataSourceSelector({
           >
             <FlaskConical className="w-7 h-7" />
           </div>
-          <span className="font-semibold text-lg text-slate-900 dark:text-white">Labtest</span>
+          <span className="font-semibold text-lg text-slate-900 dark:text-white">{t(locale, 'Labtest', 'Lab test')}</span>
           <span className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
-            Använd befintligt konditionstest med träningszoner
+            {t(locale, 'Använd befintligt konditionstest med träningszoner', 'Use an existing fitness test with training zones')}
           </span>
           <div className="mt-4 flex items-center gap-2">
             {testSource.available ? (
               <>
                 <Check className="w-4 h-4 text-green-600" />
                 <Badge variant="secondary">
-                  {testSource.testCount} test tillgängliga
+                  {testSource.testCount} {t(locale, 'test tillgängliga', 'tests available')}
                 </Badge>
               </>
             ) : (
               <>
                 <X className="w-4 h-4 text-red-500" />
-                <span className="text-xs text-slate-500 dark:text-slate-400">Inga tester</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{t(locale, 'Inga tester', 'No tests')}</span>
               </>
             )}
           </div>
@@ -125,9 +132,9 @@ export function DataSourceSelector({
           >
             <User className="w-7 h-7" />
           </div>
-          <span className="font-semibold text-lg text-slate-900 dark:text-white">Sportprofil</span>
+          <span className="font-semibold text-lg text-slate-900 dark:text-white">{t(locale, 'Sportprofil', 'Sport profile')}</span>
           <span className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
-            Använd sparade värden från atletens profil
+            {t(locale, 'Använd sparade värden från atletens profil', "Use saved values from the athlete's profile")}
           </span>
           <div className="mt-4 flex items-center gap-2">
             {profileSource.available ? (
@@ -141,7 +148,7 @@ export function DataSourceSelector({
             ) : (
               <>
                 <X className="w-4 h-4 text-red-500" />
-                <span className="text-xs text-slate-500 dark:text-slate-400">Ingen profil</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{t(locale, 'Ingen profil', 'No profile')}</span>
               </>
             )}
           </div>
@@ -161,13 +168,13 @@ export function DataSourceSelector({
           <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-green-100 text-green-600">
             <PenLine className="w-7 h-7" />
           </div>
-          <span className="font-semibold text-lg text-slate-900 dark:text-white">Manuellt</span>
+          <span className="font-semibold text-lg text-slate-900 dark:text-white">{t(locale, 'Manuellt', 'Manual')}</span>
           <span className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
-            Ange värden direkt i formuläret
+            {t(locale, 'Ange värden direkt i formuläret', 'Enter values directly in the form')}
           </span>
           <div className="mt-4 flex items-center gap-2">
             <Check className="w-4 h-4 text-green-600" />
-            <Badge variant="secondary">Alltid tillgänglig</Badge>
+            <Badge variant="secondary">{t(locale, 'Alltid tillgänglig', 'Always available')}</Badge>
           </div>
         </button>
       </div>

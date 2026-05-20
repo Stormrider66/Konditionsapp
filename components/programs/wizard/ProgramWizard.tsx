@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { SportType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
@@ -48,8 +49,51 @@ interface ProgramWizardProps {
   initialClientId?: string
 }
 
+type ProgramFormData = Record<string, unknown>
+
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
+
+const getSportPromptLabel = (sport: SportType, locale: AppLocale) => {
+  switch (sport) {
+    case 'RUNNING':
+      return t(locale, 'löpning', 'running')
+    case 'CYCLING':
+      return t(locale, 'cykling', 'cycling')
+    case 'SKIING':
+      return t(locale, 'skidåkning', 'skiing')
+    case 'SWIMMING':
+      return t(locale, 'simning', 'swimming')
+    case 'TRIATHLON':
+      return t(locale, 'triathlon', 'triathlon')
+    case 'HYROX':
+      return 'HYROX'
+    case 'STRENGTH':
+      return t(locale, 'styrka', 'strength')
+    case 'GENERAL_FITNESS':
+      return t(locale, 'träning', 'general fitness')
+    default:
+      return t(locale, 'träning', 'training')
+  }
+}
+
+const getProgramPromptLabel = (sport: SportType, locale: AppLocale) => {
+  switch (sport) {
+    case 'RUNNING':
+      return t(locale, 'löpprogram', 'running program')
+    case 'CYCLING':
+      return t(locale, 'cykelprogram', 'cycling program')
+    default:
+      return t(locale, 'träningsprogram', 'training program')
+  }
+}
+
 export function ProgramWizard({ clients, basePath, initialClientId = '' }: ProgramWizardProps) {
   const router = useRouter()
+  const locale = getAppLocale(useLocale())
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedSport, setSelectedSport] = useState<SportType | null>(null)
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null)
@@ -58,17 +102,6 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
     clients.some((client) => client.id === initialClientId) ? initialClientId : ''
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Reset downstream selections when sport changes
-  useEffect(() => {
-    setSelectedGoal(null)
-    setSelectedDataSource(null)
-  }, [selectedSport])
-
-  // Reset data source when goal changes
-  useEffect(() => {
-    setSelectedDataSource(null)
-  }, [selectedGoal])
 
   // Calculate data source availability based on selected sport and client tests
   const getDataSources = (): DataSourceInfo[] => {
@@ -122,7 +155,7 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
         type: 'PROFILE' as const,
         available: !!profileValue,
         profileValue,
-        profileLabel: getProfileLabel(selectedSport),
+        profileLabel: getProfileLabel(selectedSport, locale),
       },
       {
         type: 'MANUAL' as const,
@@ -148,7 +181,7 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
     }
   }
 
-  const getProfileLabel = (sport: SportType): string => {
+  const getProfileLabel = (sport: SportType, locale: AppLocale): string => {
     switch (sport) {
       case 'CYCLING':
         return 'FTP'
@@ -157,21 +190,21 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
       case 'RUNNING':
         return 'VDOT'
       default:
-        return 'Värde'
+        return t(locale, 'Värde', 'Value')
     }
   }
 
   const handleNext = () => {
     if (currentStep === 1 && !selectedSport) {
-      toast.error('Välj en sport först')
+      toast.error(t(locale, 'Välj en sport först', 'Choose a sport first'))
       return
     }
     if (currentStep === 2 && !selectedGoal) {
-      toast.error('Välj ett mål först')
+      toast.error(t(locale, 'Välj ett mål först', 'Choose a goal first'))
       return
     }
     if (currentStep === 3 && !selectedDataSource) {
-      toast.error('Välj en datakälla först')
+      toast.error(t(locale, 'Välj en datakälla först', 'Choose a data source first'))
       return
     }
     setCurrentStep((prev) => Math.min(prev + 1, 4))
@@ -183,12 +216,15 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
 
   const handleSportSelect = (sport: SportType) => {
     setSelectedSport(sport)
+    setSelectedGoal(null)
+    setSelectedDataSource(null)
     // Auto-advance after short delay for better UX
     setTimeout(() => setCurrentStep(2), 300)
   }
 
   const handleGoalSelect = (goal: string) => {
     setSelectedGoal(goal)
+    setSelectedDataSource(null)
     setTimeout(() => setCurrentStep(3), 300)
   }
 
@@ -197,7 +233,7 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
     setTimeout(() => setCurrentStep(4), 300)
   }
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: ProgramFormData) => {
     setIsSubmitting(true)
 
     try {
@@ -216,15 +252,16 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Kunde inte skapa program')
+        const error = await response.json() as { message?: string }
+        throw new Error(error.message || t(locale, 'Kunde inte skapa program', 'Could not create program'))
       }
 
-      const result = await response.json()
-      toast.success('Program skapat!')
+      const result = await response.json() as { data: { id: string } }
+      toast.success(t(locale, 'Program skapat!', 'Program created!'))
       router.push(`${basePath}/programs/${result.data.id}`)
-    } catch (error: any) {
-      toast.error(error.message || 'Ett fel uppstod')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : null
+      toast.error(message || t(locale, 'Ett fel uppstod', 'Something went wrong'))
       setIsSubmitting(false)
     }
   }
@@ -243,6 +280,8 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
       testType: t.testType,
     })),
   }))
+  const selectedClientName = clients.find((client) => client.id === selectedClientId)?.name
+  const athletePromptName = selectedClientName || t(locale, 'en atlet', 'an athlete')
 
   return (
     <GlassCard className="w-full max-w-4xl mx-auto">
@@ -251,7 +290,7 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
         <div className="flex justify-end mb-4">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
             <X className="h-4 w-4 mr-1" />
-            Avbryt
+            {t(locale, 'Avbryt', 'Cancel')}
           </Button>
         </div>
 
@@ -309,7 +348,7 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
             disabled={currentStep === 1}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Tillbaka
+            {t(locale, 'Tillbaka', 'Back')}
           </Button>
 
           <div className="flex items-center gap-3">
@@ -317,24 +356,40 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
             {currentStep === 4 && selectedSport && selectedGoal && selectedClientId && (
               <AIContextButton
                 athleteId={selectedClientId}
-                athleteName={clients.find(c => c.id === selectedClientId)?.name}
-                buttonText="AI-hjälp"
+                athleteName={selectedClientName}
+                buttonText={t(locale, 'AI-hjälp', 'AI help')}
                 quickActions={[
                   {
-                    label: 'Granska programkonfiguration',
-                    prompt: `Jag skapar ett ${selectedSport === 'RUNNING' ? 'löp' : selectedSport === 'CYCLING' ? 'cykel' : 'tränings'}program för ${clients.find(c => c.id === selectedClientId)?.name || 'en atlet'} med målet "${selectedGoal}". Granska mina val och ge förslag på förbättringar eller justeringar innan jag genererar programmet.`,
+                    label: t(locale, 'Granska programkonfiguration', 'Review program configuration'),
+                    prompt: t(
+                      locale,
+                      `Jag skapar ett ${getProgramPromptLabel(selectedSport, locale)} för ${athletePromptName} med målet "${selectedGoal}". Granska mina val och ge förslag på förbättringar eller justeringar innan jag genererar programmet.`,
+                      `I am creating a ${getProgramPromptLabel(selectedSport, locale)} for ${athletePromptName} with the goal "${selectedGoal}". Review my choices and suggest improvements or adjustments before I generate the program.`
+                    ),
                   },
                   {
-                    label: 'Föreslå träningsupplägg',
-                    prompt: `Baserat på målet "${selectedGoal}" för ${selectedSport === 'RUNNING' ? 'löpning' : selectedSport === 'CYCLING' ? 'cykling' : 'träning'}, vilken periodisering och träningsupplägg rekommenderar du? Ge konkreta förslag på veckostruktur och intensitetsfördelning.`,
+                    label: t(locale, 'Föreslå träningsupplägg', 'Suggest training structure'),
+                    prompt: t(
+                      locale,
+                      `Baserat på målet "${selectedGoal}" för ${getSportPromptLabel(selectedSport, locale)}, vilken periodisering och träningsupplägg rekommenderar du? Ge konkreta förslag på veckostruktur och intensitetsfördelning.`,
+                      `Based on the goal "${selectedGoal}" for ${getSportPromptLabel(selectedSport, locale)}, what periodization and training structure do you recommend? Give concrete suggestions for weekly structure and intensity distribution.`
+                    ),
                   },
                   {
-                    label: 'Tips för Stockholm Marathon',
-                    prompt: `Ge mig specifika tips för att förbereda en atlet för Stockholm Marathon den 30 maj. Vilka nyckelfaser bör programmet innehålla och hur bör jag lägga upp de sista veckorna före loppet?`,
+                    label: t(locale, 'Tips för Stockholm Marathon', 'Stockholm Marathon tips'),
+                    prompt: t(
+                      locale,
+                      'Ge mig specifika tips för att förbereda en atlet för Stockholm Marathon den 30 maj. Vilka nyckelfaser bör programmet innehålla och hur bör jag lägga upp de sista veckorna före loppet?',
+                      'Give me specific tips for preparing an athlete for Stockholm Marathon on May 30. Which key phases should the program include, and how should I structure the final weeks before the race?'
+                    ),
                   },
                   {
-                    label: 'Anpassa för atletens nivå',
-                    prompt: `Hur bör jag anpassa träningsprogrammet baserat på atletens nuvarande konditionsnivå och erfarenhet? Vilka tecken ska jag leta efter för att veta om belastningen är rätt?`,
+                    label: t(locale, 'Anpassa för atletens nivå', "Adapt to athlete's level"),
+                    prompt: t(
+                      locale,
+                      'Hur bör jag anpassa träningsprogrammet baserat på atletens nuvarande konditionsnivå och erfarenhet? Vilka tecken ska jag leta efter för att veta om belastningen är rätt?',
+                      "How should I adapt the training program based on the athlete's current fitness level and experience? What signs should I look for to know whether the load is right?"
+                    ),
                   },
                 ]}
               />
@@ -342,7 +397,7 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
 
             {currentStep < 4 && (
               <Button onClick={handleNext}>
-                Nästa
+                {t(locale, 'Nästa', 'Next')}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             )}
