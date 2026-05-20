@@ -35,9 +35,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:message', user.id, {
       limit: 10,
@@ -52,7 +54,7 @@ export async function POST(
 
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Message content is required' },
+        { error: t(locale, 'Message content is required', 'Meddelandetext krävs') },
         { status: 400 }
       )
     }
@@ -83,7 +85,7 @@ export async function POST(
 
     if (!conversation) {
       return NextResponse.json(
-        { error: 'Conversation not found' },
+        { error: t(locale, 'Conversation not found', 'Konversationen hittades inte') },
         { status: 404 }
       )
     }
@@ -96,7 +98,7 @@ export async function POST(
 
     if (!apiKeysRow) {
       return NextResponse.json(
-        { error: 'API keys not configured' },
+        { error: t(locale, 'API keys are not configured', 'API-nycklar är inte konfigurerade') },
         { status: 400 }
       )
     }
@@ -411,10 +413,10 @@ When you suggest training programs, be specific with intensities, volumes, and f
 
     return NextResponse.json(
       {
-        error: 'Failed to send message',
+        error: t(locale, 'Failed to send message', 'Misslyckades med att skicka meddelande'),
         message:
           process.env.NODE_ENV === 'production'
-            ? 'Internal server error'
+            ? t(locale, 'Internal server error', 'Internt serverfel')
             : (error instanceof Error ? error.message : 'Unknown error'),
       },
       { status: 500 }
