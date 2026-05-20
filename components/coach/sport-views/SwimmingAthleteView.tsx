@@ -87,7 +87,7 @@ function getCssZones(css: number, locale: string) {
   ]
 }
 
-export function SwimmingAthleteView({ clientId, clientName, settings }: SwimmingAthleteViewProps) {
+export function SwimmingAthleteView({ clientId, clientName: _clientName, settings }: SwimmingAthleteViewProps) {
   const locale = useLocale()
   const isSv = locale === 'sv'
   const t = (sv: string, en: string) => isSv ? sv : en
