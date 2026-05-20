@@ -23,6 +23,7 @@ function t(locale: AppLocale, en: string, sv: string) {
 // GET /api/clients - Hämta alla klienter för inloggad användare
 // Supports pagination: ?limit=50&offset=0 (defaults: limit=500, offset=0)
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
 
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       )
     }
+    locale = resolveLocale(user.language)
 
     const searchParams = request.nextUrl.searchParams
     const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '500') || 500), 500)
@@ -90,7 +92,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch clients',
+        error: t(
+          locale,
+          'Failed to fetch clients',
+          'Kunde inte hämta klienter',
+        ),
       },
       { status: 500 }
     )
@@ -122,7 +128,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: t(
+            locale,
+            'Validation failed',
+            'Valideringen misslyckades',
+          ),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -139,7 +149,14 @@ export async function POST(request: NextRequest) {
       const team = await getWritableTeam(user.id, data.teamId, scope.businessSlug, 'roster')
       if (!team) {
         return NextResponse.json(
-          { success: false, error: 'Team not found or unauthorized' },
+          {
+            success: false,
+            error: t(
+              locale,
+              'Team not found or unauthorized',
+              'Laget hittades inte eller saknar behörighet',
+            ),
+          },
           { status: 404 }
         )
       }
@@ -269,10 +286,22 @@ export async function POST(request: NextRequest) {
         data: client,
         athleteAccountCreated, // Boolean flag instead of credentials
         message: athleteAccountCreated
-          ? 'Client and athlete account created successfully. Login credentials have been sent to the athlete\'s email.'
+          ? t(
+              locale,
+              'Client and athlete account created successfully. Login credentials have been sent to the athlete\'s email.',
+              'Klient och atletkonto har skapats. Inloggningsuppgifter har skickats till atletens e-post.',
+            )
           : client.email
-            ? 'Client created successfully (athlete account creation failed)'
-            : 'Client created successfully (no email provided for athlete account)',
+            ? t(
+                locale,
+                'Client created successfully (athlete account creation failed)',
+                'Klienten har skapats (atletkontot kunde inte skapas)',
+              )
+            : t(
+                locale,
+                'Client created successfully (no email provided for athlete account)',
+                'Klienten har skapats (ingen e-post angavs för atletkonto)',
+              ),
       },
       { status: 201 }
     )

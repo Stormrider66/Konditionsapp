@@ -30,6 +30,7 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
 
@@ -42,6 +43,7 @@ export async function GET(
         { status: 401 }
       )
     }
+    locale = resolveLocale(user.language)
 
     const { id } = await params
     const scope = getRequestedBusinessScope(request)
@@ -116,7 +118,11 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Client not found',
+          error: t(
+            locale,
+            'Client not found',
+            'Klienten hittades inte',
+          ),
         },
         { status: 404 }
       )
@@ -178,7 +184,11 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch client',
+        error: t(
+          locale,
+          'Failed to fetch client',
+          'Kunde inte hämta klienten',
+        ),
       },
       { status: 500 }
     )
@@ -235,6 +245,7 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
 
@@ -247,7 +258,7 @@ export async function PUT(
         { status: 401 }
       )
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveLocale(user.language)
 
     const { id } = await params
     const scope = getRequestedBusinessScope(request)
@@ -263,7 +274,11 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: t(
+            locale,
+            'Validation failed',
+            'Valideringen misslyckades',
+          ),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -276,7 +291,14 @@ export async function PUT(
       const team = await getWritableTeam(user.id, data.teamId, scope.businessSlug, 'roster')
       if (!team) {
         return NextResponse.json(
-          { success: false, error: 'Team not found or unauthorized' },
+          {
+            success: false,
+            error: t(
+              locale,
+              'Team not found or unauthorized',
+              'Laget hittades inte eller saknar behörighet',
+            ),
+          },
           { status: 404 }
         )
       }
@@ -327,7 +349,11 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Client not found or unauthorized',
+          error: t(
+            locale,
+            'Client not found or unauthorized',
+            'Klienten hittades inte eller saknar behörighet',
+          ),
         },
         { status: 404 }
       )
@@ -468,14 +494,22 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: client,
-      message: 'Client updated successfully',
+      message: t(
+        locale,
+        'Client updated successfully',
+        'Klienten har uppdaterats',
+      ),
     })
   } catch (error) {
     logger.error('Error updating client', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update client',
+        error: t(
+          locale,
+          'Failed to update client',
+          'Kunde inte uppdatera klienten',
+        ),
       },
       { status: 500 }
     )
@@ -487,6 +521,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
 
@@ -499,6 +534,7 @@ export async function DELETE(
         { status: 401 }
       )
     }
+    locale = resolveLocale(user.language)
 
     const { id } = await params
     const scope = getRequestedBusinessScope(request)
@@ -522,7 +558,11 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Client not found or unauthorized',
+          error: t(
+            locale,
+            'Client not found or unauthorized',
+            'Klienten hittades inte eller saknar behörighet',
+          ),
         },
         { status: 404 }
       )
@@ -532,14 +572,22 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Client deleted successfully',
+      message: t(
+        locale,
+        'Client deleted successfully',
+        'Klienten har tagits bort',
+      ),
     })
   } catch (error) {
     logger.error('Error deleting client', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete client',
+        error: t(
+          locale,
+          'Failed to delete client',
+          'Kunde inte ta bort klienten',
+        ),
       },
       { status: 500 }
     )
