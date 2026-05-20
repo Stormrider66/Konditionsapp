@@ -449,13 +449,17 @@ export function PoseAnalyzer({
   const saveAnalysis = () => {
     if (frames.length > 0 && onAnalysisComplete) {
       const goodCount = currentAngles.filter(a => a.status === 'good').length
-      const editNote = hasEdits ? ' (med manuella korrigeringar)' : ''
-      const summary = `Analyserade ${frames.length} frames. ${goodCount}/${currentAngles.length} ledvinklar inom optimalt intervall.${editNote}`
+      const editNote = hasEdits ? text(locale, ' (med manuella korrigeringar)', ' (with manual corrections)') : ''
+      const summary = text(
+        locale,
+        `Analyserade ${frames.length} frames. ${goodCount}/${currentAngles.length} ledvinklar inom optimalt intervall.${editNote}`,
+        `Analyzed ${frames.length} frames. ${goodCount}/${currentAngles.length} joint angles within the optimal range.${editNote}`
+      )
       onAnalysisComplete({ frames, angles: currentAngles, summary })
     } else if (frames.length === 0) {
       toast({
-        title: 'Ingen data att spara',
-        description: 'Kör analysen först för att få data att spara.',
+        title: text(locale, 'Ingen data att spara', 'No data to save'),
+        description: text(locale, 'Kör analysen först för att få data att spara.', 'Run the analysis first to get data to save.'),
         variant: 'destructive',
       })
     }
@@ -833,23 +837,23 @@ export function PoseAnalyzer({
 
   // Landmark names for display
   const landmarkNames: Record<number, string> = {
-    [POSE_LANDMARKS.NOSE]: 'Näsa',
-    [POSE_LANDMARKS.LEFT_SHOULDER]: 'Vänster axel',
-    [POSE_LANDMARKS.RIGHT_SHOULDER]: 'Höger axel',
-    [POSE_LANDMARKS.LEFT_ELBOW]: 'Vänster armbåge',
-    [POSE_LANDMARKS.RIGHT_ELBOW]: 'Höger armbåge',
-    [POSE_LANDMARKS.LEFT_WRIST]: 'Vänster handled',
-    [POSE_LANDMARKS.RIGHT_WRIST]: 'Höger handled',
-    [POSE_LANDMARKS.LEFT_HIP]: 'Vänster höft',
-    [POSE_LANDMARKS.RIGHT_HIP]: 'Höger höft',
-    [POSE_LANDMARKS.LEFT_KNEE]: 'Vänster knä',
-    [POSE_LANDMARKS.RIGHT_KNEE]: 'Höger knä',
-    [POSE_LANDMARKS.LEFT_ANKLE]: 'Vänster fotled',
-    [POSE_LANDMARKS.RIGHT_ANKLE]: 'Höger fotled',
-    [POSE_LANDMARKS.LEFT_HEEL]: 'Vänster häl',
-    [POSE_LANDMARKS.RIGHT_HEEL]: 'Höger häl',
-    [POSE_LANDMARKS.LEFT_FOOT_INDEX]: 'Vänster tå',
-    [POSE_LANDMARKS.RIGHT_FOOT_INDEX]: 'Höger tå',
+    [POSE_LANDMARKS.NOSE]: text(locale, 'Näsa', 'Nose'),
+    [POSE_LANDMARKS.LEFT_SHOULDER]: text(locale, 'Vänster axel', 'Left shoulder'),
+    [POSE_LANDMARKS.RIGHT_SHOULDER]: text(locale, 'Höger axel', 'Right shoulder'),
+    [POSE_LANDMARKS.LEFT_ELBOW]: text(locale, 'Vänster armbåge', 'Left elbow'),
+    [POSE_LANDMARKS.RIGHT_ELBOW]: text(locale, 'Höger armbåge', 'Right elbow'),
+    [POSE_LANDMARKS.LEFT_WRIST]: text(locale, 'Vänster handled', 'Left wrist'),
+    [POSE_LANDMARKS.RIGHT_WRIST]: text(locale, 'Höger handled', 'Right wrist'),
+    [POSE_LANDMARKS.LEFT_HIP]: text(locale, 'Vänster höft', 'Left hip'),
+    [POSE_LANDMARKS.RIGHT_HIP]: text(locale, 'Höger höft', 'Right hip'),
+    [POSE_LANDMARKS.LEFT_KNEE]: text(locale, 'Vänster knä', 'Left knee'),
+    [POSE_LANDMARKS.RIGHT_KNEE]: text(locale, 'Höger knä', 'Right knee'),
+    [POSE_LANDMARKS.LEFT_ANKLE]: text(locale, 'Vänster fotled', 'Left ankle'),
+    [POSE_LANDMARKS.RIGHT_ANKLE]: text(locale, 'Höger fotled', 'Right ankle'),
+    [POSE_LANDMARKS.LEFT_HEEL]: text(locale, 'Vänster häl', 'Left heel'),
+    [POSE_LANDMARKS.RIGHT_HEEL]: text(locale, 'Höger häl', 'Right heel'),
+    [POSE_LANDMARKS.LEFT_FOOT_INDEX]: text(locale, 'Vänster tå', 'Left toe'),
+    [POSE_LANDMARKS.RIGHT_FOOT_INDEX]: text(locale, 'Höger tå', 'Right toe'),
   }
 
   // Find landmark at position (hit detection)
@@ -1006,10 +1010,10 @@ export function PoseAnalyzer({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Scan className="h-5 w-5" />
-            Pose-analys
+            {text(locale, 'Pose-analys', 'Pose analysis')}
           </CardTitle>
           <CardDescription>
-            MediaPipe BlazePose - Skelettspårning i realtid
+            {text(locale, 'MediaPipe BlazePose - Skelettspårning i realtid', 'MediaPipe BlazePose - real-time skeleton tracking')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1017,30 +1021,30 @@ export function PoseAnalyzer({
             <div className="rounded-lg border bg-muted/40 p-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Scan className="h-4 w-4 text-blue-600" />
-                1. Starta
+                {text(locale, '1. Starta', '1. Start')}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Skannar videon och ritar skelettspår.</p>
+              <p className="mt-1 text-xs text-muted-foreground">{text(locale, 'Skannar videon och ritar skelettspår.', 'Scans the video and draws skeleton tracking.')}</p>
             </div>
             <div className="rounded-lg border bg-muted/40 p-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Eye className="h-4 w-4 text-blue-600" />
-                2. Granska
+                {text(locale, '2. Granska', '2. Review')}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Spela frame för frame och justera punkter vid behov.</p>
+              <p className="mt-1 text-xs text-muted-foreground">{text(locale, 'Spela frame för frame och justera punkter vid behov.', 'Play frame by frame and adjust points when needed.')}</p>
             </div>
             <div className="rounded-lg border bg-muted/40 p-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Save className="h-4 w-4 text-blue-600" />
-                3. Spara
+                {text(locale, '3. Spara', '3. Save')}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">Sparas på videon och visas under resultat.</p>
+              <p className="mt-1 text-xs text-muted-foreground">{text(locale, 'Sparas på videon och visas under resultat.', 'Saved on the video and shown under results.')}</p>
             </div>
           </div>
 
           {hasSavedPoseData && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
               <CheckCircle2 className="h-4 w-4" />
-              <span className="font-medium">Poseanalys är sparad</span>
+              <span className="font-medium">{text(locale, 'Poseanalys är sparad', 'Pose analysis is saved')}</span>
               {savedFrameCount ? <span>{savedFrameCount} frames</span> : null}
               {poseSavedAt ? <span>{poseSavedAt}</span> : null}
             </div>
@@ -1089,8 +1093,8 @@ export function PoseAnalyzer({
               <div className="absolute inset-0 flex items-center justify-center bg-black/70">
                 <div className="text-center text-white">
                   <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-yellow-400" />
-                  <p>Kunde inte ladda videon</p>
-                  <p className="text-sm text-gray-400 mt-1">Kontrollera att videon fortfarande finns tillgänglig</p>
+                  <p>{text(locale, 'Kunde inte ladda videon', 'Could not load the video')}</p>
+                  <p className="text-sm text-gray-400 mt-1">{text(locale, 'Kontrollera att videon fortfarande finns tillgänglig', 'Check that the video is still available')}</p>
                 </div>
               </div>
             )}
@@ -1099,7 +1103,13 @@ export function PoseAnalyzer({
               <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                 <div className="text-center text-white">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  <p>{!blobUrl ? 'Laddar video...' : !videoReady ? 'Buffrar video...' : 'Laddar posemodell...'}</p>
+                  <p>
+                    {!blobUrl
+                      ? text(locale, 'Laddar video...', 'Loading video...')
+                      : !videoReady
+                        ? text(locale, 'Buffrar video...', 'Buffering video...')
+                        : text(locale, 'Laddar posemodell...', 'Loading pose model...')}
+                  </p>
                 </div>
               </div>
             )}
@@ -1109,7 +1119,7 @@ export function PoseAnalyzer({
           {isAnalyzing && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Analyserar video...</span>
+                <span>{text(locale, 'Analyserar video...', 'Analyzing video...')}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} />
@@ -1127,12 +1137,12 @@ export function PoseAnalyzer({
                 {poseLoaded && videoReady ? (
                   <>
                     <Scan className="h-4 w-4 mr-2" />
-                    Starta poseanalys
+                    {text(locale, 'Starta poseanalys', 'Start pose analysis')}
                   </>
                 ) : (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Laddar...
+                    {text(locale, 'Laddar...', 'Loading...')}
                   </>
                 )}
               </Button>
@@ -1148,12 +1158,12 @@ export function PoseAnalyzer({
                       {isSaving ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Sparar...
+                          {text(locale, 'Sparar...', 'Saving...')}
                         </>
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-2" />
-                          {hasSavedPoseData ? 'Uppdatera poseanalys' : 'Spara poseanalys'}
+                          {hasSavedPoseData ? text(locale, 'Uppdatera poseanalys', 'Update pose analysis') : text(locale, 'Spara poseanalys', 'Save pose analysis')}
                         </>
                       )}
                     </Button>
@@ -1161,7 +1171,7 @@ export function PoseAnalyzer({
                       variant="outline"
                       onClick={startReviewMode}
                       disabled={isSaving || frames.length === 0}
-                      title="Granska analysen"
+                      title={text(locale, 'Granska analysen', 'Review analysis')}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -1195,7 +1205,7 @@ export function PoseAnalyzer({
                         size="sm"
                         onClick={jumpBackward}
                         disabled={currentFrameIndex === 0}
-                        title="Hoppa tillbaka 10 frames"
+                        title={text(locale, 'Hoppa tillbaka 10 frames', 'Jump back 10 frames')}
                       >
                         <Rewind className="h-4 w-4" />
                       </Button>
@@ -1204,7 +1214,7 @@ export function PoseAnalyzer({
                         size="sm"
                         onClick={stepBackward}
                         disabled={currentFrameIndex === 0}
-                        title="Föregående frame"
+                        title={text(locale, 'Föregående frame', 'Previous frame')}
                       >
                         <SkipBack className="h-4 w-4" />
                       </Button>
@@ -1217,12 +1227,12 @@ export function PoseAnalyzer({
                         {isReviewPlaying ? (
                           <>
                             <Pause className="h-4 w-4 mr-1" />
-                            Paus
+                            {text(locale, 'Paus', 'Pause')}
                           </>
                         ) : (
                           <>
                             <Play className="h-4 w-4 mr-1" />
-                            Spela
+                            {text(locale, 'Spela', 'Play')}
                           </>
                         )}
                       </Button>
@@ -1231,7 +1241,7 @@ export function PoseAnalyzer({
                         size="sm"
                         onClick={stepForward}
                         disabled={currentFrameIndex === frames.length - 1}
-                        title="Nästa frame"
+                        title={text(locale, 'Nästa frame', 'Next frame')}
                       >
                         <SkipForward className="h-4 w-4" />
                       </Button>
@@ -1240,7 +1250,7 @@ export function PoseAnalyzer({
                         size="sm"
                         onClick={jumpForward}
                         disabled={currentFrameIndex === frames.length - 1}
-                        title="Hoppa framåt 10 frames"
+                        title={text(locale, 'Hoppa framåt 10 frames', 'Jump forward 10 frames')}
                       >
                         <FastForward className="h-4 w-4" />
                       </Button>
@@ -1251,7 +1261,7 @@ export function PoseAnalyzer({
                         size="sm"
                         onClick={cyclePlaybackSpeed}
                         className="min-w-[70px]"
-                        title="Byt uppspelningshastighet"
+                        title={text(locale, 'Byt uppspelningshastighet', 'Change playback speed')}
                       >
                         {playbackSpeed}x
                       </Button>
@@ -1265,7 +1275,7 @@ export function PoseAnalyzer({
                             drawFrameAtIndex(currentFrameIndex)
                           }
                         }}
-                        title={isEditMode ? "Avsluta redigeringsläge" : "Redigera landmärken"}
+                        title={isEditMode ? text(locale, 'Avsluta redigeringsläge', 'Exit edit mode') : text(locale, 'Redigera landmärken', 'Edit landmarks')}
                         className={isEditMode ? "bg-yellow-500 hover:bg-yellow-600" : ""}
                       >
                         {isEditMode ? <MousePointer className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
@@ -1278,23 +1288,23 @@ export function PoseAnalyzer({
                           exitReviewMode()
                         }}
                       >
-                        Avsluta granskning
+                        {text(locale, 'Avsluta granskning', 'Exit review')}
                       </Button>
                     </div>
                     {/* Edit mode indicator */}
                     {isEditMode && (
                       <div className="text-center text-xs">
                         <span className="text-yellow-600 font-medium">
-                          Redigeringsläge aktivt
+                          {text(locale, 'Redigeringsläge aktivt', 'Edit mode active')}
                         </span>
                         {hoveredLandmark !== null && (
                           <span className="ml-2 text-blue-600">
-                            {landmarkNames[hoveredLandmark] || `Punkt ${hoveredLandmark}`}
+                            {landmarkNames[hoveredLandmark] || text(locale, `Punkt ${hoveredLandmark}`, `Point ${hoveredLandmark}`)}
                           </span>
                         )}
                         {hasEdits && (
                           <span className="ml-2 text-green-600">
-                            (ändringar sparade i sessionen)
+                            {text(locale, '(ändringar sparade i sessionen)', '(changes saved in the session)')}
                           </span>
                         )}
                       </div>
@@ -1327,7 +1337,7 @@ export function PoseAnalyzer({
           {/* Joint angles display */}
           {currentAngles.length > 0 && (
             <div className="space-y-2">
-              <h4 className="font-medium text-sm">Ledvinklar i realtid</h4>
+              <h4 className="font-medium text-sm">{text(locale, 'Ledvinklar i realtid', 'Real-time joint angles')}</h4>
               <div className="grid grid-cols-2 gap-2">
                 {currentAngles.map((angle, i) => (
                   <div
@@ -1346,7 +1356,7 @@ export function PoseAnalyzer({
               {/* Min/Max angle summary - shown after some frames are analyzed */}
               {angleRanges.size > 0 && frames.length > 10 && (
                 <div className="mt-4 space-y-2">
-                  <h4 className="font-medium text-sm">Vinkelintervall (min/max)</h4>
+                  <h4 className="font-medium text-sm">{text(locale, 'Vinkelintervall (min/max)', 'Angle range (min/max)')}</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {Array.from(angleRanges.values()).map((range, i) => (
                       <div
@@ -1370,10 +1380,10 @@ export function PoseAnalyzer({
           {frames.length > 0 && (
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span>Analyserade frames: {frames.length}</span>
+                <span>{text(locale, 'Analyserade frames', 'Analyzed frames')}: {frames.length}</span>
                 {detectedCameraAngle !== 'UNKNOWN' && (
                   <Badge variant="outline" className={detectedCameraAngle === 'SAGITTAL' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}>
-                    {detectedCameraAngle === 'SAGITTAL' ? '📐 Sidovy' : '👀 Fram-/Bakvy'}
+                    {detectedCameraAngle === 'SAGITTAL' ? text(locale, 'Sidovy', 'Side view') : text(locale, 'Fram-/Bakvy', 'Front/back view')}
                   </Badge>
                 )}
               </div>
@@ -1388,12 +1398,12 @@ export function PoseAnalyzer({
                   {isAnalyzingWithAI ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Analyserar med AI...
+                      {text(locale, 'Analyserar med AI...', 'Analyzing with AI...')}
                     </>
                   ) : (
                     <>
                       <Brain className="h-4 w-4" />
-                      Analysera med Gemini
+                      {text(locale, 'Analysera med Gemini', 'Analyze with Gemini')}
                     </>
                   )}
                 </Button>
@@ -1417,14 +1427,14 @@ export function PoseAnalyzer({
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Brain className="h-5 w-5 text-purple-600" />
-              Gemini AI-analys av posedata
+              {text(locale, 'Gemini AI-analys av posedata', 'Gemini AI analysis of pose data')}
               <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">
                 Gemini
               </Badge>
             </CardTitle>
             {aiPoseAnalysis.score !== undefined && (
               <CardDescription className="flex items-center gap-2">
-                <span>AI-poäng:</span>
+                <span>{text(locale, 'AI-poäng:', 'AI score:')}</span>
                 <span className={`font-bold ${aiPoseAnalysis.score >= 70 ? 'text-green-600' : aiPoseAnalysis.score >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
                   {aiPoseAnalysis.score}%
                 </span>
@@ -1436,7 +1446,7 @@ export function PoseAnalyzer({
             <div className="p-3 bg-white rounded-lg border">
               <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-purple-500" />
-                Tolkning
+                {text(locale, 'Tolkning', 'Interpretation')}
               </h4>
               <p className="text-sm text-muted-foreground">{aiPoseAnalysis.interpretation}</p>
             </div>
@@ -1444,13 +1454,13 @@ export function PoseAnalyzer({
             {/* Technical Feedback */}
             {aiPoseAnalysis.technicalFeedback.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium">Teknisk feedback</h4>
+                <h4 className="text-sm font-medium">{text(locale, 'Teknisk feedback', 'Technical feedback')}</h4>
                 {aiPoseAnalysis.technicalFeedback.map((fb, i) => (
                   <div key={i} className="p-3 bg-white rounded-lg border">
                     <div className="font-medium text-sm text-purple-700">{fb.area}</div>
-                    <p className="text-sm mt-1"><strong>Observation:</strong> {fb.observation}</p>
-                    <p className="text-sm text-orange-600"><strong>Påverkan:</strong> {fb.impact}</p>
-                    <p className="text-sm text-green-600"><strong>Förslag:</strong> {fb.suggestion}</p>
+                    <p className="text-sm mt-1"><strong>{text(locale, 'Observation:', 'Observation:')}</strong> {fb.observation}</p>
+                    <p className="text-sm text-orange-600"><strong>{text(locale, 'Påverkan:', 'Impact:')}</strong> {fb.impact}</p>
+                    <p className="text-sm text-green-600"><strong>{text(locale, 'Förslag:', 'Suggestion:')}</strong> {fb.suggestion}</p>
                   </div>
                 ))}
               </div>
@@ -1459,7 +1469,7 @@ export function PoseAnalyzer({
             {/* Patterns */}
             {aiPoseAnalysis.patterns.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium">Identifierade mönster</h4>
+                <h4 className="text-sm font-medium">{text(locale, 'Identifierade mönster', 'Identified patterns')}</h4>
                 <div className="grid gap-2">
                   {aiPoseAnalysis.patterns.map((p, i) => (
                     <div key={i} className="p-2 bg-white rounded-lg border flex items-start gap-2">
@@ -1477,7 +1487,7 @@ export function PoseAnalyzer({
             {/* Recommendations */}
             {aiPoseAnalysis.recommendations.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium">Rekommendationer</h4>
+                <h4 className="text-sm font-medium">{text(locale, 'Rekommendationer', 'Recommendations')}</h4>
                 {aiPoseAnalysis.recommendations
                   .sort((a, b) => a.priority - b.priority)
                   .map((rec, i) => (
@@ -1505,7 +1515,7 @@ export function PoseAnalyzer({
 
             {/* Overall Assessment */}
             <div className="p-3 bg-purple-100 rounded-lg border border-purple-200">
-              <h4 className="text-sm font-medium mb-1 text-purple-800">Sammanfattning</h4>
+              <h4 className="text-sm font-medium mb-1 text-purple-800">{text(locale, 'Sammanfattning', 'Summary')}</h4>
               <p className="text-sm text-purple-700">{aiPoseAnalysis.overallAssessment}</p>
             </div>
           </CardContent>
