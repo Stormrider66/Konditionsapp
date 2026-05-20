@@ -9,8 +9,8 @@ import { prisma } from '@/lib/prisma'
 import { BusinessManagementClient } from '@/components/coach/business/BusinessManagementClient'
 
 export const metadata = {
-  title: 'Verksamhet | Coach',
-  description: 'Hantera din verksamhet, testare och platser',
+  title: 'Business | Coach',
+  description: 'Manage your business, testers, and locations',
 }
 
 export default async function BusinessManagementPage() {
