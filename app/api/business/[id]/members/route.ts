@@ -127,20 +127,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       try {
         const emailBranding = await resolveEmailBranding(id, { senderUserId: user.id })
         const buttonColor = emailBranding.primaryColor
+        const businessName = business?.name || 'a team'
+        const roleLabel = role === 'ADMIN' ? 'an administrator' : 'a member'
         await sendGenericEmail({
           to: email,
-          subject: `Inbjudan till ${business?.name || 'ett team'}`,
+          subject: `Invitation to ${businessName}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2>Du har blivit inbjuden!</h2>
-              <p>Du har blivit inbjuden att gå med i <strong>${business?.name || 'ett team'}</strong> som ${role === 'ADMIN' ? 'administratör' : 'medlem'}.</p>
+              <h2>You have been invited!</h2>
+              <p>You have been invited to join <strong>${businessName}</strong> as ${roleLabel}.</p>
               <p>
                 <a href="${acceptLink}" style="display: inline-block; background-color: ${buttonColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                  Acceptera inbjudan
+                  Accept invitation
                 </a>
               </p>
               <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-                Denna inbjudan är giltig i 30 dagar.
+                This invitation is valid for 30 days.
               </p>
             </div>
           `,

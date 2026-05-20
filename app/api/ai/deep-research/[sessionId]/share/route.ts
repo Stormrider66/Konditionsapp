@@ -161,20 +161,20 @@ export async function POST(
 
         await sendGenericEmail({
           to: athlete.email,
-          subject: `Ny forskningsrapport delad: ${session.query}`,
+          subject: `New research report shared: ${session.query}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2>Forskningsrapport delad med dig</h2>
-              <p>Hej ${athlete.name},</p>
-              <p>Din coach har delat en forskningsrapport med dig:</p>
+              <h2>A research report was shared with you</h2>
+              <p>Hi ${athlete.name},</p>
+              <p>Your coach has shared a research report with you:</p>
               <p style="font-weight: bold; color: #1f2937;">${session.query}</p>
               <p>
                 <a href="${viewLink}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
-                  Visa rapport
+                  View report
                 </a>
               </p>
               <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-                Detta meddelande skickades automatiskt.
+                This message was sent automatically.
               </p>
             </div>
           `,
