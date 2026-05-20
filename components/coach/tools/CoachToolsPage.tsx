@@ -20,6 +20,7 @@ import { InjuryAssessmentForm } from '@/components/coach/injury/InjuryAssessment
 import { GoalZoneWizard } from '@/components/coach/goal-based/GoalZoneWizard';
 import { prisma } from '@/lib/prisma';
 import { Calculator, Thermometer, Activity, AlertTriangle, Target } from 'lucide-react';
+import { getLocale } from 'next-intl/server';
 
 interface CoachToolsPageProps {
   businessSlug?: string;
@@ -27,6 +28,8 @@ interface CoachToolsPageProps {
 
 export default async function CoachToolsPage({ businessSlug }: CoachToolsPageProps = {}) {
   const user = await requireCoach();
+  const locale = (await getLocale()) === 'sv' ? 'sv' : 'en';
+  const copy = (en: string, sv: string) => locale === 'sv' ? sv : en;
   const membership = businessSlug
     ? await validateBusinessMembership(user.id, businessSlug)
     : null;
@@ -72,19 +75,19 @@ export default async function CoachToolsPage({ businessSlug }: CoachToolsPagePro
           </TabsTrigger>
           <TabsTrigger value="goal-zones">
             <Target className="h-4 w-4 mr-2" />
-            Målzoner
+            {copy('Goal zones', 'Målzoner')}
           </TabsTrigger>
           <TabsTrigger value="environmental">
             <Thermometer className="h-4 w-4 mr-2" />
-            Miljö
+            {copy('Environment', 'Miljö')}
           </TabsTrigger>
           <TabsTrigger value="cross-training">
             <Activity className="h-4 w-4 mr-2" />
-            Korsträning
+            {copy('Cross-training', 'Korsträning')}
           </TabsTrigger>
           <TabsTrigger value="injury">
             <AlertTriangle className="h-4 w-4 mr-2" />
-            Skada
+            {copy('Injury', 'Skada')}
           </TabsTrigger>
         </TabsList>
 
