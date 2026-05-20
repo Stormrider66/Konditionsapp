@@ -11,13 +11,14 @@
  */
 
 import { useState } from 'react';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Droplets, Camera, Heart, CheckCircle, History } from 'lucide-react';
+import { Droplets, Heart, CheckCircle, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LactateScanButton } from '@/components/shared/LactateScanButton';
 import type { LactateMeterOCRResult } from '@/lib/validations/gemini-schemas';
@@ -39,13 +40,22 @@ interface LactateReading {
   timestamp: Date;
 }
 
+type AppLocale = 'en' | 'sv';
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en');
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+);
+
 export function QuickLactateCapture({
   clientId,
   workoutId,
   workoutContext,
-  intervalNumber,
+  intervalNumber: _intervalNumber,
   onCapture,
 }: QuickLactateCaptureProps) {
+  const locale = getAppLocale(useLocale());
   const { toast } = useToast();
   const [lactateValue, setLactateValue] = useState<number | null>(null);
   const [heartRate, setHeartRate] = useState<string>('');
@@ -62,8 +72,8 @@ export function QuickLactateCapture({
   async function handleSave() {
     if (lactateValue === null) {
       toast({
-        title: 'Inget laktatvärde',
-        description: 'Scanna eller ange ett laktatvärde först',
+        title: t(locale, 'Inget laktatvärde', 'No lactate value'),
+        description: t(locale, 'Scanna eller ange ett laktatvärde först', 'Scan or enter a lactate value first'),
         variant: 'destructive',
       });
       return;
@@ -92,7 +102,7 @@ export function QuickLactateCapture({
       });
 
       if (!response.ok) {
-        throw new Error('Kunde inte spara laktatvärdet');
+        throw new Error('Failed to save lactate reading');
       }
 
       // Add to recent readings
@@ -105,16 +115,16 @@ export function QuickLactateCapture({
       setConfidence(null);
 
       toast({
-        title: 'Laktatvärde sparat!',
-        description: `${reading.lactateValue} mmol/L har registrerats`,
+        title: t(locale, 'Laktatvärde sparat!', 'Lactate value saved!'),
+        description: t(locale, `${reading.lactateValue} mmol/L har registrerats`, `${reading.lactateValue} mmol/L has been recorded`),
       });
 
       onCapture?.(reading);
     } catch (error) {
       console.error('Failed to save lactate reading:', error);
       toast({
-        title: 'Kunde inte spara',
-        description: 'Försök igen senare',
+        title: t(locale, 'Kunde inte spara', 'Could not save'),
+        description: t(locale, 'Försök igen senare', 'Try again later'),
         variant: 'destructive',
       });
     } finally {
@@ -137,10 +147,10 @@ export function QuickLactateCapture({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <Droplets className="h-5 w-5 text-red-500" />
-          Snabbregistrering
+          {t(locale, 'Snabbregistrering', 'Quick capture')}
         </CardTitle>
         <CardDescription>
-          Ta en bild på laktatmätaren eller ange värdet manuellt
+          {t(locale, 'Ta en bild på laktatmätaren eller ange värdet manuellt', 'Take a photo of the lactate meter or enter the value manually')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -152,20 +162,20 @@ export function QuickLactateCapture({
             testStageContext={workoutContext}
             variant="default"
             size="lg"
-            buttonText="Ta foto av mätare"
+            buttonText={t(locale, 'Ta foto av mätare', 'Take meter photo')}
             className="w-full h-14 text-lg"
           />
 
           <div className="flex items-center gap-2 w-full">
             <div className="h-px bg-border flex-1" />
-            <span className="text-xs text-muted-foreground px-2">eller ange manuellt</span>
+            <span className="text-xs text-muted-foreground px-2">{t(locale, 'eller ange manuellt', 'or enter manually')}</span>
             <div className="h-px bg-border flex-1" />
           </div>
         </div>
 
         {/* Lactate Value Display/Input */}
         <div className="space-y-2">
-          <Label htmlFor="lactate">Laktatvärde (mmol/L)</Label>
+          <Label htmlFor="lactate">{t(locale, 'Laktatvärde (mmol/L)', 'Lactate value (mmol/L)')}</Label>
           <div className="flex gap-2 items-center">
             <Input
               id="lactate"
@@ -174,7 +184,7 @@ export function QuickLactateCapture({
               min="0"
               max="25"
               inputMode="decimal"
-              placeholder="t.ex. 2.5"
+              placeholder={t(locale, 't.ex. 2.5', 'e.g. 2.5')}
               value={lactateValue ?? ''}
               onChange={(e) => handleManualEntry(e.target.value)}
               className="h-12 text-lg font-semibold"
@@ -191,13 +201,13 @@ export function QuickLactateCapture({
         <div className="space-y-2">
           <Label htmlFor="hr" className="flex items-center gap-1">
             <Heart className="h-3 w-3" />
-            Puls (valfritt)
+            {t(locale, 'Puls (valfritt)', 'Heart rate (optional)')}
           </Label>
           <Input
             id="hr"
             type="number"
             inputMode="numeric"
-            placeholder="t.ex. 155"
+            placeholder={t(locale, 't.ex. 155', 'e.g. 155')}
             value={heartRate}
             onChange={(e) => setHeartRate(e.target.value)}
             className="h-10"
@@ -206,7 +216,7 @@ export function QuickLactateCapture({
 
         {/* Optional: RPE */}
         <div className="space-y-2">
-          <Label>RPE (1-10, valfritt)</Label>
+          <Label>{t(locale, 'RPE (1-10, valfritt)', 'RPE (1-10, optional)')}</Label>
           <div className="flex gap-1 flex-wrap">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
               <Button
@@ -227,7 +237,7 @@ export function QuickLactateCapture({
         {workoutContext && (
           <Alert className="bg-muted/50">
             <AlertDescription className="text-sm">
-              <span className="font-medium">Träningspass: </span>
+              <span className="font-medium">{t(locale, 'Träningspass:', 'Workout:')} </span>
               {workoutContext}
             </AlertDescription>
           </Alert>
@@ -240,7 +250,7 @@ export function QuickLactateCapture({
           className="w-full h-12"
         >
           <CheckCircle className="h-4 w-4 mr-2" />
-          {isSaving ? 'Sparar...' : 'Spara laktatvärde'}
+          {isSaving ? t(locale, 'Sparar...', 'Saving...') : t(locale, 'Spara laktatvärde', 'Save lactate value')}
         </Button>
 
         {/* Recent Readings */}
@@ -248,7 +258,7 @@ export function QuickLactateCapture({
           <div className="pt-4 border-t">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
               <History className="h-4 w-4" />
-              Senaste mätningar
+              {t(locale, 'Senaste mätningar', 'Recent readings')}
             </div>
             <div className="space-y-1">
               {recentReadings.map((reading, index) => (
@@ -265,7 +275,7 @@ export function QuickLactateCapture({
                       </span>
                     )}
                     <span>
-                      {reading.timestamp.toLocaleTimeString('sv-SE', {
+                      {reading.timestamp.toLocaleTimeString(locale === 'sv' ? 'sv-SE' : 'en-US', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
