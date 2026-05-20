@@ -9,7 +9,8 @@
 
 import { useMemo } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale } from 'next-intl'
 import {
   LineChart,
   Line,
@@ -42,25 +43,77 @@ interface TechniqueProgressionChartProps {
   goalScore?: number
 }
 
+type AppLocale = 'en' | 'sv'
+
+const labels: Record<AppLocale, {
+  emptyTitle: string
+  emptyDescription: string
+  descriptionPrefix: string
+  analyses: string
+  points: string
+  stable: string
+  first: string
+  latest: string
+  average: string
+  score: string
+  goal: string
+  recentAnalyses: string
+}> = {
+  en: {
+    emptyTitle: 'No technique data',
+    emptyDescription: 'Upload video analyses to see technique progress over time.',
+    descriptionPrefix: 'Form score over time',
+    analyses: 'analyses',
+    points: 'points',
+    stable: 'Stable',
+    first: 'First',
+    latest: 'Latest',
+    average: 'Average',
+    score: 'Score',
+    goal: 'Goal',
+    recentAnalyses: 'Recent analyses',
+  },
+  sv: {
+    emptyTitle: 'Ingen teknikdata',
+    emptyDescription: 'Ladda upp videoanalyser for att se teknikutveckling over tid.',
+    descriptionPrefix: 'Formpoang over tid',
+    analyses: 'analyser',
+    points: 'poang',
+    stable: 'Stabil',
+    first: 'Forsta',
+    latest: 'Senaste',
+    average: 'Genomsnitt',
+    score: 'Poang',
+    goal: 'Mal',
+    recentAnalyses: 'Senaste analyser',
+  },
+}
+
 export function TechniqueProgressionChart({
   analyses,
-  title = 'Teknikutveckling',
+  title = 'Technique progress',
   showGoal = true,
   goalScore = 80,
 }: TechniqueProgressionChartProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dateLocale = locale === 'sv' ? sv : enUS
+  const copy = labels[locale]
+
   // Prepare chart data - sort by date ascending
   const chartData = useMemo(() => {
     return [...analyses]
       .filter((a) => a.formScore !== null)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       .map((a) => ({
-        date: format(new Date(a.createdAt), 'd MMM', { locale: sv }),
-        fullDate: format(new Date(a.createdAt), 'd MMMM yyyy', { locale: sv }),
+        date: format(new Date(a.createdAt), 'd MMM', { locale: dateLocale }),
+        fullDate: format(new Date(a.createdAt), 'd MMMM yyyy', { locale: dateLocale }),
         score: a.formScore,
         type: a.videoType,
-        exercise: a.exercise?.nameSv || a.exercise?.name || a.videoType,
+        exercise: locale === 'sv'
+          ? a.exercise?.nameSv || a.exercise?.name || a.videoType
+          : a.exercise?.name || a.videoType,
       }))
-  }, [analyses])
+  }, [analyses, dateLocale, locale])
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -88,9 +141,9 @@ export function TechniqueProgressionChart({
       <Card>
         <CardContent className="py-12 text-center">
           <Target className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Ingen teknikdata</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{copy.emptyTitle}</h3>
           <p className="text-gray-500">
-            Ladda upp videoanalyser for att se teknikutveckling over tid.
+            {copy.emptyDescription}
           </p>
         </CardContent>
       </Card>
@@ -104,7 +157,7 @@ export function TechniqueProgressionChart({
           <div>
             <CardTitle>{title}</CardTitle>
             <CardDescription>
-              Formpoang over tid ({chartData.length} analyser)
+              {copy.descriptionPrefix} ({chartData.length} {copy.analyses})
             </CardDescription>
           </div>
           {stats && (
@@ -112,19 +165,19 @@ export function TechniqueProgressionChart({
               {stats.trend === 'improving' && (
                 <Badge className="bg-green-100 text-green-800">
                   <TrendingUp className="h-3 w-3 mr-1" />
-                  +{stats.improvement.toFixed(0)} poang
+                  +{stats.improvement.toFixed(0)} {copy.points}
                 </Badge>
               )}
               {stats.trend === 'declining' && (
                 <Badge className="bg-red-100 text-red-800">
                   <TrendingDown className="h-3 w-3 mr-1" />
-                  {stats.improvement.toFixed(0)} poang
+                  {stats.improvement.toFixed(0)} {copy.points}
                 </Badge>
               )}
               {stats.trend === 'stable' && (
                 <Badge className="bg-gray-100 text-gray-800">
                   <Minus className="h-3 w-3 mr-1" />
-                  Stabil
+                  {copy.stable}
                 </Badge>
               )}
             </div>
@@ -136,15 +189,15 @@ export function TechniqueProgressionChart({
         {stats && (
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Forsta</p>
+              <p className="text-sm text-muted-foreground">{copy.first}</p>
               <p className="text-2xl font-bold">{stats.firstScore}</p>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Senaste</p>
+              <p className="text-sm text-muted-foreground">{copy.latest}</p>
               <p className="text-2xl font-bold">{stats.lastScore}</p>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Genomsnitt</p>
+              <p className="text-sm text-muted-foreground">{copy.average}</p>
               <p className="text-2xl font-bold">{stats.avgScore.toFixed(0)}</p>
             </div>
           </div>
@@ -166,7 +219,7 @@ export function TechniqueProgressionChart({
                         <p className="font-medium">{data.fullDate}</p>
                         <p className="text-sm text-muted-foreground">{data.exercise}</p>
                         <p className="text-lg font-bold mt-1">
-                          Poang: <span className="text-primary">{data.score}</span>
+                          {copy.score}: <span className="text-primary">{data.score}</span>
                         </p>
                       </div>
                     )
@@ -179,7 +232,7 @@ export function TechniqueProgressionChart({
                   y={goalScore}
                   stroke="#22c55e"
                   strokeDasharray="5 5"
-                  label={{ value: `Mal: ${goalScore}`, position: 'right', fontSize: 12 }}
+                  label={{ value: `${copy.goal}: ${goalScore}`, position: 'right', fontSize: 12 }}
                 />
               )}
               <Line
@@ -196,7 +249,7 @@ export function TechniqueProgressionChart({
 
         {/* Analysis History */}
         <div className="mt-6 space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">Senaste analyser</h4>
+          <h4 className="text-sm font-medium text-muted-foreground">{copy.recentAnalyses}</h4>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {[...chartData].reverse().slice(0, 5).map((item, idx) => (
               <div
