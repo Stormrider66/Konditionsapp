@@ -12,24 +12,18 @@ import Link from 'next/link'
 import {
   GlassCard,
   GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
 } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import {
   Bot,
-  Sparkles,
   MessageSquare,
   Settings,
-  TrendingUp,
   Calendar,
-  Target,
   Loader2,
-  ChevronRight,
 } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface AICoachStatus {
   isActive: boolean
@@ -54,6 +48,7 @@ interface AICoachPanelProps {
 }
 
 export function AICoachPanel({ basePath = '' }: AICoachPanelProps) {
+  const dateLocale = useLocale() === 'sv' ? 'sv-SE' : 'en-US'
   const { data, isLoading, error } = useSWR<AICoachStatus>(
     '/api/agent/status',
     fetcher,
@@ -127,7 +122,7 @@ export function AICoachPanel({ basePath = '' }: AICoachPanelProps) {
               <div>
                 <p className="text-sm font-medium">{data.nextWorkout.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(data.nextWorkout.date).toLocaleDateString('sv-SE', {
+                  {new Date(data.nextWorkout.date).toLocaleDateString(dateLocale, {
                     weekday: 'short',
                     month: 'short',
                     day: 'numeric',

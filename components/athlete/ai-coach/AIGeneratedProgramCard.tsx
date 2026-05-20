@@ -24,8 +24,8 @@ import {
   TrendingUp,
   ChevronRight,
   Loader2,
-  RefreshCw,
 } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface ProgramData {
   id: string
@@ -54,7 +54,8 @@ const methodologyLabels: Record<string, { label: string; color: string }> = {
 }
 
 export function AIGeneratedProgramCard({ basePath = '' }: AIGeneratedProgramCardProps) {
-  const { data, isLoading, error, mutate } = useSWR<{ program: ProgramData }>(
+  const dateLocale = useLocale() === 'sv' ? 'sv-SE' : 'en-US'
+  const { data, isLoading, error } = useSWR<{ program: ProgramData }>(
     '/api/athlete/current-program',
     fetcher
   )
@@ -134,7 +135,7 @@ export function AIGeneratedProgramCard({ basePath = '' }: AIGeneratedProgramCard
             <div>
               <p className="text-muted-foreground text-xs">Ends</p>
               <p className="font-medium">
-                {endDate.toLocaleDateString('sv-SE', {
+                {endDate.toLocaleDateString(dateLocale, {
                   month: 'short',
                   day: 'numeric',
                 })}
