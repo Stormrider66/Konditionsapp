@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -13,19 +14,19 @@ interface FunctionalFitnessAthleteViewProps {
   settings?: Record<string, unknown>
 }
 
-const EXPERIENCE_LABELS: Record<string, string> = {
-  beginner: 'Nybörjare',
-  intermediate: 'Medel',
-  advanced: 'Avancerad',
-  competitor: 'Tävlande',
+const EXPERIENCE_LABELS: Record<string, { sv: string; en: string }> = {
+  beginner: { sv: 'Nybörjare', en: 'Beginner' },
+  intermediate: { sv: 'Medel', en: 'Intermediate' },
+  advanced: { sv: 'Avancerad', en: 'Advanced' },
+  competitor: { sv: 'Tävlande', en: 'Competitor' },
 }
 
-const FOCUS_LABELS: Record<string, string> = {
-  general: 'Allmän fitness',
-  strength: 'Styrka',
-  endurance: 'Uthållighet',
-  gymnastics: 'Gymnastik',
-  competition: 'Tävling',
+const FOCUS_LABELS: Record<string, { sv: string; en: string }> = {
+  general: { sv: 'Allmän fitness', en: 'General fitness' },
+  strength: { sv: 'Styrka', en: 'Strength' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  gymnastics: { sv: 'Gymnastik', en: 'Gymnastics' },
+  competition: { sv: 'Tävling', en: 'Competition' },
 }
 
 const BENCHMARK_INFO: Record<string, { name: string; description: string; targets: Record<string, number> }> = {
@@ -91,13 +92,43 @@ const SKILL_LABELS: Record<string, Record<string, string>> = {
   },
 }
 
+const SKILL_LABELS_EN: Record<string, Record<string, string>> = {
+  pullUps: {
+    none: 'None',
+    banded: 'Band',
+    strict: 'Strict',
+    kipping: 'Kipping',
+    butterfly: 'Butterfly',
+    muscle_up: 'MU',
+  },
+  handstandPushUps: {
+    none: 'None',
+    pike: 'Pike',
+    box: 'Box',
+    wall: 'Wall',
+    strict: 'Strict',
+    kipping: 'Kipping',
+    freestanding: 'Freestanding',
+  },
+  doubleUnders: {
+    none: 'None',
+    learning: 'Learning',
+    consistent: 'Consistent',
+    unbroken_50: '50+ unbroken',
+  },
+}
+
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export function FunctionalFitnessAthleteView({ clientId, clientName, settings }: FunctionalFitnessAthleteViewProps) {
+export function FunctionalFitnessAthleteView({ clientId: _clientId, clientName: _clientName, settings }: FunctionalFitnessAthleteViewProps) {
+  const locale = useLocale()
+  const isSv = locale === 'sv'
+  const t = (sv: string, en: string) => isSv ? sv : en
+  const skillLabels = isSv ? SKILL_LABELS : SKILL_LABELS_EN
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -110,11 +141,11 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <span className="text-xl">🔥</span> Funktionell Fitness
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen data tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t('Ingen data tillgänglig', 'No data available')}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-            Atleten har inte angett funktionell fitness-inställningar ännu.
+            {t('Atleten har inte angett funktionell fitness-inställningar ännu.', 'The athlete has not entered functional fitness settings yet.')}
           </p>
         </CardContent>
       </Card>
@@ -164,9 +195,6 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
     }))
     .filter(lift => lift.value !== null)
 
-  // Calculate total for comparison
-  const totalLift = liftsWithData.reduce((sum, lift) => sum + (lift.value || 0), 0)
-
   return (
     <div className="space-y-4">
       {/* Overview Card */}
@@ -181,15 +209,15 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
             </div>
             <div className="flex gap-2 flex-wrap">
               <Badge variant="outline">
-                {EXPERIENCE_LABELS[level]}
+                {EXPERIENCE_LABELS[level][isSv ? 'sv' : 'en']}
               </Badge>
               <Badge variant="secondary">
-                {FOCUS_LABELS[ffSettings.primaryFocus || 'general']}
+                {FOCUS_LABELS[ffSettings.primaryFocus || 'general'][isSv ? 'sv' : 'en']}
               </Badge>
               {ffSettings.competitionInterest && (
                 <Badge variant="default" className="bg-purple-500">
                   <Medal className="h-3 w-3 mr-1" />
-                  Tävlar
+                  {t('Tävlar', 'Competes')}
                 </Badge>
               )}
             </div>
@@ -202,9 +230,9 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
               style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
             >
               <Clock className="h-5 w-5 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Träning/vecka</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Träning/vecka', 'Training/week')}</p>
               <p className="font-bold text-lg" style={{ color: theme.colors.textPrimary }}>
-                {ffSettings.weeklyTrainingDays || '-'} pass
+                {ffSettings.weeklyTrainingDays || '-'} {t('pass', 'sessions')}
               </p>
             </div>
             <div
@@ -212,7 +240,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
               style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
             >
               <Target className="h-5 w-5 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>WOD-längd</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('WOD-längd', 'WOD length')}</p>
               <p className="font-bold text-lg" style={{ color: theme.colors.textPrimary }}>
                 ~{ffSettings.preferredWODDuration || 20} min
               </p>
@@ -222,7 +250,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
               style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.15)' : '#f0fdf4' }}
             >
               <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-600" />
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Bästa benchmark</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Bästa benchmark', 'Best benchmark')}</p>
               <p className="font-medium text-sm truncate" style={{ color: theme.colors.textPrimary }}>
                 {bestBenchmark?.name || '-'}
               </p>
@@ -232,7 +260,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
               style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.15)' : '#fff7ed' }}
             >
               <TrendingDown className="h-5 w-5 mx-auto mb-1 text-orange-600" />
-              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Fokusera på</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Fokusera på', 'Focus on')}</p>
               <p className="font-medium text-sm truncate" style={{ color: theme.colors.textPrimary }}>
                 {worstBenchmark?.name || '-'}
               </p>
@@ -249,7 +277,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
             Benchmark Workouts
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Jämfört med {EXPERIENCE_LABELS[level].toLowerCase()}-mål
+            {t('Jämfört med', 'Compared with')} {EXPERIENCE_LABELS[level][isSv ? 'sv' : 'en'].toLowerCase()} {t('mål', 'targets')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -285,14 +313,14 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
                   <>
                     <Progress value={benchmark.percentage || 0} className="h-1.5 mt-2" />
                     <div className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                      Mål: {formatTime(benchmark.target)}
+                      {t('Mål', 'Target')}: {formatTime(benchmark.target)}
                     </div>
                   </>
                 )}
                 {!benchmark.time && (
                   <p className="text-xs mt-2 flex items-center justify-center gap-1" style={{ color: theme.colors.textMuted }}>
                     <AlertCircle className="h-3 w-3" />
-                    Ej testad
+                    {t('Ej testad', 'Not tested')}
                   </p>
                 )}
               </div>
@@ -308,7 +336,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Dumbbell className="h-4 w-4 text-blue-500" />
-              Styrka (1RM)
+              {t('Styrka (1RM)', 'Strength (1RM)')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -329,7 +357,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
               </div>
             ) : (
               <p className="text-sm text-center py-4" style={{ color: theme.colors.textMuted }}>
-                Inga 1RM registrerade
+                {t('Inga 1RM registrerade', 'No 1RM values registered')}
               </p>
             )}
           </CardContent>
@@ -340,7 +368,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Zap className="h-4 w-4 text-purple-500" />
-              Gymnastik-skills
+              {t('Gymnastik-skills', 'Gymnastics Skills')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -348,7 +376,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
               <div>
                 <p className="text-xs" style={{ color: theme.colors.textMuted }}>Pull-ups</p>
                 <p className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>
-                  {SKILL_LABELS.pullUps[ffSettings.gymnasticsSkills?.pullUps || 'none']}
+                  {skillLabels.pullUps[ffSettings.gymnasticsSkills?.pullUps || 'none']}
                 </p>
                 {ffSettings.benchmarks?.maxPullUps && (
                   <p className="text-xs font-bold" style={{ color: theme.colors.textPrimary }}>
@@ -359,7 +387,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
               <div>
                 <p className="text-xs" style={{ color: theme.colors.textMuted }}>HSPU</p>
                 <p className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>
-                  {SKILL_LABELS.handstandPushUps[ffSettings.gymnasticsSkills?.handstandPushUps || 'none']}
+                  {skillLabels.handstandPushUps[ffSettings.gymnasticsSkills?.handstandPushUps || 'none']}
                 </p>
                 {ffSettings.benchmarks?.maxHSPU && (
                   <p className="text-xs font-bold" style={{ color: theme.colors.textPrimary }}>
@@ -370,7 +398,7 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
               <div>
                 <p className="text-xs" style={{ color: theme.colors.textMuted }}>Double-unders</p>
                 <p className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>
-                  {SKILL_LABELS.doubleUnders[ffSettings.gymnasticsSkills?.doubleUnders || 'none']}
+                  {skillLabels.doubleUnders[ffSettings.gymnasticsSkills?.doubleUnders || 'none']}
                 </p>
                 {ffSettings.benchmarks?.maxDoubleUnders && (
                   <p className="text-xs font-bold" style={{ color: theme.colors.textPrimary }}>
@@ -388,17 +416,17 @@ export function FunctionalFitnessAthleteView({ clientId, clientName, settings }:
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Medal className="h-4 w-4 text-yellow-500" />
-            Olympiska Lyft
+            {t('Olympiska lyft', 'Olympic Lifts')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Nivå</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>{t('Nivå', 'Level')}</p>
               <p className="font-medium" style={{ color: theme.colors.textPrimary }}>
-                {ffSettings.olympicLiftingLevel === 'none' ? 'Ingen erfarenhet' :
-                 ffSettings.olympicLiftingLevel === 'learning' ? 'Lär sig' :
-                 ffSettings.olympicLiftingLevel === 'competent' ? 'Kompetent' : 'Mycket duktig'}
+                {ffSettings.olympicLiftingLevel === 'none' ? t('Ingen erfarenhet', 'No experience') :
+                 ffSettings.olympicLiftingLevel === 'learning' ? t('Lär sig', 'Learning') :
+                 ffSettings.olympicLiftingLevel === 'competent' ? t('Kompetent', 'Competent') : t('Mycket duktig', 'Very skilled')}
               </p>
             </div>
             <div className="flex gap-6">
