@@ -218,7 +218,8 @@ export async function buildChatContext(
       const calendarData = await buildCalendarContext(
         calendarAthleteId,
         calendarProgramStartDate,
-        calendarProgramEndDate
+        calendarProgramEndDate,
+        locale
       )
       if (calendarData.hasCalendarData) {
         calendarContext = calendarData.contextText

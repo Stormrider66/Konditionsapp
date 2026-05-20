@@ -16,8 +16,22 @@ import {
   type AltitudePeriod,
 } from '@/lib/calendar/availability-calculator'
 import { format, differenceInDays, addDays } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { CalendarEventType, EventImpact } from '@prisma/client'
+
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, svText: string): string {
+  return locale === 'sv' ? svText : en
+}
+
+function dateFnsLocale(locale: AppLocale) {
+  return locale === 'sv' ? sv : enUS
+}
+
+function formatDayMonth(date: Date, locale: AppLocale): string {
+  return format(date, 'd MMM', { locale: dateFnsLocale(locale) })
+}
 
 /**
  * Calendar context for AI prompts
@@ -73,7 +87,8 @@ export interface UpcomingCalendarSummary {
 export async function buildCalendarContext(
   clientId: string,
   programStartDate?: Date,
-  programEndDate?: Date
+  programEndDate?: Date,
+  locale: AppLocale = 'en'
 ): Promise<CalendarContext> {
   try {
     // Default to next 12 weeks if no dates provided
@@ -100,9 +115,9 @@ export async function buildCalendarContext(
 
     if (availability.blockedCount === 0 && availability.reducedCount === 0 && availability.altitudePeriods.length === 0) {
       contextText = `
-## KALENDERKONTEXT
-Inga kalenderblockerare eller begränsningar finns för denna period.
-Alla dagar är tillgängliga för träning.
+## ${t(locale, 'CALENDAR CONTEXT', 'KALENDERKONTEXT')}
+${t(locale, 'No calendar blockers or constraints exist for this period.', 'Inga kalenderblockerare eller begränsningar finns för denna period.')}
+${t(locale, 'All days are available for training.', 'Alla dagar är tillgängliga för träning.')}
 `
       return {
         hasCalendarData: false,
@@ -113,38 +128,38 @@ Alla dagar är tillgängliga för träning.
     }
 
     contextText = `
-## KALENDERKONTEXT
+## ${t(locale, 'CALENDAR CONTEXT', 'KALENDERKONTEXT')}
 
-### Tillgänglighetsöversikt
-- **Perioden**: ${format(startDate, 'd MMMM', { locale: sv })} - ${format(endDate, 'd MMMM yyyy', { locale: sv })}
-- **Totalt dagar**: ${availability.totalDays}
-- **Tillgängliga dagar**: ${availability.availableCount} (${Math.round((availability.availableCount / availability.totalDays) * 100)}%)
-- **Blockerade dagar**: ${availability.blockedCount}
-- **Reducerade dagar**: ${availability.reducedCount}
+### ${t(locale, 'Availability overview', 'Tillgänglighetsöversikt')}
+- **${t(locale, 'Period', 'Perioden')}**: ${format(startDate, 'd MMMM', { locale: dateFnsLocale(locale) })} - ${format(endDate, 'd MMMM yyyy', { locale: dateFnsLocale(locale) })}
+- **${t(locale, 'Total days', 'Totalt dagar')}**: ${availability.totalDays}
+- **${t(locale, 'Available days', 'Tillgängliga dagar')}**: ${availability.availableCount} (${Math.round((availability.availableCount / availability.totalDays) * 100)}%)
+- **${t(locale, 'Blocked days', 'Blockerade dagar')}**: ${availability.blockedCount}
+- **${t(locale, 'Reduced days', 'Reducerade dagar')}**: ${availability.reducedCount}
 `
 
     // Add blocked periods
     if (availability.blockedDays.length > 0) {
-      contextText += buildBlockedDaysContext(availability.blockedDays)
+      contextText += buildBlockedDaysContext(availability.blockedDays, locale)
     }
 
     // Add reduced capacity periods
     if (availability.reducedDays.length > 0) {
-      contextText += buildReducedDaysContext(availability.reducedDays)
+      contextText += buildReducedDaysContext(availability.reducedDays, locale)
     }
 
     // Add altitude periods
     if (availability.altitudePeriods.length > 0) {
-      contextText += buildAltitudeContext(availability.altitudePeriods)
+      contextText += buildAltitudeContext(availability.altitudePeriods, locale)
     }
 
     // Add upcoming events summary
     if (upcomingEvents.length > 0) {
-      contextText += buildUpcomingEventsContext(upcomingEvents)
+      contextText += buildUpcomingEventsContext(upcomingEvents, locale)
     }
 
     // Add training recommendations based on calendar
-    contextText += buildTrainingRecommendations(availability)
+    contextText += buildTrainingRecommendations(availability, locale)
 
     return {
       hasCalendarData: true,
@@ -164,24 +179,24 @@ Alla dagar är tillgängliga för träning.
 /**
  * Build context for blocked days (NO_TRAINING impact)
  */
-function buildBlockedDaysContext(blockedDays: BlockedDay[]): string {
+function buildBlockedDaysContext(blockedDays: BlockedDay[], locale: AppLocale): string {
   // Group consecutive blocked days into periods
   const periods = groupConsecutiveDays(blockedDays)
 
   let context = `
-### Blockerade perioder (ingen träning)
+### ${t(locale, 'Blocked periods (no training)', 'Blockerade perioder (ingen träning)')}
 `
 
   for (const period of periods) {
-    const startStr = format(period.startDate, 'd MMM', { locale: sv })
-    const endStr = format(period.endDate, 'd MMM', { locale: sv })
+    const startStr = formatDayMonth(period.startDate, locale)
+    const endStr = formatDayMonth(period.endDate, locale)
     const days = differenceInDays(period.endDate, period.startDate) + 1
-    const reason = translateEventType(period.type)
+    const reason = translateEventType(period.type, locale)
 
     if (days === 1) {
       context += `- **${startStr}**: ${reason} - ${period.title}\n`
     } else {
-      context += `- **${startStr} - ${endStr}** (${days} dagar): ${reason} - ${period.title}\n`
+      context += `- **${startStr} - ${endStr}** (${days} ${t(locale, 'days', 'dagar')}): ${reason} - ${period.title}\n`
     }
   }
 
@@ -191,28 +206,28 @@ function buildBlockedDaysContext(blockedDays: BlockedDay[]): string {
 /**
  * Build context for reduced capacity days
  */
-function buildReducedDaysContext(reducedDays: ReducedDay[]): string {
+function buildReducedDaysContext(reducedDays: ReducedDay[], locale: AppLocale): string {
   // Group consecutive reduced days into periods
   const periods = groupConsecutiveDays(reducedDays as unknown as BlockedDay[])
 
   let context = `
-### Reducerad träningskapacitet
+### ${t(locale, 'Reduced training capacity', 'Reducerad träningskapacitet')}
 `
 
   for (const period of periods) {
-    const startStr = format(period.startDate, 'd MMM', { locale: sv })
-    const endStr = format(period.endDate, 'd MMM', { locale: sv })
+    const startStr = formatDayMonth(period.startDate, locale)
+    const endStr = formatDayMonth(period.endDate, locale)
     const days = differenceInDays(period.endDate, period.startDate) + 1
 
     if (days === 1) {
       context += `- **${startStr}**: ${period.reason}\n`
     } else {
-      context += `- **${startStr} - ${endStr}** (${days} dagar): ${period.reason}\n`
+      context += `- **${startStr} - ${endStr}** (${days} ${t(locale, 'days', 'dagar')}): ${period.reason}\n`
     }
   }
 
   context += `
-*Under dessa dagar bör träningsvolym och intensitet reduceras.*
+*${t(locale, 'Training volume and intensity should be reduced on these days.', 'Under dessa dagar bör träningsvolym och intensitet reduceras.')}*
 `
 
   return context
@@ -221,37 +236,37 @@ function buildReducedDaysContext(reducedDays: ReducedDay[]): string {
 /**
  * Build context for altitude camp periods
  */
-function buildAltitudeContext(altitudePeriods: AltitudePeriod[]): string {
+function buildAltitudeContext(altitudePeriods: AltitudePeriod[], locale: AppLocale): string {
   let context = `
-### Höghöjdsläger
+### ${t(locale, 'Altitude camp', 'Höghöjdsläger')}
 `
 
   for (const period of altitudePeriods) {
-    const startStr = format(period.startDate, 'd MMM', { locale: sv })
-    const endStr = format(period.endDate, 'd MMM', { locale: sv })
+    const startStr = formatDayMonth(period.startDate, locale)
+    const endStr = formatDayMonth(period.endDate, locale)
     const days = differenceInDays(period.endDate, period.startDate) + 1
-    const phase = translateAltitudePhase(period.adaptationPhase)
+    const phase = translateAltitudePhase(period.adaptationPhase, locale)
 
     context += `
-#### ${startStr} - ${endStr} (${days} dagar @ ${period.altitude}m)
-- **Nuvarande fas**: ${phase}
-- **Anpassning**: ${getAltitudeRecommendations(period.adaptationPhase, period.altitude)}
+#### ${startStr} - ${endStr} (${days} ${t(locale, 'days', 'dagar')} @ ${period.altitude}m)
+- **${t(locale, 'Current phase', 'Nuvarande fas')}**: ${phase}
+- **${t(locale, 'Adaptation', 'Anpassning')}**: ${getAltitudeRecommendations(period.adaptationPhase, period.altitude, locale)}
 `
 
     if (period.seaLevelReturnDate) {
-      const returnStr = format(period.seaLevelReturnDate, 'd MMM', { locale: sv })
-      context += `- **Optimal tävlingsperiod**: 14-21 dagar efter ${returnStr}
+      const returnStr = formatDayMonth(period.seaLevelReturnDate, locale)
+      context += `- **${t(locale, 'Optimal competition window', 'Optimal tävlingsperiod')}**: ${t(locale, '14-21 days after', '14-21 dagar efter')} ${returnStr}
 `
     }
   }
 
   context += `
-**HÖGHÖJDSANPASSNING - VIKTIGT:**
-- Dag 1-3: Reducera intensitet till 60%, volym 50%
-- Dag 4-5: Gradvis ökning till 70% intensitet
-- Dag 6-10: 80% intensitet, 75% volym
-- Dag 11+: Nära normal träning (90-95%)
-- Undvik VO2max-pass de första 5 dagarna
+**${t(locale, 'ALTITUDE ADAPTATION - IMPORTANT', 'HÖGHÖJDSANPASSNING - VIKTIGT')}:**
+- ${t(locale, 'Days 1-3: reduce intensity to 60%, volume to 50%', 'Dag 1-3: Reducera intensitet till 60%, volym 50%')}
+- ${t(locale, 'Days 4-5: gradual increase to 70% intensity', 'Dag 4-5: Gradvis ökning till 70% intensitet')}
+- ${t(locale, 'Days 6-10: 80% intensity, 75% volume', 'Dag 6-10: 80% intensitet, 75% volym')}
+- ${t(locale, 'Day 11+: near-normal training (90-95%)', 'Dag 11+: Nära normal träning (90-95%)')}
+- ${t(locale, 'Avoid VO2max sessions during the first 5 days', 'Undvik VO2max-pass de första 5 dagarna')}
 `
 
   return context
@@ -266,7 +281,7 @@ function buildUpcomingEventsContext(events: {
   endDate: Date
   type: CalendarEventType
   trainingImpact: EventImpact
-}[]): string {
+}[], locale: AppLocale): string {
   const significantEvents = events.filter(
     (e) => e.trainingImpact !== 'NORMAL' || e.type === 'ALTITUDE_CAMP' || e.type === 'TRAINING_CAMP'
   )
@@ -274,15 +289,15 @@ function buildUpcomingEventsContext(events: {
   if (significantEvents.length === 0) return ''
 
   let context = `
-### Kommande händelser att beakta
+### ${t(locale, 'Upcoming events to consider', 'Kommande händelser att beakta')}
 `
 
   for (const event of significantEvents.slice(0, 5)) {
-    const startStr = format(event.startDate, 'd MMM', { locale: sv })
+    const startStr = formatDayMonth(event.startDate, locale)
     const daysUntil = differenceInDays(event.startDate, new Date())
-    const impact = translateImpact(event.trainingImpact)
+    const impact = translateImpact(event.trainingImpact, locale)
 
-    context += `- **${startStr}** (om ${daysUntil} dagar): ${event.title} - ${impact}\n`
+    context += `- **${startStr}** (${t(locale, 'in', 'om')} ${daysUntil} ${t(locale, 'days', 'dagar')}): ${event.title} - ${impact}\n`
   }
 
   return context
@@ -291,21 +306,29 @@ function buildUpcomingEventsContext(events: {
 /**
  * Build training recommendations based on calendar constraints
  */
-function buildTrainingRecommendations(availability: AvailabilityResult): string {
+function buildTrainingRecommendations(availability: AvailabilityResult, locale: AppLocale): string {
   const recommendations: string[] = []
 
   // Check for high blocked ratio
   const blockedRatio = availability.blockedCount / availability.totalDays
   if (blockedRatio > 0.2) {
     recommendations.push(
-      'Hög andel blockerade dagar - överväg att koncentrera kvalitetspass till tillgängliga dagar'
+      t(
+        locale,
+        'High share of blocked days - consider concentrating quality sessions on available days',
+        'Hög andel blockerade dagar - överväg att koncentrera kvalitetspass till tillgängliga dagar'
+      )
     )
   }
 
   // Check for altitude camps
   if (availability.altitudePeriods.length > 0) {
     recommendations.push(
-      'Höghöjdsläger planerat - justera intensitet enligt anpassningsfas och planera tävling 14-21 dagar efter hemkomst'
+      t(
+        locale,
+        'Altitude camp planned - adjust intensity according to adaptation phase and plan competition 14-21 days after returning to sea level',
+        'Höghöjdsläger planerat - justera intensitet enligt anpassningsfas och planera tävling 14-21 dagar efter hemkomst'
+      )
     )
   }
 
@@ -313,21 +336,29 @@ function buildTrainingRecommendations(availability: AvailabilityResult): string 
   const maxConsecutiveBlocked = getMaxConsecutiveBlockedDays(availability.blockedDays)
   if (maxConsecutiveBlocked >= 7) {
     recommendations.push(
-      `Längre träningsuppehåll (${maxConsecutiveBlocked} dagar) - planera gradvis upptrappning efteråt`
+      t(
+        locale,
+        `Longer training break (${maxConsecutiveBlocked} days) - plan a gradual ramp-up afterward`,
+        `Längre träningsuppehåll (${maxConsecutiveBlocked} dagar) - planera gradvis upptrappning efteråt`
+      )
     )
   }
 
   // Check for reduced days
   if (availability.reducedCount > availability.totalDays * 0.1) {
     recommendations.push(
-      'Betydande andel dagar med reducerad kapacitet - prioritera återhämtning och kvalitet över kvantitet'
+      t(
+        locale,
+        'Significant share of days with reduced capacity - prioritize recovery and quality over quantity',
+        'Betydande andel dagar med reducerad kapacitet - prioritera återhämtning och kvalitet över kvantitet'
+      )
     )
   }
 
   if (recommendations.length === 0) return ''
 
   return `
-### Träningsrekommendationer baserat på kalender
+### ${t(locale, 'Training recommendations based on calendar', 'Träningsrekommendationer baserat på kalender')}
 ${recommendations.map((r) => `- ${r}`).join('\n')}
 `
 }
@@ -337,12 +368,13 @@ ${recommendations.map((r) => `- ${r}`).join('\n')}
  */
 export async function getCalendarSummaryForPrompt(
   clientId: string,
-  weeksAhead: number = 12
+  weeksAhead: number = 12,
+  locale: AppLocale = 'en'
 ): Promise<string> {
   const startDate = new Date()
   const endDate = addDays(new Date(), weeksAhead * 7)
 
-  const context = await buildCalendarContext(clientId, startDate, endDate)
+  const context = await buildCalendarContext(clientId, startDate, endDate, locale)
   return context.contextText
 }
 
@@ -352,7 +384,8 @@ export async function getCalendarSummaryForPrompt(
 export async function shouldUseCalendarConstraints(
   clientId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  locale: AppLocale = 'en'
 ): Promise<{
   shouldUse: boolean
   reason: string
@@ -371,14 +404,38 @@ export async function shouldUseCalendarConstraints(
 
   let reason = ''
   if (!shouldUse) {
-    reason = 'Inga kalenderbegränsningar hittades'
+    reason = t(locale, 'No calendar constraints found', 'Inga kalenderbegränsningar hittades')
   } else {
     const reasons: string[] = []
-    if (hasBlockers) reasons.push(`${availability.blockedCount} blockerade dagar`)
-    if (hasAltitude) reasons.push(`${availability.altitudePeriods.length} höghöjdsläger`)
-    if (hasIllness) reasons.push('sjukdomsperioder')
-    if (hasReduced) reasons.push(`${availability.reducedCount} dagar med reducerad kapacitet`)
-    reason = `Begränsningar: ${reasons.join(', ')}`
+    if (hasBlockers) {
+      reasons.push(
+        t(
+          locale,
+          `${availability.blockedCount} blocked days`,
+          `${availability.blockedCount} blockerade dagar`
+        )
+      )
+    }
+    if (hasAltitude) {
+      reasons.push(
+        t(
+          locale,
+          `${availability.altitudePeriods.length} altitude camps`,
+          `${availability.altitudePeriods.length} höghöjdsläger`
+        )
+      )
+    }
+    if (hasIllness) reasons.push(t(locale, 'illness periods', 'sjukdomsperioder'))
+    if (hasReduced) {
+      reasons.push(
+        t(
+          locale,
+          `${availability.reducedCount} days with reduced capacity`,
+          `${availability.reducedCount} dagar med reducerad kapacitet`
+        )
+      )
+    }
+    reason = `${t(locale, 'Constraints', 'Begränsningar')}: ${reasons.join(', ')}`
   }
 
   return {
@@ -464,58 +521,58 @@ function getMaxConsecutiveBlockedDays(blockedDays: BlockedDay[]): number {
   return max
 }
 
-function translateEventType(type: CalendarEventType): string {
-  const translations: Record<CalendarEventType, string> = {
-    TRAVEL: 'Resa',
-    ILLNESS: 'Sjukdom',
-    VACATION: 'Semester',
-    WORK_BLOCKER: 'Arbete',
-    PERSONAL_BLOCKER: 'Privat',
-    EXTERNAL_EVENT: 'Extern händelse',
-    ALTITUDE_CAMP: 'Höghöjdsläger',
-    TRAINING_CAMP: 'Träningsläger',
-    SCHEDULED_WORKOUT: 'Schemalagt pass',
+function translateEventType(type: CalendarEventType, locale: AppLocale): string {
+  const translations: Record<CalendarEventType, Record<AppLocale, string>> = {
+    TRAVEL: { en: 'Travel', sv: 'Resa' },
+    ILLNESS: { en: 'Illness', sv: 'Sjukdom' },
+    VACATION: { en: 'Vacation', sv: 'Semester' },
+    WORK_BLOCKER: { en: 'Work', sv: 'Arbete' },
+    PERSONAL_BLOCKER: { en: 'Personal', sv: 'Privat' },
+    EXTERNAL_EVENT: { en: 'External event', sv: 'Extern händelse' },
+    ALTITUDE_CAMP: { en: 'Altitude camp', sv: 'Höghöjdsläger' },
+    TRAINING_CAMP: { en: 'Training camp', sv: 'Träningsläger' },
+    SCHEDULED_WORKOUT: { en: 'Scheduled workout', sv: 'Schemalagt pass' },
   }
-  return translations[type] || type
+  return translations[type]?.[locale] || type
 }
 
-function translateImpact(impact: EventImpact): string {
-  const translations: Record<EventImpact, string> = {
-    NO_TRAINING: 'Ingen träning',
-    REDUCED: 'Reducerad träning',
-    MODIFIED: 'Anpassad träning',
-    NORMAL: 'Normal träning',
+function translateImpact(impact: EventImpact, locale: AppLocale): string {
+  const translations: Record<EventImpact, Record<AppLocale, string>> = {
+    NO_TRAINING: { en: 'No training', sv: 'Ingen träning' },
+    REDUCED: { en: 'Reduced training', sv: 'Reducerad träning' },
+    MODIFIED: { en: 'Modified training', sv: 'Anpassad träning' },
+    NORMAL: { en: 'Normal training', sv: 'Normal träning' },
   }
-  return translations[impact] || impact
+  return translations[impact]?.[locale] || impact
 }
 
-function translateAltitudePhase(phase: string): string {
-  const translations: Record<string, string> = {
-    ACUTE: 'Akut anpassning (dag 1-5)',
-    ADAPTATION: 'Anpassningsfas (dag 6-14)',
-    OPTIMAL: 'Optimal fas (dag 15+)',
-    POST_CAMP: 'Efter läger (hemma)',
+function translateAltitudePhase(phase: string, locale: AppLocale): string {
+  const translations: Record<string, Record<AppLocale, string>> = {
+    ACUTE: { en: 'Acute adaptation (days 1-5)', sv: 'Akut anpassning (dag 1-5)' },
+    ADAPTATION: { en: 'Adaptation phase (days 6-14)', sv: 'Anpassningsfas (dag 6-14)' },
+    OPTIMAL: { en: 'Optimal phase (day 15+)', sv: 'Optimal fas (dag 15+)' },
+    POST_CAMP: { en: 'Post-camp (home)', sv: 'Efter läger (hemma)' },
   }
-  return translations[phase] || phase
+  return translations[phase]?.[locale] || phase
 }
 
-function getAltitudeRecommendations(phase: string, altitude: number): string {
+function getAltitudeRecommendations(phase: string, altitude: number, locale: AppLocale): string {
   const highAltitude = altitude > 2500
 
   switch (phase) {
     case 'ACUTE':
       return highAltitude
-        ? 'Kraftig reduktion: 50% volym, 60% intensitet. Endast lätt träning.'
-        : 'Reducerad träning: 60% volym, 70% intensitet. Undvik hårda pass.'
+        ? t(locale, 'Large reduction: 50% volume, 60% intensity. Easy training only.', 'Kraftig reduktion: 50% volym, 60% intensitet. Endast lätt träning.')
+        : t(locale, 'Reduced training: 60% volume, 70% intensity. Avoid hard sessions.', 'Reducerad träning: 60% volym, 70% intensitet. Undvik hårda pass.')
     case 'ADAPTATION':
       return highAltitude
-        ? 'Gradvis ökning: 70% volym, 80% intensitet. Introduicera tempo.'
-        : 'Fortsatt anpassning: 80% volym, 85% intensitet.'
+        ? t(locale, 'Gradual increase: 70% volume, 80% intensity. Introduce tempo work.', 'Gradvis ökning: 70% volym, 80% intensitet. Introduicera tempo.')
+        : t(locale, 'Continued adaptation: 80% volume, 85% intensity.', 'Fortsatt anpassning: 80% volym, 85% intensitet.')
     case 'OPTIMAL':
-      return 'Nära normal träning: 90-95% volym och intensitet. Utnyttja adaptationen.'
+      return t(locale, 'Near-normal training: 90-95% volume and intensity. Use the adaptation.', 'Nära normal träning: 90-95% volym och intensitet. Utnyttja adaptationen.')
     case 'POST_CAMP':
-      return 'Optimal tävlingsperiod 14-21 dagar efter hemkomst.'
+      return t(locale, 'Optimal competition window 14-21 days after returning to sea level.', 'Optimal tävlingsperiod 14-21 dagar efter hemkomst.')
     default:
-      return 'Anpassa träning efter hur kroppen reagerar.'
+      return t(locale, 'Adjust training based on how the body responds.', 'Anpassa träning efter hur kroppen reagerar.')
   }
 }

@@ -9,7 +9,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
 import {
   getCalendarConstraints,
   calculateAvailability,
@@ -29,6 +28,7 @@ import { logError } from '@/lib/logger-console'
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale = user.language === 'sv' ? 'sv' : 'en'
     const { searchParams } = new URL(request.url)
 
     const clientId = searchParams.get('clientId')
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // Get constraints
     const constraints = await getCalendarConstraints(clientId, startDate, endDate)
     const availability = await calculateAvailability(clientId, startDate, endDate)
-    const recommendation = await shouldUseCalendarConstraints(clientId, startDate, endDate)
+    const recommendation = await shouldUseCalendarConstraints(clientId, startDate, endDate, locale)
 
     // Build response
     const response: {
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     // Include AI context if requested
     if (includeContext) {
-      const calendarContext = await buildCalendarContext(clientId, startDate, endDate)
+      const calendarContext = await buildCalendarContext(clientId, startDate, endDate, locale)
       response.context = calendarContext.contextText
     }
 
