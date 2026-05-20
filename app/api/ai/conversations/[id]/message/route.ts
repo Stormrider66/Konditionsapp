@@ -24,6 +24,12 @@ interface SendMessageRequest {
   webSearchEnabled?: boolean
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // POST - Send message and get AI response
 export async function POST(
   request: NextRequest,
@@ -31,6 +37,7 @@ export async function POST(
 ) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:message', user.id, {
       limit: 10,
@@ -129,7 +136,7 @@ export async function POST(
           documentContext = chunks
             .map(
               (c, i) =>
-                `[Källa ${i + 1}: ${docMap.get(c.documentId) || 'Dokument'}]\n${c.content}`
+                `[${t(locale, 'Source', 'Källa')} ${i + 1}: ${docMap.get(c.documentId) || t(locale, 'Document', 'Dokument')}]\n${c.content}`
             )
             .join('\n\n---\n\n')
         }
@@ -142,18 +149,28 @@ export async function POST(
     let athleteContext = ''
     if (conversation.athlete) {
       const athlete = conversation.athlete
-      athleteContext = `
-ATLET INFORMATION:
+      athleteContext = locale === 'sv'
+        ? `
+ATLETINFORMATION:
 - Namn: ${athlete.name}
 - Email: ${athlete.email}
 ${athlete.gender ? `- Kön: ${athlete.gender}` : ''}
 ${athlete.birthDate ? `- Födelsedatum: ${athlete.birthDate}` : ''}
 ${athlete.sportProfile ? `- Sport: ${JSON.stringify(athlete.sportProfile)}` : ''}
 `
+        : `
+ATHLETE INFORMATION:
+- Name: ${athlete.name}
+- Email: ${athlete.email}
+${athlete.gender ? `- Gender: ${athlete.gender}` : ''}
+${athlete.birthDate ? `- Birth date: ${athlete.birthDate}` : ''}
+${athlete.sportProfile ? `- Sport: ${JSON.stringify(athlete.sportProfile)}` : ''}
+`
     }
 
     // Build system prompt
-    const systemPrompt = `Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
+    const systemPrompt = locale === 'sv'
+      ? `Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
 Du har djup kunskap om:
 - Periodisering och träningsplanering
 - Fysiologiska principer (VO2max, laktattröskel, etc.)
@@ -167,6 +184,20 @@ ${documentContext ? `RELEVANT INFORMATION FRÅN DOKUMENT:\n${documentContext}\n`
 
 Svara alltid på svenska. Var konkret och ge praktiska råd baserade på vetenskaplig grund.
 När du föreslår träningsprogram, var specifik med intensiteter, volymer och frekvenser.`
+      : `You are an experienced coach and exercise physiologist who helps coaches create training programs.
+You have deep knowledge of:
+- Periodization and training planning
+- Physiological principles (VO2max, lactate threshold, etc.)
+- Different training methodologies (Polarized, Norwegian, Canova, etc.)
+- Strength training for endurance athletes
+- Injury prevention and recovery
+
+${athleteContext}
+
+${documentContext ? `RELEVANT INFORMATION FROM DOCUMENTS:\n${documentContext}\n` : ''}
+
+Always answer in English. Be concrete and give practical advice grounded in science.
+When you suggest training programs, be specific with intensities, volumes, and frequencies.`
 
     // Build message history
     const messageHistory = conversation.messages.map((msg) => ({
@@ -198,7 +229,13 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
       !fallbackResolved
     ) {
       return NextResponse.json(
-        { error: 'Ingen AI API-nyckel konfigurerad. Konfigurera minst en API-nyckel i inställningarna.' },
+        {
+          error: t(
+            locale,
+            'No AI API key is configured. Configure at least one API key in settings.',
+            'Ingen AI API-nyckel konfigurerad. Konfigurera minst en API-nyckel i inställningarna.'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -255,7 +292,7 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
                     role: 'user',
                     parts: [
                       {
-                        text: `${systemPrompt}\n\n${messageHistory.map((m) => `${m.role === 'user' ? 'Användare' : 'Assistent'}: ${m.content}`).join('\n\n')}`,
+                        text: `${systemPrompt}\n\n${messageHistory.map((m) => `${m.role === 'user' ? t(locale, 'User', 'Användare') : t(locale, 'Assistant', 'Assistent')}: ${m.content}`).join('\n\n')}`,
                       },
                     ],
                   },
