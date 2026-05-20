@@ -54,7 +54,7 @@ export function LoadTrendChart({ loadHistory, trend, className }: LoadTrendChart
   // Format date for display
   const formattedData = loadHistory.map((entry) => ({
     ...entry,
-    displayDate: new Date(entry.date).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+    displayDate: new Date(entry.date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       day: 'numeric',
       month: 'short',
     }),

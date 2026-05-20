@@ -91,7 +91,7 @@ function formatPeriodLabel(periodStart: string, period: string, locale: string, 
     return `${weekPrefix}${getWeekNumber(date)}`;
   }
   if (period === 'month') {
-    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { month: 'short' });
+    return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { month: 'short' });
   }
   return date.getFullYear().toString();
 }
@@ -185,7 +185,6 @@ export function ZoneDistributionChart({
   clientId,
   period = 'week',
   count = 8,
-  variant = 'default',
   chartType = 'bar',
 }: ZoneDistributionChartProps) {
   const t = useTranslations('components.zoneDistributionChart');
@@ -243,11 +242,6 @@ export function ZoneDistributionChart({
 
   const currentPeriodData = distributions[distributions.length - 1];
   const isPolarized = currentPeriodData?.polarizationRatio && currentPeriodData.polarizationRatio >= 75;
-
-  const cardClass =
-    variant === 'glass'
-      ? 'backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 border-white/20'
-      : '';
 
   if (isLoading) {
     return (

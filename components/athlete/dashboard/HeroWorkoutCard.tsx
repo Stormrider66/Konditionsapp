@@ -216,7 +216,7 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
   const isCompleted = !!completedLog?.completed
   const completedHighlights = useMemo(() => getCompletedHighlights(completedLog, t), [completedLog, t])
   const completedAtLabel = completedLog?.completedAt
-    ? new Date(completedLog.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
+    ? new Date(completedLog.completedAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
     : null
 
   return (

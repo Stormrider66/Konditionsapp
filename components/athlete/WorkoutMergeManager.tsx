@@ -87,7 +87,7 @@ export function WorkoutMergeManager() {
   const [loading, setLoading] = useState(true)
   const [linking, setLinking] = useState<string | null>(null)
 
-  const localeCode = locale === 'en' ? 'en-US' : 'sv-SE'
+  const localeCode = locale === 'sv' ? 'sv-SE' : 'en-US'
 
   const formatDateLocalized = useCallback(
     (iso: string): string => {

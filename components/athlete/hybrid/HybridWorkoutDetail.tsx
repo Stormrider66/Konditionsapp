@@ -285,7 +285,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                 <div>
                   <div className="font-semibold text-yellow-800">{t('personalRecord')}</div>
                   <div className="text-sm text-yellow-700">
-                    {new Date(personalBest.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE')}
+                    {new Date(personalBest.completedAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')}
                   </div>
                 </div>
               </div>
@@ -405,7 +405,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                           {result.isPR && <Medal className="h-5 w-5 text-yellow-600" />}
                           <div>
                             <div className="font-medium">
-                              {new Date(result.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+                              {new Date(result.completedAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
                                 weekday: 'long',
                                 year: 'numeric',
                                 month: 'long',

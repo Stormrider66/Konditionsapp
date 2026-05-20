@@ -49,7 +49,7 @@ interface AICreditStatusCardProps {
 
 function formatSek(value: number, locale: string): string {
   if (!Number.isFinite(value)) return '0 kr'
-  return `${Math.max(0, value).toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', {
+  return `${Math.max(0, value).toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     maximumFractionDigits: value < 10 ? 2 : 0,
   })} kr`
 }
@@ -57,13 +57,13 @@ function formatSek(value: number, locale: string): string {
 function formatPeriodEnd(value: string, locale: string, fallback: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return fallback
-  return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
 }
 
 function formatShortDate(value: string, locale: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
 }
 
 export function AICreditStatusCard({

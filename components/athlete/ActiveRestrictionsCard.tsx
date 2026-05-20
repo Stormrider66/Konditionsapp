@@ -144,7 +144,7 @@ export function ActiveRestrictionsCard({
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+    return new Date(dateString).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

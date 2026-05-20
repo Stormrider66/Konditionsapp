@@ -255,7 +255,7 @@ export function CareTeamThread({
   }
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', {
+    return new Date(dateString).toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',

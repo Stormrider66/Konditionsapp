@@ -39,5 +39,5 @@ export function formatFuelingPlanContext(
 function formatFuelingDistance(distanceKm: number, locale: string): string {
   if (Math.abs(distanceKm - 42.195) < 0.1) return 'Marathon'
   if (Math.abs(distanceKm - 21.0975) < 0.1) return locale === 'en' ? 'Half marathon' : 'Halvmarathon'
-  return `${distanceKm.toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', { maximumFractionDigits: 1 })} km`
+  return `${distanceKm.toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US', { maximumFractionDigits: 1 })} km`
 }

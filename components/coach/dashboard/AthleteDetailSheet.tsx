@@ -178,7 +178,7 @@ function formatDistance(meters: number | null): string {
 
 function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr)
-  return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
+  return d.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
 }
 
 function getInitials(name: string): string {

@@ -25,7 +25,7 @@ interface GoalProjectionProps {
 }
 
 function formatDate(date: Date, locale: string): string {
-  return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

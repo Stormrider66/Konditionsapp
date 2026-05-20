@@ -15,7 +15,7 @@ export function formatFuelingTargetIntensity(target: FuelingTargetIntensity, loc
 }
 
 function formatNumber(value: number, locale: string): string {
-  return value.toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', { maximumFractionDigits: 1 })
+  return value.toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US', { maximumFractionDigits: 1 })
 }
 
 function formatPace(value: number): string {

@@ -24,7 +24,7 @@ interface AthleteDrillListProps {
 }
 
 function formatDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', { day: 'numeric', month: 'short' })
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
 }
 
 type AppLocale = 'en' | 'sv'

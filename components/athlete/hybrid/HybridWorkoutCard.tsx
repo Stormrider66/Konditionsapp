@@ -167,7 +167,7 @@ export function HybridWorkoutCard({
     if (date.toDateString() === tomorrow.toDateString()) {
       return t('dates.tomorrow')
     }
-    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+    return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',

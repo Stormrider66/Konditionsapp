@@ -37,7 +37,7 @@ function formatSplit(ms: number): string {
 }
 
 function formatDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

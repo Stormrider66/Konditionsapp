@@ -179,7 +179,7 @@ export function CareTeamInbox({
     if (diffHours < 24) return formatter.format(-diffHours, 'hour')
     if (diffDays < 7) return formatter.format(-diffDays, 'day')
 
-    return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+    return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
       day: 'numeric',
       month: 'short',
     })

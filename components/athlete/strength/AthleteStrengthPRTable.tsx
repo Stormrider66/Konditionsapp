@@ -53,7 +53,7 @@ const SOURCE_META: Record<
 }
 
 function formatDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE', {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

@@ -412,7 +412,7 @@ function formatRaceTargetLabel(option: RaceTargetOption, locale: string): string
   if (!option.custom) return option.label
 
   const parts = [
-    option.distanceKm ? `${option.distanceKm.toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE', { maximumFractionDigits: 1 })} km` : null,
+    option.distanceKm ? `${option.distanceKm.toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US', { maximumFractionDigits: 1 })} km` : null,
     option.durationMinutes ? `${option.durationMinutes} min` : null,
   ].filter(Boolean)
 

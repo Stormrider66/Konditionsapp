@@ -80,7 +80,7 @@ interface SocialMediaManagerProps {
 export function SocialMediaManager({ basePath: _basePath }: SocialMediaManagerProps) {
   const t = useTranslations('components.socialMediaManager')
   const locale = useLocale()
-  const dateLocale = locale === 'en' ? 'en-US' : 'sv-SE'
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
 
   const [posts, setPosts] = useState<SocialPost[]>([])
   const [accounts, setAccounts] = useState<SocialAccount[]>([])

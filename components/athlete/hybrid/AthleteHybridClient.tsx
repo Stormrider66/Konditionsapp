@@ -527,7 +527,7 @@ function ResultsList({ results, formatScore, scalingLabels, basePath }: ResultsL
                   <div>
                     <div className="font-medium">{result.workout?.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {new Date(result.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE')}
+                      {new Date(result.completedAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')}
                     </div>
                   </div>
                 </div>
@@ -583,7 +583,7 @@ function PRBoard({ prs, formatScore, scalingLabels, basePath }: PRBoardProps) {
                   <div>
                     <div className="font-semibold">{pr.workout?.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {new Date(pr.completedAt).toLocaleDateString(locale === 'en' ? 'en-US' : 'sv-SE')}
+                      {new Date(pr.completedAt).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')}
                     </div>
                   </div>
                 </div>

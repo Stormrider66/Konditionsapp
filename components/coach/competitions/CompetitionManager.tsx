@@ -161,7 +161,7 @@ export function CompetitionManager({ basePath: _basePath }: CompetitionManagerPr
 
   const activeCompetitions = competitions.filter(c => c.isActive && new Date(c.endDate) > new Date())
   const pastCompetitions = competitions.filter(c => !c.isActive || new Date(c.endDate) <= new Date())
-  const dateLocale = locale === 'en' ? 'en-US' : 'sv-SE'
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const formatDate = useCallback((value: string) => new Date(value).toLocaleDateString(dateLocale, {
     day: 'numeric',
     month: 'short',
