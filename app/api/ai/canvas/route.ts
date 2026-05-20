@@ -7,6 +7,12 @@ import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const blockTypeSchema = z.enum([
   'heading',
   'text',
@@ -156,6 +162,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:create', user.id, {
       limit: 30,
@@ -166,7 +173,7 @@ export async function POST(request: NextRequest) {
     const parsed = createCanvasSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Ogiltig canvasdata.', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid canvas data.', 'Ogiltig canvasdata.'), details: parsed.error.flatten() },
         { status: 400 },
       )
     }

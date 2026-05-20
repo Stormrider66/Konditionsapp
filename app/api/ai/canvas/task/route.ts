@@ -6,6 +6,12 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const createCanvasTaskSchema = z.object({
   businessSlug: z.string().trim().min(1).max(80),
   title: z.string().trim().min(1).max(160),
@@ -22,8 +28,11 @@ function isNextRedirectError(error: unknown): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:create-task', user.id, {
       limit: 20,
@@ -34,7 +43,7 @@ export async function POST(request: NextRequest) {
     const parsed = createCanvasTaskSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Ogiltig uppgiftsdata.', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid task data.', 'Ogiltig uppgiftsdata.'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -66,6 +75,6 @@ export async function POST(request: NextRequest) {
     }
 
     logger.error('Create AI canvas task failed', {}, error)
-    return NextResponse.json({ error: 'Jag kunde inte skapa uppgiften just nu.' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'I could not create the task right now.', 'Jag kunde inte skapa uppgiften just nu.') }, { status: 500 })
   }
 }
