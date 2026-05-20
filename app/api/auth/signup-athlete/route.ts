@@ -65,6 +65,7 @@ const signupSchema = z.object({
     'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL',
     'NUTRITION',
   ]).optional(),
+  language: z.enum(['en', 'sv']).optional().default('en'),
 });
 
 export async function POST(request: NextRequest) {
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name, birthDate, gender, businessId, inviteCode, aiCoached, tier, primarySport } = validationResult.data;
+    const { email, password, name, birthDate, gender, businessId, inviteCode, aiCoached, tier, primarySport, language } = validationResult.data;
 
     let selectedBusiness: { id: string; slug: string; type: string } | null = null
     if (businessId) {
@@ -194,6 +195,7 @@ export async function POST(request: NextRequest) {
           email,
           name,
           role: 'ATHLETE',
+          language,
         },
       });
 

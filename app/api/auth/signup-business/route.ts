@@ -29,6 +29,7 @@ const signupBusinessSchema = z.object({
   phone: z.string().optional(),
   website: z.string().url().optional().or(z.literal('')),
   primarySport: z.string().optional(),
+  language: z.enum(['en', 'sv']).optional().default('en'),
 })
 
 /**
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, email, password, businessName, businessType, city, phone, website, primarySport } =
+    const { name, email, password, businessName, businessType, city, phone, website, language } =
       validationResult.data
 
     // Check if email is already registered
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
           email,
           name,
           role: 'COACH',
+          language,
         },
       })
 
