@@ -25,9 +25,10 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { useLocale } from 'next-intl'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { format, formatDistanceToNow, isToday, isTomorrow, isThisWeek } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 
 interface Match {
   id: string
@@ -46,15 +47,25 @@ interface MatchScheduleWidgetProps {
   showAddButton?: boolean
 }
 
-function getDateLabel(date: Date): string {
-  if (isToday(date)) return 'Idag'
-  if (isTomorrow(date)) return 'Imorgon'
-  if (isThisWeek(date)) return format(date, 'EEEE', { locale: sv })
-  return format(date, 'd MMM', { locale: sv })
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const dateFnsLocale = (locale: AppLocale) => (locale === 'sv' ? sv : enUS)
+
+function getDateLabel(date: Date, locale: AppLocale): string {
+  if (isToday(date)) return t(locale, 'Idag', 'Today')
+  if (isTomorrow(date)) return t(locale, 'Imorgon', 'Tomorrow')
+  if (isThisWeek(date)) return format(date, 'EEEE', { locale: dateFnsLocale(locale) })
+  return format(date, 'd MMM', { locale: dateFnsLocale(locale) })
 }
 
-function getTimeUntil(date: Date): string {
-  return formatDistanceToNow(date, { addSuffix: true, locale: sv })
+function getTimeUntil(date: Date, locale: AppLocale): string {
+  return formatDistanceToNow(date, { addSuffix: true, locale: dateFnsLocale(locale) })
 }
 
 export function MatchScheduleWidget({
@@ -62,6 +73,7 @@ export function MatchScheduleWidget({
   maxMatches = 5,
   showAddButton = true,
 }: MatchScheduleWidgetProps) {
+  const locale = getAppLocale(useLocale())
   const basePath = useBasePath()
   const [matches, setMatches] = useState<Match[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -76,17 +88,17 @@ export function MatchScheduleWidget({
         if (response.ok) {
           setMatches(data.matches || [])
         } else {
-          setError(data.error || 'Kunde inte hämta matcher')
+          setError(data.error || t(locale, 'Kunde inte hämta matcher', 'Could not fetch matches'))
         }
       } catch {
-        setError('Nätverksfel')
+        setError(t(locale, 'Nätverksfel', 'Network error'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchMatches()
-  }, [maxMatches])
+    void fetchMatches()
+  }, [maxMatches, locale])
 
   if (isLoading) {
     return (
@@ -94,7 +106,7 @@ export function MatchScheduleWidget({
         <GlassCardHeader className="pb-2">
           <GlassCardTitle className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-blue-500" />
-            Kommande matcher
+            {t(locale, 'Kommande matcher', 'Upcoming matches')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-3">
@@ -112,7 +124,7 @@ export function MatchScheduleWidget({
         <GlassCardHeader className="pb-2">
           <GlassCardTitle className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-blue-500" />
-            Kommande matcher
+            {t(locale, 'Kommande matcher', 'Upcoming matches')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -131,7 +143,7 @@ export function MatchScheduleWidget({
         <div className="flex items-center justify-between">
           <GlassCardTitle className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-blue-500" />
-            Kommande matcher
+            {t(locale, 'Kommande matcher', 'Upcoming matches')}
           </GlassCardTitle>
           {showAddButton && (
             <Link href={`${basePath}/athlete/matches?action=add`}>
@@ -147,12 +159,12 @@ export function MatchScheduleWidget({
         {matches.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Trophy className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga kommande matcher</p>
+            <p className="text-sm">{t(locale, 'Inga kommande matcher', 'No upcoming matches')}</p>
             {showAddButton && (
               <Link href={`${basePath}/athlete/matches?action=add`}>
                 <Button variant="outline" size="sm" className="mt-3">
                   <Plus className="h-3 w-3 mr-1" />
-                  Lägg till match
+                  {t(locale, 'Lägg till match', 'Add match')}
                 </Button>
               </Link>
             )}
@@ -195,7 +207,7 @@ export function MatchScheduleWidget({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           <span className="font-medium">
-                            {getDateLabel(matchDate)}
+                            {getDateLabel(matchDate, locale)}
                           </span>
                           <span>
                             {format(matchDate, 'HH:mm')}
@@ -205,7 +217,7 @@ export function MatchScheduleWidget({
                               variant="secondary"
                               className="text-[10px] h-4 px-1 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
                             >
-                              {getTimeUntil(matchDate)}
+                              {getTimeUntil(matchDate, locale)}
                             </Badge>
                           )}
                         </div>
@@ -243,7 +255,7 @@ export function MatchScheduleWidget({
                 size="sm"
                 className="w-full justify-between text-muted-foreground hover:text-foreground"
               >
-                <span>Visa alla matcher</span>
+                <span>{t(locale, 'Visa alla matcher', 'View all matches')}</span>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </Link>
