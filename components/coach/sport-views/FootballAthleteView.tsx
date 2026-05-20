@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -24,112 +25,160 @@ interface FootballAthleteViewProps {
   settings?: Record<string, unknown>
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  goalkeeper: 'Målvakt',
-  defender: 'Försvarare',
-  midfielder: 'Mittfältare',
-  forward: 'Anfallare',
+type LocalizedText = { sv: string; en: string }
+
+function t(locale: string, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
-const POSITION_DETAIL_LABELS: Record<string, string> = {
-  goalkeeper: 'Målvakt',
-  center_back: 'Mittback',
-  left_back: 'Vänsterback',
-  right_back: 'Högerback',
-  wing_back: 'Wingback',
-  sweeper: 'Libero',
-  defensive_mid: 'Defensiv mittfältare (6:a)',
-  central_mid: 'Central mittfältare (8:a)',
-  attacking_mid: 'Offensiv mittfältare (10:a)',
-  left_mid: 'Vänster mittfältare',
-  right_mid: 'Höger mittfältare',
-  striker: 'Nia/Striker',
-  left_winger: 'Vänsterytter',
-  right_winger: 'Högerytter',
-  false_nine: 'Falsk nia',
-  second_striker: 'Andraspets',
+function localized(locale: string, text: LocalizedText): string {
+  return locale === 'sv' ? text.sv : text.en
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Korpen/Motion',
-  division_4: 'Division 4',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  superettan: 'Superettan',
-  allsvenskan: 'Allsvenskan',
+function labelFor(labels: Record<string, LocalizedText>, key: string, locale: string): string {
+  return labels[key] ? localized(locale, labels[key]) : key
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  playoffs: 'Slutspel',
+const POSITION_LABELS: Record<string, LocalizedText> = {
+  goalkeeper: { sv: 'Målvakt', en: 'Goalkeeper' },
+  defender: { sv: 'Försvarare', en: 'Defender' },
+  midfielder: { sv: 'Mittfältare', en: 'Midfielder' },
+  forward: { sv: 'Anfallare', en: 'Forward' },
 }
 
-const PLAYSTYLE_LABELS: Record<string, string> = {
-  possession: 'Bollinnehav',
-  counter: 'Kontring',
-  pressing: 'Högt press',
-  physical: 'Fysiskt',
+const POSITION_DETAIL_LABELS: Record<string, LocalizedText> = {
+  goalkeeper: { sv: 'Målvakt', en: 'Goalkeeper' },
+  center_back: { sv: 'Mittback', en: 'Center back' },
+  left_back: { sv: 'Vänsterback', en: 'Left back' },
+  right_back: { sv: 'Högerback', en: 'Right back' },
+  wing_back: { sv: 'Wingback', en: 'Wingback' },
+  sweeper: { sv: 'Libero', en: 'Sweeper' },
+  defensive_mid: { sv: 'Defensiv mittfältare (6:a)', en: 'Defensive midfielder (6)' },
+  central_mid: { sv: 'Central mittfältare (8:a)', en: 'Central midfielder (8)' },
+  attacking_mid: { sv: 'Offensiv mittfältare (10:a)', en: 'Attacking midfielder (10)' },
+  left_mid: { sv: 'Vänster mittfältare', en: 'Left midfielder' },
+  right_mid: { sv: 'Höger mittfältare', en: 'Right midfielder' },
+  striker: { sv: 'Nia/Striker', en: 'Striker' },
+  left_winger: { sv: 'Vänsterytter', en: 'Left winger' },
+  right_winger: { sv: 'Högerytter', en: 'Right winger' },
+  false_nine: { sv: 'Falsk nia', en: 'False nine' },
+  second_striker: { sv: 'Andraspets', en: 'Second striker' },
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  sprint_speed: 'Sprintsnabbhet',
-  acceleration: 'Acceleration',
-  endurance: 'Uthållighet',
-  jumping: 'Hoppkraft',
-  shooting_power: 'Skottstyrka',
-  agility: 'Kvickhet',
-  strength_duels: 'Duellstyrka',
-  core_stability: 'Core-stabilitet',
+const LEAGUE_LABELS: Record<string, LocalizedText> = {
+  recreational: { sv: 'Korpen/Motion', en: 'Recreational' },
+  division_4: { sv: 'Division 4', en: 'Division 4' },
+  division_3: { sv: 'Division 3', en: 'Division 3' },
+  division_2: { sv: 'Division 2', en: 'Division 2' },
+  division_1: { sv: 'Division 1', en: 'Division 1' },
+  superettan: { sv: 'Superettan', en: 'Superettan' },
+  allsvenskan: { sv: 'Allsvenskan', en: 'Allsvenskan' },
 }
 
-const WEAKNESS_LABELS: Record<string, string> = {
-  weak_foot: 'Svaga foten',
-  heading: 'Nickar',
-  positioning: 'Positionering',
-  first_touch: 'Första touch',
-  passing: 'Passningar',
-  finishing: 'Avslut',
-  defensive_work: 'Defensivt arbete',
-  stamina: 'Uthållighet',
+const PHASE_LABELS: Record<string, LocalizedText> = {
+  off_season: { sv: 'Off-season', en: 'Off-season' },
+  pre_season: { sv: 'Försäsong', en: 'Pre-season' },
+  in_season: { sv: 'Säsong', en: 'In-season' },
+  playoffs: { sv: 'Slutspel', en: 'Playoffs' },
 }
 
-const INJURY_LABELS: Record<string, string> = {
-  hamstring: 'Hamstring',
-  groin: 'Ljumske',
-  ankle: 'Fotled',
-  knee_acl: 'Knä (ACL)',
-  knee_meniscus: 'Knä (Menisk)',
-  quadriceps: 'Quadriceps',
-  calf: 'Vad',
-  back: 'Rygg',
+const PLAYSTYLE_LABELS: Record<string, LocalizedText> = {
+  possession: { sv: 'Bollinnehav', en: 'Possession' },
+  counter: { sv: 'Kontring', en: 'Counter-attacking' },
+  pressing: { sv: 'Högt press', en: 'High press' },
+  physical: { sv: 'Fysiskt', en: 'Physical' },
 }
 
-const FOOT_LABELS: Record<string, string> = {
-  right: 'Höger',
-  left: 'Vänster',
-  both: 'Tvåfotad',
+const STRENGTH_LABELS: Record<string, LocalizedText> = {
+  sprint_speed: { sv: 'Sprintsnabbhet', en: 'Sprint speed' },
+  acceleration: { sv: 'Acceleration', en: 'Acceleration' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  jumping: { sv: 'Hoppkraft', en: 'Jump power' },
+  shooting_power: { sv: 'Skottstyrka', en: 'Shot power' },
+  agility: { sv: 'Kvickhet', en: 'Agility' },
+  strength_duels: { sv: 'Duellstyrka', en: 'Duel strength' },
+  core_stability: { sv: 'Core-stabilitet', en: 'Core stability' },
+}
+
+const WEAKNESS_LABELS: Record<string, LocalizedText> = {
+  weak_foot: { sv: 'Svaga foten', en: 'Weak foot' },
+  heading: { sv: 'Nickar', en: 'Heading' },
+  positioning: { sv: 'Positionering', en: 'Positioning' },
+  first_touch: { sv: 'Första touch', en: 'First touch' },
+  passing: { sv: 'Passningar', en: 'Passing' },
+  finishing: { sv: 'Avslut', en: 'Finishing' },
+  defensive_work: { sv: 'Defensivt arbete', en: 'Defensive work' },
+  stamina: { sv: 'Uthållighet', en: 'Stamina' },
+}
+
+const INJURY_LABELS: Record<string, LocalizedText> = {
+  hamstring: { sv: 'Hamstring', en: 'Hamstring' },
+  groin: { sv: 'Ljumske', en: 'Groin' },
+  ankle: { sv: 'Fotled', en: 'Ankle' },
+  knee_acl: { sv: 'Knä (ACL)', en: 'Knee (ACL)' },
+  knee_meniscus: { sv: 'Knä (Menisk)', en: 'Knee (meniscus)' },
+  quadriceps: { sv: 'Quadriceps', en: 'Quadriceps' },
+  calf: { sv: 'Vad', en: 'Calf' },
+  back: { sv: 'Rygg', en: 'Back' },
+}
+
+const FOOT_LABELS: Record<string, LocalizedText> = {
+  right: { sv: 'Höger', en: 'Right' },
+  left: { sv: 'Vänster', en: 'Left' },
+  both: { sv: 'Tvåfotad', en: 'Two-footed' },
 }
 
 // Training recommendations by season phase
-const PHASE_RECOMMENDATIONS: Record<string, { focus: string[]; avoid: string[] }> = {
+const PHASE_RECOMMENDATIONS: Record<string, { focus: LocalizedText[]; avoid: LocalizedText[] }> = {
   off_season: {
-    focus: ['Aerob basträning', 'Maxstyrka (4-6 rep)', 'Rörlighet', 'Skaderehab'],
-    avoid: ['Hög-intensiv sprintträning', 'Maximal match-simulering'],
+    focus: [
+      { sv: 'Aerob basträning', en: 'Aerobic base training' },
+      { sv: 'Maxstyrka (4-6 rep)', en: 'Max strength (4-6 reps)' },
+      { sv: 'Rörlighet', en: 'Mobility' },
+      { sv: 'Skaderehab', en: 'Injury rehab' },
+    ],
+    avoid: [
+      { sv: 'Hög-intensiv sprintträning', en: 'High-intensity sprint training' },
+      { sv: 'Maximal match-simulering', en: 'Maximal match simulation' },
+    ],
   },
   pre_season: {
-    focus: ['Intervaller (30-60 sek)', 'Explosiv styrka', 'Repeated Sprint Ability', 'Yo-Yo test'],
-    avoid: ['Långdistans steady-state', 'Hög volym styrketräning'],
+    focus: [
+      { sv: 'Intervaller (30-60 sek)', en: 'Intervals (30-60 sec)' },
+      { sv: 'Explosiv styrka', en: 'Explosive strength' },
+      { sv: 'Repeated Sprint Ability', en: 'Repeated Sprint Ability' },
+      { sv: 'Yo-Yo test', en: 'Yo-Yo test' },
+    ],
+    avoid: [
+      { sv: 'Långdistans steady-state', en: 'Long steady-state distance work' },
+      { sv: 'Hög volym styrketräning', en: 'High-volume strength training' },
+    ],
   },
   in_season: {
-    focus: ['Underhållsstyrka (2x/v)', 'Aktiv återhämtning', 'Mobilitet', 'Skadeförebyggande (FIFA 11+)'],
-    avoid: ['Hög volym off-field', 'Nya övningar', 'Tung styrketräning nära match'],
+    focus: [
+      { sv: 'Underhållsstyrka (2x/v)', en: 'Maintenance strength (2x/week)' },
+      { sv: 'Aktiv återhämtning', en: 'Active recovery' },
+      { sv: 'Mobilitet', en: 'Mobility' },
+      { sv: 'Skadeförebyggande (FIFA 11+)', en: 'Injury prevention (FIFA 11+)' },
+    ],
+    avoid: [
+      { sv: 'Hög volym off-field', en: 'High off-field volume' },
+      { sv: 'Nya övningar', en: 'New exercises' },
+      { sv: 'Tung styrketräning nära match', en: 'Heavy strength training close to games' },
+    ],
   },
   playoffs: {
-    focus: ['Lätt aktivering', 'Mental förberedelse', 'Sömn & återhämtning', 'Aktivering MD-1'],
-    avoid: ['Styrketräning', 'Konditionsträning', 'Allt som kan orsaka trötthet'],
+    focus: [
+      { sv: 'Lätt aktivering', en: 'Light activation' },
+      { sv: 'Mental förberedelse', en: 'Mental preparation' },
+      { sv: 'Sömn & återhämtning', en: 'Sleep & recovery' },
+      { sv: 'Aktivering MD-1', en: 'MD-1 activation' },
+    ],
+    avoid: [
+      { sv: 'Styrketräning', en: 'Strength training' },
+      { sv: 'Konditionsträning', en: 'Conditioning training' },
+      { sv: 'Allt som kan orsaka trötthet', en: 'Anything that can create fatigue' },
+    ],
   },
 }
 
@@ -141,7 +190,8 @@ const POSITION_BENCHMARKS: Record<string, { yoyoIR1: number; sprint10m: number; 
   forward: { yoyoIR1: 19.5, sprint10m: 1.68, sprint30m: 4.10, cmj: 48 },
 }
 
-export function FootballAthleteView({ clientId, clientName, settings }: FootballAthleteViewProps) {
+export function FootballAthleteView({ clientId, clientName: _clientName, settings }: FootballAthleteViewProps) {
+  const locale = useLocale()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -154,11 +204,11 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Trophy className="h-5 w-5" /> Fotboll
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen data tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t(locale, 'Ingen data tillgänglig', 'No data available')}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-            Atleten har inte angett fotbollsinställningar ännu.
+            {t(locale, 'Atleten har inte angett fotbollsinställningar ännu.', 'The athlete has not entered football settings yet.')}
           </p>
         </CardContent>
       </Card>
@@ -191,18 +241,18 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
               <CardDescription className="flex flex-wrap gap-2 mt-2" style={{ color: theme.colors.textMuted }}>
                 <Badge variant="outline">
                   {footballSettings.positionDetail
-                    ? POSITION_DETAIL_LABELS[footballSettings.positionDetail]
-                    : POSITION_LABELS[footballSettings.position]}
+                    ? labelFor(POSITION_DETAIL_LABELS, footballSettings.positionDetail, locale)
+                    : labelFor(POSITION_LABELS, footballSettings.position, locale)}
                 </Badge>
-                <Badge variant="secondary">{LEAGUE_LABELS[footballSettings.leagueLevel]}</Badge>
-                <Badge className="bg-green-500">{PHASE_LABELS[footballSettings.seasonPhase]}</Badge>
+                <Badge variant="secondary">{labelFor(LEAGUE_LABELS, footballSettings.leagueLevel, locale)}</Badge>
+                <Badge className="bg-green-500">{labelFor(PHASE_LABELS, footballSettings.seasonPhase, locale)}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.yearsPlaying}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>års erfarenhet</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'års erfarenhet', 'years experience')}</div>
             </div>
           </div>
         </CardHeader>
@@ -214,41 +264,41 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.avgMinutesPerMatch ?? '-'}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>min/match</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'min/match', 'min/game')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
               <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.matchesPerWeek}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>matcher/v</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'matcher/v', 'games/wk')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
               <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.weeklyTrainingSessions}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>träning/v</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'träning/v', 'training/wk')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
               <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
-                {FOOT_LABELS[footballSettings.preferredFootwork]}
+                {labelFor(FOOT_LABELS, footballSettings.preferredFootwork, locale)}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>favoritfot</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'favoritfot', 'preferred foot')}</div>
             </div>
           </div>
 
           {/* Play style */}
           <div className="flex items-center gap-2">
-            <span className="text-sm" style={{ color: theme.colors.textMuted }}>Spelstil:</span>
+            <span className="text-sm" style={{ color: theme.colors.textMuted }}>{t(locale, 'Spelstil:', 'Play style:')}</span>
             <Badge className={
               footballSettings.playStyle === 'possession' ? 'bg-blue-500' :
               footballSettings.playStyle === 'counter' ? 'bg-yellow-500' :
               footballSettings.playStyle === 'pressing' ? 'bg-red-500' :
               'bg-orange-500'
             }>
-              {PLAYSTYLE_LABELS[footballSettings.playStyle]}
+              {labelFor(PLAYSTYLE_LABELS, footballSettings.playStyle, locale)}
             </Badge>
           </div>
         </CardContent>
@@ -281,7 +331,7 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
                 <div className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>
                   {footballSettings.gpsProvider}
                 </div>
-                <div className="text-xs" style={{ color: theme.colors.textMuted }}>leverantör</div>
+                <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'leverantör', 'provider')}</div>
               </div>
             </div>
           </CardContent>
@@ -293,10 +343,10 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Activity className="h-4 w-4 text-red-500" />
-            Fysiska tester ({POSITION_LABELS[footballSettings.position]})
+            {t(locale, 'Fysiska tester', 'Physical tests')} ({labelFor(POSITION_LABELS, footballSettings.position, locale)})
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Jämfört med elitreferensvärden för positionen
+            {t(locale, 'Jämfört med elitreferensvärden för positionen', 'Compared with elite reference values for the position')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -311,7 +361,7 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
                 <div className={`text-xs mt-1 ${
                   footballSettings.benchmarks.yoyoIR1Level >= positionBenchmarks.yoyoIR1 ? 'text-green-500' : 'text-orange-500'
                 }`}>
-                  {getBenchmarkPercentage(footballSettings.benchmarks.yoyoIR1Level, positionBenchmarks.yoyoIR1)}% av elit
+                  {getBenchmarkPercentage(footballSettings.benchmarks.yoyoIR1Level, positionBenchmarks.yoyoIR1)}% {t(locale, 'av elit', 'of elite')}
                 </div>
               )}
             </div>
@@ -326,7 +376,7 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
                 <div className={`text-xs mt-1 ${
                   footballSettings.benchmarks.sprint10m <= positionBenchmarks.sprint10m ? 'text-green-500' : 'text-orange-500'
                 }`}>
-                  {getBenchmarkPercentage(footballSettings.benchmarks.sprint10m, positionBenchmarks.sprint10m, true)}% av elit
+                  {getBenchmarkPercentage(footballSettings.benchmarks.sprint10m, positionBenchmarks.sprint10m, true)}% {t(locale, 'av elit', 'of elite')}
                 </div>
               )}
             </div>
@@ -341,14 +391,14 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
                 <div className={`text-xs mt-1 ${
                   footballSettings.benchmarks.sprint30m <= positionBenchmarks.sprint30m ? 'text-green-500' : 'text-orange-500'
                 }`}>
-                  {getBenchmarkPercentage(footballSettings.benchmarks.sprint30m, positionBenchmarks.sprint30m, true)}% av elit
+                  {getBenchmarkPercentage(footballSettings.benchmarks.sprint30m, positionBenchmarks.sprint30m, true)}% {t(locale, 'av elit', 'of elite')}
                 </div>
               )}
             </div>
 
             {/* CMJ */}
             <div className="text-center p-2 rounded-lg border" style={{ borderColor: theme.colors.border }}>
-              <div className="text-sm font-medium mb-1" style={{ color: theme.colors.textMuted }}>CMJ hopp</div>
+              <div className="text-sm font-medium mb-1" style={{ color: theme.colors.textMuted }}>{t(locale, 'CMJ hopp', 'CMJ jump')}</div>
               <div className="text-xl font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.benchmarks.cmjHeight ?? '-'} cm
               </div>
@@ -356,7 +406,7 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
                 <div className={`text-xs mt-1 ${
                   footballSettings.benchmarks.cmjHeight >= positionBenchmarks.cmj ? 'text-green-500' : 'text-orange-500'
                 }`}>
-                  {getBenchmarkPercentage(footballSettings.benchmarks.cmjHeight, positionBenchmarks.cmj)}% av elit
+                  {getBenchmarkPercentage(footballSettings.benchmarks.cmjHeight, positionBenchmarks.cmj)}% {t(locale, 'av elit', 'of elite')}
                 </div>
               )}
             </div>
@@ -391,26 +441,26 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Target className="h-4 w-4" />
-            Träningsrekommendationer ({PHASE_LABELS[footballSettings.seasonPhase]})
+            {t(locale, 'Träningsrekommendationer', 'Training recommendations')} ({labelFor(PHASE_LABELS, footballSettings.seasonPhase, locale)})
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>Fokusera på:</h4>
+            <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Fokusera på:', 'Focus on:')}</h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.focus.map((item, i) => (
                 <Badge key={i} variant="outline" className="text-xs bg-green-500/10 border-green-500">
-                  {item}
+                  {localized(locale, item)}
                 </Badge>
               ))}
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>Undvik:</h4>
+            <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Undvik:', 'Avoid:')}</h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.avoid.map((item, i) => (
                 <Badge key={i} variant="outline" className="text-xs bg-red-500/10 border-red-500">
-                  {item}
+                  {localized(locale, item)}
                 </Badge>
               ))}
             </div>
@@ -424,17 +474,17 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-4 w-4" />
-              Styrkor & Utvecklingsområden
+              {t(locale, 'Styrkor & Utvecklingsområden', 'Strengths & Development Areas')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {footballSettings.strengthFocus.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>Styrkor:</h4>
+                <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Styrkor:', 'Strengths:')}</h4>
                 <div className="flex flex-wrap gap-1">
                   {footballSettings.strengthFocus.map((s) => (
                     <Badge key={s} variant="outline" className="text-xs">
-                      {STRENGTH_LABELS[s] || s}
+                      {STRENGTH_LABELS[s] ? localized(locale, STRENGTH_LABELS[s]) : s}
                     </Badge>
                   ))}
                 </div>
@@ -442,11 +492,11 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
             )}
             {footballSettings.weaknesses.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>Att utveckla:</h4>
+                <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Att utveckla:', 'To develop:')}</h4>
                 <div className="flex flex-wrap gap-1">
                   {footballSettings.weaknesses.map((w) => (
                     <Badge key={w} variant="outline" className="text-xs bg-orange-500/10 border-orange-500">
-                      {WEAKNESS_LABELS[w] || w}
+                      {WEAKNESS_LABELS[w] ? localized(locale, WEAKNESS_LABELS[w]) : w}
                     </Badge>
                   ))}
                 </div>
@@ -462,19 +512,19 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base text-yellow-600" style={{ color: theme.colors.textPrimary }}>
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              Skadehistorik
+              {t(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-1">
               {footballSettings.injuryHistory.map((injury) => (
                 <Badge key={injury} variant="outline" className="text-xs bg-yellow-500/10 border-yellow-500">
-                  {INJURY_LABELS[injury] || injury}
+                  {INJURY_LABELS[injury] ? localized(locale, INJURY_LABELS[injury]) : injury}
                 </Badge>
               ))}
             </div>
             <p className="text-xs mt-2" style={{ color: theme.colors.textMuted }}>
-              Inkludera FIFA 11+ och positionsspecifika förebyggande övningar i träningsprogrammet.
+              {t(locale, 'Inkludera FIFA 11+ och positionsspecifika förebyggande övningar i träningsprogrammet.', 'Include FIFA 11+ and position-specific preventive exercises in the training program.')}
             </p>
           </CardContent>
         </Card>
@@ -485,41 +535,41 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Users className="h-4 w-4" />
-            Positionsspecifik träning: {
+            {t(locale, 'Positionsspecifik träning:', 'Position-specific training:')} {
               footballSettings.positionDetail
-                ? POSITION_DETAIL_LABELS[footballSettings.positionDetail]
-                : POSITION_LABELS[footballSettings.position]
+                ? labelFor(POSITION_DETAIL_LABELS, footballSettings.positionDetail, locale)
+                : labelFor(POSITION_LABELS, footballSettings.position, locale)
             }
           </CardTitle>
         </CardHeader>
         <CardContent>
           {footballSettings.position === 'goalkeeper' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
-              <li>• <strong>Prioritet:</strong> Reaktion, lateral rörlighet, positionering</li>
-              <li>• <strong>Styrka:</strong> Explosiv kraft i ben, core, axelstabilitet</li>
-              <li>• <strong>Kondition:</strong> Korta explosiva intervaller, recovery</li>
-              <li>• <strong>Förebyggande:</strong> Axlar, handleder, knän</li>
+              <li>• <strong>{t(locale, 'Prioritet:', 'Priority:')}</strong> {t(locale, 'Reaktion, lateral rörlighet, positionering', 'Reaction, lateral mobility, positioning')}</li>
+              <li>• <strong>{t(locale, 'Styrka:', 'Strength:')}</strong> {t(locale, 'Explosiv kraft i ben, core, axelstabilitet', 'Explosive leg power, core, shoulder stability')}</li>
+              <li>• <strong>{t(locale, 'Kondition:', 'Conditioning:')}</strong> {t(locale, 'Korta explosiva intervaller, recovery', 'Short explosive intervals, recovery')}</li>
+              <li>• <strong>{t(locale, 'Förebyggande:', 'Prevention:')}</strong> {t(locale, 'Axlar, handleder, knän', 'Shoulders, wrists, knees')}</li>
             </ul>
           ) : footballSettings.position === 'defender' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
-              <li>• <strong>Prioritet:</strong> Duellstyrka, hoppkraft för nickar, positionering</li>
-              <li>• <strong>Styrka:</strong> Överkropp för dueller, höft/gluteal, Nordic curls</li>
-              <li>• <strong>Kondition:</strong> Aerob bas + repeated sprint ability</li>
-              <li>• <strong>Förebyggande:</strong> Hamstring, ljumske, fotled</li>
+              <li>• <strong>{t(locale, 'Prioritet:', 'Priority:')}</strong> {t(locale, 'Duellstyrka, hoppkraft för nickar, positionering', 'Duel strength, jumping power for headers, positioning')}</li>
+              <li>• <strong>{t(locale, 'Styrka:', 'Strength:')}</strong> {t(locale, 'Överkropp för dueller, höft/gluteal, Nordic curls', 'Upper body for duels, hip/gluteal, Nordic curls')}</li>
+              <li>• <strong>{t(locale, 'Kondition:', 'Conditioning:')}</strong> {t(locale, 'Aerob bas + repeated sprint ability', 'Aerobic base + repeated sprint ability')}</li>
+              <li>• <strong>{t(locale, 'Förebyggande:', 'Prevention:')}</strong> {t(locale, 'Hamstring, ljumske, fotled', 'Hamstring, groin, ankle')}</li>
             </ul>
           ) : footballSettings.position === 'midfielder' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
-              <li>• <strong>Prioritet:</strong> Maximal aerob kapacitet (Yo-Yo), box-to-box</li>
-              <li>• <strong>Styrka:</strong> Uthållighetsstyrka, core för balans i dueller</li>
-              <li>• <strong>Kondition:</strong> Högst krav - 10-13km/match, intervaller</li>
-              <li>• <strong>Förebyggande:</strong> Ljumske, knä, överbelastning</li>
+              <li>• <strong>{t(locale, 'Prioritet:', 'Priority:')}</strong> {t(locale, 'Maximal aerob kapacitet (Yo-Yo), box-to-box', 'Max aerobic capacity (Yo-Yo), box-to-box')}</li>
+              <li>• <strong>{t(locale, 'Styrka:', 'Strength:')}</strong> {t(locale, 'Uthållighetsstyrka, core för balans i dueller', 'Strength endurance, core for balance in duels')}</li>
+              <li>• <strong>{t(locale, 'Kondition:', 'Conditioning:')}</strong> {t(locale, 'Högst krav - 10-13km/match, intervaller', 'Highest demand - 10-13 km/game, intervals')}</li>
+              <li>• <strong>{t(locale, 'Förebyggande:', 'Prevention:')}</strong> {t(locale, 'Ljumske, knä, överbelastning', 'Groin, knee, overload')}</li>
             </ul>
           ) : (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
-              <li>• <strong>Prioritet:</strong> Maximal sprint, acceleration 0-10m</li>
-              <li>• <strong>Styrka:</strong> Explosiv power, skottstyrka (rotation)</li>
-              <li>• <strong>Kondition:</strong> Anaerob kapacitet, sprint recovery</li>
-              <li>• <strong>Förebyggande:</strong> Hamstring (kritiskt!), quadriceps</li>
+              <li>• <strong>{t(locale, 'Prioritet:', 'Priority:')}</strong> {t(locale, 'Maximal sprint, acceleration 0-10m', 'Max sprint, 0-10 m acceleration')}</li>
+              <li>• <strong>{t(locale, 'Styrka:', 'Strength:')}</strong> {t(locale, 'Explosiv power, skottstyrka (rotation)', 'Explosive power, shot power (rotation)')}</li>
+              <li>• <strong>{t(locale, 'Kondition:', 'Conditioning:')}</strong> {t(locale, 'Anaerob kapacitet, sprint recovery', 'Anaerobic capacity, sprint recovery')}</li>
+              <li>• <strong>{t(locale, 'Förebyggande:', 'Prevention:')}</strong> {t(locale, 'Hamstring (kritiskt!), quadriceps', 'Hamstring (critical), quadriceps')}</li>
             </ul>
           )}
         </CardContent>
@@ -530,7 +580,7 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Calendar className="h-4 w-4" />
-            Träningsförutsättningar
+            {t(locale, 'Träningsförutsättningar', 'Training access')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -547,7 +597,7 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.weeklyTrainingSessions}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>träningspass/v</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'träningspass/v', 'training sessions/wk')}</div>
             </div>
           </div>
         </CardContent>
@@ -557,7 +607,7 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
       <SportTestHistory
         clientId={clientId}
         sport="TEAM_FOOTBALL"
-        title="Testhistorik - Fotboll"
+        title={t(locale, 'Testhistorik - Fotboll', 'Test history - Football')}
         protocolLabels={{
           YOYO_IR1: 'Yo-Yo IR1',
           SPRINT_10M: '10m Sprint',
