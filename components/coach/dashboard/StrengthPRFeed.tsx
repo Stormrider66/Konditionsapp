@@ -7,10 +7,10 @@ import {
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
 import { Trophy } from 'lucide-react'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 
 export interface PRRecord {
   id: string
@@ -29,6 +29,7 @@ interface StrengthPRFeedProps {
 
 export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
   const t = useTranslations('components.strengthPRFeed')
+  const dateLocale = useLocale() === 'sv' ? sv : enUS
 
   return (
     <GlassCard glow="amber" className="group">
@@ -48,7 +49,7 @@ export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
           <div className="space-y-3 max-h-64 overflow-y-auto">
             {recentPRs.slice(0, 10).map(pr => {
               const delta = pr.previousMax ? pr.oneRepMax - pr.previousMax : null
-              const dateStr = format(new Date(pr.date), 'd MMM HH:mm', { locale: sv })
+              const dateStr = format(new Date(pr.date), 'd MMM HH:mm', { locale: dateLocale })
 
               return (
                 <div key={pr.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition">
