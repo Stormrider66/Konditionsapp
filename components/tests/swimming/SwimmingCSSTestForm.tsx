@@ -9,7 +9,7 @@
  * - Calculates CSS pace and training zones
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,13 +36,123 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Waves, CheckCircle, AlertTriangle, TrendingUp, Clock } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
-import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
+import { TestBenchmarkBadge } from '@/components/tests/shared/TestBenchmarkBadge'
 import {
   calculateCSS,
   classifyCSS,
   formatSwimPace,
   type SwimZone,
 } from '@/lib/calculations/sport-tests/swimming-tests'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+const swimmingCssCopy = {
+  en: {
+    validation: {
+      clientRequired: 'Select a client',
+      testDateRequired: 'Select a test date',
+    },
+    errors: {
+      clientNotFound: 'Client not found',
+      invalidTimes: 'The 400m time must be longer than the 200m time',
+      saveFailed: 'Failed to save test',
+      generic: 'An error occurred',
+    },
+    empty: {
+      title: 'CSS Test (Swimming)',
+      body: 'No clients found. Add clients before registering a test.',
+    },
+    description:
+      'Calculate threshold pace from 400m and 200m time trials. CSS represents your sustainable swimming pace.',
+    labels: {
+      client: 'Client',
+      testDate: 'Test date',
+      poolLength: 'Pool length',
+      stroke: 'Stroke',
+      time400m: '400m time',
+      time200m: '200m time',
+      cssPace: 'CSS pace',
+      speed: 'Speed',
+      zones: 'Training zones:',
+      notes: 'Notes',
+      savedZones: 'Training zones saved:',
+    },
+    placeholders: {
+      client: 'Select client',
+      minutes: 'Min',
+      seconds: 'Sec',
+      notes: 'Technique, feel, pool conditions...',
+    },
+    descriptions: {
+      time400m: 'Maximal 400m time trial (mm:ss)',
+      time200m: 'Maximal 200m time trial (mm:ss)',
+    },
+    strokes: {
+      FREESTYLE: 'Freestyle',
+      BACKSTROKE: 'Backstroke',
+      BREASTSTROKE: 'Breaststroke',
+      BUTTERFLY: 'Butterfly',
+    },
+    calculatedCss: 'Calculated CSS',
+    saving: 'Saving...',
+    save: 'Save CSS test',
+    savedTitle: 'Test saved',
+  },
+  sv: {
+    validation: {
+      clientRequired: 'Välj en klient',
+      testDateRequired: 'Välj testdatum',
+    },
+    errors: {
+      clientNotFound: 'Klient hittades inte',
+      invalidTimes: '400m-tiden måste vara längre än 200m-tiden',
+      saveFailed: 'Misslyckades att spara test',
+      generic: 'Ett fel uppstod',
+    },
+    empty: {
+      title: 'CSS-test (Simning)',
+      body: 'Inga klienter hittades. Lägg till klienter för att kunna registrera test.',
+    },
+    description:
+      'Beräkna tröskeltempo genom 400m och 200m tidtagning. CSS motsvarar ditt uthålliga tempo i simning.',
+    labels: {
+      client: 'Klient',
+      testDate: 'Testdatum',
+      poolLength: 'Bassänglängd',
+      stroke: 'Simsätt',
+      time400m: '400m tid',
+      time200m: '200m tid',
+      cssPace: 'CSS tempo',
+      speed: 'Hastighet',
+      zones: 'Träningszoner:',
+      notes: 'Anteckningar',
+      savedZones: 'Träningszoner sparade:',
+    },
+    placeholders: {
+      client: 'Välj klient',
+      minutes: 'Min',
+      seconds: 'Sek',
+      notes: 'Teknik, känsla, bassängförhållanden...',
+    },
+    descriptions: {
+      time400m: 'Maximal 400m tidtagning (mm:ss)',
+      time200m: 'Maximal 200m tidtagning (mm:ss)',
+    },
+    strokes: {
+      FREESTYLE: 'Frisim (crawl)',
+      BACKSTROKE: 'Ryggsim',
+      BREASTSTROKE: 'Bröstsim',
+      BUTTERFLY: 'Fjärilsim',
+    },
+    calculatedCss: 'Beräknad CSS',
+    saving: 'Sparar...',
+    save: 'Spara CSS-test',
+    savedTitle: 'Test sparat',
+  },
+} as const
+
+type SwimmingCssCopy = (typeof swimmingCssCopy)[AppLocale]
 
 // Helper to convert mm:ss to seconds
 function timeToSeconds(minutes: number, seconds: number): number {
@@ -56,19 +166,29 @@ function formatTime(totalSeconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-const cssTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
-  time400mMinutes: z.number().min(3).max(15),
-  time400mSeconds: z.number().min(0).max(59),
-  time200mMinutes: z.number().min(1).max(8),
-  time200mSeconds: z.number().min(0).max(59),
-  poolLength: z.enum(['25', '50']),
-  stroke: z.enum(['FREESTYLE', 'BACKSTROKE', 'BREASTSTROKE', 'BUTTERFLY']),
-  notes: z.string().optional(),
-})
+function createCssTestSchema(copy: SwimmingCssCopy) {
+  return z.object({
+    clientId: z.string().min(1, copy.validation.clientRequired),
+    testDate: z.string().min(1, copy.validation.testDateRequired),
+    time400mMinutes: z.number().min(3).max(15),
+    time400mSeconds: z.number().min(0).max(59),
+    time200mMinutes: z.number().min(1).max(8),
+    time200mSeconds: z.number().min(0).max(59),
+    poolLength: z.enum(['25', '50']),
+    stroke: z.enum(['FREESTYLE', 'BACKSTROKE', 'BREASTSTROKE', 'BUTTERFLY']),
+    notes: z.string().optional(),
+  })
+}
 
-type CSSTestFormData = z.infer<typeof cssTestSchema>
+function formatTestDate(date: Date | string, locale: AppLocale) {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
+}
+
+function zoneName(zone: SwimZone, locale: AppLocale) {
+  return locale === 'sv' ? zone.nameSwedish : zone.name
+}
+
+type CSSTestFormData = z.infer<ReturnType<typeof createCssTestSchema>>
 
 interface Client {
   id: string
@@ -83,12 +203,15 @@ interface SwimmingCSSTestFormProps {
 }
 
 export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFormProps) {
+  const locale = useLocale() as AppLocale
+  const copy = swimmingCssCopy[locale] ?? swimmingCssCopy.en
+  const localizedSchema = useMemo(() => createCssTestSchema(copy), [copy])
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<CSSTestFormData>({
-    resolver: zodResolver(cssTestSchema),
+    resolver: zodResolver(localizedSchema),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -134,13 +257,13 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(copy.errors.clientNotFound)
 
       const t400 = timeToSeconds(data.time400mMinutes, data.time400mSeconds)
       const t200 = timeToSeconds(data.time200mMinutes, data.time200mSeconds)
 
       if (t400 <= t200) {
-        throw new Error('400m-tiden måste vara längre än 200m-tiden')
+        throw new Error(copy.errors.invalidTimes)
       }
 
       const cssResult = calculateCSS(t400, t200)
@@ -170,7 +293,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || copy.errors.saveFailed)
       }
 
       const resultData = await response.json()
@@ -187,7 +310,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
       onTestSaved?.(resultData.data)
     } catch (err) {
       console.error('Failed to save CSS test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : copy.errors.generic)
     } finally {
       setSubmitting(false)
     }
@@ -199,12 +322,12 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Waves className="h-5 w-5" />
-            CSS-test (Simning)
+            {copy.empty.title}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {copy.empty.body}
           </p>
         </CardContent>
       </Card>
@@ -222,8 +345,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                 Critical Swim Speed (CSS)
               </CardTitle>
               <CardDescription>
-                Beräkna tröskeltempto genom 400m och 200m tidtagning. CSS motsvarar ditt uthålliga
-                tempo i simning.
+                {copy.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -233,11 +355,11 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{copy.labels.client}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={copy.placeholders.client} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -258,7 +380,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{copy.labels.testDate}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -274,7 +396,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                   name="poolLength"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Bassänglängd</FormLabel>
+                      <FormLabel>{copy.labels.poolLength}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -296,7 +418,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                   name="stroke"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Simsätt</FormLabel>
+                      <FormLabel>{copy.labels.stroke}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -304,10 +426,10 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="FREESTYLE">Frisim (crawl)</SelectItem>
-                          <SelectItem value="BACKSTROKE">Ryggsim</SelectItem>
-                          <SelectItem value="BREASTSTROKE">Bröstsim</SelectItem>
-                          <SelectItem value="BUTTERFLY">Fjärilsim</SelectItem>
+                          <SelectItem value="FREESTYLE">{copy.strokes.FREESTYLE}</SelectItem>
+                          <SelectItem value="BACKSTROKE">{copy.strokes.BACKSTROKE}</SelectItem>
+                          <SelectItem value="BREASTSTROKE">{copy.strokes.BREASTSTROKE}</SelectItem>
+                          <SelectItem value="BUTTERFLY">{copy.strokes.BUTTERFLY}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -320,7 +442,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
               <div className="space-y-2">
                 <FormLabel className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  400m tid
+                  {copy.labels.time400m}
                 </FormLabel>
                 <div className="flex items-center gap-2">
                   <FormField
@@ -333,7 +455,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                             type="number"
                             min={3}
                             max={15}
-                            placeholder="Min"
+                            placeholder={copy.placeholders.minutes}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />
@@ -352,7 +474,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                             type="number"
                             min={0}
                             max={59}
-                            placeholder="Sek"
+                            placeholder={copy.placeholders.seconds}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />
@@ -361,14 +483,14 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                     )}
                   />
                 </div>
-                <FormDescription>Maximal 400m tidtagning (mm:ss)</FormDescription>
+                <FormDescription>{copy.descriptions.time400m}</FormDescription>
               </div>
 
               {/* 200m Time */}
               <div className="space-y-2">
                 <FormLabel className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  200m tid
+                  {copy.labels.time200m}
                 </FormLabel>
                 <div className="flex items-center gap-2">
                   <FormField
@@ -381,7 +503,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                             type="number"
                             min={1}
                             max={8}
-                            placeholder="Min"
+                            placeholder={copy.placeholders.minutes}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />
@@ -400,7 +522,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                             type="number"
                             min={0}
                             max={59}
-                            placeholder="Sek"
+                            placeholder={copy.placeholders.seconds}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />
@@ -409,7 +531,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                     )}
                   />
                 </div>
-                <FormDescription>Maximal 200m tidtagning (mm:ss)</FormDescription>
+                <FormDescription>{copy.descriptions.time200m}</FormDescription>
               </div>
 
               {/* Live CSS calculation */}
@@ -418,18 +540,18 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                   <div>
                     <p className="text-sm font-medium mb-3 flex items-center gap-2">
                       <TrendingUp className="h-4 w-4" />
-                      Beräknad CSS
+                      {copy.calculatedCss}
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="text-xs text-muted-foreground">CSS tempo</p>
+                        <p className="text-xs text-muted-foreground">{copy.labels.cssPace}</p>
                         <span className="text-2xl font-bold text-primary">
                           {liveCSSResult.cssFormatted}
                         </span>
                         <span className="text-sm text-muted-foreground ml-1">/100m</span>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Hastighet</p>
+                        <p className="text-xs text-muted-foreground">{copy.labels.speed}</p>
                         <span className="text-2xl font-bold text-primary">{liveCSSResult.css}</span>
                         <span className="text-sm text-muted-foreground ml-1">m/s</span>
                       </div>
@@ -443,7 +565,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
 
                   {/* Training zones */}
                   <div className="pt-3 border-t">
-                    <p className="text-sm font-medium mb-2">Träningszoner:</p>
+                    <p className="text-sm font-medium mb-2">{copy.labels.zones}</p>
                     <div className="space-y-1">
                       {liveCSSResult.zones.map((zone) => (
                         <div
@@ -451,7 +573,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                           className="flex items-center justify-between text-sm p-2 rounded bg-background"
                         >
                           <span className="font-medium">
-                            Z{zone.zone} {zone.nameSwedish}
+                            Z{zone.zone} {zoneName(zone, locale)}
                           </span>
                           <span className="text-muted-foreground">
                             {formatSwimPace(zone.paceMax)} - {formatSwimPace(zone.paceMin)} /100m
@@ -468,10 +590,10 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{copy.labels.notes}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Teknik, känsla, bassängförhållanden..."
+                        placeholder={copy.placeholders.notes}
                         {...field}
                       />
                     </FormControl>
@@ -483,7 +605,7 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara CSS-test'}
+            {submitting ? copy.saving : copy.save}
           </Button>
         </form>
       </Form>
@@ -500,34 +622,34 @@ export function SwimmingCSSTestForm({ clients, onTestSaved }: SwimmingCSSTestFor
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {copy.savedTitle}
             </CardTitle>
             <CardDescription>
               {result.client?.name} - CSS Test -{' '}
-              {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {formatTestDate(result.testDate, locale)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <CompactResult
-                label="CSS tempo"
+                label={copy.labels.cssPace}
                 value={result.cssResult?.cssFormatted}
                 unit="/100m"
                 tier={result.tier}
               />
               <CompactResult
-                label="Hastighet"
+                label={copy.labels.speed}
                 value={result.cssResult?.css}
                 unit="m/s"
               />
-              <CompactResult label="400m tid" value={result.time400mFormatted} />
-              <CompactResult label="200m tid" value={result.time200mFormatted} />
+              <CompactResult label={copy.labels.time400m} value={result.time400mFormatted} />
+              <CompactResult label={copy.labels.time200m} value={result.time200mFormatted} />
             </div>
 
             {/* Zones summary */}
             {result.cssResult?.zones && (
               <div className="pt-3 border-t">
-                <p className="text-sm font-medium mb-2">Träningszoner sparade:</p>
+                <p className="text-sm font-medium mb-2">{copy.labels.savedZones}</p>
                 <div className="flex flex-wrap gap-2">
                   {result.cssResult.zones.map((zone: SwimZone) => (
                     <span
