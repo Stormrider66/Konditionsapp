@@ -9,7 +9,8 @@
  * - Calculates acceleration, max velocity
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -33,11 +34,11 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Timer, CheckCircle, AlertTriangle, TrendingUp, Gauge } from 'lucide-react'
+import { Timer, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
-import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
+import { TestBenchmarkBadge } from '@/components/tests/shared/TestBenchmarkBadge'
 import {
   calculateAcceleration,
   calculateSpeed,
@@ -47,12 +48,11 @@ import {
   type SprintSplit,
 } from '@/lib/calculations/sport-tests/speed-tests'
 
-const sprintDistances = [5, 10, 20, 30, 40] as const
-type SprintDistance = (typeof sprintDistances)[number]
+type SprintDistance = 5 | 10 | 20 | 30 | 40
 
-const sprintTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createSprintTestSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   distance: z.number().min(5).max(100),
   totalTime: z.number().min(0.5).max(15),
   hasSplits: z.boolean().optional(),
@@ -66,7 +66,7 @@ const sprintTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type SprintTestFormData = z.infer<typeof sprintTestSchema>
+type SprintTestFormData = z.infer<ReturnType<typeof createSprintTestSchema>>
 
 interface Client {
   id: string
@@ -89,12 +89,14 @@ const distanceToProtocol: Record<SprintDistance, string> = {
 }
 
 export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<SprintTestFormData>({
-    resolver: zodResolver(sprintTestSchema),
+    resolver: zodResolver(createSprintTestSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -131,7 +133,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       // Build splits array if available
       const splits: SprintSplit[] = []
@@ -174,7 +176,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -198,7 +200,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
       })
     } catch (err) {
       console.error('Failed to save sprint test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -215,7 +217,9 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                 Sprinttest
               </CardTitle>
               <CardDescription>
-                Mät acceleration och maxhastighet över olika distanser
+                {locale === 'sv'
+                  ? 'Mät acceleration och maxhastighet över olika distanser'
+                  : 'Measure acceleration and top speed across different distances'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -225,11 +229,11 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -250,7 +254,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -266,7 +270,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                   name="distance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Distans (m)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Distans (m)' : 'Distance (m)'}</FormLabel>
                       <Select
                         onValueChange={(v) => field.onChange(parseInt(v))}
                         value={field.value?.toString()}
@@ -294,19 +298,21 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                   name="totalTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tid (s)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Tid (s)' : 'Time (s)'}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.001"
                           min={0.5}
                           max={15}
-                          placeholder="t.ex. 3.05"
+                          placeholder={locale === 'sv' ? 't.ex. 3.05' : 'e.g. 3.05'}
                           {...field}
                           onChange={(e) => field.onChange(parseFloat(e.target.value))}
                         />
                       </FormControl>
-                      <FormDescription>Bästa tid av alla försök</FormDescription>
+                      <FormDescription>
+                        {locale === 'sv' ? 'Bästa tid av alla försök' : 'Best time across all attempts'}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -319,7 +325,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                   name="startType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Starttyp</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Starttyp' : 'Start type'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -327,10 +333,10 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="STANDING">Stående start</SelectItem>
-                          <SelectItem value="THREE_POINT">3-punktsstart</SelectItem>
-                          <SelectItem value="BLOCK">Startblock</SelectItem>
-                          <SelectItem value="FLYING">Flygande start</SelectItem>
+                          <SelectItem value="STANDING">{locale === 'sv' ? 'Stående start' : 'Standing start'}</SelectItem>
+                          <SelectItem value="THREE_POINT">{locale === 'sv' ? '3-punktsstart' : '3-point start'}</SelectItem>
+                          <SelectItem value="BLOCK">{locale === 'sv' ? 'Startblock' : 'Blocks'}</SelectItem>
+                          <SelectItem value="FLYING">{locale === 'sv' ? 'Flygande start' : 'Flying start'}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -343,7 +349,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                   name="surface"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Underlag</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Underlag' : 'Surface'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -351,10 +357,10 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="INDOOR">Inomhus</SelectItem>
-                          <SelectItem value="OUTDOOR_TRACK">Löparbana</SelectItem>
-                          <SelectItem value="GRASS">Gräs</SelectItem>
-                          <SelectItem value="TURF">Konstgräs</SelectItem>
+                          <SelectItem value="INDOOR">{locale === 'sv' ? 'Inomhus' : 'Indoor'}</SelectItem>
+                          <SelectItem value="OUTDOOR_TRACK">{locale === 'sv' ? 'Löparbana' : 'Outdoor track'}</SelectItem>
+                          <SelectItem value="GRASS">{locale === 'sv' ? 'Gräs' : 'Grass'}</SelectItem>
+                          <SelectItem value="TURF">{locale === 'sv' ? 'Konstgräs' : 'Turf'}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -370,9 +376,11 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border p-3">
                     <div>
-                      <FormLabel>Registrera deltider</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Registrera deltider' : 'Record split times'}</FormLabel>
                       <FormDescription>
-                        Lägg till mellantider för detaljerad analys
+                        {locale === 'sv'
+                          ? 'Lägg till mellantider för detaljerad analys'
+                          : 'Add split times for detailed analysis'}
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -391,12 +399,12 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                       name="split5m"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>5m tid</FormLabel>
+                          <FormLabel>{locale === 'sv' ? '5m tid' : '5 m time'}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               step="0.001"
-                              placeholder="t.ex. 1.05"
+                              placeholder={locale === 'sv' ? 't.ex. 1.05' : 'e.g. 1.05'}
                               {...field}
                               onChange={(e) =>
                                 field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
@@ -413,12 +421,12 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                       name="split10m"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>10m tid</FormLabel>
+                          <FormLabel>{locale === 'sv' ? '10m tid' : '10 m time'}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               step="0.001"
-                              placeholder="t.ex. 1.75"
+                              placeholder={locale === 'sv' ? 't.ex. 1.75' : 'e.g. 1.75'}
                               {...field}
                               onChange={(e) =>
                                 field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
@@ -435,12 +443,12 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                       name="split20m"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>20m tid</FormLabel>
+                          <FormLabel>{locale === 'sv' ? '20m tid' : '20 m time'}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               step="0.001"
-                              placeholder="t.ex. 3.05"
+                              placeholder={locale === 'sv' ? 't.ex. 3.05' : 'e.g. 3.05'}
                               {...field}
                               onChange={(e) =>
                                 field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
@@ -457,12 +465,12 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                       name="split30m"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>30m tid</FormLabel>
+                          <FormLabel>{locale === 'sv' ? '30m tid' : '30 m time'}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               step="0.001"
-                              placeholder="t.ex. 4.20"
+                              placeholder={locale === 'sv' ? 't.ex. 4.20' : 'e.g. 4.20'}
                               {...field}
                               onChange={(e) =>
                                 field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
@@ -481,11 +489,11 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm font-medium mb-3 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
-                    Beräknade värden
+                    {locale === 'sv' ? 'Beräknade värden' : 'Calculated values'}
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Hastighet</p>
+                      <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Hastighet' : 'Speed'}</p>
                       <span className="text-xl font-bold text-primary">
                         {liveCalc.speedKmh}
                       </span>
@@ -516,7 +524,7 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                 name="attempts"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Antal försök</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Antal försök' : 'Number of attempts'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -536,10 +544,12 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Teknik, väder, uppvärmning, observationer..."
+                        placeholder={locale === 'sv'
+                          ? 'Teknik, väder, uppvärmning, observationer...'
+                          : 'Technique, weather, warm-up, observations...'}
                         {...field}
                       />
                     </FormControl>
@@ -551,7 +561,9 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara sprinttest'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara sprinttest' : 'Save sprint test'}
           </Button>
         </form>
       </Form>
@@ -568,23 +580,23 @@ export function SprintTestForm({ clients, onTestSaved }: SprintTestFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {locale === 'sv' ? 'Test sparat' : 'Test saved'}
             </CardTitle>
             <CardDescription>
               {result.client?.name} - {result.rawData?.distance}m sprint -{' '}
-              {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {new Date(result.testDate).toLocaleDateString(dateLocale)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <CompactResult
-                label="Tid"
+                label={locale === 'sv' ? 'Tid' : 'Time'}
                 value={result.primaryResult}
                 unit="s"
                 tier={result.tier}
               />
               <CompactResult
-                label="Hastighet"
+                label={locale === 'sv' ? 'Hastighet' : 'Speed'}
                 value={sprintSpeedKmh(result.rawData?.distance, result.primaryResult)}
                 unit="km/h"
               />
