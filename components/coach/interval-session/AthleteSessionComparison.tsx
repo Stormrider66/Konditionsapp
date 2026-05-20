@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Timer, TrendingDown } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale } from '@/i18n/client'
 
 interface SessionSummary {
   sessionId: string
@@ -35,9 +36,46 @@ function formatSplit(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+function formatDateForLocale(iso: string, locale: AppLocale): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+  })
 }
+
+type AppLocale = 'en' | 'sv'
+
+const copy = {
+  en: {
+    fetchFailed: 'Could not fetch history',
+    empty: 'No completed interval sessions for this athlete',
+    title: (name: string) => `Progress - ${name}`,
+    faster: (value: string) => `${value}% faster`,
+    summary: (count: number) => `${count} sessions · Average and best split over time`,
+    average: 'Average',
+    best: 'Best',
+    lapCount: (count: number) => `${count} laps`,
+  },
+  sv: {
+    fetchFailed: 'Kunde inte hämta historik',
+    empty: 'Inga avslutade intervallsessioner för denna atlet',
+    title: (name: string) => `Utveckling - ${name}`,
+    faster: (value: string) => `${value}% snabbare`,
+    summary: (count: number) => `${count} sessioner · Snitt & bästa split över tid`,
+    average: 'Snitt',
+    best: 'Bästa',
+    lapCount: (count: number) => `${count} varv`,
+  },
+} satisfies Record<AppLocale, {
+  fetchFailed: string
+  empty: string
+  title: (name: string) => string
+  faster: (value: string) => string
+  summary: (count: number) => string
+  average: string
+  best: string
+  lapCount: (count: number) => string
+}>
 
 interface AthleteSessionComparisonProps {
   clientId: string
@@ -45,6 +83,8 @@ interface AthleteSessionComparisonProps {
 }
 
 export function AthleteSessionComparison({ clientId, sportType }: AthleteSessionComparisonProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const text = copy[locale]
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [clientName, setClientName] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -61,13 +101,13 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
           setClientName(data.clientName || '')
         }
       } catch {
-        toast.error('Kunde inte hämta historik')
+        toast.error(text.fetchFailed)
       } finally {
         setLoading(false)
       }
     }
-    fetchData()
-  }, [clientId, sportType])
+    void fetchData()
+  }, [clientId, sportType, text.fetchFailed])
 
   if (loading) {
     return <div className="h-48 bg-muted animate-pulse rounded-lg" />
@@ -77,17 +117,17 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
     return (
       <div className="text-center py-8 text-muted-foreground">
         <Timer className="h-6 w-6 mx-auto mb-2 opacity-40" />
-        <p className="text-sm">Inga avslutade intervallsessioner för denna atlet</p>
+        <p className="text-sm">{text.empty}</p>
       </div>
     )
   }
 
   // Build trend chart data (chronological order - oldest first)
   const chartData = [...sessions].reverse().map((s) => ({
-    date: formatDate(s.date),
+    date: formatDateForLocale(s.date, locale),
     avg: s.avgSplitMs,
     best: s.bestSplitMs,
-    name: s.sessionName || formatDate(s.date),
+    name: s.sessionName || formatDateForLocale(s.date, locale),
   }))
 
   // Calculate improvement
@@ -103,17 +143,17 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
-              Utveckling - {clientName}
+              {text.title(clientName)}
             </CardTitle>
             {improvement && parseFloat(improvement) > 0 && (
               <Badge variant="outline" className="text-green-600 border-green-300">
                 <TrendingDown className="h-3 w-3 mr-1" />
-                {improvement}% snabbare
+                {text.faster(improvement)}
               </Badge>
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            {sessions.length} sessioner · Snitt & bästa split över tid
+            {text.summary(sessions.length)}
           </p>
         </CardHeader>
         <CardContent>
@@ -132,7 +172,7 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
                 dataKey="avg"
                 stroke="#3B82F6"
                 strokeWidth={2}
-                name="Snitt"
+                name={text.average}
                 dot={{ r: 3 }}
               />
               <Line
@@ -140,7 +180,7 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
                 dataKey="best"
                 stroke="#22C55E"
                 strokeWidth={2}
-                name="Bästa"
+                name={text.best}
                 dot={{ r: 3 }}
                 strokeDasharray="4 4"
               />
@@ -158,12 +198,12 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
           >
             <div>
               <span className="font-medium">{s.sessionName || 'Session'}</span>
-              <span className="text-xs text-muted-foreground ml-2">{formatDate(s.date)}</span>
+              <span className="text-xs text-muted-foreground ml-2">{formatDateForLocale(s.date, locale)}</span>
             </div>
             <div className="flex items-center gap-3 font-mono text-xs">
-              <span>Snitt: <strong>{s.avgSplitMs ? formatSplit(s.avgSplitMs) : '-'}</strong></span>
-              <span className="text-green-600">Bästa: <strong>{s.bestSplitMs ? formatSplit(s.bestSplitMs) : '-'}</strong></span>
-              <span>{s.totalLaps} varv</span>
+              <span>{text.average}: <strong>{s.avgSplitMs ? formatSplit(s.avgSplitMs) : '-'}</strong></span>
+              <span className="text-green-600">{text.best}: <strong>{s.bestSplitMs ? formatSplit(s.bestSplitMs) : '-'}</strong></span>
+              <span>{text.lapCount(s.totalLaps)}</span>
             </div>
           </div>
         ))}
