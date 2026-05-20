@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { processGarminActivityZonesForClient } from '@/lib/integrations/zone-distribution-service'
 import {
   GarminActivity,
   GarminBodyComposition,
@@ -547,7 +548,7 @@ async function processActivity(activity: GarminActivityPayload) {
     else mappedIntensity = 'MAX'
   }
 
-  await prisma.garminActivity.upsert({
+  const garminRecord = await prisma.garminActivity.upsert({
     where: { garminActivityId: BigInt(activity.activityId) },
     update: {
       type: activity.activityType,
@@ -593,23 +594,27 @@ async function processActivity(activity: GarminActivityPayload) {
       laps: Prisma.JsonNull,
       splits: Prisma.JsonNull,
     },
+    select: {
+      id: true,
+      clientId: true,
+      startDate: true,
+      duration: true,
+      type: true,
+      mappedType: true,
+    },
   })
 
   logger.debug('Synced Garmin activity to GarminActivity model', { clientId, activityId: activity.activityId })
 
+  await processGarminActivityZonesForClient(clientId, garminRecord.id)
+
   // Auto-link with matching ad-hoc workout if one exists
   try {
     const { findMatchingAdHocWorkout, linkAdHocToGarmin } = await import('@/lib/training/adhoc-garmin-matcher')
-    const garminRecord = await prisma.garminActivity.findFirst({
-      where: { garminActivityId: BigInt(activity.activityId) },
-      select: { id: true, clientId: true, startDate: true, duration: true, type: true, mappedType: true },
-    })
-    if (garminRecord) {
-      const match = await findMatchingAdHocWorkout(garminRecord)
-      if (match) {
-        await linkAdHocToGarmin(match.id, garminRecord.id)
-        logger.info('Auto-linked Garmin activity to ad-hoc workout', { garminActivityId: garminRecord.id, adHocWorkoutId: match.id })
-      }
+    const match = await findMatchingAdHocWorkout(garminRecord)
+    if (match) {
+      await linkAdHocToGarmin(match.id, garminRecord.id)
+      logger.info('Auto-linked Garmin activity to ad-hoc workout', { garminActivityId: garminRecord.id, adHocWorkoutId: match.id })
     }
   } catch (err) {
     logger.warn('Failed to auto-link Garmin to ad-hoc', { error: err })
@@ -890,6 +895,8 @@ async function processActivityDetails(detail: GarminActivityDetailsPayload) {
   }
 
   if (Object.keys(updateData).length > 0) {
+    const shouldRefreshZoneDistribution = 'hrZoneSeconds' in updateData || 'hrStream' in updateData
+
     updateData.updatedAt = new Date()
     await prisma.garminActivity.update({
       where: { garminActivityId: BigInt(activityId) },
@@ -900,6 +907,10 @@ async function processActivityDetails(detail: GarminActivityDetailsPayload) {
       activityId,
       fields: Object.keys(updateData),
     })
+
+    if (shouldRefreshZoneDistribution) {
+      await processGarminActivityZonesForClient(clientId, existing.id)
+    }
   }
 }
 

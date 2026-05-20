@@ -147,6 +147,7 @@ export async function processGarminActivityZones(
     // Works regardless of Garmin zone configuration
     if (activity.hrStream && Array.isArray(activity.hrStream) && zones.length > 0) {
       distribution = calculateHRZoneDistribution(activity.hrStream as number[], zones)
+      distribution = scaleDistributionToDuration(distribution, activity.duration)
       distribution.source = 'STRAVA_STREAM' // Same method as Strava HR streams
     }
     // Priority 2: Remap Garmin zones to athlete's test-based zones
@@ -229,6 +230,29 @@ export async function processGarminActivityZones(
     logger.error('Failed to process Garmin activity zones', { garminActivityId }, error)
     return null
   }
+}
+
+/**
+ * Process one Garmin activity using the client's current zone configuration.
+ *
+ * This is the entry point Garmin sync/webhooks should call after writing a
+ * GarminActivity row so dashboards can aggregate the activity immediately.
+ */
+export async function processGarminActivityZonesForClient(
+  clientId: string,
+  garminActivityId: string
+): Promise<ZoneDistribution | null> {
+  const athleteZones = await getAthleteZones(clientId)
+  if (!athleteZones) {
+    logger.warn('Could not get athlete zones for Garmin activity', { clientId, garminActivityId })
+    return null
+  }
+
+  return processGarminActivityZones(
+    garminActivityId,
+    athleteZones.zones,
+    athleteZones.maxHR
+  )
 }
 
 /**
@@ -319,6 +343,54 @@ export async function getAthleteZones(clientId: string): Promise<{
     logger.error('Failed to get athlete zones', { clientId }, error)
     return null
   }
+}
+
+function scaleDistributionToDuration(
+  distribution: ZoneDistribution,
+  durationSeconds: number | null
+): ZoneDistribution {
+  if (
+    !durationSeconds ||
+    durationSeconds <= 0 ||
+    distribution.totalTrackedSeconds <= 0 ||
+    Math.abs(distribution.totalTrackedSeconds - durationSeconds) <= 1
+  ) {
+    return distribution
+  }
+
+  const zoneKeys = [
+    'zone1Seconds',
+    'zone2Seconds',
+    'zone3Seconds',
+    'zone4Seconds',
+    'zone5Seconds',
+  ] as const
+
+  const scaled: ZoneDistribution = {
+    ...distribution,
+    totalTrackedSeconds: durationSeconds,
+  }
+
+  const rawSeconds = zoneKeys.map((key) => (
+    (distribution[key] / distribution.totalTrackedSeconds) * durationSeconds
+  ))
+  const flooredSeconds = rawSeconds.map(Math.floor)
+  let remainingSeconds = durationSeconds - flooredSeconds.reduce((sum, seconds) => sum + seconds, 0)
+  const remainderOrder = rawSeconds
+    .map((seconds, index) => ({ index, remainder: seconds - Math.floor(seconds) }))
+    .sort((a, b) => b.remainder - a.remainder)
+
+  for (const { index } of remainderOrder) {
+    if (remainingSeconds <= 0) break
+    flooredSeconds[index] += 1
+    remainingSeconds--
+  }
+
+  for (let i = 0; i < zoneKeys.length; i++) {
+    scaled[zoneKeys[i]] = flooredSeconds[i]
+  }
+
+  return scaled
 }
 
 /**

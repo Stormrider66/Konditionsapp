@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { resolveRecoverySource } from '@/lib/integrations/recovery-source';
+import { processGarminActivityZonesForClient } from '@/lib/integrations/zone-distribution-service';
 import {
   getGarminDailySummaries,
   getGarminActivities,
@@ -315,7 +316,7 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
 
   // Upsert to GarminActivity model
   // Note: Using only fields available in GarminActivity interface from client.ts
-  await prisma.garminActivity.upsert({
+  const garminRecord = await prisma.garminActivity.upsert({
     where: {
       garminActivityId: BigInt(activity.activityId),
     },
@@ -378,6 +379,9 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
       laps: Prisma.JsonNull,
       splits: Prisma.JsonNull,
     },
+    select: {
+      id: true,
+    },
   });
 
   // Try to fetch detailed activity data for HR stream and zones
@@ -420,6 +424,8 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
       }, error);
     }
   }
+
+  await processGarminActivityZonesForClient(clientId, garminRecord.id);
 
   return hrZoneFetched;
 }
