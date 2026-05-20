@@ -11,11 +11,21 @@ interface RouteParams {
   }>
 }
 
+function getRequestLocale(request: NextRequest): 'en' | 'sv' {
+  return request.nextUrl.searchParams.get('locale') === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: 'en' | 'sv', en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/coaches/[slug]
  * Get a single coach's public profile
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const locale = getRequestLocale(request)
+
   try {
     const { slug } = await params
 
@@ -111,7 +121,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att hämta coachprofil',
+        error: t(locale, 'Failed to fetch coach profile', 'Misslyckades med att hämta coachprofil'),
       },
       { status: 500 }
     )

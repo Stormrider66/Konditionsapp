@@ -8,18 +8,27 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 import { logAuditEvent, getIpFromRequest, getUserAgentFromRequest } from '@/lib/audit/log';
 
+type AppLocale = 'en' | 'sv';
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
+  let locale: AppLocale = 'en';
+
   try {
     const adminUser = await requireAdmin();
+    locale = adminUser.language === 'sv' ? 'sv' : 'en';
     const { userId } = await params;
 
     // Prevent self-deletion
     if (userId === adminUser.id) {
       return NextResponse.json(
-        { success: false, error: 'Du kan inte ta bort ditt eget konto' },
+        { success: false, error: t(locale, 'You cannot delete your own account', 'Du kan inte ta bort ditt eget konto') },
         { status: 400 }
       );
     }
@@ -32,7 +41,7 @@ export async function DELETE(
 
     if (!targetUser) {
       return NextResponse.json(
-        { success: false, error: 'Användaren hittades inte' },
+        { success: false, error: t(locale, 'User not found', 'Användaren hittades inte') },
         { status: 404 }
       );
     }
@@ -108,13 +117,13 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: `Användaren ${targetUser.email} har tagits bort`,
+      message: t(locale, `User ${targetUser.email} has been deleted`, `Användaren ${targetUser.email} har tagits bort`),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error('Error deleting user', { detail: message }, error);
     return NextResponse.json(
-      { success: false, error: `Kunde inte ta bort användaren: ${message}` },
+      { success: false, error: t(locale, `Could not delete user: ${message}`, `Kunde inte ta bort användaren: ${message}`) },
       { status: 500 }
     );
   }

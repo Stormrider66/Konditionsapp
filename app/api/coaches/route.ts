@@ -6,6 +6,14 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { SportType } from '@prisma/client'
 
+function getRequestLocale(request: NextRequest): 'en' | 'sv' {
+  return request.nextUrl.searchParams.get('locale') === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: 'en' | 'sv', en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/coaches
  * List public coaches in the marketplace
@@ -19,6 +27,8 @@ import { SportType } from '@prisma/client'
  * - limit: Results per page (default: 20, max: 50)
  */
 export async function GET(request: NextRequest) {
+  const locale = getRequestLocale(request)
+
   try {
     const { searchParams } = new URL(request.url)
 
@@ -139,7 +149,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att hämta coacher',
+        error: t(locale, 'Failed to fetch coaches', 'Misslyckades med att hämta coacher'),
       },
       { status: 500 }
     )
