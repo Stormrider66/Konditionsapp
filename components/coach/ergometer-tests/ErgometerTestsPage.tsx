@@ -30,7 +30,65 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErgometerFieldTestForm } from '@/components/coach/ergometer-tests';
+import { useLocale } from '@/i18n/client';
 import { Plus, Activity, TrendingUp, Users, ArrowLeft } from 'lucide-react';
+
+type AppLocale = 'en' | 'sv';
+
+const copy = {
+  en: {
+    title: 'Ergometer tests',
+    description: 'Endurance tests on rowing machine, SkiErg, BikeErg, Wattbike, and Air Bike',
+    selectAthlete: 'Select athlete...',
+    newTest: 'New test',
+    back: 'Back',
+    newTestTitle: 'New ergometer test',
+    selectTitle: 'Select an athlete',
+    selectBody:
+      'Select an athlete from the list above to view test history, or click "New test" to run a test.',
+    tabs: {
+      tests: 'Test history',
+      zones: 'Zones',
+    },
+    testsDescription: (name?: string) => `All ergometer tests for ${name ?? 'the selected athlete'}`,
+    noTests: 'No tests registered yet.',
+    noTestsHint: 'Click "New test" to add a test.',
+    zonesTitle: 'Training zones',
+    zonesDescription: 'Calculated zones based on test results',
+    noZones: 'No zones calculated yet.',
+    noZonesHint: 'Complete a test to calculate training zones.',
+    zone: 'Zone',
+    avg: 'avg',
+  },
+  sv: {
+    title: 'Ergometertester',
+    description: 'Konditionstester på roddmaskin, SkiErg, BikeErg, Wattbike och Air Bike',
+    selectAthlete: 'Välj atlet...',
+    newTest: 'Nytt test',
+    back: 'Tillbaka',
+    newTestTitle: 'Nytt ergometertest',
+    selectTitle: 'Välj en atlet',
+    selectBody:
+      'Välj en atlet från listan ovan för att se testhistorik, eller klicka "Nytt test" för att genomföra ett test.',
+    tabs: {
+      tests: 'Testhistorik',
+      zones: 'Zoner',
+    },
+    testsDescription: (name?: string) => `Alla ergometertester för ${name ?? 'vald atlet'}`,
+    noTests: 'Inga tester registrerade än.',
+    noTestsHint: 'Klicka "Nytt test" för att lägga till ett test.',
+    zonesTitle: 'Träningszoner',
+    zonesDescription: 'Beräknade zoner baserat på testresultat',
+    noZones: 'Inga zoner beräknade än.',
+    noZonesHint: 'Genomför ett test för att beräkna träningszoner.',
+    zone: 'Zon',
+    avg: 'snitt',
+  },
+} as const;
+
+function formatDate(date: Date | string, locale: AppLocale) {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US');
+}
 
 interface Client {
   id: string;
@@ -60,6 +118,8 @@ interface ErgometerZone {
 }
 
 export default function CoachErgometerTestsPage() {
+  const locale = useLocale() as AppLocale;
+  const t = copy[locale] ?? copy.en;
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [showNewTestForm, setShowNewTestForm] = useState(false);
@@ -106,12 +166,16 @@ export default function CoachErgometerTestsPage() {
         setLoading(false);
       }
     }
-    fetchClients();
+    void fetchClients();
   }, []);
 
   useEffect(() => {
     if (selectedClientId) {
-      fetchClientData();
+      const timeoutId = window.setTimeout(() => {
+        void fetchClientData();
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
   }, [selectedClientId, fetchClientData]);
 
@@ -141,10 +205,10 @@ export default function CoachErgometerTestsPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
             <Activity className="h-6 w-6 text-blue-500" />
-            Ergometertester
+            {t.title}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-sm">
-            Konditionstester på roddmaskin, SkiErg, BikeErg, Wattbike och Air Bike
+            {t.description}
           </p>
         </div>
 
@@ -153,7 +217,7 @@ export default function CoachErgometerTestsPage() {
             <>
               <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                 <SelectTrigger className="w-[220px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
-                  <SelectValue placeholder="Välj atlet..." />
+                  <SelectValue placeholder={t.selectAthlete} />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map((client) => (
@@ -166,7 +230,7 @@ export default function CoachErgometerTestsPage() {
 
               <Button onClick={() => setShowNewTestForm(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
                 <Plus className="h-4 w-4 mr-2" />
-                Nytt test
+                {t.newTest}
               </Button>
             </>
           )}
@@ -179,17 +243,17 @@ export default function CoachErgometerTestsPage() {
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => setShowNewTestForm(false)} className="text-slate-600 dark:text-slate-350">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Tillbaka
+              {t.back}
             </Button>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Nytt ergometertest</h2>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t.newTestTitle}</h2>
           </div>
           <ErgometerFieldTestForm
             athletes={athletesForForm}
-            onTestComplete={(result) => {
+            onTestComplete={(_result) => {
               setShowNewTestForm(false);
               // Refresh test list if a client is selected
               if (selectedClientId) {
-                fetchClientData();
+                void fetchClientData();
               }
             }}
           />
@@ -201,9 +265,9 @@ export default function CoachErgometerTestsPage() {
         <GlassCard glow="blue">
           <GlassCardContent className="py-12 text-center">
             <Users className="h-12 w-12 mx-auto text-blue-500 mb-4" />
-            <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">Välj en atlet</h3>
+            <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">{t.selectTitle}</h3>
             <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
-              Välj en atlet från listan ovan för att se testhistorik, eller klicka &quot;Nytt test&quot; för att genomföra ett test.
+              {t.selectBody}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -213,16 +277,16 @@ export default function CoachErgometerTestsPage() {
       {selectedClientId && !showNewTestForm && (
         <Tabs defaultValue="tests" className="space-y-6">
           <TabsList className="bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1 w-fit flex">
-            <TabsTrigger value="tests" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Testhistorik</TabsTrigger>
-            <TabsTrigger value="zones" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Zoner</TabsTrigger>
+            <TabsTrigger value="tests" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{t.tabs.tests}</TabsTrigger>
+            <TabsTrigger value="zones" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{t.tabs.zones}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tests">
             <GlassCard glow="blue">
               <GlassCardHeader>
-                <GlassCardTitle className="text-slate-900 dark:text-white">Testhistorik</GlassCardTitle>
+                <GlassCardTitle className="text-slate-900 dark:text-white">{t.tabs.tests}</GlassCardTitle>
                 <GlassCardDescription className="text-slate-600 dark:text-slate-400">
-                  Alla ergometertester för {selectedClient?.name}
+                  {t.testsDescription(selectedClient?.name)}
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent>
@@ -235,11 +299,11 @@ export default function CoachErgometerTestsPage() {
                 ) : tests.length === 0 ? (
                   <div className="text-center py-8 text-slate-500 dark:text-slate-450">
                     <Activity className="h-10 w-10 mx-auto mb-3 opacity-50 text-blue-500" />
-                    <p className="font-medium text-slate-800 dark:text-slate-200">Inga tester registrerade än.</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Klicka &quot;Nytt test&quot; för att lägga till ett test.</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-200">{t.noTests}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t.noTestsHint}</p>
                   </div>
                 ) : (
-                  <ErgometerTestList tests={tests} />
+                  <ErgometerTestList tests={tests} locale={locale} avgLabel={t.avg} />
                 )}
               </GlassCardContent>
             </GlassCard>
@@ -250,10 +314,10 @@ export default function CoachErgometerTestsPage() {
               <GlassCardHeader>
                 <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
                   <TrendingUp className="h-5 w-5 text-emerald-500" />
-                  Träningszoner
+                  {t.zonesTitle}
                 </GlassCardTitle>
                 <GlassCardDescription className="text-slate-600 dark:text-slate-400">
-                  Beräknade zoner baserat på testresultat
+                  {t.zonesDescription}
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent>
@@ -261,11 +325,11 @@ export default function CoachErgometerTestsPage() {
                   <Skeleton className="h-40 w-full" />
                 ) : zones.length === 0 ? (
                   <div className="text-center py-8 text-slate-500 dark:text-slate-450">
-                    <p className="font-medium text-slate-800 dark:text-slate-200">Inga zoner beräknade än.</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Genomför ett test för att beräkna träningszoner.</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-200">{t.noZones}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{t.noZonesHint}</p>
                   </div>
                 ) : (
-                  <SimpleZoneGrid zones={zones} />
+                  <SimpleZoneGrid zones={zones} locale={locale} zoneLabel={t.zone} />
                 )}
               </GlassCardContent>
             </GlassCard>
@@ -287,7 +351,15 @@ const ZONE_COLORS = [
   'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/30',
 ];
 
-function SimpleZoneGrid({ zones }: { zones: ErgometerZone[] }) {
+function SimpleZoneGrid({
+  zones,
+  locale,
+  zoneLabel,
+}: {
+  zones: ErgometerZone[];
+  locale: AppLocale;
+  zoneLabel: string;
+}) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {zones.sort((a, b) => a.zone - b.zone).map((zone) => (
@@ -295,9 +367,9 @@ function SimpleZoneGrid({ zones }: { zones: ErgometerZone[] }) {
           key={zone.zone}
           className={`p-3 rounded-lg border text-center transition-all ${ZONE_COLORS[zone.zone - 1] || 'bg-gray-100 dark:bg-slate-800'}`}
         >
-          <p className="text-xs font-semibold opacity-85">Zon {zone.zone}</p>
+          <p className="text-xs font-semibold opacity-85">{zoneLabel} {zone.zone}</p>
           <p className="text-lg font-bold my-0.5">{zone.powerMin}-{zone.powerMax}W</p>
-          <p className="text-xs font-medium">{zone.nameSwedish || zone.name}</p>
+          <p className="text-xs font-medium">{locale === 'sv' ? zone.nameSwedish || zone.name : zone.name}</p>
           <p className="text-[10px] opacity-70">{zone.percentMin}-{zone.percentMax}%</p>
         </div>
       ))}
@@ -307,7 +379,15 @@ function SimpleZoneGrid({ zones }: { zones: ErgometerZone[] }) {
 
 // ==================== TEST LIST COMPONENT ====================
 
-function ErgometerTestList({ tests }: { tests: ErgometerTest[] }) {
+function ErgometerTestList({
+  tests,
+  locale,
+  avgLabel,
+}: {
+  tests: ErgometerTest[];
+  locale: AppLocale;
+  avgLabel: string;
+}) {
   const ERGOMETER_LABELS: Record<string, string> = {
     CONCEPT2_ROW: 'Concept2 Rodd',
     CONCEPT2_SKIERG: 'SkiErg',
@@ -347,13 +427,13 @@ function ErgometerTestList({ tests }: { tests: ErgometerTest[] }) {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {test.avgPower && (
-              <Badge variant="outline" className="border-slate-350 dark:border-white/20 text-slate-700 dark:text-slate-300">{test.avgPower}W snitt</Badge>
+              <Badge variant="outline" className="border-slate-350 dark:border-white/20 text-slate-700 dark:text-slate-300">{test.avgPower}W {avgLabel}</Badge>
             )}
             {test.criticalPower && (
               <Badge variant="secondary" className="bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400">CP: {test.criticalPower}W</Badge>
             )}
             <span className="text-sm text-slate-500 dark:text-slate-400">
-              {new Date(test.testDate).toLocaleDateString('sv-SE')}
+              {formatDate(test.testDate, locale)}
             </span>
           </div>
         </div>
