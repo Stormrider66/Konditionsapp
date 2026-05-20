@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,18 +32,70 @@ interface KeyStatus {
 interface ProviderConfig {
   id: string
   name: string
-  description: string
   placeholder: string
   docsUrl: string
   icon: string
   keyField: string
 }
 
+type AppLocale = 'en' | 'sv'
+type ProviderId = 'anthropic' | 'google' | 'openai'
+
+const COPY = {
+  en: {
+    providers: {
+      anthropic: 'Program generation, AI chat, and analysis',
+      google: 'Video analysis and vision features',
+      openai: 'Document embeddings and search',
+    },
+    missingKey: 'Enter an API key',
+    saveError: 'Could not save the key',
+    networkError: 'Network error. Try again.',
+    confirmRemove: (providerName: string) => `Are you sure you want to remove the ${providerName} key?`,
+    membersUsingBusinessKeys: (members: number, total: number) =>
+      `${members} of ${total} members use the business AI keys`,
+    membersWithOwnKeys: 'Members with their own keys use those instead',
+    retry: 'Retry',
+    active: 'Active',
+    invalid: 'Invalid',
+    notConfigured: 'Not configured',
+    updateApiKey: 'Update API key',
+    apiKey: 'API key',
+    save: 'Save',
+    keySaved: 'Key saved.',
+    lastValidated: 'Last validated',
+    getApiKey: 'Get API key',
+  },
+  sv: {
+    providers: {
+      anthropic: 'Programgenerering, AI-chatt och analys',
+      google: 'Videoanalys och vision-funktioner',
+      openai: 'Dokumentembeddings och sökning',
+    },
+    missingKey: 'Ange en API-nyckel',
+    saveError: 'Kunde inte spara nyckeln',
+    networkError: 'Nätverksfel. Försök igen.',
+    confirmRemove: (providerName: string) => `Är du säker på att du vill ta bort ${providerName}-nyckeln?`,
+    membersUsingBusinessKeys: (members: number, total: number) =>
+      `${members} av ${total} medlemmar använder verksamhetens AI-nycklar`,
+    membersWithOwnKeys: 'Medlemmar med egna nycklar använder sina egna istället',
+    retry: 'Försök igen',
+    active: 'Aktiv',
+    invalid: 'Ogiltig',
+    notConfigured: 'Ej konfigurerad',
+    updateApiKey: 'Uppdatera API-nyckel',
+    apiKey: 'API-nyckel',
+    save: 'Spara',
+    keySaved: 'Nyckeln sparades.',
+    lastValidated: 'Senast validerad',
+    getApiKey: 'Hämta API-nyckel',
+  },
+} as const
+
 const PROVIDERS: ProviderConfig[] = [
   {
     id: 'anthropic',
     name: 'Anthropic (Claude)',
-    description: 'Programgenerering, AI-chatt och analys',
     placeholder: 'sk-ant-api03-...',
     docsUrl: 'https://console.anthropic.com/settings/keys',
     icon: '🤖',
@@ -51,7 +104,6 @@ const PROVIDERS: ProviderConfig[] = [
   {
     id: 'google',
     name: 'Google (Gemini)',
-    description: 'Videoanalys och vision-funktioner',
     placeholder: 'AIza...',
     docsUrl: 'https://aistudio.google.com/app/apikey',
     icon: '🎥',
@@ -60,7 +112,6 @@ const PROVIDERS: ProviderConfig[] = [
   {
     id: 'openai',
     name: 'OpenAI',
-    description: 'Dokumentembeddings och sökning',
     placeholder: 'sk-...',
     docsUrl: 'https://platform.openai.com/api-keys',
     icon: '📚',
@@ -70,6 +121,9 @@ const PROVIDERS: ProviderConfig[] = [
 
 export function BusinessAiKeysTab() {
   const businessHeaders = useBusinessAdminHeaders()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [keys, setKeys] = useState<KeyStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -99,7 +153,10 @@ export function BusinessAiKeysTab() {
   }, [businessHeaders])
 
   useEffect(() => {
-    fetchKeys()
+    const timer = window.setTimeout(() => {
+      void fetchKeys()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [fetchKeys])
 
   async function saveKey(providerId: string) {
@@ -108,7 +165,7 @@ export function BusinessAiKeysTab() {
 
     const key = keyValues[providerId]
     if (!key) {
-      setErrors((prev) => ({ ...prev, [providerId]: 'Ange en API-nyckel' }))
+      setErrors((prev) => ({ ...prev, [providerId]: copy.missingKey }))
       return
     }
 
@@ -141,13 +198,13 @@ export function BusinessAiKeysTab() {
       } else {
         setErrors((prev) => ({
           ...prev,
-          [providerId]: data.invalidKeys?.[0]?.error || data.error || 'Kunde inte spara nyckeln',
+          [providerId]: data.invalidKeys?.[0]?.error || data.error || copy.saveError,
         }))
       }
     } catch {
       setErrors((prev) => ({
         ...prev,
-        [providerId]: 'Nätverksfel. Försök igen.',
+        [providerId]: copy.networkError,
       }))
     } finally {
       setSaving(null)
@@ -158,7 +215,7 @@ export function BusinessAiKeysTab() {
     const provider = PROVIDERS.find((p) => p.id === providerId)
     if (!provider) return
 
-    if (!confirm(`Är du säker på att du vill ta bort ${provider.name}-nyckeln?`)) {
+    if (!confirm(copy.confirmRemove(provider.name))) {
       return
     }
 
@@ -205,7 +262,7 @@ export function BusinessAiKeysTab() {
         <p className="text-destructive">{error}</p>
         <Button variant="outline" size="sm" onClick={fetchKeys} className="mt-2">
           <RefreshCw className="h-4 w-4 mr-2" />
-          Retry
+          {copy.retry}
         </Button>
       </div>
     )
@@ -221,10 +278,10 @@ export function BusinessAiKeysTab() {
               <Users className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">
-                  {membersUsingBusinessKeys} av {totalMembers} medlemmar använder verksamhetens AI-nycklar
+                  {copy.membersUsingBusinessKeys(membersUsingBusinessKeys, totalMembers)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Medlemmar med egna nycklar använder sina egna istället
+                  {copy.membersWithOwnKeys}
                 </p>
               </div>
             </div>
@@ -246,7 +303,7 @@ export function BusinessAiKeysTab() {
                   <span className="text-2xl">{provider.icon}</span>
                   <div>
                     <CardTitle className="text-lg">{provider.name}</CardTitle>
-                    <CardDescription>{provider.description}</CardDescription>
+                    <CardDescription>{copy.providers[provider.id as ProviderId]}</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -254,16 +311,16 @@ export function BusinessAiKeysTab() {
                     isValid ? (
                       <Badge variant="default" className="bg-green-500">
                         <Check className="h-3 w-3 mr-1" />
-                        Aktiv
+                        {copy.active}
                       </Badge>
                     ) : (
                       <Badge variant="destructive">
                         <X className="h-3 w-3 mr-1" />
-                        Ogiltig
+                        {copy.invalid}
                       </Badge>
                     )
                   ) : (
-                    <Badge variant="secondary">Ej konfigurerad</Badge>
+                    <Badge variant="secondary">{copy.notConfigured}</Badge>
                   )}
                 </div>
               </div>
@@ -272,7 +329,7 @@ export function BusinessAiKeysTab() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor={`biz-key-${provider.id}`}>
-                    {isConfigured ? 'Uppdatera API-nyckel' : 'API-nyckel'}
+                    {isConfigured ? copy.updateApiKey : copy.apiKey}
                   </Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -309,7 +366,7 @@ export function BusinessAiKeysTab() {
                       ) : success[provider.id] ? (
                         <Check className="h-4 w-4" />
                       ) : (
-                        'Spara'
+                        copy.save
                       )}
                     </Button>
                     {isConfigured && (
@@ -328,14 +385,14 @@ export function BusinessAiKeysTab() {
                     <p className="text-sm text-red-500">{errors[provider.id]}</p>
                   )}
                   {success[provider.id] && (
-                    <p className="text-sm text-green-500">Nyckeln sparades!</p>
+                    <p className="text-sm text-green-500">{copy.keySaved}</p>
                   )}
                 </div>
 
                 {isConfigured && status?.lastValidated && (
                   <p className="text-xs text-gray-500">
-                    Senast validerad:{' '}
-                    {new Date(status.lastValidated).toLocaleString('sv-SE')}
+                    {copy.lastValidated}:{' '}
+                    {new Date(status.lastValidated).toLocaleString(dateLocale)}
                   </p>
                 )}
 
@@ -345,7 +402,7 @@ export function BusinessAiKeysTab() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
                 >
-                  Hämta API-nyckel
+                  {copy.getApiKey}
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
