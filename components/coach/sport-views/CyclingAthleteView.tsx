@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -25,56 +26,60 @@ interface CyclingAthleteViewProps {
   settings?: Record<string, unknown>
 }
 
-const DISCIPLINE_LABELS: Record<string, string> = {
-  road: 'Landsvägscykling',
-  gravel: 'Gravel',
-  mtb: 'Mountainbike',
-  triathlon: 'Triathlon',
-  track: 'Bana',
-  cx: 'Cyclocross',
-  indoor: 'Inomhus/Zwift',
+const DISCIPLINE_LABELS: Record<string, { sv: string; en: string }> = {
+  road: { sv: 'Landsvägscykling', en: 'Road cycling' },
+  gravel: { sv: 'Gravel', en: 'Gravel' },
+  mtb: { sv: 'Mountainbike', en: 'Mountain bike' },
+  triathlon: { sv: 'Triathlon', en: 'Triathlon' },
+  track: { sv: 'Bana', en: 'Track' },
+  cx: { sv: 'Cyclocross', en: 'Cyclocross' },
+  indoor: { sv: 'Inomhus/Zwift', en: 'Indoor/Zwift' },
 }
 
-const BIKE_LABELS: Record<string, string> = {
-  road: 'Landsvägscykel',
-  gravel: 'Gravelcykel',
-  mtb: 'MTB',
-  tt: 'Tempcykel',
-  indoor: 'Smart Trainer',
-  hybrid: 'Hybridcykel',
+const BIKE_LABELS: Record<string, { sv: string; en: string }> = {
+  road: { sv: 'Landsvägscykel', en: 'Road bike' },
+  gravel: { sv: 'Gravelcykel', en: 'Gravel bike' },
+  mtb: { sv: 'MTB', en: 'MTB' },
+  tt: { sv: 'Tempcykel', en: 'Time trial bike' },
+  indoor: { sv: 'Smart Trainer', en: 'Smart trainer' },
+  hybrid: { sv: 'Hybridcykel', en: 'Hybrid bike' },
 }
 
 // FTP zones based on percentage of FTP
 const FTP_ZONES = [
-  { zone: 1, name: 'Återhämtning', min: 0, max: 55, color: 'bg-gray-200' },
-  { zone: 2, name: 'Uthållighet', min: 56, max: 75, color: 'bg-blue-200' },
-  { zone: 3, name: 'Tempo', min: 76, max: 90, color: 'bg-green-200' },
-  { zone: 4, name: 'Tröskel', min: 91, max: 105, color: 'bg-yellow-200' },
-  { zone: 5, name: 'VO2max', min: 106, max: 120, color: 'bg-orange-200' },
-  { zone: 6, name: 'Anaerob', min: 121, max: 150, color: 'bg-red-200' },
+  { zone: 1, name: { sv: 'Återhämtning', en: 'Recovery' }, min: 0, max: 55, color: 'bg-gray-200' },
+  { zone: 2, name: { sv: 'Uthållighet', en: 'Endurance' }, min: 56, max: 75, color: 'bg-blue-200' },
+  { zone: 3, name: { sv: 'Tempo', en: 'Tempo' }, min: 76, max: 90, color: 'bg-green-200' },
+  { zone: 4, name: { sv: 'Tröskel', en: 'Threshold' }, min: 91, max: 105, color: 'bg-yellow-200' },
+  { zone: 5, name: { sv: 'VO2max', en: 'VO2 max' }, min: 106, max: 120, color: 'bg-orange-200' },
+  { zone: 6, name: { sv: 'Anaerob', en: 'Anaerobic' }, min: 121, max: 150, color: 'bg-red-200' },
 ]
 
-function getFtpCategory(ftp: number, weight: number | null): { category: string; color: string } {
+function getFtpCategory(ftp: number, weight: number | null, locale: string): { category: string; color: string } {
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en
   const wpkg = weight ? ftp / weight : 0
   if (wpkg >= 5.0) return { category: 'World Class', color: 'text-purple-600' }
-  if (wpkg >= 4.5) return { category: 'Exceptionell', color: 'text-indigo-600' }
-  if (wpkg >= 4.0) return { category: 'Utmärkt', color: 'text-blue-600' }
-  if (wpkg >= 3.5) return { category: 'Mycket Bra', color: 'text-green-600' }
-  if (wpkg >= 3.0) return { category: 'Bra', color: 'text-yellow-600' }
-  if (wpkg >= 2.5) return { category: 'Medel', color: 'text-orange-600' }
-  return { category: 'Nybörjare', color: 'text-gray-600' }
+  if (wpkg >= 4.5) return { category: t('Exceptionell', 'Exceptional'), color: 'text-indigo-600' }
+  if (wpkg >= 4.0) return { category: t('Utmärkt', 'Excellent'), color: 'text-blue-600' }
+  if (wpkg >= 3.5) return { category: t('Mycket bra', 'Very good'), color: 'text-green-600' }
+  if (wpkg >= 3.0) return { category: t('Bra', 'Good'), color: 'text-yellow-600' }
+  if (wpkg >= 2.5) return { category: t('Medel', 'Average'), color: 'text-orange-600' }
+  return { category: t('Nybörjare', 'Beginner'), color: 'text-gray-600' }
 }
 
-function formatDate(dateString: string | null | undefined): string {
+function formatDate(dateString: string | null | undefined, locale: string): string {
   if (!dateString) return '-'
   try {
-    return new Date(dateString).toLocaleDateString('sv-SE')
+    return new Date(dateString).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
   } catch {
     return '-'
   }
 }
 
-export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAthleteViewProps) {
+export function CyclingAthleteView({ clientId: _clientId, clientName: _clientName, settings }: CyclingAthleteViewProps) {
+  const locale = useLocale()
+  const isSv = locale === 'sv'
+  const t = (sv: string, en: string) => isSv ? sv : en
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
 
@@ -85,13 +90,13 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-            <span>🚴</span> Cykling Profil
+            <span>🚴</span> {t('Cykelprofil', 'Cycling Profile')}
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen cykeldata tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t('Ingen cykeldata tillgänglig', 'No cycling data available')}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-            Atleten har inte angett cykelinställningar ännu.
+            {t('Atleten har inte angett cykelinställningar ännu.', 'The athlete has not entered cycling settings yet.')}
           </p>
         </CardContent>
       </Card>
@@ -101,7 +106,7 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
   const ftp = cyclingSettings.currentFtp
   const weight = cyclingSettings.weight
   const wpkg = ftp && weight ? (ftp / weight).toFixed(2) : null
-  const ftpCategory = ftp && weight ? getFtpCategory(ftp, weight) : null
+  const ftpCategory = ftp && weight ? getFtpCategory(ftp, weight, locale) : null
 
   return (
     <div className="space-y-4">
@@ -111,18 +116,18 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <span>🚴</span> Cykling Dashboard
+                <span>🚴</span> {t('Cykelöversikt', 'Cycling Dashboard')}
               </CardTitle>
-              <CardDescription>Effektdata och prestanda</CardDescription>
+              <CardDescription>{t('Effektdata och prestanda', 'Power data and performance')}</CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
               {cyclingSettings.primaryDiscipline && (
                 <Badge variant="outline">
-                  {DISCIPLINE_LABELS[cyclingSettings.primaryDiscipline] || cyclingSettings.primaryDiscipline}
+                  {DISCIPLINE_LABELS[cyclingSettings.primaryDiscipline]?.[isSv ? 'sv' : 'en'] || cyclingSettings.primaryDiscipline}
                 </Badge>
               )}
               {cyclingSettings.powerMeterType && cyclingSettings.powerMeterType !== 'none' && (
-                <Badge variant="secondary">Effektmätare</Badge>
+                <Badge variant="secondary">{t('Effektmätare', 'Power meter')}</Badge>
               )}
             </div>
           </div>
@@ -146,12 +151,12 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
               <Calendar className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">FTP Test</p>
               <p className="font-bold text-sm">
-                {formatDate(cyclingSettings.ftpTestDate)}
+                {formatDate(cyclingSettings.ftpTestDate, locale)}
               </p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
               <Activity className="h-5 w-5 mx-auto mb-1 text-green-500" />
-              <p className="text-xs text-muted-foreground">Tim/vecka</p>
+              <p className="text-xs text-muted-foreground">{t('Tim/vecka', 'Hours/week')}</p>
               <p className="font-bold text-lg">{cyclingSettings.weeklyHours || '-'}</p>
             </div>
           </div>
@@ -162,8 +167,8 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
       {ftp && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Effektzoner</CardTitle>
-            <CardDescription>Baserat på FTP: {ftp}W</CardDescription>
+            <CardTitle className="text-base">{t('Effektzoner', 'Power Zones')}</CardTitle>
+            <CardDescription>{t('Baserat på FTP', 'Based on FTP')}: {ftp}W</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -177,7 +182,7 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium text-sm">{zone.name}</span>
+                        <span className="font-medium text-sm">{zone.name[isSv ? 'sv' : 'en']}</span>
                         <span className="text-sm text-muted-foreground">
                           {minWatts} - {maxWatts}W
                         </span>
@@ -202,7 +207,7 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Bike className="h-4 w-4" />
-              Utrustning
+              {t('Utrustning', 'Equipment')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -210,16 +215,16 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
               <div className="flex flex-wrap gap-2">
                 {cyclingSettings.bikeTypes.map((bike) => (
                   <Badge key={bike} variant="outline">
-                    {BIKE_LABELS[bike] || bike}
+                    {BIKE_LABELS[bike]?.[isSv ? 'sv' : 'en'] || bike}
                   </Badge>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Ingen utrustning angiven</p>
+              <p className="text-sm text-muted-foreground">{t('Ingen utrustning angiven', 'No equipment entered')}</p>
             )}
             {cyclingSettings.powerMeterType && (
               <p className="text-sm text-muted-foreground mt-2">
-                Effektmätare: {cyclingSettings.powerMeterType}
+                {t('Effektmätare', 'Power meter')}: {cyclingSettings.powerMeterType}
               </p>
             )}
           </CardContent>
@@ -230,26 +235,26 @@ export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAt
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Träningsfördelning
+              {t('Träningsfördelning', 'Training Split')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {cyclingSettings.indoorOutdoorSplit !== undefined && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Inomhus</span>
+                  <span>{t('Inomhus', 'Indoor')}</span>
                   <span>{cyclingSettings.indoorOutdoorSplit}%</span>
                 </div>
                 <Progress value={cyclingSettings.indoorOutdoorSplit} className="h-2" />
                 <div className="flex justify-between text-sm">
-                  <span>Utomhus</span>
+                  <span>{t('Utomhus', 'Outdoor')}</span>
                   <span>{100 - cyclingSettings.indoorOutdoorSplit}%</span>
                 </div>
               </div>
             )}
             {cyclingSettings.trainingPlatforms && cyclingSettings.trainingPlatforms.length > 0 && (
               <div className="mt-3">
-                <p className="text-xs text-muted-foreground mb-1">Plattformar</p>
+                <p className="text-xs text-muted-foreground mb-1">{t('Plattformar', 'Platforms')}</p>
                 <div className="flex flex-wrap gap-1">
                   {cyclingSettings.trainingPlatforms.map((platform) => (
                     <Badge key={platform} variant="secondary" className="text-xs">
