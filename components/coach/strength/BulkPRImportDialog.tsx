@@ -8,7 +8,7 @@
  * × 5 PRs by hand first."
  *
  * Flow:
- *  1. Coach pastes lines like "Anna Andersson, Knäböj, 120, 2026-04-15"
+ *  1. Coach pastes lines like "Anna Andersson, Squat, 120, 2026-04-15"
  *  2. Component parses + fuzzy-matches names against the team roster
  *     and exercise names against the library.
  *  3. Preview table shows match status per row; the coach can pick a
@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2, Check, X, AlertCircle, Upload } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface Member {
   id: string
@@ -72,9 +73,18 @@ interface BulkPRImportDialogProps {
   onImported?: () => void
 }
 
-const PLACEHOLDER = `Anna Andersson, Knäböj, 120, 2026-04-15
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
+const PLACEHOLDERS: Record<AppLocale, string> = {
+  en: `Anna Andersson, Squat, 120, 2026-04-15
+Erik Eriksson, Bench press, 90
+Lisa Larsson, Deadlift, 140`,
+  sv: `Anna Andersson, Knäböj, 120, 2026-04-15
 Erik Eriksson, Bänkpress, 90
-Lisa Larsson, Marklyft, 140`
+Lisa Larsson, Marklyft, 140`,
+}
 
 function normalize(s: string): string {
   return s
@@ -115,10 +125,15 @@ function pickExercise(input: string, exercises: Exercise[]): Exercise | null {
   return null
 }
 
+function exerciseDisplayName(exercise: Exercise, locale: AppLocale): string {
+  return locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name
+}
+
 function parseRows(
   paste: string,
   members: Member[],
-  exercises: Exercise[]
+  exercises: Exercise[],
+  locale: AppLocale
 ): ParsedRow[] {
   return paste
     .split('\n')
@@ -139,7 +154,7 @@ function parseRows(
           exerciseLabel: cells[1] ?? '',
           oneRepMax: null,
           date: '',
-          problem: 'Behöver minst namn, övning, vikt',
+          problem: copy(locale, 'Needs at least name, exercise, weight', 'Behöver minst namn, övning, vikt'),
         }
       }
 
@@ -150,16 +165,16 @@ function parseRows(
       const date = dateInput && /^\d{4}-\d{2}-\d{2}$/.test(dateInput) ? dateInput : ''
 
       const problems: string[] = []
-      if (!member) problems.push('atlet ej hittad')
-      if (!exercise) problems.push('övning ej hittad')
-      if (!oneRepMax || oneRepMax <= 0) problems.push('ogiltig vikt')
+      if (!member) problems.push(copy(locale, 'athlete not found', 'atlet ej hittad'))
+      if (!exercise) problems.push(copy(locale, 'exercise not found', 'övning ej hittad'))
+      if (!oneRepMax || oneRepMax <= 0) problems.push(copy(locale, 'invalid weight', 'ogiltig vikt'))
 
       return {
         raw,
         clientId: member?.id ?? null,
         clientName: member?.name ?? nameInput,
         exerciseId: exercise?.id ?? null,
-        exerciseLabel: exercise ? (exercise.nameSv || exercise.name) : exerciseInput,
+        exerciseLabel: exercise ? exerciseDisplayName(exercise, locale) : exerciseInput,
         oneRepMax: Number.isFinite(oneRepMax) ? oneRepMax : null,
         date,
         problem: problems.join(' · '),
@@ -174,6 +189,7 @@ export function BulkPRImportDialog({
   teamName,
   onImported,
 }: BulkPRImportDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [paste, setPaste] = useState('')
   const [members, setMembers] = useState<Member[]>([])
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -223,20 +239,18 @@ export function BulkPRImportDialog({
         if (!cancelled) setIsLoading(false)
       }
     }
-    load()
+    void load()
     return () => {
       cancelled = true
     }
   }, [open, teamId])
 
   const rows = useMemo(
-    () => parseRows(paste, members, exercises),
-    [paste, members, exercises]
+    () => parseRows(paste, members, exercises, locale),
+    [paste, members, exercises, locale]
   )
-  const validRows = rows.filter((r) => !r.problem)
-
   const handleSubmit = async () => {
-    if (validRows.length === 0) return
+    if (effectiveValid.length === 0) return
     setIsSubmitting(true)
     setServerError(null)
     setResultMsg(null)
@@ -246,7 +260,7 @@ export function BulkPRImportDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           teamId,
-          entries: validRows.map((r) => ({
+          entries: effectiveValid.map((r) => ({
             clientId: r.clientId!,
             exerciseId: r.exerciseId!,
             oneRepMax: r.oneRepMax!,
@@ -260,15 +274,21 @@ export function BulkPRImportDialog({
         throw new Error(body?.error ?? `HTTP ${res.status}`)
       }
       const body = await res.json()
-      const skipped = rows.length - validRows.length
-      const updatedSuffix = body.updated > 0 ? ` · ${body.updated} uppdaterade` : ''
+      const skipped = effectiveRows.length - effectiveValid.length
+      const updatedSuffix = body.updated > 0
+        ? copy(locale, ` · ${body.updated} updated`, ` · ${body.updated} uppdaterade`)
+        : ''
       setResultMsg(
-        `Sparade ${body.created} nya PRs${updatedSuffix}${skipped > 0 ? ` · ${skipped} rad${skipped === 1 ? '' : 'er'} hoppades över` : ''}`
+        copy(
+          locale,
+          `Saved ${body.created} new PRs${updatedSuffix}${skipped > 0 ? ` · ${skipped} row${skipped === 1 ? '' : 's'} skipped` : ''}`,
+          `Sparade ${body.created} nya PRs${updatedSuffix}${skipped > 0 ? ` · ${skipped} rad${skipped === 1 ? '' : 'er'} hoppades över` : ''}`
+        )
       )
       setPaste('')
       onImported?.()
     } catch (e) {
-      setServerError(e instanceof Error ? e.message : 'Kunde inte spara')
+      setServerError(e instanceof Error ? e.message : copy(locale, 'Could not save', 'Kunde inte spara'))
     } finally {
       setIsSubmitting(false)
     }
@@ -290,13 +310,13 @@ export function BulkPRImportDialog({
     } else {
       const ex = exercises.find((ee) => ee.id === value)
       row.exerciseId = ex?.id ?? null
-      row.exerciseLabel = ex ? (ex.nameSv || ex.name) : row.exerciseLabel
+      row.exerciseLabel = ex ? exerciseDisplayName(ex, locale) : row.exerciseLabel
     }
     // Re-derive problem from the updated row.
     const problems: string[] = []
-    if (!row.clientId) problems.push('atlet ej hittad')
-    if (!row.exerciseId) problems.push('övning ej hittad')
-    if (!row.oneRepMax || row.oneRepMax <= 0) problems.push('ogiltig vikt')
+    if (!row.clientId) problems.push(copy(locale, 'athlete not found', 'atlet ej hittad'))
+    if (!row.exerciseId) problems.push(copy(locale, 'exercise not found', 'övning ej hittad'))
+    if (!row.oneRepMax || row.oneRepMax <= 0) problems.push(copy(locale, 'invalid weight', 'ogiltig vikt'))
     row.problem = problems.join(' · ')
 
     // Rebuild paste string from the edited rows so subsequent edits
@@ -314,7 +334,8 @@ export function BulkPRImportDialog({
 
   // Reset overrides whenever the paste content changes (new parse run).
   useEffect(() => {
-    setOverrides({})
+    const timeout = window.setTimeout(() => setOverrides({}), 0)
+    return () => window.clearTimeout(timeout)
   }, [paste])
 
   const effectiveRows: ParsedRow[] = rows.map((r, i) => {
@@ -332,13 +353,13 @@ export function BulkPRImportDialog({
       const ex = exercises.find((ee) => ee.id === ov.exerciseId)
       if (ex) {
         next.exerciseId = ex.id
-        next.exerciseLabel = ex.nameSv || ex.name
+        next.exerciseLabel = exerciseDisplayName(ex, locale)
       }
     }
     const problems: string[] = []
-    if (!next.clientId) problems.push('atlet ej hittad')
-    if (!next.exerciseId) problems.push('övning ej hittad')
-    if (!next.oneRepMax || next.oneRepMax <= 0) problems.push('ogiltig vikt')
+    if (!next.clientId) problems.push(copy(locale, 'athlete not found', 'atlet ej hittad'))
+    if (!next.exerciseId) problems.push(copy(locale, 'exercise not found', 'övning ej hittad'))
+    if (!next.oneRepMax || next.oneRepMax <= 0) problems.push(copy(locale, 'invalid weight', 'ogiltig vikt'))
     next.problem = problems.join(' · ')
     return next
   })
@@ -350,22 +371,23 @@ export function BulkPRImportDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-blue-500" />
-            Importera PRs – {teamName}
+            {copy(locale, 'Import PRs', 'Importera PRs')} - {teamName}
           </DialogTitle>
           <DialogDescription>
-            Klistra in en rad per PR. Format: <code className="bg-muted px-1 rounded">namn, övning, vikt[, datum]</code>.
-            Datum är valfritt (default: idag). Källa sätts som &quot;Testat&quot;.
+            {copy(locale, 'Paste one row per PR. Format:', 'Klistra in en rad per PR. Format:')}{' '}
+            <code className="bg-muted px-1 rounded">{copy(locale, 'name, exercise, weight[, date]', 'namn, övning, vikt[, datum]')}</code>.
+            {' '}{copy(locale, 'Date is optional (default: today). Source is set to "Tested".', 'Datum är valfritt (default: idag). Källa sätts som "Testat".')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="bulk-paste">Klistra in</Label>
+            <Label htmlFor="bulk-paste">{copy(locale, 'Paste', 'Klistra in')}</Label>
             <Textarea
               id="bulk-paste"
               value={paste}
               onChange={(e) => setPaste(e.target.value)}
-              placeholder={PLACEHOLDER}
+              placeholder={PLACEHOLDERS[locale]}
               rows={6}
               className="font-mono text-xs"
               spellCheck={false}
@@ -374,7 +396,7 @@ export function BulkPRImportDialog({
             {isLoading && (
               <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Hämtar lag och övningar…
+                {copy(locale, 'Fetching team and exercises...', 'Hämtar lag och övningar...')}
               </p>
             )}
           </div>
@@ -383,7 +405,11 @@ export function BulkPRImportDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Förhandsgranskning ({effectiveValid.length} av {effectiveRows.length} klara)
+                  {copy(
+                    locale,
+                    `Preview (${effectiveValid.length} of ${effectiveRows.length} ready)`,
+                    `Förhandsgranskning (${effectiveValid.length} av ${effectiveRows.length} klara)`
+                  )}
                 </p>
               </div>
               <div className="rounded-md border max-h-[40vh] overflow-y-auto">
@@ -391,10 +417,10 @@ export function BulkPRImportDialog({
                   <thead className="bg-muted/40 sticky top-0">
                     <tr className="text-left">
                       <th className="px-2 py-1.5 w-6"></th>
-                      <th className="px-2 py-1.5">Atlet</th>
-                      <th className="px-2 py-1.5">Övning</th>
-                      <th className="px-2 py-1.5 text-right">Vikt</th>
-                      <th className="px-2 py-1.5">Datum</th>
+                      <th className="px-2 py-1.5">{copy(locale, 'Athlete', 'Atlet')}</th>
+                      <th className="px-2 py-1.5">{copy(locale, 'Exercise', 'Övning')}</th>
+                      <th className="px-2 py-1.5 text-right">{copy(locale, 'Weight', 'Vikt')}</th>
+                      <th className="px-2 py-1.5">{copy(locale, 'Date', 'Datum')}</th>
                       <th className="px-2 py-1.5">Status</th>
                     </tr>
                   </thead>
@@ -417,7 +443,7 @@ export function BulkPRImportDialog({
                               onValueChange={(v) => overrideRow(i, 'clientId', v)}
                             >
                               <SelectTrigger className="h-7 text-xs w-[140px]">
-                                <SelectValue placeholder={r.clientName || '— välj —'} />
+                                <SelectValue placeholder={r.clientName || copy(locale, '- select -', '- välj -')} />
                               </SelectTrigger>
                               <SelectContent>
                                 {members.map((m) => (
@@ -438,12 +464,12 @@ export function BulkPRImportDialog({
                               onValueChange={(v) => overrideRow(i, 'exerciseId', v)}
                             >
                               <SelectTrigger className="h-7 text-xs w-[160px]">
-                                <SelectValue placeholder={r.exerciseLabel || '— välj —'} />
+                                <SelectValue placeholder={r.exerciseLabel || copy(locale, '- select -', '- välj -')} />
                               </SelectTrigger>
                               <SelectContent className="max-h-[300px]">
                                 {exercises.map((e) => (
                                   <SelectItem key={e.id} value={e.id}>
-                                    {e.nameSv || e.name}
+                                    {exerciseDisplayName(e, locale)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -454,14 +480,14 @@ export function BulkPRImportDialog({
                           {r.oneRepMax ? `${r.oneRepMax} kg` : '—'}
                         </td>
                         <td className="px-2 py-1.5 text-muted-foreground">
-                          {r.date || 'idag'}
+                          {r.date || copy(locale, 'today', 'idag')}
                         </td>
                         <td className="px-2 py-1.5">
                           {r.problem ? (
                             <span className="text-destructive">{r.problem}</span>
                           ) : (
                             <Badge variant="outline" className="text-[10px] py-0">
-                              klar
+                              {copy(locale, 'ready', 'klar')}
                             </Badge>
                           )}
                         </td>
@@ -490,14 +516,14 @@ export function BulkPRImportDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Stäng
+            {copy(locale, 'Close', 'Stäng')}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || effectiveValid.length === 0}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Spara {effectiveValid.length > 0 ? `${effectiveValid.length} ` : ''}PR
+            {copy(locale, 'Save', 'Spara')} {effectiveValid.length > 0 ? `${effectiveValid.length} ` : ''}PR
             {effectiveValid.length === 1 ? '' : 's'}
           </Button>
         </DialogFooter>
