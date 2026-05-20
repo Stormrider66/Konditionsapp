@@ -4,16 +4,15 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { Zap, Gauge, TrendingUp, Clock, Target, Activity } from 'lucide-react'
 import { calculatePowerZones, evaluateCyclingPower } from '@/lib/calculations/cycling'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface CyclingSettings {
   bikeTypes: string[]
@@ -34,17 +33,27 @@ interface CyclingDashboardProps {
   clientName: string
 }
 
-const DISCIPLINE_LABELS: Record<string, string> = {
-  endurance: 'Uthållighet / Gran Fondo',
-  racing: 'Tävlingscykling',
-  tt: 'Tempo',
-  climbing: 'Klättring',
-  crit: 'Criterium',
-  triathlon: 'Triathlon',
-  mtb_xc: 'MTB XC',
-  mtb_enduro: 'MTB Enduro',
-  gravel: 'Graveltävling',
-  recreational: 'Motionscykling',
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale.startsWith('sv') ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
+const DISCIPLINE_LABELS: Record<string, Record<AppLocale, string>> = {
+  endurance: { sv: 'Uthållighet / Gran Fondo', en: 'Endurance / Gran Fondo' },
+  racing: { sv: 'Tävlingscykling', en: 'Road racing' },
+  tt: { sv: 'Tempo', en: 'Time trial' },
+  climbing: { sv: 'Klättring', en: 'Climbing' },
+  crit: { sv: 'Criterium', en: 'Criterium' },
+  triathlon: { sv: 'Triathlon', en: 'Triathlon' },
+  mtb_xc: { sv: 'MTB XC', en: 'MTB XC' },
+  mtb_enduro: { sv: 'MTB Enduro', en: 'MTB Enduro' },
+  gravel: { sv: 'Graveltävling', en: 'Gravel racing' },
+  recreational: { sv: 'Motionscykling', en: 'Recreational cycling' },
 }
 
 const BIKE_TYPE_ICONS: Record<string, string> = {
@@ -55,24 +64,40 @@ const BIKE_TYPE_ICONS: Record<string, string> = {
   indoor: '🏠',
 }
 
+const POWER_ZONE_DESCRIPTIONS: Record<string, Record<AppLocale, string>> = {
+  'Active Recovery': { sv: 'Aktiv återhämtning, mycket låg intensitet', en: 'Active recovery, very low intensity' },
+  Endurance: { sv: 'Grundträning, lång långsam distans', en: 'Base training, long slow distance' },
+  Tempo: { sv: 'Tempo, aerob kapacitet', en: 'Tempo, aerobic capacity' },
+  'Lactate Threshold': { sv: 'Laktattröskel, "sweet spot"', en: 'Lactate threshold, "sweet spot"' },
+  'VO2 Max': { sv: 'VO2 max intervaller', en: 'VO2 max intervals' },
+  'Anaerobic Capacity': { sv: 'Anaerob kapacitet, korta intervaller', en: 'Anaerobic capacity, short intervals' },
+  Neuromuscular: { sv: 'Neuromuskulär träning, sprint', en: 'Neuromuscular training, sprint' },
+}
+
 export function CyclingDashboard({
   cyclingSettings,
-  experience,
+  experience: _experience,
   clientName,
 }: CyclingDashboardProps) {
   const t = useTranslations('components.cyclingDashboard')
+  const locale = getAppLocale(useLocale())
+  const dateLocale = locale === 'sv' ? sv : enUS
   const basePath = useBasePath()
   const pageCtx = usePageContextOptional()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
-  // Days since FTP test (computed client-side to avoid SSR/client timezone mismatch)
   const [daysSinceFtpTest, setDaysSinceFtpTest] = useState<number | null>(null)
   useEffect(() => {
     const ftpTestDate = cyclingSettings?.ftpTestDate
-    if (ftpTestDate) {
+    if (!ftpTestDate) {
+      queueMicrotask(() => setDaysSinceFtpTest(null))
+      return
+    }
+    const updateDaysSinceFtpTest = () => {
       setDaysSinceFtpTest(Math.floor((Date.now() - new Date(ftpTestDate).getTime()) / (1000 * 60 * 60 * 24)))
     }
+    queueMicrotask(updateDaysSinceFtpTest)
   }, [cyclingSettings?.ftpTestDate])
 
   // Set rich page context for AI chat
@@ -84,7 +109,7 @@ export function CyclingDashboard({
     const pzones = ftp ? calculatePowerZones(ftp) : null
     pageCtx?.setPageContext({
       type: 'cycling',
-      title: `Cykling - ${clientName}`,
+      title: text(locale, `Cykling - ${clientName}`, `Cycling - ${clientName}`),
       conceptKeys: ['ftp', 'wattsPerKg', 'criticalPower', 'trainingZones'],
       data: {
         clientName,
@@ -103,10 +128,14 @@ export function CyclingDashboard({
           powerMax: z.powerMax,
         })) ?? [],
       },
-      summary: `Cykling för ${clientName}: FTP ${ftp ? `${ftp}W` : 'ej registrerad'}${wpkg ? `, ${wpkg.toFixed(2)} W/kg` : ''}. ${cyclingSettings.weeklyHours}h/vecka, disciplin: ${cyclingSettings.primaryDiscipline || 'ej angiven'}. ${pzones ? `${pzones.length} träningszoner beräknade.` : 'Inga zoner beräknade.'}`,
+      summary: text(
+        locale,
+        `Cykling för ${clientName}: FTP ${ftp ? `${ftp}W` : 'ej registrerad'}${wpkg ? `, ${wpkg.toFixed(2)} W/kg` : ''}. ${cyclingSettings.weeklyHours}h/vecka, disciplin: ${cyclingSettings.primaryDiscipline || 'ej angiven'}. ${pzones ? `${pzones.length} träningszoner beräknade.` : 'Inga zoner beräknade.'}`,
+        `Cycling for ${clientName}: FTP ${ftp ? `${ftp}W` : 'not registered'}${wpkg ? `, ${wpkg.toFixed(2)} W/kg` : ''}. ${cyclingSettings.weeklyHours}h/week, discipline: ${cyclingSettings.primaryDiscipline || 'not specified'}. ${pzones ? `${pzones.length} training zones calculated.` : 'No zones calculated.'}`
+      ),
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cyclingSettings, clientName])
+  }, [cyclingSettings, clientName, locale])
 
   if (!cyclingSettings) {
     return (
@@ -159,7 +188,7 @@ export function CyclingDashboard({
                 </p>
                 {ftpDate && (
                   <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                    Testad {format(ftpDate, 'd MMM yyyy', { locale: sv })}
+                    {text(locale, 'Testad', 'Tested')} {format(ftpDate, 'd MMM yyyy', { locale: dateLocale })}
                   </p>
                 )}
               </div>
@@ -180,7 +209,7 @@ export function CyclingDashboard({
                 </p>
                 {weight && (
                   <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                    {weight} kg kroppsvikt
+                    {weight} kg {text(locale, 'kroppsvikt', 'body weight')}
                   </p>
                 )}
               </div>
@@ -195,12 +224,12 @@ export function CyclingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Veckoträning</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>{text(locale, 'Veckoträning', 'Weekly training')}</p>
                 <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {weeklyHours}h
                 </p>
                 <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                  {indoorOutdoorSplit}% inomhus
+                  {indoorOutdoorSplit}% {text(locale, 'inomhus', 'indoor')}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-green-500" />
@@ -214,9 +243,9 @@ export function CyclingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Disciplin</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>{text(locale, 'Disciplin', 'Discipline')}</p>
                 <p className="text-lg font-semibold mt-1" style={{ color: theme.colors.textPrimary }}>
-                  {DISCIPLINE_LABELS[primaryDiscipline] || primaryDiscipline || '—'}
+                  {DISCIPLINE_LABELS[primaryDiscipline]?.[locale] || primaryDiscipline || '—'}
                 </p>
                 <div className="flex gap-1 mt-2">
                   {bikeTypes.slice(0, 3).map((bike) => (
@@ -238,11 +267,11 @@ export function CyclingDashboard({
           <CardHeader>
             <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-5 w-5" />
-              Dina träningszoner
+              {text(locale, 'Dina träningszoner', 'Your training zones')}
               <InfoTooltip conceptKey="trainingZones" />
             </CardTitle>
             <CardDescription style={{ color: theme.colors.textMuted }}>
-              Baserat på din FTP på {currentFtp}W
+              {text(locale, 'Baserat på din FTP på', 'Based on your FTP of')} {currentFtp}W
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -278,7 +307,9 @@ export function CyclingDashboard({
                         {zone.percentMin}–{zone.percentMax}% FTP
                       </span>
                     </div>
-                    <p className="text-xs" style={{ color: theme.colors.textMuted }}>{zone.description}</p>
+                    <p className="text-xs" style={{ color: theme.colors.textMuted }}>
+                      {POWER_ZONE_DESCRIPTIONS[zone.name]?.[locale] ?? zone.description}
+                    </p>
                   </div>
                 )
               })}
@@ -291,7 +322,7 @@ export function CyclingDashboard({
       {evaluation && (
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle style={{ color: theme.colors.textPrimary }}>Din nivå</CardTitle>
+            <CardTitle style={{ color: theme.colors.textPrimary }}>{text(locale, 'Din nivå', 'Your level')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -300,7 +331,11 @@ export function CyclingDashboard({
               </Badge>
               {daysSinceFtpTest !== null && daysSinceFtpTest > 42 && (
                 <Badge variant="outline" className="text-amber-600 border-amber-300">
-                  FTP-test rekommenderas (senast för {daysSinceFtpTest} dagar sedan)
+                  {text(
+                    locale,
+                    `FTP-test rekommenderas (senast för ${daysSinceFtpTest} dagar sedan)`,
+                    `FTP test recommended (last test was ${daysSinceFtpTest} days ago)`
+                  )}
                 </Badge>
               )}
             </div>
@@ -324,15 +359,17 @@ export function CyclingDashboard({
                   className="font-medium"
                   style={{ color: theme.id === 'FITAPP_DARK' ? '#fde68a' : '#78350f' }}
                 >
-                  Ingen FTP registrerad
+                  {text(locale, 'Ingen FTP registrerad', 'No FTP registered')}
                 </p>
                 <p
                   className="text-sm mt-1"
                   style={{ color: theme.id === 'FITAPP_DARK' ? '#fcd34d' : '#92400e' }}
                 >
-                  Genomför ett FTP-test för att få personliga träningszoner och bättre
-                  anpassade träningsprogram. Du kan använda ett 20-minuters eller 8-minuters
-                  testprotokoll.
+                  {text(
+                    locale,
+                    'Genomför ett FTP-test för att få personliga träningszoner och bättre anpassade träningsprogram. Du kan använda ett 20-minuters eller 8-minuters testprotokoll.',
+                    'Complete an FTP test to get personal training zones and better tailored training programs. You can use a 20-minute or 8-minute test protocol.'
+                  )}
                 </p>
               </div>
             </div>
