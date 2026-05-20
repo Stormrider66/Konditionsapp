@@ -470,18 +470,18 @@ export function getIntensityColor(intensity: ReturnPhase['intensity']): string {
 }
 
 /**
- * Get intensity label in Swedish
+ * Get localized intensity label.
  */
-export function getIntensityLabel(intensity: ReturnPhase['intensity']): string {
+export function getIntensityLabel(intensity: ReturnPhase['intensity'], locale: ProtocolLocale = 'en'): string {
   switch (intensity) {
     case 'NONE':
-      return 'Vila'
+      return text(locale, 'Rest', 'Vila')
     case 'VERY_LIGHT':
-      return 'Mycket lätt'
+      return text(locale, 'Very light', 'Mycket lätt')
     case 'LIGHT':
-      return 'Lätt'
+      return text(locale, 'Light', 'Lätt')
     case 'MODERATE':
-      return 'Moderat'
+      return text(locale, 'Moderate', 'Moderat')
     case 'NORMAL':
       return 'Normal'
   }
