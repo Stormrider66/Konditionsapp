@@ -2,6 +2,7 @@
 
 import type { UseFormReturn } from 'react-hook-form'
 import type { SportType } from '@prisma/client'
+import { useLocale } from 'next-intl'
 import {
   FormControl,
   FormDescription,
@@ -26,16 +27,21 @@ interface StrengthCoreIntegrationProps {
   watchIncludeStrength: boolean
 }
 
+type AppLocale = 'en' | 'sv'
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
+
 export function StrengthCoreIntegration({
   form,
   sport,
   watchIncludeStrength,
 }: StrengthCoreIntegrationProps) {
+  const locale = getAppLocale(useLocale())
   if (sport === 'STRENGTH') return null
 
   return (
     <div className="border-t pt-6 mt-6">
-      <h3 className="font-medium mb-4">Tillägg i programmet</h3>
+      <h3 className="font-medium mb-4">{t(locale, 'Tillägg i programmet', 'Program add-ons')}</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-3">
           <FormField
@@ -47,8 +53,8 @@ export function StrengthCoreIntegration({
                   <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel>Inkludera styrketräning</FormLabel>
-                  <FormDescription>Periodiserad styrketräning</FormDescription>
+                  <FormLabel>{t(locale, 'Inkludera styrketräning', 'Include strength training')}</FormLabel>
+                  <FormDescription>{t(locale, 'Periodiserad styrketräning', 'Periodized strength training')}</FormDescription>
                 </div>
               </FormItem>
             )}
@@ -61,7 +67,7 @@ export function StrengthCoreIntegration({
                 name="strengthSessionsPerWeek"
                 render={({ field }) => (
                   <FormItem className="ml-7">
-                    <FormLabel>Styrkepass per vecka</FormLabel>
+                    <FormLabel>{t(locale, 'Styrkepass per vecka', 'Strength sessions per week')}</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(parseInt(v))}
                       value={field.value?.toString()}
@@ -90,7 +96,7 @@ export function StrengthCoreIntegration({
                       <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm">Schemalägg efter löpning</FormLabel>
+                      <FormLabel className="text-sm">{t(locale, 'Schemalägg efter löpning', 'Schedule after running')}</FormLabel>
                     </div>
                   </FormItem>
                 )}
@@ -116,8 +122,8 @@ export function StrengthCoreIntegration({
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>Inkludera core-träning</FormLabel>
-                    <FormDescription>Core/bålstabilitet</FormDescription>
+                    <FormLabel>{t(locale, 'Inkludera core-träning', 'Include core training')}</FormLabel>
+                    <FormDescription>{t(locale, 'Core/bålstabilitet', 'Core/trunk stability')}</FormDescription>
                   </div>
                 </FormItem>
               )
@@ -131,7 +137,7 @@ export function StrengthCoreIntegration({
                 name="coreSessionsPerWeek"
                 render={({ field }) => (
                   <FormItem className="ml-7">
-                    <FormLabel>Core-pass per vecka</FormLabel>
+                    <FormLabel>{t(locale, 'Core-pass per vecka', 'Core sessions per week')}</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(parseInt(v))}
                       value={field.value?.toString() || '2'}
@@ -160,7 +166,7 @@ export function StrengthCoreIntegration({
                       <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm">Schemalägg efter löpning</FormLabel>
+                      <FormLabel className="text-sm">{t(locale, 'Schemalägg efter löpning', 'Schedule after running')}</FormLabel>
                     </div>
                   </FormItem>
                 )}

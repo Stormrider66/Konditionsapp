@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import type { UseFormReturn } from 'react-hook-form'
 import {
   Form,
@@ -40,7 +41,12 @@ interface HyroxStationTimesProps {
   watchRaceDistance: ConfigFormData['recentRaceDistance']
 }
 
+type AppLocale = 'en' | 'sv'
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
+
 export function HyroxStationTimes({ form, watchRaceDistance }: HyroxStationTimesProps) {
+  const locale = getAppLocale(useLocale())
   const [open, setOpen] = useState(false)
 
   return (
@@ -48,8 +54,10 @@ export function HyroxStationTimes({ form, watchRaceDistance }: HyroxStationTimes
       <CollapsibleTrigger asChild>
         <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
           <div className="text-left">
-            <h3 className="font-medium">HYROX Stationstider</h3>
-            <p className="text-sm text-muted-foreground">Ange dina nuvarande stationstider för analys</p>
+            <h3 className="font-medium">{t(locale, 'HYROX Stationstider', 'HYROX station times')}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t(locale, 'Ange dina nuvarande stationstider för analys', 'Enter your current station times for analysis')}
+            </p>
           </div>
           {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
@@ -65,7 +73,7 @@ export function HyroxStationTimes({ form, watchRaceDistance }: HyroxStationTimes
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Välj division" />
+                      <SelectValue placeholder={t(locale, 'Välj division', 'Select division')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -84,16 +92,16 @@ export function HyroxStationTimes({ form, watchRaceDistance }: HyroxStationTimes
             name="hyroxGender"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Kön (för benchmarks)</FormLabel>
+                <FormLabel>{t(locale, 'Kön (för benchmarks)', 'Gender (for benchmarks)')}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Välj kön" />
+                      <SelectValue placeholder={t(locale, 'Välj kön', 'Select gender')} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="male">Man</SelectItem>
-                    <SelectItem value="female">Kvinna</SelectItem>
+                    <SelectItem value="male">{t(locale, 'Man', 'Male')}</SelectItem>
+                    <SelectItem value="female">{t(locale, 'Kvinna', 'Female')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -106,11 +114,11 @@ export function HyroxStationTimes({ form, watchRaceDistance }: HyroxStationTimes
             name="hyroxBodyweight"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Kroppsvikt (kg)</FormLabel>
+                <FormLabel>{t(locale, 'Kroppsvikt (kg)', 'Body weight (kg)')}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="t.ex. 80"
+                    placeholder={t(locale, 't.ex. 80', 'e.g. 80')}
                     value={field.value ?? ''}
                     onChange={(e) => {
                       const val = e.target.value
@@ -125,7 +133,7 @@ export function HyroxStationTimes({ form, watchRaceDistance }: HyroxStationTimes
         </div>
 
         <div className="border-t pt-4">
-          <h4 className="font-medium mb-3 text-sm">Stationstider (MM:SS)</h4>
+          <h4 className="font-medium mb-3 text-sm">{t(locale, 'Stationstider (MM:SS)', 'Station times (MM:SS)')}</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <FormField
               control={form.control}
@@ -238,11 +246,11 @@ export function HyroxStationTimes({ form, watchRaceDistance }: HyroxStationTimes
               name="hyroxStationTimes.averageRunPace"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm">Genomsnittligt löptempo (min/km)</FormLabel>
+                  <FormLabel className="text-sm">{t(locale, 'Genomsnittligt löptempo (min/km)', 'Average running pace (min/km)')}</FormLabel>
                   <FormControl>
                     <Input placeholder="4:30" className="max-w-[150px]" {...field} />
                   </FormControl>
-                  <FormDescription>Tempo för 1km-avsnitten mellan stationer</FormDescription>
+                  <FormDescription>{t(locale, 'Tempo för 1km-avsnitten mellan stationer', 'Pace for the 1 km running sections between stations')}</FormDescription>
                 </FormItem>
               )}
             />
@@ -252,8 +260,11 @@ export function HyroxStationTimes({ form, watchRaceDistance }: HyroxStationTimes
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Stationstider används för att identifiera svagheter och prioritera träningen.
-            Sled Pull och Wall Balls är vanliga &quot;time sinks&quot; för nybörjare.
+            {t(
+              locale,
+              'Stationstider används för att identifiera svagheter och prioritera träningen. Sled Pull och Wall Balls är vanliga "time sinks" för nybörjare.',
+              'Station times are used to identify weaknesses and prioritize training. Sled Pull and Wall Balls are common time sinks for beginners.'
+            )}
           </AlertDescription>
         </Alert>
 
