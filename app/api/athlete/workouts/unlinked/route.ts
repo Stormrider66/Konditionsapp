@@ -12,9 +12,12 @@ import { prisma } from '@/lib/prisma'
 import { subDays } from 'date-fns'
 import { areTypesCompatible } from '@/lib/training/activity-deduplication'
 
+type AppLocale = 'en' | 'sv'
+
 export async function GET() {
   try {
-    const { clientId } = await requireAthleteOrCoachInAthleteMode()
+    const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     if (!clientId) return NextResponse.json({ unlinkedAdHocs: [], unlinkedGarmin: [], suggestions: [] })
 
     const since = subDays(new Date(), 14)
@@ -74,7 +77,7 @@ export async function GET() {
 
     for (const adHoc of unlinkedAdHocs) {
       for (const garmin of unlinkedGarmin) {
-        const result = scorePair(adHoc, garmin)
+        const result = scorePair(adHoc, garmin, locale)
         if (result.confidence > 0.3) {
           suggestions.push({
             adHocId: adHoc.id,
@@ -119,7 +122,8 @@ interface GarminItem {
 
 function scorePair(
   adHoc: AdHocItem,
-  garmin: GarminItem
+  garmin: GarminItem,
+  locale: AppLocale
 ): { confidence: number; reasons: string[] } {
   let score = 0
   const reasons: string[] = []
@@ -130,7 +134,7 @@ function scorePair(
 
   if (adHocDay !== garminDay) return { confidence: 0, reasons: [] }
   score += 0.3
-  reasons.push('Samma dag')
+  reasons.push(t(locale, 'Same day', 'Samma dag'))
 
   // Time proximity (within 2 hours)
   const timeDiff = Math.abs(
@@ -138,10 +142,10 @@ function scorePair(
   )
   if (timeDiff < 2 * 60 * 60 * 1000) {
     score += 0.25
-    reasons.push('Nära i tid')
+    reasons.push(t(locale, 'Close in time', 'Nära i tid'))
   } else if (timeDiff < 6 * 60 * 60 * 1000) {
     score += 0.1
-    reasons.push('Samma halvdag')
+    reasons.push(t(locale, 'Same half-day', 'Samma halvdag'))
   }
 
   // Type compatibility
@@ -149,7 +153,7 @@ function scorePair(
   const garminType = garmin.mappedType || garmin.type || 'OTHER'
   if (areTypesCompatible(adHocType, garminType)) {
     score += 0.25
-    reasons.push('Matchande typ')
+    reasons.push(t(locale, 'Matching type', 'Matchande typ'))
   }
 
   // Duration match (if available)
@@ -159,9 +163,13 @@ function scorePair(
     const ratio = Math.abs(adHocDuration - garmin.duration) / Math.max(adHocDuration, garmin.duration)
     if (ratio < 0.2) {
       score += 0.2
-      reasons.push('Liknande duration')
+      reasons.push(t(locale, 'Similar duration', 'Liknande duration'))
     }
   }
 
   return { confidence: Math.min(score, 1), reasons }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
