@@ -12,6 +12,8 @@ import type {
   WODMode,
   WODWorkoutType,
   WODEquipment,
+  WODFocusArea,
+  AdjustedIntensity,
 } from '@/types/wod'
 import { WOD_LABELS } from '@/types/wod'
 import { generateGuardrailConstraints, getExcludedExerciseCategories } from './wod-guardrails'
@@ -31,6 +33,10 @@ export function buildWODPrompt(
   locale: 'en' | 'sv' = 'en'
 ): string {
   const workoutType = request.workoutType || 'strength'
+  if (locale !== 'sv') {
+    return buildEnglishWODPrompt(context, request, guardrails, workoutType)
+  }
+
   const modePrompt = getModePrompt(request.mode)
   const workoutTypePrompt = getWorkoutTypePrompt(workoutType)
   const sportContext = getSportContext(context.primarySport)
@@ -101,6 +107,291 @@ VIKTIGT:
 - ALDRIG använd "tröskel" eller "threshold" för styrkepass - det är endast ett konditionsbegrepp
 - För styrkepass, använd istället: "Kraft", "Power", "Styrka", "Explosiv", "Funktionell", etc.
 - Inkludera ALLTID instruktioner för VARJE övning`
+}
+
+function buildEnglishWODPrompt(
+  context: WODAthleteContext,
+  request: WODRequest,
+  guardrails: WODGuardrailResult,
+  workoutType: WODWorkoutType
+): string {
+  const modePrompt = getEnglishModePrompt(request.mode)
+  const workoutTypePrompt = getEnglishWorkoutTypePrompt(workoutType)
+  const sportContext = getEnglishSportContext(context.primarySport)
+  const constraintsSection = generateEnglishGuardrailConstraints(guardrails)
+  const excludedCategories = getExcludedExerciseCategories(guardrails.excludedAreas)
+  const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
+
+  return `${buildConstitutionPreamble('wod')}You are an experienced personal trainer and physiologist who creates individualized workouts.
+
+Your job is to generate a complete Workout of the Day based on the athlete profile, current status, and requested session details.
+
+PRINCIPLES:
+1. Safety first: always respect injuries, restrictions, and fatigue
+2. Progressive load: adapt to the athlete's current level
+3. Variation: keep training useful and engaging
+4. Functionality: exercises should transfer to the athlete's sport
+5. Completeness: include warm-up and cooldown
+
+## OUTPUT LANGUAGE
+Generate all user-facing workout copy in ENGLISH. Include both English exercise names in \`name\` and Swedish exercise names in \`nameSv\` for compatibility.
+
+${modePrompt}
+
+${workoutTypePrompt}
+
+## ATHLETE PROFILE
+- **Name**: ${context.athleteName}
+- **Sport**: ${translateSportEn(context.primarySport)}
+- **Experience**: ${translateExperienceEn(context.experienceLevel)}
+- **Readiness score**: ${context.readinessScore !== null ? `${context.readinessScore.toFixed(1)}/10` : 'Not available'}
+
+${sportContext}
+
+## TRAINING CONTEXT
+- **Weekly load (TSS)**: ${context.weeklyTSS}
+- **ACWR zone**: ${context.acwrZone}
+- **Current goal**: ${context.currentGoal || 'Not specified'}
+
+## RECENT TRAINING (4 days)
+${formatRecentWorkoutsEn(context.recentWorkouts)}
+
+## LIMITATIONS AND ADJUSTMENTS
+${constraintsSection}
+
+${excludedCategories.length > 0 ? `\n## EXCLUDED EXERCISE CATEGORIES\n${excludedCategories.join(', ')}\n` : ''}
+
+## SESSION SPECIFICATION
+- **Workout type**: ${getWorkoutTypeLabelEn(workoutType)}
+- **Duration**: ${request.duration || 45} minutes
+- **Requested equipment**: ${formatEquipmentEn(explicitEquipment)}
+- **Focus area**: ${request.focusArea ? getFocusAreaLabelEn(request.focusArea) : 'Full body'}
+- **Adjusted intensity**: ${getIntensityLabelEn(guardrails.adjustedIntensity)}
+
+${buildEquipmentConstraintSectionEn(explicitEquipment)}
+
+${formatLocationEquipmentEn(context.locationEquipment, explicitEquipment)}
+
+${context.aiInstructions ? `## SPECIFIC INSTRUCTIONS FOR THIS ATHLETE\n${context.aiInstructions}\n` : ''}
+## OUTPUT FORMAT
+
+Respond ONLY with JSON in this format and no extra text:
+
+\`\`\`json
+${getJsonTemplateEn(workoutType)}
+\`\`\`
+
+IMPORTANT:
+- All user-facing text must be in ENGLISH
+- Exercise names must include both English \`name\` and Swedish \`nameSv\`
+- The session must fit the requested duration exactly
+- Respect ALL limitations above
+- Use ONLY equipment explicitly allowed for this session
+- Always include warm-up and cooldown
+- Be creative with the workout title
+- NEVER use "threshold" for strength workouts; threshold is a cardio concept
+- For strength workouts, use terms like "Power", "Strength", "Explosive", "Functional", etc.
+- Include instructions for EVERY exercise`
+}
+
+function getEnglishModePrompt(mode: WODMode): string {
+  switch (mode) {
+    case 'casual':
+      return `## SESSION STYLE: CASUAL
+
+Create a flexible workout for someone who wants to move without pressure:
+- Keep exercises simple and accessible
+- Focus on wellbeing and movement quality
+- "Do what you can" is acceptable
+- Use shorter rests and smoother flow
+- Include alternatives when useful
+
+Tone: relaxed, inviting, and practical.`
+    case 'fun':
+      return `## SESSION STYLE: JUST FOR FUN
+
+Create a surprising and varied workout:
+- Mix training formats creatively
+- Include playful elements
+- Use formats such as AMRAP, EMOM, Tabata, For Time, or Chipper
+- Add small challenges when appropriate
+- Keep instructions correct and safe
+
+Tone: energetic and playful.`
+    case 'structured':
+    default:
+      return `## SESSION STYLE: STRUCTURED
+
+Create a science-based workout that follows training principles:
+- Respect the athlete's current phase and training plan
+- Use established methods where relevant
+- Balance load with recovery
+- Include a specific warm-up for the main work
+- Prioritize quality over quantity
+- Give clear guidance for tempo, rest, and execution
+
+Tone: professional and encouraging.`
+  }
+}
+
+function getEnglishWorkoutTypePrompt(workoutType: WODWorkoutType): string {
+  switch (workoutType) {
+    case 'cardio':
+      return `## WORKOUT TYPE: CARDIO
+
+Create a cardio workout focused on endurance and cardiovascular fitness:
+- Include 3 sections: WARMUP -> MAIN -> COOLDOWN, with no separate Core section
+- Use intervals, steady state, or zone-based work
+- Specify duration, distance, pace, watts, or heart-rate zones where relevant
+- Vary intensity across the session
+- Adapt to available equipment`
+    case 'mixed':
+      return `## WORKOUT TYPE: MIXED
+
+Create a functional mixed workout combining strength and cardio:
+- Include all 4 sections: WARMUP -> MAIN -> CORE -> COOLDOWN
+- Use formats such as AMRAP, EMOM, For Time, Tabata, or Chipper
+- Combine strength exercises with cardio bursts
+- Make time formats explicit
+- Use functional movements with broad transfer`
+    case 'core':
+      return `## WORKOUT TYPE: CORE
+
+Create a core-focused workout for trunk stability:
+- Include 3 sections: WARMUP -> MAIN -> COOLDOWN, with no separate Core section
+- Keep the MAIN section core-focused
+- Mix anti-rotation, anti-extension, anti-flexion, carries, and stability work
+- Adapt holds and reps to the athlete's level`
+    case 'strength':
+    default:
+      return `## WORKOUT TYPE: STRENGTH
+
+Create a strength workout focused on muscle development and power:
+- Structure with sets, reps, and rest periods
+- Include all 4 sections: WARMUP -> MAIN -> CORE -> COOLDOWN
+- Progress load based on athlete level
+- Use weights such as "Bodyweight", "Light", "Moderate", "Heavy", or "% of 1RM"
+- Give clear tempo guidance when useful
+- Focus on compound movements in the main section`
+  }
+}
+
+function getEnglishSportContext(sport: string): string {
+  const contexts: Record<string, string> = {
+    RUNNING: `## SPORT-SPECIFIC CONTEXT: RUNNING
+- Emphasize running-specific strength: posterior chain, trunk stability, and single-leg control
+- Include running drills or plyometrics in the warm-up when appropriate
+- Avoid unnecessary lower-limb overload
+- Prioritize single-leg strength and elasticity`,
+    CYCLING: `## SPORT-SPECIFIC CONTEXT: CYCLING
+- Emphasize quadriceps, hip flexors, and trunk stiffness for power transfer
+- Include hip and lower-back mobility when useful
+- Avoid excessive upper-body fatigue unless requested`,
+    SWIMMING: `## SPORT-SPECIFIC CONTEXT: SWIMMING
+- Emphasize shoulder stability, scapular control, and trunk rotation
+- Include shoulder and thoracic mobility
+- Target lats and posterior chain support`,
+    TRIATHLON: `## SPORT-SPECIFIC CONTEXT: TRIATHLON
+- Balance the three disciplines
+- Include transition-relevant conditioning when useful
+- Avoid overloading a single muscle group`,
+    HYROX: `## SPORT-SPECIFIC CONTEXT: HYROX
+- Emphasize functional fitness and endurance
+- Include station-specific work when equipment allows
+- Manage grip strength, transitions, and work capacity`,
+    SKIING: `## SPORT-SPECIFIC CONTEXT: SKIING
+- Emphasize balance, coordination, pole-specific upper-body strength, trunk rotation, and leg endurance`,
+    GENERAL_FITNESS: `## SPORT-SPECIFIC CONTEXT: GENERAL FITNESS
+- Build balanced strength, mobility, conditioning, and health-oriented movement`,
+  }
+
+  return contexts[sport] || contexts.GENERAL_FITNESS
+}
+
+function generateEnglishGuardrailConstraints(guardrails: WODGuardrailResult): string {
+  const constraints = [`INTENSITY: ${getIntensityDescriptionEn(guardrails.adjustedIntensity)}`]
+
+  if (guardrails.excludedAreas.length > 0) {
+    constraints.push(`AVOID COMPLETELY: Exercises loading ${guardrails.excludedAreas.join(', ')}`)
+  }
+
+  if (guardrails.restrictionConstraints) {
+    constraints.push(`Physio restrictions: ${guardrails.restrictionConstraints}`)
+  }
+
+  return constraints.join('\n')
+}
+
+function getIntensityDescriptionEn(intensity: AdjustedIntensity): string {
+  switch (intensity) {
+    case 'recovery':
+      return 'Only light movement and mobility. No strain. Focus on recovery.'
+    case 'easy':
+      return 'Easy intensity. The athlete should be able to talk comfortably. Max 60% HRmax.'
+    case 'moderate':
+      return 'Moderate intensity. The athlete can talk in short sentences. 60-75% HRmax.'
+    case 'threshold':
+      return 'Higher intensity allowed if appropriate. Intervals may be included. 75-90% HRmax.'
+  }
+}
+
+function getJsonTemplateEn(workoutType: WODWorkoutType): string {
+  const includeCore = workoutType === 'strength' || workoutType === 'mixed'
+  const coreSection = includeCore
+    ? `,
+    {
+      "type": "CORE",
+      "name": "Core",
+      "duration": 5,
+      "exercises": []
+    }`
+    : ''
+
+  return `{
+  "title": "Inspiring English workout title",
+  "subtitle": "Short motivational subtitle",
+  "description": "2-3 sentences explaining what the workout targets and why it fits the athlete today",
+  "sections": [
+    {
+      "type": "WARMUP",
+      "name": "Warm-up",
+      "duration": 8,
+      "exercises": [
+        {
+          "name": "Exercise Name",
+          "nameSv": "Övningsnamn på svenska",
+          "sets": 2,
+          "reps": "10 each",
+          "instructions": "Clear instructions in English"
+        }
+      ],
+      "notes": "Optional section-specific note in English"
+    },
+    {
+      "type": "MAIN",
+      "name": "Main set",
+      "duration": 30,
+      "exercises": [
+        {
+          "name": "Exercise Name",
+          "nameSv": "Övningsnamn på svenska",
+          "sets": 3,
+          "reps": "12",
+          "weight": "Moderate",
+          "restSeconds": 60,
+          "instructions": "Clear instructions in English"
+        }
+      ]
+    }${coreSection},
+    {
+      "type": "COOLDOWN",
+      "name": "Cooldown",
+      "duration": 7,
+      "exercises": []
+    }
+  ],
+  "coachNotes": "AI-generated explanation in English of why this workout was selected for the athlete today"
+}`
 }
 
 // ============================================
@@ -414,6 +705,213 @@ const JSON_OUTPUT_TEMPLATE = `{
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
+
+function translateSportEn(sport: string): string {
+  const translations: Record<string, string> = {
+    RUNNING: 'Running',
+    CYCLING: 'Cycling',
+    SWIMMING: 'Swimming',
+    TRIATHLON: 'Triathlon',
+    HYROX: 'HYROX',
+    SKIING: 'Skiing',
+    GENERAL_FITNESS: 'General fitness',
+  }
+  return translations[sport] || sport
+}
+
+function translateExperienceEn(level: string): string {
+  const translations: Record<string, string> = {
+    BEGINNER: 'Beginner',
+    RECREATIONAL: 'Recreational',
+    ADVANCED: 'Advanced',
+    ELITE: 'Elite',
+  }
+  return translations[level] || level
+}
+
+function getWorkoutTypeLabelEn(type: WODWorkoutType): string {
+  const labels: Record<WODWorkoutType, string> = {
+    strength: 'Strength',
+    cardio: 'Cardio',
+    mixed: 'Mixed',
+    core: 'Core',
+  }
+  return labels[type]
+}
+
+function getFocusAreaLabelEn(focusArea: WODFocusArea): string {
+  const labels: Record<WODFocusArea, string> = {
+    upper_body: 'Upper body',
+    lower_body: 'Lower body',
+    full_body: 'Full body',
+    cardio: 'Cardio',
+    recovery: 'Recovery',
+    sport_specific: 'Sport-specific',
+  }
+  return labels[focusArea]
+}
+
+function getIntensityLabelEn(intensity: AdjustedIntensity): string {
+  const labels: Record<AdjustedIntensity, string> = {
+    recovery: 'Recovery',
+    easy: 'Easy',
+    moderate: 'Moderate',
+    threshold: 'Threshold',
+  }
+  return labels[intensity]
+}
+
+function formatRecentWorkoutsEn(
+  workouts: WODAthleteContext['recentWorkouts']
+): string {
+  if (workouts.length === 0) {
+    return '- No logged workouts in the last 4 days'
+  }
+
+  return workouts
+    .slice(0, 5)
+    .map(w => {
+      const date = new Date(w.date).toLocaleDateString('en-US', { weekday: 'short' })
+      const muscles = w.muscleGroups?.length ? ` (${w.muscleGroups.slice(0, 2).join(', ')})` : ''
+      const name = w.name ? ` ${w.name}` : ''
+      const source = w.source ? ` [${translateWorkoutSourceEn(w.source)}]` : ''
+      return `- ${date}:${source} ${translateWorkoutTypeEn(w.type)}${name} - ${translateIntensityEn(w.intensity)}${muscles}`
+    })
+    .join('\n')
+}
+
+function translateWorkoutTypeEn(type: string): string {
+  const translations: Record<string, string> = {
+    RUNNING: 'Running',
+    STRENGTH: 'Strength',
+    CYCLING: 'Cycling',
+    SWIMMING: 'Swimming',
+    PLYOMETRIC: 'Plyometrics',
+    CORE: 'Core',
+    RECOVERY: 'Recovery',
+    FLEXIBILITY: 'Mobility',
+  }
+  return translations[type] || type
+}
+
+function translateIntensityEn(intensity: string): string {
+  const translations: Record<string, string> = {
+    RECOVERY: 'Recovery',
+    EASY: 'Easy',
+    MODERATE: 'Moderate',
+    THRESHOLD: 'Threshold',
+    INTERVAL: 'Interval',
+    MAX: 'Max',
+  }
+  return translations[intensity] || intensity
+}
+
+function translateWorkoutSourceEn(source: 'program' | 'adhoc' | 'wod'): string {
+  if (source === 'adhoc') return 'ad hoc'
+  if (source === 'wod') return 'AI workout'
+  return 'program'
+}
+
+function formatEquipmentEn(equipment: WODEquipment[]): string {
+  const labels: Record<WODEquipment, string> = {
+    none: 'No equipment, bodyweight only',
+    dumbbells: 'Dumbbells',
+    barbell: 'Barbell',
+    kettlebell: 'Kettlebell',
+    resistance_band: 'Resistance band',
+    pull_up_bar: 'Pull-up bar',
+    treadmill: 'Treadmill',
+    bike: 'Bike',
+    rower: 'Rower',
+    skierg: 'SkiErg',
+    airbike: 'Airbike',
+    crosstrainer: 'Crosstrainer',
+    step_machine: 'Stair machine',
+    jump_rope: 'Jump rope',
+    wall_ball: 'Wall ball',
+    box: 'Plyo box',
+    sled: 'Sled',
+    sandbag: 'Sandbag',
+    medicine_ball: 'Medicine ball',
+    stability_ball: 'Stability ball',
+    cable_machine: 'Cable machine',
+    ez_curl_bar: 'EZ curl bar',
+    rings: 'Rings',
+  }
+
+  if (equipment.length === 0 || (equipment.length === 1 && equipment[0] === 'none')) {
+    return labels.none
+  }
+
+  return equipment
+    .filter(e => e !== 'none')
+    .map(e => labels[e] || e)
+    .join(', ')
+}
+
+function buildEquipmentConstraintSectionEn(equipment: WODEquipment[]): string {
+  if (equipment.length === 1 && equipment[0] === 'none') {
+    return `## EQUIPMENT RESTRICTION
+IMPORTANT: Create a workout that uses only bodyweight and open floor space. Do not use machines, weights, or other equipment.`
+  }
+
+  return `## EQUIPMENT RESTRICTION
+IMPORTANT: This workout MUST be built only with the following equipment: ${formatEquipmentEn(equipment)}.
+The athlete may also use bodyweight, but must NOT use any equipment outside the list above even if more equipment exists at the gym.`
+}
+
+function formatLocationEquipmentEn(
+  locationEquipment: WODAthleteContext['locationEquipment'],
+  requestedEquipment: WODEquipment[]
+): string {
+  if (!locationEquipment || locationEquipment.equipment.length === 0) {
+    return ''
+  }
+
+  const equipmentFilter = new Set(normalizeRequestedEquipment(requestedEquipment))
+  const filteredEquipment =
+    equipmentFilter.has('none')
+      ? []
+      : locationEquipment.equipment.filter((item) => {
+          const mapped = mapLocationEquipmentToWOD(item.nameSv || item.name)
+          return mapped ? equipmentFilter.has(mapped) : false
+        })
+
+  const equipmentToRender = filteredEquipment.length > 0 ? filteredEquipment : locationEquipment.equipment
+  const byCategory: Record<string, string[]> = {}
+  for (const item of equipmentToRender) {
+    const category = translateEquipmentCategoryEn(item.category)
+    if (!byCategory[category]) {
+      byCategory[category] = []
+    }
+    const qty = item.quantity > 1 ? ` (${item.quantity})` : ''
+    byCategory[category].push(`${item.name}${qty}`)
+  }
+
+  const categoryLines = Object.entries(byCategory)
+    .map(([cat, items]) => `- **${cat}**: ${items.join(', ')}`)
+    .join('\n')
+
+  return `## AVAILABLE MATCHING EQUIPMENT AT ${locationEquipment.locationName.toUpperCase()}
+Use only equipment that is both available at the location and allowed in the session specification above.
+
+${categoryLines}
+
+Use this equipment to create an effective session within the selected constraints.`
+}
+
+function translateEquipmentCategoryEn(category: string): string {
+  const translations: Record<string, string> = {
+    CARDIO_MACHINE: 'Cardio machines',
+    STRENGTH_MACHINE: 'Strength machines',
+    FREE_WEIGHTS: 'Free weights',
+    RACKS: 'Racks and stations',
+    TESTING: 'Testing equipment',
+    ACCESSORIES: 'Accessories',
+    RECOVERY: 'Recovery',
+  }
+  return translations[category] || category
+}
 
 function translateSport(sport: string): string {
   const translations: Record<string, string> = {
