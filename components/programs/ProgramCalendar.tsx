@@ -2,8 +2,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { format, addDays } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,7 @@ interface ProgramCalendarProps {
 }
 
 export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
+  const appLocale = getAppLocale(useLocale())
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
 
   const toggleWeek = (weekId: string) => {
@@ -54,7 +56,9 @@ export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
     return (
       <GlassCard>
         <GlassCardContent className="text-center py-12">
-          <p className="text-slate-500 dark:text-slate-400">Inga veckor tillgängliga</p>
+          <p className="text-slate-500 dark:text-slate-400">
+            {t(appLocale, 'Inga veckor tillgängliga', 'No weeks available')}
+          </p>
         </GlassCardContent>
       </GlassCard>
     )
@@ -63,7 +67,9 @@ export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Programkalender</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          {t(appLocale, 'Programkalender', 'Program calendar')}
+        </h2>
         <div className="flex gap-2">
           <Link href={`${basePath}/strength`}>
             <Button variant="outline" size="sm" className="hidden md:flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
@@ -83,7 +89,7 @@ export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
             onClick={() => setExpandedWeeks(new Set(program.weeks.map((w) => w.id)))}
             className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
           >
-            Expandera alla
+            {t(appLocale, 'Expandera alla', 'Expand all')}
           </Button>
           <Button
             variant="outline"
@@ -91,7 +97,7 @@ export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
             onClick={() => setExpandedWeeks(new Set())}
             className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
           >
-            Minimera alla
+            {t(appLocale, 'Minimera alla', 'Collapse all')}
           </Button>
         </div>
       </div>
@@ -106,6 +112,7 @@ export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
             onToggle={() => toggleWeek(week.id)}
             isCurrent={week.weekNumber === getCurrentWeek(program)}
             clientId={program.clientId}
+            locale={appLocale}
           />
         ))}
       </div>
@@ -120,6 +127,7 @@ interface WeekCardProps {
   onToggle: () => void
   isCurrent: boolean
   clientId: string
+  locale: AppLocale
 }
 
 function WeekCard({
@@ -129,6 +137,7 @@ function WeekCard({
   onToggle,
   isCurrent,
   clientId,
+  locale,
 }: WeekCardProps) {
   const weekStartDate = addDays(new Date(programStartDate), (week.weekNumber - 1) * 7)
   const weekEndDate = addDays(weekStartDate, 6)
@@ -156,20 +165,22 @@ function WeekCard({
               <div className="flex items-center gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <GlassCardTitle className="text-lg">Vecka {week.weekNumber}</GlassCardTitle>
+                    <GlassCardTitle className="text-lg">
+                      {t(locale, 'Vecka', 'Week')} {week.weekNumber}
+                    </GlassCardTitle>
                     {isCurrent && (
-                      <Badge variant="default">Aktuell vecka</Badge>
+                      <Badge variant="default">{t(locale, 'Aktuell vecka', 'Current week')}</Badge>
                     )}
                     <Badge
                       variant="outline"
                       className={getPhaseBadgeClass(week.phase)}
                     >
-                      {formatPhase(week.phase)}
+                      {formatPhase(week.phase, locale)}
                     </Badge>
                   </div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {format(weekStartDate, 'd MMM', { locale: sv })} -{' '}
-                    {format(weekEndDate, 'd MMM yyyy', { locale: sv })}
+                    {format(weekStartDate, 'd MMM', { locale: dateFnsLocale(locale) })} -{' '}
+                    {format(weekEndDate, 'd MMM yyyy', { locale: dateFnsLocale(locale) })}
                   </p>
                 </div>
               </div>
@@ -181,7 +192,9 @@ function WeekCard({
                   </p>
                 )}
                 <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                  <Badge variant="secondary">{totalWorkouts} pass</Badge>
+                  <Badge variant="secondary">
+                    {totalWorkouts} {t(locale, 'pass', totalWorkouts === 1 ? 'session' : 'sessions')}
+                  </Badge>
                   {weeklyStats.totalDistance > 0 && (
                     <span className="font-medium">📏 {weeklyStats.totalDistance.toFixed(1)} km</span>
                   )}
@@ -209,11 +222,12 @@ function WeekCard({
                     day={day}
                     date={addDays(weekStartDate, day.dayNumber - 1)}
                     clientId={clientId}
+                    locale={locale}
                   />
                 ))
               ) : (
                 <p className="text-center text-slate-500 dark:text-slate-400 py-8">
-                  Inga träningspass denna vecka
+                  {t(locale, 'Inga träningspass denna vecka', 'No training sessions this week')}
                 </p>
               )}
             </div>
@@ -228,10 +242,13 @@ interface DayCardProps {
   day: DayWithWorkouts
   date: Date
   clientId: string
+  locale: AppLocale
 }
 
-function DayCard({ day, date, clientId }: DayCardProps) {
-  const dayNames = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
+function DayCard({ day, date, clientId, locale }: DayCardProps) {
+  const dayNames = locale === 'sv'
+    ? ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
+    : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
   const [expandedWorkouts, setExpandedWorkouts] = useState<Set<string>>(new Set())
 
   const toggleWorkout = (workoutId: string) => {
@@ -252,11 +269,11 @@ function DayCard({ day, date, clientId }: DayCardProps) {
         <div className="w-24 flex-shrink-0">
           <p className="font-medium text-sm text-slate-900 dark:text-white">{dayNames[day.dayNumber - 1]}</p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {format(date, 'd MMM', { locale: sv })}
+            {format(date, 'd MMM', { locale: dateFnsLocale(locale) })}
           </p>
         </div>
         <div className="flex-1">
-          <p className="text-sm text-slate-500 dark:text-slate-400">Vilodag</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t(locale, 'Vilodag', 'Rest day')}</p>
         </div>
       </div>
     )
@@ -276,7 +293,7 @@ function DayCard({ day, date, clientId }: DayCardProps) {
             <div className="w-24 flex-shrink-0">
               <p className="font-medium text-sm text-slate-900 dark:text-white">{dayNames[day.dayNumber - 1]}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {format(date, 'd MMM', { locale: sv })}
+                {format(date, 'd MMM', { locale: dateFnsLocale(locale) })}
               </p>
             </div>
 
@@ -285,7 +302,7 @@ function DayCard({ day, date, clientId }: DayCardProps) {
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-semibold text-slate-900 dark:text-white">{workout.name}</h4>
                   <Badge variant="outline" className={getIntensityBadgeClass(workout.intensity)}>
-                    {formatIntensity(workout.intensity)}
+                    {formatIntensity(workout.intensity, locale)}
                   </Badge>
                   {fuelingPrescription && (
                     <FuelingPrescriptionBadge prescription={fuelingPrescription} compact />
@@ -311,14 +328,14 @@ function DayCard({ day, date, clientId }: DayCardProps) {
                       segment.sets && segment.repsCount
                         ? `${segment.sets} × ${segment.repsCount}`
                         : segment.sets
-                          ? `${segment.sets} set`
+                          ? `${segment.sets} ${t(locale, 'set', 'sets')}`
                           : segment.repsCount
                             ? `${segment.repsCount} reps`
                             : null
                     return (
                       <div key={segment.id} className="flex items-center gap-2 flex-wrap">
                         <Badge variant="secondary" className="text-xs">
-                          {segment.exercise?.nameSv || formatSegmentType(segment.type)}
+                          {segment.exercise?.name || segment.exercise?.nameSv || formatSegmentType(segment.type, locale)}
                         </Badge>
                         <span className="text-slate-600 dark:text-slate-300">
                           {segment.description}
@@ -328,7 +345,7 @@ function DayCard({ day, date, clientId }: DayCardProps) {
                         </span>
                         {segment.zone && (
                           <Badge variant="outline" className="text-xs border-blue-400 text-blue-700">
-                            Zon {segment.zone}
+                            {t(locale, 'Zon', 'Zone')} {segment.zone}
                           </Badge>
                         )}
                         {segment.heartRate && (
@@ -348,7 +365,7 @@ function DayCard({ day, date, clientId }: DayCardProps) {
                         )}
                         {segment.rest != null && segment.rest > 0 && (
                           <span className="text-xs text-slate-500 dark:text-slate-400">
-                            Vila {segment.rest >= 60 ? `${Math.round(segment.rest / 60)} min` : `${segment.rest}s`}
+                            {t(locale, 'Vila', 'Rest')} {segment.rest >= 60 ? `${Math.round(segment.rest / 60)} min` : `${segment.rest}s`}
                           </span>
                         )}
                         {segment.tempo && (
@@ -361,7 +378,7 @@ function DayCard({ day, date, clientId }: DayCardProps) {
                   })}
                   {!isExpanded && workout.segments.length > 3 && (
                     <p className="text-slate-500 dark:text-slate-400">
-                      +{workout.segments.length - 3} fler segment
+                      +{workout.segments.length - 3} {t(locale, 'fler segment', 'more segments')}
                     </p>
                   )}
                 </div>
@@ -406,7 +423,12 @@ function DayCard({ day, date, clientId }: DayCardProps) {
               <Link href={workout.type === 'STRENGTH'
                 ? `/coach/strength?workoutId=${workout.id}`
                 : `/coach/cardio?workoutId=${workout.id}`}>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-primary" title="Redigera pass">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-slate-400 hover:text-primary"
+                  title={t(locale, 'Redigera pass', 'Edit session')}
+                >
                   <Pencil className="h-4 w-4" />
                 </Button>
               </Link>
@@ -447,6 +469,20 @@ function getLatestFuelingLog(workout: WorkoutWithSegments): CalendarFuelingLog |
 }
 
 // Helper functions
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
+function dateFnsLocale(locale: AppLocale) {
+  return locale === 'sv' ? sv : enUS
+}
+
 function getCurrentWeek(program: ProgramWithWeeks): number {
   const now = new Date()
   const start = new Date(program.startDate)
@@ -455,28 +491,28 @@ function getCurrentWeek(program: ProgramWithWeeks): number {
   return Math.min(diffWeeks, program.weeks.length || 1)
 }
 
-function formatPhase(phase: string): string {
-  const phases: Record<string, string> = {
-    BASE: 'Bas',
-    BUILD: 'Uppbyggnad',
-    PEAK: 'Peak',
-    TAPER: 'Taper',
-    RECOVERY: 'Återhämtning',
-    TRANSITION: 'Övergång',
+function formatPhase(phase: string, locale: AppLocale): string {
+  const phases: Record<string, Record<AppLocale, string>> = {
+    BASE: { en: 'Base', sv: 'Bas' },
+    BUILD: { en: 'Build', sv: 'Uppbyggnad' },
+    PEAK: { en: 'Peak', sv: 'Peak' },
+    TAPER: { en: 'Taper', sv: 'Taper' },
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    TRANSITION: { en: 'Transition', sv: 'Övergång' },
   }
-  return phases[phase] || phase
+  return phases[phase]?.[locale] || phase
 }
 
-function formatIntensity(intensity: string): string {
-  const intensities: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Max',
+function formatIntensity(intensity: string, locale: AppLocale): string {
+  const intensities: Record<string, Record<AppLocale, string>> = {
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    EASY: { en: 'Easy', sv: 'Lätt' },
+    MODERATE: { en: 'Moderate', sv: 'Måttlig' },
+    THRESHOLD: { en: 'Threshold', sv: 'Tröskel' },
+    INTERVAL: { en: 'Interval', sv: 'Intervall' },
+    MAX: { en: 'Max', sv: 'Max' },
   }
-  return intensities[intensity] || intensity
+  return intensities[intensity]?.[locale] || intensity
 }
 
 function getPhaseBadgeClass(phase: string): string {
@@ -503,20 +539,20 @@ function getIntensityBadgeClass(intensity: string): string {
   return classes[intensity] || ''
 }
 
-function formatSegmentType(type: string): string {
-  const types: Record<string, string> = {
-    WARMUP: 'Uppvärmning',
-    COOLDOWN: 'Nedvarvning',
-    INTERVAL: 'Intervall',
-    STEADY: 'Löpning',
-    TEMPO: 'Tempo',
-    RECOVERY: 'Återhämtning',
-    EXERCISE: 'Övning',
-    REST: 'Vila',
-    HILL: 'Backintervaller',
-    DRILLS: 'Löpskolning',
+function formatSegmentType(type: string, locale: AppLocale): string {
+  const types: Record<string, Record<AppLocale, string>> = {
+    WARMUP: { en: 'Warmup', sv: 'Uppvärmning' },
+    COOLDOWN: { en: 'Cooldown', sv: 'Nedvarvning' },
+    INTERVAL: { en: 'Interval', sv: 'Intervall' },
+    STEADY: { en: 'Run', sv: 'Löpning' },
+    TEMPO: { en: 'Tempo', sv: 'Tempo' },
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    EXERCISE: { en: 'Exercise', sv: 'Övning' },
+    REST: { en: 'Rest', sv: 'Vila' },
+    HILL: { en: 'Hill intervals', sv: 'Backintervaller' },
+    DRILLS: { en: 'Running drills', sv: 'Löpskolning' },
   }
-  return types[type] || type
+  return types[type]?.[locale] || type
 }
 
 function calculateWeeklyStats(week: WeekWithDays): { totalDistance: number; totalDuration: number } {
