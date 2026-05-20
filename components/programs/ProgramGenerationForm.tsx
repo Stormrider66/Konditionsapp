@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import {
   Form,
   FormControl,
@@ -40,7 +40,9 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
+
+const getDateLocale = (locale: string) => (locale === 'sv' ? sv : enUS)
 
 type TranslateFn = (key: string, values?: Record<string, string | number | Date>) => string
 
@@ -170,6 +172,7 @@ function recommendMethodology(data: Partial<FormData>, t: TranslateFn): string {
 
 export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   const t = useTranslations('components.careTeam.programGenerationForm')
+  const locale = useLocale()
   const router = useRouter()
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
@@ -432,7 +435,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                         <SelectContent>
                           {selectedClient.tests.map((test: any) => (
                             <SelectItem key={test.id} value={test.id}>
-                              {format(new Date(test.testDate), 'PPP', { locale: sv })} -{' '}
+                              {format(new Date(test.testDate), 'PPP', { locale: getDateLocale(locale) })} -{' '}
                               {test.testType}
                               {test.vo2max && ` (VO2max: ${test.vo2max.toFixed(1)})`}
                             </SelectItem>
@@ -603,7 +606,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                           )}
                         >
                             {field.value ? (
-                              format(field.value, 'PPP', { locale: sv })
+                              format(field.value, 'PPP', { locale: getDateLocale(locale) })
                             ) : (
                               <span>{t('fields.targetDatePlaceholder')}</span>
                             )}
