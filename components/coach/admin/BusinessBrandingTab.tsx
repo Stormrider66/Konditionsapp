@@ -29,6 +29,7 @@ import {
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 import { CustomDomainSection } from '@/components/coach/admin/CustomDomainSection'
 import { CustomEmailDomainSection } from '@/components/coach/admin/CustomEmailDomainSection'
+import { useLocale } from '@/i18n/client'
 
 const CURATED_FONTS = [
   { value: 'Inter', label: 'Inter' },
@@ -38,6 +39,37 @@ const CURATED_FONTS = [
   { value: 'Lato', label: 'Lato' },
   { value: 'Nunito', label: 'Nunito' },
 ]
+
+const COPY = {
+  en: {
+    fetchError: 'Failed to fetch branding',
+    loadError: 'Failed to load branding',
+    saveError: 'Failed to save branding',
+    replyVerificationSent:
+      'Saved. A confirmation link has been sent to the reply-to address. Click it to activate the address.',
+    brandingSaved: 'Branding saved successfully',
+    replyToLabel: 'Reply-to email address',
+    verified: 'Verified',
+    pending: 'Pending confirmation',
+    replyToPlaceholder: 'info@yourgym.com',
+    replyToHelp:
+      'Where replies to your outgoing emails land. When you save a new address, we email a confirmation link there. Outgoing email replies continue going to support@trainomics.app until you click it. Leave empty to send replies to support@trainomics.app. The sender remains noreply@trainomics.app.',
+  },
+  sv: {
+    fetchError: 'Kunde inte hämta branding',
+    loadError: 'Kunde inte ladda branding',
+    saveError: 'Kunde inte spara branding',
+    replyVerificationSent:
+      'Sparat. En bekräftelselänk har skickats till svar-adressen. Klicka på den för att aktivera adressen.',
+    brandingSaved: 'Branding sparad',
+    replyToLabel: 'Reply-to e-postadress',
+    verified: 'Verifierad',
+    pending: 'Väntar på bekräftelse',
+    replyToPlaceholder: 'info@dingym.se',
+    replyToHelp:
+      'Vart svar på dina utskick hamnar. När du sparar en ny adress mejlar vi en bekräftelselänk dit. Utskick fortsätter gå till support@trainomics.app tills du klickat. Lämnas tomt skickas svar till support@trainomics.app. Avsändaren är fortfarande noreply@trainomics.app.',
+  },
+} as const
 
 interface BrandingData {
   id: string
@@ -89,6 +121,8 @@ function LockedSection({ title, description, tier }: { title: string; descriptio
 
 export function BusinessBrandingTab() {
   const businessHeaders = useBusinessAdminHeaders()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [data, setData] = useState<BrandingData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -115,7 +149,7 @@ export function BusinessBrandingTab() {
       const response = await fetch('/api/coach/admin/branding', {
         headers: businessHeaders,
       })
-      if (!response.ok) throw new Error('Failed to fetch branding')
+      if (!response.ok) throw new Error(copy.fetchError)
       const result = await response.json()
       setData(result.data)
       setForm({
@@ -131,14 +165,17 @@ export function BusinessBrandingTab() {
         hidePlatformBranding: result.data.hidePlatformBranding || false,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load branding')
+      setError(err instanceof Error ? err.message : copy.loadError)
     } finally {
       setLoading(false)
     }
-  }, [businessHeaders])
+  }, [businessHeaders, copy.fetchError, copy.loadError])
 
   useEffect(() => {
-    fetchBranding()
+    const timer = window.setTimeout(() => {
+      void fetchBranding()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [fetchBranding])
 
   const handleSave = async () => {
@@ -180,18 +217,18 @@ export function BusinessBrandingTab() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to save branding')
+        throw new Error(result.error || copy.saveError)
       }
 
       setSuccessMessage(
         result.replyToVerificationSent
-          ? 'Sparat. En bekräftelselänk har skickats till svar-adressen — klicka på den för att aktivera.'
-          : 'Branding saved successfully',
+          ? copy.replyVerificationSent
+          : copy.brandingSaved,
       )
       setTimeout(() => setSuccessMessage(null), 6000)
-      fetchBranding()
+      void fetchBranding()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save branding')
+      setError(err instanceof Error ? err.message : copy.saveError)
     } finally {
       setSaving(false)
     }
@@ -303,10 +340,10 @@ export function BusinessBrandingTab() {
           {/* Reply-to email (Tier 0 — every business can route replies) */}
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="replyToEmail">Reply-to e-postadress</Label>
+              <Label htmlFor="replyToEmail">{copy.replyToLabel}</Label>
               {data?.replyToEmail && (
                 <Badge variant={data.replyToEmailVerified ? 'default' : 'secondary'} className="text-xs">
-                  {data.replyToEmailVerified ? 'Verifierad' : 'Väntar på bekräftelse'}
+                  {data.replyToEmailVerified ? copy.verified : copy.pending}
                 </Badge>
               )}
             </div>
@@ -315,14 +352,10 @@ export function BusinessBrandingTab() {
               type="email"
               value={form.replyToEmail}
               onChange={(e) => setForm((prev) => ({ ...prev, replyToEmail: e.target.value }))}
-              placeholder="info@dingym.se"
+              placeholder={copy.replyToPlaceholder}
             />
             <p className="text-xs text-muted-foreground">
-              Vart svar på dina utskick hamnar. När du sparar en ny adress mejlar vi en{' '}
-              bekräftelselänk dit — utskick fortsätter gå till{' '}
-              <code>support@trainomics.app</code> tills du klickat. Lämnas tomt → svar går till{' '}
-              <code>support@trainomics.app</code>. Avsändaren är fortfarande{' '}
-              <code>noreply@trainomics.app</code>.
+              {copy.replyToHelp}
             </p>
           </div>
         </CardContent>
