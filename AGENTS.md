@@ -2,7 +2,7 @@
 
 ## Git Workflow
 
-Always commit and push directly to `main`. Do NOT create feature branches or pull requests unless explicitly asked. After making changes, commit with a clear message and `git push origin main`.
+Always commit directly to local `main`. Do NOT create feature branches or pull requests unless explicitly asked. After making changes, commit with a clear message, but do **not** push to GitHub unless explicitly asked because pushing triggers a Vercel build.
 
 ## Project Overview
 
