@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { WorkoutPreview } from './WorkoutPreview'
 import { CompleteSessionDialog } from './CompleteSessionDialog'
 import type {
@@ -18,6 +17,7 @@ import {
   confirmFutureCompletion,
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client'
+import { useLocale } from '@/i18n/client'
 
 type DrillWithDetails = AgilityWorkoutDrill & { drill: AgilityDrill }
 
@@ -34,8 +34,19 @@ const SECTION_TO_PREVIEW: Record<string, WorkoutSection> = {
   COOLDOWN: 'COOLDOWN',
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 function buildPreviewData(
   workout: AgilityWorkout & { drills: DrillWithDetails[] },
+  locale: AppLocale,
 ): PreviewWorkoutData {
   const drills = [...workout.drills].sort((a, b) => a.order - b.order)
 
@@ -45,7 +56,7 @@ function buildPreviewData(
     else if (d.sets) meta.push(`${d.sets} set`)
     else if (d.reps) meta.push(`${d.reps} reps`)
     if (d.duration) meta.push(`${d.duration}s`)
-    if (d.restSeconds) meta.push(`vila ${d.restSeconds}s`)
+    if (d.restSeconds) meta.push(text(locale, `vila ${d.restSeconds}s`, `rest ${d.restSeconds}s`))
     const section = SECTION_TO_PREVIEW[d.sectionType ?? 'MAIN'] ?? 'MAIN'
     return {
       id: d.id,
@@ -77,10 +88,10 @@ function buildPreviewData(
       type: s,
       name:
         s === 'WARMUP'
-          ? 'Uppvärmning'
+          ? text(locale, 'Uppvärmning', 'Warm-up')
           : s === 'COOLDOWN'
-            ? 'Nedvarvning'
-            : 'Huvudpass',
+            ? text(locale, 'Nedvarvning', 'Cool-down')
+            : text(locale, 'Huvudpass', 'Main session'),
       exerciseCount: sectionCounts.get(s) ?? 0,
     }))
 
@@ -118,7 +129,8 @@ export function AgilityWorkoutPreview({
   assignmentId,
   basePath = '/athlete',
 }: AgilityWorkoutPreviewProps) {
-  const data = useMemo(() => buildPreviewData(workout), [workout])
+  const locale = getAppLocale(useLocale())
+  const data = useMemo(() => buildPreviewData(workout, locale), [workout, locale])
   const [showExecution, setShowExecution] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
