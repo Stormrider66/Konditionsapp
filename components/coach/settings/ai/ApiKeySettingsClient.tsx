@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,17 +25,76 @@ interface ApiKeyStatus {
 interface ProviderConfig {
   id: string;
   name: string;
-  description: string;
   placeholder: string;
   docsUrl: string;
   icon: string;
 }
 
+type AppLocale = 'en' | 'sv';
+type ProviderId = 'anthropic' | 'google' | 'openai';
+
+const COPY = {
+  en: {
+    providers: {
+      anthropic: 'Used for program generation and AI chat',
+      google: 'Used for video analysis and vision features',
+      openai: 'Used for document embeddings and search',
+    },
+    missingKey: 'Enter an API key',
+    saveError: 'Could not save the key',
+    networkError: 'Network error. Try again.',
+    confirmRemove: (provider: string) => `Are you sure you want to remove the ${provider} key?`,
+    businessKeys: (businessName?: string) => (
+      <>
+        You are using <strong>{businessName}</strong>
+        {'\'s '}AI keys. Add your own below to use them instead.
+      </>
+    ),
+    userKeys: 'You are using your own AI keys. Remove them to use the business keys.',
+    noKeys: 'No AI keys configured. Add keys below to enable AI features.',
+    active: 'Active',
+    invalid: 'Invalid',
+    notConfigured: 'Not configured',
+    updateApiKey: 'Update API key',
+    apiKey: 'API key',
+    save: 'Save',
+    keySaved: 'Key saved.',
+    lastValidated: 'Last validated',
+    getApiKey: 'Get API key',
+  },
+  sv: {
+    providers: {
+      anthropic: 'Används för programgenerering och AI-chatt',
+      google: 'Används för videoanalys och vision-funktioner',
+      openai: 'Används för dokumentembeddings och sökning',
+    },
+    missingKey: 'Ange en API-nyckel',
+    saveError: 'Kunde inte spara nyckeln',
+    networkError: 'Nätverksfel. Försök igen.',
+    confirmRemove: (provider: string) => `Är du säker på att du vill ta bort ${provider}-nyckeln?`,
+    businessKeys: (businessName?: string) => (
+      <>
+        Du använder <strong>{businessName}</strong>s AI-nycklar. Lägg till egna nedan för att använda dem istället.
+      </>
+    ),
+    userKeys: 'Du använder egna AI-nycklar. Ta bort dem för att använda verksamhetens nycklar.',
+    noKeys: 'Inga AI-nycklar konfigurerade. Lägg till nycklar nedan för att aktivera AI-funktioner.',
+    active: 'Aktiv',
+    invalid: 'Ogiltig',
+    notConfigured: 'Ej konfigurerad',
+    updateApiKey: 'Uppdatera API-nyckel',
+    apiKey: 'API-nyckel',
+    save: 'Spara',
+    keySaved: 'Nyckeln sparades.',
+    lastValidated: 'Senast validerad',
+    getApiKey: 'Hämta API-nyckel',
+  },
+} as const;
+
 const PROVIDERS: ProviderConfig[] = [
   {
     id: 'anthropic',
     name: 'Anthropic (Claude)',
-    description: 'Används för programgenerering och AI-chatt',
     placeholder: 'sk-ant-api03-...',
     docsUrl: 'https://console.anthropic.com/settings/keys',
     icon: '🤖',
@@ -42,7 +102,6 @@ const PROVIDERS: ProviderConfig[] = [
   {
     id: 'google',
     name: 'Google (Gemini)',
-    description: 'Används för videoanalys och vision-funktioner',
     placeholder: 'AIza...',
     docsUrl: 'https://aistudio.google.com/app/apikey',
     icon: '🎥',
@@ -50,7 +109,6 @@ const PROVIDERS: ProviderConfig[] = [
   {
     id: 'openai',
     name: 'OpenAI',
-    description: 'Används för dokumentembeddings och sökning',
     placeholder: 'sk-...',
     docsUrl: 'https://platform.openai.com/api-keys',
     icon: '📚',
@@ -58,6 +116,9 @@ const PROVIDERS: ProviderConfig[] = [
 ];
 
 export function ApiKeySettingsClient() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = COPY[locale];
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US';
   const [keyStatus, setKeyStatus] = useState<ApiKeyStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -69,8 +130,8 @@ export function ApiKeySettingsClient() {
 
   // Fetch current key status and key source
   useEffect(() => {
-    fetchKeyStatus();
-    fetchKeySource();
+    void fetchKeyStatus();
+    void fetchKeySource();
   }, []);
 
   async function fetchKeyStatus() {
@@ -103,7 +164,7 @@ export function ApiKeySettingsClient() {
   async function saveKey(provider: string) {
     const key = keyValues[provider];
     if (!key) {
-      setErrors({ ...errors, [provider]: 'Ange en API-nyckel' });
+      setErrors({ ...errors, [provider]: copy.missingKey });
       return;
     }
 
@@ -138,13 +199,13 @@ export function ApiKeySettingsClient() {
       } else {
         setErrors({
           ...errors,
-          [provider]: data.invalidKeys?.[0]?.error || data.error || 'Kunde inte spara nyckeln',
+          [provider]: data.invalidKeys?.[0]?.error || data.error || copy.saveError,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       setErrors({
         ...errors,
-        [provider]: 'Nätverksfel. Försök igen.',
+        [provider]: copy.networkError,
       });
     } finally {
       setSaving(null);
@@ -152,7 +213,7 @@ export function ApiKeySettingsClient() {
   }
 
   async function removeKey(provider: string) {
-    if (!confirm(`Är du säker på att du vill ta bort ${provider}-nyckeln?`)) {
+    if (!confirm(copy.confirmRemove(provider))) {
       return;
     }
 
@@ -200,7 +261,7 @@ export function ApiKeySettingsClient() {
           <GlassCardContent className="p-4 flex items-start gap-3">
             <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
             <p className="text-sm text-blue-800 dark:text-blue-300">
-              Du använder <strong>{keySource.businessName}</strong>s AI-nycklar. Lägg till egna nedan för att använda dem istället.
+              {copy.businessKeys(keySource.businessName)}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -210,7 +271,7 @@ export function ApiKeySettingsClient() {
           <GlassCardContent className="p-4 flex items-start gap-3">
             <Info className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
             <p className="text-sm text-green-800 dark:text-green-300">
-              Du använder egna AI-nycklar. Ta bort dem för att använda verksamhetens nycklar.
+              {copy.userKeys}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -220,7 +281,7 @@ export function ApiKeySettingsClient() {
           <GlassCardContent className="p-4 flex items-start gap-3">
             <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
             <p className="text-sm text-amber-800 dark:text-amber-300">
-              Inga AI-nycklar konfigurerade. Lägg till nycklar nedan för att aktivera AI-funktioner.
+              {copy.noKeys}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -243,7 +304,7 @@ export function ApiKeySettingsClient() {
                   <span className="text-2xl">{provider.icon}</span>
                   <div>
                     <GlassCardTitle className="text-lg">{provider.name}</GlassCardTitle>
-                    <GlassCardDescription>{provider.description}</GlassCardDescription>
+                    <GlassCardDescription>{copy.providers[provider.id as ProviderId]}</GlassCardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -251,16 +312,16 @@ export function ApiKeySettingsClient() {
                     isValid ? (
                       <Badge variant="default" className="bg-green-500">
                         <Check className="h-3 w-3 mr-1" />
-                        Aktiv
+                        {copy.active}
                       </Badge>
                     ) : (
                       <Badge variant="destructive">
                         <X className="h-3 w-3 mr-1" />
-                        Ogiltig
+                        {copy.invalid}
                       </Badge>
                     )
                   ) : (
-                    <Badge variant="secondary">Ej konfigurerad</Badge>
+                    <Badge variant="secondary">{copy.notConfigured}</Badge>
                   )}
                 </div>
               </div>
@@ -270,7 +331,7 @@ export function ApiKeySettingsClient() {
                 {/* Input for new/update key */}
                 <div className="space-y-2">
                   <Label htmlFor={`key-${provider.id}`}>
-                    {isConfigured ? 'Uppdatera API-nyckel' : 'API-nyckel'}
+                    {isConfigured ? copy.updateApiKey : copy.apiKey}
                   </Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -307,7 +368,7 @@ export function ApiKeySettingsClient() {
                       ) : success[provider.id] ? (
                         <Check className="h-4 w-4" />
                       ) : (
-                        'Spara'
+                        copy.save
                       )}
                     </Button>
                     {isConfigured && (
@@ -326,15 +387,15 @@ export function ApiKeySettingsClient() {
                     <p className="text-sm text-red-500">{errors[provider.id]}</p>
                   )}
                   {success[provider.id] && (
-                    <p className="text-sm text-green-500">Nyckeln sparades!</p>
+                    <p className="text-sm text-green-500">{copy.keySaved}</p>
                   )}
                 </div>
 
                 {/* Status info */}
                 {isConfigured && status?.lastValidated && (
                   <p className="text-xs text-gray-500">
-                    Senast validerad:{' '}
-                    {new Date(status.lastValidated).toLocaleString('sv-SE')}
+                    {copy.lastValidated}:{' '}
+                    {new Date(status.lastValidated).toLocaleString(dateLocale)}
                   </p>
                 )}
 
@@ -345,7 +406,7 @@ export function ApiKeySettingsClient() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
                 >
-                  Hämta API-nyckel
+                  {copy.getApiKey}
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
