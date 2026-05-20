@@ -4,6 +4,7 @@
  */
 
 export type FreshnessStatus = 'fresh' | 'stale' | 'expired' | 'missing'
+export type AthleteProfileLocale = 'en' | 'sv'
 
 export interface DataSourceStatus {
   name: string
@@ -76,23 +77,41 @@ export function calculateFreshness(
 }
 
 /**
- * Get Swedish label for freshness status
+ * Get localized label for freshness status
  */
-export function getFreshnessLabel(status: FreshnessStatus, daysOld: number | null): string {
+export function getFreshnessLabel(
+  status: FreshnessStatus,
+  daysOld: number | null,
+  locale: AthleteProfileLocale = 'en'
+): string {
+  const isSv = locale === 'sv'
+
   switch (status) {
     case 'fresh':
-      if (daysOld === 0) return 'Idag'
-      if (daysOld === 1) return 'Igår'
-      return `${daysOld} dagar sedan`
+      if (daysOld === 0) return isSv ? 'Idag' : 'Today'
+      if (daysOld === 1) return isSv ? 'Igår' : 'Yesterday'
+      return isSv ? `${daysOld} dagar sedan` : `${daysOld} days ago`
     case 'stale':
-      if (daysOld && daysOld < 30) return `${daysOld} dagar sedan`
-      if (daysOld && daysOld < 60) return `~${Math.round(daysOld / 7)} veckor sedan`
-      return `~${Math.round((daysOld || 0) / 30)} månader sedan`
+      if (daysOld && daysOld < 30) return isSv ? `${daysOld} dagar sedan` : `${daysOld} days ago`
+      if (daysOld && daysOld < 60) {
+        const weeks = Math.round(daysOld / 7)
+        return isSv ? `~${weeks} veckor sedan` : `~${weeks} weeks ago`
+      }
+      {
+        const months = Math.round((daysOld || 0) / 30)
+        return isSv ? `~${months} månader sedan` : `~${months} months ago`
+      }
     case 'expired':
-      if (daysOld && daysOld < 365) return `~${Math.round(daysOld / 30)} månader sedan`
-      return `>${Math.round((daysOld || 0) / 365)} år sedan`
+      if (daysOld && daysOld < 365) {
+        const months = Math.round(daysOld / 30)
+        return isSv ? `~${months} månader sedan` : `~${months} months ago`
+      }
+      {
+        const years = Math.round((daysOld || 0) / 365)
+        return isSv ? `>${years} år sedan` : `>${years} years ago`
+      }
     case 'missing':
-      return 'Ingen data'
+      return isSv ? 'Ingen data' : 'No data'
   }
 }
 
@@ -145,7 +164,7 @@ export function buildDataSourceStatuses(data: {
   menstrualCycles: { startDate: Date }[]
   sportProfile: { id: string } | null
   athleteProfile: { id: string } | null
-}): DataSourceStatus[] {
+}, locale: AthleteProfileLocale = 'en'): DataSourceStatus[] {
   const sources: DataSourceStatus[] = []
 
   // Lab Tests
@@ -158,7 +177,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.tests.length,
     lastUpdated: latestTest,
     freshnessStatus: testFreshness.status,
-    freshnessLabel: getFreshnessLabel(testFreshness.status, testFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(testFreshness.status, testFreshness.daysOld, locale),
     daysOld: testFreshness.daysOld,
   })
 
@@ -172,7 +191,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.fieldTests.length,
     lastUpdated: latestFieldTest,
     freshnessStatus: fieldTestFreshness.status,
-    freshnessLabel: getFreshnessLabel(fieldTestFreshness.status, fieldTestFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(fieldTestFreshness.status, fieldTestFreshness.daysOld, locale),
     daysOld: fieldTestFreshness.daysOld,
   })
 
@@ -186,7 +205,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.raceResults.length,
     lastUpdated: latestRace,
     freshnessStatus: raceFreshness.status,
-    freshnessLabel: getFreshnessLabel(raceFreshness.status, raceFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(raceFreshness.status, raceFreshness.daysOld, locale),
     daysOld: raceFreshness.daysOld,
   })
 
@@ -200,7 +219,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.bodyCompositions.length,
     lastUpdated: latestBodyComp,
     freshnessStatus: bodyCompFreshness.status,
-    freshnessLabel: getFreshnessLabel(bodyCompFreshness.status, bodyCompFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(bodyCompFreshness.status, bodyCompFreshness.daysOld, locale),
     daysOld: bodyCompFreshness.daysOld,
   })
 
@@ -214,7 +233,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.dailyCheckIns.length,
     lastUpdated: latestCheckIn,
     freshnessStatus: checkInFreshness.status,
-    freshnessLabel: getFreshnessLabel(checkInFreshness.status, checkInFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(checkInFreshness.status, checkInFreshness.daysOld, locale),
     daysOld: checkInFreshness.daysOld,
   })
 
@@ -228,7 +247,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.videoAnalyses.length,
     lastUpdated: latestVideo,
     freshnessStatus: videoFreshness.status,
-    freshnessLabel: getFreshnessLabel(videoFreshness.status, videoFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(videoFreshness.status, videoFreshness.daysOld, locale),
     daysOld: videoFreshness.daysOld,
   })
 
@@ -242,7 +261,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.injuryAssessments.length,
     lastUpdated: latestInjury,
     freshnessStatus: injuryFreshness.status,
-    freshnessLabel: getFreshnessLabel(injuryFreshness.status, injuryFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(injuryFreshness.status, injuryFreshness.daysOld, locale),
     daysOld: injuryFreshness.daysOld,
   })
 
@@ -256,7 +275,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.trainingLoads.length,
     lastUpdated: latestLoad,
     freshnessStatus: loadFreshness.status,
-    freshnessLabel: getFreshnessLabel(loadFreshness.status, loadFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(loadFreshness.status, loadFreshness.daysOld, locale),
     daysOld: loadFreshness.daysOld,
   })
 
@@ -270,7 +289,7 @@ export function buildDataSourceStatuses(data: {
     recordCount: data.progressionTracking.length,
     lastUpdated: latestProgression,
     freshnessStatus: progressionFreshness.status,
-    freshnessLabel: getFreshnessLabel(progressionFreshness.status, progressionFreshness.daysOld),
+    freshnessLabel: getFreshnessLabel(progressionFreshness.status, progressionFreshness.daysOld, locale),
     daysOld: progressionFreshness.daysOld,
   })
 
@@ -285,7 +304,7 @@ export function buildDataSourceStatuses(data: {
       recordCount: data.menstrualCycles.length,
       lastUpdated: latestCycle,
       freshnessStatus: cycleFreshness.status,
-      freshnessLabel: getFreshnessLabel(cycleFreshness.status, cycleFreshness.daysOld),
+      freshnessLabel: getFreshnessLabel(cycleFreshness.status, cycleFreshness.daysOld, locale),
       daysOld: cycleFreshness.daysOld,
     })
   }
@@ -334,10 +353,29 @@ export function calculateDataQualityScore(statuses: DataSourceStatus[]): number 
 /**
  * Get data quality label
  */
-export function getDataQualityLabel(score: number): { label: string; colorClass: string } {
-  if (score >= 80) return { label: 'Utmärkt', colorClass: 'text-green-600' }
-  if (score >= 60) return { label: 'Bra', colorClass: 'text-blue-600' }
-  if (score >= 40) return { label: 'Godkänd', colorClass: 'text-yellow-600' }
-  if (score >= 20) return { label: 'Bristfällig', colorClass: 'text-orange-600' }
-  return { label: 'Otillräcklig', colorClass: 'text-red-600' }
+export function getDataQualityLabel(
+  score: number,
+  locale: AthleteProfileLocale = 'en'
+): { label: string; colorClass: string } {
+  const labels = locale === 'sv'
+    ? {
+        excellent: 'Utmärkt',
+        good: 'Bra',
+        fair: 'Godkänd',
+        limited: 'Bristfällig',
+        insufficient: 'Otillräcklig',
+      }
+    : {
+        excellent: 'Excellent',
+        good: 'Good',
+        fair: 'Fair',
+        limited: 'Limited',
+        insufficient: 'Insufficient',
+      }
+
+  if (score >= 80) return { label: labels.excellent, colorClass: 'text-green-600' }
+  if (score >= 60) return { label: labels.good, colorClass: 'text-blue-600' }
+  if (score >= 40) return { label: labels.fair, colorClass: 'text-yellow-600' }
+  if (score >= 20) return { label: labels.limited, colorClass: 'text-orange-600' }
+  return { label: labels.insufficient, colorClass: 'text-red-600' }
 }
