@@ -259,7 +259,7 @@ function getAltitudeMonitoringData(
     altitude: eventData.altitude || 0,
   }
 
-  const plan = generateAltitudeCampPlan(info)
+  const plan = generateAltitudeCampPlan(info, locale)
 
   // Check if we're in camp or post-camp period
   const isBeforeCamp = isBefore(currentDate, plan.camp.startDate)

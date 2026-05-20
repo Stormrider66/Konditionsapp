@@ -75,8 +75,8 @@ export function AltitudeCampPreview({
       altitude,
     }
 
-    return generateAltitudeCampPlan(info)
-  }, [altitude, startDate, endDate])
+    return generateAltitudeCampPlan(info, appLocale)
+  }, [altitude, startDate, endDate, appLocale])
 
   if (!plan) return null
 
@@ -388,7 +388,7 @@ function getAltitudeCategory(altitude: number, locale: 'en' | 'sv' = 'en'): { la
 
 function getAltitudePhaseLabel(phase: AdaptationPhase, locale: 'en' | 'sv'): string {
   if (locale === 'sv') {
-    return getPhaseLabel(phase)
+    return getPhaseLabel(phase, locale)
   }
 
   switch (phase) {

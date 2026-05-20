@@ -17,7 +17,9 @@
  */
 
 import { addDays, differenceInDays, format, isWithinInterval } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+
+export type AltitudeLocale = 'en' | 'sv'
 
 export interface AltitudeCampInfo {
   startDate: Date
@@ -112,7 +114,7 @@ export function calculatePaceAdjustment(
 /**
  * Calculate adaptation factor (0-1, higher = more adapted)
  */
-function calculateAdaptationFactor(dayOfCamp: number, campDuration: number): number {
+function calculateAdaptationFactor(dayOfCamp: number, _campDuration: number): number {
   // No adaptation on first day
   if (dayOfCamp <= 1) return 0
 
@@ -180,7 +182,10 @@ export function calculateHRAdjustment(altitude: number, dayOfCamp: number): numb
 /**
  * Generate complete altitude camp plan
  */
-export function generateAltitudeCampPlan(info: AltitudeCampInfo): AltitudeCampPlan {
+export function generateAltitudeCampPlan(
+  info: AltitudeCampInfo,
+  locale: AltitudeLocale = 'en'
+): AltitudeCampPlan {
   const totalDays = differenceInDays(info.endDate, info.startDate) + 1
   const adaptationTimeline: DailyAdaptation[] = []
 
@@ -201,8 +206,8 @@ export function generateAltitudeCampPlan(info: AltitudeCampInfo): AltitudeCampPl
       paceAdjustment,
       hrAdjustment,
       maxIntensity,
-      recommendations: getDailyRecommendations(day, phase, info.altitude),
-      guidelines: getDailyGuidelines(day, phase, info.athleteExperience),
+      recommendations: getDailyRecommendations(day, phase, info.altitude, locale),
+      guidelines: getDailyGuidelines(phase, info.athleteExperience, locale),
     })
   }
 
@@ -232,10 +237,10 @@ export function generateAltitudeCampPlan(info: AltitudeCampInfo): AltitudeCampPl
       startDate: postCampStart,
       endDate: postCampEnd,
       days: 14,
-      recommendations: getPostCampRecommendations(info.altitude, totalDays),
+      recommendations: getPostCampRecommendations(totalDays, locale),
     },
-    generalGuidelines: getGeneralGuidelines(info.altitude),
-    warningSignsToWatch: getWarningSignsToWatch(),
+    generalGuidelines: getGeneralGuidelines(info.altitude, locale),
+    warningSignsToWatch: getWarningSignsToWatch(locale),
   }
 }
 
@@ -245,41 +250,73 @@ export function generateAltitudeCampPlan(info: AltitudeCampInfo): AltitudeCampPl
 function getDailyRecommendations(
   day: number,
   phase: AdaptationPhase,
-  altitude: number
+  altitude: number,
+  locale: AltitudeLocale
 ): string[] {
+  const paceAdjustment = Math.round(calculatePaceAdjustment(altitude, day, 21))
+
   switch (phase) {
     case 'ACUTE':
-      return [
-        'Fokusera på lätt aerob träning',
-        'Undvik hög intensitet (inga intervaller)',
-        'Prioritera återhämtning och sömn',
-        day === 1 ? 'Vilodag eller mycket lätt aktivitet' : 'Lätt jogging 30-45 min',
-        'Inga kvalitetspass de första 3-5 dagarna',
-      ]
+      return locale === 'sv'
+        ? [
+            'Fokusera på lätt aerob träning',
+            'Undvik hög intensitet (inga intervaller)',
+            'Prioritera återhämtning och sömn',
+            day === 1 ? 'Vilodag eller mycket lätt aktivitet' : 'Lätt jogging 30-45 min',
+            'Inga kvalitetspass de första 3-5 dagarna',
+          ]
+        : [
+            'Focus on easy aerobic training',
+            'Avoid high intensity (no intervals)',
+            'Prioritize recovery and sleep',
+            day === 1 ? 'Rest day or very light activity' : 'Easy jogging 30-45 min',
+            'No quality sessions during the first 3-5 days',
+          ]
 
     case 'ADAPTATION':
       if (day <= 10) {
-        return [
-          'Gradvis ökning av volym',
-          'Lätt fartlek kan introduceras',
-          'Fortsatt fokus på aerob bas',
-          'Undvik max-ansträngningar',
-        ]
+        return locale === 'sv'
+          ? [
+              'Gradvis ökning av volym',
+              'Lätt fartlek kan introduceras',
+              'Fortsatt fokus på aerob bas',
+              'Undvik max-ansträngningar',
+            ]
+          : [
+              'Gradually increase volume',
+              'Light fartlek can be introduced',
+              'Keep the focus on aerobic base work',
+              'Avoid maximal efforts',
+            ]
       }
-      return [
-        'Moderat intensitet tillåten',
-        'Korta tempointervaller kan påbörjas',
-        'Lyssna på kroppen',
-        'Ha alltid plan B vid trötthet',
-      ]
+      return locale === 'sv'
+        ? [
+            'Moderat intensitet tillåten',
+            'Korta tempointervaller kan påbörjas',
+            'Lyssna på kroppen',
+            'Ha alltid plan B vid trötthet',
+          ]
+        : [
+            'Moderate intensity is allowed',
+            'Short tempo intervals can begin',
+            'Listen to the body',
+            'Always have a plan B when fatigue is high',
+          ]
 
     case 'OPTIMAL':
-      return [
-        'Normal träning med anpassade hastigheter',
-        'Kvalitetspass fullt tillåtna',
-        `Kom ihåg att hastigheter är ${Math.round(calculatePaceAdjustment(altitude, day, 21))} sek/km långsammare`,
-        'Maximalt utnyttjande av höjdeffekten',
-      ]
+      return locale === 'sv'
+        ? [
+            'Normal träning med anpassade hastigheter',
+            'Kvalitetspass fullt tillåtna',
+            `Kom ihåg att hastigheter är ${paceAdjustment} sek/km långsammare`,
+            'Maximalt utnyttjande av höjdeffekten',
+          ]
+        : [
+            'Normal training with adjusted speeds',
+            'Quality sessions are fully allowed',
+            `Remember that paces are ${paceAdjustment} sec/km slower`,
+            'Make the most of the altitude effect',
+          ]
 
     default:
       return []
@@ -290,32 +327,51 @@ function getDailyRecommendations(
  * Get daily guidelines
  */
 function getDailyGuidelines(
-  day: number,
   phase: AdaptationPhase,
-  experience?: 'FIRST_TIME' | 'SOME' | 'EXPERIENCED'
+  experience: 'FIRST_TIME' | 'SOME' | 'EXPERIENCED' | undefined,
+  locale: AltitudeLocale
 ): string[] {
   const isFirstTimer = experience === 'FIRST_TIME'
 
-  const baseGuidelines = [
-    'Drick 3-4 liter vatten per dag',
-    'Ät kolhydratrikt',
-    'Sov 8-9 timmar per natt',
-    'Använd pulsoximeter vid behov (>90% SpO2)',
-  ]
+  const baseGuidelines =
+    locale === 'sv'
+      ? [
+          'Drick 3-4 liter vatten per dag',
+          'Ät kolhydratrikt',
+          'Sov 8-9 timmar per natt',
+          'Använd pulsoximeter vid behov (>90% SpO2)',
+        ]
+      : [
+          'Drink 3-4 liters of water per day',
+          'Eat carbohydrate-rich meals',
+          'Sleep 8-9 hours per night',
+          'Use a pulse oximeter when needed (>90% SpO2)',
+        ]
 
   if (phase === 'ACUTE') {
-    return [
-      ...baseGuidelines,
-      'Undvik alkohol',
-      'Var uppmärksam på huvudvärk eller illamående',
-      isFirstTimer
-        ? 'Extra försiktighet - kroppen behöver tid att anpassa sig'
-        : 'Tillåt kroppen att acklimatisera sig',
-    ]
+    return locale === 'sv'
+      ? [
+          ...baseGuidelines,
+          'Undvik alkohol',
+          'Var uppmärksam på huvudvärk eller illamående',
+          isFirstTimer
+            ? 'Extra försiktighet - kroppen behöver tid att anpassa sig'
+            : 'Tillåt kroppen att acklimatisera sig',
+        ]
+      : [
+          ...baseGuidelines,
+          'Avoid alcohol',
+          'Watch for headaches or nausea',
+          isFirstTimer
+            ? 'Extra caution - the body needs time to adapt'
+            : 'Allow the body to acclimatize',
+        ]
   }
 
   if (phase === 'ADAPTATION') {
-    return [...baseGuidelines, 'Kvalitativ sömn är avgörande', 'Järntillskott kan övervägas']
+    return locale === 'sv'
+      ? [...baseGuidelines, 'Kvalitativ sömn är avgörande', 'Järntillskott kan övervägas']
+      : [...baseGuidelines, 'High-quality sleep is critical', 'Iron supplementation can be considered']
   }
 
   return baseGuidelines
@@ -324,55 +380,96 @@ function getDailyGuidelines(
 /**
  * Get post-camp recommendations
  */
-function getPostCampRecommendations(altitude: number, campDays: number): string[] {
+function getPostCampRecommendations(
+  campDays: number,
+  locale: AltitudeLocale
+): string[] {
   const optimalWindow =
-    campDays >= 21
-      ? 'Dag 1-28 efter hemkomst'
-      : campDays >= 14
-        ? 'Dag 1-21 efter hemkomst'
-        : 'Dag 7-14 efter hemkomst'
+    locale === 'sv'
+      ? campDays >= 21
+        ? 'Dag 1-28 efter hemkomst'
+        : campDays >= 14
+          ? 'Dag 1-21 efter hemkomst'
+          : 'Dag 7-14 efter hemkomst'
+      : campDays >= 21
+        ? 'Days 1-28 after returning'
+        : campDays >= 14
+          ? 'Days 1-21 after returning'
+          : 'Days 7-14 after returning'
 
-  return [
-    `Optimal prestationsperiod: ${optimalWindow}`,
-    'Dagarna 1-3: Lätt träning, låt kroppen återhämta sig',
-    'Dagarna 4-7: Gradvis ökning, introducera kvalitet',
-    'Undvik överträning - kroppen behöver läka',
-    'Planera A-tävling inom den optimala perioden',
-    'Var uppmärksam på tecken på sjukdom (immunförsvaret kan vara nedsatt)',
-    'Fortsätt med god vätske- och järnintag',
-  ]
+  return locale === 'sv'
+    ? [
+        `Optimal prestationsperiod: ${optimalWindow}`,
+        'Dagarna 1-3: Lätt träning, låt kroppen återhämta sig',
+        'Dagarna 4-7: Gradvis ökning, introducera kvalitet',
+        'Undvik överträning - kroppen behöver läka',
+        'Planera A-tävling inom den optimala perioden',
+        'Var uppmärksam på tecken på sjukdom (immunförsvaret kan vara nedsatt)',
+        'Fortsätt med god vätske- och järnintag',
+      ]
+    : [
+        `Optimal performance window: ${optimalWindow}`,
+        'Days 1-3: Easy training, let the body recover',
+        'Days 4-7: Gradually increase load and introduce quality',
+        'Avoid overtraining - the body needs to recover',
+        'Plan the A race inside the optimal window',
+        'Watch for signs of illness (immune function may be suppressed)',
+        'Keep hydration and iron intake high',
+      ]
 }
 
 /**
  * Get general guidelines for altitude training
  */
-function getGeneralGuidelines(altitude: number): string[] {
+function getGeneralGuidelines(altitude: number, locale: AltitudeLocale): string[] {
   const isHighAltitude = altitude >= 2500
   const isModerateAltitude = altitude >= 1800 && altitude < 2500
 
-  const guidelines = [
-    'Höjdträning kräver tålamod - överdriv inte',
-    'Kvalitet framför kvantitet i alla pass',
-    'Lyssna på kroppen och anpassa efter dagsformen',
-    'Dokumentera sömn, puls och känsla dagligen',
-    'Ha flexibla träningsplaner med möjlighet att reducera',
-  ]
+  const guidelines =
+    locale === 'sv'
+      ? [
+          'Höjdträning kräver tålamod - överdriv inte',
+          'Kvalitet framför kvantitet i alla pass',
+          'Lyssna på kroppen och anpassa efter dagsformen',
+          'Dokumentera sömn, puls och känsla dagligen',
+          'Ha flexibla träningsplaner med möjlighet att reducera',
+        ]
+      : [
+          'Altitude training requires patience - do not overdo it',
+          'Prioritize quality over quantity in every session',
+          'Listen to the body and adapt to daily readiness',
+          'Track sleep, heart rate, and perceived feeling every day',
+          'Keep training plans flexible with room to reduce load',
+        ]
 
   if (isHighAltitude) {
-    return [
-      ...guidelines,
-      `På ${altitude}m: Förvänta dig 15-20% prestandaminskning initialt`,
-      'Akut höjdsjuka är en risk - känn till symtomen',
-      'Överväg gradvis acklimatisering om möjligt',
-    ]
+    return locale === 'sv'
+      ? [
+          ...guidelines,
+          `På ${altitude}m: Förvänta dig 15-20% prestandaminskning initialt`,
+          'Akut höjdsjuka är en risk - känn till symtomen',
+          'Överväg gradvis acklimatisering om möjligt',
+        ]
+      : [
+          ...guidelines,
+          `At ${altitude}m: Expect an initial 15-20% performance reduction`,
+          'Acute altitude sickness is a risk - know the symptoms',
+          'Consider gradual acclimatization when possible',
+        ]
   }
 
   if (isModerateAltitude) {
-    return [
-      ...guidelines,
-      `På ${altitude}m: Förvänta dig 10-15% prestandaminskning initialt`,
-      'Klassisk "Live High, Train Low" är effektivt',
-    ]
+    return locale === 'sv'
+      ? [
+          ...guidelines,
+          `På ${altitude}m: Förvänta dig 10-15% prestandaminskning initialt`,
+          'Klassisk "Live High, Train Low" är effektivt',
+        ]
+      : [
+          ...guidelines,
+          `At ${altitude}m: Expect an initial 10-15% performance reduction`,
+          'Classic "Live High, Train Low" is effective',
+        ]
   }
 
   return guidelines
@@ -381,17 +478,28 @@ function getGeneralGuidelines(altitude: number): string[] {
 /**
  * Get warning signs to watch for
  */
-function getWarningSignsToWatch(): string[] {
-  return [
-    'Ihållande huvudvärk som inte försvinner med paracetamol',
-    'Illamående eller aptitlöshet',
-    'Yrsel eller koordinationsproblem',
-    'Andnöd i vila',
-    'Extrem trötthet eller sömnstörningar',
-    'Svullnad i händer, fötter eller ansikte',
-    'Hjärtklappning i vila',
-    'Hosta, särskilt nattetid',
-  ]
+function getWarningSignsToWatch(locale: AltitudeLocale): string[] {
+  return locale === 'sv'
+    ? [
+        'Ihållande huvudvärk som inte försvinner med paracetamol',
+        'Illamående eller aptitlöshet',
+        'Yrsel eller koordinationsproblem',
+        'Andnöd i vila',
+        'Extrem trötthet eller sömnstörningar',
+        'Svullnad i händer, fötter eller ansikte',
+        'Hjärtklappning i vila',
+        'Hosta, särskilt nattetid',
+      ]
+    : [
+        'Persistent headache that does not resolve with paracetamol',
+        'Nausea or loss of appetite',
+        'Dizziness or coordination problems',
+        'Shortness of breath at rest',
+        'Extreme fatigue or sleep disturbances',
+        'Swelling in hands, feet, or face',
+        'Heart palpitations at rest',
+        'Coughing, especially at night',
+      ]
 }
 
 /**
@@ -400,7 +508,8 @@ function getWarningSignsToWatch(): string[] {
 export function calculateAltitudeZones(
   seaLevelZones: { name: string; pace: string; hrZone: string }[],
   altitude: number,
-  dayOfCamp: number
+  dayOfCamp: number,
+  locale: AltitudeLocale = 'en'
 ): AltitudeZoneAdjustment[] {
   const paceAdjustment = calculatePaceAdjustment(altitude, dayOfCamp, 21)
 
@@ -418,26 +527,44 @@ export function calculateAltitudeZones(
       altitudePace: `${adjustedMinutes}:${String(adjustedSecRemainder).padStart(2, '0')}`,
       adjustmentSeconds: paceAdjustment,
       hrZone: zone.hrZone,
-      notes: `+${paceAdjustment} sek/km på ${altitude}m`,
+      notes:
+        locale === 'sv'
+          ? `+${paceAdjustment} sek/km på ${altitude}m`
+          : `+${paceAdjustment} sec/km at ${altitude}m`,
     }
   })
 }
 
 /**
- * Get phase label in Swedish
+ * Get phase label
  */
-export function getPhaseLabel(phase: AdaptationPhase): string {
+export function getPhaseLabel(phase: AdaptationPhase, locale: AltitudeLocale = 'en'): string {
+  if (locale === 'sv') {
+    switch (phase) {
+      case 'PRE_CAMP':
+        return 'Före läger'
+      case 'ACUTE':
+        return 'Akutfas'
+      case 'ADAPTATION':
+        return 'Anpassningsfas'
+      case 'OPTIMAL':
+        return 'Optimalfas'
+      case 'POST_CAMP':
+        return 'Efter läger'
+    }
+  }
+
   switch (phase) {
     case 'PRE_CAMP':
-      return 'Före läger'
+      return 'Before camp'
     case 'ACUTE':
-      return 'Akutfas'
+      return 'Acute phase'
     case 'ADAPTATION':
-      return 'Anpassningsfas'
+      return 'Adaptation phase'
     case 'OPTIMAL':
-      return 'Optimalfas'
+      return 'Optimal phase'
     case 'POST_CAMP':
-      return 'Efter läger'
+      return 'After camp'
   }
 }
 
@@ -482,32 +609,48 @@ export function isInPostCampMonitoring(
 /**
  * Format altitude plan summary
  */
-export function formatAltitudePlanSummary(plan: AltitudeCampPlan): string {
+export function formatAltitudePlanSummary(
+  plan: AltitudeCampPlan,
+  locale: AltitudeLocale = 'en'
+): string {
+  const dateLocale = locale === 'sv' ? sv : enUS
   const lines = [
-    `🏔️ Höjdläger: ${plan.camp.altitude}m`,
-    `📅 ${format(plan.camp.startDate, 'd MMMM', { locale: sv })} - ${format(plan.camp.endDate, 'd MMMM', { locale: sv })}`,
-    `Totalt: ${plan.totalDays} dagar`,
+    locale === 'sv' ? `🏔️ Höjdläger: ${plan.camp.altitude}m` : `🏔️ Altitude camp: ${plan.camp.altitude}m`,
+    `📅 ${format(plan.camp.startDate, 'd MMMM', { locale: dateLocale })} - ${format(plan.camp.endDate, 'd MMMM', { locale: dateLocale })}`,
+    locale === 'sv' ? `Totalt: ${plan.totalDays} dagar` : `Total: ${plan.totalDays} days`,
     '',
-    'Faser:',
-    `  🔴 Akutfas: Dag 1-${plan.phaseBreakdown.acute.end}`,
+    locale === 'sv' ? 'Faser:' : 'Phases:',
+    locale === 'sv'
+      ? `  🔴 Akutfas: Dag 1-${plan.phaseBreakdown.acute.end}`
+      : `  🔴 Acute phase: Day 1-${plan.phaseBreakdown.acute.end}`,
   ]
 
   if (plan.phaseBreakdown.adaptation.start > 0) {
     lines.push(
-      `  🟡 Anpassning: Dag ${plan.phaseBreakdown.adaptation.start}-${plan.phaseBreakdown.adaptation.end}`
+      locale === 'sv'
+        ? `  🟡 Anpassning: Dag ${plan.phaseBreakdown.adaptation.start}-${plan.phaseBreakdown.adaptation.end}`
+        : `  🟡 Adaptation: Day ${plan.phaseBreakdown.adaptation.start}-${plan.phaseBreakdown.adaptation.end}`
     )
   }
 
   if (plan.phaseBreakdown.optimal.start > 0) {
     lines.push(
-      `  🟢 Optimal: Dag ${plan.phaseBreakdown.optimal.start}-${plan.phaseBreakdown.optimal.end}`
+      locale === 'sv'
+        ? `  🟢 Optimal: Dag ${plan.phaseBreakdown.optimal.start}-${plan.phaseBreakdown.optimal.end}`
+        : `  🟢 Optimal: Day ${plan.phaseBreakdown.optimal.start}-${plan.phaseBreakdown.optimal.end}`
     )
   }
 
   lines.push('')
-  lines.push(`VO2max-reduktion: ~${Math.round(calculateVO2maxReduction(plan.camp.altitude))}%`)
   lines.push(
-    `Initial tempojustering: +${calculatePaceAdjustment(plan.camp.altitude, 1, plan.totalDays)} sek/km`
+    locale === 'sv'
+      ? `VO2max-reduktion: ~${Math.round(calculateVO2maxReduction(plan.camp.altitude))}%`
+      : `VO2max reduction: ~${Math.round(calculateVO2maxReduction(plan.camp.altitude))}%`
+  )
+  lines.push(
+    locale === 'sv'
+      ? `Initial tempojustering: +${calculatePaceAdjustment(plan.camp.altitude, 1, plan.totalDays)} sek/km`
+      : `Initial pace adjustment: +${calculatePaceAdjustment(plan.camp.altitude, 1, plan.totalDays)} sec/km`
   )
 
   return lines.join('\n')
