@@ -3,9 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
-  Target,
   Timer,
   Dumbbell,
   Zap,
@@ -21,72 +20,83 @@ interface FunctionalFitnessDashboardProps {
   settings: FunctionalFitnessSettings
 }
 
-const EXPERIENCE_LABELS: Record<string, string> = {
-  beginner: 'Nybörjare',
-  intermediate: 'Medel',
-  advanced: 'Avancerad',
-  competitor: 'Tävlande',
+type AppLocale = 'en' | 'sv'
+type LocalizedLabels = Record<string, Record<AppLocale, string>>
+
+function getAppLocale(locale: string): AppLocale {
+  return locale.startsWith('sv') ? 'sv' : 'en'
 }
 
-const FOCUS_LABELS: Record<string, string> = {
-  general: 'Allmän fitness',
-  strength: 'Styrka',
-  endurance: 'Uthållighet',
-  gymnastics: 'Gymnastik',
-  competition: 'Tävling',
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
-const GYM_TYPE_LABELS: Record<string, string> = {
-  commercial: 'Vanligt gym',
-  functional_box: 'Funktionell box',
-  home: 'Hemmagym',
-  garage: 'Garage gym',
+const EXPERIENCE_LABELS: LocalizedLabels = {
+  beginner: { sv: 'Nybörjare', en: 'Beginner' },
+  intermediate: { sv: 'Medel', en: 'Intermediate' },
+  advanced: { sv: 'Avancerad', en: 'Advanced' },
+  competitor: { sv: 'Tävlande', en: 'Competitor' },
 }
 
-const PULL_UP_LABELS: Record<string, string> = {
-  none: 'Inga',
-  banded: 'Med band',
-  strict: 'Strikta',
-  kipping: 'Kipping',
-  butterfly: 'Butterfly',
-  muscle_up: 'Muscle-ups',
+const FOCUS_LABELS: LocalizedLabels = {
+  general: { sv: 'Allmän fitness', en: 'General fitness' },
+  strength: { sv: 'Styrka', en: 'Strength' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  gymnastics: { sv: 'Gymnastik', en: 'Gymnastics' },
+  competition: { sv: 'Tävling', en: 'Competition' },
 }
 
-const HSPU_LABELS: Record<string, string> = {
-  none: 'Inga',
-  pike: 'Pike push-ups',
-  box: 'Box pike',
-  wall: 'Wall facing',
-  strict: 'Strikta',
-  kipping: 'Kipping',
-  freestanding: 'Fristående',
+const GYM_TYPE_LABELS: LocalizedLabels = {
+  commercial: { sv: 'Vanligt gym', en: 'Commercial gym' },
+  functional_box: { sv: 'Funktionell box', en: 'Functional fitness box' },
+  home: { sv: 'Hemmagym', en: 'Home gym' },
+  garage: { sv: 'Garage gym', en: 'Garage gym' },
 }
 
-const TTB_LABELS: Record<string, string> = {
-  none: 'Inga',
-  hanging_knee: 'Hanging knee',
-  kipping: 'Kipping',
-  strict: 'Strikta',
+const PULL_UP_LABELS: LocalizedLabels = {
+  none: { sv: 'Inga', en: 'None' },
+  banded: { sv: 'Med band', en: 'Banded' },
+  strict: { sv: 'Strikta', en: 'Strict' },
+  kipping: { sv: 'Kipping', en: 'Kipping' },
+  butterfly: { sv: 'Butterfly', en: 'Butterfly' },
+  muscle_up: { sv: 'Muscle-ups', en: 'Muscle-ups' },
 }
 
-const DU_LABELS: Record<string, string> = {
-  none: 'Inga',
-  learning: 'Lär sig',
-  consistent: 'Konsekvent',
-  unbroken_50: 'Unbroken 50+',
+const HSPU_LABELS: LocalizedLabels = {
+  none: { sv: 'Inga', en: 'None' },
+  pike: { sv: 'Pike push-ups', en: 'Pike push-ups' },
+  box: { sv: 'Box pike', en: 'Box pike' },
+  wall: { sv: 'Wall facing', en: 'Wall facing' },
+  strict: { sv: 'Strikta', en: 'Strict' },
+  kipping: { sv: 'Kipping', en: 'Kipping' },
+  freestanding: { sv: 'Fristående', en: 'Freestanding' },
 }
 
-const ROPE_LABELS: Record<string, string> = {
-  none: 'Inga',
-  with_legs: 'Med bengrep',
-  legless: 'Legless',
+const TTB_LABELS: LocalizedLabels = {
+  none: { sv: 'Inga', en: 'None' },
+  hanging_knee: { sv: 'Hanging knee', en: 'Hanging knee' },
+  kipping: { sv: 'Kipping', en: 'Kipping' },
+  strict: { sv: 'Strikta', en: 'Strict' },
 }
 
-const OLYMPIC_LABELS: Record<string, string> = {
-  none: 'Ingen erfarenhet',
-  learning: 'Lär sig',
-  competent: 'Kompetent',
-  proficient: 'Mycket duktig',
+const DU_LABELS: LocalizedLabels = {
+  none: { sv: 'Inga', en: 'None' },
+  learning: { sv: 'Lär sig', en: 'Learning' },
+  consistent: { sv: 'Konsekvent', en: 'Consistent' },
+  unbroken_50: { sv: 'Unbroken 50+', en: 'Unbroken 50+' },
+}
+
+const ROPE_LABELS: LocalizedLabels = {
+  none: { sv: 'Inga', en: 'None' },
+  with_legs: { sv: 'Med bengrep', en: 'With legs' },
+  legless: { sv: 'Legless', en: 'Legless' },
+}
+
+const OLYMPIC_LABELS: LocalizedLabels = {
+  none: { sv: 'Ingen erfarenhet', en: 'No experience' },
+  learning: { sv: 'Lär sig', en: 'Learning' },
+  competent: { sv: 'Kompetent', en: 'Competent' },
+  proficient: { sv: 'Mycket duktig', en: 'Proficient' },
 }
 
 // Target times for benchmarks (in seconds) by experience level
@@ -164,6 +174,7 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
   const t = useTranslations('components.athleteDashboard')
+  const locale = getAppLocale(useLocale())
 
   if (!settings) {
     return (
@@ -179,6 +190,9 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
   }
 
   const targets = BENCHMARK_TARGETS[settings.experienceLevel]
+  const experienceLabel = EXPERIENCE_LABELS[settings.experienceLevel]?.[locale] ?? settings.experienceLevel
+  const focusLabel = FOCUS_LABELS[settings.primaryFocus]?.[locale] ?? settings.primaryFocus
+  const gymTypeLabel = GYM_TYPE_LABELS[settings.gymType]?.[locale] ?? settings.gymType
 
   const benchmarks = [
     {
@@ -242,17 +256,17 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Flame className="h-6 w-6 text-orange-500" />
-            Funktionell Fitness
+            {text(locale, 'Funktionell Fitness', 'Functional Fitness')}
           </h2>
           <p style={{ color: theme.colors.textMuted }}>
-            {EXPERIENCE_LABELS[settings.experienceLevel]} • {FOCUS_LABELS[settings.primaryFocus]} • {GYM_TYPE_LABELS[settings.gymType]}
+            {experienceLabel} • {focusLabel} • {gymTypeLabel}
           </p>
         </div>
 
         <div className="flex gap-2 flex-wrap">
           <Badge variant="outline" className="text-sm px-3 py-1">
             <Calendar className="h-3 w-3 mr-1" />
-            {settings.weeklyTrainingDays} pass/vecka
+            {settings.weeklyTrainingDays} {text(locale, 'pass/vecka', 'sessions/week')}
           </Badge>
           <Badge variant="outline" className="text-sm px-3 py-1">
             <Timer className="h-3 w-3 mr-1" />
@@ -261,7 +275,7 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
           {settings.competitionInterest && (
             <Badge variant="default" className="bg-purple-500 text-sm px-3 py-1">
               <Medal className="h-3 w-3 mr-1" />
-              Tävlingsintresse
+              {text(locale, 'Tävlingsintresse', 'Competition interest')}
             </Badge>
           )}
         </div>
@@ -275,7 +289,11 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
             Benchmark Workouts
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Dina tider vs måltider för {EXPERIENCE_LABELS[settings.experienceLevel].toLowerCase()}-nivå
+            {text(
+              locale,
+              `Dina tider vs måltider för ${experienceLabel.toLowerCase()}-nivå`,
+              `Your times vs targets for ${experienceLabel.toLowerCase()} level`
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -293,7 +311,7 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
                     {formatTime(benchmark.time)}
                   </div>
                   <div className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
-                    Mål: {formatTime(targets[benchmark.key])}
+                    {text(locale, 'Mål', 'Target')}: {formatTime(targets[benchmark.key])}
                   </div>
                   <Progress value={progress} className="h-1.5 mt-2" />
                   <div className="text-xs mt-2" style={{ color: theme.colors.textMuted }}>
@@ -311,10 +329,10 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
         <CardHeader>
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Dumbbell className="h-5 w-5 text-blue-500" />
-            Styrka (1RM)
+            {text(locale, 'Styrka (1RM)', 'Strength (1RM)')}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Dina max-lyft
+            {text(locale, 'Dina max-lyft', 'Your max lifts')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -344,10 +362,10 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
         <CardHeader>
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Zap className="h-5 w-5 text-purple-500" />
-            Gymnastik-skills
+            {text(locale, 'Gymnastik-skills', 'Gymnastics skills')}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Din aktuella nivå på olika gymnastik-rörelser
+            {text(locale, 'Din aktuella nivå på olika gymnastik-rörelser', 'Your current level across gymnastics movements')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -364,7 +382,7 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
                     {skill.name}
                   </div>
                   <div className="text-lg font-semibold mt-1" style={{ color: theme.colors.textPrimary }}>
-                    {skill.labels[skill.value]}
+                    {skill.labels[skill.value]?.[locale] ?? skill.value}
                   </div>
                   <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
                     <div
@@ -413,15 +431,15 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
           <CardHeader>
             <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Medal className="h-5 w-5 text-yellow-500" />
-              Olympiska Lyft
+              {text(locale, 'Olympiska Lyft', 'Olympic Lifting')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <div className="text-sm" style={{ color: theme.colors.textMuted }}>Aktuell nivå</div>
+                <div className="text-sm" style={{ color: theme.colors.textMuted }}>{text(locale, 'Aktuell nivå', 'Current level')}</div>
                 <div className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>
-                  {OLYMPIC_LABELS[settings.olympicLiftingLevel]}
+                  {OLYMPIC_LABELS[settings.olympicLiftingLevel]?.[locale] ?? settings.olympicLiftingLevel}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -446,7 +464,7 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
           <CardHeader>
             <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-5 w-5 text-green-500" />
-              Träningstips
+              {text(locale, 'Träningstips', 'Training tips')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -454,34 +472,34 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
               {settings.primaryFocus === 'strength' && (
                 <li className="flex items-start gap-2">
                   <span className="text-blue-500">•</span>
-                  Fokusera på progressiv överbelastning med 2-for-2 regeln
+                  {text(locale, 'Fokusera på progressiv överbelastning med 2-for-2 regeln', 'Focus on progressive overload using the 2-for-2 rule')}
                 </li>
               )}
               {settings.primaryFocus === 'gymnastics' && (
                 <li className="flex items-start gap-2">
                   <span className="text-purple-500">•</span>
-                  Öva skill-arbete när du är utvilad, innan styrkepass
+                  {text(locale, 'Öva skill-arbete när du är utvilad, innan styrkepass', 'Practice skill work while fresh, before strength sessions')}
                 </li>
               )}
               {settings.olympicLiftingLevel === 'learning' && (
                 <li className="flex items-start gap-2">
                   <span className="text-yellow-500">•</span>
-                  Prioritera teknik med lätta vikter före belastning
+                  {text(locale, 'Prioritera teknik med lätta vikter före belastning', 'Prioritize technique with light weights before loading')}
                 </li>
               )}
               {settings.competitionInterest && (
                 <li className="flex items-start gap-2">
                   <span className="text-orange-500">•</span>
-                  Träna benchmark-workouts regelbundet för att mäta framsteg
+                  {text(locale, 'Träna benchmark-workouts regelbundet för att mäta framsteg', 'Train benchmark workouts regularly to measure progress')}
                 </li>
               )}
               <li className="flex items-start gap-2">
                 <span className="text-green-500">•</span>
-                Balansera push/pull och över-/underkroppsarbete
+                {text(locale, 'Balansera push/pull och över-/underkroppsarbete', 'Balance push/pull and upper/lower body work')}
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-red-500">•</span>
-                Prioritera rörlighet och mobilitet för att förebygga skador
+                {text(locale, 'Prioritera rörlighet och mobilitet för att förebygga skador', 'Prioritize flexibility and mobility to prevent injuries')}
               </li>
             </ul>
           </CardContent>
@@ -493,7 +511,7 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
             <CardTitle className="text-sm" style={{ color: theme.colors.textMuted }}>
-              Tillgänglig utrustning
+              {text(locale, 'Tillgänglig utrustning', 'Available equipment')}
             </CardTitle>
           </CardHeader>
           <CardContent>
