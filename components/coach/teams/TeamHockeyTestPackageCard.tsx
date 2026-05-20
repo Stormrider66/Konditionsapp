@@ -9,6 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Save, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface PackageItem {
   id: string
@@ -40,6 +45,7 @@ function packageUrl(teamId: string, businessSlug?: string) {
 }
 
 export function TeamHockeyTestPackageCard({ teamId, businessSlug }: TeamHockeyTestPackageCardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [testPackage, setTestPackage] = useState<HockeyTestPackage | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -55,7 +61,7 @@ export function TeamHockeyTestPackageCard({ teamId, businessSlug }: TeamHockeyTe
         if (!cancelled) setTestPackage(body.package)
       } catch (error) {
         if (!cancelled) {
-          toast.error(error instanceof Error ? error.message : 'Kunde inte hämta testpaket')
+          toast.error(error instanceof Error ? error.message : copy(locale, 'Could not fetch test package', 'Kunde inte hämta testpaket'))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -65,7 +71,7 @@ export function TeamHockeyTestPackageCard({ teamId, businessSlug }: TeamHockeyTe
     return () => {
       cancelled = true
     }
-  }, [businessSlug, teamId])
+  }, [businessSlug, locale, teamId])
 
   const enabledCount = useMemo(
     () => testPackage?.items.filter((item) => item.enabled).length ?? 0,
@@ -97,9 +103,9 @@ export function TeamHockeyTestPackageCard({ teamId, businessSlug }: TeamHockeyTe
       }
       const body = await res.json()
       setTestPackage(body.package)
-      toast.success('Hockeytestpaket sparat')
+      toast.success(copy(locale, 'Hockey test package saved', 'Hockeytestpaket sparat'))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Kunde inte spara testpaket')
+      toast.error(error instanceof Error ? error.message : copy(locale, 'Could not save test package', 'Kunde inte spara testpaket'))
     } finally {
       setIsSaving(false)
     }
@@ -112,15 +118,15 @@ export function TeamHockeyTestPackageCard({ teamId, businessSlug }: TeamHockeyTe
           <div>
             <CardTitle className="flex items-center gap-2 text-sm">
               <ShieldCheck className="h-4 w-4 text-blue-500" />
-              Hockeytestpaket
+              {copy(locale, 'Hockey test package', 'Hockeytestpaket')}
             </CardTitle>
             <CardDescription className="text-xs">
-              Styr vilka tester som visas i manuell inmatning och hur namn/alias kopplas till hockeyanalys och PR-historik.
+              {copy(locale, 'Control which tests appear in manual entry and how names/aliases map to hockey analysis and PR history.', 'Styr vilka tester som visas i manuell inmatning och hur namn/alias kopplas till hockeyanalys och PR-historik.')}
             </CardDescription>
           </div>
           <Button size="sm" variant="outline" onClick={save} disabled={!testPackage || isSaving || isLoading}>
             {isSaving ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
-            Spara paket
+            {copy(locale, 'Save package', 'Spara paket')}
           </Button>
         </div>
       </CardHeader>
@@ -128,15 +134,15 @@ export function TeamHockeyTestPackageCard({ teamId, businessSlug }: TeamHockeyTe
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Hämtar testpaket...
+            {copy(locale, 'Fetching test package...', 'Hämtar testpaket...')}
           </div>
         )}
 
         {testPackage && (
           <>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="secondary">{enabledCount} aktiva tester</Badge>
-              <span>Alias används för import och för att undvika att t.ex. power clean blandas ihop med hang clean.</span>
+              <Badge variant="secondary">{enabledCount} {copy(locale, 'active tests', 'aktiva tester')}</Badge>
+              <span>{copy(locale, 'Aliases are used for import and to avoid mixing up tests such as power clean and hang clean.', 'Alias används för import och för att undvika att t.ex. power clean blandas ihop med hang clean.')}</span>
             </div>
 
             <div className="grid gap-2 md:grid-cols-2">
@@ -168,7 +174,7 @@ export function TeamHockeyTestPackageCard({ teamId, businessSlug }: TeamHockeyTe
                   </div>
 
                   <p className="text-[11px] text-muted-foreground">
-                    PR-koppling: {item.linkedExerciseName ?? 'ingen kopplad styrkeövning'}
+                    {copy(locale, 'PR link', 'PR-koppling')}: {item.linkedExerciseName ?? copy(locale, 'no linked strength exercise', 'ingen kopplad styrkeövning')}
                   </p>
                 </div>
               ))}
