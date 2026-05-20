@@ -5,6 +5,7 @@ import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 
 export type CanvasContextDataKey = 'tests' | 'sessions' | 'programs' | 'readiness' | 'notes'
+type AppLocale = 'en' | 'sv'
 
 export interface CanvasContextSelectionInput {
   scope: 'none' | 'athlete' | 'team'
@@ -69,38 +70,60 @@ interface BuildCanvasContextParams {
   role: string
   selection?: CanvasContextSelectionInput
   now?: Date
+  locale?: AppLocale
 }
 
-const DATA_LABELS: Record<CanvasContextDataKey, string> = {
-  tests: 'Tester',
-  sessions: 'Träningspass',
-  programs: 'Program',
-  readiness: 'Readiness',
-  notes: 'Anteckningar',
+const DATA_LABELS: Record<AppLocale, Record<CanvasContextDataKey, string>> = {
+  en: {
+    tests: 'Tests',
+    sessions: 'Training sessions',
+    programs: 'Programs',
+    readiness: 'Readiness',
+    notes: 'Notes',
+  },
+  sv: {
+    tests: 'Tester',
+    sessions: 'Träningspass',
+    programs: 'Program',
+    readiness: 'Readiness',
+    notes: 'Anteckningar',
+  },
 }
 
-const RANGE_LABELS: Record<CanvasContextSelectionInput['dateRange'], string> = {
-  last7: 'Senaste 7 dagarna',
-  last30: 'Senaste 30 dagarna',
-  last90: 'Senaste 90 dagarna',
-  next30: 'Kommande 30 dagarna',
+const RANGE_LABELS: Record<AppLocale, Record<CanvasContextSelectionInput['dateRange'], string>> = {
+  en: {
+    last7: 'Last 7 days',
+    last30: 'Last 30 days',
+    last90: 'Last 90 days',
+    next30: 'Next 30 days',
+  },
+  sv: {
+    last7: 'Senaste 7 dagarna',
+    last30: 'Senaste 30 dagarna',
+    last90: 'Senaste 90 dagarna',
+    next30: 'Kommande 30 dagarna',
+  },
 }
 
-function resolveDateWindow(range: CanvasContextSelectionInput['dateRange'], now: Date) {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveDateWindow(range: CanvasContextSelectionInput['dateRange'], now: Date, locale: AppLocale) {
   if (range === 'next30') {
-    return { start: now, end: addDays(now, 30), label: RANGE_LABELS[range], future: true }
+    return { start: now, end: addDays(now, 30), label: RANGE_LABELS[locale][range], future: true }
   }
   const days = range === 'last7' ? 7 : range === 'last90' ? 90 : 30
-  return { start: subDays(now, days), end: now, label: RANGE_LABELS[range], future: false }
+  return { start: subDays(now, days), end: now, label: RANGE_LABELS[locale][range], future: false }
 }
 
-function fmtDate(date: Date | null | undefined): string {
-  if (!date) return 'okänt datum'
+function fmtDate(date: Date | null | undefined, locale: AppLocale = 'en'): string {
+  if (!date) return t(locale, 'unknown date', 'okänt datum')
   return date.toISOString().slice(0, 10)
 }
 
-function numberText(value: number | null | undefined, suffix = ''): string {
-  if (value === null || value === undefined || Number.isNaN(value)) return 'saknas'
+function numberText(value: number | null | undefined, suffix = '', locale: AppLocale = 'en'): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return t(locale, 'missing', 'saknas')
   return `${Math.round(value * 10) / 10}${suffix}`
 }
 
@@ -116,13 +139,14 @@ export async function buildCanvasContextSummary({
   role,
   selection,
   now = new Date(),
+  locale = 'en',
 }: BuildCanvasContextParams): Promise<string> {
   if (!selection || selection.scope === 'none') {
     return ''
   }
 
   const dataKeys = uniqueDataKeys(selection.dataKeys)
-  const window = resolveDateWindow(selection.dateRange, now)
+  const window = resolveDateWindow(selection.dateRange, now, locale)
   const coachIds = await getCoachScopedIds(userId, businessId, role)
 
   const baseClientWhere: Prisma.ClientWhereInput = {
@@ -162,30 +186,30 @@ export async function buildCanvasContextSummary({
   const lines: string[] = [
     'Selected canvas context with live read-only data:',
     selection.scope === 'athlete'
-      ? `Fokus: Atlet - ${clients[0].name}${clients[0].sportProfile?.primarySport ? ` (${clients[0].sportProfile.primarySport})` : ''}`
-      : `Fokus: Lag - ${clients[0].team?.name ?? 'valt lag'} (${clients.length} atleter)`,
-    `Period: ${window.label}`,
-    `Valda dataområden: ${dataKeys.length > 0 ? dataKeys.map((key) => DATA_LABELS[key]).join(', ') : 'inga'}`,
+      ? `${t(locale, 'Focus: Athlete', 'Fokus: Atlet')} - ${clients[0].name}${clients[0].sportProfile?.primarySport ? ` (${clients[0].sportProfile.primarySport})` : ''}`
+      : `${t(locale, 'Focus: Team', 'Fokus: Lag')} - ${clients[0].team?.name ?? t(locale, 'selected team', 'valt lag')} (${clients.length} ${t(locale, 'athletes', 'atleter')})`,
+    `${t(locale, 'Period', 'Period')}: ${window.label}`,
+    `${t(locale, 'Selected data areas', 'Valda dataområden')}: ${dataKeys.length > 0 ? dataKeys.map((key) => DATA_LABELS[locale][key]).join(', ') : t(locale, 'none', 'inga')}`,
   ]
 
   if (dataKeys.includes('tests')) {
-    lines.push(...await buildTestLines(clientIds, now))
+    lines.push(...await buildTestLines(clientIds, now, locale))
   }
 
   if (dataKeys.includes('programs')) {
-    lines.push(...await buildProgramLines(clientIds, window.start, window.end))
+    lines.push(...await buildProgramLines(clientIds, window.start, window.end, locale))
   }
 
   if (dataKeys.includes('sessions')) {
-    lines.push(...await buildSessionLines(clientIds, window.start, window.end, window.future))
+    lines.push(...await buildSessionLines(clientIds, window.start, window.end, window.future, locale))
   }
 
   if (dataKeys.includes('readiness')) {
-    lines.push(...await buildReadinessLines(clientIds, window.start, window.end))
+    lines.push(...await buildReadinessLines(clientIds, window.start, window.end, locale))
   }
 
   if (dataKeys.includes('notes')) {
-    lines.push(...buildNoteLines(clients))
+    lines.push(...buildNoteLines(clients, locale))
   }
 
   return lines.join('\n')
@@ -198,13 +222,14 @@ export async function buildCanvasAnalyticsBlocks({
   role,
   selection,
   now = new Date(),
+  locale = 'en',
 }: BuildCanvasContextParams): Promise<CanvasAnalyticsBlock[]> {
   if (!selection || selection.scope === 'none') return []
 
   const dataKeys = uniqueDataKeys(selection.dataKeys)
   if (dataKeys.length === 0) return []
 
-  const window = resolveDateWindow(selection.dateRange, now)
+  const window = resolveDateWindow(selection.dateRange, now, locale)
   const coachIds = await getCoachScopedIds(userId, businessId, role)
   const baseClientWhere: Prisma.ClientWhereInput = {
     userId: { in: coachIds },
@@ -235,18 +260,18 @@ export async function buildCanvasAnalyticsBlocks({
   const clientIds = clients.map((client) => client.id)
   const clientNames = new Map(clients.map((client) => [client.id, client.name]))
   const [testAnalytics, programAnalytics, sessionAnalytics, readinessAnalytics, noteAnalytics] = await Promise.all([
-    dataKeys.includes('tests') ? getTestAnalytics(clientIds, clientNames, now) : Promise.resolve(null),
-    dataKeys.includes('programs') ? getProgramAnalytics(clientIds, clientNames, now) : Promise.resolve(null),
-    dataKeys.includes('sessions') ? getSessionAnalytics(clientIds, clientNames, window.start, window.end, window.future) : Promise.resolve(null),
-    dataKeys.includes('readiness') ? getReadinessAnalytics(clientIds, clientNames, window.start, window.end) : Promise.resolve(null),
-    dataKeys.includes('notes') ? getNoteAnalytics(clientIds) : Promise.resolve(null),
+    dataKeys.includes('tests') ? getTestAnalytics(clientIds, clientNames, now, locale) : Promise.resolve(null),
+    dataKeys.includes('programs') ? getProgramAnalytics(clientIds, clientNames, now, locale) : Promise.resolve(null),
+    dataKeys.includes('sessions') ? getSessionAnalytics(clientIds, clientNames, window.start, window.end, window.future, locale) : Promise.resolve(null),
+    dataKeys.includes('readiness') ? getReadinessAnalytics(clientIds, clientNames, window.start, window.end, locale) : Promise.resolve(null),
+    dataKeys.includes('notes') ? getNoteAnalytics(clientIds, locale) : Promise.resolve(null),
   ])
 
   const metrics: Extract<CanvasAnalyticsBlock, { type: 'metric-row' }>['metrics'] = [
     {
-      label: selection.scope === 'athlete' ? 'Atlet' : 'Atleter',
+      label: selection.scope === 'athlete' ? t(locale, 'Athlete', 'Atlet') : t(locale, 'Athletes', 'Atleter'),
       value: String(clients.length),
-      detail: selection.scope === 'athlete' ? clients[0].name : 'i valt urval',
+      detail: selection.scope === 'athlete' ? clients[0].name : t(locale, 'in selected group', 'i valt urval'),
       tone: 'neutral',
     },
   ]
@@ -281,7 +306,7 @@ export async function buildCanvasAnalyticsBlocks({
   const blocks: CanvasAnalyticsBlock[] = [
     {
       type: 'metric-row',
-      title: 'Datadriven översikt',
+      title: t(locale, 'Data-driven overview', 'Datadriven översikt'),
       metrics,
       source: 'analytics',
     },
@@ -290,7 +315,7 @@ export async function buildCanvasAnalyticsBlocks({
   if (risks.length > 0) {
     blocks.push({
       type: 'risk-list',
-      title: 'Risker och uppföljningar',
+      title: t(locale, 'Risks and follow-ups', 'Risker och uppföljningar'),
       risks,
       source: 'analytics',
     })
@@ -299,7 +324,7 @@ export async function buildCanvasAnalyticsBlocks({
   if (trends.length > 0) {
     blocks.push({
       type: 'trend-summary',
-      title: 'Trendbild',
+      title: t(locale, 'Trend picture', 'Trendbild'),
       trends,
       source: 'analytics',
     })
@@ -349,7 +374,7 @@ async function resolveClientWhere({
   return null
 }
 
-async function buildTestLines(clientIds: string[], now: Date): Promise<string[]> {
+async function buildTestLines(clientIds: string[], now: Date, locale: AppLocale): Promise<string[]> {
   const tests = await prisma.test.findMany({
     where: {
       clientId: { in: clientIds },
@@ -369,7 +394,7 @@ async function buildTestLines(clientIds: string[], now: Date): Promise<string[]>
     take: Math.min(clientIds.length * 2, 20),
   })
 
-  if (tests.length === 0) return ['Tester: ingen slutförd testdata hittades.']
+  if (tests.length === 0) return [t(locale, 'Tests: no completed test data was found.', 'Tester: ingen slutförd testdata hittades.')]
 
   const latestByClient = new Map<string, typeof tests[number]>()
   tests.forEach((test) => {
@@ -381,14 +406,18 @@ async function buildTestLines(clientIds: string[], now: Date): Promise<string[]>
   ).length
 
   return [
-    `Tester: ${latestByClient.size}/${clientIds.length} atleter har slutförd testdata. ${staleCount} senaste tester är äldre än 120 dagar.`,
+    t(
+      locale,
+      `Tests: ${latestByClient.size}/${clientIds.length} athletes have completed test data. ${staleCount} latest tests are older than 120 days.`,
+      `Tester: ${latestByClient.size}/${clientIds.length} atleter har slutförd testdata. ${staleCount} senaste tester är äldre än 120 dagar.`
+    ),
     ...Array.from(latestByClient.values()).slice(0, 6).map((test) =>
-      `- ${test.client.name}: ${test.testType} ${fmtDate(test.testDate)}, VO2max ${numberText(test.vo2max)}, maxHR ${numberText(test.maxHR)}, LT1 ${numberText(test.manualLT1Intensity)}, LT2 ${numberText(test.manualLT2Intensity)}`
+      `- ${test.client.name}: ${test.testType} ${fmtDate(test.testDate, locale)}, VO2max ${numberText(test.vo2max, '', locale)}, maxHR ${numberText(test.maxHR, '', locale)}, LT1 ${numberText(test.manualLT1Intensity, '', locale)}, LT2 ${numberText(test.manualLT2Intensity, '', locale)}`
     ),
   ]
 }
 
-async function buildProgramLines(clientIds: string[], start: Date, end: Date): Promise<string[]> {
+async function buildProgramLines(clientIds: string[], start: Date, end: Date, locale: AppLocale): Promise<string[]> {
   const programs = await prisma.trainingProgram.findMany({
     where: {
       clientId: { in: clientIds },
@@ -411,17 +440,21 @@ async function buildProgramLines(clientIds: string[], start: Date, end: Date): P
     take: 15,
   })
 
-  if (programs.length === 0) return ['Program: inga aktiva eller periodrelevanta program hittades.']
+  if (programs.length === 0) return [t(locale, 'Programs: no active or period-relevant programs were found.', 'Program: inga aktiva eller periodrelevanta program hittades.')]
 
   return [
-    `Program: ${programs.filter((program) => program.isActive).length} aktiva program hittades.`,
+    t(
+      locale,
+      `Programs: ${programs.filter((program) => program.isActive).length} active programs found.`,
+      `Program: ${programs.filter((program) => program.isActive).length} aktiva program hittades.`
+    ),
     ...programs.slice(0, 6).map((program) =>
-      `- ${program.client.name}: ${program.name}, ${fmtDate(program.startDate)} till ${fmtDate(program.endDate)}${program.goalRace ? `, mål ${program.goalRace}` : ''}${program.goalDate ? ` ${fmtDate(program.goalDate)}` : ''}`
+      `- ${program.client.name}: ${program.name}, ${fmtDate(program.startDate, locale)} ${t(locale, 'to', 'till')} ${fmtDate(program.endDate, locale)}${program.goalRace ? `, ${t(locale, 'goal', 'mål')} ${program.goalRace}` : ''}${program.goalDate ? ` ${fmtDate(program.goalDate, locale)}` : ''}`
     ),
   ]
 }
 
-async function buildSessionLines(clientIds: string[], start: Date, end: Date, future: boolean): Promise<string[]> {
+async function buildSessionLines(clientIds: string[], start: Date, end: Date, future: boolean, locale: AppLocale): Promise<string[]> {
   if (future) {
     const workouts = await prisma.workout.findMany({
       where: {
@@ -456,11 +489,15 @@ async function buildSessionLines(clientIds: string[], start: Date, end: Date, fu
       take: 30,
     })
 
-    if (workouts.length === 0) return ['Träningspass: inga kommande planerade pass hittades i vald period.']
+    if (workouts.length === 0) return [t(locale, 'Training sessions: no upcoming planned sessions were found in the selected period.', 'Träningspass: inga kommande planerade pass hittades i vald period.')]
     return [
-      `Träningspass: ${workouts.length} kommande planerade pass hittades i vald period.`,
+      t(
+        locale,
+        `Training sessions: ${workouts.length} upcoming planned sessions were found in the selected period.`,
+        `Träningspass: ${workouts.length} kommande planerade pass hittades i vald period.`
+      ),
       ...workouts.slice(0, 8).map((workout) =>
-        `- ${workout.day.week.program.client.name}: ${fmtDate(workout.day.date)} ${workout.type}, ${workout.intensity}, ${workout.duration ?? '?'} min`
+        `- ${workout.day.week.program.client.name}: ${fmtDate(workout.day.date, locale)} ${workout.type}, ${workout.intensity}, ${workout.duration ?? '?'} min`
       ),
     ]
   }
@@ -505,19 +542,23 @@ async function buildSessionLines(clientIds: string[], start: Date, end: Date, fu
     take: 40,
   })
 
-  if (logs.length === 0) return ['Träningspass: inga loggade pass hittades i vald period.']
+  if (logs.length === 0) return [t(locale, 'Training sessions: no logged sessions were found in the selected period.', 'Träningspass: inga loggade pass hittades i vald period.')]
   const completed = logs.filter((log) => log.completed).length
   const avgRpe = logs.filter((log) => log.perceivedEffort !== null).reduce((sum, log, _, arr) => sum + (log.perceivedEffort ?? 0) / arr.length, 0)
 
   return [
-    `Träningspass: ${completed}/${logs.length} loggade pass markerade som genomförda. Snitt-RPE ${avgRpe ? numberText(avgRpe) : 'saknas'}.`,
+    t(
+      locale,
+      `Training sessions: ${completed}/${logs.length} logged sessions are marked as completed. Average RPE ${avgRpe ? numberText(avgRpe, '', locale) : t(locale, 'missing', 'saknas')}.`,
+      `Träningspass: ${completed}/${logs.length} loggade pass markerade som genomförda. Snitt-RPE ${avgRpe ? numberText(avgRpe, '', locale) : 'saknas'}.`
+    ),
     ...logs.slice(0, 8).map((log) =>
-      `- ${log.workout.day.week.program.client.name}: ${fmtDate(log.completedAt)}, ${log.workout.type}, ${log.duration ?? '?'} min${log.feeling ? `, känsla ${log.feeling}` : ''}`
+      `- ${log.workout.day.week.program.client.name}: ${fmtDate(log.completedAt, locale)}, ${log.workout.type}, ${log.duration ?? '?'} min${log.feeling ? `, ${t(locale, 'feeling', 'känsla')} ${log.feeling}` : ''}`
     ),
   ]
 }
 
-async function buildReadinessLines(clientIds: string[], start: Date, end: Date): Promise<string[]> {
+async function buildReadinessLines(clientIds: string[], start: Date, end: Date, locale: AppLocale): Promise<string[]> {
   const metrics = await prisma.dailyMetrics.findMany({
     where: {
       clientId: { in: clientIds },
@@ -539,7 +580,7 @@ async function buildReadinessLines(clientIds: string[], start: Date, end: Date):
     take: Math.min(clientIds.length * 4, 40),
   })
 
-  if (metrics.length === 0) return ['Readiness: ingen readinessdata hittades i vald period.']
+  if (metrics.length === 0) return [t(locale, 'Readiness: no readiness data was found in the selected period.', 'Readiness: ingen readinessdata hittades i vald period.')]
 
   const latestByClient = new Map<string, typeof metrics[number]>()
   metrics.forEach((metric) => {
@@ -550,19 +591,27 @@ async function buildReadinessLines(clientIds: string[], start: Date, end: Date):
   const painFlags = metrics.filter((metric) => (metric.injuryPain ?? 0) >= 4).length
 
   return [
-    `Readiness: ${latestByClient.size}/${clientIds.length} atleter har readinessdata. Snittscore ${numberText(avgScore)}, smärtflaggor ${painFlags}.`,
+    t(
+      locale,
+      `Readiness: ${latestByClient.size}/${clientIds.length} athletes have readiness data. Average score ${numberText(avgScore, '', locale)}, pain flags ${painFlags}.`,
+      `Readiness: ${latestByClient.size}/${clientIds.length} atleter har readinessdata. Snittscore ${numberText(avgScore, '', locale)}, smärtflaggor ${painFlags}.`
+    ),
     ...Array.from(latestByClient.values()).slice(0, 8).map((metric) =>
-      `- ${metric.client.name}: ${fmtDate(metric.date)}, readiness ${numberText(metric.readinessScore)}, nivå ${metric.readinessLevel ?? 'saknas'}, åtgärd ${metric.recommendedAction ?? 'saknas'}`
+      `- ${metric.client.name}: ${fmtDate(metric.date, locale)}, readiness ${numberText(metric.readinessScore, '', locale)}, ${t(locale, 'level', 'nivå')} ${metric.readinessLevel ?? t(locale, 'missing', 'saknas')}, ${t(locale, 'action', 'åtgärd')} ${metric.recommendedAction ?? t(locale, 'missing', 'saknas')}`
     ),
   ]
 }
 
-function buildNoteLines(clients: Array<{ name: string; notes: string | null }>): string[] {
+function buildNoteLines(clients: Array<{ name: string; notes: string | null }>, locale: AppLocale): string[] {
   const withNotes = clients.filter((client) => client.notes?.trim())
-  if (withNotes.length === 0) return ['Anteckningar: inga coachanteckningar hittades för valt urval.']
+  if (withNotes.length === 0) return [t(locale, 'Notes: no coach notes were found for the selected group.', 'Anteckningar: inga coachanteckningar hittades för valt urval.')]
 
   return [
-    `Anteckningar: ${withNotes.length} atleter har coachanteckningar.`,
+    t(
+      locale,
+      `Notes: ${withNotes.length} athletes have coach notes.`,
+      `Anteckningar: ${withNotes.length} atleter har coachanteckningar.`
+    ),
     ...withNotes.slice(0, 6).map((client) => {
       const note = client.notes?.trim().replace(/\s+/g, ' ').slice(0, 220)
       return `- ${client.name}: ${note}`
@@ -580,7 +629,8 @@ interface AnalyticsResult {
 async function getTestAnalytics(
   clientIds: string[],
   clientNames: Map<string, string>,
-  now: Date
+  now: Date,
+  locale: AppLocale
 ): Promise<AnalyticsResult> {
   const tests = await prisma.test.findMany({
     where: {
@@ -601,16 +651,16 @@ async function getTestAnalytics(
 
   const missingNames = clientIds
     .filter((clientId) => !latestByClient.has(clientId))
-    .map((clientId) => clientNames.get(clientId) ?? 'Okänd atlet')
+    .map((clientId) => clientNames.get(clientId) ?? t(locale, 'Unknown athlete', 'Okänd atlet'))
 
   const staleNames = Array.from(latestByClient.entries())
     .filter(([, testDate]) => differenceInCalendarDays(now, testDate) > 120)
-    .map(([clientId]) => clientNames.get(clientId) ?? 'Okänd atlet')
+    .map(([clientId]) => clientNames.get(clientId) ?? t(locale, 'Unknown athlete', 'Okänd atlet'))
   const testAgePoints = Array.from(latestByClient.entries())
     .map(([clientId, testDate]) => ({
-      label: (clientNames.get(clientId) ?? 'Okänd').slice(0, 18),
+      label: (clientNames.get(clientId) ?? t(locale, 'Unknown', 'Okänd')).slice(0, 18),
       value: differenceInCalendarDays(now, testDate),
-      detail: fmtDate(testDate),
+      detail: fmtDate(testDate, locale),
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 8)
@@ -620,45 +670,45 @@ async function getTestAnalytics(
 
   if (staleNames.length > 0) {
     risks.push({
-      title: 'Gammal testdata',
+      title: t(locale, 'Old test data', 'Gammal testdata'),
       description: `${staleNames.slice(0, 4).join(', ')}${staleNames.length > 4 ? ` +${staleNames.length - 4}` : ''}`,
       priority: staleNames.length >= 3 ? 'high' : 'medium',
-      meta: 'Senaste test äldre än 120 dagar',
+      meta: t(locale, 'Latest test older than 120 days', 'Senaste test äldre än 120 dagar'),
     })
   }
 
   if (missingNames.length > 0) {
     risks.push({
-      title: 'Saknar slutförd test',
+      title: t(locale, 'Missing completed test', 'Saknar slutförd test'),
       description: `${missingNames.slice(0, 4).join(', ')}${missingNames.length > 4 ? ` +${missingNames.length - 4}` : ''}`,
       priority: missingNames.length >= 3 ? 'high' : 'medium',
-      meta: 'Ingen completed test hittades',
+      meta: t(locale, 'No completed test found', 'Ingen completed test hittades'),
     })
   }
 
   return {
     metric: {
-      label: 'Testtäckning',
+      label: t(locale, 'Test coverage', 'Testtäckning'),
       value: `${coveragePercent}%`,
-      detail: `${latestByClient.size}/${clientIds.length} har test`,
+      detail: t(locale, `${latestByClient.size}/${clientIds.length} have tests`, `${latestByClient.size}/${clientIds.length} har test`),
       tone: coveragePercent >= 80 ? 'positive' : coveragePercent >= 50 ? 'warning' : 'danger',
     },
     risks,
     trends: [
       {
-        label: 'Teststatus',
-        value: `${staleNames.length + missingNames.length} behöver kontroll`,
+        label: t(locale, 'Test status', 'Teststatus'),
+        value: t(locale, `${staleNames.length + missingNames.length} need review`, `${staleNames.length + missingNames.length} behöver kontroll`),
         direction: staleNames.length + missingNames.length > 0 ? 'down' : 'flat',
-        detail: 'Baserat på completed tests',
+        detail: t(locale, 'Based on completed tests', 'Baserat på completed tests'),
       },
     ],
     charts: testAgePoints.length > 1
       ? [{
           type: 'chart',
-          title: 'Testålder per atlet',
-          content: 'Antal dagar sedan senaste slutförda test för atleter med testdata.',
+          title: t(locale, 'Test age per athlete', 'Testålder per atlet'),
+          content: t(locale, 'Number of days since the latest completed test for athletes with test data.', 'Antal dagar sedan senaste slutförda test för atleter med testdata.'),
           chartType: 'bar',
-          unit: 'dagar',
+          unit: t(locale, 'days', 'dagar'),
           points: testAgePoints,
           source: 'analytics',
         }]
@@ -669,7 +719,8 @@ async function getTestAnalytics(
 async function getProgramAnalytics(
   clientIds: string[],
   clientNames: Map<string, string>,
-  now: Date
+  now: Date,
+  locale: AppLocale
 ): Promise<AnalyticsResult> {
   const programs = await prisma.trainingProgram.findMany({
     where: {
@@ -688,41 +739,41 @@ async function getProgramAnalytics(
   const programClientIds = new Set(programs.map((program) => program.clientId))
   const missingProgramNames = clientIds
     .filter((clientId) => !programClientIds.has(clientId))
-    .map((clientId) => clientNames.get(clientId) ?? 'Okänd atlet')
+    .map((clientId) => clientNames.get(clientId) ?? t(locale, 'Unknown athlete', 'Okänd atlet'))
   const endingSoon = programs.filter((program) => differenceInCalendarDays(program.endDate, now) <= 14)
 
   const risks: AnalyticsResult['risks'] = []
   if (missingProgramNames.length > 0) {
     risks.push({
-      title: 'Saknar aktivt program',
+      title: t(locale, 'Missing active program', 'Saknar aktivt program'),
       description: `${missingProgramNames.slice(0, 4).join(', ')}${missingProgramNames.length > 4 ? ` +${missingProgramNames.length - 4}` : ''}`,
       priority: missingProgramNames.length >= 3 ? 'high' : 'medium',
-      meta: 'Inget aktivt program i dag',
+      meta: t(locale, 'No active program today', 'Inget aktivt program i dag'),
     })
   }
   if (endingSoon.length > 0) {
     risks.push({
-      title: 'Program slutar snart',
-      description: `${endingSoon.length} program slutar inom 14 dagar`,
+      title: t(locale, 'Program ending soon', 'Program slutar snart'),
+      description: t(locale, `${endingSoon.length} programs end within 14 days`, `${endingSoon.length} program slutar inom 14 dagar`),
       priority: 'medium',
-      meta: 'Bra läge att planera nästa block',
+      meta: t(locale, 'Good moment to plan the next block', 'Bra läge att planera nästa block'),
     })
   }
 
   return {
     metric: {
-      label: 'Aktiva program',
+      label: t(locale, 'Active programs', 'Aktiva program'),
       value: String(programs.length),
-      detail: `${programClientIds.size}/${clientIds.length} atleter täckta`,
+      detail: t(locale, `${programClientIds.size}/${clientIds.length} athletes covered`, `${programClientIds.size}/${clientIds.length} atleter täckta`),
       tone: programClientIds.size === clientIds.length ? 'positive' : 'warning',
     },
     risks,
     trends: [
       {
-        label: 'Programtäckning',
+        label: t(locale, 'Program coverage', 'Programtäckning'),
         value: `${Math.round((programClientIds.size / Math.max(clientIds.length, 1)) * 100)}%`,
         direction: programClientIds.size === clientIds.length ? 'flat' : 'down',
-        detail: 'Aktiva program just nu',
+        detail: t(locale, 'Active programs right now', 'Aktiva program just nu'),
       },
     ],
     charts: [],
@@ -734,7 +785,8 @@ async function getSessionAnalytics(
   clientNames: Map<string, string>,
   start: Date,
   end: Date,
-  future: boolean
+  future: boolean,
+  locale: AppLocale
 ): Promise<AnalyticsResult> {
   if (future) {
     const planned = await prisma.workout.count({
@@ -753,24 +805,24 @@ async function getSessionAnalytics(
 
     return {
       metric: {
-        label: 'Planerade pass',
+        label: t(locale, 'Planned sessions', 'Planerade pass'),
         value: String(planned),
-        detail: 'kommande period',
+        detail: t(locale, 'upcoming period', 'kommande period'),
         tone: planned > 0 ? 'positive' : 'warning',
       },
       risks: planned === 0
         ? [{
-            title: 'Inga kommande pass',
-            description: 'Valt urval saknar planerade pass i perioden.',
+            title: t(locale, 'No upcoming sessions', 'Inga kommande pass'),
+            description: t(locale, 'The selected group has no planned sessions in the period.', 'Valt urval saknar planerade pass i perioden.'),
             priority: 'medium',
-            meta: 'Kontrollera program eller kalender',
+            meta: t(locale, 'Check programs or calendar', 'Kontrollera program eller kalender'),
           }]
         : [],
       trends: [{
-        label: 'Planering framåt',
-        value: planned > 0 ? `${planned} pass` : 'saknas',
+        label: t(locale, 'Forward planning', 'Planering framåt'),
+        value: planned > 0 ? t(locale, `${planned} sessions`, `${planned} pass`) : t(locale, 'missing', 'saknas'),
         direction: planned > 0 ? 'flat' : 'down',
-        detail: 'Baserat på programmens kommande träningsdagar',
+        detail: t(locale, 'Based on upcoming training days in programs', 'Baserat på programmens kommande träningsdagar'),
       }],
       charts: [],
     }
@@ -822,43 +874,43 @@ async function getSessionAnalytics(
   }, new Map<string, { total: number; completed: number }>())
   const inactiveNames = clientIds
     .filter((clientId) => !activeClientIds.has(clientId))
-    .map((clientId) => clientNames.get(clientId) ?? 'Okänd atlet')
+    .map((clientId) => clientNames.get(clientId) ?? t(locale, 'Unknown athlete', 'Okänd atlet'))
   const rpeScores = logs.map((log) => log.perceivedEffort).filter((value): value is number => typeof value === 'number')
   const avgRpe = rpeScores.length ? rpeScores.reduce((sum, value) => sum + value, 0) / rpeScores.length : null
 
   return {
     metric: {
-      label: 'Loggade pass',
+      label: t(locale, 'Logged sessions', 'Loggade pass'),
       value: String(completed),
-      detail: avgRpe ? `snitt-RPE ${numberText(avgRpe)}` : 'RPE saknas',
+      detail: avgRpe ? t(locale, `average RPE ${numberText(avgRpe, '', locale)}`, `snitt-RPE ${numberText(avgRpe, '', locale)}`) : t(locale, 'RPE missing', 'RPE saknas'),
       tone: completed > 0 ? 'positive' : 'warning',
     },
     risks: inactiveNames.length > 0
       ? [{
-          title: 'Ingen passlogg i perioden',
+          title: t(locale, 'No session log in period', 'Ingen passlogg i perioden'),
           description: `${inactiveNames.slice(0, 4).join(', ')}${inactiveNames.length > 4 ? ` +${inactiveNames.length - 4}` : ''}`,
           priority: inactiveNames.length >= 3 ? 'high' : 'medium',
-          meta: 'Baserat på workout logs',
+          meta: t(locale, 'Based on workout logs', 'Baserat på workout logs'),
         }]
       : [],
     trends: [{
-      label: 'Träningsaktivitet',
-      value: `${activeClientIds.size}/${clientIds.length} aktiva`,
+      label: t(locale, 'Training activity', 'Träningsaktivitet'),
+      value: t(locale, `${activeClientIds.size}/${clientIds.length} active`, `${activeClientIds.size}/${clientIds.length} aktiva`),
       direction: activeClientIds.size === clientIds.length ? 'flat' : 'down',
-      detail: 'Atleter med loggade pass i perioden',
+      detail: t(locale, 'Athletes with logged sessions in the period', 'Atleter med loggade pass i perioden'),
     }],
     charts: logsByClient.size > 1
       ? [{
           type: 'chart',
-          title: 'Genomförda pass per atlet',
-          content: 'Antal genomförda pass i vald period baserat på workout logs.',
+          title: t(locale, 'Completed sessions per athlete', 'Genomförda pass per atlet'),
+          content: t(locale, 'Number of completed sessions in the selected period based on workout logs.', 'Antal genomförda pass i vald period baserat på workout logs.'),
           chartType: 'bar',
-          unit: 'pass',
+          unit: t(locale, 'sessions', 'pass'),
           points: Array.from(logsByClient.entries())
             .map(([clientId, item]) => ({
-              label: (clientNames.get(clientId) ?? 'Okänd').slice(0, 18),
+              label: (clientNames.get(clientId) ?? t(locale, 'Unknown', 'Okänd')).slice(0, 18),
               value: item.completed,
-              detail: `${item.completed}/${item.total} loggar`,
+              detail: t(locale, `${item.completed}/${item.total} logs`, `${item.completed}/${item.total} loggar`),
             }))
             .sort((a, b) => b.value - a.value)
             .slice(0, 8),
@@ -872,7 +924,8 @@ async function getReadinessAnalytics(
   clientIds: string[],
   clientNames: Map<string, string>,
   start: Date,
-  end: Date
+  end: Date,
+  locale: AppLocale
 ): Promise<AnalyticsResult> {
   const metrics = await prisma.dailyMetrics.findMany({
     where: {
@@ -905,9 +958,9 @@ async function getReadinessAnalytics(
   const readinessPoints = Array.from(latestByClient.values())
     .filter((metric) => typeof metric.readinessScore === 'number')
     .map((metric) => ({
-      label: (clientNames.get(metric.clientId) ?? 'Okänd').slice(0, 18),
+      label: (clientNames.get(metric.clientId) ?? t(locale, 'Unknown', 'Okänd')).slice(0, 18),
       value: metric.readinessScore ?? 0,
-      detail: fmtDate(metric.date),
+      detail: fmtDate(metric.date, locale),
     }))
     .sort((a, b) => a.value - b.value)
     .slice(0, 8)
@@ -915,43 +968,43 @@ async function getReadinessAnalytics(
   const risks: AnalyticsResult['risks'] = []
   if (lowReadiness.length > 0) {
     risks.push({
-      title: 'Låg readiness',
+      title: t(locale, 'Low readiness', 'Låg readiness'),
       description: lowReadiness
         .slice(0, 4)
-        .map((metric) => clientNames.get(metric.clientId) ?? 'Okänd atlet')
+        .map((metric) => clientNames.get(metric.clientId) ?? t(locale, 'Unknown athlete', 'Okänd atlet'))
         .join(', '),
       priority: lowReadiness.length >= 3 ? 'high' : 'medium',
-      meta: 'Readinessscore låg eller rekommenderad modifiering',
+      meta: t(locale, 'Readiness score low or modification recommended', 'Readinessscore låg eller rekommenderad modifiering'),
     })
   }
   if (painFlags.length > 0) {
     risks.push({
-      title: 'Smärtflaggor',
-      description: `${painFlags.length} senaste readinessposter har smärta 4+`,
+      title: t(locale, 'Pain flags', 'Smärtflaggor'),
+      description: t(locale, `${painFlags.length} latest readiness entries have pain 4+`, `${painFlags.length} senaste readinessposter har smärta 4+`),
       priority: 'high',
-      meta: 'Kontrollera belastning och uppföljning',
+      meta: t(locale, 'Check load and follow-up', 'Kontrollera belastning och uppföljning'),
     })
   }
 
   return {
     metric: {
       label: 'Readiness',
-      value: numberText(avgScore),
-      detail: `${latestByClient.size}/${clientIds.length} med data`,
+      value: numberText(avgScore, '', locale),
+      detail: t(locale, `${latestByClient.size}/${clientIds.length} with data`, `${latestByClient.size}/${clientIds.length} med data`),
       tone: avgScore === null ? 'warning' : avgScore >= 7 ? 'positive' : avgScore >= 5 ? 'warning' : 'danger',
     },
     risks,
     trends: [{
-      label: 'Readinessläge',
-      value: avgScore === null ? 'saknas' : numberText(avgScore),
+      label: t(locale, 'Readiness state', 'Readinessläge'),
+      value: avgScore === null ? t(locale, 'missing', 'saknas') : numberText(avgScore, '', locale),
       direction: avgScore === null ? 'flat' : avgScore >= 7 ? 'up' : avgScore >= 5 ? 'flat' : 'down',
-      detail: 'Genomsnitt i vald period',
+      detail: t(locale, 'Average in selected period', 'Genomsnitt i vald period'),
     }],
     charts: readinessPoints.length > 1
       ? [{
           type: 'chart',
-          title: 'Senaste readiness per atlet',
-          content: 'Senaste readinessscore per atlet i valt urval.',
+          title: t(locale, 'Latest readiness per athlete', 'Senaste readiness per atlet'),
+          content: t(locale, 'Latest readiness score per athlete in the selected group.', 'Senaste readinessscore per atlet i valt urval.'),
           chartType: 'bar',
           unit: 'score',
           points: readinessPoints,
@@ -961,7 +1014,7 @@ async function getReadinessAnalytics(
   }
 }
 
-async function getNoteAnalytics(clientIds: string[]): Promise<AnalyticsResult> {
+async function getNoteAnalytics(clientIds: string[], locale: AppLocale): Promise<AnalyticsResult> {
   const notesCount = await prisma.client.count({
     where: {
       id: { in: clientIds },
@@ -971,17 +1024,17 @@ async function getNoteAnalytics(clientIds: string[]): Promise<AnalyticsResult> {
 
   return {
     metric: {
-      label: 'Coachnoteringar',
+      label: t(locale, 'Coach notes', 'Coachnoteringar'),
       value: String(notesCount),
-      detail: `${notesCount}/${clientIds.length} atleter`,
+      detail: t(locale, `${notesCount}/${clientIds.length} athletes`, `${notesCount}/${clientIds.length} atleter`),
       tone: notesCount > 0 ? 'neutral' : 'warning',
     },
     risks: [],
     trends: [{
-      label: 'Anteckningsunderlag',
-      value: notesCount > 0 ? `${notesCount} finns` : 'saknas',
+      label: t(locale, 'Notes basis', 'Anteckningsunderlag'),
+      value: notesCount > 0 ? t(locale, `${notesCount} exist`, `${notesCount} finns`) : t(locale, 'missing', 'saknas'),
       direction: notesCount > 0 ? 'flat' : 'down',
-      detail: 'Baserat på klientanteckningar',
+      detail: t(locale, 'Based on client notes', 'Baserat på klientanteckningar'),
     }],
     charts: [],
   }

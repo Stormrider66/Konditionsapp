@@ -227,6 +227,7 @@ export async function POST(request: NextRequest) {
       businessId: membership.businessId,
       role: membership.role,
       selection: contextSelection,
+      locale,
     })
     const analyticsBlocks = await buildCanvasAnalyticsBlocks({
       userId: user.id,
@@ -234,6 +235,7 @@ export async function POST(request: NextRequest) {
       businessId: membership.businessId,
       role: membership.role,
       selection: contextSelection,
+      locale,
     })
     const resolvedContextSummary = liveContextSummary || contextSummary
     const embeddingKeys = {
