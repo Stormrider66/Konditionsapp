@@ -61,6 +61,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 import type { ParsedWorkout, ParsedWorkoutSegment } from '@/lib/ai/program-parser'
 import { ExercisePicker } from '@/components/ai-studio/ExercisePicker'
 import {
@@ -83,43 +84,45 @@ interface DraftWorkoutEditorProps {
   isAIGenerated?: boolean
 }
 
+type AppLocale = 'en' | 'sv'
+
 // Workout types
 const workoutTypes = [
-  { value: 'RUNNING', label: 'Löpning', icon: Heart },
-  { value: 'CYCLING', label: 'Cykling', icon: Flame },
-  { value: 'SWIMMING', label: 'Simning', icon: Heart },
-  { value: 'STRENGTH', label: 'Styrka', icon: Dumbbell },
-  { value: 'CROSS_TRAINING', label: 'Cross-training', icon: Flame },
-  { value: 'RECOVERY', label: 'Återhämtning', icon: Clock },
-  { value: 'REHAB', label: 'Rehab', icon: Heart },
-  { value: 'HYROX', label: 'HYROX', icon: Flame },
+  { value: 'RUNNING', label: { en: 'Running', sv: 'Löpning' }, icon: Heart },
+  { value: 'CYCLING', label: { en: 'Cycling', sv: 'Cykling' }, icon: Flame },
+  { value: 'SWIMMING', label: { en: 'Swimming', sv: 'Simning' }, icon: Heart },
+  { value: 'STRENGTH', label: { en: 'Strength', sv: 'Styrka' }, icon: Dumbbell },
+  { value: 'CROSS_TRAINING', label: { en: 'Cross-training', sv: 'Cross-training' }, icon: Flame },
+  { value: 'RECOVERY', label: { en: 'Recovery', sv: 'Återhämtning' }, icon: Clock },
+  { value: 'REHAB', label: { en: 'Rehab', sv: 'Rehab' }, icon: Heart },
+  { value: 'HYROX', label: { en: 'HYROX', sv: 'HYROX' }, icon: Flame },
 ]
 
 // Intensity levels
 const intensityLevels = [
-  { value: 'easy', label: 'Lätt', color: 'bg-green-100 text-green-800' },
-  { value: 'moderate', label: 'Medel', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'hard', label: 'Hård', color: 'bg-red-100 text-red-800' },
-  { value: 'race_pace', label: 'Tävlingstempo', color: 'bg-purple-100 text-purple-800' },
+  { value: 'easy', label: { en: 'Easy', sv: 'Lätt' }, color: 'bg-green-100 text-green-800' },
+  { value: 'moderate', label: { en: 'Moderate', sv: 'Medel' }, color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'hard', label: { en: 'Hard', sv: 'Hård' }, color: 'bg-red-100 text-red-800' },
+  { value: 'race_pace', label: { en: 'Race pace', sv: 'Tävlingstempo' }, color: 'bg-purple-100 text-purple-800' },
 ]
 
 // Segment types (used for both endurance and strength — "exercise" is the strength-style marker)
 const segmentTypes = [
-  { value: 'warmup', label: 'Uppvärmning' },
-  { value: 'work', label: 'Arbete' },
-  { value: 'interval', label: 'Intervall' },
-  { value: 'exercise', label: 'Övning (styrka)' },
-  { value: 'recovery', label: 'Återhämtning' },
-  { value: 'rest', label: 'Vila' },
-  { value: 'cooldown', label: 'Nedvarvning' },
+  { value: 'warmup', label: { en: 'Warm-up', sv: 'Uppvärmning' } },
+  { value: 'work', label: { en: 'Work', sv: 'Arbete' } },
+  { value: 'interval', label: { en: 'Interval', sv: 'Intervall' } },
+  { value: 'exercise', label: { en: 'Exercise (strength)', sv: 'Övning (styrka)' } },
+  { value: 'recovery', label: { en: 'Recovery', sv: 'Återhämtning' } },
+  { value: 'rest', label: { en: 'Rest', sv: 'Vila' } },
+  { value: 'cooldown', label: { en: 'Cool-down', sv: 'Nedvarvning' } },
 ]
 
 // Section grouping (for strength workouts)
 const sectionOptions = [
-  { value: 'WARMUP', label: 'Uppvärmning' },
-  { value: 'MAIN', label: 'Huvuddel' },
-  { value: 'CORE', label: 'Bål' },
-  { value: 'COOLDOWN', label: 'Nedvarvning' },
+  { value: 'WARMUP', label: { en: 'Warm-up', sv: 'Uppvärmning' } },
+  { value: 'MAIN', label: { en: 'Main', sv: 'Huvuddel' } },
+  { value: 'CORE', label: { en: 'Core', sv: 'Bål' } },
+  { value: 'COOLDOWN', label: { en: 'Cool-down', sv: 'Nedvarvning' } },
 ]
 
 const STRENGTH_WORKOUT_TYPES = ['STRENGTH', 'CORE', 'PLYOMETRIC', 'REHAB', 'HYROX']
@@ -172,22 +175,158 @@ function SortableSegment({
 
 // Zone options (zone is numeric 1-5)
 const zoneOptions = [
-  { value: 1, label: 'Zon 1 - Återhämtning' },
-  { value: 2, label: 'Zon 2 - Aerob bas' },
-  { value: 3, label: 'Zon 3 - Tempo' },
-  { value: 4, label: 'Zon 4 - Tröskel' },
-  { value: 5, label: 'Zon 5 - VO2max' },
+  { value: 1, label: { en: 'Zone 1 - Recovery', sv: 'Zon 1 - Återhämtning' } },
+  { value: 2, label: { en: 'Zone 2 - Aerobic base', sv: 'Zon 2 - Aerob bas' } },
+  { value: 3, label: { en: 'Zone 3 - Tempo', sv: 'Zon 3 - Tempo' } },
+  { value: 4, label: { en: 'Zone 4 - Threshold', sv: 'Zon 4 - Tröskel' } },
+  { value: 5, label: { en: 'Zone 5 - VO2max', sv: 'Zon 5 - VO2max' } },
 ]
 
-// Day name to Swedish label
-const dayLabels: Record<string, string> = {
-  monday: 'Måndag',
-  tuesday: 'Tisdag',
-  wednesday: 'Onsdag',
-  thursday: 'Torsdag',
-  friday: 'Fredag',
-  saturday: 'Lördag',
-  sunday: 'Söndag',
+const dayLabels: Record<string, Record<AppLocale, string>> = {
+  monday: { en: 'Monday', sv: 'Måndag' },
+  tuesday: { en: 'Tuesday', sv: 'Tisdag' },
+  wednesday: { en: 'Wednesday', sv: 'Onsdag' },
+  thursday: { en: 'Thursday', sv: 'Torsdag' },
+  friday: { en: 'Friday', sv: 'Fredag' },
+  saturday: { en: 'Saturday', sv: 'Lördag' },
+  sunday: { en: 'Sunday', sv: 'Söndag' },
+}
+
+const COPY: Record<AppLocale, {
+  editWorkout: string
+  workoutName: string
+  workoutPlaceholder: string
+  type: string
+  intensity: string
+  durationMinutes: string
+  calculatedFromSegments: string
+  distanceKm: string
+  distancePlaceholder: string
+  description: string
+  descriptionPlaceholder: string
+  segments: string
+  strengthSegmentsHint: string
+  enduranceSegmentsHint: string
+  add: string
+  noSegments: string
+  addSegmentHint: string
+  dragToSort: string
+  repsPlaceholder: string
+  weightPlaceholder: string
+  restPlaceholder: string
+  segmentDescriptionPlaceholder: string
+  timePlaceholder: string
+  distanceShortPlaceholder: string
+  zonePlaceholder: string
+  hideMoreFields: string
+  showMoreFields: string
+  muscleGroup: string
+  muscleGroupPlaceholder: string
+  timeMin: string
+  minutesPlaceholder: string
+  repsIntervalCount: string
+  countPlaceholder: string
+  loadPerWeek: string
+  loadPerWeekHint: string
+  repsIntervals: string
+  restSeconds: string
+  secondsPlaceholder: string
+  notes: string
+  notesPlaceholder: string
+  total: string
+  cancel: string
+  saveChanges: string
+}> = {
+  en: {
+    editWorkout: 'Edit workout',
+    workoutName: 'Workout name',
+    workoutPlaceholder: 'e.g. Long run, intervals, Strength A...',
+    type: 'Type',
+    intensity: 'Intensity',
+    durationMinutes: 'Duration (minutes)',
+    calculatedFromSegments: 'Calculated from segments',
+    distanceKm: 'Distance (km)',
+    distancePlaceholder: 'e.g. 10 or 8-10',
+    description: 'Description',
+    descriptionPlaceholder: 'Detailed instructions for the workout...',
+    segments: 'Segments',
+    strengthSegmentsHint: 'Each segment is an exercise with sets, reps, and weight',
+    enduranceSegmentsHint: 'Split the workout into warm-up, work, and cool-down',
+    add: 'Add',
+    noSegments: 'No segments added',
+    addSegmentHint: 'Click "Add" to structure the workout',
+    dragToSort: 'Drag to sort',
+    repsPlaceholder: 'Reps (e.g. 8-10)',
+    weightPlaceholder: 'Weight (kg)',
+    restPlaceholder: 'Rest',
+    segmentDescriptionPlaceholder: 'Description / coach notes',
+    timePlaceholder: 'Time',
+    distanceShortPlaceholder: 'Dist',
+    zonePlaceholder: 'Zone',
+    hideMoreFields: 'Hide more fields',
+    showMoreFields: 'Show more fields',
+    muscleGroup: 'Muscle group',
+    muscleGroupPlaceholder: 'Quads, back...',
+    timeMin: 'Time (min)',
+    minutesPlaceholder: 'Minutes',
+    repsIntervalCount: 'Reps (interval count)',
+    countPlaceholder: 'Count',
+    loadPerWeek: 'Load per week',
+    loadPerWeekHint: 'Each week gets its own load when the program is saved.',
+    repsIntervals: 'Reps (intervals)',
+    restSeconds: 'Rest (s)',
+    secondsPlaceholder: 'Seconds',
+    notes: 'Notes',
+    notesPlaceholder: 'Optional notes for the workout...',
+    total: 'Total',
+    cancel: 'Cancel',
+    saveChanges: 'Save changes',
+  },
+  sv: {
+    editWorkout: 'Redigera pass',
+    workoutName: 'Passnamn',
+    workoutPlaceholder: 'T.ex. Långpass, Intervaller, Styrka A...',
+    type: 'Typ',
+    intensity: 'Intensitet',
+    durationMinutes: 'Längd (minuter)',
+    calculatedFromSegments: 'Beräknat från segment',
+    distanceKm: 'Distans (km)',
+    distancePlaceholder: 'T.ex. 10 eller 8-10',
+    description: 'Beskrivning',
+    descriptionPlaceholder: 'Detaljerade instruktioner för passet...',
+    segments: 'Segment',
+    strengthSegmentsHint: 'Varje segment är en övning med set, reps och vikt',
+    enduranceSegmentsHint: 'Dela upp passet i uppvärmning, arbete och nedvarvning',
+    add: 'Lägg till',
+    noSegments: 'Inga segment tillagda',
+    addSegmentHint: 'Klicka "Lägg till" för att strukturera passet',
+    dragToSort: 'Dra för att sortera',
+    repsPlaceholder: 'Reps (t.ex. 8-10)',
+    weightPlaceholder: 'Vikt (kg)',
+    restPlaceholder: 'Vila',
+    segmentDescriptionPlaceholder: 'Beskrivning / coach notes',
+    timePlaceholder: 'Tid',
+    distanceShortPlaceholder: 'Dist',
+    zonePlaceholder: 'Zon',
+    hideMoreFields: 'Dölj fler fält',
+    showMoreFields: 'Visa fler fält',
+    muscleGroup: 'Muskelgrupp',
+    muscleGroupPlaceholder: 'Quads, Rygg...',
+    timeMin: 'Tid (min)',
+    minutesPlaceholder: 'Minuter',
+    repsIntervalCount: 'Reps (interval count)',
+    countPlaceholder: 'Antal',
+    loadPerWeek: 'Belastning per vecka',
+    loadPerWeekHint: 'Varje vecka får sin egen belastning när programmet sparas.',
+    repsIntervals: 'Reps (intervaller)',
+    restSeconds: 'Vila (s)',
+    secondsPlaceholder: 'Sekunder',
+    notes: 'Anteckningar',
+    notesPlaceholder: 'Valfria anteckningar för passet...',
+    total: 'Totalt',
+    cancel: 'Avbryt',
+    saveChanges: 'Spara ändringar',
+  },
 }
 
 export function DraftWorkoutEditor({
@@ -202,6 +341,8 @@ export function DraftWorkoutEditor({
   athleteContext,
   isAIGenerated = false,
 }: DraftWorkoutEditorProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   // Type definitions from schema
   type WorkoutType = ParsedWorkout['type']
   type WorkoutIntensity = NonNullable<ParsedWorkout['intensity']>
@@ -421,10 +562,10 @@ export function DraftWorkoutEditor({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Dumbbell className="h-5 w-5" />
-            Redigera pass
+            {copy.editWorkout}
           </DialogTitle>
           <DialogDescription>
-            {phaseName} - {dayLabels[dayName] || dayName}
+            {phaseName} - {dayLabels[dayName]?.[locale] || dayName}
           </DialogDescription>
         </DialogHeader>
 
@@ -433,19 +574,19 @@ export function DraftWorkoutEditor({
           <div className="space-y-4">
             {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Passnamn</Label>
+              <Label htmlFor="name">{copy.workoutName}</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="T.ex. Långpass, Intervaller, Styrka A..."
+                placeholder={copy.workoutPlaceholder}
               />
             </div>
 
             {/* Type and Intensity */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Typ</Label>
+                <Label>{copy.type}</Label>
                 <Select value={type} onValueChange={(v) => setType(v as WorkoutType)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -455,7 +596,7 @@ export function DraftWorkoutEditor({
                       <SelectItem key={wt.value} value={wt.value}>
                         <span className="flex items-center gap-2">
                           <wt.icon className="h-4 w-4" />
-                          {wt.label}
+                          {wt.label[locale]}
                         </span>
                       </SelectItem>
                     ))}
@@ -464,7 +605,7 @@ export function DraftWorkoutEditor({
               </div>
 
               <div className="space-y-2">
-                <Label>Intensitet</Label>
+                <Label>{copy.intensity}</Label>
                 <Select value={intensity} onValueChange={(v) => setIntensity(v as WorkoutIntensity)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -473,7 +614,7 @@ export function DraftWorkoutEditor({
                     {intensityLevels.map((il) => (
                       <SelectItem key={il.value} value={il.value}>
                         <Badge variant="secondary" className={cn('text-xs', il.color)}>
-                          {il.label}
+                          {il.label[locale]}
                         </Badge>
                       </SelectItem>
                     ))}
@@ -485,7 +626,7 @@ export function DraftWorkoutEditor({
             {/* Duration and Distance */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="duration">Längd (minuter)</Label>
+                <Label htmlFor="duration">{copy.durationMinutes}</Label>
                 <Input
                   id="duration"
                   type="number"
@@ -495,32 +636,32 @@ export function DraftWorkoutEditor({
                 />
                 {useSegmentDuration && (
                   <p className="text-xs text-muted-foreground">
-                    Beräknat från segment
+                    {copy.calculatedFromSegments}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="distance">Distans (km)</Label>
+                <Label htmlFor="distance">{copy.distanceKm}</Label>
                 <Input
                   id="distance"
                   type="text"
                   value={distance}
                   onChange={(e) => setDistance(e.target.value)}
-                  placeholder="T.ex. 10 eller 8-10"
+                  placeholder={copy.distancePlaceholder}
                 />
               </div>
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Beskrivning</Label>
+              <Label htmlFor="description">{copy.description}</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                placeholder="Detaljerade instruktioner för passet..."
+                placeholder={copy.descriptionPlaceholder}
               />
             </div>
           </div>
@@ -531,11 +672,11 @@ export function DraftWorkoutEditor({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium">Segment</h4>
+                <h4 className="font-medium">{copy.segments}</h4>
                 <p className="text-sm text-muted-foreground">
                   {isStrengthWorkout
-                    ? 'Varje segment är en övning med set, reps och vikt'
-                    : 'Dela upp passet i uppvärmning, arbete och nedvarvning'}
+                    ? copy.strengthSegmentsHint
+                    : copy.enduranceSegmentsHint}
                 </p>
               </div>
               <Button
@@ -545,15 +686,15 @@ export function DraftWorkoutEditor({
                 onClick={handleAddSegment}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Lägg till
+                {copy.add}
               </Button>
             </div>
 
             {segments.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed">
-                <p>Inga segment tillagda</p>
+                <p>{copy.noSegments}</p>
                 <p className="text-xs mt-1">
-                  Klicka &quot;Lägg till&quot; för att strukturera passet
+                  {copy.addSegmentHint}
                 </p>
               </div>
             ) : (
@@ -587,7 +728,7 @@ export function DraftWorkoutEditor({
                                   <button
                                     type="button"
                                     className="text-muted-foreground cursor-grab active:cursor-grabbing shrink-0 p-1 -m-1 touch-none"
-                                    aria-label="Dra för att sortera"
+                                    aria-label={copy.dragToSort}
                                     {...handleProps}
                                   >
                                     <GripVertical className="h-4 w-4" />
@@ -602,7 +743,7 @@ export function DraftWorkoutEditor({
                                     <SelectContent>
                                       {segmentTypes.map((st) => (
                                         <SelectItem key={st.value} value={st.value}>
-                                          {st.label}
+                                          {st.label[locale]}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -658,7 +799,7 @@ export function DraftWorkoutEditor({
                                   value={segment.repsCount || ''}
                                   onChange={(e) => handleUpdateSegment(index, 'repsCount', e.target.value)}
                                   className="h-9"
-                                  placeholder="Reps (t.ex. 8-10)"
+                                  placeholder={copy.repsPlaceholder}
                                 />
                               </div>
                               <div className="col-span-2">
@@ -666,7 +807,7 @@ export function DraftWorkoutEditor({
                                   value={segment.weight || ''}
                                   onChange={(e) => handleUpdateSegment(index, 'weight', e.target.value)}
                                   className="h-9"
-                                  placeholder="Vikt (kg)"
+                                  placeholder={copy.weightPlaceholder}
                                 />
                               </div>
                             </div>
@@ -684,7 +825,7 @@ export function DraftWorkoutEditor({
                                       )
                                     }
                                     className="h-9 pr-10"
-                                    placeholder="Vila"
+                                    placeholder={copy.restPlaceholder}
                                   />
                                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                     s
@@ -702,7 +843,7 @@ export function DraftWorkoutEditor({
                                   <SelectContent>
                                     {sectionOptions.map((s) => (
                                       <SelectItem key={s.value} value={s.value}>
-                                        {s.label}
+                                        {s.label[locale]}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -713,7 +854,7 @@ export function DraftWorkoutEditor({
                                   value={segment.description || ''}
                                   onChange={(e) => handleUpdateSegment(index, 'description', e.target.value)}
                                   className="h-9"
-                                  placeholder="Beskrivning / coach notes"
+                                  placeholder={copy.segmentDescriptionPlaceholder}
                                 />
                               </div>
                             </div>
@@ -733,7 +874,7 @@ export function DraftWorkoutEditor({
                                     )
                                   }
                                   className="h-9 pr-8"
-                                  placeholder="Tid"
+                                  placeholder={copy.timePlaceholder}
                                 />
                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                   min
@@ -753,7 +894,7 @@ export function DraftWorkoutEditor({
                                     setSegments(updated)
                                   }}
                                   className="h-9 pr-8"
-                                  placeholder="Dist"
+                                  placeholder={copy.distanceShortPlaceholder}
                                 />
                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                                   km
@@ -766,12 +907,12 @@ export function DraftWorkoutEditor({
                                 onValueChange={(v) => handleUpdateSegment(index, 'zone', parseInt(v))}
                               >
                                 <SelectTrigger className="h-9">
-                                  <SelectValue placeholder="Zon" />
+                                  <SelectValue placeholder={copy.zonePlaceholder} />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {zoneOptions.map((zo) => (
                                     <SelectItem key={zo.value} value={String(zo.value)}>
-                                      Z{zo.value}
+                                      {zo.label[locale]}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -813,7 +954,7 @@ export function DraftWorkoutEditor({
                             ) : (
                               <ChevronDown className="h-3 w-3" />
                             )}
-                            {expanded ? 'Dölj fler fält' : 'Visa fler fält'}
+                            {expanded ? copy.hideMoreFields : copy.showMoreFields}
                           </button>
                           {expanded && (
                             <div className="mt-2 grid grid-cols-12 gap-2">
@@ -859,18 +1000,18 @@ export function DraftWorkoutEditor({
                                     />
                                   </div>
                                   <div className="col-span-3">
-                                    <Label className="text-xs">Muskelgrupp</Label>
+                                    <Label className="text-xs">{copy.muscleGroup}</Label>
                                     <Input
                                       value={segment.muscleGroup || ''}
                                       onChange={(e) =>
                                         handleUpdateSegment(index, 'muscleGroup', e.target.value)
                                       }
                                       className="h-9 mt-1"
-                                      placeholder="Quads, Rygg…"
+                                      placeholder={copy.muscleGroupPlaceholder}
                                     />
                                   </div>
                                   <div className="col-span-6">
-                                    <Label className="text-xs">Tid (min)</Label>
+                                    <Label className="text-xs">{copy.timeMin}</Label>
                                     <Input
                                       type="number"
                                       value={segment.duration ?? ''}
@@ -882,11 +1023,11 @@ export function DraftWorkoutEditor({
                                         )
                                       }
                                       className="h-9 mt-1"
-                                      placeholder="Minuter"
+                                      placeholder={copy.minutesPlaceholder}
                                     />
                                   </div>
                                   <div className="col-span-6">
-                                    <Label className="text-xs">Reps (interval count)</Label>
+                                    <Label className="text-xs">{copy.repsIntervalCount}</Label>
                                     <Input
                                       type="number"
                                       value={segment.reps ?? ''}
@@ -898,14 +1039,14 @@ export function DraftWorkoutEditor({
                                         )
                                       }
                                       className="h-9 mt-1"
-                                      placeholder="Antal"
+                                      placeholder={copy.countPlaceholder}
                                     />
                                   </div>
                                   {segment.weightByWeek &&
                                     Object.keys(segment.weightByWeek).length > 0 && (
                                       <div className="col-span-12">
                                         <Label className="text-xs">
-                                          Belastning per vecka
+                                          {copy.loadPerWeek}
                                         </Label>
                                         <div className="mt-1 flex flex-wrap gap-2 rounded border bg-muted/30 p-2">
                                           {Object.entries(segment.weightByWeek)
@@ -924,7 +1065,7 @@ export function DraftWorkoutEditor({
                                             ))}
                                         </div>
                                         <p className="text-[10px] text-muted-foreground mt-1">
-                                          Varje vecka får sin egen belastning när programmet sparas.
+                                          {copy.loadPerWeekHint}
                                         </p>
                                       </div>
                                     )}
@@ -932,7 +1073,7 @@ export function DraftWorkoutEditor({
                               ) : (
                                 <>
                                   <div className="col-span-3">
-                                    <Label className="text-xs">Reps (intervaller)</Label>
+                                    <Label className="text-xs">{copy.repsIntervals}</Label>
                                     <Input
                                       type="number"
                                       value={segment.reps ?? ''}
@@ -944,7 +1085,7 @@ export function DraftWorkoutEditor({
                                         )
                                       }
                                       className="h-9 mt-1"
-                                      placeholder="Antal"
+                                      placeholder={copy.countPlaceholder}
                                     />
                                   </div>
                                   <div className="col-span-3">
@@ -964,7 +1105,7 @@ export function DraftWorkoutEditor({
                                     />
                                   </div>
                                   <div className="col-span-3">
-                                    <Label className="text-xs">Vila (s)</Label>
+                                    <Label className="text-xs">{copy.restSeconds}</Label>
                                     <Input
                                       type="number"
                                       value={segment.rest ?? ''}
@@ -976,11 +1117,11 @@ export function DraftWorkoutEditor({
                                         )
                                       }
                                       className="h-9 mt-1"
-                                      placeholder="Sekunder"
+                                      placeholder={copy.secondsPlaceholder}
                                     />
                                   </div>
                                   <div className="col-span-3">
-                                    <Label className="text-xs">Beskrivning</Label>
+                                    <Label className="text-xs">{copy.description}</Label>
                                     <Input
                                       value={segment.description || ''}
                                       onChange={(e) => handleUpdateSegment(index, 'description', e.target.value)}
@@ -991,13 +1132,13 @@ export function DraftWorkoutEditor({
                                 </>
                               )}
                               <div className="col-span-12">
-                                <Label className="text-xs">Anteckningar</Label>
+                                <Label className="text-xs">{copy.notes}</Label>
                                 <Textarea
                                   value={segment.notes || ''}
                                   onChange={(e) => handleUpdateSegment(index, 'notes', e.target.value)}
                                   rows={2}
                                   className="mt-1"
-                                  placeholder="Valfria anteckningar för passet..."
+                                  placeholder={copy.notesPlaceholder}
                                 />
                               </div>
                             </div>
@@ -1018,7 +1159,7 @@ export function DraftWorkoutEditor({
               <div className="flex justify-end">
                 <Badge variant="outline" className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  Totalt: {calculatedDuration} min
+                  {copy.total}: {calculatedDuration} min
                 </Badge>
               </div>
             )}
@@ -1027,11 +1168,11 @@ export function DraftWorkoutEditor({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
+            {copy.cancel}
           </Button>
           <Button onClick={handleSave}>
             <Save className="h-4 w-4 mr-2" />
-            Spara ändringar
+            {copy.saveChanges}
           </Button>
         </DialogFooter>
       </DialogContent>
