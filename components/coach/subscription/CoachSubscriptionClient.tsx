@@ -8,10 +8,10 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -49,98 +49,291 @@ interface CoachSubscriptionClientProps {
   currentAthleteCount: number;
 }
 
-const TIERS = [
+type AppLocale = 'en' | 'sv';
+type TierId = 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE';
+
+const LOCALE_CONFIG: Record<AppLocale, { date: string; number: string }> = {
+  en: { date: 'en-US', number: 'en-US' },
+  sv: { date: 'sv-SE', number: 'sv-SE' },
+};
+
+const COPY = {
+  en: {
+    pageTitle: 'Subscription',
+    successTitle: 'Subscription activated',
+    successDescription: 'Your subscription has been activated. Thank you.',
+    cancelledTitle: 'Payment cancelled',
+    cancelledDescription: 'The payment was cancelled. You can try again whenever you want.',
+    errorTitle: 'Error',
+    checkoutError: 'Could not start payment',
+    portalError: 'Could not open the customer portal',
+    enterpriseSubject: 'Enterprise inquiry',
+    currentPlan: 'Your current plan',
+    upgradePrompt: 'Upgrade to unlock more features',
+    renewsAutomatically: 'Your subscription renews automatically',
+    athletes: 'athletes',
+    managePayment: 'Manage payment',
+    nextInvoice: 'Next invoice',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+    saveYearly: 'Save 17%',
+    monthShort: 'mo',
+    yearShort: 'yr',
+    contactUs: 'Contact us',
+    unlimitedAthletes: 'Unlimited athletes',
+    upToAthletes: (count: number) => `Up to ${count} athletes`,
+    moreFeatures: (count: number) => `+ ${count} more features`,
+    currentPlanButton: 'Current plan',
+    freeVersion: 'Free version',
+    upgrade: 'Upgrade',
+    lowerPlan: 'Lower plan',
+    popular: 'Most popular',
+    compareTitle: 'Compare features',
+    compareDescription: 'See what is included in each plan',
+    feature: 'Feature',
+    maxAthletes: 'Max athletes',
+    testReports: 'Test reports',
+    aiProgramming: 'AI programming',
+    videoAnalysis: 'Video analysis',
+    advancedAnalytics: 'Advanced analytics',
+    apiAccess: 'API access',
+    support: 'Support',
+    basic: 'Basic',
+    all: 'All',
+    allWhiteLabel: 'All + White-label',
+    allCustom: 'All + Custom',
+    full: 'Full',
+    fullCustom: 'Full + Custom',
+    limited: 'Limited',
+    email: 'Email',
+    priority: 'Priority',
+    dedicated: 'Dedicated',
+    faqTitle: 'Frequently asked questions',
+    faqChangePlan: 'Can I change plan at any time?',
+    faqChangePlanAnswer:
+      'Yes, you can upgrade or downgrade your plan at any time. Upgrades unlock new features immediately. Downgrades take effect from the next billing period.',
+    faqMoreAthletes: 'What happens if I have more athletes than the plan allows?',
+    faqMoreAthletesAnswer:
+      'You keep access to all existing athletes, but you cannot add new ones until you either upgrade or remove athletes.',
+    faqPayments: 'How does payment work?',
+    faqPaymentsAnswer:
+      'We use Stripe for secure payment. You can pay by card and will be billed automatically every month or year depending on the selected billing cycle.',
+    tiers: {
+      FREE: {
+        name: 'Starter',
+        description: 'Try for free',
+        features: ['Up to 1 athlete', 'Basic test reports', 'Training zones', 'Email support'],
+        limitations: ['No AI generation', 'No program generation', 'No video analysis'],
+      },
+      BASIC: {
+        name: 'Professional',
+        description: 'For individual coaches',
+        features: [
+          'Up to 20 athletes',
+          'All test reports',
+          'AI program generation (basic)',
+          'Training programs',
+          'Daily check-in',
+          'Messaging system',
+          'Email support',
+        ],
+      },
+      PRO: {
+        name: 'Business',
+        description: 'For PT studios and clubs',
+        features: [
+          'Up to 100 athletes',
+          'Everything in Professional',
+          'Full AI Studio',
+          'Video analysis',
+          'White-label reports',
+          'Advanced analytics',
+          'Priority support',
+          'API access (limited)',
+        ],
+      },
+      ENTERPRISE: {
+        name: 'Enterprise',
+        description: 'For federations and large organizations',
+        features: [
+          'Unlimited athletes',
+          'Everything in Business',
+          'Dedicated account manager',
+          'Custom integrations',
+          'Full API access',
+          'SLA guarantee',
+          'On-premise available',
+          'Custom training',
+        ],
+      },
+    },
+  },
+  sv: {
+    pageTitle: 'Prenumeration',
+    successTitle: 'Prenumeration aktiverad',
+    successDescription: 'Din prenumeration har aktiverats. Tack.',
+    cancelledTitle: 'Betalning avbruten',
+    cancelledDescription: 'Betalningen avbröts. Du kan försöka igen när du vill.',
+    errorTitle: 'Fel',
+    checkoutError: 'Kunde inte starta betalning',
+    portalError: 'Kunde inte öppna kundportalen',
+    enterpriseSubject: 'Enterprise förfrågan',
+    currentPlan: 'Din nuvarande plan',
+    upgradePrompt: 'Uppgradera för att få tillgång till fler funktioner',
+    renewsAutomatically: 'Din prenumeration förnyas automatiskt',
+    athletes: 'atleter',
+    managePayment: 'Hantera betalning',
+    nextInvoice: 'Nästa faktura',
+    monthly: 'Månadsvis',
+    yearly: 'Årsvis',
+    saveYearly: 'Spara 17%',
+    monthShort: 'mån',
+    yearShort: 'år',
+    contactUs: 'Kontakta oss',
+    unlimitedAthletes: 'Obegränsade atleter',
+    upToAthletes: (count: number) => `Upp till ${count} atleter`,
+    moreFeatures: (count: number) => `+ ${count} fler funktioner`,
+    currentPlanButton: 'Nuvarande plan',
+    freeVersion: 'Gratisversion',
+    upgrade: 'Uppgradera',
+    lowerPlan: 'Lägre plan',
+    popular: 'Populärast',
+    compareTitle: 'Jämför funktioner',
+    compareDescription: 'Se vad som ingår i varje plan',
+    feature: 'Funktion',
+    maxAthletes: 'Max atleter',
+    testReports: 'Testrapporter',
+    aiProgramming: 'AI-programmering',
+    videoAnalysis: 'Videoanalys',
+    advancedAnalytics: 'Avancerad analys',
+    apiAccess: 'API-tillgång',
+    support: 'Support',
+    basic: 'Grundläggande',
+    all: 'Alla',
+    allWhiteLabel: 'Alla + White-label',
+    allCustom: 'Alla + Anpassade',
+    full: 'Full',
+    fullCustom: 'Full + Anpassad',
+    limited: 'Begränsad',
+    email: 'E-post',
+    priority: 'Prioriterad',
+    dedicated: 'Dedikerad',
+    faqTitle: 'Vanliga frågor',
+    faqChangePlan: 'Kan jag byta plan när som helst?',
+    faqChangePlanAnswer:
+      'Ja, du kan uppgradera eller nedgradera din plan när som helst. Vid uppgradering får du tillgång till nya funktioner direkt. Vid nedgradering gäller den nya planen från nästa faktureringsperiod.',
+    faqMoreAthletes: 'Vad händer om jag har fler atleter än planen tillåter?',
+    faqMoreAthletesAnswer:
+      'Du behåller tillgång till alla befintliga atleter, men kan inte lägga till nya förrän du antingen uppgraderar eller tar bort några atleter.',
+    faqPayments: 'Hur fungerar betalningen?',
+    faqPaymentsAnswer:
+      'Vi använder Stripe för säker betalning. Du kan betala med kort och faktureras automatiskt varje månad eller år beroende på vald betalningsperiod.',
+    tiers: {
+      FREE: {
+        name: 'Starter',
+        description: 'Prova gratis',
+        features: ['Upp till 1 atlet', 'Grundläggande testrapporter', 'Träningszoner', 'E-postsupport'],
+        limitations: ['Ingen AI-generering', 'Ingen programgenerering', 'Ingen videoanalys'],
+      },
+      BASIC: {
+        name: 'Professional',
+        description: 'För enskilda tränare',
+        features: [
+          'Upp till 20 atleter',
+          'Alla testrapporter',
+          'AI-programgenerering (grundläggande)',
+          'Träningsprogram',
+          'Daglig incheckning',
+          'Meddelandesystem',
+          'E-postsupport',
+        ],
+      },
+      PRO: {
+        name: 'Business',
+        description: 'För PT-studios och klubbar',
+        features: [
+          'Upp till 100 atleter',
+          'Allt i Professional',
+          'Full AI Studio',
+          'Videoanalys',
+          'White-label rapporter',
+          'Avancerad analys',
+          'Prioriterad support',
+          'API-tillgång (begränsad)',
+        ],
+      },
+      ENTERPRISE: {
+        name: 'Enterprise',
+        description: 'För förbund och stora organisationer',
+        features: [
+          'Obegränsade atleter',
+          'Allt i Business',
+          'Dedikerad kontoansvarig',
+          'Anpassade integrationer',
+          'Full API-tillgång',
+          'SLA-garanti',
+          'On-premise möjligt',
+          'Anpassad utbildning',
+        ],
+      },
+    },
+  },
+} as const;
+
+const TIER_META: Array<{
+  id: TierId;
+  price: number | null;
+  yearlyPrice: number | null;
+  maxAthletes: number;
+  icon: typeof Star;
+  color: 'gray' | 'blue' | 'purple' | 'amber';
+  popular?: boolean;
+}> = [
   {
     id: 'FREE',
-    name: 'Starter',
     price: 0,
     yearlyPrice: 0,
-    description: 'Prova gratis',
     maxAthletes: 1,
-    features: [
-      'Upp till 1 atlet',
-      'Grundläggande testrapporter',
-      'Träningszoner',
-      'E-postsupport',
-    ],
-    limitations: [
-      'Ingen AI-generering',
-      'Ingen programgenerering',
-      'Ingen videoanalys',
-    ],
     icon: Star,
     color: 'gray',
   },
   {
     id: 'BASIC',
-    name: 'Professional',
     price: 499,
     yearlyPrice: 4990,
-    description: 'För enskilda tränare',
     maxAthletes: 20,
-    features: [
-      'Upp till 20 atleter',
-      'Alla testrapporter',
-      'AI-programgenerering (grundläggande)',
-      'Träningsprogram',
-      'Daglig incheckning',
-      'Meddelandesystem',
-      'E-postsupport',
-    ],
     icon: Zap,
     color: 'blue',
     popular: true,
   },
   {
     id: 'PRO',
-    name: 'Business',
     price: 1499,
     yearlyPrice: 14990,
-    description: 'För PT-studios och klubbar',
     maxAthletes: 100,
-    features: [
-      'Upp till 100 atleter',
-      'Allt i Professional',
-      'Full AI Studio',
-      'Videoanalys',
-      'White-label rapporter',
-      'Avancerad analys',
-      'Prioriterad support',
-      'API-tillgång (begränsad)',
-    ],
     icon: Crown,
     color: 'purple',
   },
   {
     id: 'ENTERPRISE',
-    name: 'Enterprise',
     price: null,
     yearlyPrice: null,
-    description: 'För förbund och stora organisationer',
     maxAthletes: -1,
-    features: [
-      'Obegränsade atleter',
-      'Allt i Business',
-      'Dedikerad kontoansvarig',
-      'Anpassade integrationer',
-      'Full API-tillgång',
-      'SLA-garanti',
-      'On-premise möjligt',
-      'Anpassad utbildning',
-    ],
     icon: Building2,
     color: 'amber',
   },
 ];
 
 export function CoachSubscriptionClient({
-  userId,
   subscription,
   currentAthleteCount,
 }: CoachSubscriptionClientProps) {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = COPY[locale];
+  const localeConfig = LOCALE_CONFIG[locale];
   const businessSlug = getBusinessSlugFromPathname(pathname);
   const basePath = businessSlug ? `/${businessSlug}` : '';
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -152,24 +345,24 @@ export function CoachSubscriptionClient({
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       toast({
-        title: 'Prenumeration aktiverad!',
-        description: 'Din prenumeration har aktiverats. Tack!',
+        title: copy.successTitle,
+        description: copy.successDescription,
       });
     } else if (searchParams.get('cancelled') === 'true') {
       toast({
-        title: 'Betalning avbruten',
-        description: 'Betalningen avbröts. Du kan försöka igen när du vill.',
+        title: copy.cancelledTitle,
+        description: copy.cancelledDescription,
         variant: 'destructive',
       });
     }
-  }, [searchParams, toast]);
+  }, [copy.cancelledDescription, copy.cancelledTitle, copy.successDescription, copy.successTitle, searchParams, toast]);
 
   const handleUpgrade = async (tierId: string) => {
     if (tierId === 'FREE') return;
 
     if (tierId === 'ENTERPRISE') {
       // For enterprise, redirect to contact form
-      window.location.href = 'mailto:enterprise@trainomics.app?subject=Enterprise%20förfrågan';
+      window.location.assign(`mailto:enterprise@trainomics.app?subject=${encodeURIComponent(copy.enterpriseSubject)}`);
       return;
     }
 
@@ -187,18 +380,18 @@ export function CoachSubscriptionClient({
       const data = await response.json();
 
       if (data.url) {
-        window.location.href = data.url;
+        window.location.assign(data.url);
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte starta betalning',
+          title: copy.errorTitle,
+          description: data.error || copy.checkoutError,
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte starta betalning',
+        title: copy.errorTitle,
+        description: copy.checkoutError,
         variant: 'destructive',
       });
     } finally {
@@ -217,18 +410,18 @@ export function CoachSubscriptionClient({
       const data = await response.json();
 
       if (data.url) {
-        window.location.href = data.url;
+        window.location.assign(data.url);
       } else {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte öppna kundportalen',
+          title: copy.errorTitle,
+          description: data.error || copy.portalError,
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte öppna kundportalen',
+        title: copy.errorTitle,
+        description: copy.portalError,
         variant: 'destructive',
       });
     } finally {
@@ -236,7 +429,7 @@ export function CoachSubscriptionClient({
     }
   };
 
-  const getPrice = (tier: (typeof TIERS)[0]) => {
+  const getPrice = (tier: (typeof TIER_META)[number]) => {
     if (tier.price === null) return null;
     if (billingCycle === 'YEARLY' && tier.yearlyPrice) {
       return tier.yearlyPrice;
@@ -245,7 +438,7 @@ export function CoachSubscriptionClient({
   };
 
   const getCurrentTierInfo = () => {
-    return TIERS.find((t) => t.id === currentTier) || TIERS[0];
+    return TIER_META.find((t) => t.id === currentTier) || TIER_META[0];
   };
 
   const currentTierInfo = getCurrentTierInfo();
@@ -264,7 +457,7 @@ export function CoachSubscriptionClient({
           </Link>
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-slate-700 dark:text-slate-350" />
-            <h1 className="text-lg font-semibold">Prenumeration</h1>
+            <h1 className="text-lg font-semibold">{copy.pageTitle}</h1>
           </div>
         </div>
       </div>
@@ -277,7 +470,7 @@ export function CoachSubscriptionClient({
             <div className="flex items-center justify-between">
               <div>
                 <GlassCardTitle className="flex items-center gap-2">
-                  Din nuvarande plan
+                  {copy.currentPlan}
                   <Badge
                     variant={currentTier === 'FREE' ? 'secondary' : 'default'}
                     className={
@@ -288,20 +481,20 @@ export function CoachSubscriptionClient({
                         : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
                     }
                   >
-                    {currentTierInfo.name}
+                    {copy.tiers[currentTierInfo.id].name}
                   </Badge>
                 </GlassCardTitle>
                 <GlassCardDescription>
                   {currentTier === 'FREE'
-                    ? 'Uppgradera för att få tillgång till fler funktioner'
-                    : `Din prenumeration förnyas automatiskt`}
+                    ? copy.upgradePrompt
+                    : copy.renewsAutomatically}
                 </GlassCardDescription>
               </div>
               <div className="text-right">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
                   <span>
-                    {currentAthleteCount} / {currentTierInfo.maxAthletes === -1 ? '∞' : currentTierInfo.maxAthletes} atleter
+                    {currentAthleteCount} / {currentTierInfo.maxAthletes === -1 ? '∞' : currentTierInfo.maxAthletes} {copy.athletes}
                   </span>
                 </div>
               </div>
@@ -316,12 +509,12 @@ export function CoachSubscriptionClient({
                   ) : (
                     <CreditCard className="h-4 w-4 mr-2" />
                   )}
-                  Hantera betalning
+                  {copy.managePayment}
                 </Button>
                 {subscription.stripeCurrentPeriodEnd && (
                   <span className="text-sm text-slate-500 dark:text-slate-400">
-                    Nästa faktura:{' '}
-                    {new Date(subscription.stripeCurrentPeriodEnd).toLocaleDateString('sv-SE')}
+                    {copy.nextInvoice}:{' '}
+                    {new Date(subscription.stripeCurrentPeriodEnd).toLocaleDateString(localeConfig.date)}
                   </span>
                 )}
               </div>
@@ -338,7 +531,7 @@ export function CoachSubscriptionClient({
                 billingCycle === 'MONTHLY' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Månadsvis
+              {copy.monthly}
             </button>
             <button
               onClick={() => setBillingCycle('YEARLY')}
@@ -346,11 +539,11 @@ export function CoachSubscriptionClient({
                 billingCycle === 'YEARLY' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Årsvis
+              {copy.yearly}
             </button>
             {billingCycle === 'YEARLY' && (
               <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300 ml-1">
-                Spara 17%
+                {copy.saveYearly}
               </Badge>
             )}
           </div>
@@ -358,11 +551,12 @@ export function CoachSubscriptionClient({
 
         {/* Tier Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {TIERS.map((tier) => {
+          {TIER_META.map((tier) => {
             const isActive = currentTier === tier.id;
             const Icon = tier.icon;
             const price = getPrice(tier);
-            const canUpgrade = TIERS.findIndex((t) => t.id === tier.id) > TIERS.findIndex((t) => t.id === currentTier);
+            const tierCopy = copy.tiers[tier.id];
+            const canUpgrade = TIER_META.findIndex((t) => t.id === tier.id) > TIER_META.findIndex((t) => t.id === currentTier);
 
             const glowColor = tier.id === 'FREE' ? 'slate' : tier.id === 'BASIC' ? 'blue' : tier.id === 'PRO' ? 'purple' : 'amber';
             return (
@@ -374,7 +568,7 @@ export function CoachSubscriptionClient({
                 {tier.popular && !isActive && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full shadow-md font-semibold">
-                      Populärast
+                      {copy.popular}
                     </span>
                   </div>
                 )}
@@ -403,49 +597,49 @@ export function CoachSubscriptionClient({
                       }`}
                     />
                   </div>
-                  <GlassCardTitle className="text-lg">{tier.name}</GlassCardTitle>
-                  <GlassCardDescription className="text-xs">{tier.description}</GlassCardDescription>
+                  <GlassCardTitle className="text-lg">{tierCopy.name}</GlassCardTitle>
+                  <GlassCardDescription className="text-xs">{tierCopy.description}</GlassCardDescription>
                 </GlassCardHeader>
 
                 <GlassCardContent className="text-center">
                   <div className="mb-4">
                     {price !== null ? (
                       <>
-                        <span className="text-3xl font-bold">{price.toLocaleString('sv-SE')}</span>
+                        <span className="text-3xl font-bold">{price.toLocaleString(localeConfig.number)}</span>
                         <span className="text-slate-500 dark:text-slate-400 text-sm">
                           {' '}
-                          SEK/{billingCycle === 'MONTHLY' ? 'mån' : 'år'}
+                          SEK/{billingCycle === 'MONTHLY' ? copy.monthShort : copy.yearShort}
                         </span>
                       </>
                     ) : (
-                      <span className="text-xl font-semibold text-slate-500 dark:text-slate-400">Kontakta oss</span>
+                      <span className="text-xl font-semibold text-slate-500 dark:text-slate-400">{copy.contactUs}</span>
                     )}
                   </div>
 
                   <div className="text-xs text-slate-500 dark:text-slate-400 mb-4 flex items-center justify-center gap-1">
                     <Users className="h-3 w-3" />
-                    {tier.maxAthletes === -1 ? 'Obegränsade atleter' : `Upp till ${tier.maxAthletes} atleter`}
+                    {tier.maxAthletes === -1 ? copy.unlimitedAthletes : copy.upToAthletes(tier.maxAthletes)}
                   </div>
 
                   <ul className="text-xs text-left space-y-1.5 mb-6 text-slate-700 dark:text-slate-300">
-                    {tier.features.slice(0, 5).map((feature, i) => (
+                    {tierCopy.features.slice(0, 5).map((feature, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <Check className="h-3 w-3 text-green-500 flex-shrink-0 mt-0.5" />
                         <span>{feature}</span>
                       </li>
                     ))}
-                    {tier.features.length > 5 && (
-                      <li className="text-slate-500 dark:text-slate-450">+ {tier.features.length - 5} fler funktioner</li>
+                    {tierCopy.features.length > 5 && (
+                      <li className="text-slate-500 dark:text-slate-450">{copy.moreFeatures(tierCopy.features.length - 5)}</li>
                     )}
                   </ul>
 
                   {isActive ? (
                     <Button variant="outline" className="w-full border-slate-200 dark:border-white/10" disabled size="sm">
-                      Nuvarande plan
+                      {copy.currentPlanButton}
                     </Button>
                   ) : tier.id === 'FREE' ? (
                     <Button variant="outline" className="w-full border-slate-200 dark:border-white/10" disabled size="sm">
-                      Gratisversion
+                      {copy.freeVersion}
                     </Button>
                   ) : tier.id === 'ENTERPRISE' ? (
                     <Button
@@ -454,7 +648,7 @@ export function CoachSubscriptionClient({
                       onClick={() => handleUpgrade(tier.id)}
                       size="sm"
                     >
-                      Kontakta oss
+                      {copy.contactUs}
                     </Button>
                   ) : canUpgrade ? (
                     <Button
@@ -468,11 +662,11 @@ export function CoachSubscriptionClient({
                       size="sm"
                     >
                       {isLoading === tier.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                      Uppgradera
+                      {copy.upgrade}
                     </Button>
                   ) : (
                     <Button variant="outline" className="w-full border-slate-200 dark:border-white/10" disabled size="sm">
-                      Lägre plan
+                      {copy.lowerPlan}
                     </Button>
                   )}
                 </GlassCardContent>
@@ -484,18 +678,18 @@ export function CoachSubscriptionClient({
         {/* Feature Comparison */}
         <GlassCard glow="blue">
           <GlassCardHeader>
-            <GlassCardTitle>Jämför funktioner</GlassCardTitle>
-            <GlassCardDescription>Se vad som ingår i varje plan</GlassCardDescription>
+            <GlassCardTitle>{copy.compareTitle}</GlassCardTitle>
+            <GlassCardDescription>{copy.compareDescription}</GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200/50 dark:border-white/10">
-                    <th className="text-left py-3 px-2">Funktion</th>
-                    {TIERS.map((tier) => (
+                    <th className="text-left py-3 px-2">{copy.feature}</th>
+                    {TIER_META.map((tier) => (
                       <th key={tier.id} className="text-center py-3 px-2">
-                        {tier.name}
+                        {copy.tiers[tier.id].name}
                       </th>
                     ))}
                   </tr>
@@ -503,38 +697,38 @@ export function CoachSubscriptionClient({
                 <tbody className="divide-y divide-slate-200/50 dark:divide-white/10">
                   <FeatureRow
                     icon={<Users className="h-4 w-4" />}
-                    name="Max atleter"
+                    name={copy.maxAthletes}
                     values={['1', '20', '100', '∞']}
                   />
                   <FeatureRow
                     icon={<FileText className="h-4 w-4" />}
-                    name="Testrapporter"
-                    values={['Grundläggande', 'Alla', 'Alla + White-label', 'Alla + Anpassade']}
+                    name={copy.testReports}
+                    values={[copy.basic, copy.all, copy.allWhiteLabel, copy.allCustom]}
                   />
                   <FeatureRow
                     icon={<Bot className="h-4 w-4" />}
-                    name="AI-programmering"
-                    values={[false, 'Grundläggande', 'Full', 'Full + Anpassad']}
+                    name={copy.aiProgramming}
+                    values={[false, copy.basic, copy.full, copy.fullCustom]}
                   />
                   <FeatureRow
                     icon={<Video className="h-4 w-4" />}
-                    name="Videoanalys"
+                    name={copy.videoAnalysis}
                     values={[false, false, true, true]}
                   />
                   <FeatureRow
                     icon={<BarChart3 className="h-4 w-4" />}
-                    name="Avancerad analys"
+                    name={copy.advancedAnalytics}
                     values={[false, false, true, true]}
                   />
                   <FeatureRow
                     icon={<Sparkles className="h-4 w-4" />}
-                    name="API-tillgång"
-                    values={[false, false, 'Begränsad', 'Full']}
+                    name={copy.apiAccess}
+                    values={[false, false, copy.limited, copy.full]}
                   />
                   <FeatureRow
                     icon={<Headphones className="h-4 w-4" />}
-                    name="Support"
-                    values={['E-post', 'E-post', 'Prioriterad', 'Dedikerad']}
+                    name={copy.support}
+                    values={[copy.email, copy.email, copy.priority, copy.dedicated]}
                   />
                 </tbody>
               </table>
@@ -545,29 +739,25 @@ export function CoachSubscriptionClient({
         {/* FAQ */}
         <GlassCard glow="purple">
           <GlassCardHeader>
-            <GlassCardTitle>Vanliga frågor</GlassCardTitle>
+            <GlassCardTitle>{copy.faqTitle}</GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="space-y-4">
             <div>
-              <h4 className="font-semibold">Kan jag byta plan när som helst?</h4>
+              <h4 className="font-semibold">{copy.faqChangePlan}</h4>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Ja, du kan uppgradera eller nedgradera din plan när som helst. Vid uppgradering får du
-                tillgång till nya funktioner direkt. Vid nedgradering gäller den nya planen från nästa
-                faktureringsperiod.
+                {copy.faqChangePlanAnswer}
               </p>
             </div>
             <div>
-              <h4 className="font-semibold">Vad händer om jag har fler atleter än planen tillåter?</h4>
+              <h4 className="font-semibold">{copy.faqMoreAthletes}</h4>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Du behåller tillgång till alla befintliga atleter, men kan inte lägga till nya förrän du
-                antingen uppgraderar eller tar bort några atleter.
+                {copy.faqMoreAthletesAnswer}
               </p>
             </div>
             <div>
-              <h4 className="font-semibold">Hur fungerar betalningen?</h4>
+              <h4 className="font-semibold">{copy.faqPayments}</h4>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                We använder Stripe för säker betalning. Du kan betala med kort och faktureras
-                automatiskt varje månad eller år beroende på vald betalningsperiod.
+                {copy.faqPaymentsAnswer}
               </p>
             </div>
           </GlassCardContent>
