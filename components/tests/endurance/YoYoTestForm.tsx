@@ -11,6 +11,7 @@
  */
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -37,17 +38,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Activity, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
-import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
+import { TestBenchmarkBadge } from '@/components/tests/shared/TestBenchmarkBadge'
 import {
   analyzeYoYoIR1,
-  estimateVO2maxFromYoYoIR2,
-  calculateYoYoDistance,
-  classifyYoYoIR1,
 } from '@/lib/calculations/sport-tests/endurance-tests'
 
-const yoyoTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createYoYoTestSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   testVersion: z.enum(['IR1', 'IR2']),
   level: z.number().min(5).max(25),
   shuttle: z.number().min(1).max(8),
@@ -64,7 +62,7 @@ const yoyoTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type YoYoTestFormData = z.infer<typeof yoyoTestSchema>
+type YoYoTestFormData = z.infer<ReturnType<typeof createYoYoTestSchema>>
 
 interface Client {
   id: string
@@ -80,17 +78,29 @@ interface YoYoTestFormProps {
 }
 
 const sportOptions = [
-  { value: 'TEAM_FOOTBALL', label: 'Fotboll' },
-  { value: 'TEAM_HANDBALL', label: 'Handboll' },
-  { value: 'TEAM_FLOORBALL', label: 'Innebandy' },
-  { value: 'TEAM_ICE_HOCKEY', label: 'Ishockey' },
-  { value: 'TEAM_BASKETBALL', label: 'Basket' },
-  { value: 'TEAM_VOLLEYBALL', label: 'Volleyboll' },
-  { value: 'GENERAL_FITNESS', label: 'Allmän kondition' },
+  { value: 'TEAM_FOOTBALL', label: 'Football', svLabel: 'Fotboll' },
+  { value: 'TEAM_HANDBALL', label: 'Handball', svLabel: 'Handboll' },
+  { value: 'TEAM_FLOORBALL', label: 'Floorball', svLabel: 'Innebandy' },
+  { value: 'TEAM_ICE_HOCKEY', label: 'Ice hockey', svLabel: 'Ishockey' },
+  { value: 'TEAM_BASKETBALL', label: 'Basketball', svLabel: 'Basket' },
+  { value: 'TEAM_VOLLEYBALL', label: 'Volleyball', svLabel: 'Volleyboll' },
+  { value: 'GENERAL_FITNESS', label: 'General fitness', svLabel: 'Allmän kondition' },
 ]
 
 // Yo-Yo level descriptions
 const levelDescriptions: Record<number, string> = {
+  5: 'Warm-up level',
+  9: 'Starting level',
+  11: 'Moderate',
+  13: 'Good',
+  15: 'Good',
+  17: 'Very good',
+  19: 'Excellent',
+  21: 'Elite',
+  23: 'World class',
+}
+
+const svLevelDescriptions: Record<number, string> = {
   5: 'Uppvärmningsnivå',
   9: 'Startnivå',
   11: 'Måttlig',
@@ -103,12 +113,15 @@ const levelDescriptions: Record<number, string> = {
 }
 
 export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const descriptions = locale === 'sv' ? svLevelDescriptions : levelDescriptions
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<YoYoTestFormData>({
-    resolver: zodResolver(yoyoTestSchema),
+    resolver: zodResolver(createYoYoTestSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -121,13 +134,9 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
   })
 
   const selectedClient = clients.find((c) => c.id === form.watch('clientId'))
-  const testVersion = form.watch('testVersion')
   const level = form.watch('level')
   const shuttle = form.watch('shuttle')
   const sport = form.watch('sport')
-
-  // Live calculation
-  const liveDistance = level && shuttle ? calculateYoYoDistance(level, shuttle) : null
 
   const liveResult =
     level && shuttle && selectedClient
@@ -141,7 +150,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       const yoyoResult = analyzeYoYoIR1(
         data.level,
@@ -173,7 +182,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -188,7 +197,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
       onTestSaved?.(resultData.data)
     } catch (err) {
       console.error('Failed to save Yo-Yo test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -205,7 +214,9 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {locale === 'sv'
+              ? 'Inga klienter hittades. Lägg till klienter för att kunna registrera test.'
+              : 'No clients found. Add clients before registering a test.'}
           </p>
         </CardContent>
       </Card>
@@ -223,7 +234,9 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                 Yo-Yo Intermittent Recovery Test
               </CardTitle>
               <CardDescription>
-                Standard uthållighetstest för lagidrott. Mäter intermittent aerob kapacitet.
+                {locale === 'sv'
+                  ? 'Standard uthållighetstest för lagidrott. Mäter intermittent aerob kapacitet.'
+                  : 'Standard endurance test for team sports. Measures intermittent aerobic capacity.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -233,11 +246,11 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -258,7 +271,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -274,7 +287,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                   name="testVersion"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testversion</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testversion' : 'Test version'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -283,11 +296,15 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="IR1">Yo-Yo IR1 (standard)</SelectItem>
-                          <SelectItem value="IR2">Yo-Yo IR2 (intensivare)</SelectItem>
+                          <SelectItem value="IR2">
+                            {locale === 'sv' ? 'Yo-Yo IR2 (intensivare)' : 'Yo-Yo IR2 (more intensive)'}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        IR1: Standard för de flesta. IR2: För väl tränade elitspelare.
+                        {locale === 'sv'
+                          ? 'IR1: Standard för de flesta. IR2: För väl tränade elitspelare.'
+                          : 'IR1: Standard for most athletes. IR2: For well-trained elite players.'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -309,13 +326,15 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                         <SelectContent>
                           {sportOptions.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
-                              {option.label}
+                              {locale === 'sv' ? option.svLabel : option.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Välj sport för sportspecifika riktmärken
+                        {locale === 'sv'
+                          ? 'Välj sport för sportspecifika riktmärken'
+                          : 'Select sport for sport-specific benchmarks'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -329,7 +348,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                   name="level"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nivå (Level)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Nivå (Level)' : 'Level'}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -340,7 +359,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                         />
                       </FormControl>
                       <FormDescription>
-                        {levelDescriptions[level] || 'Nivå ' + level}
+                        {descriptions[level] || (locale === 'sv' ? 'Nivå ' : 'Level ') + level}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -352,7 +371,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                   name="shuttle"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Shuttle (inom nivån)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Shuttle (inom nivån)' : 'Shuttle (within level)'}</FormLabel>
                       <Select
                         onValueChange={(v) => field.onChange(parseInt(v))}
                         value={field.value?.toString()}
@@ -370,7 +389,9 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormDescription>Sista genomförd shuttle på nivån</FormDescription>
+                      <FormDescription>
+                        {locale === 'sv' ? 'Sista genomförd shuttle på nivån' : 'Last completed shuttle at this level'}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -382,7 +403,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                 name="surface"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Underlag</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Underlag' : 'Surface'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -390,10 +411,10 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="INDOOR">Inomhus</SelectItem>
-                        <SelectItem value="OUTDOOR_TRACK">Löparbana</SelectItem>
-                        <SelectItem value="GRASS">Gräs</SelectItem>
-                        <SelectItem value="TURF">Konstgräs</SelectItem>
+                        <SelectItem value="INDOOR">{locale === 'sv' ? 'Inomhus' : 'Indoor'}</SelectItem>
+                        <SelectItem value="OUTDOOR_TRACK">{locale === 'sv' ? 'Löparbana' : 'Outdoor track'}</SelectItem>
+                        <SelectItem value="GRASS">{locale === 'sv' ? 'Gräs' : 'Grass'}</SelectItem>
+                        <SelectItem value="TURF">{locale === 'sv' ? 'Konstgräs' : 'Turf'}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -410,13 +431,13 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Nivå</p>
+                      <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Nivå' : 'Level'}</p>
                       <span className="text-2xl font-bold text-primary">
                         {level}.{shuttle}
                       </span>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Distans</p>
+                      <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Distans' : 'Distance'}</p>
                       <span className="text-2xl font-bold text-primary">
                         {liveResult.totalDistance}
                       </span>
@@ -441,10 +462,12 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Uppvärmning, temperatur, känsla, avbrottsorsak..."
+                        placeholder={locale === 'sv'
+                          ? 'Uppvärmning, temperatur, känsla, avbrottsorsak...'
+                          : 'Warm-up, temperature, perceived effort, reason for stopping...'}
                         {...field}
                       />
                     </FormControl>
@@ -456,7 +479,9 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara Yo-Yo test'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara Yo-Yo test' : 'Save Yo-Yo test'}
           </Button>
         </form>
       </Form>
@@ -473,22 +498,22 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {locale === 'sv' ? 'Test sparat' : 'Test saved'}
             </CardTitle>
             <CardDescription>
               {result.client?.name} - Yo-Yo {result.rawData?.testVersion} -{' '}
-              {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {new Date(result.testDate).toLocaleDateString(dateLocale)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <CompactResult
-                label="Nivå"
+                label={locale === 'sv' ? 'Nivå' : 'Level'}
                 value={`${result.rawData?.level}.${result.rawData?.shuttle}`}
                 tier={result.tier}
               />
               <CompactResult
-                label="Distans"
+                label={locale === 'sv' ? 'Distans' : 'Distance'}
                 value={result.yoyoResult?.totalDistance}
                 unit="m"
               />
