@@ -276,8 +276,8 @@ export const RemotionRoot: React.FC = () => {
         width={800}
         height={420}
         defaultProps={{
-          title: "Breakout-övning",
-          description: "3-mot-2 breakout från egen zon",
+          title: "Breakout drill",
+          description: "3-on-2 breakout from the defensive zone",
           structure: {
             players: [
               { id: "d1", x: 25, y: 30, label: "LD", team: "home" as const },
@@ -294,7 +294,7 @@ export const RemotionRoot: React.FC = () => {
               { id: "m5", fromX: 100, fromY: 42.5, toX: 140, toY: 25, type: "pass" as const },
             ],
             zones: [
-              { id: "z1", x: 0, y: 0, width: 65, height: 85, color: "#3b82f6", label: "Egen zon" },
+              { id: "z1", x: 0, y: 0, width: 65, height: 85, color: "#3b82f6", label: "Defensive zone" },
             ],
             annotations: [],
           },
