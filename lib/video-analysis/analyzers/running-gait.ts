@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import {
@@ -14,6 +15,72 @@ export interface RunningGaitAnalyzerInput {
   athlete: { id: string; name: string; gender: string | null } | null
 }
 
+type GaitIssueSeverity = 'LOW' | 'MEDIUM' | 'HIGH'
+
+interface RunningGaitResult {
+  analysisValidity?: {
+    isAnalyzableRunning?: boolean
+    reason?: string
+    confidence?: number
+    detectedActivity?: string
+    visibleBody?: string
+    runningCyclesObserved?: number
+  }
+  biometrics?: {
+    estimatedCadence?: number | null
+    groundContactTime?: 'SHORT' | 'NORMAL' | 'LONG' | null
+    verticalOscillation?: 'MINIMAL' | 'MODERATE' | 'EXCESSIVE' | null
+    strideLength?: 'SHORT' | 'OPTIMAL' | 'OVERSTRIDING' | null
+    footStrike?: 'HEEL' | 'MIDFOOT' | 'FOREFOOT' | null
+  }
+  asymmetry?: {
+    overallPercent?: number | null
+    significantDifferences?: string[]
+  }
+  injuryRiskAnalysis?: {
+    riskScore?: number | null
+    posteriorChainEngagement?: boolean | null
+    detectedCompensations?: Array<{
+      issue?: string
+      severity?: string
+      timestamp?: string
+      observation?: string
+    }>
+  }
+  efficiency?: {
+    rating?: 'EXCELLENT' | 'GOOD' | 'MODERATE' | 'POOR' | null
+    score?: number | null
+    energyLeakages?: Array<{
+      type?: string
+      description?: string
+      impact?: string
+    }>
+  }
+  coachingCues?: {
+    immediateCorrection?: string | null
+    drillRecommendation?: string | null
+    strengthFocus?: string[]
+  }
+  overallScore?: number | null
+  summary?: string | null
+}
+
+interface VideoAnalysisIssue {
+  issue: string
+  severity: GaitIssueSeverity
+  timestamp?: string
+  description: string
+}
+
+interface VideoAnalysisRecommendation {
+  priority: number
+  recommendation: string
+  explanation: string
+}
+
+type GroundContactTimeLabel = NonNullable<NonNullable<RunningGaitResult['biometrics']>['groundContactTime']>
+type VerticalOscillationLabel = NonNullable<NonNullable<RunningGaitResult['biometrics']>['verticalOscillation']>
+
 function buildRunningGaitPrompt(athleteName: string, gender: string): string {
   return `Du är en erfaren löpbiomekaniker och idrottsfysiolog. Analysera denna löpvideo noggrant.
 
@@ -27,6 +94,22 @@ Du har tillgång till HELA videon med flera bildrutor (frames) över tid. Analys
 ## ATLET INFORMATION
 - **Namn**: ${athleteName}
 - **Pronomen**: ${gender}
+
+## KVALITETSGRIND - MÅSTE GÖRAS FÖRST
+Innan du sätter någon löpteknisk poäng måste du avgöra om videon faktiskt är analyserbar som löpning.
+
+Videon är bara analyserbar om:
+- Personen springer tydligt, inte sitter, står stilla, går eller bara rör kameran
+- Minst tre sammanhängande löpsteg/gait cycles syns
+- Tillräckligt av kroppen syns för att bedöma löpteknik
+
+Om videon INTE är analyserbar som löpning:
+- Sätt "analysisValidity.isAnalyzableRunning": false
+- Sätt "overallScore": null och "efficiency.score": null
+- Gissa inte kadens, fotisättning, markkontakttid eller löpekonomi
+- Lägg till en HIGH issue som förklarar problemet, t.ex. "Ingen löpning upptäckt"
+- Skriv en kort svensk sammanfattning som säger att videon behöver spelas in igen
+- Ge INTE en normal poäng som 60-80 bara för att bildkvaliteten är okej
 
 ## ANALYSERA FÖLJANDE ASPEKTER (baserat på hela videosekvensen)
 
@@ -66,20 +149,28 @@ SVARA I FÖLJANDE JSON-FORMAT:
 
 \`\`\`json
 {
+  "analysisValidity": {
+    "isAnalyzableRunning": <boolean>,
+    "reason": "<short reason in Swedish, or null if valid>",
+    "confidence": <number 0-100>,
+    "detectedActivity": "RUNNING|WALKING|SITTING|STANDING|NO_PERSON|OTHER",
+    "visibleBody": "FULL|PARTIAL|NONE",
+    "runningCyclesObserved": <number>
+  },
   "biometrics": {
-    "estimatedCadence": <number>,
-    "groundContactTime": "SHORT|NORMAL|LONG",
-    "verticalOscillation": "MINIMAL|MODERATE|EXCESSIVE",
-    "strideLength": "SHORT|OPTIMAL|OVERSTRIDING",
-    "footStrike": "HEEL|MIDFOOT|FOREFOOT"
+    "estimatedCadence": <number or null>,
+    "groundContactTime": "SHORT|NORMAL|LONG|null",
+    "verticalOscillation": "MINIMAL|MODERATE|EXCESSIVE|null",
+    "strideLength": "SHORT|OPTIMAL|OVERSTRIDING|null",
+    "footStrike": "HEEL|MIDFOOT|FOREFOOT|null"
   },
   "asymmetry": {
-    "overallPercent": <number 0-100>,
+    "overallPercent": <number 0-100 or null>,
     "significantDifferences": ["<list of differences>"]
   },
   "injuryRiskAnalysis": {
-    "riskScore": <number 0-10>,
-    "posteriorChainEngagement": <boolean>,
+    "riskScore": <number 0-10 or null>,
+    "posteriorChainEngagement": <boolean or null>,
     "detectedCompensations": [
       {
         "issue": "<name>",
@@ -90,8 +181,8 @@ SVARA I FÖLJANDE JSON-FORMAT:
     ]
   },
   "efficiency": {
-    "rating": "EXCELLENT|GOOD|MODERATE|POOR",
-    "score": <number 0-100>,
+    "rating": "EXCELLENT|GOOD|MODERATE|POOR|null",
+    "score": <number 0-100 or null>,
     "energyLeakages": [
       {
         "type": "<type>",
@@ -101,40 +192,144 @@ SVARA I FÖLJANDE JSON-FORMAT:
     ]
   },
   "coachingCues": {
-    "immediateCorrection": "<most important cue in Swedish>",
-    "drillRecommendation": "<specific drill name>",
+    "immediateCorrection": "<most important cue in Swedish, or null>",
+    "drillRecommendation": "<specific drill name, or null>",
     "strengthFocus": ["<muscle groups to strengthen>"]
   },
-  "overallScore": <number 0-100>,
+  "overallScore": <number 0-100 or null>,
   "summary": "<Swedish summary>"
 }
 \`\`\``
 }
 
-function fallbackGaitResult(rawText: string) {
+function createInvalidGaitResult(rawText: string, reason?: string): RunningGaitResult {
+  const summary = reason || 'Videon kan inte bedömas som löpteknik eftersom tydlig löpning inte kunde verifieras.'
+
   return {
-    biometrics: {
-      estimatedCadence: 170,
-      groundContactTime: 'NORMAL',
-      verticalOscillation: 'MODERATE',
-      strideLength: 'OPTIMAL',
-      footStrike: 'MIDFOOT',
+    analysisValidity: {
+      isAnalyzableRunning: false,
+      reason: summary,
+      confidence: 0,
+      detectedActivity: 'OTHER',
+      visibleBody: 'PARTIAL',
+      runningCyclesObserved: 0,
     },
-    asymmetry: { overallPercent: 5, significantDifferences: [] },
+    biometrics: {},
+    asymmetry: { overallPercent: null, significantDifferences: [] },
     injuryRiskAnalysis: {
-      riskScore: 3,
-      posteriorChainEngagement: true,
-      detectedCompensations: [],
+      riskScore: null,
+      posteriorChainEngagement: null,
+      detectedCompensations: [
+        {
+          issue: 'Ogiltigt löpklipp',
+          severity: 'HIGH',
+          observation: summary,
+          timestamp: '00:00',
+        },
+      ],
     },
-    efficiency: { rating: 'GOOD', score: 70, energyLeakages: [] },
+    efficiency: { rating: null, score: null, energyLeakages: [] },
     coachingCues: {
-      immediateCorrection: 'Se AI-analys för detaljer',
-      drillRecommendation: 'A-skip',
-      strengthFocus: ['Core', 'Glutes'],
+      immediateCorrection: 'Spela in en ny video där atleten springer och hela kroppen syns.',
+      drillRecommendation: null,
+      strengthFocus: [],
     },
-    overallScore: 70,
-    summary: rawText.substring(0, 500),
+    overallScore: null,
+    summary: rawText ? `${summary}\n\nAI-svar: ${rawText.substring(0, 300)}` : summary,
   }
+}
+
+function normalizeScore(score: unknown): number | null {
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null
+  return Math.max(0, Math.min(100, Math.round(score)))
+}
+
+function normalizeRiskScore(score: unknown): number | null {
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null
+  return Math.max(0, Math.min(10, Math.round(score)))
+}
+
+function normalizeCadence(cadence: unknown): number | null {
+  if (typeof cadence !== 'number' || !Number.isFinite(cadence)) return null
+  return Math.max(60, Math.min(260, Math.round(cadence)))
+}
+
+function normalizePercent(percent: unknown): number | null {
+  if (typeof percent !== 'number' || !Number.isFinite(percent)) return null
+  return Math.max(0, Math.min(100, percent))
+}
+
+function normalizeSeverity(severity: unknown): GaitIssueSeverity {
+  return severity === 'MEDIUM' || severity === 'HIGH' || severity === 'LOW'
+    ? severity
+    : 'LOW'
+}
+
+function getGroundContactTime(value: GroundContactTimeLabel | null | undefined): number | null {
+  if (value === 'SHORT') return 180
+  if (value === 'NORMAL') return 230
+  if (value === 'LONG') return 280
+  return null
+}
+
+function getVerticalOscillation(value: VerticalOscillationLabel | null | undefined): number | null {
+  if (value === 'MINIMAL') return 6
+  if (value === 'MODERATE') return 9
+  if (value === 'EXCESSIVE') return 12
+  return null
+}
+
+function getInvalidRunningVideoReason(
+  gaitResult: RunningGaitResult,
+  issues: VideoAnalysisIssue[]
+): string | null {
+  const validity = gaitResult.analysisValidity
+
+  if (validity?.isAnalyzableRunning === false) {
+    return validity.reason || 'Videon visar inte tillräckligt tydlig löpning för en löpteknisk analys.'
+  }
+
+  const detectedActivity = validity?.detectedActivity?.toUpperCase()
+  if (detectedActivity && ['SITTING', 'STANDING', 'NO_PERSON', 'OTHER'].includes(detectedActivity)) {
+    return `Videon verkar visa ${detectedActivity.toLowerCase()} i stället för löpning. Spela in en ny video med tydlig löpning.`
+  }
+
+  if (detectedActivity === 'WALKING') {
+    return 'Videon verkar visa gång i stället för löpning. Spela in en ny video med tydlig löpning.'
+  }
+
+  if (typeof validity?.runningCyclesObserved === 'number' && validity.runningCyclesObserved < 3) {
+    return 'För få löpsteg syns i videon för en stabil löpteknisk analys.'
+  }
+
+  const issueText = [
+    gaitResult.summary,
+    ...issues.flatMap((issue) => [issue.issue, issue.description]),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  const invalidPatterns = [
+    /\bingen rörelse\b/,
+    /\bno movement\b/,
+    /\bingen löpning\b/,
+    /\bno running\b/,
+    /\bnot running\b/,
+    /\bsittande\b/,
+    /\bsitter\b/,
+    /\bsitting\b/,
+    /\bstol\b/,
+    /\bchair\b/,
+    /\bstår still\b/,
+    /\bstanding still\b/,
+  ]
+
+  if (invalidPatterns.some((pattern) => pattern.test(issueText))) {
+    return 'Videon visar inte aktiv löpning. Den sparas, men får ingen löpteknisk poäng.'
+  }
+
+  return null
 }
 
 /**
@@ -162,7 +357,7 @@ export async function analyzeRunningGait(
     const videoPart = await getVideoContentPart(analysis.videoUrl, client, videoMetadata)
     const result = await generateContent(client, modelId, [createText(prompt), videoPart])
 
-    let gaitResult
+    let gaitResult: RunningGaitResult
     try {
       if (process.env.NODE_ENV !== 'production') {
         logger.debug('Video analysis raw AI response received', { length: result.text.length })
@@ -190,19 +385,49 @@ export async function analyzeRunningGait(
         { responseLength: result.text.length },
         parseError
       )
-      gaitResult = fallbackGaitResult(result.text)
+      gaitResult = createInvalidGaitResult(
+        result.text,
+        'AI-svaret kunde inte tolkas säkert som en strukturerad löpanalys, därför sätts ingen poäng.'
+      )
     }
 
-    const issues = (gaitResult.injuryRiskAnalysis?.detectedCompensations || []).map(
-      (comp: { issue: string; severity: string; timestamp?: string; observation: string }) => ({
-        issue: comp.issue,
-        severity: comp.severity,
+    const issues: VideoAnalysisIssue[] = (gaitResult.injuryRiskAnalysis?.detectedCompensations || []).map(
+      (comp) => ({
+        issue: comp.issue || 'Observation',
+        severity: normalizeSeverity(comp.severity),
         timestamp: comp.timestamp,
-        description: comp.observation,
+        description: comp.observation || comp.issue || 'Observation från videoanalysen',
       })
     )
 
-    const recommendations = (gaitResult.coachingCues?.strengthFocus || []).map(
+    const invalidReason = getInvalidRunningVideoReason(gaitResult, issues)
+    const isInvalidRunningVideo = Boolean(invalidReason)
+    const formScore = isInvalidRunningVideo ? null : normalizeScore(gaitResult.overallScore)
+    const riskScore = isInvalidRunningVideo ? null : normalizeRiskScore(gaitResult.injuryRiskAnalysis?.riskScore)
+
+    if (invalidReason) {
+      gaitResult = {
+        ...gaitResult,
+        analysisValidity: {
+          ...gaitResult.analysisValidity,
+          isAnalyzableRunning: false,
+          reason: invalidReason,
+        },
+        overallScore: null,
+        summary: invalidReason,
+      }
+
+      if (!issues.some((issue) => issue.issue === 'Ogiltigt löpklipp')) {
+        issues.unshift({
+          issue: 'Ogiltigt löpklipp',
+          severity: 'HIGH',
+          timestamp: '00:00',
+          description: invalidReason,
+        })
+      }
+    }
+
+    let recommendations: VideoAnalysisRecommendation[] = (gaitResult.coachingCues?.strengthFocus || []).map(
       (muscle: string, idx: number) => ({
         priority: idx + 1,
         recommendation: `Stärk ${muscle}`,
@@ -210,7 +435,17 @@ export async function analyzeRunningGait(
       })
     )
 
-    if (gaitResult.coachingCues?.immediateCorrection) {
+    if (isInvalidRunningVideo) {
+      recommendations = [
+        {
+          priority: 1,
+          recommendation: 'Spela in ny löpvideo',
+          explanation: 'Atleten bör springa i minst 8-10 sekunder med hela kroppen synlig och kameran stabil.',
+        },
+      ]
+    }
+
+    if (!isInvalidRunningVideo && gaitResult.coachingCues?.immediateCorrection) {
       recommendations.unshift({
         priority: 0,
         recommendation: gaitResult.coachingCues.immediateCorrection,
@@ -218,7 +453,7 @@ export async function analyzeRunningGait(
       })
     }
 
-    if (gaitResult.coachingCues?.drillRecommendation) {
+    if (!isInvalidRunningVideo && gaitResult.coachingCues?.drillRecommendation) {
       recommendations.push({
         priority: recommendations.length,
         recommendation: `Utför: ${gaitResult.coachingCues.drillRecommendation}`,
@@ -233,9 +468,9 @@ export async function analyzeRunningGait(
         aiAnalysis: gaitResult.summary || result.text,
         aiProvider: 'GOOGLE',
         modelUsed: modelId,
-        formScore: gaitResult.overallScore || 70,
-        issuesDetected: issues,
-        recommendations,
+        formScore,
+        issuesDetected: issues as unknown as Prisma.InputJsonValue,
+        recommendations: recommendations as unknown as Prisma.InputJsonValue,
       },
       include: {
         athlete: { select: { id: true, name: true } },
@@ -243,73 +478,64 @@ export async function analyzeRunningGait(
       },
     })
 
-    await prisma.runningGaitAnalysis.create({
-      data: {
+    const injuryRiskLevel = riskScore === null
+      ? null
+      : riskScore <= 3
+        ? 'LOW'
+        : riskScore <= 6
+          ? 'MODERATE'
+          : 'HIGH'
+
+    const runningGaitData = {
+      cadence: isInvalidRunningVideo ? null : normalizeCadence(gaitResult.biometrics?.estimatedCadence),
+      footStrikePattern: isInvalidRunningVideo ? null : gaitResult.biometrics?.footStrike || null,
+      groundContactTime: isInvalidRunningVideo ? null : getGroundContactTime(gaitResult.biometrics?.groundContactTime),
+      verticalOscillation: isInvalidRunningVideo ? null : getVerticalOscillation(gaitResult.biometrics?.verticalOscillation),
+      asymmetryPercent: isInvalidRunningVideo ? null : normalizePercent(gaitResult.asymmetry?.overallPercent),
+      injuryRiskLevel,
+      injuryRiskScore: riskScore,
+      injuryRiskFactors: issues as unknown as Prisma.InputJsonValue,
+      runningEfficiency: isInvalidRunningVideo ? null : gaitResult.efficiency?.rating || null,
+      energyLeakages: (isInvalidRunningVideo ? [] : gaitResult.efficiency?.energyLeakages || []) as Prisma.InputJsonValue,
+      coachingCues: recommendations.map((rec) => ({
+        cue: rec.recommendation,
+        priority: rec.priority,
+        explanation: rec.explanation,
+      })) as Prisma.InputJsonValue,
+      drillRecommendations: (!isInvalidRunningVideo && gaitResult.coachingCues?.drillRecommendation
+        ? [gaitResult.coachingCues.drillRecommendation]
+        : []) as Prisma.InputJsonValue,
+      overallScore: formScore,
+      summary: gaitResult.summary || null,
+    }
+
+    await prisma.runningGaitAnalysis.upsert({
+      where: { videoAnalysisId: id },
+      create: {
         videoAnalysisId: id,
-        cadence: gaitResult.biometrics?.estimatedCadence,
-        footStrikePattern: gaitResult.biometrics?.footStrike,
-        groundContactTime:
-          gaitResult.biometrics?.groundContactTime === 'SHORT'
-            ? 180
-            : gaitResult.biometrics?.groundContactTime === 'NORMAL'
-              ? 230
-              : 280,
-        verticalOscillation:
-          gaitResult.biometrics?.verticalOscillation === 'MINIMAL'
-            ? 6
-            : gaitResult.biometrics?.verticalOscillation === 'MODERATE'
-              ? 9
-              : 12,
-        asymmetryPercent: gaitResult.asymmetry?.overallPercent,
-        injuryRiskLevel:
-          (gaitResult.injuryRiskAnalysis?.riskScore || 0) <= 3
-            ? 'LOW'
-            : (gaitResult.injuryRiskAnalysis?.riskScore || 0) <= 6
-              ? 'MODERATE'
-              : 'HIGH',
-        injuryRiskScore: gaitResult.injuryRiskAnalysis?.riskScore,
-        injuryRiskFactors: gaitResult.injuryRiskAnalysis?.detectedCompensations || [],
-        runningEfficiency: gaitResult.efficiency?.rating,
-        energyLeakages: gaitResult.efficiency?.energyLeakages || [],
-        coachingCues: [
-          {
-            cue: gaitResult.coachingCues?.immediateCorrection,
-            priority: 1,
-            drillName: gaitResult.coachingCues?.drillRecommendation,
-          },
-          ...(gaitResult.coachingCues?.strengthFocus || []).map(
-            (muscle: string, idx: number) => ({
-              cue: `Stärk ${muscle}`,
-              priority: idx + 2,
-            })
-          ),
-        ],
-        drillRecommendations: gaitResult.coachingCues?.drillRecommendation
-          ? [gaitResult.coachingCues.drillRecommendation]
-          : [],
-        overallScore: gaitResult.overallScore,
-        summary: gaitResult.summary,
+        ...runningGaitData,
       },
+      update: runningGaitData,
     })
 
     return NextResponse.json({
       success: true,
       analysis: updatedAnalysis,
       result: {
-        formScore: gaitResult.overallScore,
+        formScore,
         issues,
         recommendations,
         overallAssessment: gaitResult.summary,
         strengths: [
-          gaitResult.injuryRiskAnalysis?.posteriorChainEngagement
+          !isInvalidRunningVideo && gaitResult.injuryRiskAnalysis?.posteriorChainEngagement
             ? 'God aktivering av bakre kedjan'
             : null,
-          gaitResult.efficiency?.rating === 'EXCELLENT' || gaitResult.efficiency?.rating === 'GOOD'
+          !isInvalidRunningVideo && (gaitResult.efficiency?.rating === 'EXCELLENT' || gaitResult.efficiency?.rating === 'GOOD')
             ? 'Effektiv löpteknik'
             : null,
         ].filter(Boolean),
         areasForImprovement: [
-          ...(gaitResult.efficiency?.energyLeakages || []).map((l: { type: string }) => l.type),
+          ...(gaitResult.efficiency?.energyLeakages || []).map((l) => l.type).filter(Boolean),
           ...(gaitResult.asymmetry?.significantDifferences || []),
         ],
       },

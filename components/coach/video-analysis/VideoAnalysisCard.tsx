@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, type SyntheticEvent } from 'react'
 import {
   GlassCard,
   GlassCardHeader,
@@ -144,6 +144,47 @@ function getScoreLabel(score: number, locale: AppLocale): string {
   if (score >= 60) return t(locale, 'Approved', 'Godkänt')
   if (score >= 50) return t(locale, 'Needs improvement', 'Behöver förbättras')
   return t(locale, 'Needs significant improvement', 'Behöver betydande förbättring')
+}
+
+function seekVideoPreviewFrame(event: SyntheticEvent<HTMLVideoElement>) {
+  const video = event.currentTarget
+  if (video.dataset.previewSeeked === 'true') return
+
+  const duration = Number.isFinite(video.duration) ? video.duration : 0
+  if (duration <= 1) return
+
+  const targetTime = Math.min(Math.max(duration * 0.15, 0.6), duration - 0.1)
+  video.dataset.previewSeeked = 'true'
+
+  try {
+    video.currentTime = targetTime
+  } catch {
+    // Some browsers reject seek-before-load for signed URLs; playback still works in the dialog.
+  }
+}
+
+function isInvalidRunningAnalysis(analysis: VideoAnalysis): boolean {
+  if (analysis.videoType !== 'RUNNING_GAIT' || analysis.status !== 'COMPLETED') return false
+
+  const issueText = [
+    analysis.aiAnalysis,
+    ...(analysis.issuesDetected || []).flatMap((issue) => [issue.issue, issue.description]),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  const hasInvalidMarker =
+    issueText.includes('ogiltigt löpklipp') ||
+    issueText.includes('ingen löpning') ||
+    issueText.includes('ingen rörelse') ||
+    issueText.includes('inte aktiv löpning') ||
+    issueText.includes('not running') ||
+    issueText.includes('no running') ||
+    issueText.includes('sitting') ||
+    issueText.includes('sittande')
+
+  return hasInvalidMarker
 }
 
 // Helper to parse AI analysis that might be JSON or plain text
@@ -338,6 +379,11 @@ export function VideoAnalysisCard({
   const TypeIcon = typeInfo.icon
   const typeLabel = typeInfo.label[locale]
   const statusLabel = statusInfo.label[locale]
+  const invalidRunningAnalysis = isInvalidRunningAnalysis(analysis)
+  const displayedStatusLabel = invalidRunningAnalysis ? t(locale, 'Not scorable', 'Kan ej bedöma') : statusLabel
+  const displayedStatusColor = invalidRunningAnalysis
+    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+    : statusInfo.color
 
   const showAiAllowanceToast = (allowanceError: AiAllowanceExhaustedError) => {
     setAiAllowanceAction({
@@ -733,7 +779,9 @@ export function VideoAnalysisCard({
               src={analysis.videoUrl}
               className="w-full h-full object-contain"
               muted
-              preload="metadata"
+              playsInline
+              preload="auto"
+              onLoadedMetadata={seekVideoPreviewFrame}
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="p-3 rounded-full bg-white/90">
@@ -742,13 +790,13 @@ export function VideoAnalysisCard({
             </div>
             {/* Status badge */}
             <div className="absolute top-2 right-2">
-              <Badge className={statusInfo.color}>
+              <Badge className={displayedStatusColor}>
                 {analysis.status === 'PROCESSING' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                {statusLabel}
+                {displayedStatusLabel}
               </Badge>
             </div>
             {/* Score badge if completed */}
-            {analysis.status === 'COMPLETED' && analysis.formScore !== null && (
+            {analysis.status === 'COMPLETED' && analysis.formScore !== null && !invalidRunningAnalysis && (
               <div className="absolute bottom-2 left-2">
                 <div className={`px-2 py-1 rounded-lg bg-white/90 font-bold ${getScoreColor(analysis.formScore)}`}>
                    {analysis.formScore}/100
@@ -789,8 +837,15 @@ export function VideoAnalysisCard({
             </div>
           )}
 
+          {invalidRunningAnalysis && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span>{t(locale, 'No running score: the clip does not show analyzable running.', 'Ingen löppoäng: klippet visar inte analyserbar löpning.')}</span>
+            </div>
+          )}
+
           {/* Score display if completed */}
-          {analysis.status === 'COMPLETED' && analysis.formScore !== null && (
+          {analysis.status === 'COMPLETED' && analysis.formScore !== null && !invalidRunningAnalysis && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t(locale, 'Technical assessment', 'Teknisk bedömning')}</span>
@@ -916,6 +971,7 @@ export function VideoAnalysisCard({
               src={analysis.videoUrl}
               controls
               autoPlay
+              playsInline
               className="w-full h-full object-contain"
             />
           </div>
@@ -944,6 +1000,18 @@ export function VideoAnalysisCard({
           </DialogHeader>
 
           <div className="space-y-6">
+            {invalidRunningAnalysis && (
+              <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
+                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
+                <div>
+                  <p className="font-medium">{t(locale, 'No running score', 'Ingen löppoäng')}</p>
+                  <p className="mt-1 text-sm text-amber-900">
+                    {analysis.aiAnalysis || t(locale, 'The video was saved, but it does not show enough active running to score technique.', 'Videon sparades, men den visar inte tillräckligt aktiv löpning för att poängsätta tekniken.')}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Skiing Technique Dashboard */}
             {analysis.skiingTechniqueAnalysis && (
               analysis.videoType === 'SKIING_CLASSIC' ||
@@ -963,7 +1031,7 @@ export function VideoAnalysisCard({
             )}
 
             {/* Score overview (for non-specialized analysis types) */}
-            {analysis.formScore !== null && !analysis.skiingTechniqueAnalysis && !analysis.hyroxStationAnalysis && (
+            {analysis.formScore !== null && !invalidRunningAnalysis && !analysis.skiingTechniqueAnalysis && !analysis.hyroxStationAnalysis && (
               <div className="text-center p-6 bg-muted rounded-lg">
                 <div className={`text-5xl font-bold ${getScoreColor(analysis.formScore)}`}>
                   {analysis.formScore}
