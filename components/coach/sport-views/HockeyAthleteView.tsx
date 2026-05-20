@@ -886,17 +886,17 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
             <div>
               <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
                 <Target className="h-4 w-4 text-sky-500" />
-                Spelarvy
+                {tr(locale, 'Spelarvy', 'Player view')}
               </CardTitle>
               <CardDescription style={{ color: theme.colors.textMuted }}>
-                Kort version att använda i samtal med spelaren.
+                {tr(locale, 'Kort version att använda i samtal med spelaren.', 'Short version to use in conversations with the player.')}
               </CardDescription>
             </div>
             <Badge
               variant={playerHighlight.tone === 'priority' ? 'destructive' : playerHighlight.tone === 'positive' ? 'secondary' : 'outline'}
               className="w-fit"
             >
-              {playerHighlight.tone === 'priority' ? 'Prioritet' : playerHighlight.tone === 'positive' ? 'Positiv trend' : 'Nuläge'}
+              {playerHighlight.tone === 'priority' ? tr(locale, 'Prioritet', 'Priority') : playerHighlight.tone === 'positive' ? tr(locale, 'Positiv trend', 'Positive trend') : tr(locale, 'Nuläge', 'Current status')}
             </Badge>
           </div>
         </CardHeader>
@@ -1002,7 +1002,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                         <span>{level.eliteHits} elite</span>
                       </div>
                       <p className="mt-2 text-[11px]" style={{ color: theme.colors.textMuted }}>
-                        {readinessGapText(level.primaryGap)}
+                        {readinessGapText(level.primaryGap, locale)}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1">
                         {level.gaps.map((gap) => (
@@ -1080,7 +1080,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                         <p style={{ color: theme.colors.textMuted }}>{milestone.detail}</p>
                       </div>
                       <Badge variant={milestone.tone === 'positive' ? 'secondary' : 'outline'} className="shrink-0 text-[10px]">
-                        {formatDate(milestone.date)}
+                        {formatDate(milestone.date, locale)}
                       </Badge>
                     </div>
                   ))}
@@ -1095,10 +1095,10 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Activity className="h-4 w-4 text-cyan-500" />
-            Fysprofil
+            {tr(locale, 'Fysprofil', 'Physical profile')}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Senaste hockeytest för {clientName}
+            {tr(locale, 'Senaste hockeytest för', 'Latest hockey test for')} {clientName}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1106,16 +1106,16 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
             <>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-1.5">
-                  <Badge variant="secondary">{formatDate(summary.latest.testDate)}</Badge>
+                  <Badge variant="secondary">{formatDate(summary.latest.testDate, locale)}</Badge>
                   {summary.latest.aerobicAutoLinked && (
                     <Badge variant="secondary">
-                      Aerob länkad från {aerobicSourceLabel(summary.latest.aerobicAutoLinkSource)}
+                      {tr(locale, 'Aerob länkad från', 'Aerobic linked from')} {aerobicSourceLabel(summary.latest.aerobicAutoLinkSource, locale)}
                       {summary.latest.aerobicAutoLinkDate ? ` ${summary.latest.aerobicAutoLinkDate}` : ''}
                     </Badge>
                   )}
                 </div>
                 <Badge variant="outline">
-                  {summary.latest.sourceType === 'MUSCLE_LAB_IMPORT' ? 'MuscleLab' : 'Manuell'}
+                  {summary.latest.sourceType === 'MUSCLE_LAB_IMPORT' ? 'MuscleLab' : tr(locale, 'Manuell', 'Manual')}
                 </Badge>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1132,14 +1132,14 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                       style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
                     >
                       <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.colors.textMuted }}>
-                        {metric.label}
+                        {metricLabel(metric, locale)}
                       </div>
                       <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                         {formatMetric(summary.latest?.metrics[metric.key], metric.unit, metric.decimals)}
                       </div>
                       {isBest && (
                         <Badge variant="secondary" className="mt-1 h-4 px-1.5 text-[9px]">
-                          Bästa
+                          {tr(locale, 'Bästa', 'Best')}
                         </Badge>
                       )}
                       {trend && (
@@ -1158,7 +1158,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <h4 className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textPrimary }}>
                       <Timer className="h-4 w-4 text-sky-500" />
-                      Isfart
+                      {tr(locale, 'Isfart', 'Ice speed')}
                     </h4>
                     <Badge variant="outline" className="text-[10px]">km/h</Badge>
                   </div>
@@ -1170,7 +1170,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                       return (
                         <div key={metric.key} className="rounded-md border px-2 py-1.5" style={{ borderColor: theme.colors.border }}>
                           <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.colors.textMuted }}>
-                            {metric.label}
+                            {metricLabel(metric, locale)}
                           </div>
                           <div className="font-mono text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>
                             {formatMetric(value, metric.unit, metric.decimals)}
@@ -1185,7 +1185,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textPrimary }}>
                     <Medal className="h-4 w-4 text-amber-500" />
-                    Bestnoteringar
+                    {tr(locale, 'Bestnoteringar', 'Personal bests')}
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {bestMetrics.map((metric) => {
@@ -1199,13 +1199,13 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                           style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
                         >
                           <div className="text-[10px] uppercase tracking-wide" style={{ color: theme.colors.textMuted }}>
-                            {metric.label}
+                            {metricLabel(metric, locale)}
                           </div>
                           <div className="font-mono text-sm font-semibold" style={{ color: theme.colors.textPrimary }}>
                             {formatMetric(best.value, metric.unit, metric.decimals)}
                           </div>
                           <div className="text-[10px]" style={{ color: theme.colors.textMuted }}>
-                            {formatDate(best.testDate)}
+                            {formatDate(best.testDate, locale)}
                           </div>
                         </div>
                       )
@@ -1215,7 +1215,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
               )}
               {summary.flags.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>Coachflaggor</h4>
+                  <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>{tr(locale, 'Coachflaggor', 'Coach flags')}</h4>
                   <div className="flex flex-wrap gap-2">
                     {summary.flags.map((flag) => (
                       <Badge
@@ -1233,7 +1233,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textPrimary }}>
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    Testkvalitet
+                    {tr(locale, 'Testkvalitet', 'Test quality')}
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {summary.latest.qualityFlags.map((flag) => (
@@ -1252,7 +1252,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                             </p>
                           </div>
                           <Badge variant={flag.severity === 'warning' ? 'destructive' : 'secondary'} className="shrink-0 text-[10px]">
-                            {flag.severity === 'warning' ? 'Kontroll' : 'Info'}
+                            {flag.severity === 'warning' ? tr(locale, 'Kontroll', 'Check') : 'Info'}
                           </Badge>
                         </div>
                       </div>
@@ -1262,11 +1262,11 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
               )}
               {summary.history.length > 1 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>Senaste historik</h4>
+                  <h4 className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>{tr(locale, 'Senaste historik', 'Latest history')}</h4>
                   <div className="divide-y rounded-lg border" style={{ borderColor: theme.colors.border }}>
                     {summary.history.slice(0, 5).map((test) => (
                       <div key={test.id} className="grid grid-cols-4 gap-2 px-3 py-2 text-xs">
-                        <span style={{ color: theme.colors.textMuted }}>{formatDate(test.testDate)}</span>
+                        <span style={{ color: theme.colors.textMuted }}>{formatDate(test.testDate, locale)}</span>
                         <span style={{ color: theme.colors.textPrimary }}>
                           {formatMetric(test.metrics.muscleLabWkg, 'W/kg', 1)}
                         </span>
@@ -1284,7 +1284,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
             </>
           ) : (
             <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-              Inga hockeytester registrerade ännu. När tester loggas visas senaste värden, historik och nyckelflaggor här.
+              {tr(locale, 'Inga hockeytester registrerade ännu. När tester loggas visas senaste värden, historik och nyckelflaggor här.', 'No hockey tests registered yet. When tests are logged, the latest values, history and key flags will appear here.')}
             </p>
           )}
         </CardContent>
@@ -1339,7 +1339,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                     variant={item.tone === 'priority' || item.tone === 'quality' ? 'destructive' : item.tone === 'positive' ? 'secondary' : 'outline'}
                     className="shrink-0 text-[10px]"
                   >
-                    {interpretationBadge(item.tone)}
+                    {interpretationBadge(item.tone, locale)}
                   </Badge>
                 </div>
               </div>
@@ -1355,7 +1355,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
             Coach plan
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            Nästa steg för {clientName} baserat på hockeyprofil och testtrend.
+            {tr(locale, 'Nästa steg för', 'Next steps for')} {clientName} {tr(locale, 'baserat på hockeyprofil och testtrend.', 'based on hockey profile and test trend.')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -1378,7 +1378,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                     variant={item.tone === 'priority' ? 'destructive' : item.tone === 'positive' ? 'secondary' : 'outline'}
                     className="shrink-0 text-[10px]"
                   >
-                    {item.tone === 'priority' ? 'Prioritet' : item.tone === 'positive' ? 'Styrka' : item.tone === 'watch' ? 'Följ upp' : 'Plan'}
+                    {item.tone === 'priority' ? tr(locale, 'Prioritet', 'Priority') : item.tone === 'positive' ? tr(locale, 'Styrka', 'Strength') : item.tone === 'watch' ? tr(locale, 'Följ upp', 'Follow up') : 'Plan'}
                   </Badge>
                 </div>
               </div>
@@ -1387,8 +1387,8 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
           {summary?.latest && (
             <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: theme.colors.textMuted }}>
               <Calendar className="h-3.5 w-3.5" />
-              <span>Senaste test {formatDate(summary.latest.testDate)}</span>
-              {summary.previous && <span>· jämförs mot {formatDate(summary.previous.testDate)}</span>}
+              <span>{tr(locale, 'Senaste test', 'Latest test')} {formatDate(summary.latest.testDate, locale)}</span>
+              {summary.previous && <span>· {tr(locale, 'jämförs mot', 'compared with')} {formatDate(summary.previous.testDate, locale)}</span>}
             </div>
           )}
         </CardContent>
@@ -1399,26 +1399,26 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Target className="h-4 w-4" />
-            Träningsrekommendationer ({PHASE_LABELS[hockeySettings.seasonPhase]})
+            {tr(locale, 'Träningsrekommendationer', 'Training recommendations')} ({labelFor(PHASE_LABELS, hockeySettings.seasonPhase, locale)})
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>Fokusera på:</h4>
+            <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{tr(locale, 'Fokusera på:', 'Focus on:')}</h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.focus.map((item, i) => (
                 <Badge key={i} variant="outline" className="text-xs bg-green-500/10 border-green-500">
-                  {item}
+                  {localized(locale, item)}
                 </Badge>
               ))}
             </div>
           </div>
           <div>
-            <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>Undvik:</h4>
+            <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{tr(locale, 'Undvik:', 'Avoid:')}</h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.avoid.map((item, i) => (
                 <Badge key={i} variant="outline" className="text-xs bg-red-500/10 border-red-500">
-                  {item}
+                  {localized(locale, item)}
                 </Badge>
               ))}
             </div>
@@ -1432,17 +1432,17 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-4 w-4" />
-              Styrkor & Utvecklingsområden
+              {tr(locale, 'Styrkor & Utvecklingsområden', 'Strengths & Development Areas')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {hockeySettings.strengthFocus.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>Styrkor:</h4>
+                <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{tr(locale, 'Styrkor:', 'Strengths:')}</h4>
                 <div className="flex flex-wrap gap-1">
                   {hockeySettings.strengthFocus.map((s) => (
                     <Badge key={s} variant="outline" className="text-xs">
-                      {STRENGTH_LABELS[s] || s}
+                      {STRENGTH_LABELS[s] ? localized(locale, STRENGTH_LABELS[s]) : s}
                     </Badge>
                   ))}
                 </div>
@@ -1450,11 +1450,11 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
             )}
             {hockeySettings.weaknesses.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>Att utveckla:</h4>
+                <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{tr(locale, 'Att utveckla:', 'To develop:')}</h4>
                 <div className="flex flex-wrap gap-1">
                   {hockeySettings.weaknesses.map((w) => (
                     <Badge key={w} variant="outline" className="text-xs bg-orange-500/10 border-orange-500">
-                      {WEAKNESS_LABELS[w] || w}
+                      {WEAKNESS_LABELS[w] ? localized(locale, WEAKNESS_LABELS[w]) : w}
                     </Badge>
                   ))}
                 </div>
@@ -1470,19 +1470,19 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base text-yellow-600" style={{ color: theme.colors.textPrimary }}>
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              Skadehistorik
+              {tr(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-1">
               {hockeySettings.injuryHistory.map((injury) => (
                 <Badge key={injury} variant="outline" className="text-xs bg-yellow-500/10 border-yellow-500">
-                  {INJURY_LABELS[injury] || injury}
+                  {INJURY_LABELS[injury] ? localized(locale, INJURY_LABELS[injury]) : injury}
                 </Badge>
               ))}
             </div>
             <p className="text-xs mt-2" style={{ color: theme.colors.textMuted }}>
-              Inkludera förebyggande övningar för dessa områden i träningsprogrammet.
+              {tr(locale, 'Inkludera förebyggande övningar för dessa områden i träningsprogrammet.', 'Include preventive exercises for these areas in the training program.')}
             </p>
           </CardContent>
         </Card>
@@ -1493,37 +1493,37 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Users className="h-4 w-4" />
-            Positionsspecifik träning: {POSITION_LABELS[hockeySettings.position]}
+            {tr(locale, 'Positionsspecifik träning:', 'Position-specific training:')} {labelFor(POSITION_LABELS, hockeySettings.position, locale)}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {hockeySettings.position === 'goalie' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
-              <li>• <strong>Prioritet:</strong> Höftrörlighet, lateral power</li>
-              <li>• <strong>Styrka:</strong> Core-stabilitet, quadriceps</li>
-              <li>• <strong>Kondition:</strong> Korta explosiva intervaller</li>
-              <li>• <strong>Förebyggande:</strong> Höft, ljumske, knä</li>
+              <li>• <strong>{tr(locale, 'Prioritet:', 'Priority:')}</strong> {tr(locale, 'Höftrörlighet, lateral power', 'Hip mobility, lateral power')}</li>
+              <li>• <strong>{tr(locale, 'Styrka:', 'Strength:')}</strong> {tr(locale, 'Core-stabilitet, quadriceps', 'Core stability, quadriceps')}</li>
+              <li>• <strong>{tr(locale, 'Kondition:', 'Conditioning:')}</strong> {tr(locale, 'Korta explosiva intervaller', 'Short explosive intervals')}</li>
+              <li>• <strong>{tr(locale, 'Förebyggande:', 'Prevention:')}</strong> {tr(locale, 'Höft, ljumske, knä', 'Hip, groin, knee')}</li>
             </ul>
           ) : hockeySettings.position === 'defense' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
-              <li>• <strong>Prioritet:</strong> Aerob bas (längre byten), baklängesåkning</li>
-              <li>• <strong>Styrka:</strong> Överkropp för dueller, höft/gluteal</li>
-              <li>• <strong>Kondition:</strong> Uthållighet + återhämtning</li>
-              <li>• <strong>Förebyggande:</strong> Höft, ljumske, axlar</li>
+              <li>• <strong>{tr(locale, 'Prioritet:', 'Priority:')}</strong> {tr(locale, 'Aerob bas (längre byten), baklängesåkning', 'Aerobic base (longer shifts), backward skating')}</li>
+              <li>• <strong>{tr(locale, 'Styrka:', 'Strength:')}</strong> {tr(locale, 'Överkropp för dueller, höft/gluteal', 'Upper body for battles, hip/gluteal')}</li>
+              <li>• <strong>{tr(locale, 'Kondition:', 'Conditioning:')}</strong> {tr(locale, 'Uthållighet + återhämtning', 'Endurance + recovery')}</li>
+              <li>• <strong>{tr(locale, 'Förebyggande:', 'Prevention:')}</strong> {tr(locale, 'Höft, ljumske, axlar', 'Hip, groin, shoulders')}</li>
             </ul>
           ) : hockeySettings.position === 'center' ? (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
-              <li>• <strong>Prioritet:</strong> Core för tekningar, tvåvägskondition</li>
-              <li>• <strong>Styrka:</strong> Rotation, överkropp, explosivitet</li>
-              <li>• <strong>Kondition:</strong> Sprint-återhämtning</li>
-              <li>• <strong>Förebyggande:</strong> Ljumske, handled</li>
+              <li>• <strong>{tr(locale, 'Prioritet:', 'Priority:')}</strong> {tr(locale, 'Core för tekningar, tvåvägskondition', 'Core for faceoffs, two-way conditioning')}</li>
+              <li>• <strong>{tr(locale, 'Styrka:', 'Strength:')}</strong> {tr(locale, 'Rotation, överkropp, explosivitet', 'Rotation, upper body, explosiveness')}</li>
+              <li>• <strong>{tr(locale, 'Kondition:', 'Conditioning:')}</strong> {tr(locale, 'Sprint-återhämtning', 'Sprint recovery')}</li>
+              <li>• <strong>{tr(locale, 'Förebyggande:', 'Prevention:')}</strong> {tr(locale, 'Ljumske, handled', 'Groin, wrist')}</li>
             </ul>
           ) : (
             <ul className="text-sm space-y-1" style={{ color: theme.colors.textMuted }}>
-              <li>• <strong>Prioritet:</strong> Maximal sprint, skottstyrka</li>
-              <li>• <strong>Styrka:</strong> Explosiv power, rotation</li>
-              <li>• <strong>Kondition:</strong> Anaerob kapacitet</li>
-              <li>• <strong>Förebyggande:</strong> Hamstrings, ljumske</li>
+              <li>• <strong>{tr(locale, 'Prioritet:', 'Priority:')}</strong> {tr(locale, 'Maximal sprint, skottstyrka', 'Max sprint, shot power')}</li>
+              <li>• <strong>{tr(locale, 'Styrka:', 'Strength:')}</strong> {tr(locale, 'Explosiv power, rotation', 'Explosive power, rotation')}</li>
+              <li>• <strong>{tr(locale, 'Kondition:', 'Conditioning:')}</strong> {tr(locale, 'Anaerob kapacitet', 'Anaerobic capacity')}</li>
+              <li>• <strong>{tr(locale, 'Förebyggande:', 'Prevention:')}</strong> {tr(locale, 'Hamstrings, ljumske', 'Hamstrings, groin')}</li>
             </ul>
           )}
         </CardContent>
@@ -1534,14 +1534,14 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
             <Calendar className="h-4 w-4" />
-            Träningsförutsättningar
+            {tr(locale, 'Träningsförutsättningar', 'Training access')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="flex gap-2">
               {hockeySettings.hasAccessToIce && (
-                <Badge variant="outline">❄️ Istid</Badge>
+                <Badge variant="outline">❄️ {tr(locale, 'Istid', 'Ice time')}</Badge>
               )}
               {hockeySettings.hasAccessToGym && (
                 <Badge variant="outline">🏋️ Gym</Badge>
@@ -1551,7 +1551,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hockeySettings.weeklyOffIceSessions}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>off-ice pass/v</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{tr(locale, 'off-ice pass/v', 'off-ice sessions/wk')}</div>
             </div>
           </div>
         </CardContent>
