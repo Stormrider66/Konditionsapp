@@ -16,12 +16,12 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/i18n/client'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -488,15 +488,15 @@ export function ImportProgramClient({
   return (
     <div className="space-y-6">
       {!parseResult ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        <GlassCard glow="blue">
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-blue-500" />
               {t('title.step1')}
-            </CardTitle>
-            <CardDescription>{t('step1Description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </GlassCardTitle>
+            <GlassCardDescription>{t('step1Description')}</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <Tabs value={tab} onValueChange={(v) => setTab(v as 'paste' | 'upload')}>
               <TabsList className="grid grid-cols-2 max-w-md">
                 <TabsTrigger value="paste">
@@ -680,31 +680,31 @@ export function ImportProgramClient({
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       ) : (
         <>
-          <Card>
-            <CardHeader className="pb-3">
+          <GlassCard glow="blue">
+            <GlassCardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-base flex items-center gap-2">
+                  <GlassCardTitle className="text-base flex items-center gap-2">
                     {t('title.step2')}
                     <Badge variant="outline">{parseResult.inputKind}</Badge>
                     <Badge variant="secondary">{parseResult.modelUsed}</Badge>
-                  </CardTitle>
-                  <CardDescription>
+                  </GlassCardTitle>
+                  <GlassCardDescription>
                     {t('step2Description')}
-                  </CardDescription>
+                  </GlassCardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleReset}>
                   <X className="h-4 w-4 mr-1" />
                   {t('reset')}
                 </Button>
               </div>
-            </CardHeader>
+            </GlassCardHeader>
             {parseResult.warnings.length > 0 && (
-              <CardContent className="pt-0">
+              <GlassCardContent className="pt-0">
                 <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded">
                   <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
                   <ul className="text-sm text-amber-800 space-y-0.5">
@@ -713,9 +713,9 @@ export function ImportProgramClient({
                     ))}
                   </ul>
                 </div>
-              </CardContent>
+              </GlassCardContent>
             )}
-          </Card>
+          </GlassCard>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
             <div>
@@ -734,14 +734,14 @@ export function ImportProgramClient({
             </div>
             <div className="space-y-4">
               {!selfOnly && (
-                <Card className="h-fit">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">{t('assignAthlete.title')}</CardTitle>
-                    <CardDescription className="text-xs">
+                <GlassCard glow="blue" className="h-fit">
+                  <GlassCardHeader className="pb-3">
+                    <GlassCardTitle className="text-sm">{t('assignAthlete.title')}</GlassCardTitle>
+                    <GlassCardDescription className="text-xs">
                       {t('assignAthlete.description')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+                    </GlassCardDescription>
+                  </GlassCardHeader>
+                  <GlassCardContent className="space-y-2">
                     <Select
                       value={selectedAthleteId}
                       onValueChange={setSelectedAthleteId}
@@ -766,24 +766,24 @@ export function ImportProgramClient({
                     <p className="text-xs text-muted-foreground">
                       {t('assignAthlete.publishHint')}
                     </p>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               )}
               {selfOnly && (
-                <Card className="h-fit border-blue-200 bg-blue-50/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">{t('ownProgram.title')}</CardTitle>
-                    <CardDescription className="text-xs">
+                <GlassCard glow="blue" className="h-fit border-blue-200 bg-blue-50/50 dark:bg-blue-900/10">
+                  <GlassCardHeader className="pb-3">
+                    <GlassCardTitle className="text-sm">{t('ownProgram.title')}</GlassCardTitle>
+                    <GlassCardDescription className="text-xs">
                       {t('ownProgram.description')}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
+                    </GlassCardDescription>
+                  </GlassCardHeader>
+                </GlassCard>
               )}
 
               {(resolving || totalExercises > 0) && (
-                <Card className="h-fit">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center justify-between">
+                <GlassCard glow="blue" className="h-fit">
+                  <GlassCardHeader className="pb-3">
+                    <GlassCardTitle className="text-sm flex items-center justify-between">
                       <span>{t('mapping.heading')}</span>
                       {!resolving && (
                         <Badge
@@ -802,8 +802,8 @@ export function ImportProgramClient({
                             t('mapping.badge.skippedCount', { count: skippedCount })}
                         </Badge>
                       )}
-                    </CardTitle>
-                    <CardDescription className="text-xs">
+                    </GlassCardTitle>
+                    <GlassCardDescription className="text-xs">
                       {resolving
                         ? t('mapping.status.resolving')
                         : needsMapping.length === 0
@@ -815,10 +815,10 @@ export function ImportProgramClient({
                             })
                           : t('mapping.status.allLinked')
                         : t('mapping.status.linkHint')}
-                    </CardDescription>
-                  </CardHeader>
+                    </GlassCardDescription>
+                  </GlassCardHeader>
                   {!resolving && (
-                    <CardContent className="space-y-3 max-h-[520px] overflow-y-auto">
+                    <GlassCardContent className="space-y-3 max-h-[520px] overflow-y-auto">
                       {needsMapping.map((r) => (
                         <NeedsMappingRow
                           key={r.name}
@@ -849,9 +849,9 @@ export function ImportProgramClient({
                           {t('mapping.scanAgain')}
                         </Button>
                       </div>
-                    </CardContent>
+                    </GlassCardContent>
                   )}
-                </Card>
+                </GlassCard>
               )}
             </div>
           </div>

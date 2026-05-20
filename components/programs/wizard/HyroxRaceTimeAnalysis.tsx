@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useLocale } from 'next-intl'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import {
   Timer,
@@ -221,28 +221,28 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
 
   if (!analysis) {
     return (
-      <Card className="border-dashed border-muted-foreground/30">
-        <CardContent className="py-8 text-center text-muted-foreground">
+      <GlassCard className="border-dashed border-muted-foreground/30 text-center" glow="slate">
+        <GlassCardContent className="py-8 text-muted-foreground">
           <Timer className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">
             {t(locale, 'Fyll i minst 3 stationstider för att se analys', 'Enter at least 3 station times to see the analysis')}
           </p>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     )
   }
 
   const levelInfo = getPerformanceLevelLabel(analysis.performanceLevel)
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
+    <GlassCard glow="blue">
+      <GlassCardHeader className="pb-3">
+        <GlassCardTitle className="text-lg flex items-center gap-2">
           <Timer className="h-5 w-5" />
           {t(locale, 'Tävlingstidsanalys', 'Race time analysis')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+        </GlassCardTitle>
+      </GlassCardHeader>
+      <GlassCardContent className="space-y-6">
         {/* Estimated Time & Level */}
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div>
@@ -406,7 +406,7 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
             </p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

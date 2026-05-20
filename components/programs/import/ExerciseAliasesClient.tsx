@@ -9,12 +9,12 @@
 
 import { useState, useTransition, useCallback } from 'react'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -112,14 +112,14 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <GlassCard glow="blue">
+      <GlassCardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <CardTitle className="text-lg">{t('title')}</CardTitle>
-            <CardDescription>
+            <GlassCardTitle className="text-lg">{t('title')}</GlassCardTitle>
+            <GlassCardDescription>
               {t('aliasCount', { count: aliases.length })}
-            </CardDescription>
+            </GlassCardDescription>
           </div>
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -134,8 +134,8 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
             )}
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </GlassCardHeader>
+      <GlassCardContent>
         {aliases.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p className="font-medium">{t('emptyTitle')}</p>
@@ -148,7 +148,7 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
             {aliases.map((a) => (
               <div
                 key={a.id}
-                className="flex items-center justify-between gap-3 p-3 rounded border hover:bg-muted/30 transition-colors"
+                className="flex items-center justify-between gap-3 p-3 rounded border border-slate-200/80 dark:border-white/10 hover:bg-muted/30 transition-colors"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -195,7 +195,7 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

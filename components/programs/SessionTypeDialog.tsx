@@ -11,10 +11,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Activity, Dumbbell, Target, Bike, Moon, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 interface SessionTypeDialogProps {
   open: boolean
@@ -33,7 +34,9 @@ interface SessionOption {
   label: Record<AppLocale, string>
   description: Record<AppLocale, string>
   icon: React.ReactNode
-  color: string
+  glow: 'blue' | 'purple' | 'amber' | 'emerald' | 'slate'
+  textColor: string
+  iconColor: string
 }
 
 type AppLocale = 'en' | 'sv'
@@ -51,7 +54,9 @@ const SESSION_OPTIONS: SessionOption[] = [
       sv: 'Löppass med intervaller, distans och zonträning',
     },
     icon: <Activity className="h-8 w-8" />,
-    color: 'text-blue-600 hover:bg-blue-50 border-blue-200',
+    glow: 'blue',
+    textColor: 'hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/30',
+    iconColor: 'text-blue-600 dark:text-blue-400',
   },
   {
     type: 'STRENGTH',
@@ -61,7 +66,9 @@ const SESSION_OPTIONS: SessionOption[] = [
       sv: 'Styrketräning med övningar, set och repetitioner',
     },
     icon: <Dumbbell className="h-8 w-8" />,
-    color: 'text-purple-600 hover:bg-purple-50 border-purple-200',
+    glow: 'purple',
+    textColor: 'hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-500/30',
+    iconColor: 'text-purple-600 dark:text-purple-400',
   },
   {
     type: 'CORE',
@@ -71,7 +78,9 @@ const SESSION_OPTIONS: SessionOption[] = [
       sv: 'Corestabilitet och balansövningar',
     },
     icon: <Target className="h-8 w-8" />,
-    color: 'text-orange-600 hover:bg-orange-50 border-orange-200',
+    glow: 'amber',
+    textColor: 'hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-500/30',
+    iconColor: 'text-amber-600 dark:text-amber-400',
   },
   {
     type: 'ALTERNATIVE',
@@ -81,7 +90,9 @@ const SESSION_OPTIONS: SessionOption[] = [
       sv: 'Cykling, simning, DWR eller crosstrainer',
     },
     icon: <Bike className="h-8 w-8" />,
-    color: 'text-green-600 hover:bg-green-50 border-green-200',
+    glow: 'emerald',
+    textColor: 'hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/30',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
   },
   {
     type: 'REST',
@@ -91,7 +102,9 @@ const SESSION_OPTIONS: SessionOption[] = [
       sv: 'Vilodag - ingen träning',
     },
     icon: <Moon className="h-8 w-8" />,
-    color: 'text-gray-600 hover:bg-gray-50 border-gray-200',
+    glow: 'slate',
+    textColor: 'hover:text-slate-600 dark:hover:text-slate-400 hover:border-slate-500/30',
+    iconColor: 'text-slate-600 dark:text-slate-400',
   },
 ]
 
@@ -264,28 +277,31 @@ export function SessionTypeDialog({
 
         <div className="grid grid-cols-1 gap-3 py-4">
           {SESSION_OPTIONS.map((option) => (
-            <Card
+            <GlassCard
               key={option.type}
-              className={`cursor-pointer transition-all hover:shadow-md border-2 ${option.color} ${
+              glow={option.glow}
+              className={cn(
+                "cursor-pointer transition-all border border-slate-200/80 dark:border-white/10",
+                option.textColor,
                 isProcessing ? 'opacity-50 pointer-events-none' : ''
-              }`}
+              )}
               onClick={() => handleSelectType(option.type)}
             >
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className={option.color}>
+              <GlassCardContent className="flex items-center gap-4 p-4">
+                <div className={option.iconColor}>
                   {option.icon}
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-lg">{option.label[locale]}</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <h4 className="font-semibold text-lg text-slate-900 dark:text-white">{option.label[locale]}</h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {option.description[locale]}
                   </p>
                 </div>
                 {isProcessing && (
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 )}
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           ))}
         </div>
 

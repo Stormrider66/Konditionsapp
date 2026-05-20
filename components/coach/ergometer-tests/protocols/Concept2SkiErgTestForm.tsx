@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ErgometerTestProtocol } from '@prisma/client';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -38,10 +39,22 @@ interface Concept2SkiErgTestFormProps {
 
 // ==================== ZOD SCHEMAS ====================
 
-const tt1kSchema = z.object({
+function localized(locale: string, sv: string, en: string) {
+  return locale === 'sv' ? sv : en;
+}
+
+function athleteRequired(locale: string) {
+  return localized(locale, 'Välj en atlet', 'Select an athlete');
+}
+
+function testDateRequired(locale: string) {
+  return localized(locale, 'Ange testdatum', 'Enter a test date');
+}
+
+const createTt1kSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.TT_1K),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   dragFactor: z.number().min(80).max(200).optional(),
   rawData: z.object({
     distance: z.literal(1000),
@@ -59,10 +72,10 @@ const tt1kSchema = z.object({
   notes: z.string().optional(),
 });
 
-const tt2kSchema = z.object({
+const createTt2kSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.TT_2K),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   dragFactor: z.number().min(80).max(200).optional(),
   rawData: z.object({
     distance: z.literal(2000),
@@ -80,18 +93,23 @@ const tt2kSchema = z.object({
   notes: z.string().optional(),
 });
 
-type TT1KData = z.infer<typeof tt1kSchema>;
-type TT2KData = z.infer<typeof tt2kSchema>;
+type TT1KData = z.infer<ReturnType<typeof createTt1kSchema>>;
+type TT2KData = z.infer<ReturnType<typeof createTt2kSchema>>;
 
 export function Concept2SkiErgTestForm({ athletes, onSubmit, submitting }: Concept2SkiErgTestFormProps) {
   const [protocol, setProtocol] = useState<'TT_1K' | 'TT_2K'>('TT_1K');
+  const locale = useLocale();
+  const t = (sv: string, en: string) => localized(locale, sv, en);
 
   return (
     <div className="space-y-4">
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          SkiErg testar overkroppsuthallighet och styrka. 1K ar standard HYROX-distans.
+          {t(
+            'SkiErg testar överkroppsuthållighet och styrka. 1K är standard HYROX-distans.',
+            'SkiErg tests upper-body endurance and strength. 1K is the standard HYROX distance.'
+          )}
         </AlertDescription>
       </Alert>
 
@@ -108,11 +126,11 @@ export function Concept2SkiErgTestForm({ athletes, onSubmit, submitting }: Conce
         </TabsList>
 
         <TabsContent value="TT_1K">
-          <TT1KForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <TT1KForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="TT_2K">
-          <TT2KForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <TT2KForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
       </Tabs>
     </div>

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useLocale } from 'next-intl'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Info,
 } from 'lucide-react'
+
 
 interface HyroxAthleteProfileCardProps {
   // Race results for VDOT
@@ -382,14 +383,14 @@ export function HyroxAthleteProfileCard({
 
   if (!analysis) {
     return (
-      <Card className="border-dashed border-muted-foreground/30">
-        <CardContent className="py-8 text-center text-muted-foreground">
+      <GlassCard className="border-dashed border-muted-foreground/30 text-center" glow="slate">
+        <GlassCardContent className="py-8 text-muted-foreground">
           <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">
             {t(locale, 'Ange löptempo eller stationstider för att se din atletprofil', 'Enter running pace or station times to see your athlete profile')}
           </p>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     )
   }
 
@@ -404,14 +405,14 @@ export function HyroxAthleteProfileCard({
   const TypeIcon = typeInfo.icon
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
+    <GlassCard glow="blue">
+      <GlassCardHeader className="pb-3">
+        <GlassCardTitle className="text-lg flex items-center gap-2">
           <User className="h-5 w-5" />
           {t(locale, 'Atletprofil', 'Athlete profile')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </GlassCardTitle>
+      </GlassCardHeader>
+      <GlassCardContent className="space-y-4">
         {/* Profile Type Badge */}
         <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
           <div className={`p-2 rounded-full ${typeInfo.color}`}>
@@ -546,7 +547,7 @@ export function HyroxAthleteProfileCard({
             )}
           </p>
         </div>
-      </CardContent>
-    </Card>
-  )
-}
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }

@@ -28,7 +28,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard as Card,
+  GlassCardContent as CardContent,
+  GlassCardHeader as CardHeader,
+  GlassCardTitle as CardTitle,
+} from '@/components/ui/GlassCard'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
