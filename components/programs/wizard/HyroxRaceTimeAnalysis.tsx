@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
   Timer,
@@ -11,26 +11,14 @@ import {
   Target,
   AlertTriangle,
   CheckCircle,
-  Clock,
   Footprints,
   Dumbbell,
   ArrowRightLeft,
 } from 'lucide-react'
 
-// Types matching hyrox-benchmarks.ts
-interface StationTimes {
-  skierg: number | null
-  sledPush: number | null
-  sledPull: number | null
-  burpeeBroadJump: number | null
-  rowing: number | null
-  farmersCarry: number | null
-  sandbagLunge: number | null
-  wallBalls: number | null
-}
-
 type Gender = 'male' | 'female'
 type PerformanceLevel = 'world_class' | 'elite' | 'advanced' | 'intermediate' | 'beginner'
+type AppLocale = 'en' | 'sv'
 
 interface HyroxRaceTimeAnalysisProps {
   stationTimes: {
@@ -133,7 +121,12 @@ function getPerformanceLevelLabel(level: PerformanceLevel): { en: string; sv: st
   return labels[level]
 }
 
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
+
 export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTime }: HyroxRaceTimeAnalysisProps) {
+  const locale = getAppLocale(useLocale())
   const analysis = useMemo(() => {
     // Parse station times
     const parsedTimes: Record<string, number | null> = {
@@ -231,7 +224,9 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
       <Card className="border-dashed border-muted-foreground/30">
         <CardContent className="py-8 text-center text-muted-foreground">
           <Timer className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Fyll i minst 3 stationstider för att se analys</p>
+          <p className="text-sm">
+            {t(locale, 'Fyll i minst 3 stationstider för att se analys', 'Enter at least 3 station times to see the analysis')}
+          </p>
         </CardContent>
       </Card>
     )
@@ -244,28 +239,28 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <Timer className="h-5 w-5" />
-          Tävlingstidsanalys
+          {t(locale, 'Tävlingstidsanalys', 'Race time analysis')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Estimated Time & Level */}
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div>
-            <p className="text-sm text-muted-foreground">Beräknad tävlingstid</p>
+            <p className="text-sm text-muted-foreground">{t(locale, 'Beräknad tävlingstid', 'Estimated race time')}</p>
             <p className="text-3xl font-bold">{formatTime(analysis.estimatedTotal)}</p>
           </div>
           <Badge className={`${levelInfo.color} text-white`}>
-            {levelInfo.sv}
+            {levelInfo[locale]}
           </Badge>
         </div>
 
         {/* Time Breakdown */}
         <div className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">Tidsfördelning</p>
+          <p className="text-sm font-medium text-muted-foreground">{t(locale, 'Tidsfördelning', 'Time breakdown')}</p>
           <div className="grid grid-cols-3 gap-3">
             <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg text-center">
               <Footprints className="h-5 w-5 mx-auto mb-1 text-blue-600" />
-              <p className="text-xs text-muted-foreground">Löpning</p>
+              <p className="text-xs text-muted-foreground">{t(locale, 'Löpning', 'Running')}</p>
               <p className="font-semibold">{analysis.runningTotal > 0 ? formatTime(analysis.runningTotal) : '--'}</p>
               <p className="text-xs text-muted-foreground">
                 {analysis.runningTotal > 0 ? `${Math.round((analysis.runningTotal / analysis.estimatedTotal) * 100)}%` : ''}
@@ -273,7 +268,7 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
             </div>
             <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg text-center">
               <Dumbbell className="h-5 w-5 mx-auto mb-1 text-orange-600" />
-              <p className="text-xs text-muted-foreground">Stationer</p>
+              <p className="text-xs text-muted-foreground">{t(locale, 'Stationer', 'Stations')}</p>
               <p className="font-semibold">{formatTime(analysis.stationsTotal)}</p>
               <p className="text-xs text-muted-foreground">
                 {Math.round((analysis.stationsTotal / analysis.estimatedTotal) * 100)}%
@@ -281,7 +276,7 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
             </div>
             <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-center">
               <ArrowRightLeft className="h-5 w-5 mx-auto mb-1 text-gray-600" />
-              <p className="text-xs text-muted-foreground">Övergångar</p>
+              <p className="text-xs text-muted-foreground">{t(locale, 'Övergångar', 'Transitions')}</p>
               <p className="font-semibold">{formatTime(analysis.transitionsTotal)}</p>
               <p className="text-xs text-muted-foreground">
                 {Math.round((analysis.transitionsTotal / analysis.estimatedTotal) * 100)}%
@@ -298,20 +293,20 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
                 <>
                   <TrendingDown className="h-5 w-5 text-red-600" />
                   <span className="font-medium text-red-700 dark:text-red-400">
-                    {formatTime(Math.abs(analysis.timeToTarget))} över måltid
+                    {formatTime(Math.abs(analysis.timeToTarget))} {t(locale, 'över måltid', 'over target time')}
                   </span>
                 </>
               ) : (
                 <>
                   <TrendingUp className="h-5 w-5 text-green-600" />
                   <span className="font-medium text-green-700 dark:text-green-400">
-                    {formatTime(Math.abs(analysis.timeToTarget))} under måltid
+                    {formatTime(Math.abs(analysis.timeToTarget))} {t(locale, 'under måltid', 'under target time')}
                   </span>
                 </>
               )}
             </div>
             <p className="text-sm text-muted-foreground">
-              Måltid: {formatTime(analysis.targetTimeSeconds)}
+              {t(locale, 'Måltid', 'Target time')}: {formatTime(analysis.targetTimeSeconds)}
             </p>
           </div>
         )}
@@ -321,22 +316,22 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
               <AlertTriangle className="h-4 w-4" />
-              Prioriterade stationer
+              {t(locale, 'Prioriterade stationer', 'Priority stations')}
             </div>
             <div className="space-y-2">
               {analysis.weakStations.map((station) => (
                 <div key={station.station} className="p-3 bg-red-50 dark:bg-red-950 rounded-lg">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium">{STATION_LABELS[station.station].sv}</span>
+                    <span className="font-medium">{STATION_LABELS[station.station][locale]}</span>
                     <span className="text-sm text-red-600">+{Math.round(station.percentDiff)}%</span>
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Din tid: {formatTime(station.time)}</span>
-                    <span>Riktmärke: {formatTime(station.benchmark)}</span>
+                    <span>{t(locale, 'Din tid', 'Your time')}: {formatTime(station.time)}</span>
+                    <span>{t(locale, 'Riktmärke', 'Benchmark')}: {formatTime(station.benchmark)}</span>
                   </div>
                   {station.potentialSaving > 0 && (
                     <p className="text-xs text-green-600 mt-1">
-                      Potentiell besparing: {formatTime(station.potentialSaving)}
+                      {t(locale, 'Potentiell besparing', 'Potential saving')}: {formatTime(station.potentialSaving)}
                     </p>
                   )}
                 </div>
@@ -350,12 +345,12 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-green-600 dark:text-green-400">
               <CheckCircle className="h-4 w-4" />
-              Starka stationer
+              {t(locale, 'Starka stationer', 'Strong stations')}
             </div>
             <div className="flex flex-wrap gap-2">
               {analysis.strongStations.map((station) => (
                 <Badge key={station.station} variant="outline" className="bg-green-50 dark:bg-green-950">
-                  {STATION_LABELS[station.station].sv} ({Math.round(Math.abs(station.percentDiff))}% under)
+                  {STATION_LABELS[station.station][locale]} ({Math.round(Math.abs(station.percentDiff))}% {t(locale, 'under', 'under')})
                 </Badge>
               ))}
             </div>
@@ -364,7 +359,7 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
 
         {/* Station Progress Bars */}
         <div className="space-y-3">
-          <p className="text-sm font-medium text-muted-foreground">Alla stationer vs. riktmärke</p>
+          <p className="text-sm font-medium text-muted-foreground">{t(locale, 'Alla stationer vs. riktmärke', 'All stations vs. benchmark')}</p>
           {analysis.stationAnalysis.map((station) => {
             // Calculate progress relative to benchmark (100% = at benchmark)
             const progress = Math.min(150, Math.max(50, (station.benchmark / station.time) * 100))
@@ -377,7 +372,7 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
             return (
               <div key={station.station} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
-                  <span>{STATION_LABELS[station.station].sv}</span>
+                  <span>{STATION_LABELS[station.station][locale]}</span>
                   <span className={`font-medium ${
                     station.status === 'strong' ? 'text-green-600' :
                     station.status === 'weak' ? 'text-red-600' :
@@ -407,7 +402,7 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
               </span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Om du når riktmärkestider på svaga stationer
+              {t(locale, 'Om du når riktmärkestider på svaga stationer', 'If you reach benchmark times on weak stations')}
             </p>
           </div>
         )}
