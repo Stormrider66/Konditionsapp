@@ -143,13 +143,16 @@ function TT1KForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<TT1KData>({
-    resolver: zodResolver(tt1kSchema),
+    resolver: zodResolver(createTt1kSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.TT_1K,
       testDate: new Date().toISOString().split('T')[0],
@@ -175,7 +178,10 @@ function TT1KForm({
       <CardHeader>
         <CardTitle>1000m Time Trial (SkiErg)</CardTitle>
         <CardDescription>
-          Standard SkiErg-test och HYROX-distans. Skia 1000m sa snabbt som mojligt.
+          {t(
+            'Standard SkiErg-test och HYROX-distans. Skia 1000 m så snabbt som möjligt.',
+            'Standard SkiErg test and HYROX distance. Ski 1000 m as fast as possible.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -188,11 +194,11 @@ function TT1KForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -213,7 +219,7 @@ function TT1KForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -237,7 +243,7 @@ function TT1KForm({
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>Typiskt 80-100 for SkiErg</FormDescription>
+                    <FormDescription>{t('Typiskt 80-100 för SkiErg', 'Typically 80-100 for SkiErg')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -251,7 +257,7 @@ function TT1KForm({
                 name="rawData.time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Total tid (sek)</FormLabel>
+                    <FormLabel>{t('Total tid (sek)', 'Total time (sec)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -273,7 +279,7 @@ function TT1KForm({
                 name="rawData.avgPace"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tempo (sek/500m)</FormLabel>
+                    <FormLabel>{t('Tempo (sek/500 m)', 'Pace (sec/500 m)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -295,7 +301,7 @@ function TT1KForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -315,7 +321,7 @@ function TT1KForm({
                 name="rawData.avgStrokeRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tag/min</FormLabel>
+                    <FormLabel>{t('Tag/min', 'Strokes/min')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -335,7 +341,7 @@ function TT1KForm({
                 name="rawData.avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -355,7 +361,7 @@ function TT1KForm({
                 name="rawData.maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -398,9 +404,9 @@ function TT1KForm({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Valfria anteckningar..." />
+                      <Input {...field} placeholder={t('Valfria anteckningar...', 'Optional notes...')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -412,10 +418,10 @@ function TT1KForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -431,13 +437,16 @@ function TT2KForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<TT2KData>({
-    resolver: zodResolver(tt2kSchema),
+    resolver: zodResolver(createTt2kSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.TT_2K,
       testDate: new Date().toISOString().split('T')[0],
@@ -463,7 +472,10 @@ function TT2KForm({
       <CardHeader>
         <CardTitle>2000m Time Trial (SkiErg)</CardTitle>
         <CardDescription>
-          Langre uthallighetstest for att uppskatta troskelvarden.
+          {t(
+            'Längre uthållighetstest för att uppskatta tröskelvärden.',
+            'Longer endurance test for estimating threshold values.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -475,11 +487,11 @@ function TT2KForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -500,7 +512,7 @@ function TT2KForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -536,7 +548,7 @@ function TT2KForm({
                 name="rawData.time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Total tid (sek)</FormLabel>
+                    <FormLabel>{t('Total tid (sek)', 'Total time (sec)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -558,7 +570,7 @@ function TT2KForm({
                 name="rawData.avgPace"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tempo (sek/500m)</FormLabel>
+                    <FormLabel>{t('Tempo (sek/500 m)', 'Pace (sec/500 m)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -580,7 +592,7 @@ function TT2KForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -600,7 +612,7 @@ function TT2KForm({
                 name="rawData.avgStrokeRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tag/min</FormLabel>
+                    <FormLabel>{t('Tag/min', 'Strokes/min')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -620,7 +632,7 @@ function TT2KForm({
                 name="rawData.avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -640,7 +652,7 @@ function TT2KForm({
                 name="rawData.maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -682,9 +694,9 @@ function TT2KForm({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Valfria anteckningar..." />
+                      <Input {...field} placeholder={t('Valfria anteckningar...', 'Optional notes...')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -696,10 +708,10 @@ function TT2KForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
