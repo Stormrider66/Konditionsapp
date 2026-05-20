@@ -122,7 +122,15 @@ const TEMPLATE_GUIDANCE: Record<z.infer<typeof templateSchema>, string> = {
   ].join(' '),
 }
 
-const SYSTEM_PROMPT = `You are AI Canvas inside an elite training platform.
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function buildSystemPrompt(locale: AppLocale): string {
+  if (locale === 'sv') {
+    return `You are AI Canvas inside an elite training platform.
 
 Return structured Swedish coach-facing canvas blocks only. The blocks must help a coach produce work: reports, analytics summaries, planning notes, checklists, and follow-up actions.
 
@@ -136,6 +144,23 @@ Rules:
 - For report templates, create polished deliverable-style sections with clear headings, evidence, recommendations, and next steps.
 - Use chart blocks only for simple numeric series. A chart block must include chartType, points with numeric value, and a short content summary. Do not invent numeric chart values.
 - Prefer clear Swedish.`
+  }
+
+  return `You are AI Canvas inside an elite training platform.
+
+Return structured English coach-facing canvas blocks only. The blocks must help a coach produce work: reports, analytics summaries, planning notes, checklists, and follow-up actions.
+
+Rules:
+- Do not claim you used live athlete, team, test, readiness, or program data unless it is included in the prompt.
+- If the selected canvas context says it includes live read-only data, you may use those facts. Otherwise treat it as preferences only.
+- If data is missing, make that explicit in the content.
+- Keep recommendations coach-assistive, practical, and non-medical.
+- Do not say that you changed, saved, messaged, scheduled, or updated anything.
+- Always include a short assistantMessage explaining what you created or why the request is limited.
+- For report templates, create polished deliverable-style sections with clear headings, evidence, recommendations, and next steps.
+- Use chart blocks only for simple numeric series. A chart block must include chartType, points with numeric value, and a short content summary. Do not invent numeric chart values.
+- Prefer clear English.`
+}
 
 function isNextRedirectError(error: unknown): boolean {
   return error instanceof Error && (
@@ -145,8 +170,11 @@ function isNextRedirectError(error: unknown): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:generate', user.id, {
       limit: 12,
@@ -158,7 +186,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         {
-          error: 'Ogiltig canvasförfrågan.',
+          error: t(locale, 'Invalid canvas request.', 'Ogiltig canvasförfrågan.'),
           details: parsed.error.flatten(),
         },
         { status: 400 },
@@ -183,7 +211,11 @@ export async function POST(request: NextRequest) {
     if (!resolved) {
       return NextResponse.json(
         {
-          error: 'Ingen AI-nyckel är konfigurerad ännu. Lägg till en AI-nyckel i inställningarna och försök igen.',
+          error: t(
+            locale,
+            'No AI key is configured yet. Add an AI key in settings and try again.',
+            'Ingen AI-nyckel är konfigurerad ännu. Lägg till en AI-nyckel i inställningarna och försök igen.'
+          ),
         },
         { status: 400 },
       )
@@ -254,7 +286,7 @@ export async function POST(request: NextRequest) {
       () => generateObject({
         model,
         schema: canvasResponseSchema,
-        system: SYSTEM_PROMPT,
+        system: buildSystemPrompt(locale),
         prompt: [
           `Template: ${templateId}`,
           `Template guidance: ${TEMPLATE_GUIDANCE[templateId]}`,
@@ -286,13 +318,13 @@ export async function POST(request: NextRequest) {
     ].slice(0, 10)
     const assistantMessageAdditions = [
       analyticsBlocks.length > 0
-        ? `Jag lade även till ${analyticsBlocks.length} datadrivna analysblock.`
+        ? t(locale, `I also added ${analyticsBlocks.length} data-driven analytics block${analyticsBlocks.length === 1 ? '' : 's'}.`, `Jag lade även till ${analyticsBlocks.length} datadrivna analysblock.`)
         : '',
       skillsUsed.length > 0
-        ? `Jag använde även ${skillsUsed.length} relevanta kunskapsskill${skillsUsed.length === 1 ? '' : 's'}.`
+        ? t(locale, `I also used ${skillsUsed.length} relevant knowledge skill${skillsUsed.length === 1 ? '' : 's'}.`, `Jag använde även ${skillsUsed.length} relevanta kunskapsskill${skillsUsed.length === 1 ? '' : 's'}.`)
         : '',
       missingSelectedSkillIds.length > 0
-        ? `Jag kunde inte använda ${missingSelectedSkillIds.length} vald${missingSelectedSkillIds.length === 1 ? '' : 'a'} skill${missingSelectedSkillIds.length === 1 ? '' : 's'}.`
+        ? t(locale, `I could not use ${missingSelectedSkillIds.length} selected skill${missingSelectedSkillIds.length === 1 ? '' : 's'}.`, `Jag kunde inte använda ${missingSelectedSkillIds.length} vald${missingSelectedSkillIds.length === 1 ? '' : 'a'} skill${missingSelectedSkillIds.length === 1 ? '' : 's'}.`)
         : '',
     ].filter(Boolean)
 
@@ -318,7 +350,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Jag kunde inte skapa canvasblock just nu. Försök igen om en liten stund.',
+        error: t(locale, 'I could not create canvas blocks right now. Try again in a moment.', 'Jag kunde inte skapa canvasblock just nu. Försök igen om en liten stund.'),
       },
       { status: 500 },
     )

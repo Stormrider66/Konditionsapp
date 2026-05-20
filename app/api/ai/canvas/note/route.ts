@@ -52,6 +52,12 @@ const saveCanvasNoteSchema = z.object({
   blocks: z.array(canvasBlockSchema).min(1).max(80),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function isNextRedirectError(error: unknown): boolean {
   return error instanceof Error && (
     error.message === 'NEXT_REDIRECT' ||
@@ -59,7 +65,7 @@ function isNextRedirectError(error: unknown): boolean {
   )
 }
 
-function buildCoachNote(title: string, blocks: z.infer<typeof canvasBlockSchema>[], locale: 'en' | 'sv'): string {
+function buildCoachNote(title: string, blocks: z.infer<typeof canvasBlockSchema>[], locale: AppLocale): string {
   const timestamp = new Date().toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')
   const savedLabel = locale === 'sv' ? 'Sparad' : 'Saved'
   const markdown = canvasToMarkdown(title, blocks, false, locale).trim()
@@ -67,8 +73,11 @@ function buildCoachNote(title: string, blocks: z.infer<typeof canvasBlockSchema>
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:save-note', user.id, {
       limit: 20,
@@ -79,7 +88,7 @@ export async function POST(request: NextRequest) {
     const parsed = saveCanvasNoteSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Ogiltig anteckningsdata.', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid note data.', 'Ogiltig anteckningsdata.'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -104,10 +113,11 @@ export async function POST(request: NextRequest) {
     })
 
     if (!athlete) {
-      return NextResponse.json({ error: 'Jag kunde inte hitta atleten i den här coachytan.' }, { status: 404 })
+      return NextResponse.json({
+        error: t(locale, 'I could not find the athlete in this coach workspace.', 'Jag kunde inte hitta atleten i den här coachytan.'),
+      }, { status: 404 })
     }
 
-    const locale = user.language === 'sv' ? 'sv' : 'en'
     const note = buildCoachNote(parsed.data.title, parsed.data.blocks, locale)
     const nextNotes = [athlete.notes?.trim(), note].filter(Boolean).join('\n\n---\n\n')
 
@@ -126,6 +136,8 @@ export async function POST(request: NextRequest) {
     }
 
     logger.error('Save AI canvas as athlete note failed', {}, error)
-    return NextResponse.json({ error: 'Jag kunde inte spara canvasen som coachanteckning just nu.' }, { status: 500 })
+    return NextResponse.json({
+      error: t(locale, 'I could not save the canvas as a coach note right now.', 'Jag kunde inte spara canvasen som coachanteckning just nu.'),
+    }, { status: 500 })
   }
 }
