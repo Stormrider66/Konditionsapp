@@ -32,8 +32,12 @@ import {
   type WidgetCategory,
   type WidgetDefinition,
 } from '@/lib/dashboard/widget-registry'
+import { useLocale } from 'next-intl'
 
 type CoachMode = 'PT' | 'TEAM' | 'GYM'
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface PreferenceRow {
   widgetKey: string
@@ -49,6 +53,7 @@ interface WidgetState {
 }
 
 export default function CoachDashboardSettingsPage() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const basePath = useBasePath()
   const searchParams = useSearchParams()
   const initialMode = (searchParams.get('mode') as CoachMode) || 'PT'
@@ -69,12 +74,10 @@ export default function CoachDashboardSettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [saveMessageType, setSaveMessageType] = useState<'success' | 'error' | null>(null)
 
   // Reload preferences whenever mode changes (different prefs per mode).
   useEffect(() => {
-    setWidgets(buildDefaults())
-    setIsLoading(true)
-    setHasChanges(false)
     async function load() {
       try {
         const res = await fetch(`/api/dashboard/preferences?role=COACH&mode=${mode}`)
@@ -99,7 +102,13 @@ export default function CoachDashboardSettingsPage() {
         setIsLoading(false)
       }
     }
-    load()
+    const timeout = window.setTimeout(() => {
+      setWidgets(buildDefaults())
+      setIsLoading(true)
+      setHasChanges(false)
+      void load()
+    }, 0)
+    return () => window.clearTimeout(timeout)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
 
@@ -118,6 +127,7 @@ export default function CoachDashboardSettingsPage() {
     setWidgets(prev => prev.map(w => (w.key === widget.key ? { ...w, visible: value } : w)))
     setHasChanges(true)
     setSaveMessage(null)
+    setSaveMessageType(null)
   }
 
   function move(widget: WidgetState, direction: 'up' | 'down') {
@@ -139,6 +149,7 @@ export default function CoachDashboardSettingsPage() {
     )
     setHasChanges(true)
     setSaveMessage(null)
+    setSaveMessageType(null)
   }
 
   async function save() {
@@ -157,21 +168,24 @@ export default function CoachDashboardSettingsPage() {
       })
       if (res.ok) {
         setHasChanges(false)
-        setSaveMessage('Inställningar sparade!')
+        setSaveMessage(copy(locale, 'Settings saved!', 'Inställningar sparade!'))
+        setSaveMessageType('success')
         setTimeout(() => setSaveMessage(null), 3000)
       } else {
-        setSaveMessage('Kunde inte spara inställningar')
+        setSaveMessage(copy(locale, 'Could not save settings', 'Kunde inte spara inställningar'))
+        setSaveMessageType('error')
       }
     } catch (err) {
       console.error('Failed to save coach dashboard preferences', err)
-      setSaveMessage('Ett fel uppstod')
+      setSaveMessage(copy(locale, 'An error occurred', 'Ett fel uppstod'))
+      setSaveMessageType('error')
     } finally {
       setIsSaving(false)
     }
   }
 
   async function reset() {
-    if (!confirm('Återställ alla widgets till standardinställningar?')) return
+    if (!confirm(copy(locale, 'Reset all widgets to default settings?', 'Återställ alla widgets till standardinställningar?'))) return
     setIsSaving(true)
     try {
       const res = await fetch(`/api/dashboard/preferences?role=COACH&mode=${mode}`, {
@@ -180,7 +194,8 @@ export default function CoachDashboardSettingsPage() {
       if (res.ok) {
         setWidgets(buildDefaults())
         setHasChanges(false)
-        setSaveMessage('Återställt till standardinställningar')
+        setSaveMessage(copy(locale, 'Reset to default settings', 'Återställt till standardinställningar'))
+        setSaveMessageType('success')
         setTimeout(() => setSaveMessage(null), 3000)
       }
     } catch (err) {
@@ -215,10 +230,10 @@ export default function CoachDashboardSettingsPage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <LayoutDashboard className="h-6 w-6" />
-            Anpassa dashboard
+            {copy(locale, 'Customize dashboard', 'Anpassa dashboard')}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {visibleCount} av {totalCount} widgets synliga
+            {copy(locale, `${visibleCount} of ${totalCount} widgets visible`, `${visibleCount} av ${totalCount} widgets synliga`)}
           </p>
         </div>
       </div>
@@ -226,9 +241,9 @@ export default function CoachDashboardSettingsPage() {
       {/* Mode selector */}
       <GlassCard glow="blue">
         <GlassCardHeader>
-          <GlassCardTitle className="text-base">Dashboard-läge</GlassCardTitle>
+          <GlassCardTitle className="text-base">{copy(locale, 'Dashboard mode', 'Dashboard-läge')}</GlassCardTitle>
           <GlassCardDescription>
-            Du har separata inställningar för varje läge. Byt här för att anpassa ett annat läge.
+            {copy(locale, 'You have separate settings for each mode. Switch here to customize another mode.', 'Du har separata inställningar för varje läge. Byt här för att anpassa ett annat läge.')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
@@ -237,8 +252,8 @@ export default function CoachDashboardSettingsPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="PT">PT (personlig tränare)</SelectItem>
-              <SelectItem value="TEAM">Lag</SelectItem>
+              <SelectItem value="PT">{copy(locale, 'PT (personal trainer)', 'PT (personlig tränare)')}</SelectItem>
+              <SelectItem value="TEAM">{copy(locale, 'Team', 'Lag')}</SelectItem>
               <SelectItem value="GYM">Gym</SelectItem>
             </SelectContent>
           </Select>
@@ -254,7 +269,7 @@ export default function CoachDashboardSettingsPage() {
             <GlassCardHeader>
               <GlassCardTitle>{CATEGORY_LABELS[category]}</GlassCardTitle>
               <GlassCardDescription>
-                {items.length} widget{items.length === 1 ? '' : 's'} {'\u2022'} ändra ordning med pilarna
+                {copy(locale, `${items.length} widget${items.length === 1 ? '' : 's'} - reorder with the arrows`, `${items.length} widget${items.length === 1 ? '' : 's'} - ändra ordning med pilarna`)}
               </GlassCardDescription>
             </GlassCardHeader>
             <GlassCardContent className="space-y-3">
@@ -267,7 +282,7 @@ export default function CoachDashboardSettingsPage() {
                       className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
                       disabled={idx === 0}
                       onClick={() => move(w, 'up')}
-                      aria-label="Flytta upp"
+                      aria-label={copy(locale, 'Move up', 'Flytta upp')}
                     >
                       <ChevronUp className="h-4 w-4" />
                     </Button>
@@ -277,7 +292,7 @@ export default function CoachDashboardSettingsPage() {
                       className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
                       disabled={idx === items.length - 1}
                       onClick={() => move(w, 'down')}
-                      aria-label="Flytta ner"
+                      aria-label={copy(locale, 'Move down', 'Flytta ner')}
                     >
                       <ChevronDown className="h-4 w-4" />
                     </Button>
@@ -287,7 +302,7 @@ export default function CoachDashboardSettingsPage() {
                       {w.definition.name}
                       {w.definition.required && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                          <Lock className="h-3 w-3" /> krävs
+                          <Lock className="h-3 w-3" /> {copy(locale, 'required', 'krävs')}
                         </span>
                       )}
                     </Label>
@@ -315,12 +330,12 @@ export default function CoachDashboardSettingsPage() {
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={reset} disabled={isSaving} className="border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5">
             <RotateCcw className="h-4 w-4 mr-2" />
-            Återställ
+            {copy(locale, 'Reset', 'Återställ')}
           </Button>
           {saveMessage && (
             <p
               className={`text-sm font-semibold ${
-                saveMessage.includes('sparade') || saveMessage.includes('Återställt')
+                saveMessageType === 'success'
                   ? 'text-green-600 dark:text-green-400'
                   : 'text-red-600 dark:text-red-400'
               }`}
@@ -329,7 +344,7 @@ export default function CoachDashboardSettingsPage() {
             </p>
           )}
           {hasChanges && !saveMessage && (
-            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">Osparade ändringar</p>
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{copy(locale, 'Unsaved changes', 'Osparade ändringar')}</p>
           )}
         </div>
         <Button 
@@ -343,12 +358,12 @@ export default function CoachDashboardSettingsPage() {
           {isSaving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Sparar...
+              {copy(locale, 'Saving...', 'Sparar...')}
             </>
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Spara
+              {copy(locale, 'Save', 'Spara')}
             </>
           )}
         </Button>
