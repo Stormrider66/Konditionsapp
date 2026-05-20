@@ -30,9 +30,11 @@ import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 type AppLocale = 'en' | 'sv'
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach();
-    const locale = getUserLocale(user.language)
+    locale = getUserLocale(user.language)
 
     // Subscription gate (coach-level)
     const denied = await requireCoachFeatureAccess(user.id, 'lactate_ocr')
@@ -173,7 +175,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Could not read the lactate meter',
+        error: t(locale, 'Could not read the lactate meter', 'Kunde inte läsa laktatmätaren'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
