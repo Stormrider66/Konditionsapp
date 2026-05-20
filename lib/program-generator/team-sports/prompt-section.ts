@@ -98,7 +98,7 @@ const COURT_SPORT_PROMPTS: Record<string, CourtSportPromptConfig> = {
 }
 
 export function buildTeamSportPromptSection(input: TeamSportPromptInput): string {
-  const locale = input.locale === 'en' ? 'en' : 'sv'
+  const locale = input.locale === 'sv' ? 'sv' : 'en'
   const variant = input.variant || 'compact'
   const goal = input.goal || 'in-season-maintenance'
 

@@ -154,7 +154,7 @@ export function ManagedAgentsMonitor() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Managed Agents</h2>
-          <p className="text-muted-foreground">Övervakning av AI-agenter</p>
+          <p className="text-muted-foreground">AI agent monitoring</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge className={modeConfig.color}>{modeConfig.label}</Badge>
@@ -196,7 +196,7 @@ export function ManagedAgentsMonitor() {
               <span className="text-sm text-muted-foreground">Tokens</span>
             </div>
             <p className="text-2xl font-bold mt-1">{formatTokens(data.summary.totalTokens)}</p>
-            <p className="text-xs text-muted-foreground">{data.summary.totalEvents} händelser</p>
+            <p className="text-xs text-muted-foreground">{data.summary.totalEvents} events</p>
           </GlassCardContent>
         </GlassCard>
 
@@ -270,7 +270,7 @@ export function ManagedAgentsMonitor() {
               )
             })}
             {Object.keys(data.byAgentType).length === 0 && (
-              <p className="text-center text-muted-foreground py-4">Inga agentsessioner ännu</p>
+              <p className="text-center text-muted-foreground py-4">No agent sessions yet</p>
             )}
           </div>
         </GlassCardContent>
@@ -281,7 +281,7 @@ export function ManagedAgentsMonitor() {
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle>Kostnadstrend</GlassCardTitle>
-            <GlassCardDescription>Daglig kostnad och tokenanvändning</GlassCardDescription>
+            <GlassCardDescription>Daily cost and token usage</GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -320,8 +320,8 @@ export function ManagedAgentsMonitor() {
       {Object.keys(data.eventDistribution).length > 0 && (
         <GlassCard>
           <GlassCardHeader>
-            <GlassCardTitle>Händelsefördelning</GlassCardTitle>
-            <GlassCardDescription>Vilka händelser triggar agenterna</GlassCardDescription>
+            <GlassCardTitle>Event Distribution</GlassCardTitle>
+            <GlassCardDescription>Which events trigger agents</GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent>
             <ResponsiveContainer width="100%" height={200}>
@@ -347,8 +347,8 @@ export function ManagedAgentsMonitor() {
       {/* Recent Events Feed */}
       <GlassCard>
         <GlassCardHeader>
-          <GlassCardTitle>Senaste händelser</GlassCardTitle>
-          <GlassCardDescription>De 20 senaste agenthändelserna</GlassCardDescription>
+          <GlassCardTitle>Recent Events</GlassCardTitle>
+          <GlassCardDescription>The 20 latest agent events</GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
           <div className="space-y-2">
@@ -360,7 +360,7 @@ export function ManagedAgentsMonitor() {
                 <div key={event.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/20 text-sm">
                   <div className={`w-2 h-2 rounded-full ${event.processed ? 'bg-green-500' : 'bg-yellow-500'}`} />
                   <span className="text-muted-foreground w-16 text-xs">
-                    {new Date(event.createdAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(event.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <Badge variant="outline" className="text-xs">
                     {event.eventType.replace('GARMIN_', '').replace('_', ' ')}
@@ -380,7 +380,7 @@ export function ManagedAgentsMonitor() {
               )
             })}
             {data.recentEvents.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">Inga händelser ännu</p>
+              <p className="text-center text-muted-foreground py-4">No events yet</p>
             )}
           </div>
         </GlassCardContent>
@@ -392,9 +392,9 @@ export function ManagedAgentsMonitor() {
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-yellow-400" />
-              Shadow Mode Jämförelse
+              Shadow Mode Comparison
             </GlassCardTitle>
-            <GlassCardDescription>Agent vs cron-beslut (skuggläge)</GlassCardDescription>
+            <GlassCardDescription>Agent vs. cron decisions in shadow mode</GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent>
             <div className="grid grid-cols-2 gap-4">

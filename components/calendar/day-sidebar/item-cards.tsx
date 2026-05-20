@@ -125,7 +125,7 @@ function mapEventImpact(impact: string | undefined) {
 }
 
 function toDateLocaleCode(locale: string | undefined): 'en' | 'sv' {
-  return locale?.startsWith('en') ? 'en' : 'sv'
+  return locale?.startsWith('sv') ? 'sv' : 'en'
 }
 
 function safePreview(value: unknown) {

@@ -21,7 +21,7 @@ export function formatFuelingPlanContext(
   options: FuelingPlanContextOptions = {}
 ): string | null {
   if (!plan) return null
-  const locale = options.locale === 'en' ? 'en' : 'sv'
+  const locale = options.locale === 'sv' ? 'sv' : 'en'
 
   const parts = [
     options.includeName ? plan.name : null,

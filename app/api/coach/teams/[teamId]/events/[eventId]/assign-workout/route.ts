@@ -21,14 +21,15 @@ function workoutTypeField(type: string) {
   return null
 }
 
-function timeValue(date: Date | null) {
+function timeValue(date: Date | null, locale: 'en' | 'sv') {
   if (!date) return null
-  return date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return date.toLocaleTimeString(locale === 'sv' ? 'sv-SE' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
@@ -93,8 +94,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const assignedDate = new Date(event.startDate)
     assignedDate.setHours(0, 0, 0, 0)
     const notes = parsed.data.notes || event.description || null
-    const startTime = event.allDay ? null : timeValue(event.startDate)
-    const endTime = event.allDay ? null : timeValue(event.endDate)
+    const startTime = event.allDay ? null : timeValue(event.startDate, locale)
+    const endTime = event.allDay ? null : timeValue(event.endDate, locale)
 
     const result = await prisma.$transaction(async (tx) => {
       const broadcast = await tx.teamWorkoutBroadcast.create({
