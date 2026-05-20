@@ -4,13 +4,11 @@ import { useState, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
+import { IceHockeyRink } from './IceHockeyRink'
 import {
-  HOCKEY_DRILL_TEMPLATES,
-  DRILL_CATEGORIES,
-  SPORT_CATEGORIES,
-  DRILL_SPORTS,
-  getTemplatesBySport,
+  getDrillSports,
+  getLocalizedTemplatesBySport,
+  getSportCategories,
   type DrillTemplate,
   type DrillCategory,
 } from '@/lib/drills/templates'
@@ -22,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Copy, Users, ChevronDown, ChevronUp } from 'lucide-react'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface DrillTemplateLibraryProps {
   onSelect: (template: DrillTemplate) => void
@@ -39,9 +37,14 @@ export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
   const [selectedCategory, setSelectedCategory] = useState<DrillCategory | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const t = useTranslations('components.drillTemplate')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
 
-  const sportCategories = SPORT_CATEGORIES[selectedSport] || DRILL_CATEGORIES
-  const templates = useMemo(() => getTemplatesBySport(selectedSport, selectedCategory || undefined), [selectedSport, selectedCategory])
+  const drillSports = useMemo(() => getDrillSports(locale), [locale])
+  const sportCategories = useMemo(() => getSportCategories(selectedSport, locale), [selectedSport, locale])
+  const templates = useMemo(
+    () => getLocalizedTemplatesBySport(selectedSport, selectedCategory || undefined, locale),
+    [selectedSport, selectedCategory, locale]
+  )
 
   return (
     <div className="space-y-4">
@@ -51,7 +54,7 @@ export function DrillTemplateLibrary({ onSelect }: DrillTemplateLibraryProps) {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {DRILL_SPORTS.map((s) => (
+          {drillSports.map((s) => (
             <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
           ))}
         </SelectContent>

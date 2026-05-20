@@ -21,6 +21,8 @@ export interface DrillTemplate {
   structure: DrillStructure
 }
 
+type DrillLocale = 'en' | 'sv'
+
 export type DrillCategory =
   | 'breakout'
   | 'forecheck'
@@ -42,6 +44,18 @@ export const DRILL_CATEGORIES: { value: DrillCategory; label: string }[] = [
   { value: 'shooting', label: 'Skottövning' },
   { value: 'passing', label: 'Passningsövning' },
   { value: 'warmup', label: 'Uppvärmning' },
+]
+
+const DRILL_CATEGORIES_EN: { value: DrillCategory; label: string }[] = [
+  { value: 'breakout', label: 'Breakout' },
+  { value: 'forecheck', label: 'Forecheck' },
+  { value: 'powerplay', label: 'Power play' },
+  { value: 'penaltykill', label: 'Penalty kill' },
+  { value: 'regroup', label: 'Regroup' },
+  { value: 'rush', label: 'Rush' },
+  { value: 'shooting', label: 'Shooting drill' },
+  { value: 'passing', label: 'Passing drill' },
+  { value: 'warmup', label: 'Warm-up' },
 ]
 
 export const HOCKEY_DRILL_TEMPLATES: DrillTemplate[] = [
@@ -493,6 +507,56 @@ export const SPORT_CATEGORIES: Record<string, { value: string; label: string }[]
   ],
 }
 
+const SPORT_CATEGORIES_EN: Record<string, { value: string; label: string }[]> = {
+  ICE_HOCKEY: DRILL_CATEGORIES_EN,
+  FOOTBALL: [
+    { value: 'passing', label: 'Passing' },
+    { value: 'shooting', label: 'Shooting drill' },
+    { value: 'dribbling', label: 'Dribbling' },
+    { value: 'pressing', label: 'Pressing' },
+    { value: 'possession', label: 'Possession' },
+    { value: 'set_piece', label: 'Set pieces' },
+    { value: 'warmup', label: 'Warm-up' },
+    { value: 'conditioning', label: 'Conditioning' },
+  ],
+  BASKETBALL: [
+    { value: 'fast_break', label: 'Fast break' },
+    { value: 'half_court', label: 'Half-court play' },
+    { value: 'defense', label: 'Defense' },
+    { value: 'shooting', label: 'Shooting drill' },
+    { value: 'passing', label: 'Passing' },
+    { value: 'warmup', label: 'Warm-up' },
+    { value: 'conditioning', label: 'Conditioning' },
+  ],
+  HANDBALL: [
+    { value: 'fast_break', label: 'Fast break' },
+    { value: 'set_play', label: 'Set play' },
+    { value: 'defense', label: 'Defense' },
+    { value: 'shooting', label: 'Shooting drill' },
+    { value: 'wing_play', label: 'Wing play' },
+    { value: 'warmup', label: 'Warm-up' },
+    { value: 'conditioning', label: 'Conditioning' },
+  ],
+  FLOORBALL: [
+    { value: 'breakout', label: 'Breakout' },
+    { value: 'forecheck', label: 'Forecheck' },
+    { value: 'powerplay', label: 'Power play' },
+    { value: 'shooting', label: 'Shooting drill' },
+    { value: 'passing', label: 'Passing' },
+    { value: 'warmup', label: 'Warm-up' },
+    { value: 'conditioning', label: 'Conditioning' },
+  ],
+  VOLLEYBALL: [
+    { value: 'serving', label: 'Serve' },
+    { value: 'receiving', label: 'Receiving' },
+    { value: 'setting', label: 'Setting' },
+    { value: 'attacking', label: 'Attack' },
+    { value: 'blocking', label: 'Blocking' },
+    { value: 'defense', label: 'Defense' },
+    { value: 'warmup', label: 'Warm-up' },
+  ],
+}
+
 /** Supported drill sports with display labels */
 export const DRILL_SPORTS = [
   { value: 'ICE_HOCKEY', label: 'Ishockey' },
@@ -502,6 +566,82 @@ export const DRILL_SPORTS = [
   { value: 'FLOORBALL', label: 'Innebandy' },
   { value: 'VOLLEYBALL', label: 'Volleyboll' },
 ]
+
+const DRILL_SPORTS_EN = [
+  { value: 'ICE_HOCKEY', label: 'Ice hockey' },
+  { value: 'FOOTBALL', label: 'Football' },
+  { value: 'BASKETBALL', label: 'Basketball' },
+  { value: 'HANDBALL', label: 'Handball' },
+  { value: 'FLOORBALL', label: 'Floorball' },
+  { value: 'VOLLEYBALL', label: 'Volleyball' },
+]
+
+const TEMPLATE_EN: Record<string, {
+  name: string
+  description: string
+  zones?: Record<string, string>
+  annotations?: Record<string, string>
+}> = {
+  'breakout-basic-5v0': {
+    name: 'Breakout 5v0 - Basic drill',
+    description: 'Basic breakout from the defensive zone. Defenseman retrieves the puck, passes to center, and wings support along the boards.',
+    zones: { z1: 'Defensive zone' },
+    annotations: { a1: '1. Defense retrieves', a2: '2. Center receives' },
+  },
+  'breakout-reverse': {
+    name: 'Breakout - Reverse',
+    description: 'Reverse breakout. Defenseman skates behind the net, partner supports, and the puck moves to the far-side wing.',
+  },
+  'forecheck-1-2-2': {
+    name: 'Forecheck 1-2-2',
+    description: '1-2-2 forecheck system. F1 pressures the puck carrier, F2/F3 cover flanks, and defensemen hold the blue line.',
+    annotations: { a2: 'Blue line' },
+  },
+  'forecheck-2-1-2': {
+    name: 'Forecheck 2-1-2 (aggressive)',
+    description: 'Aggressive 2-1-2 forecheck. Two forwards pressure high, center covers the middle, and defensemen support.',
+    zones: { z1: 'High pressure' },
+  },
+  'pp-umbrella': {
+    name: 'Power play - Umbrella (1-3-1)',
+    description: 'Classic 1-3-1 power-play setup. Point shoots, half-wall players rotate, and the net-front player screens.',
+    zones: { z1: 'PP zone' },
+  },
+  'pp-overload': {
+    name: 'Power play - Overload',
+    description: 'Overload power play with three players on one side. Quick passing opens shooting lanes.',
+    annotations: { a1: 'Overload side' },
+  },
+  'pk-diamond': {
+    name: 'Penalty kill - Diamond',
+    description: 'Diamond (1-2-1) penalty-kill formation. Aggressive high pressure while low players protect the slot.',
+    annotations: { a1: 'Protect slot' },
+  },
+  'regroup-swing': {
+    name: 'Regroup - Swing',
+    description: 'Neutral-zone regroup with a swing pass. Defensemen receive, change sides, and move the puck forward.',
+    zones: { z1: 'Neutral zone' },
+  },
+  'rush-3v2': {
+    name: '3-on-2 Rush',
+    description: 'Three forwards attack against two defensemen. The middle player pulls a defender and passes to the open wing.',
+    annotations: { a1: 'Pull defender', a2: 'Shot!' },
+  },
+  'shooting-cross-ice': {
+    name: 'Shooting drill - Cross-ice',
+    description: 'Cross-ice shooting drill. Pass across the ice, receive, and shoot immediately.',
+  },
+  'passing-triangle': {
+    name: 'Passing drill - Triangle',
+    description: 'Quick triangle passing. Three stations with constant rotation after each pass.',
+    annotations: { a1: 'Rotate after pass' },
+  },
+  'warmup-figure8': {
+    name: 'Warm-up - Figure eight',
+    description: 'Skating drill in a figure-eight pattern around cones. Focus on edge work and crossovers.',
+    annotations: { a2: 'Edge work' },
+  },
+}
 
 /**
  * Get templates filtered by sport and/or category.
@@ -520,4 +660,45 @@ export function getTemplatesBySport(sport: string, category?: string): DrillTemp
   }
   // Return empty for other sports — coaches use AI generation or manual editor
   return []
+}
+
+export function getDrillSports(locale: DrillLocale = 'en'): { value: string; label: string }[] {
+  return locale === 'sv' ? DRILL_SPORTS : DRILL_SPORTS_EN
+}
+
+export function getSportCategories(sport: string, locale: DrillLocale = 'en'): { value: string; label: string }[] {
+  if (locale === 'sv') return SPORT_CATEGORIES[sport] || DRILL_CATEGORIES
+  return SPORT_CATEGORIES_EN[sport] || DRILL_CATEGORIES_EN
+}
+
+export function localizeDrillTemplate(template: DrillTemplate, locale: DrillLocale = 'en'): DrillTemplate {
+  if (locale === 'sv') return template
+
+  const english = TEMPLATE_EN[template.id]
+  if (!english) return template
+
+  return {
+    ...template,
+    name: english.name,
+    description: english.description,
+    structure: {
+      ...template.structure,
+      zones: template.structure.zones?.map((zone) => ({
+        ...zone,
+        label: english.zones?.[zone.id] ?? zone.label,
+      })),
+      annotations: template.structure.annotations?.map((annotation) => ({
+        ...annotation,
+        text: english.annotations?.[annotation.id] ?? annotation.text,
+      })),
+    },
+  }
+}
+
+export function getLocalizedTemplatesBySport(
+  sport: string,
+  category?: string,
+  locale: DrillLocale = 'en'
+): DrillTemplate[] {
+  return getTemplatesBySport(sport, category).map((template) => localizeDrillTemplate(template, locale))
 }

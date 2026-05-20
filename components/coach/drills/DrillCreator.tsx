@@ -18,9 +18,9 @@ import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import { InteractiveDrillEditor } from './InteractiveDrillEditor'
 import { toast } from 'sonner'
-import { DRILL_SPORTS } from '@/lib/drills/templates'
+import { getDrillSports } from '@/lib/drills/templates'
 import type { DrillSportType } from '@/remotion/drills/surfaces'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Team {
   id: string
@@ -34,6 +34,8 @@ interface DrillCreatorProps {
 
 export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreatorProps) {
   const t = useTranslations('components.drills')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const drillSports = getDrillSports(locale)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -333,7 +335,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
                 title={title || t('common.defaultTitle')}
                 description={description || undefined}
                 structure={structure}
-                locale="sv"
+                locale={locale}
                 sportType={sportType as DrillSportType}
               />
             ) : (
@@ -374,7 +376,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
                     title={title || t('common.defaultTitle')}
                     description={description || undefined}
                     structure={structure}
-                    locale="sv"
+                    locale={locale}
                     sportType={sportType as DrillSportType}
                   />
                 ) : (
@@ -404,7 +406,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {DRILL_SPORTS.map((s) => (
+                    {drillSports.map((s) => (
                       <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                     ))}
                   </SelectContent>
