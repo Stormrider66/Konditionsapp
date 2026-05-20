@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { WorkoutFeedbackModal } from '@/components/coach/WorkoutFeedbackModal'
-import { getTranslations } from '@/i18n/server'
+import { getLocale, getTranslations } from '@/i18n/server'
+import type { Prisma } from '@prisma/client'
 
 interface AthleteLogsPageProps {
   params: Promise<{
@@ -42,6 +43,8 @@ export default async function AthleteLogsPage({
   searchParams
 }: AthleteLogsPageProps) {
   const t = await getTranslations('components.athleteLogsPage')
+  const locale = await getLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const user = await requireCoach()
   const { businessSlug, id } = await params
   const basePath = businessSlug ? `/${businessSlug}` : ''
@@ -76,7 +79,7 @@ export default async function AthleteLogsPage({
   }
 
   // Build where clause for filters
-  const whereClause: any = {
+  const whereClause: Prisma.WorkoutLogWhereInput = {
     athleteId: client.athleteAccount.userId,
   }
 
@@ -286,7 +289,7 @@ export default async function AthleteLogsPage({
                     <TableRow key={log.id}>
                       <TableCell className="font-medium">
                         {log.completedAt
-                          ? new Date(log.completedAt).toLocaleDateString('sv-SE', {
+                          ? new Date(log.completedAt).toLocaleDateString(dateLocale, {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',
