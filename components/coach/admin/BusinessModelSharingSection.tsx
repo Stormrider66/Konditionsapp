@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2, Save, Shield, Users } from 'lucide-react'
+import { useLocale } from 'next-intl'
 import { useToast } from '@/hooks/use-toast'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
@@ -39,15 +40,19 @@ const providerNames: Record<string, string> = {
   OPENAI: 'GPT',
 }
 
-function getCostTier(model: EligibleModel): string {
+type AppLocale = 'en' | 'sv'
+
+function getCostTier(model: EligibleModel, locale: AppLocale): string {
   const cost = model.inputCostPer1k ?? 0
-  if (cost >= 0.01) return 'Hög'
-  if (cost >= 0.001) return 'Medel'
-  return 'Låg'
+  if (cost >= 0.01) return locale === 'sv' ? 'Hög' : 'High'
+  if (cost >= 0.001) return locale === 'sv' ? 'Medel' : 'Medium'
+  return locale === 'sv' ? 'Låg' : 'Low'
 }
 
 export function BusinessModelSharingSection() {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = (en: string, sv: string) => locale === 'sv' ? sv : en
   const businessHeaders = useBusinessAdminHeaders()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -78,7 +83,7 @@ export function BusinessModelSharingSection() {
   }, [businessHeaders])
 
   useEffect(() => {
-    fetchSettings()
+    void fetchSettings()
   }, [fetchSettings])
 
   function handleToggleCoachModel(modelId: string, checked: boolean) {
@@ -128,20 +133,20 @@ export function BusinessModelSharingSection() {
       const data = await response.json()
       if (data.success) {
         toast({
-          title: 'Inställningar sparade',
-          description: 'Modellåtkomsten har uppdaterats.',
+          title: copy('Settings saved', 'Inställningar sparade'),
+          description: copy('Model access has been updated.', 'Modellåtkomsten har uppdaterats.'),
         })
       } else {
         toast({
-          title: 'Kunde inte spara',
-          description: data.error || 'Försök igen.',
+          title: copy('Could not save', 'Kunde inte spara'),
+          description: data.error || copy('Try again.', 'Försök igen.'),
           variant: 'destructive',
         })
       }
     } catch {
       toast({
-        title: 'Kunde inte spara',
-        description: 'Ett oväntat fel uppstod.',
+        title: copy('Could not save', 'Kunde inte spara'),
+        description: copy('An unexpected error occurred.', 'Ett oväntat fel uppstod.'),
         variant: 'destructive',
       })
     } finally {
@@ -180,11 +185,13 @@ export function BusinessModelSharingSection() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Shield className="h-5 w-5" />
-            Modellåtkomst för coacher
+            {copy('Model access for coaches', 'Modellåtkomst för coacher')}
           </CardTitle>
           <CardDescription>
-            Välj vilka AI-modeller coacher i din verksamhet kan använda.
-            Lämna alla omarkerade för att tillåta alla tillgängliga modeller.
+            {copy(
+              'Choose which AI models coaches in your business can use. Leave all unchecked to allow every available model.',
+              'Välj vilka AI-modeller coacher i din verksamhet kan använda. Lämna alla omarkerade för att tillåta alla tillgängliga modeller.',
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -205,7 +212,7 @@ export function BusinessModelSharingSection() {
                       {providerNames[model.provider]}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
-                      {getCostTier(model)} kostnad
+                      {getCostTier(model, locale)} {copy('cost', 'kostnad')}
                     </Badge>
                   </div>
                 </div>
@@ -215,21 +222,21 @@ export function BusinessModelSharingSection() {
 
           {coachAllowedIds.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Inga modeller markerade = alla tillgängliga modeller tillåtna.
+              {copy('No models selected = all available models are allowed.', 'Inga modeller markerade = alla tillgängliga modeller tillåtna.')}
             </p>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Standardmodell för coacher</label>
+            <label className="text-sm font-medium">{copy('Default model for coaches', 'Standardmodell för coacher')}</label>
             <Select
               value={coachDefaultModelId ?? 'auto'}
               onValueChange={(v) => setCoachDefaultModelId(v === 'auto' ? null : v)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Automatisk (systemstandard)" />
+                <SelectValue placeholder={copy('Automatic (system default)', 'Automatisk (systemstandard)')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="auto">Automatisk (systemstandard)</SelectItem>
+                <SelectItem value="auto">{copy('Automatic (system default)', 'Automatisk (systemstandard)')}</SelectItem>
                 {coachDefaultCandidates.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
                     {model.displayName} ({providerNames[model.provider]})
@@ -246,11 +253,13 @@ export function BusinessModelSharingSection() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5" />
-            Modellåtkomst för atleter
+            {copy('Model access for athletes', 'Modellåtkomst för atleter')}
           </CardTitle>
           <CardDescription>
-            Välj vilka AI-modeller atleter i din verksamhet kan använda.
-            Lämna alla omarkerade för att tillåta alla tillgängliga modeller.
+            {copy(
+              'Choose which AI models athletes in your business can use. Leave all unchecked to allow every available model.',
+              'Välj vilka AI-modeller atleter i din verksamhet kan använda. Lämna alla omarkerade för att tillåta alla tillgängliga modeller.',
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -271,7 +280,7 @@ export function BusinessModelSharingSection() {
                       {providerNames[model.provider]}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
-                      {getCostTier(model)} kostnad
+                      {getCostTier(model, locale)} {copy('cost', 'kostnad')}
                     </Badge>
                   </div>
                 </div>
@@ -281,28 +290,31 @@ export function BusinessModelSharingSection() {
 
           {athleteEligibleModels.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Inga modeller är tillgängliga för atleter. Kontrollera att modeller är markerade som tillgängliga för atleter i systemet.
+              {copy(
+                'No models are available for athletes. Check that models are marked as available for athletes in the system.',
+                'Inga modeller är tillgängliga för atleter. Kontrollera att modeller är markerade som tillgängliga för atleter i systemet.',
+              )}
             </p>
           )}
 
           {athleteEligibleModels.length > 0 && athleteAllowedIds.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Inga modeller markerade = alla tillgängliga modeller tillåtna.
+              {copy('No models selected = all available models are allowed.', 'Inga modeller markerade = alla tillgängliga modeller tillåtna.')}
             </p>
           )}
 
           {athleteEligibleModels.length > 0 && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Standardmodell för atleter</label>
+              <label className="text-sm font-medium">{copy('Default model for athletes', 'Standardmodell för atleter')}</label>
               <Select
                 value={athleteDefaultModelId ?? 'auto'}
                 onValueChange={(v) => setAthleteDefaultModelId(v === 'auto' ? null : v)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Automatisk (systemstandard)" />
+                  <SelectValue placeholder={copy('Automatic (system default)', 'Automatisk (systemstandard)')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="auto">Automatisk (systemstandard)</SelectItem>
+                  <SelectItem value="auto">{copy('Automatic (system default)', 'Automatisk (systemstandard)')}</SelectItem>
                   {athleteDefaultCandidates.map((model) => (
                     <SelectItem key={model.id} value={model.id}>
                       {model.displayName} ({providerNames[model.provider]})
@@ -322,7 +334,7 @@ export function BusinessModelSharingSection() {
         ) : (
           <Save className="h-4 w-4 mr-2" />
         )}
-        Spara modellåtkomst
+        {copy('Save model access', 'Spara modellåtkomst')}
       </Button>
     </div>
   )
