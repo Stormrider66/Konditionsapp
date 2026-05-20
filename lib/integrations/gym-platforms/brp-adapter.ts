@@ -37,17 +37,17 @@ export class BrpAdapter implements GymPlatformAdapter {
     if (!config.apiKey) {
       return {
         success: false,
-        error: 'BRP/Wondr kräver partneravtal. Kontakta BRP Systems på brpsystems.com för API-åtkomst.',
+        error: 'BRP/Wondr requires a partner agreement. Contact BRP Systems at brpsystems.com for API access.',
       }
     }
 
     try {
       const res = await brpFetch('/facilities', config)
       if (res.ok) return { success: true }
-      if (res.status === 401) return { success: false, error: 'Ogiltiga API-uppgifter' }
-      return { success: false, error: `BRP API svarade med status ${res.status}` }
+      if (res.status === 401) return { success: false, error: 'Invalid API credentials' }
+      return { success: false, error: `BRP API responded with status ${res.status}` }
     } catch (err) {
-      return { success: false, error: `Kunde inte ansluta till BRP: ${err}` }
+      return { success: false, error: `Could not connect to BRP: ${err}` }
     }
   }
 

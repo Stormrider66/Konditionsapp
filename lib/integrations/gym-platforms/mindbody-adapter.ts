@@ -37,24 +37,24 @@ export class MindBodyAdapter implements GymPlatformAdapter {
     if (!config.apiKey) {
       return {
         success: false,
-        error: 'API-nyckel saknas. Skapa ett gratis konto på developers.mindbodyonline.com',
+        error: 'API key is missing. Create a free account at developers.mindbodyonline.com',
       }
     }
 
     if (!config.siteId) {
       return {
         success: false,
-        error: 'Site ID saknas. Ange ditt MindBody Site ID (finns i affärsinställningarna).',
+        error: 'Site ID is missing. Enter your MindBody Site ID from the business settings.',
       }
     }
 
     try {
       const res = await mindbodyFetch('/site/sites', config)
       if (res.ok) return { success: true }
-      if (res.status === 401) return { success: false, error: 'Ogiltiga API-uppgifter eller saknad site-aktivering' }
-      return { success: false, error: `MindBody API svarade med status ${res.status}` }
+      if (res.status === 401) return { success: false, error: 'Invalid API credentials or missing site activation' }
+      return { success: false, error: `MindBody API responded with status ${res.status}` }
     } catch (err) {
-      return { success: false, error: `Kunde inte ansluta till MindBody: ${err}` }
+      return { success: false, error: `Could not connect to MindBody: ${err}` }
     }
   }
 

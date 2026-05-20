@@ -25,17 +25,17 @@ export class BokaDirektAdapter implements GymPlatformAdapter {
     if (!config.apiKey) {
       return {
         success: false,
-        error: 'API-nyckel saknas. API-åtkomst ingår i Boka Direkts premiumplan. Hitta din nyckel i affärsinställningarna.',
+        error: 'API key is missing. API access is included in Boka Direkt premium plans. Find your key in the business settings.',
       }
     }
 
     try {
       const res = await bokadirektFetch('/business/me', config.apiKey)
       if (res.ok) return { success: true }
-      if (res.status === 401) return { success: false, error: 'Ogiltig API-nyckel' }
-      return { success: false, error: `Boka Direkt API svarade med status ${res.status}` }
+      if (res.status === 401) return { success: false, error: 'Invalid API key' }
+      return { success: false, error: `Boka Direkt API responded with status ${res.status}` }
     } catch (err) {
-      return { success: false, error: `Kunde inte ansluta till Boka Direkt: ${err}` }
+      return { success: false, error: `Could not connect to Boka Direkt: ${err}` }
     }
   }
 

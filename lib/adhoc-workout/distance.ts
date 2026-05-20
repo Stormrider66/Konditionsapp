@@ -23,7 +23,7 @@ export function normalizeParsedWorkoutDistance(workout: ParsedWorkout): ParsedWo
     return workout
   }
 
-  const warning = 'Distans konverterades automatiskt från km till meter'
+  const warning = 'Distance was automatically converted from km to meters'
 
   return {
     ...workout,
