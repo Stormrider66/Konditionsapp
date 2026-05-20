@@ -530,7 +530,7 @@ export default function BusinessClientDetailPage() {
         ? sortedAndFilteredTests
         : client.tests
 
-      exportClientTestsToCSV(testsToExport, client.name)
+      exportClientTestsToCSV(testsToExport, client.name, locale)
 
       toast({
         title: t('toasts.exportSuccessTitle'),

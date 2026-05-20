@@ -227,7 +227,7 @@ export default function BusinessClientsPage() {
     }
 
     try {
-      exportClientsToCSV(filteredClients)
+      exportClientsToCSV(filteredClients, locale)
       toast({
         title: t('toasts.exportSuccessTitle'),
         description: t('toasts.exportSuccessDescription', { count: filteredClients.length }),
