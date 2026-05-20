@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mountain } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface SkiingPerformanceFormProps {
   clientId: string
@@ -21,37 +22,47 @@ interface SkiingPerformanceFormProps {
   onCancel?: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 const EVENT_TYPES = [
-  { value: 'RACE', label: 'Tävling' },
-  { value: 'VASALOPPET', label: 'Vasaloppet (90km)' },
-  { value: 'HALF_VASA', label: 'Halvvasan (45km)' },
-  { value: 'TJEJVASAN', label: 'Tjejvasan (30km)' },
-  { value: 'OPEN_TRACK', label: 'Öppet spår' },
-  { value: 'TIME_TRIAL', label: 'Tempo/Test' },
-  { value: 'INTERVAL_TEST', label: 'Intervalltest' },
-  { value: 'TRAINING', label: 'Träningspass' },
+  { value: 'RACE', label: { sv: 'Tävling', en: 'Race' } },
+  { value: 'VASALOPPET', label: { sv: 'Vasaloppet (90km)', en: 'Vasaloppet (90km)' } },
+  { value: 'HALF_VASA', label: { sv: 'Halvvasan (45km)', en: 'Halvvasan (45km)' } },
+  { value: 'TJEJVASAN', label: { sv: 'Tjejvasan (30km)', en: 'Tjejvasan (30km)' } },
+  { value: 'OPEN_TRACK', label: { sv: 'Öppet spår', en: 'Open track' } },
+  { value: 'TIME_TRIAL', label: { sv: 'Tempo/Test', en: 'Time trial/test' } },
+  { value: 'INTERVAL_TEST', label: { sv: 'Intervalltest', en: 'Interval test' } },
+  { value: 'TRAINING', label: { sv: 'Träningspass', en: 'Training session' } },
 ]
 
 const TECHNIQUES = [
-  { value: 'CLASSIC', label: 'Klassisk' },
-  { value: 'SKATE', label: 'Fristil (skating)' },
-  { value: 'BOTH', label: 'Dubbeljakt' },
+  { value: 'CLASSIC', label: { sv: 'Klassisk', en: 'Classic' } },
+  { value: 'SKATE', label: { sv: 'Fristil (skating)', en: 'Skate' } },
+  { value: 'BOTH', label: { sv: 'Dubbeljakt', en: 'Skiathlon' } },
 ]
 
 const TERRAIN_TYPES = [
-  { value: 'FLAT', label: 'Platt' },
-  { value: 'ROLLING', label: 'Lätt kuperat' },
-  { value: 'HILLY', label: 'Kuperat' },
-  { value: 'MOUNTAINOUS', label: 'Fjäll' },
+  { value: 'FLAT', label: { sv: 'Platt', en: 'Flat' } },
+  { value: 'ROLLING', label: { sv: 'Lätt kuperat', en: 'Rolling' } },
+  { value: 'HILLY', label: { sv: 'Kuperat', en: 'Hilly' } },
+  { value: 'MOUNTAINOUS', label: { sv: 'Fjäll', en: 'Mountainous' } },
 ]
 
 const SNOW_CONDITIONS = [
-  { value: 'HARD', label: 'Hårt/Isigt' },
-  { value: 'FAST', label: 'Snabbt/Kallt' },
-  { value: 'MEDIUM', label: 'Normalt' },
-  { value: 'SOFT', label: 'Mjukt/Varmt' },
-  { value: 'WET', label: 'Blött/Klister' },
-  { value: 'FRESH', label: 'Nysnö' },
+  { value: 'HARD', label: { sv: 'Hårt/Isigt', en: 'Hard/icy' } },
+  { value: 'FAST', label: { sv: 'Snabbt/Kallt', en: 'Fast/cold' } },
+  { value: 'MEDIUM', label: { sv: 'Normalt', en: 'Normal' } },
+  { value: 'SOFT', label: { sv: 'Mjukt/Varmt', en: 'Soft/warm' } },
+  { value: 'WET', label: { sv: 'Blött/Klister', en: 'Wet/klister' } },
+  { value: 'FRESH', label: { sv: 'Nysnö', en: 'Fresh snow' } },
 ]
 
 export function SkiingPerformanceForm({
@@ -59,6 +70,7 @@ export function SkiingPerformanceForm({
   onSuccess,
   onCancel,
 }: SkiingPerformanceFormProps) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -155,7 +167,7 @@ export function SkiingPerformanceForm({
     setError(null)
 
     if (!eventDate) {
-      setError('Ange datum')
+      setError(text(locale, 'Ange datum', 'Enter a date'))
       setIsSubmitting(false)
       return
     }
@@ -187,7 +199,7 @@ export function SkiingPerformanceForm({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Kunde inte spara')
+        throw new Error(data.error || text(locale, 'Kunde inte spara', 'Could not save'))
       }
 
       if (onSuccess) {
@@ -196,7 +208,7 @@ export function SkiingPerformanceForm({
         router.refresh()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : text(locale, 'Ett fel uppstod', 'An error occurred'))
     } finally {
       setIsSubmitting(false)
     }
@@ -206,13 +218,13 @@ export function SkiingPerformanceForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center gap-2 text-sky-600 mb-4">
         <Mountain className="h-5 w-5" />
-        <span className="font-medium">Längdskidåkning - Prestationslogg</span>
+        <span className="font-medium">{text(locale, 'Längdskidåkning - Prestationslogg', 'Cross-country skiing - Performance log')}</span>
       </div>
 
       {/* Event Type & Date */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Typ av lopp *</Label>
+          <Label>{text(locale, 'Typ av lopp *', 'Event type *')}</Label>
           <Select value={eventType} onValueChange={handleEventTypeChange}>
             <SelectTrigger>
               <SelectValue />
@@ -220,7 +232,7 @@ export function SkiingPerformanceForm({
             <SelectContent>
               {EVENT_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value}>
-                  {type.label}
+                  {type.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -228,7 +240,7 @@ export function SkiingPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Datum *</Label>
+          <Label>{text(locale, 'Datum *', 'Date *')}</Label>
           <Input
             type="date"
             value={eventDate}
@@ -241,7 +253,7 @@ export function SkiingPerformanceForm({
       {/* Event Name & Distance */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Loppnamn</Label>
+          <Label>{text(locale, 'Loppnamn', 'Event name')}</Label>
           <Input
             placeholder="Vasaloppet, Marcialonga..."
             value={eventName}
@@ -250,7 +262,7 @@ export function SkiingPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Distans (km) *</Label>
+          <Label>{text(locale, 'Distans (km) *', 'Distance (km) *')}</Label>
           <Input
             type="number"
             step="0.1"
@@ -265,7 +277,7 @@ export function SkiingPerformanceForm({
       {/* Technique & Terrain */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Teknik</Label>
+          <Label>{text(locale, 'Teknik', 'Technique')}</Label>
           <Select value={technique} onValueChange={setTechnique}>
             <SelectTrigger>
               <SelectValue />
@@ -273,7 +285,7 @@ export function SkiingPerformanceForm({
             <SelectContent>
               {TECHNIQUES.map((t) => (
                 <SelectItem key={t.value} value={t.value}>
-                  {t.label}
+                  {t.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -281,7 +293,7 @@ export function SkiingPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Terräng</Label>
+          <Label>{text(locale, 'Terräng', 'Terrain')}</Label>
           <Select value={terrain} onValueChange={setTerrain}>
             <SelectTrigger>
               <SelectValue />
@@ -289,7 +301,7 @@ export function SkiingPerformanceForm({
             <SelectContent>
               {TERRAIN_TYPES.map((t) => (
                 <SelectItem key={t.value} value={t.value}>
-                  {t.label}
+                  {t.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -299,10 +311,10 @@ export function SkiingPerformanceForm({
 
       {/* Time */}
       <div className="p-4 bg-sky-50 rounded-lg space-y-3">
-        <Label className="text-sky-800 font-medium">⏱️ Tid</Label>
+        <Label className="text-sky-800 font-medium">{text(locale, '⏱️ Tid', '⏱️ Time')}</Label>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground">Timmar</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Timmar', 'Hours')}</Label>
             <Input
               type="number"
               min="0"
@@ -312,7 +324,7 @@ export function SkiingPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Minuter</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Minuter', 'Minutes')}</Label>
             <Input
               type="number"
               min="0"
@@ -323,7 +335,7 @@ export function SkiingPerformanceForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Sekunder</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Sekunder', 'Seconds')}</Label>
             <Input
               type="number"
               min="0"
@@ -336,8 +348,8 @@ export function SkiingPerformanceForm({
         </div>
         {(calculatePace() || calculateSpeed()) && (
           <div className="flex gap-4 text-sm text-sky-700">
-            {calculatePace() && <span>Tempo: <strong>{calculatePace()}</strong></span>}
-            {calculateSpeed() && <span>Fart: <strong>{calculateSpeed()}</strong></span>}
+            {calculatePace() && <span>{text(locale, 'Tempo', 'Pace')}: <strong>{calculatePace()}</strong></span>}
+            {calculateSpeed() && <span>{text(locale, 'Fart', 'Speed')}: <strong>{calculateSpeed()}</strong></span>}
           </div>
         )}
       </div>
@@ -345,7 +357,7 @@ export function SkiingPerformanceForm({
       {/* Snow & Weather */}
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label>Snöförhållanden</Label>
+          <Label>{text(locale, 'Snöförhållanden', 'Snow conditions')}</Label>
           <Select value={snowConditions} onValueChange={setSnowConditions}>
             <SelectTrigger>
               <SelectValue />
@@ -353,7 +365,7 @@ export function SkiingPerformanceForm({
             <SelectContent>
               {SNOW_CONDITIONS.map((s) => (
                 <SelectItem key={s.value} value={s.value}>
-                  {s.label}
+                  {s.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -361,7 +373,7 @@ export function SkiingPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Temperatur (°C)</Label>
+          <Label>{text(locale, 'Temperatur (°C)', 'Temperature (°C)')}</Label>
           <Input
             type="number"
             placeholder="-5"
@@ -371,7 +383,7 @@ export function SkiingPerformanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Höjd (m.ö.h.)</Label>
+          <Label>{text(locale, 'Höjd (m.ö.h.)', 'Altitude (m.a.s.l.)')}</Label>
           <Input
             type="number"
             placeholder="400"
@@ -384,7 +396,7 @@ export function SkiingPerformanceForm({
       {/* Heart Rate */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Snitt puls</Label>
+          <Label>{text(locale, 'Snitt puls', 'Average heart rate')}</Label>
           <Input
             type="number"
             placeholder="155"
@@ -393,7 +405,7 @@ export function SkiingPerformanceForm({
           />
         </div>
         <div className="space-y-2">
-          <Label>Max puls</Label>
+          <Label>{text(locale, 'Max puls', 'Max heart rate')}</Label>
           <Input
             type="number"
             placeholder="180"
@@ -405,9 +417,9 @@ export function SkiingPerformanceForm({
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label>Anteckningar</Label>
+        <Label>{text(locale, 'Anteckningar', 'Notes')}</Label>
         <Textarea
-          placeholder="Känsla, valla, utrustning, taktik..."
+          placeholder={text(locale, 'Känsla, valla, utrustning, taktik...', 'Feeling, wax, equipment, tactics...')}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
@@ -424,17 +436,17 @@ export function SkiingPerformanceForm({
       <div className="flex justify-end gap-3">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Avbryt
+            {text(locale, 'Avbryt', 'Cancel')}
           </Button>
         )}
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sparar...
+              {text(locale, 'Sparar...', 'Saving...')}
             </>
           ) : (
-            'Spara resultat'
+            text(locale, 'Spara resultat', 'Save result')
           )}
         </Button>
       </div>
