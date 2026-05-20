@@ -14,8 +14,9 @@ const updateOrganizationSchema = z.object({
   name: z.string().min(2, 'Organization name must be at least 2 characters').max(100).optional(),
   description: z.string().max(500).optional(),
   sportType: z.enum([
-    'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'STRENGTH',
-    'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL'
+    'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH',
+    'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL', 'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL',
+    'TENNIS', 'PADEL'
   ]).optional().nullable(),
 })
 

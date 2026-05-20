@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Building2, Users, UserPlus, Shield, Check, ChevronRight, Trash2, Plus } from 'lucide-react'
+import { Users, UserPlus, Shield, Check, ChevronRight, Trash2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface TeamDraft {
@@ -75,6 +75,8 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
     { value: 'TEAM_FLOORBALL', label: t('sports.teamFloorball') },
     { value: 'TEAM_BASKETBALL', label: t('sports.teamBasketball') },
     { value: 'TEAM_VOLLEYBALL', label: t('sports.teamVolleyball') },
+    { value: 'TENNIS', label: 'Tennis' },
+    { value: 'PADEL', label: 'Padel' },
     { value: 'RUNNING', label: t('sports.running') },
     { value: 'CYCLING', label: t('sports.cycling') },
     { value: 'SWIMMING', label: t('sports.swimming') },
