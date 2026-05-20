@@ -30,6 +30,7 @@ import {
   ThumbsDown,
   Meh,
 } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface RehabProgressLoggerProps {
   programId: string
@@ -41,6 +42,16 @@ interface RehabProgressLoggerProps {
   variant?: 'default' | 'glass'
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale.startsWith('sv') ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 export function RehabProgressLogger({
   programId,
   programName,
@@ -50,6 +61,7 @@ export function RehabProgressLogger({
   onSuccess,
   variant = 'glass',
 }: RehabProgressLoggerProps) {
+  const locale = getAppLocale(useLocale())
   const isGlass = variant === 'glass'
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -73,8 +85,8 @@ export function RehabProgressLogger({
   const handleSubmit = async () => {
     if (overallFeeling === null) {
       toast({
-        title: 'Välj känsla',
-        description: 'Ange hur du kände dig efter passet.',
+        title: text(locale, 'Välj känsla', 'Choose feeling'),
+        description: text(locale, 'Ange hur du kände dig efter passet.', 'Enter how you felt after the session.'),
         variant: 'destructive',
       })
       return
@@ -104,8 +116,8 @@ export function RehabProgressLogger({
 
       setIsSubmitted(true)
       toast({
-        title: 'Progress loggad',
-        description: 'Din framsteg har sparats.',
+        title: text(locale, 'Progress loggad', 'Progress logged'),
+        description: text(locale, 'Dina framsteg har sparats.', 'Your progress has been saved.'),
       })
 
       if (onSuccess) {
@@ -114,8 +126,8 @@ export function RehabProgressLogger({
     } catch (error) {
       console.error('Error logging progress:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte spara progress. Försök igen.',
+        title: text(locale, 'Fel', 'Error'),
+        description: text(locale, 'Kunde inte spara progress. Försök igen.', 'Could not save progress. Try again.'),
         variant: 'destructive',
       })
     } finally {
@@ -128,8 +140,8 @@ export function RehabProgressLogger({
       <GlassCard className={cn(!isGlass && 'bg-card', 'border-teal-500/20')}>
         <GlassCardContent className="py-12 text-center">
           <CheckCircle2 className="h-16 w-16 text-teal-500 mx-auto mb-4" />
-          <h3 className="text-xl font-black text-white mb-2">Bra jobbat!</h3>
-          <p className="text-slate-400">Din progress har sparats.</p>
+          <h3 className="text-xl font-black text-white mb-2">{text(locale, 'Bra jobbat!', 'Good work!')}</h3>
+          <p className="text-slate-400">{text(locale, 'Dina framsteg har sparats.', 'Your progress has been saved.')}</p>
         </GlassCardContent>
       </GlassCard>
     )
@@ -139,10 +151,10 @@ export function RehabProgressLogger({
     <GlassCard className={cn(!isGlass && 'bg-card', 'border-teal-500/20')}>
       <GlassCardHeader>
         <GlassCardTitle className="text-xl font-black tracking-tight">
-          Logga träningspass
+          {text(locale, 'Logga träningspass', 'Log training session')}
         </GlassCardTitle>
         <GlassCardDescription className="text-slate-400">
-          {programName} - {exerciseCount} övningar
+          {programName} - {exerciseCount} {text(locale, 'övningar', 'exercises')}
         </GlassCardDescription>
       </GlassCardHeader>
 
@@ -159,15 +171,15 @@ export function RehabProgressLogger({
               className="h-6 w-6 border-2 border-teal-500/50 data-[state=checked]:bg-teal-500 data-[state=checked]:border-teal-500"
             />
             <div>
-              <p className="font-bold text-white">Jag slutförde alla övningar</p>
-              <p className="text-sm text-slate-500">Alla {exerciseCount} övningar genomfördes</p>
+              <p className="font-bold text-white">{text(locale, 'Jag slutförde alla övningar', 'I completed all exercises')}</p>
+              <p className="text-sm text-slate-500">{text(locale, 'Alla', 'All')} {exerciseCount} {text(locale, 'övningar genomfördes', 'exercises were completed')}</p>
             </div>
           </div>
 
           {!allExercisesCompleted && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
               <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-                Antal överhoppade övningar
+                {text(locale, 'Antal överhoppade övningar', 'Number of skipped exercises')}
               </label>
               <div className="flex items-center gap-4">
                 <Slider
@@ -190,7 +202,7 @@ export function RehabProgressLogger({
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-              Smärta under övningarna
+              {text(locale, 'Smärta under övningarna', 'Pain during exercises')}
             </span>
             <span className={cn('text-2xl font-black tabular-nums', getPainColor(painDuring, acceptablePainDuring))}>
               {painDuring}
@@ -205,13 +217,13 @@ export function RehabProgressLogger({
             className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-teal-600 [&_[role=slider]]:bg-white"
           />
           <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
-            <span>Ingen smärta</span>
-            <span>Extrem smärta</span>
+            <span>{text(locale, 'Ingen smärta', 'No pain')}</span>
+            <span>{text(locale, 'Extrem smärta', 'Extreme pain')}</span>
           </div>
           {painDuring > acceptablePainDuring && (
             <div className="flex items-center gap-2 text-xs text-yellow-400 p-2 rounded-lg bg-yellow-500/10">
               <AlertCircle className="h-4 w-4" />
-              <span>Smärtan översteg acceptabel nivå ({acceptablePainDuring}/10).</span>
+              <span>{text(locale, 'Smärtan översteg acceptabel nivå', 'Pain exceeded the acceptable level')} ({acceptablePainDuring}/10).</span>
             </div>
           )}
         </div>
@@ -220,7 +232,7 @@ export function RehabProgressLogger({
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-              Smärta efter övningarna
+              {text(locale, 'Smärta efter övningarna', 'Pain after exercises')}
             </span>
             <span className={cn('text-2xl font-black tabular-nums', getPainColor(painAfter, acceptablePainAfter))}>
               {painAfter}
@@ -235,15 +247,15 @@ export function RehabProgressLogger({
             className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-teal-600 [&_[role=slider]]:bg-white"
           />
           <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
-            <span>Ingen smärta</span>
-            <span>Extrem smärta</span>
+            <span>{text(locale, 'Ingen smärta', 'No pain')}</span>
+            <span>{text(locale, 'Extrem smärta', 'Extreme pain')}</span>
           </div>
         </div>
 
         {/* Overall feeling */}
         <div className="space-y-3">
           <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-            Hur kändes passet överlag?
+            {text(locale, 'Hur kändes passet överlag?', 'How did the session feel overall?')}
           </label>
           <div className="grid grid-cols-3 gap-3">
             <Button
@@ -258,7 +270,7 @@ export function RehabProgressLogger({
               )}
             >
               <ThumbsUp className="h-6 w-6" />
-              <span className="text-xs font-bold">Bra</span>
+              <span className="text-xs font-bold">{text(locale, 'Bra', 'Good')}</span>
             </Button>
             <Button
               type="button"
@@ -272,7 +284,7 @@ export function RehabProgressLogger({
               )}
             >
               <Meh className="h-6 w-6" />
-              <span className="text-xs font-bold">Okej</span>
+              <span className="text-xs font-bold">{text(locale, 'Okej', 'Okay')}</span>
             </Button>
             <Button
               type="button"
@@ -286,7 +298,7 @@ export function RehabProgressLogger({
               )}
             >
               <ThumbsDown className="h-6 w-6" />
-              <span className="text-xs font-bold">Dåligt</span>
+              <span className="text-xs font-bold">{text(locale, 'Dåligt', 'Bad')}</span>
             </Button>
           </div>
         </div>
@@ -294,12 +306,12 @@ export function RehabProgressLogger({
         {/* Notes */}
         <div className="space-y-2">
           <label className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-            Anteckningar (valfritt)
+            {text(locale, 'Anteckningar (valfritt)', 'Notes (optional)')}
           </label>
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Hur gick passet? Några problem eller framsteg att notera..."
+            placeholder={text(locale, 'Hur gick passet? Några problem eller framsteg att notera...', 'How did the session go? Any problems or progress to note...')}
             className="bg-white/5 border-white/10 min-h-[100px] rounded-xl text-white"
           />
         </div>
@@ -312,8 +324,8 @@ export function RehabProgressLogger({
             className="h-6 w-6 border-2 border-blue-500/50 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
           />
           <div>
-            <p className="font-bold text-white">Jag vill kontakta min fysioterapeut</p>
-            <p className="text-sm text-slate-500">Din fysio får en notifikation</p>
+            <p className="font-bold text-white">{text(locale, 'Jag vill kontakta min fysioterapeut', 'I want to contact my physiotherapist')}</p>
+            <p className="text-sm text-slate-500">{text(locale, 'Din fysio får en notifikation', 'Your physio will receive a notification')}</p>
           </div>
         </div>
 
@@ -326,12 +338,12 @@ export function RehabProgressLogger({
           {isSubmitting ? (
             <>
               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Sparar...
+              {text(locale, 'Sparar...', 'Saving...')}
             </>
           ) : (
             <>
               <Send className="h-5 w-5 mr-2" />
-              Spara progress
+              {text(locale, 'Spara progress', 'Save progress')}
             </>
           )}
         </Button>
