@@ -24,9 +24,10 @@ import {
   Loader2,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { GlassCard } from '@/components/ui/GlassCard'
 
@@ -58,6 +59,61 @@ interface AthleteAttentionCardProps {
   onResolve: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+const labels: Record<AppLocale, {
+  training: string
+  pain: string
+  critical: string
+  high: string
+  medium: string
+  low: string
+  average: string
+  days: string
+  daysSince: string
+  missedWorkouts: string
+  risk: string
+  viewProfile: string
+  contact: string
+  dismiss: string
+  handled: string
+}> = {
+  en: {
+    training: 'Training',
+    pain: 'Pain',
+    critical: 'Critical',
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+    average: 'Average',
+    days: 'Days',
+    daysSince: 'Days since',
+    missedWorkouts: 'Missed workouts',
+    risk: 'Risk',
+    viewProfile: 'View profile',
+    contact: 'Contact',
+    dismiss: 'Dismiss',
+    handled: 'Handled',
+  },
+  sv: {
+    training: 'Träning',
+    pain: 'Smärta',
+    critical: 'Kritisk',
+    high: 'Hög',
+    medium: 'Medel',
+    low: 'Låg',
+    average: 'Snitt',
+    days: 'Dagar',
+    daysSince: 'Dagar sedan',
+    missedWorkouts: 'Missade pass',
+    risk: 'Risk',
+    viewProfile: 'Visa profil',
+    contact: 'Kontakta',
+    dismiss: 'Avfärda',
+    handled: 'Hanterad',
+  },
+}
+
 const alertTypeConfig = {
   READINESS_DROP: {
     icon: TrendingDown,
@@ -73,13 +129,13 @@ const alertTypeConfig = {
   },
   MISSED_WORKOUTS: {
     icon: Activity,
-    label: 'Träning',
+    labelKey: 'training',
     color: 'text-purple-600 dark:text-purple-400',
     bg: 'bg-purple-100 dark:bg-purple-900/30',
   },
   PAIN_MENTION: {
     icon: MessageSquare,
-    label: 'Smärta',
+    labelKey: 'pain',
     color: 'text-red-600 dark:text-red-400',
     bg: 'bg-red-100 dark:bg-red-900/30',
   },
@@ -95,22 +151,22 @@ const severityConfig = {
   CRITICAL: {
     border: 'border-l-red-500',
     badge: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200',
-    label: 'Kritisk',
+    labelKey: 'critical',
   },
   HIGH: {
     border: 'border-l-orange-500',
     badge: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200',
-    label: 'Hög',
+    labelKey: 'high',
   },
   MEDIUM: {
     border: 'border-l-yellow-500',
     badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200',
-    label: 'Medel',
+    labelKey: 'medium',
   },
   LOW: {
     border: 'border-l-blue-500',
     badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200',
-    label: 'Låg',
+    labelKey: 'low',
   },
 }
 
@@ -120,6 +176,9 @@ export function AthleteAttentionCard({
   onAction,
   onResolve,
 }: AthleteAttentionCardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = labels[locale]
+  const dateLocale = locale === 'sv' ? sv : enUS
   const [isExpanded, setIsExpanded] = useState(false)
   const [isActioning, setIsActioning] = useState(false)
   const pathname = usePathname()
@@ -139,7 +198,7 @@ export function AthleteAttentionCard({
 
   const timeAgo = formatDistanceToNow(new Date(alert.createdAt), {
     addSuffix: true,
-    locale: sv,
+    locale: dateLocale,
   })
 
   // Extract context details for display
@@ -147,21 +206,21 @@ export function AthleteAttentionCard({
   const contextDetails: { label: string; value: string }[] = []
 
   if (alert.alertType === 'READINESS_DROP' && context.avgReadiness) {
-    contextDetails.push({ label: 'Snitt', value: `${(context.avgReadiness as number).toFixed(1)}/10` })
-    contextDetails.push({ label: 'Dagar', value: `${context.days}` })
+    contextDetails.push({ label: copy.average, value: `${(context.avgReadiness as number).toFixed(1)}/10` })
+    contextDetails.push({ label: copy.days, value: `${context.days}` })
   }
 
   if (alert.alertType === 'MISSED_CHECKINS' && context.daysSinceLastCheckIn) {
-    contextDetails.push({ label: 'Dagar sedan', value: `${context.daysSinceLastCheckIn}` })
+    contextDetails.push({ label: copy.daysSince, value: `${context.daysSinceLastCheckIn}` })
   }
 
   if (alert.alertType === 'MISSED_WORKOUTS' && context.missedCount) {
-    contextDetails.push({ label: 'Missade pass', value: `${context.missedCount}` })
+    contextDetails.push({ label: copy.missedWorkouts, value: `${context.missedCount}` })
   }
 
   if (alert.alertType === 'HIGH_ACWR' && context.acwr) {
     contextDetails.push({ label: 'ACWR', value: `${(context.acwr as number).toFixed(2)}` })
-    contextDetails.push({ label: 'Risk', value: `${context.injuryRisk}` })
+    contextDetails.push({ label: copy.risk, value: `${context.injuryRisk}` })
   }
 
   const alertGlow = alert.severity === 'CRITICAL' ? 'red' : alert.severity === 'HIGH' ? 'amber' : alert.severity === 'MEDIUM' ? 'amber' : 'blue'
@@ -185,7 +244,7 @@ export function AthleteAttentionCard({
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-sm truncate text-slate-900 dark:text-white">{alert.client.name}</span>
                 <Badge variant="secondary" className={cn('text-xs', severity.badge)}>
-                  {severity.label}
+                  {copy[severity.labelKey as keyof typeof copy]}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground truncate mt-0.5">
@@ -210,7 +269,7 @@ export function AthleteAttentionCard({
         {/* Time and type */}
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <Badge variant="outline" className="text-xs font-normal">
-            {typeConfig.label}
+            {'labelKey' in typeConfig ? copy[typeConfig.labelKey as keyof typeof copy] : typeConfig.label}
           </Badge>
           <span>{timeAgo}</span>
           {alert.client.sportProfile?.primarySport && (
@@ -254,7 +313,7 @@ export function AthleteAttentionCard({
             >
               <Link href={`${basePath}/coach/clients/${alert.clientId}`}>
                 <Eye className="h-3 w-3 mr-1" />
-                Visa profil
+                {copy.viewProfile}
               </Link>
             </Button>
             <Button
@@ -265,7 +324,7 @@ export function AthleteAttentionCard({
             >
               <Link href={`${basePath}/coach/messages?to=${alert.clientId}`}>
                 <MessageCircle className="h-3 w-3 mr-1" />
-                Kontakta
+                {copy.contact}
               </Link>
             </Button>
             <div className="flex-1" />
@@ -276,7 +335,7 @@ export function AthleteAttentionCard({
               onClick={onDismiss}
             >
               <X className="h-3 w-3 mr-1" />
-              Avfärda
+              {copy.dismiss}
             </Button>
             <Button
               variant="default"
@@ -290,7 +349,7 @@ export function AthleteAttentionCard({
               ) : (
                 <>
                   <Check className="h-3 w-3 mr-1" />
-                  Hanterad
+                  {copy.handled}
                 </>
               )}
             </Button>
