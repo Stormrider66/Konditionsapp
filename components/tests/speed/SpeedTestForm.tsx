@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Timer, Repeat, Gauge } from 'lucide-react'
@@ -30,6 +31,8 @@ interface SpeedTestFormProps {
 type SpeedTestType = 'sprint' | 'rsa'
 
 export function SpeedTestForm({ clients, onTestSaved }: SpeedTestFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [testType, setTestType] = useState<SpeedTestType>('sprint')
   const [savedTests, setSavedTests] = useState<any[]>([])
 
@@ -44,12 +47,14 @@ export function SpeedTestForm({ clients, onTestSaved }: SpeedTestFormProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Gauge className="h-5 w-5" />
-            Hastighetstest
+            {locale === 'sv' ? 'Hastighetstest' : 'Speed tests'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {locale === 'sv'
+              ? 'Inga klienter hittades. Lägg till klienter för att kunna registrera test.'
+              : 'No clients found. Add clients before registering tests.'}
           </p>
         </CardContent>
       </Card>
@@ -62,10 +67,12 @@ export function SpeedTestForm({ clients, onTestSaved }: SpeedTestFormProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Gauge className="h-5 w-5" />
-            Hastighetstest
+            {locale === 'sv' ? 'Hastighetstest' : 'Speed tests'}
           </CardTitle>
           <CardDescription>
-            Mät sprint- och accelerationsförmåga samt uthållighet vid upprepade sprinter
+            {locale === 'sv'
+              ? 'Mät sprint- och accelerationsförmåga samt uthållighet vid upprepade sprinter'
+              : 'Measure sprint speed, acceleration, and repeated sprint ability'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -98,7 +105,9 @@ export function SpeedTestForm({ clients, onTestSaved }: SpeedTestFormProps) {
       {savedTests.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Senaste sparade test</CardTitle>
+            <CardTitle className="text-lg">
+              {locale === 'sv' ? 'Senaste sparade test' : 'Latest saved tests'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -108,10 +117,12 @@ export function SpeedTestForm({ clients, onTestSaved }: SpeedTestFormProps) {
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                 >
                   <div>
-                    <p className="font-medium">{test.client?.name || 'Okänd klient'}</p>
+                    <p className="font-medium">
+                      {test.client?.name || (locale === 'sv' ? 'Okänd klient' : 'Unknown client')}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {test.protocol?.replace(/_/g, ' ')} -{' '}
-                      {new Date(test.testDate).toLocaleDateString('sv-SE')}
+                      {new Date(test.testDate).toLocaleDateString(dateLocale)}
                     </p>
                   </div>
                   <div className="text-right">
