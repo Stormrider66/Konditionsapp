@@ -28,6 +28,7 @@ import {
   TEAM_EVENT_CONTENT_STATUSES,
   TEAM_EVENT_TYPE_LABELS,
   TEAM_EVENT_TYPES,
+  type TeamCalendarLocale,
   type TeamEventContentOwner,
   type TeamEventContentStatus,
   type TeamEventType,
@@ -46,6 +47,7 @@ import {
   type PracticeTemplateKind,
 } from '@/lib/team-calendar/practice-plan'
 import { inputDateValue, inputTimeValue, localDateTimeInputToIso } from '@/lib/team-calendar/date-time'
+import { useLocale } from '@/i18n/client'
 
 interface EditableTeamEvent {
   id: string
@@ -107,20 +109,20 @@ function addDaysToIso(iso: string, days: number) {
   return date.toISOString()
 }
 
-function builderLinkFor(type: TeamEventType, businessSlug?: string) {
+function builderLinkFor(type: TeamEventType, businessSlug: string | undefined, locale: TeamCalendarLocale) {
   const coachBase = businessSlug ? `/${businessSlug}/coach` : '/coach'
 
   if (type === 'STRENGTH' || type === 'PREHAB' || type === 'PLYOMETRICS') {
-    return { href: `${coachBase}/strength`, label: 'Öppna Strength Studio', icon: Dumbbell }
+    return { href: `${coachBase}/strength`, label: text(locale, 'Öppna Strength Studio', 'Open Strength Studio'), icon: Dumbbell }
   }
   if (type === 'CARDIO' || type === 'INTERVAL_SESSION') {
-    return { href: `${coachBase}/cardio`, label: 'Öppna Cardio Studio', icon: HeartPulse }
+    return { href: `${coachBase}/cardio`, label: text(locale, 'Öppna Cardio Studio', 'Open Cardio Studio'), icon: HeartPulse }
   }
   if (type === 'HYBRID') {
-    return { href: `${coachBase}/hybrid-studio`, label: 'Öppna Hybrid Studio', icon: Route }
+    return { href: `${coachBase}/hybrid-studio`, label: text(locale, 'Öppna Hybrid Studio', 'Open Hybrid Studio'), icon: Route }
   }
   if (type === 'AGILITY') {
-    return { href: `${coachBase}/agility-studio`, label: 'Öppna Agility Studio', icon: Zap }
+    return { href: `${coachBase}/agility-studio`, label: text(locale, 'Öppna Agility Studio', 'Open Agility Studio'), icon: Zap }
   }
   return null
 }
@@ -133,20 +135,28 @@ function workoutTypeForEventType(type: TeamEventType): 'STRENGTH' | 'CARDIO' | '
   return null
 }
 
-function assignmentStatusLabel(status: string) {
+function text(locale: TeamCalendarLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function dateLocale(locale: TeamCalendarLocale): string {
+  return locale === 'sv' ? 'sv-SE' : 'en-US'
+}
+
+function assignmentStatusLabel(status: string, locale: TeamCalendarLocale) {
   switch (status) {
     case 'COMPLETED':
-      return 'Klar'
+      return text(locale, 'Klar', 'Completed')
     case 'SKIPPED':
-      return 'Skippad'
+      return text(locale, 'Skippad', 'Skipped')
     case 'SCHEDULED':
-      return 'Bekräftad'
+      return text(locale, 'Bekräftad', 'Confirmed')
     case 'IN_PROGRESS':
-      return 'Pågår'
+      return text(locale, 'Pågår', 'In progress')
     case 'MODIFIED':
-      return 'Ändrad'
+      return text(locale, 'Ändrad', 'Modified')
     default:
-      return 'Ej klar'
+      return text(locale, 'Ej klar', 'Not completed')
   }
 }
 
@@ -167,13 +177,13 @@ type PhysicalWorkflowKey = 'planned' | 'needsContent' | 'ready' | 'assigned'
 
 const PHYSICAL_WORKFLOW_STEPS: Array<{
   key: PhysicalWorkflowKey
-  label: string
-  description: string
+  label: Record<TeamCalendarLocale, string>
+  description: Record<TeamCalendarLocale, string>
 }> = [
-  { key: 'planned', label: 'Planerad ram', description: 'Tid, plats och ansvar är satt' },
-  { key: 'needsContent', label: 'Behöver innehåll', description: 'Passet ska byggas eller kopplas' },
-  { key: 'ready', label: 'Klar att tilldela', description: 'Workout-innehåll finns' },
-  { key: 'assigned', label: 'Tilldelat', description: 'Spelarna kan genomföra' },
+  { key: 'planned', label: { en: 'Planned framework', sv: 'Planerad ram' }, description: { en: 'Time, place, and owner are set', sv: 'Tid, plats och ansvar är satt' } },
+  { key: 'needsContent', label: { en: 'Needs content', sv: 'Behöver innehåll' }, description: { en: 'The session should be built or linked', sv: 'Passet ska byggas eller kopplas' } },
+  { key: 'ready', label: { en: 'Ready to assign', sv: 'Klar att tilldela' }, description: { en: 'Workout content is available', sv: 'Workout-innehåll finns' } },
+  { key: 'assigned', label: { en: 'Assigned', sv: 'Tilldelat' }, description: { en: 'Players can complete it', sv: 'Spelarna kan genomföra' } },
 ]
 
 function physicalWorkflowKey({
@@ -197,19 +207,21 @@ function physicalWorkflowCopy({
   canAssignPersistedWorkout,
   linkedWorkoutName,
   completionRate,
+  locale,
 }: {
   key: PhysicalWorkflowKey
   canAssignContent: boolean
   canAssignPersistedWorkout: boolean
   linkedWorkoutName: string | null
   completionRate: number | null
+  locale: TeamCalendarLocale
 }) {
   if (key === 'assigned') {
     return {
-      title: 'Tilldelat till laget',
+      title: text(locale, 'Tilldelat till laget', 'Assigned to the team'),
       description: completionRate === null
-        ? 'Följ spelarnas genomförande när de börjar rapportera.'
-        : `${completionRate}% av spelarna är klara.`,
+        ? text(locale, 'Följ spelarnas genomförande när de börjar rapportera.', 'Track player completion as they start reporting.')
+        : text(locale, `${completionRate}% av spelarna är klara.`, `${completionRate}% of players have completed it.`),
       className: 'border-emerald-300 bg-emerald-50 text-emerald-950',
       icon: CheckCircle2,
     }
@@ -217,10 +229,10 @@ function physicalWorkflowCopy({
 
   if (key === 'ready') {
     return {
-      title: 'Workout är kopplad',
+      title: text(locale, 'Workout är kopplad', 'Workout is linked'),
       description: canAssignPersistedWorkout
-        ? 'Nästa steg: tilldela passet till laget.'
-        : 'Spara händelsen först, sedan kan passet tilldelas laget.',
+        ? text(locale, 'Nästa steg: tilldela passet till laget.', 'Next step: assign the workout to the team.')
+        : text(locale, 'Spara händelsen först, sedan kan passet tilldelas laget.', 'Save the event first, then the workout can be assigned to the team.'),
       className: 'border-blue-300 bg-blue-50 text-blue-950',
       icon: Send,
     }
@@ -228,20 +240,20 @@ function physicalWorkflowCopy({
 
   if (key === 'needsContent') {
     return {
-      title: 'Passet behöver innehåll',
+      title: text(locale, 'Passet behöver innehåll', 'The session needs content'),
       description: canAssignContent
-        ? 'Nästa steg: öppna rätt studio eller välj ett färdigt pass.'
-        : 'Din roll kan se vad som saknas, men inte koppla workout-innehåll.',
+        ? text(locale, 'Nästa steg: öppna rätt studio eller välj ett färdigt pass.', 'Next step: open the right studio or choose a completed workout.')
+        : text(locale, 'Din roll kan se vad som saknas, men inte koppla workout-innehåll.', 'Your role can see what is missing, but cannot link workout content.'),
       className: 'border-amber-300 bg-amber-50 text-amber-950',
       icon: TriangleAlert,
     }
   }
 
   return {
-    title: 'Planerad ram',
+    title: text(locale, 'Planerad ram', 'Planned framework'),
     description: linkedWorkoutName
-      ? `Kopplat pass: ${linkedWorkoutName}`
-      : 'Ramen finns. Nästa steg är att bestämma innehåll och koppla pass.',
+      ? text(locale, `Kopplat pass: ${linkedWorkoutName}`, `Linked workout: ${linkedWorkoutName}`)
+      : text(locale, 'Ramen finns. Nästa steg är att bestämma innehåll och koppla pass.', 'The framework is set. Next step is choosing content and linking a workout.'),
     className: 'border-slate-300 bg-slate-50 text-slate-950',
     icon: ClipboardList,
   }
@@ -334,6 +346,7 @@ export function EditEventDialog({
   onOpenChange,
   onUpdated,
 }: EditEventDialogProps) {
+  const locale: TeamCalendarLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [loading, setLoading] = useState(false)
   const [title, setTitle] = useState('')
   const [type, setType] = useState<TeamEventType>('PRACTICE')
@@ -354,7 +367,7 @@ export function EditEventDialog({
   const [loadingWorkouts, setLoadingWorkouts] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
-  const builderLink = builderLinkFor(type, businessSlug)
+  const builderLink = builderLinkFor(type, businessSlug, locale)
   const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
   const isIcePractice = type === 'PRACTICE' || type === 'ICE_PRACTICE'
   const practiceSheetHref = event && businessSlug
@@ -371,6 +384,7 @@ export function EditEventDialog({
     canAssignPersistedWorkout,
     linkedWorkoutName,
     completionRate: assignmentSummary?.completionRate ?? null,
+    locale,
   })
   const workflowStepIndex = PHYSICAL_WORKFLOW_STEPS.findIndex((step) => step.key === workflowKey)
   const WorkflowIcon = workflowCopy.icon
@@ -431,14 +445,14 @@ export function EditEventDialog({
         const data = await res.json()
         setWorkoutOptions(data.workouts || [])
       } catch {
-        toast.error('Kunde inte hämta pass att koppla')
+        toast.error(text(locale, 'Kunde inte hämta pass att koppla', 'Could not fetch workouts to link'))
       } finally {
         setLoadingWorkouts(false)
       }
     }
 
     void loadOptions()
-  }, [event, isPhysicalSession, linkedWorkoutType, teamId, businessSlug])
+  }, [event, isPhysicalSession, linkedWorkoutType, teamId, businessSlug, locale])
 
   useEffect(() => {
     if (!event || !isIcePractice) {
@@ -462,11 +476,11 @@ export function EditEventDialog({
 
   const handleUpdate = async () => {
     if (!canEdit) {
-      toast.error('Din roll kan bara visa den här händelsen')
+      toast.error(text(locale, 'Din roll kan bara visa den här händelsen', 'Your role can only view this event'))
       return
     }
     if (!event || !title.trim() || !startDate) {
-      toast.error('Ange titel och datum')
+      toast.error(text(locale, 'Ange titel och datum', 'Enter a title and date'))
       return
     }
 
@@ -506,11 +520,11 @@ export function EditEventDialog({
 
       if (!res.ok) throw new Error('Failed')
 
-      toast.success('Händelse uppdaterad')
+      toast.success(text(locale, 'Händelse uppdaterad', 'Event updated'))
       onOpenChange(false)
       onUpdated()
     } catch {
-      toast.error('Kunde inte uppdatera händelse')
+      toast.error(text(locale, 'Kunde inte uppdatera händelse', 'Could not update event'))
     } finally {
       setLoading(false)
     }
@@ -550,7 +564,7 @@ export function EditEventDialog({
 
   const handleDuplicateNextWeek = async () => {
     if (!canEdit) {
-      toast.error('Din roll kan bara visa den här händelsen')
+      toast.error(text(locale, 'Din roll kan bara visa den här händelsen', 'Your role can only view this event'))
       return
     }
     if (!event || !title.trim()) return
@@ -584,11 +598,11 @@ export function EditEventDialog({
 
       if (!res.ok) throw new Error('Failed')
 
-      toast.success('Passet kopierades till nästa vecka')
+      toast.success(text(locale, 'Passet kopierades till nästa vecka', 'Session copied to next week'))
       onOpenChange(false)
       onUpdated()
     } catch {
-      toast.error('Kunde inte kopiera passet')
+      toast.error(text(locale, 'Kunde inte kopiera passet', 'Could not duplicate the session'))
     } finally {
       setDuplicating(false)
     }
@@ -612,11 +626,11 @@ export function EditEventDialog({
 
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
-      toast.success(`Tilldelat till ${data.assignmentCount ?? 'laget'} spelare`)
+      toast.success(text(locale, `Tilldelat till ${data.assignmentCount ?? 'laget'} spelare`, `Assigned to ${data.assignmentCount ?? 'the team'} players`))
       onOpenChange(false)
       onUpdated()
     } catch {
-      toast.error('Kunde inte tilldela passet')
+      toast.error(text(locale, 'Kunde inte tilldela passet', 'Could not assign the workout'))
     } finally {
       setAssigning(false)
     }
@@ -707,10 +721,10 @@ export function EditEventDialog({
                           ) : (
                             <span className={`h-2 w-2 rounded-full ${isCurrent ? 'bg-primary-foreground' : 'bg-muted-foreground/40'}`} />
                           )}
-                          {step.label}
+                          {step.label[locale]}
                         </div>
                         <div className={`mt-1 text-[11px] leading-snug ${isCurrent ? 'text-primary-foreground/80' : ''}`}>
-                          {step.description}
+                          {step.description[locale]}
                         </div>
                       </div>
                     )
@@ -763,7 +777,7 @@ export function EditEventDialog({
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={loadingWorkouts ? 'Hämtar pass...' : 'Välj pass'} />
+                          <SelectValue placeholder={loadingWorkouts ? text(locale, 'Hämtar pass...', 'Fetching workouts...') : text(locale, 'Välj pass', 'Select workout')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Inget kopplat pass</SelectItem>
@@ -786,14 +800,14 @@ export function EditEventDialog({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-emerald-700">
                         <CheckCircle2 className="h-4 w-4" />
-                        Passet är tilldelat laget.
+                        {text(locale, 'Passet är tilldelat laget.', 'The session is assigned to the team.')}
                       </div>
                       {assignmentSummary && (
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Genomförande</span>
+                            <span>{text(locale, 'Genomförande', 'Completion')}</span>
                             <span className="font-medium text-foreground">
-                              {assignmentSummary.totalCompleted}/{assignmentSummary.totalAssigned} klara · {assignmentSummary.completionRate}%
+                              {assignmentSummary.totalCompleted}/{assignmentSummary.totalAssigned} {text(locale, 'klara', 'completed')} · {assignmentSummary.completionRate}%
                             </span>
                           </div>
                           <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -806,12 +820,12 @@ export function EditEventDialog({
                       )}
                       {event?.assignedAt && (
                         <div className="text-xs text-muted-foreground">
-                          Tilldelat {new Date(event.assignedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {text(locale, 'Tilldelat', 'Assigned')} {new Date(event.assignedAt).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
                       )}
                       {assignmentSummary?.athletes?.length ? (
                         <div className="mt-3 space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">Spelarstatus</div>
+                          <div className="text-xs font-medium text-muted-foreground">{text(locale, 'Spelarstatus', 'Player status')}</div>
                           <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
                             {assignmentSummary.athletes.map((athlete) => {
                               const duration = formatDuration(athlete.duration)
@@ -827,7 +841,7 @@ export function EditEventDialog({
                                       )}
                                     </div>
                                     <Badge variant="outline" className={`shrink-0 text-[10px] ${assignmentStatusClass(athlete.status)}`}>
-                                      {assignmentStatusLabel(athlete.status)}
+                                      {assignmentStatusLabel(athlete.status, locale)}
                                     </Badge>
                                   </div>
                                   {(athlete.rpe || duration || athlete.completedAt) && (
@@ -836,7 +850,7 @@ export function EditEventDialog({
                                       {duration && <span>{duration}</span>}
                                       {athlete.completedAt && (
                                         <span>
-                                          Klar {new Date(athlete.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })}
+                                          {text(locale, 'Klar', 'Completed')} {new Date(athlete.completedAt).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })}
                                         </span>
                                       )}
                                     </div>
@@ -856,7 +870,7 @@ export function EditEventDialog({
                   ) : canAssignPersistedWorkout ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="text-xs text-muted-foreground">
-                        Skapa teamtilldelning med datum, tid och plats från kalendern.
+                        {text(locale, 'Skapa teamtilldelning med datum, tid och plats från kalendern.', 'Create a team assignment using the date, time, and place from the calendar.')}
                       </div>
                       <Button type="button" size="sm" onClick={handleAssignToTeam} disabled={assigning}>
                         <Send className="mr-1.5 h-3.5 w-3.5" />
