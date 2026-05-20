@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
+import { useLocale } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard';
 import { Input } from '@/components/ui/input';
@@ -122,16 +123,124 @@ interface HybridWorkout {
   updatedAt?: Date;
 }
 
-const formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }> = {
-  AMRAP: { label: 'AMRAP', labelSv: 'AMRAP', icon: <Repeat className="h-4 w-4" /> },
-  FOR_TIME: { label: 'For Time', labelSv: 'På Tid', icon: <Timer className="h-4 w-4" /> },
-  EMOM: { label: 'EMOM', labelSv: 'EMOM', icon: <Clock className="h-4 w-4" /> },
-  TABATA: { label: 'Tabata', labelSv: 'Tabata', icon: <Zap className="h-4 w-4" /> },
-  CHIPPER: { label: 'Chipper', labelSv: 'Chipper', icon: <Target className="h-4 w-4" /> },
-  LADDER: { label: 'Ladder', labelSv: 'Stege', icon: <Dumbbell className="h-4 w-4" /> },
-  INTERVALS: { label: 'Intervals', labelSv: 'Intervaller', icon: <Zap className="h-4 w-4" /> },
-  HYROX_SIM: { label: 'HYROX', labelSv: 'HYROX', icon: <Trophy className="h-4 w-4" /> },
-  CUSTOM: { label: 'Custom', labelSv: 'Anpassad', icon: <Dumbbell className="h-4 w-4" /> },
+type AppLocale = 'en' | 'sv';
+
+const COPY: Record<AppLocale, {
+  description: string;
+  importWorkout: string;
+  newWorkout: string;
+  reviewImported: string;
+  createNewHybrid: string;
+  createDescription: string;
+  searchPlaceholder: string;
+  allFormats: string;
+  all: string;
+  myWorkouts: string;
+  emptyCustomTitle: string;
+  emptyCustomDescription: string;
+  createWorkout: string;
+  editWorkout: string;
+  editDescription: string;
+  deleteTitle: string;
+  deleteDescription: (name?: string) => string;
+  cancel: string;
+  deleting: string;
+  delete: string;
+  openError: string;
+  openErrorTitle: string;
+  movementCount: (count: number) => string;
+  unmatchedMovements: (count: number) => string;
+  importSuccess: string;
+  noWorkoutsTitle: string;
+  noWorkoutsDescription: string;
+  results: string;
+  actions: string;
+  edit: string;
+  assign: string;
+  remove: string;
+}> = {
+  en: {
+    description: 'Create and manage CrossFit, HYROX, and functional workouts',
+    importWorkout: 'Import workout',
+    newWorkout: 'New workout',
+    reviewImported: 'Review imported workout',
+    createNewHybrid: 'Create new hybrid workout',
+    createDescription: 'Choose a format and add movements to create your workout.',
+    searchPlaceholder: 'Search workouts...',
+    allFormats: 'All formats',
+    all: 'All',
+    myWorkouts: 'My workouts',
+    emptyCustomTitle: 'No custom workouts yet',
+    emptyCustomDescription: 'Create your first hybrid workout to get started.',
+    createWorkout: 'Create workout',
+    editWorkout: 'Edit workout',
+    editDescription: 'Change the workout settings and movements.',
+    deleteTitle: 'Delete workout?',
+    deleteDescription: (name) => `Are you sure you want to delete "${name ?? ''}"? This cannot be undone.`,
+    cancel: 'Cancel',
+    deleting: 'Deleting...',
+    delete: 'Delete',
+    openError: 'Could not open the hybrid workout',
+    openErrorTitle: 'Could not open workout',
+    movementCount: (count) => `${count} movements`,
+    unmatchedMovements: (count) =>
+      `${count} movement${count === 1 ? '' : 's'} did not match the library. Choose the correct exercise for each one before saving.`,
+    importSuccess: 'Workout imported. Review and save it in the builder.',
+    noWorkoutsTitle: 'No workouts found',
+    noWorkoutsDescription: 'Try changing your search filters.',
+    results: 'results',
+    actions: 'Actions',
+    edit: 'Edit',
+    assign: 'Assign',
+    remove: 'Delete',
+  },
+  sv: {
+    description: 'Skapa och hantera CrossFit, HYROX och funktionella pass',
+    importWorkout: 'Importera pass',
+    newWorkout: 'Nytt Pass',
+    reviewImported: 'Granska importerat pass',
+    createNewHybrid: 'Skapa Nytt Hybrid Pass',
+    createDescription: 'Välj format och lägg till rörelser för att skapa ditt pass.',
+    searchPlaceholder: 'Sök pass...',
+    allFormats: 'Alla format',
+    all: 'Alla',
+    myWorkouts: 'Mina Pass',
+    emptyCustomTitle: 'Inga egna pass än',
+    emptyCustomDescription: 'Skapa ditt första hybrid pass för att komma igång.',
+    createWorkout: 'Skapa Pass',
+    editWorkout: 'Redigera Pass',
+    editDescription: 'Ändra passets inställningar och rörelser.',
+    deleteTitle: 'Ta bort pass?',
+    deleteDescription: (name) => `Är du säker på att du vill ta bort "${name ?? ''}"? Detta går inte att ångra.`,
+    cancel: 'Avbryt',
+    deleting: 'Tar bort...',
+    delete: 'Ta bort',
+    openError: 'Kunde inte öppna hybridpasset',
+    openErrorTitle: 'Kunde inte öppna passet',
+    movementCount: (count) => `${count} rörelser`,
+    unmatchedMovements: (count) =>
+      `${count} rörelse${count === 1 ? '' : 'r'} matchades inte i biblioteket - välj rätt övning för var och en innan du sparar.`,
+    importSuccess: 'Pass importerat. Granska och spara i byggaren.',
+    noWorkoutsTitle: 'Inga pass hittades',
+    noWorkoutsDescription: 'Prova att ändra dina sökfilter.',
+    results: 'resultat',
+    actions: 'Åtgärder',
+    edit: 'Redigera',
+    assign: 'Tilldela',
+    remove: 'Ta bort',
+  },
+};
+
+const formatLabels: Record<string, { label: Record<AppLocale, string>; icon: React.ReactNode }> = {
+  AMRAP: { label: { en: 'AMRAP', sv: 'AMRAP' }, icon: <Repeat className="h-4 w-4" /> },
+  FOR_TIME: { label: { en: 'For Time', sv: 'På Tid' }, icon: <Timer className="h-4 w-4" /> },
+  EMOM: { label: { en: 'EMOM', sv: 'EMOM' }, icon: <Clock className="h-4 w-4" /> },
+  TABATA: { label: { en: 'Tabata', sv: 'Tabata' }, icon: <Zap className="h-4 w-4" /> },
+  CHIPPER: { label: { en: 'Chipper', sv: 'Chipper' }, icon: <Target className="h-4 w-4" /> },
+  LADDER: { label: { en: 'Ladder', sv: 'Stege' }, icon: <Dumbbell className="h-4 w-4" /> },
+  INTERVALS: { label: { en: 'Intervals', sv: 'Intervaller' }, icon: <Zap className="h-4 w-4" /> },
+  HYROX_SIM: { label: { en: 'HYROX', sv: 'HYROX' }, icon: <Trophy className="h-4 w-4" /> },
+  CUSTOM: { label: { en: 'Custom', sv: 'Anpassad' }, icon: <Dumbbell className="h-4 w-4" /> },
 };
 
 const scalingLabels: Record<string, { label: string; color: string }> = {
@@ -147,11 +256,13 @@ interface HybridStudioClientProps {
 export function HybridStudioClient({ businessId }: HybridStudioClientProps = {}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const appLocale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = COPY[appLocale];
   const [workouts, setWorkouts] = useState<HybridWorkout[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [formatFilter, setFormatFilter] = useState<string>('all');
-  const [benchmarkOnly, setBenchmarkOnly] = useState(false);
+  const [benchmarkOnly] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(
     searchParams.get('fromCalendar') === 'true'
   );
@@ -195,7 +306,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || 'Kunde inte öppna hybridpasset');
+          throw new Error(body.error || copy.openError);
         }
         return res.json();
       })
@@ -206,7 +317,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       })
       .catch((error) => {
         if (cancelled) return;
-        toast.error('Kunde inte öppna passet', {
+        toast.error(copy.openErrorTitle, {
           description: error instanceof Error ? error.message : undefined,
         });
       });
@@ -214,7 +325,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     return () => {
       cancelled = true;
     };
-  }, [editWorkoutId]);
+  }, [copy.openError, copy.openErrorTitle, editWorkoutId]);
 
   const handleDelete = async () => {
     if (!deleteWorkout) return;
@@ -227,7 +338,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 
       if (response.ok) {
         setDeleteWorkout(null);
-        fetchWorkouts();
+        void fetchWorkouts();
       } else {
         console.error('Failed to delete workout');
       }
@@ -293,7 +404,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
   }, [search, formatFilter, benchmarkOnly]);
 
   useEffect(() => {
-    fetchWorkouts();
+    void fetchWorkouts();
   }, [fetchWorkouts]);
 
   function formatWorkoutDescription(workout: HybridWorkout): string {
@@ -315,7 +426,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     // Count movements
     const movementCount = workout.movements?.length || 0;
     if (movementCount > 0) {
-      parts.push(`${movementCount} rörelser`);
+      parts.push(copy.movementCount(movementCount));
     }
 
     return parts.join(' • ');
@@ -326,7 +437,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 
     return movements
       .slice(0, 3)
-      .map((m) => m.exercise.nameSv || m.exercise.name)
+      .map((m) => (appLocale === 'sv' ? m.exercise.nameSv : null) || m.exercise.name)
       .join(', ') + (movements.length > 3 ? ` +${movements.length - 3}` : '');
   }
 
@@ -342,13 +453,13 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
         <div>
           <h1 className="text-3xl font-bold">Hybrid Studio</h1>
           <p className="text-muted-foreground">
-            Skapa och hantera CrossFit, HYROX och funktionella pass
+            {copy.description}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsImportOpen(true)}>
             <FileUp className="mr-2 h-4 w-4" />
-            Importera pass
+            {copy.importWorkout}
           </Button>
           <Dialog
             open={isCreateOpen}
@@ -360,16 +471,16 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Nytt Pass
+                {copy.newWorkout}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {importedInitialData ? 'Granska importerat pass' : 'Skapa Nytt Hybrid Pass'}
+                  {importedInitialData ? copy.reviewImported : copy.createNewHybrid}
                 </DialogTitle>
                 <DialogDescription>
-                  Välj format och lägg till rörelser för att skapa ditt pass.
+                  {copy.createDescription}
                 </DialogDescription>
               </DialogHeader>
               <HybridWorkoutBuilder
@@ -405,7 +516,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Sök pass..."
+            placeholder={copy.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
@@ -413,13 +524,13 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
         </div>
         <Select value={formatFilter} onValueChange={setFormatFilter}>
           <SelectTrigger className="w-[180px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
-            <SelectValue placeholder="Alla format" />
+            <SelectValue placeholder={copy.allFormats} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alla format</SelectItem>
-            {Object.entries(formatLabels).map(([key, { labelSv }]) => (
+            <SelectItem value="all">{copy.allFormats}</SelectItem>
+            {Object.entries(formatLabels).map(([key, { label }]) => (
               <SelectItem key={key} value={key}>
-                {labelSv}
+                {label[appLocale]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -430,13 +541,13 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1">
           <TabsTrigger value="all" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
-            Alla ({workouts.length})
+            {copy.all} ({workouts.length})
           </TabsTrigger>
           <TabsTrigger value="benchmarks" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
             Benchmarks ({benchmarkWorkouts.length})
           </TabsTrigger>
           <TabsTrigger value="custom" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">
-            Mina Pass ({customWorkouts.length})
+            {copy.myWorkouts} ({customWorkouts.length})
           </TabsTrigger>
         </TabsList>
 
@@ -448,6 +559,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             scalingLabels={scalingLabels}
             formatWorkoutDescription={formatWorkoutDescription}
             getMovementSummary={getMovementSummary}
+            locale={appLocale}
+            copy={copy}
             onView={handleOpenSheet}
             onEdit={handleEdit}
             onDelete={setDeleteWorkout}
@@ -477,6 +590,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
                     scalingLabels={scalingLabels}
                     formatWorkoutDescription={formatWorkoutDescription}
                     getMovementSummary={getMovementSummary}
+                    locale={appLocale}
+                    copy={copy}
                     onView={handleOpenSheet}
                     onEdit={handleEdit}
                     onDelete={setDeleteWorkout}
@@ -492,13 +607,13 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             <GlassCard glow="blue" className="p-8 text-center">
               <GlassCardContent>
                 <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-pulse" />
-                <h3 className="text-lg font-semibold mb-2 text-white">Inga egna pass än</h3>
+                <h3 className="text-lg font-semibold mb-2 text-white">{copy.emptyCustomTitle}</h3>
                 <p className="text-slate-400 mb-4">
-                  Skapa ditt första hybrid pass för att komma igång.
+                  {copy.emptyCustomDescription}
                 </p>
                 <Button onClick={() => setIsCreateOpen(true)} className="bg-blue-600 hover:bg-blue-500 text-white">
                   <Plus className="mr-2 h-4 w-4" />
-                  Skapa Pass
+                  {copy.createWorkout}
                 </Button>
               </GlassCardContent>
             </GlassCard>
@@ -510,6 +625,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
               scalingLabels={scalingLabels}
               formatWorkoutDescription={formatWorkoutDescription}
               getMovementSummary={getMovementSummary}
+              locale={appLocale}
+              copy={copy}
               onView={handleOpenSheet}
               onEdit={handleEdit}
               onDelete={setDeleteWorkout}
@@ -540,7 +657,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
           onOpenChange={setIsAssignOpen}
           onAssigned={() => {
             setIsAssignOpen(false);
-            fetchWorkouts();
+            void fetchWorkouts();
           }}
         />
       )}
@@ -555,7 +672,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
           onOpenChange={setIsTeamAssignOpen}
           onAssigned={() => {
             setIsTeamAssignOpen(false);
-            fetchWorkouts();
+            void fetchWorkouts();
           }}
         />
       )}
@@ -564,9 +681,9 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Redigera Pass</DialogTitle>
+            <DialogTitle>{copy.editWorkout}</DialogTitle>
             <DialogDescription>
-              Ändra passets inställningar och rörelser.
+              {copy.editDescription}
             </DialogDescription>
           </DialogHeader>
           {selectedWorkout && (
@@ -601,7 +718,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
               onSave={() => {
                 setIsEditOpen(false);
                 setSelectedWorkout(null);
-                fetchWorkouts();
+                void fetchWorkouts();
               }}
               onCancel={() => {
                 setIsEditOpen(false);
@@ -616,20 +733,19 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       <AlertDialog open={!!deleteWorkout} onOpenChange={(open) => !open && setDeleteWorkout(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort pass?</AlertDialogTitle>
+            <AlertDialogTitle>{copy.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ta bort &quot;{deleteWorkout?.name}&quot;?
-              Detta går inte att ångra.
+              {copy.deleteDescription(deleteWorkout?.name)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{copy.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Tar bort...' : 'Ta bort'}
+              {isDeleting ? copy.deleting : copy.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -660,11 +776,9 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
           // they need to swap each unmatched movement before saving.
           const unmatched = workout.movements.filter((m) => !mappings[m.exerciseName]).length;
           if (unmatched > 0) {
-            toast.warning(
-              `${unmatched} rörelse${unmatched === 1 ? '' : 'r'} matchades inte i biblioteket — välj rätt övning för var och en innan du sparar.`
-            );
+            toast.warning(copy.unmatchedMovements(unmatched));
           } else {
-            toast.success('Pass importerat — granska och spara i byggaren');
+            toast.success(copy.importSuccess);
           }
         }}
       />
@@ -691,10 +805,12 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 interface WorkoutGridProps {
   workouts: HybridWorkout[];
   loading: boolean;
-  formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }>;
+  formatLabels: Record<string, { label: Record<AppLocale, string>; icon: React.ReactNode }>;
   scalingLabels: Record<string, { label: string; color: string }>;
   formatWorkoutDescription: (workout: HybridWorkout) => string;
   getMovementSummary: (movements: HybridMovement[]) => string;
+  locale: AppLocale;
+  copy: typeof COPY[AppLocale];
   onView?: (workout: HybridWorkout) => void;
   onEdit?: (workout: HybridWorkout) => void;
   onDelete?: (workout: HybridWorkout) => void;
@@ -707,6 +823,8 @@ function WorkoutGrid({
   scalingLabels,
   formatWorkoutDescription,
   getMovementSummary,
+  locale,
+  copy,
   onView,
   onEdit,
   onDelete,
@@ -735,8 +853,8 @@ function WorkoutGrid({
       <GlassCard glow="blue" className="p-8 text-center">
         <GlassCardContent>
           <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2 text-white">Inga pass hittades</h3>
-          <p className="text-muted-foreground">Prova att ändra dina sökfilter.</p>
+          <h3 className="text-lg font-semibold mb-2 text-white">{copy.noWorkoutsTitle}</h3>
+          <p className="text-muted-foreground">{copy.noWorkoutsDescription}</p>
         </GlassCardContent>
       </GlassCard>
     );
@@ -766,7 +884,7 @@ function WorkoutGrid({
                   </GlassCardTitle>
                   <GlassCardDescription className="flex items-center gap-2 mt-1">
                     {formatLabels[workout.format]?.icon}
-                    {formatLabels[workout.format]?.labelSv || workout.format}
+                    {formatLabels[workout.format]?.label[locale] || workout.format}
                   </GlassCardDescription>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -796,7 +914,7 @@ function WorkoutGrid({
                             className="hover:bg-white/5 focus:bg-white/5"
                           >
                             <Edit className="mr-2 h-4 w-4" />
-                            Redigera
+                            {copy.edit}
                           </DropdownMenuItem>
                         )}
                         {onDelete && (
@@ -808,7 +926,7 @@ function WorkoutGrid({
                             className="text-destructive focus:text-destructive hover:bg-red-500/10 focus:bg-red-500/10"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Ta bort
+                            {copy.remove}
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
@@ -830,7 +948,7 @@ function WorkoutGrid({
               {workout._count?.results > 0 && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground font-mono">
                   <Target className="h-3 w-3 text-emerald-500" />
-                  {workout._count.results} resultat
+                  {workout._count.results} {copy.results}
                 </div>
               )}
             </GlassCardContent>
