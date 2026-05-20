@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -155,6 +156,7 @@ export function EnhancedProgramPreview({
   isFixingFormat,
 }: EnhancedProgramPreviewProps) {
   const { toast } = useToast()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -511,6 +513,7 @@ export function EnhancedProgramPreview({
         athleteName: athleteName || undefined,
         coachName: coachName || undefined,
         startDate: new Date(),
+        locale,
       })
       toast({
         title: 'Excel exporterad!',

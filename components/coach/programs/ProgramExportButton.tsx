@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ export function ProgramExportButton({
   size = 'default',
 }: ProgramExportButtonProps) {
   const { toast } = useToast()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null)
   const pdfContentRef = useRef<HTMLDivElement>(null)
 
@@ -57,6 +59,7 @@ export function ProgramExportButton({
         athleteName,
         coachName,
         startDate,
+        locale,
       })
       toast({
         title: 'Excel exporterad!',
