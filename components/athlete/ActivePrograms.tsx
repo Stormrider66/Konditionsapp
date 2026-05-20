@@ -4,16 +4,27 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Target, Sparkles, Dumbbell, MessageSquare, Loader2, CheckCircle2 } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { ActiveProgramSummary } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME, type WorkoutTheme } from '@/lib/themes'
 import { NewProgramDialog } from '@/components/athlete/workout/NewProgramDialog'
+
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const dateLocale = (locale: AppLocale) => (locale === 'sv' ? sv : enUS)
 
 interface ActiveProgramsProps {
   programs: ActiveProgramSummary[]
@@ -30,6 +41,7 @@ export function ActivePrograms({
   lastCompletedProgram,
   athleteContext,
 }: ActiveProgramsProps) {
+  const locale = getAppLocale(useLocale())
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -50,12 +62,12 @@ export function ActivePrograms({
           <GlassCardHeader>
             <GlassCardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5 text-red-500" />
-              Aktiva program
+              {t(locale, 'Aktiva program', 'Active programs')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <p className="text-center py-8 text-slate-500">
-              Inga aktiva träningsprogram
+              {t(locale, 'Inga aktiva träningsprogram', 'No active training programs')}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -67,12 +79,12 @@ export function ActivePrograms({
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-red-500" />
-            Aktiva program
+            {t(locale, 'Aktiva program', 'Active programs')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           {programs.map((program) => (
-            <ProgramCard key={program.id} program={program} theme={theme} variant="glass" basePath={basePath} />
+            <ProgramCard key={program.id} program={program} theme={theme} variant="glass" basePath={basePath} locale={locale} />
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -104,12 +116,12 @@ export function ActivePrograms({
             style={{ color: theme.colors.textPrimary }}
           >
             <Target className="h-5 w-5" />
-            Aktiva program
+            {t(locale, 'Aktiva program', 'Active programs')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center py-8" style={{ color: theme.colors.textMuted }}>
-            Inga aktiva träningsprogram
+            {t(locale, 'Inga aktiva träningsprogram', 'No active training programs')}
           </p>
         </CardContent>
       </Card>
@@ -129,19 +141,31 @@ export function ActivePrograms({
           style={{ color: theme.colors.textPrimary }}
         >
           <Target className="h-5 w-5" />
-          Aktiva program
+          {t(locale, 'Aktiva program', 'Active programs')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {programs.map((program) => (
-          <ProgramCard key={program.id} program={program} theme={theme} basePath={basePath} />
+          <ProgramCard key={program.id} program={program} theme={theme} basePath={basePath} locale={locale} />
         ))}
       </CardContent>
     </Card>
   )
 }
 
-function ProgramCard({ program, theme, variant = 'default', basePath = '' }: { program: ActiveProgramSummary; theme: WorkoutTheme, variant?: 'default' | 'glass', basePath?: string }) {
+function ProgramCard({
+  program,
+  theme,
+  variant = 'default',
+  basePath = '',
+  locale,
+}: {
+  program: ActiveProgramSummary
+  theme: WorkoutTheme
+  variant?: 'default' | 'glass'
+  basePath?: string
+  locale: AppLocale
+}) {
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
   const progressPercent = totalWeeks > 0 ? Math.round((currentWeek / totalWeeks) * 100) : 0
@@ -155,17 +179,17 @@ function ProgramCard({ program, theme, variant = 'default', basePath = '' }: { p
             {program.name}
           </h4>
           <p className="text-sm text-slate-400">
-            {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
-            {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+            {format(new Date(program.startDate), 'd MMM', { locale: dateLocale(locale) })} -{' '}
+            {format(new Date(program.endDate), 'd MMM yyyy', { locale: dateLocale(locale) })}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Badge variant="outline" className={getPhaseBadgeClass(currentPhase)}>
-            {formatPhase(currentPhase)}
+            {formatPhase(currentPhase, locale)}
           </Badge>
           <span className="text-sm text-slate-500">
-            Vecka {currentWeek} av {totalWeeks}
+            {t(locale, 'Vecka', 'Week')} {currentWeek} {t(locale, 'av', 'of')} {totalWeeks}
           </span>
         </div>
 
@@ -178,7 +202,7 @@ function ProgramCard({ program, theme, variant = 'default', basePath = '' }: { p
 
         <Link href={`${basePath}/athlete/programs/${program.id}`}>
           <Button variant="outline" size="sm" className="w-full border-white/10 text-white hover:bg-white/5">
-            Visa program
+            {t(locale, 'Visa program', 'View program')}
           </Button>
         </Link>
       </div>
@@ -201,17 +225,17 @@ function ProgramCard({ program, theme, variant = 'default', basePath = '' }: { p
           {program.name}
         </h4>
         <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-          {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
-          {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+          {format(new Date(program.startDate), 'd MMM', { locale: dateLocale(locale) })} -{' '}
+          {format(new Date(program.endDate), 'd MMM yyyy', { locale: dateLocale(locale) })}
         </p>
       </div>
 
       <div className="flex items-center gap-2">
         <Badge variant="outline" className={getPhaseBadgeClass(currentPhase)}>
-          {formatPhase(currentPhase)}
+          {formatPhase(currentPhase, locale)}
         </Badge>
         <span className="text-sm" style={{ color: theme.colors.textMuted }}>
-          Vecka {currentWeek} av {totalWeeks}
+          {t(locale, 'Vecka', 'Week')} {currentWeek} {t(locale, 'av', 'of')} {totalWeeks}
         </span>
       </div>
 
@@ -230,7 +254,7 @@ function ProgramCard({ program, theme, variant = 'default', basePath = '' }: { p
 
       <Link href={`${basePath}/athlete/programs/${program.id}`}>
         <Button variant="outline" size="sm" className="w-full">
-          Visa program
+          {t(locale, 'Visa program', 'View program')}
         </Button>
       </Link>
     </div>
@@ -248,6 +272,7 @@ function WhatsNextCard({
   lastCompletedProgram: { id: string; name: string; endDate: Date }
   athleteContext?: { isAICoached: boolean; hasCoach: boolean }
 }) {
+  const locale = getAppLocale(useLocale())
   const router = useRouter()
   const [showDialog, setShowDialog] = useState(false)
   const [notifyingCoach, setNotifyingCoach] = useState(false)
@@ -271,8 +296,8 @@ function WhatsNextCard({
   const content = (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground mb-3">
-        Du slutförde <span className="font-medium">{lastCompletedProgram.name}</span>.
-        Vad är nästa steg?
+        {t(locale, 'Du slutförde', 'You completed')} <span className="font-medium">{lastCompletedProgram.name}</span>.
+        {' '}{t(locale, 'Vad är nästa steg?', 'What is next?')}
       </p>
 
       {athleteContext?.hasCoach && !athleteContext?.isAICoached ? (
@@ -290,7 +315,7 @@ function WhatsNextCard({
           ) : (
             <MessageSquare className="h-4 w-4 text-blue-500" />
           )}
-          {coachNotified ? 'Coach meddelad!' : 'Meddela din coach'}
+          {coachNotified ? t(locale, 'Coach meddelad!', 'Coach notified!') : t(locale, 'Meddela din coach', 'Notify your coach')}
         </Button>
       ) : (
         <Button
@@ -300,7 +325,7 @@ function WhatsNextCard({
           onClick={() => setShowDialog(true)}
         >
           <Sparkles className="h-4 w-4 text-purple-500" />
-          Skapa nytt program
+          {t(locale, 'Skapa nytt program', 'Create new program')}
         </Button>
       )}
 
@@ -314,7 +339,7 @@ function WhatsNextCard({
         }}
       >
         <Dumbbell className="h-4 w-4 text-green-500" />
-        Träna fritt med WOD
+        {t(locale, 'Träna fritt med WOD', 'Train freely with WOD')}
       </Button>
 
       <NewProgramDialog
@@ -334,7 +359,7 @@ function WhatsNextCard({
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-orange-500" />
-            Vad är nästa steg?
+            {t(locale, 'Vad är nästa steg?', 'What is next?')}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>{content}</GlassCardContent>
@@ -347,7 +372,7 @@ function WhatsNextCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Target className="h-5 w-5 text-orange-500" />
-          Vad är nästa steg?
+          {t(locale, 'Vad är nästa steg?', 'What is next?')}
         </CardTitle>
       </CardHeader>
       <CardContent>{content}</CardContent>
@@ -370,16 +395,16 @@ function getCurrentPhase(program: ActiveProgramSummary): string {
   return currentWeek?.phase || 'BASE'
 }
 
-function formatPhase(phase: string): string {
-  const phases: Record<string, string> = {
-    BASE: 'Bas',
-    BUILD: 'Uppbyggnad',
-    PEAK: 'Peak',
-    TAPER: 'Taper',
-    RECOVERY: 'Återhämtning',
-    TRANSITION: 'Övergång',
+function formatPhase(phase: string, locale: AppLocale): string {
+  const phases: Record<string, Record<AppLocale, string>> = {
+    BASE: { en: 'Base', sv: 'Bas' },
+    BUILD: { en: 'Build', sv: 'Uppbyggnad' },
+    PEAK: { en: 'Peak', sv: 'Peak' },
+    TAPER: { en: 'Taper', sv: 'Taper' },
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    TRANSITION: { en: 'Transition', sv: 'Övergång' },
   }
-  return phases[phase] || phase
+  return phases[phase]?.[locale] || phase
 }
 
 function getPhaseBadgeClass(phase: string): string {
