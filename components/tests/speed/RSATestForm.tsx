@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -15,7 +16,6 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -35,11 +35,11 @@ import { Repeat, CheckCircle, AlertTriangle, TrendingUp, Plus, Trash2 } from 'lu
 import { Textarea } from '@/components/ui/textarea'
 import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
 import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
-import { analyzeRSA, sprintSpeedKmh } from '@/lib/calculations/sport-tests/speed-tests'
+import { analyzeRSA } from '@/lib/calculations/sport-tests/speed-tests'
 
-const rsaTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createRsaTestSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   sprintDistance: z.number().min(20).max(40),
   restTime: z.number().min(15).max(60),
   sprintTimes: z
@@ -48,13 +48,13 @@ const rsaTestSchema = z.object({
         time: z.number().min(2).max(10),
       })
     )
-    .min(3, 'Minst 3 sprinter krävs')
-    .max(10, 'Max 10 sprinter'),
+    .min(3, locale === 'sv' ? 'Minst 3 sprinter krävs' : 'At least 3 sprints are required')
+    .max(10, locale === 'sv' ? 'Max 10 sprinter' : 'Maximum 10 sprints'),
   surface: z.enum(['INDOOR', 'OUTDOOR_TRACK', 'GRASS', 'TURF']).optional(),
   notes: z.string().optional(),
 })
 
-type RSATestFormData = z.infer<typeof rsaTestSchema>
+type RSATestFormData = z.infer<ReturnType<typeof createRsaTestSchema>>
 
 interface Client {
   id: string
@@ -84,12 +84,14 @@ function classifyRSA(
 }
 
 export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<RSATestFormData>({
-    resolver: zodResolver(rsaTestSchema),
+    resolver: zodResolver(createRsaTestSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -114,7 +116,6 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
 
   const selectedClient = clients.find((c) => c.id === form.watch('clientId'))
   const sprintTimes = form.watch('sprintTimes')
-  const sprintDistance = form.watch('sprintDistance')
   const restTime = form.watch('restTime')
 
   // Live RSA analysis
@@ -131,7 +132,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       const times = data.sprintTimes.map((s) => s.time).filter((t) => t > 0)
       const rsaAnalysis = analyzeRSA(times, data.restTime)
@@ -159,7 +160,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -174,7 +175,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
       onTestSaved?.(resultData.data)
     } catch (err) {
       console.error('Failed to save RSA test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -191,7 +192,9 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                 Repeated Sprint Ability (RSA)
               </CardTitle>
               <CardDescription>
-                Mäter uthållighet vid upprepade sprinter. Standard: 6×30m med 25s vila.
+                {locale === 'sv'
+                  ? 'Mäter uthållighet vid upprepade sprinter. Standard: 6×30m med 25s vila.'
+                  : 'Measures repeated sprint endurance. Standard: 6×30 m with 25 s recovery.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -201,11 +204,11 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -226,7 +229,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -242,7 +245,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                   name="sprintDistance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sprintdistans (m)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Sprintdistans (m)' : 'Sprint distance (m)'}</FormLabel>
                       <Select
                         onValueChange={(v) => field.onChange(parseInt(v))}
                         value={field.value?.toString()}
@@ -268,7 +271,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                   name="restTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Vilotid (s)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Vilotid (s)' : 'Recovery time (s)'}</FormLabel>
                       <Select
                         onValueChange={(v) => field.onChange(parseInt(v))}
                         value={field.value?.toString()}
@@ -295,7 +298,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                 name="surface"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Underlag</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Underlag' : 'Surface'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -303,10 +306,10 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="INDOOR">Inomhus</SelectItem>
-                        <SelectItem value="OUTDOOR_TRACK">Löparbana</SelectItem>
-                        <SelectItem value="GRASS">Gräs</SelectItem>
-                        <SelectItem value="TURF">Konstgräs</SelectItem>
+                        <SelectItem value="INDOOR">{locale === 'sv' ? 'Inomhus' : 'Indoor'}</SelectItem>
+                        <SelectItem value="OUTDOOR_TRACK">{locale === 'sv' ? 'Löparbana' : 'Outdoor track'}</SelectItem>
+                        <SelectItem value="GRASS">{locale === 'sv' ? 'Gräs' : 'Grass'}</SelectItem>
+                        <SelectItem value="TURF">{locale === 'sv' ? 'Konstgräs' : 'Turf'}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -317,7 +320,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
               {/* Sprint times input */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <FormLabel>Sprinttider (s)</FormLabel>
+                  <FormLabel>{locale === 'sv' ? 'Sprinttider (s)' : 'Sprint times (s)'}</FormLabel>
                   {fields.length < 10 && (
                     <Button
                       type="button"
@@ -326,7 +329,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                       onClick={() => append({ time: 0 })}
                     >
                       <Plus className="h-4 w-4 mr-1" />
-                      Lägg till sprint
+                      {locale === 'sv' ? 'Lägg till sprint' : 'Add sprint'}
                     </Button>
                   )}
                 </div>
@@ -375,7 +378,7 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                     className="text-muted-foreground"
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
-                    Ta bort sista
+                    {locale === 'sv' ? 'Ta bort sista' : 'Remove last'}
                   </Button>
                 )}
               </div>
@@ -385,25 +388,25 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm font-medium mb-3 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
-                    RSA-analys
+                    {locale === 'sv' ? 'RSA-analys' : 'RSA analysis'}
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Bästa tid</p>
+                      <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Bästa tid' : 'Best time'}</p>
                       <span className="text-xl font-bold text-green-600">
                         {liveAnalysis.bestTime}
                       </span>
                       <span className="text-sm text-muted-foreground ml-1">s</span>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Sämsta tid</p>
+                      <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Sämsta tid' : 'Worst time'}</p>
                       <span className="text-xl font-bold text-orange-600">
                         {liveAnalysis.worstTime}
                       </span>
                       <span className="text-sm text-muted-foreground ml-1">s</span>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Medeltid</p>
+                      <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Medeltid' : 'Mean time'}</p>
                       <span className="text-xl font-bold text-primary">
                         {liveAnalysis.meanTime}
                       </span>
@@ -425,13 +428,13 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                       </span>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Total tid</p>
+                      <p className="text-xs text-muted-foreground">{locale === 'sv' ? 'Total tid' : 'Total time'}</p>
                       <span className="text-lg font-semibold">{liveAnalysis.totalTime}s</span>
                     </div>
                   </div>
                   {selectedClient && (
                     <div className="mt-3 flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Nivå:</span>
+                      <span className="text-sm text-muted-foreground">{locale === 'sv' ? 'Nivå:' : 'Level:'}</span>
                       <TestBenchmarkBadge
                         tier={classifyRSA(liveAnalysis.fatigueIndex, selectedClient.gender)}
                       />
@@ -445,10 +448,12 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Uppvärmning, återhämtning mellan sprinter, observationer..."
+                        placeholder={locale === 'sv'
+                          ? 'Uppvärmning, återhämtning mellan sprinter, observationer...'
+                          : 'Warm-up, recovery between sprints, observations...'}
                         {...field}
                       />
                     </FormControl>
@@ -460,7 +465,9 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara RSA-test'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara RSA-test' : 'Save RSA test'}
           </Button>
         </form>
       </Form>
@@ -477,23 +484,23 @@ export function RSATestForm({ clients, onTestSaved }: RSATestFormProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {locale === 'sv' ? 'Test sparat' : 'Test saved'}
             </CardTitle>
             <CardDescription>
               {result.client?.name} - RSA {result.rsaAnalysis?.sprintCount}×
               {result.rawData?.sprintDistance}m -{' '}
-              {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {new Date(result.testDate).toLocaleDateString(dateLocale)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <CompactResult
-                label="Bästa tid"
+                label={locale === 'sv' ? 'Bästa tid' : 'Best time'}
                 value={result.rsaAnalysis?.bestTime || result.primaryResult}
                 unit="s"
               />
               <CompactResult
-                label="Medeltid"
+                label={locale === 'sv' ? 'Medeltid' : 'Mean time'}
                 value={result.rsaAnalysis?.meanTime}
                 unit="s"
               />
