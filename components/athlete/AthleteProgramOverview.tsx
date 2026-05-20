@@ -2,10 +2,10 @@
 'use client'
 
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
-import { Card, CardContent } from '@/components/ui/card'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Target, TrendingUp, Activity, Timer, Zap, Trophy, ClipboardList } from 'lucide-react'
+import { Calendar, TrendingUp, Activity, Timer, Trophy, ClipboardList } from 'lucide-react'
 import { HyroxRaceAnalysisCard } from './HyroxRaceAnalysisCard'
 import { ProgramInfographic } from '@/components/programs/ProgramInfographic'
 import {
@@ -22,7 +22,18 @@ interface AthleteProgramOverviewProps {
   basePath?: string
 }
 
-export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgramOverviewProps) {
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
+const dateLocale = (locale: AppLocale) => (locale === 'sv' ? sv : enUS)
+
+export function AthleteProgramOverview({ program, basePath: _basePath = '' }: AthleteProgramOverviewProps) {
+  const locale = getAppLocale(useLocale())
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
   const progressPercent = Math.round((currentWeek / totalWeeks) * 100)
@@ -41,16 +52,16 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
             <div className="flex items-center gap-2">
               {isActive && (
                 <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border-0 rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest transition-colors">
-                  Aktivt
+                  {t(locale, 'Aktivt', 'Active')}
                 </Badge>
               )}
               <Badge variant="outline" className={cn("rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0 transition-colors", getPhaseBadgeClass(currentPhase, true))}>
-                Phase: {formatPhase(currentPhase)}
+                {t(locale, 'Fas', 'Phase')}: {formatPhase(currentPhase, locale)}
               </Badge>
             </div>
           </div>
           <p className="text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.2em] text-[10px] transition-colors">
-            Skräddarsydd träningsplan · {program.client?.name}
+            {t(locale, 'Skräddarsydd träningsplan', 'Tailored training plan')} · {program.client?.name}
           </p>
         </div>
 
@@ -59,8 +70,8 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
             <Trophy className="h-6 w-6 text-blue-600 dark:text-blue-500" />
           </div>
           <div className="space-y-0.5">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Programmål</p>
-            <p className="text-sm font-black text-slate-900 dark:text-white uppercase italic transition-colors">{formatGoalType(program.goalType)}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t(locale, 'Programmål', 'Program goal')}</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white uppercase italic transition-colors">{formatGoalType(program.goalType, locale)}</p>
           </div>
         </div>
       </div>
@@ -71,15 +82,15 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Timer className="h-16 w-16 text-slate-900 dark:text-white" />
           </div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 transition-colors">Programframfart</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 transition-colors">{t(locale, 'Programframfart', 'Program progress')}</p>
           <div className="flex items-baseline gap-2 mb-4">
             <span className="text-4xl font-black text-slate-900 dark:text-white transition-colors">{currentWeek}</span>
-            <span className="text-slate-500 dark:text-slate-400 font-bold transition-colors">/ {totalWeeks} veckor</span>
+            <span className="text-slate-500 dark:text-slate-400 font-bold transition-colors">/ {totalWeeks} {t(locale, 'veckor', 'weeks')}</span>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest transition-colors">
-              <span className="text-blue-600 dark:text-blue-500">{progressPercent}% slutfört</span>
-              <span className="text-slate-500 dark:text-slate-400">{totalWeeks - currentWeek} kvar</span>
+              <span className="text-blue-600 dark:text-blue-500">{progressPercent}% {t(locale, 'slutfört', 'complete')}</span>
+              <span className="text-slate-500 dark:text-slate-400">{totalWeeks - currentWeek} {t(locale, 'kvar', 'left')}</span>
             </div>
             <div className="w-full bg-slate-200 dark:bg-white/5 rounded-full h-1.5 overflow-hidden transition-colors">
               <div
@@ -91,9 +102,9 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
         </GlassCard>
 
         <GlassCard>
-          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-500 mb-2 transition-colors">Nuvarande fas</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-500 mb-2 transition-colors">{t(locale, 'Nuvarande fas', 'Current phase')}</p>
           <div className="mb-4">
-            <p className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter transition-colors">{formatPhase(currentPhase)}</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter transition-colors">{formatPhase(currentPhase, locale)}</p>
           </div>
           <div className="flex gap-1">
             {program.weeks?.map((w: any, i: number) => (
@@ -110,25 +121,25 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
         </GlassCard>
 
         <GlassCard>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 transition-colors">Startdatum</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 transition-colors">{t(locale, 'Startdatum', 'Start date')}</p>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-100 border-slate-200 dark:bg-white/5 dark:border-white/5 flex items-center justify-center transition-colors">
               <Calendar className="h-5 w-5 text-slate-500 dark:text-slate-400" />
             </div>
             <p className="text-lg font-black text-slate-900 dark:text-white transition-colors">
-              {format(new Date(program.startDate), 'd MMM yyyy', { locale: sv })}
+              {format(new Date(program.startDate), 'd MMM yyyy', { locale: dateLocale(locale) })}
             </p>
           </div>
         </GlassCard>
 
         <GlassCard>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 transition-colors">Slutdatum</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 transition-colors">{t(locale, 'Slutdatum', 'End date')}</p>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-100 border-slate-200 dark:bg-white/5 dark:border-white/5 flex items-center justify-center transition-colors">
               <TrendingUp className="h-5 w-5 text-slate-500 dark:text-slate-400" />
             </div>
             <p className="text-lg font-black text-slate-900 dark:text-white transition-colors">
-              {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+              {format(new Date(program.endDate), 'd MMM yyyy', { locale: dateLocale(locale) })}
             </p>
           </div>
         </GlassCard>
@@ -152,7 +163,7 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
               <GlassCardHeader className="pb-4">
                 <GlassCardTitle className="text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2 uppercase transition-colors">
                   <ClipboardList className="h-4 w-4 text-blue-600 dark:text-blue-500" />
-                  Programmets syfte
+                  {t(locale, 'Programmets syfte', 'Program purpose')}
                 </GlassCardTitle>
               </GlassCardHeader>
               <GlassCardContent>
@@ -167,16 +178,16 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
               <GlassCardHeader className="pb-4">
                 <GlassCardTitle className="text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2 uppercase transition-colors">
                   <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-500" />
-                  Fysiologisk Bas
+                  {t(locale, 'Fysiologisk bas', 'Physiological baseline')}
                 </GlassCardTitle>
                 <GlassCardDescription className="text-slate-500 dark:text-slate-500 font-bold uppercase text-[9px] tracking-widest transition-colors">
-                  DATA FRÅN DIN SENASTE TEST ( {format(new Date(program.test.testDate), 'd MMM yyyy', { locale: sv })} )
+                  {t(locale, 'Data från ditt senaste test', 'Data from your latest test')} ( {format(new Date(program.test.testDate), 'd MMM yyyy', { locale: dateLocale(locale) })} )
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-2">
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">Testtyp</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">{t(locale, 'Testtyp', 'Test type')}</p>
                     <p className="text-xl font-black text-slate-900 dark:text-white transition-colors">{program.test.testType}</p>
                   </div>
                   {program.test.vo2max && (
@@ -188,7 +199,7 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
                     </div>
                   )}
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">Kapacitet</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">{t(locale, 'Kapacitet', 'Capacity')}</p>
                     <div className="flex gap-1 mt-1">
                       {[1, 2, 3, 4, 5].map(i => (
                         <div key={i} className={cn("h-1 w-4 rounded-full transition-colors", i <= 4 ? "bg-emerald-500" : "bg-slate-200 dark:bg-white/10")} />
@@ -240,30 +251,33 @@ function isActiveProgram(program: any): boolean {
   return now >= start && now <= end
 }
 
-function formatGoalType(goalType: string): string {
-  const types: Record<string, string> = {
-    marathon: 'Marathon',
-    'half-marathon': 'Halvmaraton',
-    '10k': '10K',
-    '5k': '5K',
-    fitness: 'Kondition',
-    cycling: 'Cykling',
-    skiing: 'Skidåkning',
-    custom: 'Anpassad',
+function formatGoalType(goalType: string, locale: AppLocale): string {
+  const types: Record<string, Record<AppLocale, string>> = {
+    marathon: { en: 'Marathon', sv: 'Marathon' },
+    'half-marathon': { en: 'Half marathon', sv: 'Halvmaraton' },
+    '10k': { en: '10K', sv: '10K' },
+    '5k': { en: '5K', sv: '5K' },
+    fitness: { en: 'Fitness', sv: 'Kondition' },
+    cycling: { en: 'Cycling', sv: 'Cykling' },
+    skiing: { en: 'Skiing', sv: 'Skidåkning' },
+    swimming: { en: 'Swimming', sv: 'Simning' },
+    triathlon: { en: 'Triathlon', sv: 'Triathlon' },
+    hyrox: { en: 'HYROX', sv: 'HYROX' },
+    custom: { en: 'Custom', sv: 'Anpassad' },
   }
-  return types[goalType] || goalType
+  return types[goalType]?.[locale] || goalType
 }
 
-function formatPhase(phase: string): string {
-  const phases: Record<string, string> = {
-    BASE: 'Bas',
-    BUILD: 'Uppbyggnad',
-    PEAK: 'Peak',
-    TAPER: 'Taper',
-    RECOVERY: 'Återhämtning',
-    TRANSITION: 'Övergång',
+function formatPhase(phase: string, locale: AppLocale): string {
+  const phases: Record<string, Record<AppLocale, string>> = {
+    BASE: { en: 'Base', sv: 'Bas' },
+    BUILD: { en: 'Build', sv: 'Uppbyggnad' },
+    PEAK: { en: 'Peak', sv: 'Peak' },
+    TAPER: { en: 'Taper', sv: 'Taper' },
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    TRANSITION: { en: 'Transition', sv: 'Övergång' },
   }
-  return phases[phase] || phase
+  return phases[phase]?.[locale] || phase
 }
 
 function getPhaseBadgeClass(phase: string, isGlass: boolean = false): string {
