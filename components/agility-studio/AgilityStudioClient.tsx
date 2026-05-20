@@ -315,10 +315,10 @@ export default function AgilityStudioClient({
           setShowWorkoutBuilder(true)
           if (dropped > 0) {
             toast.warning(
-              `${dropped} drill${dropped === 1 ? '' : 's'} matchades inte i biblioteket — lägg till dem manuellt i steg 3.`
+              t('import.unmatchedDrills', { count: dropped })
             )
           } else {
-            toast.success('Pass importerat — granska och spara i byggaren')
+            toast.success(t('import.successReview'))
           }
         }}
       />

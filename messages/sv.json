@@ -4630,6 +4630,10 @@
     "createWorkout": "Skapa pass",
     "searchPlaceholder": "Sök övningar och pass...",
     "developmentStage": "Utvecklingsstadium",
+    "import": {
+      "unmatchedDrills": "{count, plural, one {# drill matchades inte i biblioteket. Lägg till den manuellt i steg 3.} other {# drills matchades inte i biblioteket. Lägg till dem manuellt i steg 3.}}",
+      "successReview": "Pass importerat. Granska och spara i byggaren."
+    },
     "tabs": {
       "drills": "Övningar",
       "workouts": "Pass",
@@ -4724,6 +4728,13 @@
       "notesPlaceholder": "Lägg till anteckningar för atleterna...",
       "assigning": "Tilldelar...",
       "assignCount": "Tilldela till {count} atleter",
+      "assignSingleDateDescription": "Passet tilldelat {athletes} atlet(er).",
+      "assignMultiDateDescription": "{athletes} atlet(er) × {dates} datum = {total} tilldelningar.",
+      "partiallyAssigned": "Delvis tilldelat",
+      "failedDates": "{count, plural, one {# datum kunde inte tilldelas.} other {# datum kunde inte tilldelas.}}",
+      "assignedSingle": "Pass tilldelat!",
+      "assignedMultiple": "Pass tilldelade!",
+      "assignFailed": "Kunde inte tilldela passet",
       "deleteWorkout": "Ta bort pass",
       "deleteConfirmMessage": "Är du säker på att du vill ta bort \"{name}\"? Denna åtgärd kan inte ångras.",
       "deleting": "Tar bort...",

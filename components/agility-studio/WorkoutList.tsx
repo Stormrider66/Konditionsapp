@@ -157,13 +157,19 @@ export function WorkoutList({
       if (successCount > 0) {
         const total = successCount * selectedAthletes.length
         const msg = dates.length > 1
-          ? `${selectedAthletes.length} atlet(er) × ${successCount} datum = ${total} tilldelningar.`
-          : `Passet tilldelat ${selectedAthletes.length} atlet(er).`
+          ? t('workout.assignMultiDateDescription', {
+              athletes: selectedAthletes.length,
+              dates: successCount,
+              total,
+            })
+          : t('workout.assignSingleDateDescription', { athletes: selectedAthletes.length })
 
         if (failCount > 0) {
-          toast.warning('Delvis tilldelat', { description: `${msg} ${failCount} datum kunde inte tilldelas.` })
+          toast.warning(t('workout.partiallyAssigned'), {
+            description: `${msg} ${t('workout.failedDates', { count: failCount })}`,
+          })
         } else {
-          toast.success(dates.length > 1 ? 'Pass tilldelade!' : 'Pass tilldelat!', { description: msg })
+          toast.success(dates.length > 1 ? t('workout.assignedMultiple') : t('workout.assignedSingle'), { description: msg })
         }
 
         setAssignDialogOpen(false)
@@ -179,11 +185,11 @@ export function WorkoutList({
         setOccurrences(DEFAULT_OCCURRENCES)
       } else {
         const firstError = (responses[0]?.body as { error?: string })?.error
-        toast.error(firstError || 'Kunde inte tilldela passet')
+        toast.error(firstError || t('workout.assignFailed'))
       }
     } catch (error) {
       console.error('Error assigning workout:', error)
-      toast.error('Något gick fel')
+      toast.error(tCommon('error'))
     } finally {
       setIsAssigning(false)
     }

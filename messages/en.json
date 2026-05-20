@@ -4630,6 +4630,10 @@
     "createWorkout": "Create workout",
     "searchPlaceholder": "Search drills and workouts...",
     "developmentStage": "Development stage",
+    "import": {
+      "unmatchedDrills": "{count, plural, one {# drill was not matched in the library. Add it manually in step 3.} other {# drills were not matched in the library. Add them manually in step 3.}}",
+      "successReview": "Workout imported. Review and save it in the builder."
+    },
     "tabs": {
       "drills": "Drills",
       "workouts": "Workouts",
@@ -4724,6 +4728,13 @@
       "notesPlaceholder": "Add notes for the athletes...",
       "assigning": "Assigning...",
       "assignCount": "Assign to {count} athletes",
+      "assignSingleDateDescription": "Workout assigned to {athletes} athlete(s).",
+      "assignMultiDateDescription": "{athletes} athlete(s) × {dates} dates = {total} assignments.",
+      "partiallyAssigned": "Partially assigned",
+      "failedDates": "{count, plural, one {# date could not be assigned.} other {# dates could not be assigned.}}",
+      "assignedSingle": "Workout assigned!",
+      "assignedMultiple": "Workouts assigned!",
+      "assignFailed": "Could not assign workout",
       "deleteWorkout": "Delete workout",
       "deleteConfirmMessage": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
       "deleting": "Deleting...",

@@ -11,6 +11,7 @@ import {
 import { Bot, Brain, Sparkles, Zap, Settings, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLocale } from '@/i18n/client'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import type { AIProvider } from '@prisma/client'
 import { formatTokenCount, estimateWeeksFromTokens } from '@/types/ai-models'
@@ -41,8 +42,41 @@ interface GlobalModelDisplayProps {
   model: AIModel | null
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  chooseModel: string
+  weeksProgram: (weeks: number) => string
+  price: string
+  input: string
+  output: string
+  goodForLongPrograms: string
+  changeModel: string
+}> = {
+  en: {
+    chooseModel: 'Choose model',
+    weeksProgram: (weeks) => `${weeks}-week program`,
+    price: 'Price',
+    input: 'in',
+    output: 'out',
+    goodForLongPrograms: 'Good for long programs',
+    changeModel: 'Click to change model',
+  },
+  sv: {
+    chooseModel: 'Välj modell',
+    weeksProgram: (weeks) => `${weeks} veckors program`,
+    price: 'Pris',
+    input: 'in',
+    output: 'ut',
+    goodForLongPrograms: 'Bra för långa program',
+    changeModel: 'Klicka för att ändra modell',
+  },
+}
+
 export function GlobalModelDisplay({ model }: GlobalModelDisplayProps) {
   const pathname = usePathname()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
 
@@ -77,7 +111,7 @@ export function GlobalModelDisplay({ model }: GlobalModelDisplayProps) {
       <Button variant="outline" size="sm" asChild>
         <Link href={`${basePath}/coach/settings/ai`} className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Välj modell</span>
+          <span className="text-muted-foreground">{copy.chooseModel}</span>
           <Settings className="h-3 w-3 ml-1" />
         </Link>
       </Button>
@@ -122,22 +156,22 @@ export function GlobalModelDisplay({ model }: GlobalModelDisplayProps) {
               <p className="text-xs text-muted-foreground">
                 Max output: {formatTokenCount(maxOutputTokens)} tokens
                 <span className="text-muted-foreground/70">
-                  {' '}(~{estimateWeeksFromTokens(maxOutputTokens)} veckors program)
+                  {' '}(~{copy.weeksProgram(estimateWeeksFromTokens(maxOutputTokens))})
                 </span>
               </p>
             )}
             {model.pricing && (
               <p className="text-xs text-muted-foreground">
-                Pris: ${model.pricing.input}/1M in, ${model.pricing.output}/1M ut
+                {copy.price}: ${model.pricing.input}/1M {copy.input}, ${model.pricing.output}/1M {copy.output}
               </p>
             )}
             {model.bestForLongOutput && (
               <Badge variant="outline" className="text-xs border-green-500 text-green-600 mt-1">
-                Bra för långa program
+                {copy.goodForLongPrograms}
               </Badge>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              Klicka för att ändra modell
+              {copy.changeModel}
             </p>
           </div>
         </TooltipContent>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Activity, Trophy, Scale, Calendar, Heart, Gauge, Video, Target, Shield } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { useLocale } from '@/i18n/client'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { ProfileHeroSection } from './ProfileHeroSection'
 import { AIContextSidebar } from './AIContextSidebar'
@@ -29,15 +30,59 @@ interface AthleteProfileClientProps {
   basePath?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  backToClient: string
+  dashboard: string
+  aiStudio: string
+  tabs: Record<string, string>
+}> = {
+  en: {
+    backToClient: 'Back to client',
+    dashboard: 'Dashboard',
+    aiStudio: 'AI Studio',
+    tabs: {
+      physiology: 'Physiology',
+      performance: 'Performance',
+      body: 'Body',
+      training: 'Training',
+      health: 'Health',
+      readiness: 'Readiness',
+      technique: 'Technique',
+      goals: 'Goals',
+      hockey: 'Hockey tests',
+      football: 'Football tests',
+    },
+  },
+  sv: {
+    backToClient: 'Tillbaka till klient',
+    dashboard: 'Dashboard',
+    aiStudio: 'AI Studio',
+    tabs: {
+      physiology: 'Fysiologi',
+      performance: 'Prestation',
+      body: 'Kropp',
+      training: 'Träning',
+      health: 'Hälsa',
+      readiness: 'Beredskap',
+      technique: 'Teknik',
+      goals: 'Mål',
+      hockey: 'Hockeytester',
+      football: 'Fotbollstester',
+    },
+  },
+}
+
 const PROFILE_TABS = [
-  { id: 'physiology', label: 'Fysiologi', icon: Activity },
-  { id: 'performance', label: 'Prestation', icon: Trophy },
-  { id: 'body', label: 'Kropp', icon: Scale },
-  { id: 'training', label: 'Träning', icon: Calendar },
-  { id: 'health', label: 'Hälsa', icon: Heart },
-  { id: 'readiness', label: 'Beredskap', icon: Gauge },
-  { id: 'technique', label: 'Teknik', icon: Video },
-  { id: 'goals', label: 'Mål', icon: Target },
+  { id: 'physiology', icon: Activity },
+  { id: 'performance', icon: Trophy },
+  { id: 'body', icon: Scale },
+  { id: 'training', icon: Calendar },
+  { id: 'health', icon: Heart },
+  { id: 'readiness', icon: Gauge },
+  { id: 'technique', icon: Video },
+  { id: 'goals', icon: Target },
 ] as const
 
 const HOCKEY_SPORT = 'TEAM_ICE_HOCKEY'
@@ -52,6 +97,8 @@ export function AthleteProfileClient({
 }: AthleteProfileClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const currentTab = searchParams.get('tab') || initialTab
   const isAthlete = viewMode === 'athlete'
   const client = data.identity.client!
@@ -64,8 +111,8 @@ export function AthleteProfileClient({
     ? sportProfile.primarySport === FOOTBALL_SPORT || sportProfile.secondarySports.includes(FOOTBALL_SPORT)
     : false
   const sportTabs = [
-    ...(hasHockeyProfile ? [{ id: 'hockey', label: 'Hockeytester', icon: Shield }] : []),
-    ...(hasFootballProfile ? [{ id: 'football', label: 'Fotbollstester', icon: Shield }] : []),
+    ...(hasHockeyProfile ? [{ id: 'hockey', icon: Shield }] : []),
+    ...(hasFootballProfile ? [{ id: 'football', icon: Shield }] : []),
   ]
   const visibleTabs = [...PROFILE_TABS, ...sportTabs]
 
@@ -86,7 +133,7 @@ export function AthleteProfileClient({
               isAthlete ? "font-black uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" : ""
             )}>
               <ArrowLeft className="h-4 w-4" />
-              {viewMode === 'coach' ? 'Tillbaka till klient' : 'Dashboard'}
+              {viewMode === 'coach' ? copy.backToClient : copy.dashboard}
             </Button>
           </Link>
         </div>
@@ -131,7 +178,7 @@ export function AthleteProfileClient({
                       )}
                     >
                       <Icon className="h-4 w-4" />
-                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="hidden sm:inline">{copy.tabs[tab.id]}</span>
                     </TabsTrigger>
                   )
                 })}
@@ -213,7 +260,7 @@ export function AthleteProfileClient({
             <Link href={`${basePath}/coach/ai-studio?athleteId=${client.id}`}>
               <Button size="lg" className="rounded-full shadow-lg gap-2">
                 <Activity className="h-5 w-5" />
-                AI Studio
+                {copy.aiStudio}
               </Button>
             </Link>
           </div>
