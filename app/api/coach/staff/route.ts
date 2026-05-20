@@ -28,6 +28,12 @@ const inviteSchema = z.object({
 
 const TEAM_SCOPED_ROLES = ['PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO'] as const
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function uniqueTeamIds(teamIds: string[] | undefined) {
   return Array.from(new Set(teamIds ?? []))
 }
@@ -35,12 +41,13 @@ function uniqueTeamIds(teamIds: string[] | undefined) {
 export async function GET(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
     const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
-      return NextResponse.json({ error: 'Ingen behörighet' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'No permission', 'Ingen behörighet') }, { status: 403 })
     }
 
     const membership = await prisma.businessMember.findFirst({
@@ -124,12 +131,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
     const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
-      return NextResponse.json({ error: 'Ingen behörighet att bjuda in personal' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'No permission to invite staff', 'Ingen behörighet att bjuda in personal') }, { status: 403 })
     }
 
     const membership = await prisma.businessMember.findFirst({
@@ -145,21 +153,25 @@ export async function POST(req: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'Ingen verksamhet' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business found', 'Ingen verksamhet') }, { status: 400 })
     }
 
     const body = await req.json()
     const parsed = inviteSchema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Ogiltig indata', details: parsed.error.flatten() }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() }, { status: 400 })
     }
 
     // Reject roles that aren't valid for this business type (e.g. Sportchef on a GYM).
     if (!isRoleInvitableFor(parsed.data.role, membership.business.type)) {
       return NextResponse.json(
         {
-          error: `Rollen "${roleLabelFor(parsed.data.role, membership.business.type)}" är inte tillgänglig för denna typ av verksamhet`,
+          error: t(
+            locale,
+            `The role "${roleLabelFor(parsed.data.role, membership.business.type)}" is not available for this business type`,
+            `Rollen "${roleLabelFor(parsed.data.role, membership.business.type)}" är inte tillgänglig för denna typ av verksamhet`
+          ),
         },
         { status: 400 },
       )
@@ -170,7 +182,7 @@ export async function POST(req: NextRequest) {
 
     if (teamScopedRole && teamIds.length === 0) {
       return NextResponse.json(
-        { error: 'Team-bundna roller måste kopplas till minst ett lag' },
+        { error: t(locale, 'Team-scoped roles must be assigned to at least one team', 'Team-bundna roller måste kopplas till minst ett lag') },
         { status: 400 },
       )
     }
@@ -198,7 +210,7 @@ export async function POST(req: NextRequest) {
 
       if (invalidTeamIds.length > 0) {
         return NextResponse.json(
-          { error: 'Ett eller flera lag tillhör inte denna verksamhet' },
+          { error: t(locale, 'One or more teams do not belong to this business', 'Ett eller flera lag tillhör inte denna verksamhet') },
           { status: 400 },
         )
       }

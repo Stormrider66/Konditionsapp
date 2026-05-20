@@ -14,15 +14,24 @@ interface RouteContext {
   params: Promise<{ memberId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function DELETE(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(req)
     const previewRole = await getStaffRolePreview(user.id)
     const permissions = await getStaffPermissions(user.id, scope.businessSlug, { roleOverride: previewRole })
 
     if (!permissions.canInviteStaff) {
-      return NextResponse.json({ error: 'Ingen behörighet' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'No permission', 'Ingen behörighet') }, { status: 403 })
     }
 
     const { memberId } = await context.params
@@ -34,17 +43,17 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     })
 
     if (!member) {
-      return NextResponse.json({ error: 'Medlem hittades inte' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Member not found', 'Medlem hittades inte') }, { status: 404 })
     }
 
     // Can't remove OWNER
     if (member.role === 'OWNER') {
-      return NextResponse.json({ error: 'Kan inte ta bort ägaren' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Cannot remove the owner', 'Kan inte ta bort ägaren') }, { status: 400 })
     }
 
     // Can't remove yourself
     if (member.userId === user.id) {
-      return NextResponse.json({ error: 'Kan inte ta bort dig själv' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Cannot remove yourself', 'Kan inte ta bort dig själv') }, { status: 400 })
     }
 
     if (scope.businessSlug) {
@@ -59,7 +68,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       })
 
       if (!requesterMembership) {
-        return NextResponse.json({ error: 'Medlem hittades inte' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Member not found', 'Medlem hittades inte') }, { status: 404 })
       }
     }
 
