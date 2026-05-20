@@ -13,6 +13,7 @@ import { applyCalendarConstraints } from './calendar-constraints'
 import { generateRunningProgram } from './running'
 import { generateGeneralFitnessProgram } from './general-fitness'
 import { validateTeamSportProgram } from '../validators/team-sport-validator'
+import { validateGeneratedProgramQuality } from '../validators/program-quality-validator'
 
 
 /**
@@ -124,6 +125,22 @@ export async function generateSportProgram(
           .filter(Boolean)
           .join(' '),
       }
+    }
+  }
+
+  const quality = validateGeneratedProgramQuality(program, {
+    sport: params.sport,
+    expectedSessionsPerWeek: params.sessionsPerWeek,
+  })
+  if (!quality.valid) {
+    throw new Error(`Program quality validation failed: ${quality.errors.join(', ')}`)
+  }
+  if (quality.warnings.length > 0) {
+    program = {
+      ...program,
+      notes: [program.notes, `Kvalitetsnoteringar: ${quality.warnings.join(' ')}`]
+        .filter(Boolean)
+        .join(' '),
     }
   }
 

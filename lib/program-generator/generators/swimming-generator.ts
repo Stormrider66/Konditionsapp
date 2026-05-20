@@ -2,7 +2,7 @@
 // Swimming program generator using CSS-based zones
 
 import { logger } from '@/lib/logger'
-import { Client, CreateTrainingProgramDTO } from '@/types'
+import { Client, CreateTrainingDayDTO, CreateTrainingProgramDTO, CreateWorkoutDTO, WorkoutIntensity } from '@/types'
 import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { get8WeekCssBuilder, get12WeekDistanceProgram, get8WeekSprintProgram, getOpenWaterPrep, SwimmingTemplateWorkout } from '../templates/swimming'
 import { mapSwimmingWorkoutToDTO } from '../workout-mapper'
@@ -33,6 +33,20 @@ function parseCssToSeconds(css: string): number | undefined {
     return parseInt(parts[0]) * 60 + parseInt(parts[1])
   }
   return undefined
+}
+
+function formatCssPace(cssSeconds: number, zone: number): string {
+  const zoneMultipliers: Record<number, number> = {
+    1: 1.15,
+    2: 1.07,
+    3: 1,
+    4: 0.95,
+    5: 0.88,
+  }
+  const adjustedSeconds = Math.round(cssSeconds * (zoneMultipliers[zone] || 1))
+  const minutes = Math.floor(adjustedSeconds / 60)
+  const seconds = adjustedSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}/100m`
 }
 
 /**
@@ -77,8 +91,7 @@ export async function generateSwimmingProgram(
       (params.weeklyDistance || 20000) as 15000 | 20000 | 25000 | 30000
     )
   } else {
-    // Custom or unsupported goal - create empty structure
-    return createEmptySwimmingProgram(params, client, startDate, endDate)
+    return createFallbackSwimmingProgram(params, client, startDate, endDate, cssSeconds)
   }
 
   // Map template weeks to program structure
@@ -139,27 +152,34 @@ function createDaysFromWorkouts(
   return days
 }
 
-/**
- * Create empty swimming program structure
- */
-function createEmptySwimmingProgram(
+function createFallbackSwimmingProgram(
   params: SwimmingProgramParams,
   client: Client,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  cssSeconds?: number
 ): CreateTrainingProgramDTO {
-  const weeks = Array.from({ length: params.durationWeeks }).map((_, i) => ({
-    weekNumber: i + 1,
-    startDate: new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000),
-    phase: i < 3 ? 'BASE' as const : i < params.durationWeeks - 2 ? 'BUILD' as const : 'PEAK' as const,
-    volume: 0,
-    focus: getSwimmingFocus(params.goal, i + 1, params.durationWeeks),
-    days: Array.from({ length: 7 }).map((_, j) => ({
-      dayNumber: j + 1,
-      notes: '',
-      workouts: [],
-    })),
-  }))
+  const weeks = Array.from({ length: params.durationWeeks }).map((_, i) => {
+    const weekNumber = i + 1
+    const days = createFallbackSwimmingDays({
+      weekNumber,
+      totalWeeks: params.durationWeeks,
+      sessionsPerWeek: params.sessionsPerWeek,
+      goal: params.goal,
+      cssSeconds,
+      targetEvent: params.targetEvent,
+      weeklyDistance: params.weeklyDistance || 15000,
+    })
+
+    return {
+      weekNumber,
+      startDate: new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000),
+      phase: getSwimmingPhase(weekNumber, params.durationWeeks),
+      volume: days.reduce((sum, day) => sum + day.workouts.reduce((total, workout) => total + (workout.distance || 0), 0), 0),
+      focus: getSwimmingFocus(params.goal, weekNumber, params.durationWeeks),
+      days,
+    }
+  })
 
   return {
     clientId: params.clientId,
@@ -169,9 +189,149 @@ function createEmptySwimmingProgram(
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `CSS-baserat simprogram${params.css ? ` (CSS: ${params.css}/100m)` : ''}`,
+    notes: params.notes || `Simprogram med teknik, aerob volym, CSS/tröskel och målspecifik fart${params.css ? ` (CSS: ${params.css}/100m)` : ''}.`,
     weeks,
   }
+}
+
+function createFallbackSwimmingDays(input: {
+  weekNumber: number
+  totalWeeks: number
+  sessionsPerWeek: number
+  goal: string
+  cssSeconds?: number
+  targetEvent?: number
+  weeklyDistance: number
+}): CreateTrainingDayDTO[] {
+  const sessions = Math.min(7, Math.max(1, input.sessionsPerWeek))
+  const loadFactor = getSwimmingLoadFactor(input.weekNumber, input.totalWeeks)
+  const targetEvent = input.targetEvent || (input.goal === 'sprint' ? 100 : input.goal === 'open-water' ? 3000 : 1500)
+  const baseDistance = Math.max(1200, Math.round((input.weeklyDistance / Math.max(3, sessions)) * loadFactor))
+
+  const planned = [
+    {
+      day: 2,
+      workout: swimmingWorkout({
+        name: 'Teknik och vattenläge',
+        intensity: 'EASY',
+        duration: 45,
+        distance: Math.round(baseDistance * 0.8),
+        zone: 2,
+        cssSeconds: input.cssSeconds,
+        instructions: 'Fokus på grepp, rotation, andning och effektiv frekvens. Låt tekniken styra farten.',
+      }),
+    },
+    {
+      day: 4,
+      workout: swimmingWorkout({
+        name: input.goal === 'sprint' ? 'Sprintfart och startstyrka' : 'CSS / tröskelset',
+        intensity: input.goal === 'sprint' ? 'INTERVAL' : 'THRESHOLD',
+        duration: input.goal === 'sprint' ? 45 : 55,
+        distance: Math.round(baseDistance * (input.goal === 'sprint' ? 0.75 : 1)),
+        zone: input.goal === 'sprint' ? 5 : 3,
+        cssSeconds: input.cssSeconds,
+        instructions: input.goal === 'sprint'
+          ? `Korta snabba repetitioner för ${targetEvent}m-fart med lång vila och ren teknik.`
+          : 'Tröskelnära repetitioner runt CSS. Jämna tider, kontrollerad andning och tekniskt avslut.',
+      }),
+    },
+    {
+      day: 6,
+      workout: swimmingWorkout({
+        name: input.goal === 'open-water' ? 'Öppet vatten-simulering' : 'Aerob distanssimning',
+        intensity: 'EASY',
+        duration: 60,
+        distance: Math.round(baseDistance * (input.goal === 'open-water' ? 1.35 : 1.15)),
+        zone: 2,
+        cssSeconds: input.cssSeconds,
+        instructions: input.goal === 'open-water'
+          ? 'Längre sammanhängande block, sighting var 6-10:e tag och trygg rytm i trängsel.'
+          : 'Jämn aerob simning med negativ split i sista tredjedelen.',
+      }),
+    },
+    {
+      day: 1,
+      workout: swimmingWorkout({
+        name: 'Återhämtning och rörlighet i vattnet',
+        intensity: 'RECOVERY',
+        duration: 35,
+        distance: Math.round(baseDistance * 0.55),
+        zone: 1,
+        cssSeconds: input.cssSeconds,
+        instructions: 'Lätt simning, drills och rörlighet. Ingen jakt på tider.',
+      }),
+    },
+    {
+      day: 5,
+      workout: swimmingWorkout({
+        name: 'VO2 och fartuthållighet',
+        intensity: 'INTERVAL',
+        duration: 50,
+        distance: Math.round(baseDistance * 0.9),
+        zone: 4,
+        cssSeconds: input.cssSeconds,
+        instructions: 'Kortare hårda repetitioner snabbare än CSS med bibehållen linje och stark frånskjutsteknik.',
+      }),
+    },
+    {
+      day: 3,
+      workout: swimmingWorkout({
+        name: 'Drag / styrka i vattnet',
+        intensity: 'MODERATE',
+        duration: 45,
+        distance: Math.round(baseDistance * 0.8),
+        zone: 3,
+        cssSeconds: input.cssSeconds,
+        instructions: 'Paddlar, dolme eller kontrollerat motstånd. Fokus på kraftfullt catch utan axelstress.',
+      }),
+    },
+  ]
+
+  const keep = new Map(planned.slice(0, sessions).map((item) => [item.day, item.workout]))
+  return Array.from({ length: 7 }).map((_, index) => ({
+    dayNumber: index + 1,
+    notes: keep.has(index + 1) ? '' : 'Vilodag',
+    workouts: keep.get(index + 1) ? [keep.get(index + 1)!] : [],
+  }))
+}
+
+function swimmingWorkout(input: {
+  name: string
+  intensity: WorkoutIntensity
+  duration: number
+  distance: number
+  zone: number
+  cssSeconds?: number
+  instructions: string
+}): CreateWorkoutDTO {
+  return {
+    type: input.intensity === 'RECOVERY' ? 'RECOVERY' : 'SWIMMING',
+    name: input.name,
+    intensity: input.intensity,
+    duration: input.duration,
+    distance: input.distance,
+    instructions: input.cssSeconds ? `${input.instructions} Riktfart: ${formatCssPace(input.cssSeconds, input.zone)}.` : input.instructions,
+    segments: [
+      { order: 1, type: 'warmup', duration: 10, distance: Math.round(input.distance * 0.2), zone: 1, description: 'Lugn insimning och teknikdrill' },
+      { order: 2, type: 'work', duration: Math.max(15, input.duration - 20), distance: Math.round(input.distance * 0.65), zone: input.zone, pace: input.cssSeconds ? formatCssPace(input.cssSeconds, input.zone) : undefined, description: input.instructions },
+      { order: 3, type: 'cooldown', duration: 10, distance: Math.round(input.distance * 0.15), zone: 1, description: 'Avsimning' },
+    ],
+  }
+}
+
+function getSwimmingPhase(weekNumber: number, totalWeeks: number): 'BASE' | 'BUILD' | 'PEAK' | 'TAPER' {
+  const progress = weekNumber / totalWeeks
+  if (progress > 0.9) return 'TAPER'
+  if (progress > 0.72) return 'PEAK'
+  if (progress > 0.35) return 'BUILD'
+  return 'BASE'
+}
+
+function getSwimmingLoadFactor(weekNumber: number, totalWeeks: number): number {
+  if (weekNumber % 4 === 0 && weekNumber < totalWeeks) return 0.75
+  const progress = weekNumber / totalWeeks
+  if (progress > 0.9) return 0.65
+  return 0.9 + progress * 0.2
 }
 
 function getSwimmingFocus(goal: string, weekNum: number, totalWeeks: number): string {
