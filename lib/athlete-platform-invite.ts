@@ -35,6 +35,10 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
+function t(locale: EmailLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Keep the athlete login identity aligned with the coach-managed client profile.
  * Client.email is the source of truth because coaches edit that profile before
@@ -42,6 +46,7 @@ function escapeHtml(value: string): string {
  */
 export async function syncAthleteAccountIdentityFromProfile(
   clientId: string,
+  locale: EmailLocale = 'en',
 ): Promise<SendAthletePlatformInviteResult> {
   const client = await prisma.client.findUnique({
     where: { id: clientId },
@@ -64,10 +69,13 @@ export async function syncAthleteAccountIdentityFromProfile(
     },
   })
 
-  if (!client) return { success: false, error: 'Klienten hittades inte' }
+  if (!client) return { success: false, error: t(locale, 'Client not found', 'Klienten hittades inte') }
   if (!client.athleteAccount) return { success: true }
   if (!client.email) {
-    return { success: false, error: 'Klienten saknar e-postadress i profilen' }
+    return {
+      success: false,
+      error: t(locale, 'The client profile is missing an email address', 'Klienten saknar e-postadress i profilen'),
+    }
   }
 
   const nextEmail = normalizeEmail(client.email)
@@ -91,7 +99,11 @@ export async function syncAthleteAccountIdentityFromProfile(
     if (existingUser) {
       return {
         success: false,
-        error: 'E-postadressen används redan av en annan användare',
+        error: t(
+          locale,
+          'The email address is already used by another user',
+          'E-postadressen används redan av en annan användare',
+        ),
       }
     }
   }
@@ -114,7 +126,14 @@ export async function syncAthleteAccountIdentityFromProfile(
       userId: client.athleteAccount.userId,
       email: nextEmail,
     }, authError)
-    return { success: false, error: 'Kunde inte uppdatera atletens inloggningsadress' }
+    return {
+      success: false,
+      error: t(
+        locale,
+        "Could not update the athlete's login email address",
+        'Kunde inte uppdatera atletens inloggningsadress',
+      ),
+    }
   }
 
   try {
@@ -144,7 +163,14 @@ export async function syncAthleteAccountIdentityFromProfile(
       userId: client.athleteAccount.userId,
       email: nextEmail,
     }, dbError)
-    return { success: false, error: 'Kunde inte spara atletens inloggningsadress' }
+    return {
+      success: false,
+      error: t(
+        locale,
+        "Could not save the athlete's login email address",
+        'Kunde inte spara atletens inloggningsadress',
+      ),
+    }
   }
 
   return {
@@ -161,7 +187,7 @@ export async function sendAthletePlatformInvite(
   options?: { sendEmail?: boolean },
   locale: EmailLocale = 'en',
 ): Promise<SendAthletePlatformInviteResult> {
-  const syncResult = await syncAthleteAccountIdentityFromProfile(clientId)
+  const syncResult = await syncAthleteAccountIdentityFromProfile(clientId, locale)
   if (!syncResult.success) return syncResult
 
   const client = await prisma.client.findUnique({
@@ -190,9 +216,9 @@ export async function sendAthletePlatformInvite(
     },
   })
 
-  if (!client) return { success: false, error: 'Klienten hittades inte' }
-  if (!client.email) return { success: false, error: 'Klienten saknar e-postadress' }
-  if (!client.athleteAccount) return { success: false, error: 'Klienten saknar atletkonto' }
+  if (!client) return { success: false, error: t(locale, 'Client not found', 'Klienten hittades inte') }
+  if (!client.email) return { success: false, error: t(locale, 'The client does not have an email address', 'Klienten saknar e-postadress') }
+  if (!client.athleteAccount) return { success: false, error: t(locale, 'The client does not have an athlete account', 'Klienten saknar atletkonto') }
 
   const email = normalizeEmail(client.email)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
@@ -215,7 +241,10 @@ export async function sendAthletePlatformInvite(
       userId: client.athleteAccount.userId,
       email,
     }, linkError)
-    return { success: false, error: 'Kunde inte skapa inbjudningslänk' }
+    return {
+      success: false,
+      error: t(locale, 'Could not create invitation link', 'Kunde inte skapa inbjudningslänk'),
+    }
   }
 
   const inviteUrl =
@@ -313,7 +342,7 @@ ${inviteUrl}${coachFirstName ? `\\n\\n/${coachFirstName}` : ''}`,
       inviteUrl,
       inviteText,
       businessName,
-      error: 'Kunde inte skicka inbjudan via e-post',
+      error: t(locale, 'Could not send the invitation by email', 'Kunde inte skicka inbjudan via e-post'),
     }
   }
 
@@ -328,7 +357,7 @@ ${inviteUrl}${coachFirstName ? `\\n\\n/${coachFirstName}` : ''}`,
       businessName,
       syncedEmail: syncResult.syncedEmail,
       syncedName: syncResult.syncedName,
-      error: 'Utgående e-post är pausad',
+      error: t(locale, 'Outbound email is paused', 'Utgående e-post är pausad'),
     }
   }
 
