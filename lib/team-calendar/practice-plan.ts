@@ -18,6 +18,11 @@ export interface PracticeBlock {
 }
 
 export type PracticeTemplateKind = 'skills' | 'tactical' | 'gamePrep'
+export type PracticePlanLocale = 'en' | 'sv'
+
+function text(locale: PracticePlanLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 function blockId() {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -25,23 +30,23 @@ function blockId() {
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-export function blockSummary(block: PracticeBlock) {
+export function blockSummary(block: PracticeBlock, locale: PracticePlanLocale = 'sv') {
   const lines = [`${block.duration} min | ${block.title}`]
-  if (block.focus) lines.push(`Fokus: ${block.focus}`)
-  if (block.groups) lines.push(`Grupp: ${block.groups}`)
-  if (block.equipment) lines.push(`Material: ${block.equipment}`)
-  if (block.rinkZone) lines.push(`Zon: ${block.rinkZone}`)
-  if (block.intensity) lines.push(`Intensitet: ${block.intensity}`)
-  if (block.tacticalCategory) lines.push(`Kategori: ${block.tacticalCategory}`)
-  if (block.lineGroups) lines.push(`Kedjor/roller: ${block.lineGroups}`)
+  if (block.focus) lines.push(`${text(locale, 'Fokus', 'Focus')}: ${block.focus}`)
+  if (block.groups) lines.push(`${text(locale, 'Grupp', 'Group')}: ${block.groups}`)
+  if (block.equipment) lines.push(`${text(locale, 'Material', 'Equipment')}: ${block.equipment}`)
+  if (block.rinkZone) lines.push(`${text(locale, 'Zon', 'Zone')}: ${block.rinkZone}`)
+  if (block.intensity) lines.push(`${text(locale, 'Intensitet', 'Intensity')}: ${block.intensity}`)
+  if (block.tacticalCategory) lines.push(`${text(locale, 'Kategori', 'Category')}: ${block.tacticalCategory}`)
+  if (block.lineGroups) lines.push(`${text(locale, 'Kedjor/roller', 'Lines/roles')}: ${block.lineGroups}`)
   if (block.description) lines.push(block.description)
   if (block.coachingPoints) lines.push(`Coaching: ${block.coachingPoints}`)
-  if (block.goalieNotes) lines.push(`Målvakt: ${block.goalieNotes}`)
+  if (block.goalieNotes) lines.push(`${text(locale, 'Målvakt', 'Goalie')}: ${block.goalieNotes}`)
   return lines.join('\n')
 }
 
-export function practiceBlocksToDescription(blocks: PracticeBlock[]) {
-  return blocks.map(blockSummary).join('\n\n')
+export function practiceBlocksToDescription(blocks: PracticeBlock[], locale: PracticePlanLocale = 'sv') {
+  return blocks.map((block) => blockSummary(block, locale)).join('\n\n')
 }
 
 export function makePracticeBlock(input: Omit<PracticeBlock, 'id'>): PracticeBlock {
@@ -95,7 +100,37 @@ export function newPracticeBlock(): PracticeBlock {
   }))
 }
 
-export function icePracticeTemplate(kind: PracticeTemplateKind): PracticeBlock[] {
+export function icePracticeTemplate(kind: PracticeTemplateKind, locale: PracticePlanLocale = 'sv'): PracticeBlock[] {
+  if (locale === 'en') {
+    if (kind === 'skills') {
+      return [
+        makePracticeBlock({ type: 'warmup', title: 'Skating skills + puck touches', duration: 10, focus: 'Activation', groups: 'Everyone', equipment: 'Pucks', description: 'Light direction changes, puck control, and gradually rising tempo.', coachingPoints: 'Knee over toe, active stick, short shifts.' }),
+        makePracticeBlock({ type: 'technical', title: 'Skills stations', duration: 15, focus: 'Passing/receiving, shooting, direction changes', groups: '3 stations', equipment: 'Pucks, cones, nets', description: 'Three stations with clear rotation and high repetition.', coachingPoints: 'Quality before speed on the first round, then tempo.' }),
+        makePracticeBlock({ type: 'small_game', title: '2v2 / 3v3 short shifts', duration: 15, focus: 'Decisions in tight areas', groups: 'Color groups', equipment: 'Mini nets or dividers', description: 'Small-area games with 30-40 second shifts.', coachingPoints: 'Availability, quick regains, communication.' }),
+        makePracticeBlock({ type: 'technical', title: 'Speed sequence + finish', duration: 15, focus: 'Transitions', groups: 'Forwards/defenders in pairs', equipment: 'Pucks, nets', description: 'Transition from speed into finishing with traffic at the net.', coachingPoints: 'Attack with speed, second wave to rebounds.' }),
+        makePracticeBlock({ type: 'cooldown', title: 'Cooldown + team huddle', duration: 5, focus: 'Summary', groups: 'Everyone', equipment: '', description: 'Easy skating and a short huddle.', coachingPoints: 'Highlight 1-2 keys for the next session.' }),
+      ].map(withPracticePlanningDefaults)
+    }
+
+    if (kind === 'tactical') {
+      return [
+        makePracticeBlock({ type: 'warmup', title: 'Regroups without pressure', duration: 10, focus: 'Timing', groups: 'Everyone', equipment: 'Pucks', description: 'Controlled start with passing lanes and breakouts.', coachingPoints: 'Turn up early, scan before the puck arrives.' }),
+        makePracticeBlock({ type: 'tactical', title: 'Breakout + first pass', duration: 15, focus: 'Build-up play', groups: 'Unit / position groups', equipment: 'Pucks', description: 'Defender-forward-center positions with controlled pressure.', coachingPoints: 'Width, support, first pass on the tape.' }),
+        makePracticeBlock({ type: 'tactical', title: 'Forecheck/backcheck', duration: 15, focus: 'Steering and spacing', groups: 'Position groups', equipment: 'Pucks', description: 'Units work on triggers and recovery routes.', coachingPoints: 'Right side, short distances, clear triggers.' }),
+        makePracticeBlock({ type: 'special_teams', title: 'Zone play / special teams', duration: 15, focus: 'Roles', groups: 'PP/PK units', equipment: 'Pucks, board', description: 'Repeat PP/PK or zone offense/defense.', coachingPoints: 'Clear roles and the next action.' }),
+        makePracticeBlock({ type: 'cooldown', title: 'Team huddle', duration: 5, focus: 'Keys', groups: 'Everyone', equipment: '', description: '1-2 priorities for the next game.', coachingPoints: 'Keep it short and clear.' }),
+      ].map(withPracticePlanningDefaults)
+    }
+
+    return [
+      makePracticeBlock({ type: 'warmup', title: 'Tempo + puck touches', duration: 10, focus: 'Activation', groups: 'Everyone + goalies', equipment: 'Pucks', description: 'Game-like start with goalie warmup integrated.', coachingPoints: 'Raise the pace without draining the group.' }),
+      makePracticeBlock({ type: 'technical', title: 'Game-like finishing', duration: 15, focus: 'Traffic at the net', groups: 'Lines', equipment: 'Pucks, nets', description: 'Finishing with screens, rebounds, and second pucks.', coachingPoints: 'Get inside, keep the stick available, stop at the net.' }),
+      makePracticeBlock({ type: 'tactical', title: 'Regroups + recovery routes', duration: 15, focus: 'Game details', groups: 'Unit / position groups', equipment: 'Pucks', description: 'Transitions with defensive sorting.', coachingPoints: 'First player back, second steers, third secures.' }),
+      makePracticeBlock({ type: 'special_teams', title: 'PP / PK / faceoffs', duration: 12, focus: 'Special teams', groups: 'Special teams units', equipment: 'Pucks, board', description: 'Repeat set situations and roles.', coachingPoints: 'Starting position, first decision, rebound work.' }),
+      makePracticeBlock({ type: 'small_game', title: 'Short game + game plan', duration: 8, focus: 'Energy', groups: 'Everyone', equipment: 'Pucks', description: 'Short intense game and a clear game plan.', coachingPoints: 'Finish with confidence.' }),
+    ].map(withPracticePlanningDefaults)
+  }
+
   if (kind === 'skills') {
     return [
       makePracticeBlock({ type: 'warmup', title: 'Skridskoteknik + pucktouch', duration: 10, focus: 'Aktivering', groups: 'Alla', equipment: 'Puckar', description: 'Lätta riktningsförändringar, puckkontroll och tempo upp stegvis.', coachingPoints: 'Knä över tå, aktiv klubba, korta byten.' }),

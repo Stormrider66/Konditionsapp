@@ -22,12 +22,13 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import {
-  TEAM_EVENT_CONTENT_OWNER_LABELS,
   TEAM_EVENT_CONTENT_OWNERS,
-  TEAM_EVENT_CONTENT_STATUS_LABELS,
   TEAM_EVENT_CONTENT_STATUSES,
-  TEAM_EVENT_TYPE_LABELS,
   TEAM_EVENT_TYPES,
+  teamEventContentOwnerLabel,
+  teamEventContentStatusLabel,
+  teamEventTypeLabel,
+  type TeamCalendarLocale,
   type TeamEventContentOwner,
   type TeamEventContentStatus,
   type TeamEventType,
@@ -41,6 +42,7 @@ import {
   type PracticeTemplateKind,
 } from '@/lib/team-calendar/practice-plan'
 import { localDateTimeInputToIso } from '@/lib/team-calendar/date-time'
+import { useLocale } from '@/i18n/client'
 
 interface CreateEventDialogProps {
   teamId: string
@@ -65,6 +67,10 @@ interface CalendarLocationOption {
 
 const CUSTOM_LOCATION_VALUE = '__custom__'
 
+function text(locale: TeamCalendarLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export function CreateEventDialog({
   teamId,
   businessSlug,
@@ -77,6 +83,7 @@ export function CreateEventDialog({
   defaultContentOwner = 'physical_trainer',
   allowedEventTypes,
 }: CreateEventDialogProps) {
+  const locale: TeamCalendarLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const availableEventTypes = allowedEventTypes?.length ? allowedEventTypes : [...TEAM_EVENT_TYPES]
   const initialType = availableEventTypes.includes(defaultType) ? defaultType : availableEventTypes[0] ?? defaultType
   const [open, setOpen] = useState(false)
@@ -130,27 +137,27 @@ export function CreateEventDialog({
   }, [open, teamId, businessSlug])
 
   const applyPracticeTemplate = (kind: PracticeTemplateKind) => {
-    const blocks = icePracticeTemplate(kind)
+    const blocks = icePracticeTemplate(kind, locale)
     setPracticeBlocks(blocks)
-    setDescription(practiceBlocksToDescription(blocks))
+    setDescription(practiceBlocksToDescription(blocks, locale))
   }
 
   const handleCreate = async () => {
     setCreateError(null)
     if (!title.trim() || !startDate) {
-      setCreateError('Ange titel och datum innan du skapar händelsen.')
-      toast.error('Ange titel och datum')
+      setCreateError(text(locale, 'Ange titel och datum innan du skapar händelsen.', 'Enter a title and date before creating the event.'))
+      toast.error(text(locale, 'Ange titel och datum', 'Enter title and date'))
       return
     }
     if (!availableEventTypes.includes(type)) {
-      setCreateError('Din roll kan inte skapa den här typen av händelse.')
-      toast.error('Din roll kan inte skapa den här typen av händelse')
+      setCreateError(text(locale, 'Din roll kan inte skapa den här typen av händelse.', 'Your role cannot create this type of event.'))
+      toast.error(text(locale, 'Din roll kan inte skapa den här typen av händelse', 'Your role cannot create this type of event'))
       return
     }
     const recurrenceCount = repeatWeekly ? Number.parseInt(repeatWeeks, 10) : 1
     if (repeatWeekly && (!Number.isFinite(recurrenceCount) || recurrenceCount < 2 || recurrenceCount > 52)) {
-      setCreateError('Välj mellan 2 och 52 veckor.')
-      toast.error('Välj mellan 2 och 52 veckor')
+      setCreateError(text(locale, 'Välj mellan 2 och 52 veckor.', 'Choose between 2 and 52 weeks.'))
+      toast.error(text(locale, 'Välj mellan 2 och 52 veckor', 'Choose between 2 and 52 weeks'))
       return
     }
 
@@ -220,16 +227,18 @@ export function CreateEventDialog({
 
       const data = await res.json().catch(() => null)
       const createdCount = data?.count ?? 1
-      toast.success(createdCount > 1 ? `${createdCount} händelser skapade` : 'Händelse skapad')
+      toast.success(createdCount > 1
+        ? text(locale, `${createdCount} händelser skapade`, `${createdCount} events created`)
+        : text(locale, 'Händelse skapad', 'Event created'))
       setOpen(false)
       resetForm()
       onCreated()
     } catch (error) {
       const message = error instanceof DOMException && error.name === 'AbortError'
-        ? 'Det tog för lång tid att skapa händelsen. Försök igen, eller skapa färre veckor åt gången.'
+        ? text(locale, 'Det tog för lång tid att skapa händelsen. Försök igen, eller skapa färre veckor åt gången.', 'Creating the event took too long. Try again, or create fewer weeks at a time.')
         : error instanceof Error && error.message !== 'Failed'
           ? error.message
-          : 'Kunde inte skapa händelse'
+          : text(locale, 'Kunde inte skapa händelse', 'Could not create event')
       setCreateError(message)
       toast.error(message)
     } finally {
@@ -281,27 +290,27 @@ export function CreateEventDialog({
         {trigger ?? (
           <Button size="sm">
             <Plus className="h-4 w-4 mr-1.5" />
-            Ny händelse
+            {text(locale, 'Ny händelse', 'New event')}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Skapa händelse</DialogTitle>
+          <DialogTitle>{text(locale, 'Skapa händelse', 'Create event')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Titel</Label>
+            <Label>{text(locale, 'Titel', 'Title')}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="t.ex. Styrketräning, Match vs AIK"
+              placeholder={text(locale, 't.ex. Styrketräning, Match vs AIK', 'e.g. Strength training, Game vs AIK')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Typ</Label>
+            <Label>{text(locale, 'Typ', 'Type')}</Label>
             <Select value={type} onValueChange={(value) => setType(value as TeamEventType)}>
               <SelectTrigger>
                 <SelectValue />
@@ -309,7 +318,7 @@ export function CreateEventDialog({
               <SelectContent>
                 {availableEventTypes.map((eventType) => (
                   <SelectItem key={eventType} value={eventType}>
-                    {TEAM_EVENT_TYPE_LABELS[eventType]}
+                    {teamEventTypeLabel(eventType, locale)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -318,7 +327,7 @@ export function CreateEventDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Status</Label>
+              <Label className="text-xs">{text(locale, 'Status', 'Status')}</Label>
               <Select value={contentStatus} onValueChange={(value) => setContentStatus(value as TeamEventContentStatus)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -326,14 +335,14 @@ export function CreateEventDialog({
                 <SelectContent>
                   {TEAM_EVENT_CONTENT_STATUSES.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {TEAM_EVENT_CONTENT_STATUS_LABELS[status]}
+                      {teamEventContentStatusLabel(status, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Innehåll</Label>
+              <Label className="text-xs">{text(locale, 'Innehåll', 'Content')}</Label>
               <Select value={contentOwner} onValueChange={(value) => setContentOwner(value as TeamEventContentOwner)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -341,7 +350,7 @@ export function CreateEventDialog({
                 <SelectContent>
                   {TEAM_EVENT_CONTENT_OWNERS.map((owner) => (
                     <SelectItem key={owner} value={owner}>
-                      {TEAM_EVENT_CONTENT_OWNER_LABELS[owner]}
+                      {teamEventContentOwnerLabel(owner, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -353,14 +362,14 @@ export function CreateEventDialog({
             <div className="rounded-md border bg-muted/35 p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-medium">Ispass-mall</div>
+                  <div className="text-sm font-medium">{text(locale, 'Ispass-mall', 'Ice practice template')}</div>
                   <div className="text-xs text-muted-foreground">
-                    Lägg in en färdig blockplan direkt när händelsen skapas.
+                    {text(locale, 'Lägg in en färdig blockplan direkt när händelsen skapas.', 'Add a ready-made block plan when the event is created.')}
                   </div>
                 </div>
                 {practiceBlocks.length > 0 && (
                   <div className="shrink-0 rounded-full bg-background px-2 py-1 text-xs text-muted-foreground">
-                    {practiceBlocks.length} block · {practiceMinutes} min
+                    {practiceBlocks.length} {text(locale, 'block', practiceBlocks.length === 1 ? 'block' : 'blocks')} · {practiceMinutes} min
                   </div>
                 )}
               </div>
@@ -371,7 +380,7 @@ export function CreateEventDialog({
                   size="sm"
                   onClick={() => applyPracticeTemplate('skills')}
                 >
-                  Teknik + fart
+                  {text(locale, 'Teknik + fart', 'Skills + speed')}
                 </Button>
                 <Button
                   type="button"
@@ -379,7 +388,7 @@ export function CreateEventDialog({
                   size="sm"
                   onClick={() => applyPracticeTemplate('tactical')}
                 >
-                  Taktik
+                  {text(locale, 'Taktik', 'Tactics')}
                 </Button>
                 <Button
                   type="button"
@@ -387,14 +396,14 @@ export function CreateEventDialog({
                   size="sm"
                   onClick={() => applyPracticeTemplate('gamePrep')}
                 >
-                  Matchförberedelse
+                  {text(locale, 'Matchförberedelse', 'Game prep')}
                 </Button>
               </div>
             </div>
           )}
 
           <div className="space-y-2">
-            <Label>Datum</Label>
+            <Label>{text(locale, 'Datum', 'Date')}</Label>
             <Input
               type="date"
               value={startDate}
@@ -407,9 +416,9 @@ export function CreateEventDialog({
               <div className="flex items-center gap-2">
                 <Repeat className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <Label htmlFor="repeat-weekly" className="text-sm">Upprepa varje vecka</Label>
+                  <Label htmlFor="repeat-weekly" className="text-sm">{text(locale, 'Upprepa varje vecka', 'Repeat weekly')}</Label>
                   <div className="text-xs text-muted-foreground">
-                    Skapa samma pass framåt i kalendern.
+                    {text(locale, 'Skapa samma pass framåt i kalendern.', 'Create the same session forward in the calendar.')}
                   </div>
                 </div>
               </div>
@@ -422,7 +431,7 @@ export function CreateEventDialog({
             {repeatWeekly && (
               <div className="mt-3 grid grid-cols-[1fr_auto] items-end gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">Antal veckor</Label>
+                  <Label className="text-xs">{text(locale, 'Antal veckor', 'Number of weeks')}</Label>
                   <Input
                     type="number"
                     min={2}
@@ -432,7 +441,7 @@ export function CreateEventDialog({
                   />
                 </div>
                 <div className="pb-2 text-xs text-muted-foreground">
-                  inkl. första passet
+                  {text(locale, 'inkl. första passet', 'including the first session')}
                 </div>
               </div>
             )}
@@ -444,13 +453,13 @@ export function CreateEventDialog({
               checked={allDay}
               onCheckedChange={setAllDay}
             />
-            <Label htmlFor="all-day" className="text-sm">Heldag</Label>
+            <Label htmlFor="all-day" className="text-sm">{text(locale, 'Heldag', 'All day')}</Label>
           </div>
 
           {!allDay && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Starttid</Label>
+                <Label className="text-xs">{text(locale, 'Starttid', 'Start time')}</Label>
                 <Input
                   type="time"
                   value={startTime}
@@ -458,7 +467,7 @@ export function CreateEventDialog({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Sluttid</Label>
+                <Label className="text-xs">{text(locale, 'Sluttid', 'End time')}</Label>
                 <Input
                   type="time"
                   value={endTime}
@@ -469,7 +478,7 @@ export function CreateEventDialog({
           )}
 
           <div className="space-y-2">
-            <Label>Plats (valfritt)</Label>
+            <Label>{text(locale, 'Plats (valfritt)', 'Location (optional)')}</Label>
             <Select
               value={locationMode}
               onValueChange={(value) => {
@@ -484,23 +493,23 @@ export function CreateEventDialog({
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Välj plats" />
+                <SelectValue placeholder={text(locale, 'Välj plats', 'Select location')} />
               </SelectTrigger>
               <SelectContent>
                 {locationOptions.map((option) => (
                   <SelectItem key={option.id} value={option.id}>
-                    {option.name}{option.isPrimary ? ' · huvudplats' : ''}
+                    {option.name}{option.isPrimary ? text(locale, ' · huvudplats', ' · primary location') : ''}
                   </SelectItem>
                 ))}
                 <SelectItem value={CUSTOM_LOCATION_VALUE}>
-                  Annan plats...
+                  {text(locale, 'Annan plats...', 'Other location...')}
                 </SelectItem>
               </SelectContent>
             </Select>
             {locationMode !== CUSTOM_LOCATION_VALUE && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5" />
-                {locationOptions.find((option) => option.id === locationMode)?.description || 'Bokas mot denna plats i kalendern.'}
+                {locationOptions.find((option) => option.id === locationMode)?.description || text(locale, 'Bokas mot denna plats i kalendern.', 'Booked against this location in the calendar.')}
               </div>
             )}
             {locationMode === CUSTOM_LOCATION_VALUE && (
@@ -508,33 +517,33 @@ export function CreateEventDialog({
                 <Input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="t.ex. Fri vikten, Is A, Hall B"
+                  placeholder={text(locale, 't.ex. Fri vikten, Is A, Hall B', 'e.g. Free weights, Ice A, Hall B')}
                 />
                 {location.trim() && (
                   <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 p-2">
                     <div className="text-xs text-muted-foreground">
-                      Spara platsen i gymmets platslista för framtida bokningar.
+                      {text(locale, 'Spara platsen i gymmets platslista för framtida bokningar.', 'Save the location to the gym location list for future bookings.')}
                     </div>
                     <Switch
                       checked={saveCustomLocation}
                       onCheckedChange={setSaveCustomLocation}
-                      aria-label="Spara ny plats"
+                      aria-label={text(locale, 'Spara ny plats', 'Save new location')}
                     />
                   </div>
                 )}
               </div>
             )}
             <div className="text-xs text-muted-foreground">
-              Kalendern stoppar dubbelbokningar på samma plats och tid.
+              {text(locale, 'Kalendern stoppar dubbelbokningar på samma plats och tid.', 'The calendar prevents double bookings at the same place and time.')}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Plan och innehåll (valfritt)</Label>
+            <Label>{text(locale, 'Plan och innehåll (valfritt)', 'Plan and content (optional)')}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Lägg in plan, fokus, övningar eller instruktioner..."
+              placeholder={text(locale, 'Lägg in plan, fokus, övningar eller instruktioner...', 'Add plan, focus, exercises, or instructions...')}
               rows={3}
             />
           </div>
@@ -548,10 +557,10 @@ export function CreateEventDialog({
 
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-            Avbryt
+            {text(locale, 'Avbryt', 'Cancel')}
           </Button>
           <Button onClick={handleCreate} disabled={loading}>
-            {loading ? 'Skapar...' : 'Skapa'}
+            {loading ? text(locale, 'Skapar...', 'Creating...') : text(locale, 'Skapa', 'Create')}
           </Button>
         </div>
       </DialogContent>
