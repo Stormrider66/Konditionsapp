@@ -23,7 +23,6 @@ import {
   GlassCardContent,
   GlassCardDescription
 } from '@/components/ui/GlassCard';
-import { cn } from '@/lib/utils';
 import {
   Mic,
   Square,
@@ -42,6 +41,7 @@ import {
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors';
 import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction';
+import { useLocale } from '@/i18n/client';
 
 interface AudioRecorderProps {
   clientId: string;
@@ -72,6 +72,22 @@ interface AudioJournalResult {
 }
 
 type RecordingState = 'idle' | 'recording' | 'recorded' | 'uploading' | 'processing' | 'complete' | 'error';
+type AppLocale = 'en' | 'sv';
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+function text(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText;
+}
+
+function actionLabel(locale: AppLocale, action: AudioJournalResult['aiInterpretation']['recommendedAction']): string {
+  if (action === 'PROCEED') return text(locale, 'Kör enligt plan', 'Proceed as planned');
+  if (action === 'REDUCE') return text(locale, 'Minska intensitet', 'Reduce intensity');
+  if (action === 'EASY') return text(locale, 'Lätt pass', 'Easy session');
+  return text(locale, 'Vila', 'Rest');
+}
 
 export function AudioRecorder({
   clientId,
@@ -80,6 +96,7 @@ export function AudioRecorder({
   maxDuration = 60,
   variant = 'default',
 }: AudioRecorderProps) {
+  const locale = getAppLocale(useLocale());
   const isGlass = variant === 'glass';
   const [state, setState] = useState<RecordingState>('idle');
   const [duration, setDuration] = useState(0);
@@ -230,7 +247,7 @@ export function AudioRecorder({
       drawWaveform();
     } catch (err) {
       console.error('Error accessing microphone:', err);
-      setError('Kunde inte komma åt mikrofonen. Kontrollera att du har gett tillstånd.');
+      setError(text(locale, 'Kunde inte komma åt mikrofonen. Kontrollera att du har gett tillstånd.', 'Could not access the microphone. Check that you have granted permission.'));
       setAiAllowanceAction(null);
       setState('error');
     }
@@ -258,7 +275,7 @@ export function AudioRecorder({
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play();
+      void audioRef.current.play();
     }
     setIsPlaying(!isPlaying);
   };
@@ -295,7 +312,7 @@ export function AudioRecorder({
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Uppladdning misslyckades');
+        throw new Error(text(locale, 'Uppladdning misslyckades', 'Upload failed'));
       }
 
       const { id: journalId } = await uploadResponse.json();
@@ -311,7 +328,7 @@ export function AudioRecorder({
         const data = await processResponse.json().catch(() => null);
         const allowanceError = parseAiAllowanceError(data);
         if (allowanceError) throw allowanceError;
-        throw new Error('AI-bearbetning misslyckades');
+        throw new Error(text(locale, 'AI-bearbetning misslyckades', 'AI processing failed'));
       }
 
       const processResult = await processResponse.json();
@@ -322,7 +339,7 @@ export function AudioRecorder({
       onRecordingComplete?.(processResult.extracted);
     } catch (err) {
       console.error('Upload/process error:', err);
-      const message = err instanceof Error ? err.message : 'Ett fel uppstod';
+      const message = err instanceof Error ? err.message : text(locale, 'Ett fel uppstod', 'An error occurred');
       if (isAiAllowanceExhaustedError(err)) {
         showAiAllowanceError(err);
       } else {
@@ -346,10 +363,10 @@ export function AudioRecorder({
         <GlassCardHeader className="pb-4">
           <GlassCardTitle className="flex items-center gap-2 text-2xl font-black tracking-tight">
             <Mic className="h-6 w-6 text-blue-500" />
-            Röstincheckning
+            {text(locale, 'Röstincheckning', 'Voice check-in')}
           </GlassCardTitle>
           <GlassCardDescription className="text-slate-400 font-medium">
-            Berätta hur du mår idag - sömn, energi, ömhet, stress eller motivation. Vi analyserar din röst direkt.
+            {text(locale, 'Berätta hur du mår idag - sömn, energi, ömhet, stress eller motivation. Vi analyserar din röst direkt.', 'Tell us how you feel today: sleep, energy, soreness, stress, or motivation. We analyze your voice right away.')}
           </GlassCardDescription>
         </GlassCardHeader>
 
@@ -382,7 +399,7 @@ export function AudioRecorder({
                 />
                 <div className="absolute top-3 right-3 flex items-center gap-2 px-3 py-1 bg-red-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]">
                   <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white">Spelar in</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white">{text(locale, 'Spelar in', 'Recording')}</span>
                 </div>
               </div>
             </div>
@@ -396,7 +413,7 @@ export function AudioRecorder({
                   {formatDuration(duration)}
                 </span>
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
-                  Maxtid {formatDuration(maxDuration)}
+                  {text(locale, 'Maxtid', 'Max time')} {formatDuration(maxDuration)}
                 </span>
               </div>
               <Progress
@@ -426,9 +443,9 @@ export function AudioRecorder({
               </div>
               <div className="text-center space-y-1">
                 <p className="font-black text-white uppercase tracking-widest text-xs">
-                  {state === 'uploading' ? 'Laddar upp...' : 'AI Analyserar...'}
+                  {state === 'uploading' ? text(locale, 'Laddar upp...', 'Uploading...') : text(locale, 'AI Analyserar...', 'AI analyzing...')}
                 </p>
-                <p className="text-xs text-slate-500 font-medium">Extraherar biometrisk data från din röst</p>
+                <p className="text-xs text-slate-500 font-medium">{text(locale, 'Extraherar biometrisk data från din röst', 'Extracting biometric data from your voice')}</p>
               </div>
             </div>
           )}
@@ -440,7 +457,7 @@ export function AudioRecorder({
                 <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
-                <span className="font-black uppercase tracking-widest text-xs">Analys slutförd</span>
+                <span className="font-black uppercase tracking-widest text-xs">{text(locale, 'Analys slutförd', 'Analysis complete')}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2">
@@ -449,22 +466,16 @@ export function AudioRecorder({
                   <p className="text-2xl font-black text-white">{result.aiInterpretation.readinessEstimate}/10</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Åtgärd</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{text(locale, 'Åtgärd', 'Action')}</p>
                   <p className="text-base font-bold text-white leading-tight">
-                    {result.aiInterpretation.recommendedAction === 'PROCEED'
-                      ? 'Kör enligt plan'
-                      : result.aiInterpretation.recommendedAction === 'REDUCE'
-                        ? 'Minska intensitet'
-                        : result.aiInterpretation.recommendedAction === 'EASY'
-                          ? 'Lugnt pass'
-                          : 'Vila'}
+                    {actionLabel(locale, result.aiInterpretation.recommendedAction)}
                   </p>
                 </div>
               </div>
 
               {result.aiInterpretation.flaggedConcerns.length > 0 && (
                 <div className="pt-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">Noterat av AI</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">{text(locale, 'Noterat av AI', 'Noted by AI')}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {result.aiInterpretation.flaggedConcerns.map((concern, idx) => (
                       <span key={idx} className="bg-orange-500/10 text-orange-400 px-2.5 py-1 rounded-lg text-[10px] font-bold">
@@ -486,7 +497,7 @@ export function AudioRecorder({
                 className="w-full h-16 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-sm shadow-[0_4px_20px_rgba(37,99,235,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Mic className="h-5 w-5 mr-3" />
-                Starta inspelning
+                {text(locale, 'Starta inspelning', 'Start recording')}
               </Button>
             )}
 
@@ -498,7 +509,7 @@ export function AudioRecorder({
                 className="w-full h-16 rounded-2xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Square className="h-5 w-5 mr-3" />
-                Stoppa inspelning
+                {text(locale, 'Stoppa inspelning', 'Stop recording')}
               </Button>
             )}
 
@@ -510,7 +521,7 @@ export function AudioRecorder({
                   className="w-full h-16 rounded-2xl bg-white text-black hover:bg-slate-100 font-black uppercase tracking-widest text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Upload className="h-5 w-5 mr-3" />
-                  Skicka in för analys
+                  {text(locale, 'Skicka in för analys', 'Submit for analysis')}
                 </Button>
 
                 <div className="flex gap-3">
@@ -520,7 +531,7 @@ export function AudioRecorder({
                     className="flex-1 h-12 rounded-xl bg-white/5 border border-white/10 text-white font-bold uppercase tracking-wider text-xs"
                   >
                     {isPlaying ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                    {isPlaying ? 'Pausa' : 'Lyssna'}
+                    {isPlaying ? text(locale, 'Pausa', 'Pause') : text(locale, 'Lyssna', 'Listen')}
                   </Button>
 
                   <Button
@@ -529,7 +540,7 @@ export function AudioRecorder({
                     className="flex-1 h-12 rounded-xl bg-red-500/5 hover:bg-red-500/10 text-red-400 font-bold uppercase tracking-wider text-xs"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Ta bort
+                    {text(locale, 'Ta bort', 'Delete')}
                   </Button>
                 </div>
               </div>
@@ -537,7 +548,7 @@ export function AudioRecorder({
 
             {state === 'error' && (
               <Button onClick={deleteRecording} variant="outline" size="lg" className="w-full rounded-xl bg-white/5 border-white/10 text-white font-bold h-12">
-                Försök igen
+                {text(locale, 'Försök igen', 'Try again')}
               </Button>
             )}
 
@@ -547,7 +558,7 @@ export function AudioRecorder({
                 variant="ghost"
                 className="w-full text-slate-500 font-bold uppercase tracking-widest text-[10px] hover:text-slate-300"
               >
-                Avbryt och gå till formulär
+                {text(locale, 'Avbryt och gå till formulär', 'Cancel and go to form')}
               </Button>
             )}
           </div>
@@ -561,10 +572,10 @@ export function AudioRecorder({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mic className="h-5 w-5" />
-          Röstincheckning
+          {text(locale, 'Röstincheckning', 'Voice check-in')}
         </CardTitle>
         <CardDescription>
-          Berätta hur du mår idag. Nämn sömn, energi, ömhet, stress och motivation.
+          {text(locale, 'Berätta hur du mår idag. Nämn sömn, energi, ömhet, stress och motivation.', 'Tell us how you feel today. Mention sleep, energy, soreness, stress, and motivation.')}
         </CardDescription>
       </CardHeader>
 
@@ -590,7 +601,7 @@ export function AudioRecorder({
               className="w-full h-20 rounded-lg bg-gray-100 dark:bg-gray-800"
             />
             <Badge className="absolute top-2 right-2 bg-red-500 animate-pulse">
-              Spelar in
+              {text(locale, 'Spelar in', 'Recording')}
             </Badge>
           </div>
         )}
@@ -621,7 +632,7 @@ export function AudioRecorder({
           <div className="flex items-center justify-center gap-2 py-4">
             <Loader2 className="h-5 w-5 animate-spin" />
             <span>
-              {state === 'uploading' ? 'Laddar upp...' : 'AI analyserar din röstincheckning...'}
+              {state === 'uploading' ? text(locale, 'Laddar upp...', 'Uploading...') : text(locale, 'AI analyserar din röstincheckning...', 'AI is analyzing your voice check-in...')}
             </span>
           </div>
         )}
@@ -631,7 +642,7 @@ export function AudioRecorder({
           <div className="space-y-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
             <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle2 className="h-5 w-5" />
-              <span className="font-medium">Analys klar</span>
+              <span className="font-medium">{text(locale, 'Analys klar', 'Analysis ready')}</span>
             </div>
 
             <div className="text-sm space-y-1">
@@ -639,18 +650,12 @@ export function AudioRecorder({
                 <strong>Readiness:</strong> {result.aiInterpretation.readinessEstimate}/10
               </p>
               <p>
-                <strong>Rekommendation:</strong>{' '}
-                {result.aiInterpretation.recommendedAction === 'PROCEED'
-                  ? 'Kör enligt plan'
-                  : result.aiInterpretation.recommendedAction === 'REDUCE'
-                    ? 'Minska intensitet'
-                    : result.aiInterpretation.recommendedAction === 'EASY'
-                      ? 'Lätt pass'
-                      : 'Vila'}
+                <strong>{text(locale, 'Rekommendation', 'Recommendation')}:</strong>{' '}
+                {actionLabel(locale, result.aiInterpretation.recommendedAction)}
               </p>
               {result.aiInterpretation.flaggedConcerns.length > 0 && (
                 <p className="text-yellow-700 dark:text-yellow-300">
-                  <strong>Flaggat:</strong> {result.aiInterpretation.flaggedConcerns.join(', ')}
+                  <strong>{text(locale, 'Flaggat', 'Flagged')}:</strong> {result.aiInterpretation.flaggedConcerns.join(', ')}
                 </p>
               )}
             </div>
@@ -662,14 +667,14 @@ export function AudioRecorder({
           {state === 'idle' && (
             <Button onClick={startRecording} size="lg" className="gap-2">
               <Mic className="h-5 w-5" />
-              Starta inspelning
+              {text(locale, 'Starta inspelning', 'Start recording')}
             </Button>
           )}
 
           {state === 'recording' && (
             <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2">
               <Square className="h-5 w-5" />
-              Stoppa
+              {text(locale, 'Stoppa', 'Stop')}
             </Button>
           )}
 
@@ -677,30 +682,30 @@ export function AudioRecorder({
             <>
               <Button onClick={togglePlayback} variant="outline" size="lg" className="gap-2">
                 {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                {isPlaying ? 'Pausa' : 'Spela upp'}
+                {isPlaying ? text(locale, 'Pausa', 'Pause') : text(locale, 'Spela upp', 'Play back')}
               </Button>
 
               <Button onClick={uploadAndProcess} size="lg" className="gap-2">
                 <Upload className="h-5 w-5" />
-                Skicka in
+                {text(locale, 'Skicka in', 'Submit')}
               </Button>
 
               <Button onClick={deleteRecording} variant="ghost" size="lg" className="gap-2">
                 <Trash2 className="h-5 w-5" />
-                Ta bort
+                {text(locale, 'Ta bort', 'Delete')}
               </Button>
             </>
           )}
 
           {state === 'error' && (
             <Button onClick={deleteRecording} variant="outline" size="lg">
-              Försök igen
+              {text(locale, 'Försök igen', 'Try again')}
             </Button>
           )}
 
           {(state === 'idle' || state === 'recorded' || state === 'error') && onCancel && (
             <Button onClick={onCancel} variant="ghost" size="lg">
-              Avbryt
+              {text(locale, 'Avbryt', 'Cancel')}
             </Button>
           )}
         </div>
@@ -708,8 +713,8 @@ export function AudioRecorder({
         {/* Tips */}
         {state === 'idle' && (
           <div className="text-sm text-muted-foreground text-center">
-            <p className="font-medium mb-1">Tips:</p>
-            <p>&ldquo;Jag sov 7 timmar, känner mig pigg. Lite öm i högra vaden.&rdquo;</p>
+            <p className="font-medium mb-1">{text(locale, 'Tips:', 'Tip:')}</p>
+            <p>&ldquo;{text(locale, 'Jag sov 7 timmar, känner mig pigg. Lite öm i högra vaden.', 'I slept 7 hours and feel alert. My right calf is a little sore.')}&rdquo;</p>
           </div>
         )}
       </CardContent>
