@@ -1,11 +1,11 @@
 'use client'
 
 /**
- * Roster Importer — client component.
+ * Roster Importer - client component.
  *
- * Step 1: drop a file OR paste text → /api/coach/teams/[teamId]/import-parse
+ * Step 1: drop a file OR paste text -> /api/coach/teams/[teamId]/import-parse
  *         returns an array of athlete rows + warnings.
- * Step 2: preview editable table → user adjusts/deletes rows → submit to
+ * Step 2: preview editable table -> user adjusts/deletes rows -> submit to
  *         /api/coach/teams/[teamId]/members/bulk.
  *
  * Mirrors the program importer's UX (ImportProgramClient.tsx) so coaches
@@ -67,6 +67,11 @@ import {
   AiAllowanceBlockedAction,
   type AiAllowanceAction,
 } from '@/components/athlete/ai/AiAllowanceBlockedAction'
+import { useLocale } from 'next-intl'
+
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 type RosterRow = {
   name: string
@@ -106,13 +111,15 @@ function isImageFile(file: File): boolean {
   return IMAGE_REGEX.test(file.name)
 }
 
-const INTENT_OPTIONS: { value: ModelIntent; label: string; hint: string }[] = [
-  { value: 'fast', label: 'Snabb (billigast)', hint: 'Räcker för tydliga Excel-listor.' },
-  { value: 'balanced', label: 'Balanserad (rekommenderas)', hint: 'Bäst kostnad/kvalitet för text, PDF och foton.' },
-  { value: 'powerful', label: 'Kraftfull (bäst kvalitet)', hint: 'För röriga scan-PDF:er, handskriven whiteboard eller svårlästa foton.' },
+const getIntentOptions = (locale: Locale): { value: ModelIntent; label: string; hint: string }[] => [
+  { value: 'fast', label: copy(locale, 'Fast (lowest cost)', 'Snabb (billigast)'), hint: copy(locale, 'Enough for clear Excel lists.', 'Räcker för tydliga Excel-listor.') },
+  { value: 'balanced', label: copy(locale, 'Balanced (recommended)', 'Balanserad (rekommenderas)'), hint: copy(locale, 'Best cost/quality for text, PDF, and photos.', 'Bäst kostnad/kvalitet för text, PDF och foton.') },
+  { value: 'powerful', label: copy(locale, 'Powerful (best quality)', 'Kraftfull (bäst kvalitet)'), hint: copy(locale, 'For messy scanned PDFs, handwritten whiteboards, or hard-to-read photos.', 'För röriga scan-PDF:er, handskriven whiteboard eller svårlästa foton.') },
 ]
 
 export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }: Props) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const intentOptions = getIntentOptions(locale)
   const { toast } = useToast()
   const router = useRouter()
   const resolvedBusinessSlug = businessSlug ?? teamPath.split('/').filter(Boolean)[0]
@@ -145,7 +152,7 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
         if (item.kind === 'file' && item.type.startsWith('image/')) {
           const blob = item.getAsFile()
           if (blob) {
-            const named = new File([blob], `inklistrad-${Date.now()}.png`, { type: blob.type })
+            const named = new File([blob], `pasted-${Date.now()}.png`, { type: blob.type })
             setFile(named)
             e.preventDefault()
             return
@@ -223,28 +230,28 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
       if (!response.ok || !data?.success) {
         const allowanceError = parseAiAllowanceError(data)
         if (allowanceError) throw allowanceError
-        throw new Error(data?.error || 'Kunde inte tolka källan')
+        throw new Error(data?.error || copy(locale, 'Could not parse the source', 'Kunde inte tolka källan'))
       }
       setParseResult(data as ParseResponse)
       setRows((data.rows as RosterRow[]) ?? [])
 
       const count = (data.rows as RosterRow[])?.length ?? 0
       if (count === 0) {
-        toast({ title: 'Inga spelare hittades', description: data.warnings?.[0] ?? 'Pröva att rensa källan.', variant: 'destructive' })
+        toast({ title: copy(locale, 'No players found', 'Inga spelare hittades'), description: data.warnings?.[0] ?? copy(locale, 'Try cleaning up the source.', 'Pröva att rensa källan.'), variant: 'destructive' })
       } else {
         toast({
-          title: `Hittade ${count} spelare`,
-          description: `Modell: ${data.modelUsed}. Granska innan du sparar.`,
+          title: copy(locale, `Found ${count} players`, `Hittade ${count} spelare`),
+          description: copy(locale, `Model: ${data.modelUsed}. Review before saving.`, `Modell: ${data.modelUsed}. Granska innan du sparar.`),
         })
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Okänt fel'
+      const msg = e instanceof Error ? e.message : copy(locale, 'Unknown error', 'Okänt fel')
       const description = isAiAllowanceExhaustedError(e) ? showAiAllowanceError(e) : msg
       if (!isAiAllowanceExhaustedError(e)) {
         setParseError(description)
         setAiAllowanceAction(null)
       }
-      toast({ title: 'Import misslyckades', description, variant: 'destructive' })
+      toast({ title: copy(locale, 'Import failed', 'Import misslyckades'), description, variant: 'destructive' })
     } finally {
       setParsing(false)
     }
@@ -269,7 +276,7 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
   const handleSubmit = async () => {
     const valid = rows.filter((r) => r.name.trim().length >= 2)
     if (valid.length === 0) {
-      toast({ title: 'Inga giltiga rader', description: 'Varje rad behöver ett namn.', variant: 'destructive' })
+      toast({ title: copy(locale, 'No valid rows', 'Inga giltiga rader'), description: copy(locale, 'Each row needs a name.', 'Varje rad behöver ett namn.'), variant: 'destructive' })
       return
     }
 
@@ -288,22 +295,22 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
         body: JSON.stringify({ rows: payload }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Import misslyckades')
+      if (!res.ok) throw new Error(data?.error || copy(locale, 'Import failed', 'Import misslyckades'))
 
       const { summary } = data
       toast({
-        title: `${summary.created} spelare tillagda`,
+        title: copy(locale, `${summary.created} players added`, `${summary.created} spelare tillagda`),
         description:
           summary.skipped || summary.errored
-            ? `${summary.skipped} hoppade över, ${summary.errored} fel.`
-            : `Lades till i ${teamName}`,
+            ? copy(locale, `${summary.skipped} skipped, ${summary.errored} errors.`, `${summary.skipped} hoppade över, ${summary.errored} fel.`)
+            : copy(locale, `Added to ${teamName}`, `Lades till i ${teamName}`),
       })
       router.push(teamPath)
       router.refresh()
     } catch (e) {
       toast({
-        title: 'Import misslyckades',
-        description: e instanceof Error ? e.message : 'Okänt fel',
+        title: copy(locale, 'Import failed', 'Import misslyckades'),
+        description: e instanceof Error ? e.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -318,11 +325,10 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-blue-500" />
-              Steg 1 — Lämna in rostret
+              {copy(locale, 'Step 1 - Submit the roster', 'Steg 1 - Lämna in rostret')}
             </CardTitle>
             <CardDescription>
-              Välj hur du vill lämna in det. Vi tolkar innehållet med AI och visar resultatet i en
-              granskningstabell innan något sparas.
+              {copy(locale, 'Choose how to submit it. We parse the content with AI and show the result in a review table before anything is saved.', 'Välj hur du vill lämna in det. Vi tolkar innehållet med AI och visar resultatet i en granskningstabell innan något sparas.')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -330,11 +336,11 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
               <TabsList className="grid grid-cols-2 max-w-md">
                 <TabsTrigger value="paste">
                   <FileText className="h-4 w-4 mr-1" />
-                  Klistra in text
+                  {copy(locale, 'Paste text', 'Klistra in text')}
                 </TabsTrigger>
                 <TabsTrigger value="upload">
                   <FileUp className="h-4 w-4 mr-1" />
-                  Ladda upp fil
+                  {copy(locale, 'Upload file', 'Ladda upp fil')}
                 </TabsTrigger>
               </TabsList>
 
@@ -343,7 +349,7 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}
                   rows={14}
-                  placeholder={`Klistra in laguppställningen.\n\nT.ex.\n1  Anna Svensson   Målvakt\n27 Johan Berg     Center\n7  Lisa Nilsson    Back\n...`}
+                  placeholder={copy(locale, `Paste the roster.\n\nExample\n1  Anna Svensson   Goalkeeper\n27 Johan Berg     Center\n7  Lisa Nilsson    Defense\n...`, `Klistra in laguppställningen.\n\nT.ex.\n1  Anna Svensson   Målvakt\n27 Johan Berg     Center\n7  Lisa Nilsson    Back\n...`)}
                   className="font-mono text-sm"
                 />
               </TabsContent>
@@ -370,7 +376,7 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                         {filePreview ? (
                           <img
                             src={filePreview}
-                            alt="Förhandsgranskning"
+                            alt={copy(locale, 'Preview', 'Förhandsgranskning')}
                             className="h-20 w-20 object-cover rounded border border-slate-200 dark:border-slate-700 shrink-0"
                           />
                         ) : /\.(xlsx|xls|csv)$/i.test(file.name) ? (
@@ -382,7 +388,7 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                           <div className="font-medium truncate">{file.name}</div>
                           <div className="text-xs text-muted-foreground">
                             {(file.size / 1024).toFixed(1)} KB
-                            {isImageFile(file) && ' · bild'}
+                            {isImageFile(file) && copy(locale, ' - image', ' - bild')}
                           </div>
                         </div>
                       </div>
@@ -397,13 +403,13 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                         <ImageIcon className="h-9 w-9" />
                       </div>
                       <p className="text-sm font-medium mb-1">
-                        Släpp en fil eller bild här, eller klicka för att välja
+                        {copy(locale, 'Drop a file or image here, or click to choose', 'Släpp en fil eller bild här, eller klicka för att välja')}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Excel, CSV, PDF, text — eller foto/screenshot (.jpg, .png, .webp, .heic)
+                        {copy(locale, 'Excel, CSV, PDF, text, or photo/screenshot (.jpg, .png, .webp, .heic)', 'Excel, CSV, PDF, text, eller foto/skärmdump (.jpg, .png, .webp, .heic)')}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Tips: klistra in (⌘/Ctrl + V) en skärmdump direkt på sidan.
+                        {copy(locale, 'Tip: paste (Cmd/Ctrl + V) a screenshot directly on the page.', 'Tips: klistra in (Cmd/Ctrl + V) en skärmdump direkt på sidan.')}
                       </p>
                       <input
                         type="file"
@@ -421,7 +427,7 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                         className="mt-4"
                         onClick={() => document.getElementById('roster-file-input')?.click()}
                       >
-                        Välj fil
+                        {copy(locale, 'Choose file', 'Välj fil')}
                       </Button>
                     </>
                   )}
@@ -431,13 +437,13 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
 
             <div className="flex flex-col sm:flex-row sm:items-end gap-3 pt-2">
               <div className="space-y-1 flex-1 max-w-sm">
-                <Label className="text-xs">AI-kvalitet</Label>
+                <Label className="text-xs">{copy(locale, 'AI quality', 'AI-kvalitet')}</Label>
                 <Select value={intent} onValueChange={(v) => setIntent(v as ModelIntent)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {INTENT_OPTIONS.map((opt) => (
+                    {intentOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         <div className="flex flex-col">
                           <span>{opt.label}</span>
@@ -455,12 +461,12 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                 {parsing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Tolkar rostret…
+                    {copy(locale, 'Parsing roster...', 'Tolkar rostret...')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Tolka med AI
+                    {copy(locale, 'Parse with AI', 'Tolka med AI')}
                   </>
                 )}
               </Button>
@@ -484,17 +490,17 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">
-                    Steg 2 — Granska och spara
+                    {copy(locale, 'Step 2 - Review and save', 'Steg 2 - Granska och spara')}
                     <Badge variant="outline">{parseResult.inputKind}</Badge>
                     <Badge variant="secondary">{parseResult.modelUsed}</Badge>
                   </CardTitle>
                   <CardDescription>
-                    Rätta fält, ta bort felaktiga rader. Inga ändringar sparas förrän du klickar Spara.
+                    {copy(locale, 'Correct fields and remove incorrect rows. No changes are saved until you click Save.', 'Rätta fält, ta bort felaktiga rader. Inga ändringar sparas förrän du klickar Spara.')}
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleReset}>
                   <X className="h-4 w-4 mr-1" />
-                  Börja om
+                  {copy(locale, 'Start over', 'Börja om')}
                 </Button>
               </div>
             </CardHeader>
@@ -515,13 +521,13 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                {rows.length} {rows.length === 1 ? 'spelare' : 'spelare'}
+                {rows.length} {copy(locale, rows.length === 1 ? 'player' : 'players', 'spelare')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {rows.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  Inga rader att granska.
+                  {copy(locale, 'No rows to review.', 'Inga rader att granska.')}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -529,10 +535,10 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-16">#</TableHead>
-                        <TableHead className="min-w-[180px]">Namn</TableHead>
+                        <TableHead className="min-w-[180px]">{copy(locale, 'Name', 'Namn')}</TableHead>
                         <TableHead className="w-36">Position</TableHead>
-                        <TableHead className="min-w-[180px]">E-post</TableHead>
-                        <TableHead className="w-36">Födelsedatum</TableHead>
+                        <TableHead className="min-w-[180px]">{copy(locale, 'Email', 'E-post')}</TableHead>
+                        <TableHead className="w-36">{copy(locale, 'Birth date', 'Födelsedatum')}</TableHead>
                         <TableHead className="w-12"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -593,7 +599,7 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                               variant="ghost"
                               size="icon"
                               onClick={() => removeRow(idx)}
-                              aria-label={`Ta bort ${r.name}`}
+                              aria-label={copy(locale, `Remove ${r.name}`, `Ta bort ${r.name}`)}
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
@@ -612,16 +618,16 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                     checked={createAthleteAccounts}
                     onChange={(e) => setCreateAthleteAccounts(e.target.checked)}
                   />
-                  Skapa atletkonto för spelare med e-post
+                  {copy(locale, 'Create athlete account for players with email', 'Skapa atletkonto för spelare med e-post')}
                 </label>
                 <Button onClick={handleSubmit} disabled={submitting || rows.length === 0}>
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sparar…
+                      {copy(locale, 'Saving...', 'Sparar...')}
                     </>
                   ) : (
-                    `Spara ${rows.length} spelare`
+                    copy(locale, `Save ${rows.length} players`, `Spara ${rows.length} spelare`)
                   )}
                 </Button>
               </div>
