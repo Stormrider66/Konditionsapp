@@ -46,8 +46,9 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 interface ModifiedWorkout {
   id: string
@@ -75,9 +76,16 @@ interface GroupedModifications {
 }
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+const localizedText = (locale: AppLocale, svText: string, enText: string) =>
+  locale === 'sv' ? svText : enText
 
 export function AutoModifiedWorkoutsView() {
   const { toast } = useToast()
+  const locale = getAppLocale(useLocale())
+  const t = (svText: string, enText: string) => localizedText(locale, svText, enText)
   const [selectedAthlete, setSelectedAthlete] = useState<string>('ALL')
   const [selectedModifications, setSelectedModifications] = useState<Set<string>>(new Set())
   const [showBulkApproveDialog, setShowBulkApproveDialog] = useState(false)
@@ -159,17 +167,20 @@ export function AutoModifiedWorkoutsView() {
       }
 
       toast({
-        title: 'Godkända',
-        description: `${idsToApprove.length} träningspass har godkänts`,
+        title: t('Godkända', 'Approved'),
+        description: t(
+          `${idsToApprove.length} träningspass har godkänts`,
+          `${idsToApprove.length} workouts have been approved`
+        ),
       })
 
       clearSelections()
-      mutate()
+      void mutate()
     } catch (error) {
       console.error('Error approving modifications:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte godkänna ändringar',
+        title: t('Fel', 'Error'),
+        description: t('Kunde inte godkänna ändringar', 'Could not approve changes'),
         variant: 'destructive',
       })
     } finally {
@@ -189,16 +200,16 @@ export function AutoModifiedWorkoutsView() {
       })
 
       toast({
-        title: 'Godkänd',
-        description: 'Träningsändring godkänd',
+        title: t('Godkänd', 'Approved'),
+        description: t('Träningsändring godkänd', 'Workout change approved'),
       })
 
-      mutate()
+      void mutate()
     } catch (error) {
       console.error('Error approving modification:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte godkänna ändring',
+        title: t('Fel', 'Error'),
+        description: t('Kunde inte godkänna ändring', 'Could not approve change'),
         variant: 'destructive',
       })
     }
@@ -207,7 +218,9 @@ export function AutoModifiedWorkoutsView() {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>Kunde inte ladda träningsändringar</AlertDescription>
+        <AlertDescription>
+          {t('Kunde inte ladda träningsändringar', 'Could not load workout changes')}
+        </AlertDescription>
       </Alert>
     )
   }
@@ -216,7 +229,7 @@ export function AutoModifiedWorkoutsView() {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">Laddar...</p>
+          <p className="text-center text-muted-foreground">{t('Laddar...', 'Loading...')}</p>
         </CardContent>
       </Card>
     )
@@ -228,9 +241,14 @@ export function AutoModifiedWorkoutsView() {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center justify-center gap-2 py-8">
             <CheckCircle2 className="h-12 w-12 text-green-500" />
-            <p className="text-lg font-medium">Inga automatiska ändringar</p>
+            <p className="text-lg font-medium">
+              {t('Inga automatiska ändringar', 'No automatic changes')}
+            </p>
             <p className="text-sm text-muted-foreground">
-              Inga träningspass har modifierats automatiskt
+              {t(
+                'Inga träningspass har modifierats automatiskt',
+                'No workouts have been modified automatically'
+              )}
             </p>
           </div>
         </CardContent>
@@ -244,18 +262,25 @@ export function AutoModifiedWorkoutsView() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div>
-            <h3 className="text-2xl font-bold">Auto-modifierade träningspass</h3>
+            <h3 className="text-2xl font-bold">
+              {t('Auto-modifierade träningspass', 'Auto-modified workouts')}
+            </h3>
             <p className="text-sm text-muted-foreground">
-              {unreviewedCount} ogranskade av {filteredModifications.length} totalt
+              {t(
+                `${unreviewedCount} ogranskade av ${filteredModifications.length} totalt`,
+                `${unreviewedCount} unreviewed of ${filteredModifications.length} total`
+              )}
             </p>
           </div>
 
           <Select value={selectedAthlete} onValueChange={setSelectedAthlete}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Alla atleter" />
+              <SelectValue placeholder={t('Alla atleter', 'All athletes')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Alla atleter ({modifications.length})</SelectItem>
+              <SelectItem value="ALL">
+                {t('Alla atleter', 'All athletes')} ({modifications.length})
+              </SelectItem>
               {athleteNames.map(name => (
                 <SelectItem key={name} value={name}>
                   {name} ({groupedModifications[name].length})
@@ -269,10 +294,10 @@ export function AutoModifiedWorkoutsView() {
           {selectedCount > 0 && (
             <>
               <Badge variant="secondary" className="px-3 py-1">
-                {selectedCount} valda
+                {t(`${selectedCount} valda`, `${selectedCount} selected`)}
               </Badge>
               <Button variant="outline" size="sm" onClick={clearSelections}>
-                Rensa
+                {t('Rensa', 'Clear')}
               </Button>
               <Button
                 variant="default"
@@ -283,7 +308,7 @@ export function AutoModifiedWorkoutsView() {
                 }}
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                Godkänn valda
+                {t('Godkänn valda', 'Approve selected')}
               </Button>
             </>
           )}
@@ -297,7 +322,7 @@ export function AutoModifiedWorkoutsView() {
               }}
             >
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              Godkänn alla
+              {t('Godkänn alla', 'Approve all')}
             </Button>
           )}
         </div>
@@ -317,7 +342,10 @@ export function AutoModifiedWorkoutsView() {
                     <div>
                       <CardTitle>{athleteName}</CardTitle>
                       <CardDescription>
-                        {athleteMods.length} modifieringar, {athleteUnreviewed} ogranskade
+                        {t(
+                          `${athleteMods.length} modifieringar, ${athleteUnreviewed} ogranskade`,
+                          `${athleteMods.length} changes, ${athleteUnreviewed} unreviewed`
+                        )}
                       </CardDescription>
                     </div>
                     {athleteUnreviewed > 0 && (
@@ -326,7 +354,7 @@ export function AutoModifiedWorkoutsView() {
                         size="sm"
                         onClick={() => selectAllForAthlete(athleteName)}
                       >
-                        Välj alla
+                        {t('Välj alla', 'Select all')}
                       </Button>
                     )}
                   </div>
@@ -339,6 +367,7 @@ export function AutoModifiedWorkoutsView() {
                       isSelected={selectedModifications.has(mod.id)}
                       onToggleSelect={() => toggleSelection(mod.id)}
                       onApprove={() => handleIndividualApprove(mod.id)}
+                      locale={locale}
                     />
                   ))}
                 </CardContent>
@@ -355,6 +384,7 @@ export function AutoModifiedWorkoutsView() {
               isSelected={selectedModifications.has(mod.id)}
               onToggleSelect={() => toggleSelection(mod.id)}
               onApprove={() => handleIndividualApprove(mod.id)}
+              locale={locale}
             />
           ))}
         </div>
@@ -364,17 +394,23 @@ export function AutoModifiedWorkoutsView() {
       <AlertDialog open={showBulkApproveDialog} onOpenChange={setShowBulkApproveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Bekräfta godkännande</AlertDialogTitle>
+            <AlertDialogTitle>{t('Bekräfta godkännande', 'Confirm approval')}</AlertDialogTitle>
             <AlertDialogDescription>
               {bulkApproveTarget === 'all'
-                ? `Är du säker på att du vill godkänna alla ${unreviewedCount} ogranskade träningsändringar?`
-                : `Är du säker på att du vill godkänna ${selectedCount} valda träningsändringar?`}
+                ? t(
+                    `Är du säker på att du vill godkänna alla ${unreviewedCount} ogranskade träningsändringar?`,
+                    `Are you sure you want to approve all ${unreviewedCount} unreviewed workout changes?`
+                  )
+                : t(
+                    `Är du säker på att du vill godkänna ${selectedCount} valda träningsändringar?`,
+                    `Are you sure you want to approve ${selectedCount} selected workout changes?`
+                  )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>{t('Avbryt', 'Cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleBulkApprove} disabled={isApproving}>
-              {isApproving ? 'Godkänner...' : 'Godkänn'}
+              {isApproving ? t('Godkänner...', 'Approving...') : t('Godkänn', 'Approve')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -391,17 +427,25 @@ function ModificationCard({
   isSelected,
   onToggleSelect,
   onApprove,
+  locale,
 }: {
   modification: ModifiedWorkout
   isSelected: boolean
   onToggleSelect: () => void
   onApprove: () => void
+  locale: AppLocale
 }) {
+  const t = (svText: string, enText: string) => localizedText(locale, svText, enText)
+  const dateFnsLocale = locale === 'sv' ? sv : enUS
+  const browserLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const actionLabels = {
-    CANCEL: 'Avbokad',
-    REDUCE_INTENSITY: 'Reducerad intensitet',
-    REDUCE_VOLUME: 'Reducerad volym',
-    CONVERT_TO_CROSS_TRAINING: 'Konverterad till kompletterande träning',
+    CANCEL: t('Avbokad', 'Canceled'),
+    REDUCE_INTENSITY: t('Reducerad intensitet', 'Reduced intensity'),
+    REDUCE_VOLUME: t('Reducerad volym', 'Reduced volume'),
+    CONVERT_TO_CROSS_TRAINING: t(
+      'Konverterad till kompletterande träning',
+      'Converted to cross-training'
+    ),
   }
 
   const actionColors = {
@@ -409,7 +453,7 @@ function ModificationCard({
     REDUCE_INTENSITY: 'default',
     REDUCE_VOLUME: 'default',
     CONVERT_TO_CROSS_TRAINING: 'secondary',
-  }
+  } as const
 
   const actionIcons = {
     CANCEL: XCircle,
@@ -448,7 +492,7 @@ function ModificationCard({
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <p className="font-semibold">
-                    {new Date(modification.workoutDate).toLocaleDateString('sv-SE', {
+                    {new Date(modification.workoutDate).toLocaleDateString(browserLocale, {
                       weekday: 'long',
                       day: 'numeric',
                       month: 'long',
@@ -461,16 +505,16 @@ function ModificationCard({
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Modifierad{' '}
+                  {t('Modifierad', 'Modified')}{' '}
                   {formatDistanceToNow(new Date(modification.modifiedAt), {
                     addSuffix: true,
-                    locale: sv,
+                    locale: dateFnsLocale,
                   })}
                 </p>
               </div>
             </div>
 
-            <Badge variant={actionColors[modification.action] as any}>
+            <Badge variant={actionColors[modification.action]}>
               <ActionIcon className="mr-1 h-3 w-3" />
               {actionLabels[modification.action]}
             </Badge>
@@ -491,12 +535,14 @@ function ModificationCard({
                 )}
                 {modification.originalIntensity && (
                   <p className="text-sm">
-                    <span className="font-medium">Intensitet:</span> {modification.originalIntensity}
+                    <span className="font-medium">{t('Intensitet:', 'Intensity:')}</span>{' '}
+                    {modification.originalIntensity}
                   </p>
                 )}
                 {modification.originalZones && (
                   <p className="text-sm">
-                    <span className="font-medium">Zoner:</span> {modification.originalZones}
+                    <span className="font-medium">{t('Zoner:', 'Zones:')}</span>{' '}
+                    {modification.originalZones}
                   </p>
                 )}
               </div>
@@ -509,7 +555,9 @@ function ModificationCard({
 
             {/* Modified Workout */}
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase">Modifierad</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase">
+                {t('Modifierad', 'Modified')}
+              </p>
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-1">
                 <p className="font-semibold">{modification.currentType}</p>
                 {modification.currentDuration && (
@@ -523,12 +571,14 @@ function ModificationCard({
                 )}
                 {modification.currentIntensity && (
                   <p className="text-sm">
-                    <span className="font-medium">Intensitet:</span> {modification.currentIntensity}
+                    <span className="font-medium">{t('Intensitet:', 'Intensity:')}</span>{' '}
+                    {modification.currentIntensity}
                   </p>
                 )}
                 {modification.currentZones && (
                   <p className="text-sm">
-                    <span className="font-medium">Zoner:</span> {modification.currentZones}
+                    <span className="font-medium">{t('Zoner:', 'Zones:')}</span>{' '}
+                    {modification.currentZones}
                   </p>
                 )}
               </div>
@@ -539,7 +589,7 @@ function ModificationCard({
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <p className="font-medium mb-1">Orsak:</p>
+              <p className="font-medium mb-1">{t('Orsak:', 'Reason:')}</p>
               <p className="text-sm">{modification.reasoning}</p>
             </AlertDescription>
           </Alert>
@@ -549,11 +599,11 @@ function ModificationCard({
             <div className="flex items-center justify-end gap-2 pt-2 border-t">
               <Button variant="outline" size="sm">
                 <XCircle className="mr-2 h-4 w-4" />
-                Underkänn
+                {t('Underkänn', 'Reject')}
               </Button>
               <Button variant="default" size="sm" onClick={onApprove}>
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                Godkänn
+                {t('Godkänn', 'Approve')}
               </Button>
             </div>
           )}
@@ -561,7 +611,9 @@ function ModificationCard({
           {modification.reviewed && (
             <div className="flex items-center justify-center gap-2 pt-2 border-t">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <p className="text-sm text-muted-foreground">Granskad och godkänd</p>
+              <p className="text-sm text-muted-foreground">
+                {t('Granskad och godkänd', 'Reviewed and approved')}
+              </p>
             </div>
           )}
         </div>
