@@ -103,6 +103,7 @@ export interface ProgramGenerationParams {
   // Equipment & Monitoring
   hasLactateMeter?: boolean // Enables Norwegian method
   hasHRVMonitor?: boolean // Daily recovery tracking
+  locale?: 'en' | 'sv'
 }
 
 /**
@@ -724,25 +725,26 @@ async function fetchRecentRaceResult(clientId: string): Promise<RaceResultForPac
  */
 export function validateProgramParams(params: ProgramGenerationParams): string[] {
   const errors: string[] = []
+  const t = (sv: string, en: string) => (params.locale === 'sv' ? sv : en)
 
   if (params.durationWeeks < 4) {
-    errors.push('Program måste vara minst 4 veckor')
+    errors.push(t('Program måste vara minst 4 veckor', 'Program must be at least 4 weeks'))
   }
 
   if (params.durationWeeks > 52) {
-    errors.push('Program kan inte vara längre än 52 veckor')
+    errors.push(t('Program kan inte vara längre än 52 veckor', 'Program cannot be longer than 52 weeks'))
   }
 
   if (params.trainingDaysPerWeek < 2) {
-    errors.push('Minst 2 träningsdagar per vecka krävs')
+    errors.push(t('Minst 2 träningsdagar per vecka krävs', 'At least 2 training days per week are required'))
   }
 
   if (params.trainingDaysPerWeek > 7) {
-    errors.push('Max 7 träningsdagar per vecka')
+    errors.push(t('Max 7 träningsdagar per vecka', 'Maximum 7 training days per week'))
   }
 
   if (params.targetRaceDate && params.targetRaceDate < new Date()) {
-    errors.push('Tävlingsdatum kan inte vara i det förflutna')
+    errors.push(t('Tävlingsdatum kan inte vara i det förflutna', 'Race date cannot be in the past'))
   }
 
   return errors
