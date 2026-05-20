@@ -19,26 +19,34 @@ import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { clientId } = await params;
 
     // Verify access - try as athlete (or coach in athlete mode) first
-    let isAthlete = false;
     let actorUserId: string | null = null;
     const resolved = await resolveAthleteClientId();
     if (resolved) {
+      locale = resolved.user.language === 'sv' ? 'sv' : 'en'
       if (resolved.clientId !== clientId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
-      isAthlete = true;
       actorUserId = resolved.user.id;
     } else {
       // Try as coach viewing a specific client
       const user = await requireCoach();
+      locale = user.language === 'sv' ? 'sv' : 'en'
       actorUserId = user.id;
       const hasAccess = await canAccessClient(user.id, clientId)
       if (!hasAccess) {
@@ -75,7 +83,7 @@ export async function GET(
     if (cycles.length === 0) {
       return NextResponse.json({
         hasData: false,
-        message: 'Ingen cykeldata tillgänglig. Börja logga för att få personliga insikter.',
+        message: t(locale, 'No cycle data available. Start logging to get personalized insights.', 'Ingen cykeldata tillgänglig. Börja logga för att få personliga insikter.'),
       });
     }
 
@@ -225,16 +233,18 @@ interface Log {
   flowIntensity: number | null;
 }
 
-function calculatePhasePatterns(logs: Log[]) {
+type PhasePattern = {
+  count: number;
+  avgFatigue: number | null;
+  avgMood: number | null;
+  avgCramps: number | null;
+  avgEffort: number | null;
+  avgFlow: number | null;
+}
+
+function calculatePhasePatterns(logs: Log[]): Record<Phase, PhasePattern> {
   const phases: Phase[] = ['MENSTRUAL', 'FOLLICULAR', 'OVULATORY', 'LUTEAL'];
-  const patterns = {} as Record<Phase, {
-    count: number;
-    avgFatigue: number | null;
-    avgMood: number | null;
-    avgCramps: number | null;
-    avgEffort: number | null;
-    avgFlow: number | null;
-  }>;
+  const patterns = {} as Record<Phase, PhasePattern>;
 
   for (const phase of phases) {
     const phaseLogs = logs.filter((l) => l.phase === phase);
@@ -272,7 +282,7 @@ interface InsightsInput {
   cycleCount: number;
   avgCycleLength: number | null;
   currentCycle: { day: number; phase: string | null } | null;
-  phasePatterns: Record<string, any>;
+  phasePatterns: Record<Phase, PhasePattern>;
   recentLogs: Log[];
 }
 

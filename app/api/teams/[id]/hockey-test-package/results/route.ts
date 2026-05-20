@@ -16,6 +16,12 @@ type ResultEntry = {
   value: number
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const INTEGER_METRICS = new Set(['lt1HeartRate', 'lt2HeartRate', 'maxHeartRate', 'rampTimeSeconds'])
 
 function normalizeName(value: string) {
@@ -84,6 +90,7 @@ export async function POST(
 ) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
     const team = await getWritableTeam(user.id, teamId, businessSlug, 'tests')
@@ -126,16 +133,16 @@ export async function POST(
 
     entries.forEach((entry, index) => {
       if (!memberIds.has(entry.clientId)) {
-        errors.push({ index, message: 'Atleten finns inte i laget' })
+        errors.push({ index, message: t(locale, 'The athlete is not on the team', 'Atleten finns inte i laget') })
         return
       }
       const item = itemsById.get(entry.packageItemId)
       if (!item) {
-        errors.push({ index, message: 'Testet finns inte i lagets testpaket' })
+        errors.push({ index, message: t(locale, 'The test is not in the team test package', 'Testet finns inte i lagets testpaket') })
         return
       }
       if (!HOCKEY_SCALAR_METRIC_KEYS.includes(item.metricKey)) {
-        errors.push({ index, message: 'Testet stöds inte i manuell tabell ännu' })
+        errors.push({ index, message: t(locale, 'This test is not supported in the manual table yet', 'Testet stöds inte i manuell tabell ännu') })
         return
       }
       const next = byClient.get(entry.clientId) ?? []
@@ -231,7 +238,11 @@ export async function POST(
       prUpdated,
       errors,
       warnings: Array.from(unlinkedStrengthItems).map((label) => (
-        `${label} saknar kopplad övning och sparades därför bara som hockeytest.`
+        t(
+          locale,
+          `${label} is missing a linked exercise and was therefore saved only as a hockey test.`,
+          `${label} saknar kopplad övning och sparades därför bara som hockeytest.`
+        )
       )),
     })
   } catch (error) {
