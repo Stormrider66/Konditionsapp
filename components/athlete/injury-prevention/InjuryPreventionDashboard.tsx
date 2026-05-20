@@ -17,7 +17,7 @@ import { AIRecommendations } from './AIRecommendations'
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH'
@@ -67,6 +67,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboardProps) {
   const t = useTranslations('components.injuryPreventionDashboard')
+  const locale = useLocale()
   const pageCtx = usePageContextOptional()
   const { data, error, isLoading } = useSWR<InjuryPreventionResponse>(
     '/api/athlete/injury-prevention',
@@ -82,9 +83,10 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
     if (!data?.success || !data.data) return
     const { acwr, activeInjuries, recommendations } = data.data
     const warningCount = recommendations.filter(r => r.type === 'WARNING').length
+    const acwrValue = acwr.current?.toFixed(2) ?? t('context.notCalculated')
     pageCtx?.setPageContext({
       type: 'injury-prevention',
-      title: 'Skadeförebyggande dashboard',
+      title: t('context.title'),
       conceptKeys: ['acwr', 'delawarePain'],
       data: {
         acwrValue: acwr.current,
@@ -101,10 +103,16 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
         recommendationCount: recommendations.length,
         warningCount,
       },
-      summary: `Skadeförebyggande: ACWR ${acwr.current?.toFixed(2) ?? 'ej beräknad'} (${acwr.zone ?? 'okänd zon'}), ${activeInjuries.length} aktiva skador, ${recommendations.length} rekommendationer (${warningCount} varningar).`,
+      summary: t('context.summary', {
+        acwr: acwrValue,
+        zone: acwr.zone ?? t('context.unknownZone'),
+        injuries: activeInjuries.length,
+        recommendations: recommendations.length,
+        warnings: warningCount,
+      }),
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data])
+  }, [data, locale])
 
   if (isLoading) {
     return (
