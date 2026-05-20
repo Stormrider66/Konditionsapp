@@ -18,6 +18,9 @@ export {
   getBenchmarkRating,
   calculateMatchLoadScore,
   getLoadStatus,
+  getBasketballLocale,
+  translateBasketballText,
+  translateBasketballList,
 } from './position-training';
 
 export type {
@@ -30,4 +33,5 @@ export type {
   PhysicalBenchmarks,
   QuarterData,
   MatchLoadData,
+  BasketballLocale,
 } from './position-training';

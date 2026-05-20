@@ -66,6 +66,123 @@ export interface PhysicalBenchmarks {
   yoyoIR1Level: number | null;
 }
 
+export type BasketballLocale = 'en' | 'sv';
+
+const ENGLISH_PHRASES: Record<string, string> = {
+  'Spelets regissör som styr tempo och skapar chanser. Kräver utmärkt spelförståelse, bollkontroll och uthållighet.': 'The floor general who controls tempo and creates chances. Requires excellent court vision, ball control, and endurance.',
+  'Primär poänggörare från distans. Kräver explosivitet för att skapa skottlägen och god uthållighet för konstant rörelse.': 'Primary perimeter scorer. Requires explosiveness to create shot opportunities and strong endurance for constant movement.',
+  'Allsidig spelare som bidrar i både anfall och försvar. Kombinerar guard-liknande rörlighet med forward-styrka.': 'Versatile player who contributes on offense and defense. Combines guard-like mobility with forward strength.',
+  'Fysisk spelare som dominerar i målarområdet. Kräver explosiv styrka och förmåga att spela fysiskt.': 'Physical player who dominates in the paint. Requires explosive strength and the ability to play through contact.',
+  'Lagets ankar i målarområdet. Fokus på rim protection, rebounds och inomhuspoäng. Kräver maximal styrka och vertikal kraft.': 'The team anchor in the paint. Focuses on rim protection, rebounds, and inside scoring. Requires maximal strength and vertical power.',
+  Snabbhet: 'Speed',
+  Kvickhet: 'Agility',
+  Uthållighet: 'Endurance',
+  Reaktionsförmåga: 'Reaction ability',
+  Acceleration: 'Acceleration',
+  'Vertikal hoppförmåga': 'Vertical jump ability',
+  'Core-stabilitet': 'Core stability',
+  Skottuthållighet: 'Shooting endurance',
+  'Allsidig atletik': 'All-around athleticism',
+  Styrka: 'Strength',
+  'Explosiv styrka': 'Explosive strength',
+  Kroppskontroll: 'Body control',
+  Reboundförmåga: 'Rebounding ability',
+  'Core-styrka': 'Core strength',
+  Maxstyrka: 'Maximum strength',
+  'Vertikal kraft': 'Vertical power',
+  Kroppsmassa: 'Body mass',
+  Timing: 'Timing',
+  Fotarbete: 'Footwork',
+  Explosivitet: 'Explosiveness',
+  'Aerob bas': 'Aerobic base',
+  Skadeförebyggande: 'Injury prevention',
+  Teknikutveckling: 'Technique development',
+  'Basketballspecifik kondition': 'Basketball-specific conditioning',
+  Power: 'Power',
+  Matchhärdighet: 'Match durability',
+  Taktik: 'Tactics',
+  Lagsamspel: 'Team play',
+  Styrkeunderhåll: 'Strength maintenance',
+  Återhämtning: 'Recovery',
+  Matchprestation: 'Match performance',
+  Skadeprevention: 'Injury prevention',
+  'Maximal återhämtning': 'Maximum recovery',
+  'Mental förberedelse': 'Mental preparation',
+  'Taktisk perfektion': 'Tactical precision',
+  'Peak performance': 'Peak performance',
+  'Hypertrofi och maxstyrka med fokus på compound-lyft': 'Hypertrophy and maximum strength with a focus on compound lifts',
+  'Aerob basträning och gradvis uppbyggnad av intensitet': 'Aerobic base training and gradual intensity build-up',
+  'Kraftutveckling och power med basketballspecifika rörelser': 'Power development with basketball-specific movements',
+  'Högintensiv intervallträning och spelliknande övningar': 'High-intensity interval training and game-like drills',
+  'Underhåll av styrka med låg volym, hög intensitet': 'Strength maintenance with low volume and high intensity',
+  'Matchspecifik kondition genom träning och matcher': 'Match-specific conditioning through practices and games',
+  'Minimalt underhåll för att bevara explosivitet': 'Minimal maintenance to preserve explosiveness',
+  'Endast matchspecifik aktivitet och aktiv återhämtning': 'Only match-specific activity and active recovery',
+  Balans: 'Balance',
+  Mobilitet: 'Mobility',
+  Stabilitet: 'Stability',
+  Rehab: 'Rehab',
+  Kontroll: 'Control',
+  Core: 'Core',
+  Rotatorkuff: 'Rotator cuff',
+  Excentrisk: 'Eccentric',
+  Plyometrics: 'Plyometrics',
+  Kondition: 'Conditioning',
+  Teknik: 'Technique',
+  '3x30s per ben': '3x30s per leg',
+  '2 set per fot': '2 sets per foot',
+  '3x15 per ben': '3x15 per leg',
+  '3x12 per riktning': '3x12 per direction',
+  '3x8 per ben': '3x8 per leg',
+  '3x10 per ben': '3x10 per leg',
+  '3x10 per sida': '3x10 per side',
+  '3x12 per sida': '3x12 per side',
+  '3x12 per arm': '3x12 per arm',
+  '2x8 per position': '2x8 per position',
+  '3x8 per sida': '3x8 per side',
+  'Progression: blunda, instabil yta': 'Progression: eyes closed, unstable surface',
+  'Rita alla bokstäver i luften': 'Draw every letter in the air',
+  'Full ROM, kontrollerad excentrisk fas': 'Full ROM, controlled eccentric phase',
+  'Håll knäna över tårna': 'Keep knees tracking over toes',
+  'Kontrollerad excentrisk fas': 'Controlled eccentric phase',
+  'Fokus på knäkontroll': 'Focus on knee control',
+  'Med band runt knät': 'With band around the knee',
+  'Långsam kontrollerad rörelse': 'Slow controlled movement',
+  'Håll neutral rygg': 'Keep a neutral spine',
+  'Pressa ländryggen mot golvet': 'Press the lower back into the floor',
+  'Långsamma kontrollerade rörelser': 'Slow controlled movements',
+  'Full höftextension': 'Full hip extension',
+  'Drag ihop skulderbladen': 'Squeeze the shoulder blades together',
+  'Med band eller lätt vikt': 'With a band or light weight',
+  'Fokus på bakre deltoid': 'Focus on the rear deltoid',
+  'Liggande på mage': 'Prone position',
+  'Vid 70 graders knävinkel': 'At a 70-degree knee angle',
+  'Med band runt knäna': 'With band around the knees',
+  'Långsam excentrisk fas': 'Slow eccentric phase',
+  '3s upp, 3s ner': '3s up, 3s down',
+  'Fokus på snabb riktningsändring': 'Focus on quick changes of direction',
+  'Med visuella signaler': 'With visual cues',
+  'Variera fotsteg': 'Vary footwork',
+  'Fokus på maximal höjd': 'Focus on maximum height',
+  'Full kropp explosivitet': 'Full-body explosiveness',
+  'Fullplans sprints': 'Full-court sprints',
+  'Fokus på maxstyrka': 'Focus on maximum strength',
+  'Minimal markkontakttid': 'Minimal ground-contact time',
+  'Drop steps och pivots': 'Drop steps and pivots',
+};
+
+export function getBasketballLocale(locale: string): BasketballLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+export function translateBasketballText(locale: string, value: string): string {
+  return getBasketballLocale(locale) === 'sv' ? value : ENGLISH_PHRASES[value] ?? value;
+}
+
+export function translateBasketballList(locale: string, values: string[]): string[] {
+  return values.map((value) => translateBasketballText(locale, value));
+}
+
 // Quarter data interface
 export interface QuarterData {
   quarter: number;
@@ -520,6 +637,9 @@ const basketballTrainingModule = {
   getBenchmarkRating,
   calculateMatchLoadScore,
   getLoadStatus,
+  getBasketballLocale,
+  translateBasketballText,
+  translateBasketballList,
 };
 
 export default basketballTrainingModule;
