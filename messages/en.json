@@ -14048,6 +14048,10 @@
       "fields": {
         "team": "Team",
         "teamPlaceholder": "Select team",
+        "workoutScope": "Recipient",
+        "athlete": "Athlete",
+        "athletePlaceholder": "Select athlete",
+        "noAthletes": "There are no athletes in the selected team yet.",
         "workoutType": "Workout type",
         "testName": "Test name",
         "date": "Date",
@@ -14061,6 +14065,10 @@
       "workoutTypes": {
         "cardio": "Cardio",
         "strength": "Strength"
+      },
+      "workoutScopes": {
+        "team": "Whole team",
+        "personal": "One athlete"
       },
       "messageTargets": {
         "all": "Whole team",

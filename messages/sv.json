@@ -14414,6 +14414,10 @@
       "fields": {
         "team": "Lag",
         "teamPlaceholder": "Välj lag",
+        "workoutScope": "Mottagare",
+        "athlete": "Atlet",
+        "athletePlaceholder": "Välj atlet",
+        "noAthletes": "Det finns inga atleter i det valda laget ännu.",
         "workoutType": "Typ av pass",
         "testName": "Testnamn",
         "date": "Datum",
@@ -14427,6 +14431,10 @@
       "workoutTypes": {
         "cardio": "Kondition",
         "strength": "Styrka"
+      },
+      "workoutScopes": {
+        "team": "Hela laget",
+        "personal": "En atlet"
       },
       "messageTargets": {
         "all": "Hela laget",

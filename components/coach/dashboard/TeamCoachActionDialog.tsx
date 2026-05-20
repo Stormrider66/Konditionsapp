@@ -23,6 +23,7 @@ import { useTranslations } from '@/i18n/client'
 export type TeamCoachAction = 'workout' | 'test' | 'message'
 
 type TeamSummary = TeamDashboardData['teams'][number]
+type WorkoutScope = 'team' | 'personal'
 
 interface TeamCoachActionDialogProps {
   action: TeamCoachAction | null
@@ -66,6 +67,8 @@ export function TeamCoachActionDialog({
   const t = useTranslations('components.teamCoachActionDialog')
   const router = useRouter()
   const [teamId, setTeamId] = useState('')
+  const [workoutScope, setWorkoutScope] = useState<WorkoutScope>('team')
+  const [athleteId, setAthleteId] = useState('')
   const [workoutType, setWorkoutType] = useState('cardio')
   const [testTitle, setTestTitle] = useState(t('defaults.testTitle'))
   const [date, setDate] = useState(todayValue())
@@ -76,6 +79,7 @@ export function TeamCoachActionDialog({
   const [submitting, setSubmitting] = useState(false)
 
   const selectedTeam = useMemo(() => teams.find(team => team.id === teamId), [teams, teamId])
+  const selectedTeamMembers = useMemo(() => selectedTeam?.members ?? [], [selectedTeam])
   const copy = action ? actionCopy[action] : null
   const Icon = copy?.icon ?? Dumbbell
 
@@ -83,6 +87,8 @@ export function TeamCoachActionDialog({
     if (!open) return
     const timeoutId = window.setTimeout(() => {
       setTeamId(initialTeamId || teams[0]?.id || '')
+      setWorkoutScope('team')
+      setAthleteId('')
       setWorkoutType('cardio')
       setTestTitle(t('defaults.testTitle'))
       setDate(todayValue())
@@ -95,6 +101,21 @@ export function TeamCoachActionDialog({
     return () => window.clearTimeout(timeoutId)
   }, [initialTeamId, open, teams, t])
 
+  function handleTeamChange(nextTeamId: string) {
+    setTeamId(nextTeamId)
+    if (workoutScope === 'personal') {
+      const nextTeam = teams.find(team => team.id === nextTeamId)
+      setAthleteId(nextTeam?.members[0]?.id ?? '')
+    }
+  }
+
+  function handleWorkoutScopeChange(nextScope: WorkoutScope) {
+    setWorkoutScope(nextScope)
+    if (nextScope === 'personal' && !athleteId) {
+      setAthleteId(selectedTeamMembers[0]?.id ?? '')
+    }
+  }
+
   async function handleSubmit() {
     if (!action || !teamId) return
 
@@ -105,8 +126,18 @@ export function TeamCoachActionDialog({
           : workoutType === 'hybrid'
             ? `${basePath}/coach/hybrid-studio`
             : `${basePath}/coach/cardio`
+      const params = new URLSearchParams({ quickCreate: '1' })
+
+      if (workoutScope === 'personal' && athleteId) {
+        params.set('fromCalendar', 'true')
+        params.set('clientId', athleteId)
+        params.set('date', todayValue())
+      } else {
+        params.set('teamId', teamId)
+      }
+
       onOpenChange(false)
-      router.push(`${destination}?teamId=${teamId}&quickCreate=1`)
+      router.push(`${destination}?${params.toString()}`)
       return
     }
 
@@ -170,6 +201,7 @@ export function TeamCoachActionDialog({
   const disabled =
     !teamId ||
     submitting ||
+    (action === 'workout' && workoutScope === 'personal' && !athleteId) ||
     (action === 'message' && messageText.trim().length === 0) ||
     (action === 'test' && testTitle.trim().length === 0)
 
@@ -187,7 +219,7 @@ export function TeamCoachActionDialog({
         <div className="min-w-0 space-y-4 py-2">
           <div className="space-y-2">
             <Label>{t('fields.team')}</Label>
-            <Select value={teamId} onValueChange={setTeamId}>
+            <Select value={teamId} onValueChange={handleTeamChange}>
               <SelectTrigger className="min-w-0">
                 <SelectValue placeholder={t('fields.teamPlaceholder')} />
               </SelectTrigger>
@@ -202,19 +234,57 @@ export function TeamCoachActionDialog({
           </div>
 
           {action === 'workout' && (
-            <div className="space-y-2">
-              <Label>{t('fields.workoutType')}</Label>
-              <Select value={workoutType} onValueChange={setWorkoutType}>
-                <SelectTrigger className="min-w-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cardio">{t('workoutTypes.cardio')}</SelectItem>
-                  <SelectItem value="strength">{t('workoutTypes.strength')}</SelectItem>
-                  <SelectItem value="hybrid">Hybrid</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label>{t('fields.workoutScope')}</Label>
+                <Select value={workoutScope} onValueChange={value => handleWorkoutScopeChange(value as WorkoutScope)}>
+                  <SelectTrigger className="min-w-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="team">{t('workoutScopes.team')}</SelectItem>
+                    <SelectItem value="personal">{t('workoutScopes.personal')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {workoutScope === 'personal' && (
+                <div className="space-y-2">
+                  <Label>{t('fields.athlete')}</Label>
+                  <Select value={athleteId} onValueChange={setAthleteId} disabled={selectedTeamMembers.length === 0}>
+                    <SelectTrigger className="min-w-0">
+                      <SelectValue placeholder={t('fields.athletePlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedTeamMembers.map(member => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.jerseyNumber ? `#${member.jerseyNumber} ` : ''}
+                          {member.name}
+                          {member.position ? ` · ${member.position}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedTeamMembers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">{t('fields.noAthletes')}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>{t('fields.workoutType')}</Label>
+                <Select value={workoutType} onValueChange={setWorkoutType}>
+                  <SelectTrigger className="min-w-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cardio">{t('workoutTypes.cardio')}</SelectItem>
+                    <SelectItem value="strength">{t('workoutTypes.strength')}</SelectItem>
+                    <SelectItem value="hybrid">Hybrid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
 
           {action === 'test' && (

@@ -335,6 +335,13 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           id: string
           name: string
           sportType: string | null
+          members: Array<{
+            id: string
+            name: string
+            email: string | null
+            jerseyNumber: number | null
+            position: string | null
+          }>
           athleteCount: number
           sessionsToday: number
           readiness: { high: number; medium: number; low: number; total: number }
@@ -369,7 +376,16 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
         id: true,
         name: true,
         sportType: true,
-        members: { select: { id: true } },
+        members: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            jerseyNumber: true,
+            position: true,
+          },
+          orderBy: [{ jerseyNumber: 'asc' }, { name: 'asc' }],
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 12,
@@ -539,6 +555,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           id: team.id,
           name: team.name,
           sportType: team.sportType,
+          members: team.members,
           athleteCount: team.members.length,
           sessionsToday: (eventCountByTeam.get(team.id) ?? 0) + (broadcastCountByTeam.get(team.id) ?? 0),
           readiness,

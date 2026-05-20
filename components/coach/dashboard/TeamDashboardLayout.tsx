@@ -15,6 +15,13 @@ export interface TeamDashboardData {
     id: string
     name: string
     sportType: string | null
+    members: Array<{
+      id: string
+      name: string
+      email: string | null
+      jerseyNumber: number | null
+      position: string | null
+    }>
     athleteCount: number
     sessionsToday: number
     readiness: { high: number; medium: number; low: number; total: number }
