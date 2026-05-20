@@ -179,7 +179,7 @@ model User {
   name      String
   role      UserRole   @default(COACH)
   adminRole AdminRole? // Admin-specific role for admin panel access
-  language  String     @default("sv") // "sv" or "en"
+  language  String     @default("en") // "sv" or "en"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
