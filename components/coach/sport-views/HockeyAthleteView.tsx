@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLocale } from 'next-intl'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -189,100 +190,144 @@ interface HockeyPlayerHighlight {
   tone: 'priority' | 'positive' | 'info'
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  center: 'Center',
-  wing: 'Forward (Wing)',
-  defense: 'Back',
-  goalie: 'Målvakt',
+type LocalizedText = { sv: string; en: string }
+
+function tr(locale: string, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
 }
 
-const LEAGUE_LABELS: Record<string, string> = {
-  recreational: 'Motionshockey',
-  junior: 'Junior',
-  division_3: 'Division 3',
-  division_2: 'Division 2',
-  division_1: 'Division 1',
-  hockeyettan: 'Hockeyettan',
-  hockeyallsvenskan: 'Hockeyallsvenskan',
-  shl: 'SHL',
+function localized(locale: string, text: LocalizedText): string {
+  return locale === 'sv' ? text.sv : text.en
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  off_season: 'Off-season',
-  pre_season: 'Försäsong',
-  in_season: 'Säsong',
-  playoffs: 'Slutspel',
+const POSITION_LABELS: Record<string, LocalizedText> = {
+  center: { sv: 'Center', en: 'Center' },
+  wing: { sv: 'Forward (Wing)', en: 'Forward (Wing)' },
+  defense: { sv: 'Back', en: 'Defense' },
+  goalie: { sv: 'Målvakt', en: 'Goalie' },
 }
 
-const PLAYSTYLE_LABELS: Record<string, string> = {
-  offensive: 'Offensiv',
-  defensive: 'Defensiv',
-  two_way: 'Tvåvägsspelare',
-  physical: 'Fysisk',
-  skill: 'Teknisk',
+const LEAGUE_LABELS: Record<string, LocalizedText> = {
+  recreational: { sv: 'Motionshockey', en: 'Recreational hockey' },
+  junior: { sv: 'Junior', en: 'Junior' },
+  division_3: { sv: 'Division 3', en: 'Division 3' },
+  division_2: { sv: 'Division 2', en: 'Division 2' },
+  division_1: { sv: 'Division 1', en: 'Division 1' },
+  hockeyettan: { sv: 'Hockeyettan', en: 'Hockeyettan' },
+  hockeyallsvenskan: { sv: 'Hockeyallsvenskan', en: 'Hockeyallsvenskan' },
+  shl: { sv: 'SHL', en: 'SHL' },
 }
 
-const STRENGTH_LABELS: Record<string, string> = {
-  skating_speed: 'Skridskohastighet',
-  acceleration: 'Acceleration',
-  shot_power: 'Skottstyrka',
-  physical_battles: 'Fysiska dueller',
-  endurance: 'Uthållighet',
-  agility: 'Kvickhet',
-  core_stability: 'Core-stabilitet',
-  upper_body: 'Överkroppsstyrka',
+const PHASE_LABELS: Record<string, LocalizedText> = {
+  off_season: { sv: 'Off-season', en: 'Off-season' },
+  pre_season: { sv: 'Försäsong', en: 'Pre-season' },
+  in_season: { sv: 'Säsong', en: 'In-season' },
+  playoffs: { sv: 'Slutspel', en: 'Playoffs' },
 }
 
-const WEAKNESS_LABELS: Record<string, string> = {
-  skating_technique: 'Skridskoteknik',
-  backwards_skating: 'Baklängesåkning',
-  shot_accuracy: 'Skottaccuracy',
-  faceoffs: 'Tekningar',
-  positioning: 'Positionering',
-  puck_handling: 'Puckhantering',
-  passing: 'Passningar',
-  defensive_play: 'Defensivt spel',
+const PLAYSTYLE_LABELS: Record<string, LocalizedText> = {
+  offensive: { sv: 'Offensiv', en: 'Offensive' },
+  defensive: { sv: 'Defensiv', en: 'Defensive' },
+  two_way: { sv: 'Tvåvägsspelare', en: 'Two-way player' },
+  physical: { sv: 'Fysisk', en: 'Physical' },
+  skill: { sv: 'Teknisk', en: 'Skill player' },
 }
 
-const INJURY_LABELS: Record<string, string> = {
-  groin: 'Ljumske',
-  hip: 'Höft',
-  knee: 'Knä',
-  shoulder: 'Axel',
-  ankle: 'Fotled',
-  back: 'Rygg',
-  concussion: 'Hjärnskakning',
-  wrist_hand: 'Handled/hand',
+const STRENGTH_LABELS: Record<string, LocalizedText> = {
+  skating_speed: { sv: 'Skridskohastighet', en: 'Skating speed' },
+  acceleration: { sv: 'Acceleration', en: 'Acceleration' },
+  shot_power: { sv: 'Skottstyrka', en: 'Shot power' },
+  physical_battles: { sv: 'Fysiska dueller', en: 'Physical battles' },
+  endurance: { sv: 'Uthållighet', en: 'Endurance' },
+  agility: { sv: 'Kvickhet', en: 'Agility' },
+  core_stability: { sv: 'Core-stabilitet', en: 'Core stability' },
+  upper_body: { sv: 'Överkroppsstyrka', en: 'Upper-body strength' },
+}
+
+const WEAKNESS_LABELS: Record<string, LocalizedText> = {
+  skating_technique: { sv: 'Skridskoteknik', en: 'Skating technique' },
+  backwards_skating: { sv: 'Baklängesåkning', en: 'Backward skating' },
+  shot_accuracy: { sv: 'Skottaccuracy', en: 'Shot accuracy' },
+  faceoffs: { sv: 'Tekningar', en: 'Faceoffs' },
+  positioning: { sv: 'Positionering', en: 'Positioning' },
+  puck_handling: { sv: 'Puckhantering', en: 'Puck handling' },
+  passing: { sv: 'Passningar', en: 'Passing' },
+  defensive_play: { sv: 'Defensivt spel', en: 'Defensive play' },
+}
+
+const INJURY_LABELS: Record<string, LocalizedText> = {
+  groin: { sv: 'Ljumske', en: 'Groin' },
+  hip: { sv: 'Höft', en: 'Hip' },
+  knee: { sv: 'Knä', en: 'Knee' },
+  shoulder: { sv: 'Axel', en: 'Shoulder' },
+  ankle: { sv: 'Fotled', en: 'Ankle' },
+  back: { sv: 'Rygg', en: 'Back' },
+  concussion: { sv: 'Hjärnskakning', en: 'Concussion' },
+  wrist_hand: { sv: 'Handled/hand', en: 'Wrist/hand' },
 }
 
 // Training recommendations by season phase
-const PHASE_RECOMMENDATIONS: Record<string, { focus: string[]; avoid: string[] }> = {
+const PHASE_RECOMMENDATIONS: Record<string, { focus: LocalizedText[]; avoid: LocalizedText[] }> = {
   off_season: {
-    focus: ['Aerob basträning', 'Maxstyrka (4-6 rep)', 'Rörlighet', 'Skaderehab'],
-    avoid: ['Hög-intensiv sprintträning', 'Maximal is-träning'],
+    focus: [
+      { sv: 'Aerob basträning', en: 'Aerobic base training' },
+      { sv: 'Maxstyrka (4-6 rep)', en: 'Max strength (4-6 reps)' },
+      { sv: 'Rörlighet', en: 'Mobility' },
+      { sv: 'Skaderehab', en: 'Injury rehab' },
+    ],
+    avoid: [
+      { sv: 'Hög-intensiv sprintträning', en: 'High-intensity sprint training' },
+      { sv: 'Maximal is-träning', en: 'Maximal on-ice training' },
+    ],
   },
   pre_season: {
-    focus: ['Intervaller (30-60 sek)', 'Explosiv styrka', 'Plyometrics', 'Is-kondition'],
-    avoid: ['Långdistans steady-state', 'Hög volym styrketräning'],
+    focus: [
+      { sv: 'Intervaller (30-60 sek)', en: 'Intervals (30-60 sec)' },
+      { sv: 'Explosiv styrka', en: 'Explosive strength' },
+      { sv: 'Plyometrics', en: 'Plyometrics' },
+      { sv: 'Is-kondition', en: 'On-ice conditioning' },
+    ],
+    avoid: [
+      { sv: 'Långdistans steady-state', en: 'Long steady-state distance work' },
+      { sv: 'Hög volym styrketräning', en: 'High-volume strength training' },
+    ],
   },
   in_season: {
-    focus: ['Underhållsstyrka (2x/v)', 'Aktiv återhämtning', 'Mobilitet', 'Skadeförebyggande'],
-    avoid: ['Hög volym off-ice', 'Nya övningar', 'Tung styrketräning nära match'],
+    focus: [
+      { sv: 'Underhållsstyrka (2x/v)', en: 'Maintenance strength (2x/week)' },
+      { sv: 'Aktiv återhämtning', en: 'Active recovery' },
+      { sv: 'Mobilitet', en: 'Mobility' },
+      { sv: 'Skadeförebyggande', en: 'Injury prevention' },
+    ],
+    avoid: [
+      { sv: 'Hög volym off-ice', en: 'High off-ice volume' },
+      { sv: 'Nya övningar', en: 'New exercises' },
+      { sv: 'Tung styrketräning nära match', en: 'Heavy strength training close to games' },
+    ],
   },
   playoffs: {
-    focus: ['Lätt aktivering', 'Pool-återhämtning', 'Mental förberedelse', 'Sömn'],
-    avoid: ['Styrketräning', 'Off-ice kondition', 'Allt som kan orsaka trötthet'],
+    focus: [
+      { sv: 'Lätt aktivering', en: 'Light activation' },
+      { sv: 'Pool-återhämtning', en: 'Pool recovery' },
+      { sv: 'Mental förberedelse', en: 'Mental preparation' },
+      { sv: 'Sömn', en: 'Sleep' },
+    ],
+    avoid: [
+      { sv: 'Styrketräning', en: 'Strength training' },
+      { sv: 'Off-ice kondition', en: 'Off-ice conditioning' },
+      { sv: 'Allt som kan orsaka trötthet', en: 'Anything that can create fatigue' },
+    ],
   },
 }
 
 const PHYSICAL_METRICS = [
   { key: 'muscleLabWkg', label: 'MuscleLab', unit: 'W/kg', decimals: 1 },
-  { key: 'backSquat1RM', label: 'Knäböj', unit: 'kg', decimals: 0 },
+  { key: 'backSquat1RM', label: { sv: 'Knäböj', en: 'Back squat' }, unit: 'kg', decimals: 0 },
   { key: 'powerClean1RM', label: 'Power clean', unit: 'kg', decimals: 0 },
-  { key: 'benchPress1RM', label: 'Bänkpress', unit: 'kg', decimals: 0 },
+  { key: 'benchPress1RM', label: { sv: 'Bänkpress', en: 'Bench press' }, unit: 'kg', decimals: 0 },
   { key: 'pullUp1RM', label: 'Pull-up 1RM', unit: 'kg', decimals: 0 },
   { key: 'gripMax', label: 'Grepp max', unit: 'kg', decimals: 0 },
-  { key: 'standingLongJump', label: 'Längdhopp', unit: 'cm', decimals: 0 },
+  { key: 'standingLongJump', label: { sv: 'Längdhopp', en: 'Standing long jump' }, unit: 'cm', decimals: 0 },
   { key: 'threeJumpBest', label: '3-steg', unit: 'cm', decimals: 0 },
   { key: 'sprint5m', label: '5m is', unit: 's', decimals: 2 },
   { key: 'sprint10m', label: '10m is', unit: 's', decimals: 2 },
@@ -296,19 +341,19 @@ const PHYSICAL_METRICS = [
   { key: 'beepScore', label: 'Beep', unit: '', decimals: 1 },
   { key: 'wingate30sAveragePower', label: 'Wingate 30 s', unit: 'W', decimals: 0 },
   { key: 'vo2Max', label: 'VO2max', unit: 'ml/kg/min', decimals: 1 },
-  { key: 'lt1SpeedKmh', label: 'LT1 fart', unit: 'km/h', decimals: 1 },
-  { key: 'lt1HeartRate', label: 'LT1 puls', unit: 'bpm', decimals: 0 },
-  { key: 'lt1Lactate', label: 'LT1 laktat', unit: 'mmol/L', decimals: 1 },
-  { key: 'lt2SpeedKmh', label: 'LT2 fart', unit: 'km/h', decimals: 1 },
-  { key: 'lt2HeartRate', label: 'LT2 puls', unit: 'bpm', decimals: 0 },
-  { key: 'lt2Lactate', label: 'LT2 laktat', unit: 'mmol/L', decimals: 1 },
-  { key: 'maxLactate', label: 'Max laktat', unit: 'mmol/L', decimals: 1 },
-  { key: 'maxHeartRate', label: 'Maxpuls', unit: 'bpm', decimals: 0 },
-  { key: 'rampTimeSeconds', label: 'Ramptid', unit: 's', decimals: 0 },
-  { key: 'endurance7x40Best', label: '7x40 bäst', unit: 's', decimals: 2 },
-  { key: 'endurance7x40BestKmh', label: '7x40 fart', unit: 'km/h', decimals: 1 },
-  { key: 'endurance7x40Average', label: '7x40 snitt', unit: 's', decimals: 2 },
-  { key: 'endurance7x40AverageKmh', label: '7x40 snittfart', unit: 'km/h', decimals: 1 },
+  { key: 'lt1SpeedKmh', label: { sv: 'LT1 fart', en: 'LT1 speed' }, unit: 'km/h', decimals: 1 },
+  { key: 'lt1HeartRate', label: { sv: 'LT1 puls', en: 'LT1 heart rate' }, unit: 'bpm', decimals: 0 },
+  { key: 'lt1Lactate', label: { sv: 'LT1 laktat', en: 'LT1 lactate' }, unit: 'mmol/L', decimals: 1 },
+  { key: 'lt2SpeedKmh', label: { sv: 'LT2 fart', en: 'LT2 speed' }, unit: 'km/h', decimals: 1 },
+  { key: 'lt2HeartRate', label: { sv: 'LT2 puls', en: 'LT2 heart rate' }, unit: 'bpm', decimals: 0 },
+  { key: 'lt2Lactate', label: { sv: 'LT2 laktat', en: 'LT2 lactate' }, unit: 'mmol/L', decimals: 1 },
+  { key: 'maxLactate', label: { sv: 'Max laktat', en: 'Max lactate' }, unit: 'mmol/L', decimals: 1 },
+  { key: 'maxHeartRate', label: { sv: 'Maxpuls', en: 'Max HR' }, unit: 'bpm', decimals: 0 },
+  { key: 'rampTimeSeconds', label: { sv: 'Ramptid', en: 'Ramp time' }, unit: 's', decimals: 0 },
+  { key: 'endurance7x40Best', label: { sv: '7x40 bäst', en: '7x40 best' }, unit: 's', decimals: 2 },
+  { key: 'endurance7x40BestKmh', label: { sv: '7x40 fart', en: '7x40 speed' }, unit: 'km/h', decimals: 1 },
+  { key: 'endurance7x40Average', label: { sv: '7x40 snitt', en: '7x40 average' }, unit: 's', decimals: 2 },
+  { key: 'endurance7x40AverageKmh', label: { sv: '7x40 snittfart', en: '7x40 average speed' }, unit: 'km/h', decimals: 1 },
   { key: 'endurance7x40Resistance', label: '7x40 resistance', unit: '%', decimals: 0 },
   { key: 'endurance7x40DecrementPct', label: '7x40 decrement', unit: '%', decimals: 1 },
   { key: 'enduranceFatigueDrop', label: '7x40 drop', unit: '%', decimals: 1 },
@@ -380,24 +425,32 @@ const METRIC_BY_KEY: ReadonlyMap<string, (typeof PHYSICAL_METRICS)[number]> = ne
   PHYSICAL_METRICS.map((metric) => [metric.key, metric])
 )
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('sv-SE', {
+function labelFor(labels: Record<string, LocalizedText>, key: string, locale: string): string {
+  return labels[key] ? localized(locale, labels[key]) : key
+}
+
+function metricLabel(metric: (typeof PHYSICAL_METRICS)[number], locale: string): string {
+  return typeof metric.label === 'string' ? metric.label : localized(locale, metric.label)
+}
+
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   })
 }
 
-function aerobicSourceLabel(source: string | null | undefined): string {
+function aerobicSourceLabel(source: string | null | undefined, locale: string): string {
   switch (source) {
     case 'lab-test':
-      return 'labbtest'
+      return tr(locale, 'labbtest', 'lab test')
     case 'athlete-profile':
-      return 'profil'
+      return tr(locale, 'profil', 'profile')
     case 'manual-profile':
-      return 'manuell profil'
+      return tr(locale, 'manuell profil', 'manual profile')
     default:
-      return 'profil/labb'
+      return tr(locale, 'profil/labb', 'profile/lab')
   }
 }
 
@@ -411,46 +464,47 @@ function formatDelta(delta: number, unit: string, decimals: number): string {
   return `${sign}${delta.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
-function metricFocus(metricKey: string): { title: string; description: string } {
+function metricFocus(metricKey: string, locale: string): { title: string; description: string } {
   if (['sprint5m', 'sprint10m', 'sprint20m', 'sprint30m', 'agilityBest'].includes(metricKey)) {
     return {
-      title: 'Acceleration och riktningsförändring',
-      description: 'Prioritera korta isaccelerationer, broms/omstart och 5-10-5-kvalitet med full återhämtning.',
+      title: tr(locale, 'Acceleration och riktningsförändring', 'Acceleration and change of direction'),
+      description: tr(locale, 'Prioritera korta isaccelerationer, broms/omstart och 5-10-5-kvalitet med full återhämtning.', 'Prioritize short on-ice accelerations, braking/restarts and 5-10-5 quality with full recovery.'),
     }
   }
   if (['muscleLabWkg', 'wingate30sAveragePower', 'standingLongJump', 'threeJumpBest'].includes(metricKey)) {
     return {
-      title: 'Explosiv underkroppskraft',
-      description: 'Kör ett power-block med hopp, loaded squat jump och hastighetsstyrda kontrastpar.',
+      title: tr(locale, 'Explosiv underkroppskraft', 'Explosive lower-body power'),
+      description: tr(locale, 'Kör ett power-block med hopp, loaded squat jump och hastighetsstyrda kontrastpar.', 'Run a power block with jumps, loaded squat jumps and velocity-guided contrast pairs.'),
     }
   }
   if (['backSquat1RM', 'powerClean1RM', 'benchPress1RM', 'pullUp1RM', 'gripMax'].includes(metricKey)) {
     return {
-      title: 'Maxstyrka och robusthet',
-      description: 'Bygg vidare med baslyft, drag/press och grepp utan att störa is- eller matchkvalitet.',
+      title: tr(locale, 'Maxstyrka och robusthet', 'Max strength and robustness'),
+      description: tr(locale, 'Bygg vidare med baslyft, drag/press och grepp utan att störa is- eller matchkvalitet.', 'Build with base lifts, pull/press and grip work without disrupting on-ice or game quality.'),
     }
   }
   if (['beepScore', 'vo2Max', 'lt1SpeedKmh', 'lt2SpeedKmh', 'endurance7x40Average', 'endurance7x40AverageKmh', 'endurance7x40Resistance', 'endurance7x40DecrementPct', 'enduranceFatigueDrop'].includes(metricKey)) {
     return {
       title: 'Repeated shift conditioning',
-      description: 'Använd upprepade 30-45 sek arbetsblock och kontrollera falloff mellan repetitioner.',
+      description: tr(locale, 'Använd upprepade 30-45 sek arbetsblock och kontrollera falloff mellan repetitioner.', 'Use repeated 30-45 second work blocks and monitor falloff between reps.'),
     }
   }
   return {
-    title: 'Fysisk kapacitet',
-    description: 'Följ upp med riktad träning och nytt test efter nästa block.',
+    title: tr(locale, 'Fysisk kapacitet', 'Physical capacity'),
+    description: tr(locale, 'Följ upp med riktad träning och nytt test efter nästa block.', 'Follow up with targeted training and a new test after the next block.'),
   }
 }
 
 function buildAthleteCoachPlan(
   summary: HockeySummaryResponse | null,
   hockeySettings: HockeySettings,
+  locale: string,
 ): HockeyCoachPlanItem[] {
   const items: HockeyCoachPlanItem[] = []
   if (!summary?.latest) {
     return [{
-      title: 'Skapa baseline',
-      description: 'Logga första hockeybatteriet med sprint, hopp, styrka, kondition och MuscleLab om tillgängligt.',
+      title: tr(locale, 'Skapa baseline', 'Create a baseline'),
+      description: tr(locale, 'Logga första hockeybatteriet med sprint, hopp, styrka, kondition och MuscleLab om tillgängligt.', 'Log the first hockey battery with sprint, jumps, strength, conditioning and MuscleLab if available.'),
       tone: 'info',
     }]
   }
@@ -458,7 +512,7 @@ function buildAthleteCoachPlan(
   const warnings = summary.flags.filter((flag) => flag.severity === 'warning')
   if (warnings.length > 0) {
     items.push({
-      title: 'Kontrollera coachflaggor',
+      title: tr(locale, 'Kontrollera coachflaggor', 'Review coach flags'),
       description: warnings.map((flag) => flag.label).join(' · '),
       tone: 'priority',
     })
@@ -470,10 +524,14 @@ function buildAthleteCoachPlan(
   const primaryNegative = negativeTrends[0]
   if (primaryNegative) {
     const metric = METRIC_BY_KEY.get(primaryNegative.key)
-    const focus = metricFocus(primaryNegative.key)
+    const focus = metricFocus(primaryNegative.key, locale)
     items.push({
       title: focus.title,
-      description: `${metric?.label ?? 'Nyckelvärde'} har försämrats ${formatDelta(primaryNegative.delta, metric?.unit ?? '', metric?.decimals ?? 1)} sedan förra testet. ${focus.description}`,
+      description: tr(
+        locale,
+        `${metric ? metricLabel(metric, locale) : 'Nyckelvärde'} har försämrats ${formatDelta(primaryNegative.delta, metric?.unit ?? '', metric?.decimals ?? 1)} sedan förra testet. ${focus.description}`,
+        `${metric ? metricLabel(metric, locale) : 'Key metric'} has dropped ${formatDelta(primaryNegative.delta, metric?.unit ?? '', metric?.decimals ?? 1)} since the previous test. ${focus.description}`
+      ),
       tone: 'priority',
     })
   }
@@ -489,32 +547,36 @@ function buildAthleteCoachPlan(
     .filter((item): item is { best: HockeyBest; metric: NonNullable<ReturnType<typeof METRIC_BY_KEY.get>> } => item != null)
   if (bestNow.length > 0) {
     items.push({
-      title: 'Behåll styrkan i profilen',
-      description: `${bestNow.slice(0, 3).map((item) => item.metric.label).join(', ')} är ny bestnotering. Behåll dosen som gav resultat och öka bara en variabel i taget.`,
+      title: tr(locale, 'Behåll styrkan i profilen', 'Maintain the profile strengths'),
+      description: tr(
+        locale,
+        `${bestNow.slice(0, 3).map((item) => metricLabel(item.metric, locale)).join(', ')} är ny bestnotering. Behåll dosen som gav resultat och öka bara en variabel i taget.`,
+        `${bestNow.slice(0, 3).map((item) => metricLabel(item.metric, locale)).join(', ')} is a new personal best. Keep the dose that worked and increase only one variable at a time.`
+      ),
       tone: 'positive',
     })
   }
 
-  const phase = PHASE_LABELS[hockeySettings.seasonPhase] ?? 'aktuell fas'
+  const phase = hockeySettings.seasonPhase in PHASE_LABELS ? labelFor(PHASE_LABELS, hockeySettings.seasonPhase, locale) : tr(locale, 'aktuell fas', 'current phase')
   const retestWeeks = hockeySettings.seasonPhase === 'in_season' || hockeySettings.seasonPhase === 'playoffs' ? '4-6' : '3-4'
   items.push({
-    title: `Nästa ${phase}-block`,
-    description: `Kör 2-4 veckor med huvudfokus ovan och gör kort retest om ${retestWeeks} veckor, eller tidigare om matchschema/återhämtning förändras tydligt.`,
+    title: tr(locale, `Nästa ${phase}-block`, `Next ${phase} block`),
+    description: tr(locale, `Kör 2-4 veckor med huvudfokus ovan och gör kort retest om ${retestWeeks} veckor, eller tidigare om matchschema/återhämtning förändras tydligt.`, `Run 2-4 weeks with the main focus above and do a short retest in ${retestWeeks} weeks, or earlier if the game schedule or recovery changes clearly.`),
     tone: 'info',
   })
 
   return items.slice(0, 4)
 }
 
-function buildPlayerHighlight(summary: HockeySummaryResponse | null, clientName: string): HockeyPlayerHighlight {
+function buildPlayerHighlight(summary: HockeySummaryResponse | null, clientName: string, locale: string): HockeyPlayerHighlight {
   if (!summary?.latest) {
     return {
-      title: `${clientName}: testprofil saknas`,
-      status: 'Logga första hockeybatteriet för att visa nuläge, bästa värden och utveckling.',
+      title: tr(locale, `${clientName}: testprofil saknas`, `${clientName}: test profile missing`),
+      status: tr(locale, 'Logga första hockeybatteriet för att visa nuläge, bästa värden och utveckling.', 'Log the first hockey battery to show current status, best values and development.'),
       tone: 'info',
       bullets: [
-        'Första vyn bör innehålla sprint, 7x40, hopp, styrka och aerob ankare.',
-        'När två tester finns visar profilen förändring och vad nästa block bör fokusera på.',
+        tr(locale, 'Första vyn bör innehålla sprint, 7x40, hopp, styrka och aerob ankare.', 'The first view should include sprint, 7x40, jumps, strength and an aerobic anchor.'),
+        tr(locale, 'När två tester finns visar profilen förändring och vad nästa block bör fokusera på.', 'Once two tests exist, the profile shows change and what the next block should focus on.'),
       ],
     }
   }
@@ -525,43 +587,45 @@ function buildPlayerHighlight(summary: HockeySummaryResponse | null, clientName:
   const positive = summary.interpretations.find((item) => item.tone === 'positive')
   const nextLevel = summary.pathway.nextLevel
   const nextLevelText = nextLevel?.score == null
-    ? nextLevel?.level ? `${nextLevel.level}: behöver fler testvärden` : 'Nästa nivå behöver fler testvärden'
-    : `${nextLevel.level}: ${nextLevel.score}% av tillgängliga targets`
+    ? nextLevel?.level ? tr(locale, `${nextLevel.level}: behöver fler testvärden`, `${nextLevel.level}: needs more test values`) : tr(locale, 'Nästa nivå behöver fler testvärden', 'Next level needs more test values')
+    : tr(locale, `${nextLevel.level}: ${nextLevel.score}% av tillgängliga targets`, `${nextLevel.level}: ${nextLevel.score}% of available targets`)
 
   if (priority) {
     return {
-      title: `${clientName}: tydlig utvecklingsprioritet`,
+      title: tr(locale, `${clientName}: tydlig utvecklingsprioritet`, `${clientName}: clear development priority`),
       status: priority.title,
       tone: 'priority',
       bullets: [
         priority.action,
         priority.trainingBlock,
-        `Nästa nivå: ${nextLevelText}.`,
+        tr(locale, `Nästa nivå: ${nextLevelText}.`, `Next level: ${nextLevelText}.`),
       ],
     }
   }
 
   if (positiveBestCount > 0 || positive) {
     return {
-      title: `${clientName}: positiv testtrend`,
-      status: positive?.title ?? `${positiveBestCount} nya bestnoteringar i senaste testet`,
+      title: tr(locale, `${clientName}: positiv testtrend`, `${clientName}: positive test trend`),
+      status: positive?.title ?? tr(locale, `${positiveBestCount} nya bestnoteringar i senaste testet`, `${positiveBestCount} new personal bests in the latest test`),
       tone: 'positive',
       bullets: [
-        positive?.action ?? 'Behåll dosen som skapade förbättringen och flytta fokus till största kvarvarande gap.',
-        positive?.retest ?? 'Bekräfta utvecklingen vid nästa planerade test.',
-        `Nästa nivå: ${nextLevelText}.`,
+        positive?.action ?? tr(locale, 'Behåll dosen som skapade förbättringen och flytta fokus till största kvarvarande gap.', 'Keep the dose that created the improvement and shift focus to the biggest remaining gap.'),
+        positive?.retest ?? tr(locale, 'Bekräfta utvecklingen vid nästa planerade test.', 'Confirm the development at the next planned test.'),
+        tr(locale, `Nästa nivå: ${nextLevelText}.`, `Next level: ${nextLevelText}.`),
       ],
     }
   }
 
   return {
-    title: `${clientName}: stabil hockeyprofil`,
-    status: 'Ingen stor varningssignal sticker ut från senaste testet.',
+    title: tr(locale, `${clientName}: stabil hockeyprofil`, `${clientName}: stable hockey profile`),
+    status: tr(locale, 'Ingen stor varningssignal sticker ut från senaste testet.', 'No major warning signal stands out from the latest test.'),
     tone: 'info',
     bullets: [
-      summary.interpretations[0]?.action ?? 'Fortsätt aktuell plan och retesta efter nästa block.',
-      `Nästa nivå: ${nextLevelText}.`,
-      latest.aerobicAutoLinked ? 'Aeroba värden är länkade från labb/profil så spelaren slipper dubbelregistrering.' : 'Lägg till labb/ramp-data när den finns för bättre aerob trend.',
+      summary.interpretations[0]?.action ?? tr(locale, 'Fortsätt aktuell plan och retesta efter nästa block.', 'Continue the current plan and retest after the next block.'),
+      tr(locale, `Nästa nivå: ${nextLevelText}.`, `Next level: ${nextLevelText}.`),
+      latest.aerobicAutoLinked
+        ? tr(locale, 'Aeroba värden är länkade från labb/profil så spelaren slipper dubbelregistrering.', 'Aerobic values are linked from lab/profile so the player avoids duplicate registration.')
+        : tr(locale, 'Lägg till labb/ramp-data när den finns för bättre aerob trend.', 'Add lab/ramp data when available for a better aerobic trend.'),
     ],
   }
 }
@@ -581,12 +645,12 @@ function interpretationToneClasses(tone: HockeySummaryResponse['interpretations'
   return 'border-blue-500/30 bg-blue-500/10'
 }
 
-function interpretationBadge(tone: HockeySummaryResponse['interpretations'][number]['tone']): string {
-  if (tone === 'priority') return 'Prioritet'
-  if (tone === 'quality') return 'Kvalitet'
-  if (tone === 'watch') return 'Följ upp'
-  if (tone === 'positive') return 'Styrka'
-  return 'Behåll'
+function interpretationBadge(tone: HockeySummaryResponse['interpretations'][number]['tone'], locale: string): string {
+  if (tone === 'priority') return tr(locale, 'Prioritet', 'Priority')
+  if (tone === 'quality') return tr(locale, 'Kvalitet', 'Quality')
+  if (tone === 'watch') return tr(locale, 'Följ upp', 'Follow up')
+  if (tone === 'positive') return tr(locale, 'Styrka', 'Strength')
+  return tr(locale, 'Behåll', 'Maintain')
 }
 
 function playerHighlightClasses(tone: HockeyPlayerHighlight['tone']): string {
@@ -608,15 +672,20 @@ function readinessStatusClasses(status: 'missing' | 'below-target' | 'target' | 
   return 'bg-slate-500/10 text-slate-600 border-slate-500/30'
 }
 
-function readinessGapText(gap: NonNullable<HockeySummaryResponse['pathway']['nextLevel']>['primaryGap']): string {
-  if (!gap) return 'All available targets reached'
-  if (gap.value == null) return `${gap.label}: missing data`
+function readinessGapText(gap: NonNullable<HockeySummaryResponse['pathway']['nextLevel']>['primaryGap'], locale: string): string {
+  if (!gap) return tr(locale, 'Alla tillgängliga targets uppnådda', 'All available targets reached')
+  if (gap.value == null) return tr(locale, `${gap.label}: data saknas`, `${gap.label}: missing data`)
   const amount = Math.abs(gap.gapToTarget)
-  const action = gap.lowerIsBetter ? 'reduce by' : 'increase by'
-  return `${gap.label}: ${action} ${amount.toFixed(gap.unit === 's' ? 2 : 1)} ${gap.unit} to target`
+  const action = gap.lowerIsBetter ? tr(locale, 'sänk med', 'reduce by') : tr(locale, 'höj med', 'increase by')
+  return tr(
+    locale,
+    `${gap.label}: ${action} ${amount.toFixed(gap.unit === 's' ? 2 : 1)} ${gap.unit} till target`,
+    `${gap.label}: ${action} ${amount.toFixed(gap.unit === 's' ? 2 : 1)} ${gap.unit} to target`
+  )
 }
 
 export function HockeyAthleteView({ clientId, clientName, settings, basePath = '' }: HockeyAthleteViewProps) {
+  const locale = useLocale()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
   const [summary, setSummary] = useState<HockeySummaryResponse | null>(null)
@@ -649,11 +718,11 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
           <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Shield className="h-5 w-5" /> Ishockey
           </CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen data tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{tr(locale, 'Ingen data tillgänglig', 'No data available')}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-            Atleten har inte angett hockey-inställningar ännu.
+            {tr(locale, 'Atleten har inte angett hockey-inställningar ännu.', 'The athlete has not entered hockey settings yet.')}
           </p>
         </CardContent>
       </Card>
@@ -676,8 +745,8 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
   const bestMetrics = BEST_METRICS
     .map((key) => METRIC_BY_KEY.get(key))
     .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
-  const coachPlan = buildAthleteCoachPlan(summary, hockeySettings)
-  const playerHighlight = buildPlayerHighlight(summary, clientName)
+  const coachPlan = buildAthleteCoachPlan(summary, hockeySettings, locale)
+  const playerHighlight = buildPlayerHighlight(summary, clientName, locale)
   const pathway = summary?.pathway
   const newHockeyTestHref = basePath
     ? `${basePath}/coach/test?clientId=${clientId}&category=hockey`
@@ -705,16 +774,16 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
         trends: summary?.trends ?? [],
         flags: summary?.flags ?? [],
         history: summary?.history ?? [],
-        metrics: PHYSICAL_METRICS.map((metric) => ({ ...metric })),
+        metrics: PHYSICAL_METRICS.map((metric) => ({ ...metric, label: metricLabel(metric, locale) })),
         snapshotMetricKeys: SNAPSHOT_METRICS,
         bestMetricKeys: BEST_METRICS,
         coachPlan,
         pathway: summary?.pathway,
         interpretations: summary?.interpretations ?? [],
       })
-      toast.success('Spelarrapport exporterad')
+      toast.success(tr(locale, 'Spelarrapport exporterad', 'Player report exported'))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Kunde inte exportera spelarrapport')
+      toast.error(error instanceof Error ? error.message : tr(locale, 'Kunde inte exportera spelarrapport', 'Could not export player report'))
     } finally {
       setIsExportingAthleteReport(false)
     }
@@ -732,16 +801,16 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                 {hockeySettings.teamName || 'Ishockey'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2" style={{ color: theme.colors.textMuted }}>
-                <Badge variant="outline">{POSITION_LABELS[hockeySettings.position]}</Badge>
-                <Badge variant="secondary">{LEAGUE_LABELS[hockeySettings.leagueLevel]}</Badge>
-                <Badge className="bg-blue-500">{PHASE_LABELS[hockeySettings.seasonPhase]}</Badge>
+                <Badge variant="outline">{labelFor(POSITION_LABELS, hockeySettings.position, locale)}</Badge>
+                <Badge variant="secondary">{labelFor(LEAGUE_LABELS, hockeySettings.leagueLevel, locale)}</Badge>
+                <Badge className="bg-blue-500">{labelFor(PHASE_LABELS, hockeySettings.seasonPhase, locale)}</Badge>
               </CardDescription>
             </div>
             <div className="flex items-center gap-3 sm:flex-col sm:items-end">
               {newHockeyTestHref && (
                 <Link href={newHockeyTestHref}>
                   <Button size="sm" variant="outline">
-                    Registrera hockeytest
+                    {tr(locale, 'Registrera hockeytest', 'Register hockey test')}
                   </Button>
                 </Link>
               )}
@@ -749,7 +818,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                 <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>
                   {hockeySettings.yearsPlaying}
                 </div>
-                <div className="text-xs" style={{ color: theme.colors.textMuted }}>års erfarenhet</div>
+                <div className="text-xs" style={{ color: theme.colors.textMuted }}>{tr(locale, 'års erfarenhet', 'years experience')}</div>
               </div>
             </div>
           </div>
@@ -762,27 +831,27 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hockeySettings.averageIceTimeMinutes ?? '-'}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>min/match</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{tr(locale, 'min/match', 'min/game')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
               <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hockeySettings.shiftsPerGame ?? '-'}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>byten</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{tr(locale, 'byten', 'shifts')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
               <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {avgShiftLength ?? '-'}
               </div>
-              <div className="text-xs" style={{ color: theme.colors.textMuted }}>sek/byte</div>
+              <div className="text-xs" style={{ color: theme.colors.textMuted }}>{tr(locale, 'sek/byte', 'sec/shift')}</div>
             </div>
           </div>
 
           {/* Play style */}
           <div className="flex items-center gap-2">
-            <span className="text-sm" style={{ color: theme.colors.textMuted }}>Spelstil:</span>
+            <span className="text-sm" style={{ color: theme.colors.textMuted }}>{tr(locale, 'Spelstil:', 'Play style:')}</span>
             <Badge className={
               hockeySettings.playStyle === 'offensive' ? 'bg-red-500' :
               hockeySettings.playStyle === 'defensive' ? 'bg-blue-500' :
@@ -790,7 +859,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
               hockeySettings.playStyle === 'skill' ? 'bg-purple-500' :
               'bg-green-500'
             }>
-              {PLAYSTYLE_LABELS[hockeySettings.playStyle]}
+              {labelFor(PLAYSTYLE_LABELS, hockeySettings.playStyle, locale)}
             </Badge>
           </div>
 
@@ -806,7 +875,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
             ) : (
               <Download className="h-4 w-4 mr-1.5" />
             )}
-            Exportera spelarrapport PDF
+            {tr(locale, 'Exportera spelarrapport PDF', 'Export player report PDF')}
           </Button>
         </CardContent>
       </Card>

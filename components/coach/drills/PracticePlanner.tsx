@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -475,17 +475,17 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
   return (
     <div className="space-y-6">
       {/* Header settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calendar className="h-5 w-5 text-indigo-500" />
+      <GlassCard glow="blue">
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2 text-lg">
+            <Calendar className="h-5 w-5 text-blue-500" />
             {t('title')}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
+          </GlassCardTitle>
+          <GlassCardDescription>
             {t('description')}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">{t('labels.title')}</Label>
@@ -598,17 +598,17 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Timeline blocks */}
-      <Card>
-        <CardHeader>
+      <GlassCard glow="purple">
+        <GlassCardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <GlassCardTitle className="text-lg flex items-center gap-2">
               <ClipboardList className="h-5 w-5" />
               {t('timeline.title')}
-            </CardTitle>
+            </GlassCardTitle>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
               {t('timeline.totalMinutes', { count: totalMinutes })}
@@ -619,8 +619,8 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               )}
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-2">
           {timeline.map((block, i) => (
             <div key={block.id} className="border rounded-lg p-3 space-y-2">
               {/* Block header */}
@@ -811,12 +811,12 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Share / print */}
-      <Card>
-        <CardContent className="p-4">
+      <GlassCard glow="emerald">
+        <GlassCardContent className="p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -860,8 +860,8 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Save */}
       <Button

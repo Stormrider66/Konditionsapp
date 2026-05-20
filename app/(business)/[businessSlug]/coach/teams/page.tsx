@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { TeamForm } from '@/components/forms/TeamForm'
 import { Trash2, Edit2, Users, Plus, BarChart3, Building2, Calendar } from 'lucide-react'
@@ -62,9 +62,9 @@ function TeamCard({
   const t = useTranslations('coach.pages.teams')
 
   return (
-    <Card className="hover:shadow-lg transition dark:bg-slate-900/50 dark:border-white/10">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex justify-between items-start">
+    <GlassCard glow="blue" className="hover:scale-[1.01] transition-all duration-300">
+      <GlassCardHeader className="pb-2">
+        <GlassCardTitle className="flex justify-between items-start">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold dark:text-white">{team.name}</h3>
@@ -101,9 +101,9 @@ function TeamCard({
               <Trash2 className="w-4 h-4 text-red-600" />
             </Button>
           </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </GlassCardTitle>
+      </GlassCardHeader>
+      <GlassCardContent>
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="w-4 h-4" />
@@ -137,8 +137,8 @@ function TeamCard({
             </Button>
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }
 
@@ -296,19 +296,19 @@ export default function BusinessTeamsPage() {
           </div>
 
           {loading ? (
-            <Card className="dark:bg-slate-900/50 dark:border-white/10">
-              <CardContent className="p-12 text-center">
+            <GlassCard>
+              <GlassCardContent className="p-12 text-center">
                 <p className="dark:text-slate-300">{t('loading')}</p>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           ) : teams.length === 0 ? (
-            <Card className="dark:bg-slate-900/50 dark:border-white/10">
-              <CardContent className="p-12 text-center">
+            <GlassCard>
+              <GlassCardContent className="p-12 text-center">
                 <Users className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
                 <p className="text-gray-600 dark:text-slate-400 mb-4">{t('emptyDescription')}</p>
                 <Button onClick={() => setShowForm(true)}>{t('createFirstTeam')}</Button>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           ) : (
             <div className="space-y-8">
               {hasOrganizations &&

@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import {
   Select,
   SelectContent,
@@ -132,11 +132,11 @@ export default function BusinessNewClientPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 lg:py-12">
-      <Card className="dark:bg-slate-900/50 dark:border-white/10">
-        <CardHeader>
-          <CardTitle className="dark:text-white">{t('title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <GlassCard glow="blue">
+        <GlassCardHeader>
+          <GlassCardTitle className="dark:text-white">{t('title')}</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {error && (
               <Alert variant="destructive">
@@ -368,19 +368,19 @@ export default function BusinessNewClientPage() {
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
-      <Card className="mt-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-        <CardContent className="p-4 space-y-2">
+      <GlassCard glow="blue" className="mt-6">
+        <GlassCardContent className="p-4 space-y-2">
           <p className="text-sm text-blue-800 dark:text-blue-300">
             <strong>{t('info.requiredPrefix')}</strong> {t('info.requiredText')} <span className="text-red-500">*</span> {t('info.requiredSuffix')}
           </p>
           <p className="text-sm text-blue-800 dark:text-blue-300">
             <strong>{t('info.autoAccountPrefix')}</strong> {t('info.autoAccountText')}
           </p>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   )
 }

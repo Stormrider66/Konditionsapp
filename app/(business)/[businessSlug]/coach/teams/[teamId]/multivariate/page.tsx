@@ -7,7 +7,7 @@ import { loadLatestModel, loadLatestPLSModel } from '@/lib/mva/model-storage'
 import { MVAAnalysisClient } from '@/components/mva/MVAAnalysisClient'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { getTranslations } from '@/i18n/server'
@@ -50,20 +50,20 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
           </Button>
         </Link>
 
-        <Card className="max-w-lg mx-auto dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader className="text-center">
+        <GlassCard glow="purple" className="max-w-lg mx-auto">
+          <GlassCardHeader className="text-center">
             <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <CardTitle className="dark:text-white">{t('title')}</CardTitle>
-            <CardDescription>
+            <GlassCardTitle className="dark:text-white">{t('title')}</GlassCardTitle>
+            <GlassCardDescription>
               {t('upgradeDescription')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="text-center">
             <Link href={`/${businessSlug}/coach/subscription`}>
               <Button>{t('upgradeCta')}</Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     )
   }

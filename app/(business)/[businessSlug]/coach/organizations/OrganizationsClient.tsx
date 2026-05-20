@@ -8,7 +8,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -290,37 +290,37 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3 mb-8">
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader className="pb-2">
-            <CardDescription>{t('stats.organizations')}</CardDescription>
-            <CardTitle className="text-2xl dark:text-white">{organizations.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader className="pb-2">
-            <CardDescription>{t('stats.totalTeams')}</CardDescription>
-            <CardTitle className="text-2xl dark:text-white">{totalTeams}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader className="pb-2">
-            <CardDescription>{t('stats.totalPlayers')}</CardDescription>
-            <CardTitle className="text-2xl dark:text-white">{totalMembers}</CardTitle>
-          </CardHeader>
-        </Card>
+        <GlassCard glow="blue">
+          <GlassCardHeader className="pb-2">
+            <GlassCardDescription>{t('stats.organizations')}</GlassCardDescription>
+            <GlassCardTitle className="text-2xl dark:text-white">{organizations.length}</GlassCardTitle>
+          </GlassCardHeader>
+        </GlassCard>
+        <GlassCard glow="purple">
+          <GlassCardHeader className="pb-2">
+            <GlassCardDescription>{t('stats.totalTeams')}</GlassCardDescription>
+            <GlassCardTitle className="text-2xl dark:text-white">{totalTeams}</GlassCardTitle>
+          </GlassCardHeader>
+        </GlassCard>
+        <GlassCard glow="emerald">
+          <GlassCardHeader className="pb-2">
+            <GlassCardDescription>{t('stats.totalPlayers')}</GlassCardDescription>
+            <GlassCardTitle className="text-2xl dark:text-white">{totalMembers}</GlassCardTitle>
+          </GlassCardHeader>
+        </GlassCard>
       </div>
 
       {/* Organizations List */}
       {loading ? (
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardContent className="p-12 text-center">
+        <GlassCard>
+          <GlassCardContent className="p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">{t('loading')}</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       ) : organizations.length === 0 ? (
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardContent className="p-12 text-center">
+        <GlassCard>
+          <GlassCardContent className="p-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2 dark:text-white">{t('emptyTitle')}</h3>
             <p className="text-muted-foreground mb-4">
@@ -330,29 +330,29 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
               <Plus className="mr-2 h-4 w-4" />
               {t('createFirst')}
             </Button>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       ) : (
         <div className="space-y-6">
           {organizations.map((org) => (
-            <Card key={org.id} className="overflow-hidden dark:bg-slate-900/50 dark:border-white/10">
-              <CardHeader className="bg-muted/30 dark:bg-white/5">
+            <GlassCard key={org.id} glow="blue" className="overflow-hidden">
+              <GlassCardHeader className="bg-muted/30 dark:bg-white/5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">
                       <Trophy className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="flex items-center gap-2 dark:text-white">
+                      <GlassCardTitle className="flex items-center gap-2 dark:text-white">
                         {org.name}
                         {org.sportType && (
                           <Badge variant="secondary" className="text-xs">
                             {sportTypeLabelKeys[org.sportType] ? t(sportTypeLabelKeys[org.sportType]) : org.sportType}
                           </Badge>
                         )}
-                      </CardTitle>
+                      </GlassCardTitle>
                       {org.description && (
-                        <CardDescription className="mt-1">{org.description}</CardDescription>
+                        <GlassCardDescription className="mt-1">{org.description}</GlassCardDescription>
                       )}
                     </div>
                   </div>
@@ -378,8 +378,8 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                     </Button>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-4">
+              </GlassCardHeader>
+              <GlassCardContent className="pt-4">
                 {org.teams && org.teams.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground mb-3">
@@ -413,8 +413,8 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                     {t('noTeams.suffix')}
                   </p>
                 )}
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           ))}
         </div>
       )}

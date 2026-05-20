@@ -4,7 +4,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { redirect, notFound } from 'next/navigation'
 import { AthleteProfileSetupForm } from '@/components/coach/AthleteProfileSetupForm'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { User, CheckCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
@@ -68,44 +68,44 @@ export default async function BusinessAthleteProfileSettingsPage({ params }: Bus
 
         {hasAthleteProfile && fullUser?.selfAthleteClient ? (
           // Show existing profile
-          <Card>
-            <CardHeader>
+          <GlassCard glow="emerald">
+            <GlassCardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-green-100 dark:bg-green-950/50 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <CardTitle>Athlete Profile Active</CardTitle>
-                  <CardDescription>
+                  <GlassCardTitle>Athlete Profile Active</GlassCardTitle>
+                  <GlassCardDescription>
                     Your personal athlete profile is set up
-                  </CardDescription>
+                  </GlassCardDescription>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Name</p>
-                  <p className="font-medium">{fullUser.selfAthleteClient.name}</p>
+                <div className="p-3 bg-slate-50/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Name</p>
+                  <p className="font-medium dark:text-slate-200">{fullUser.selfAthleteClient.name}</p>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Gender</p>
-                  <p className="font-medium capitalize">
+                <div className="p-3 bg-slate-50/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Gender</p>
+                  <p className="font-medium capitalize dark:text-slate-200">
                     {fullUser.selfAthleteClient.gender?.toLowerCase() || 'Not set'}
                   </p>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Height</p>
-                  <p className="font-medium">{fullUser.selfAthleteClient.height} cm</p>
+                <div className="p-3 bg-slate-50/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Height</p>
+                  <p className="font-medium dark:text-slate-200">{fullUser.selfAthleteClient.height} cm</p>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Weight</p>
-                  <p className="font-medium">{fullUser.selfAthleteClient.weight} kg</p>
+                <div className="p-3 bg-slate-50/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Weight</p>
+                  <p className="font-medium dark:text-slate-200">{fullUser.selfAthleteClient.weight} kg</p>
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
-                <p className="text-sm text-slate-600 mb-4">
+              <div className="pt-4 border-t dark:border-white/10">
+                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
                   Switch to athlete mode to access your personal dashboard,
                   log workouts, and track your training progress.
                 </p>
@@ -124,18 +124,18 @@ export default async function BusinessAthleteProfileSettingsPage({ params }: Bus
                   </Link>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ) : (
           // Show setup form
           <AthleteProfileSetupForm userName={user.name} />
         )}
 
         {/* Info section */}
-        <Card className="bg-blue-50 border-blue-100">
-          <CardContent className="pt-6">
-            <h3 className="font-semibold text-blue-900 mb-2">What is Athlete Mode?</h3>
-            <ul className="space-y-2 text-sm text-blue-800">
+        <GlassCard glow="blue">
+          <GlassCardContent className="pt-6">
+            <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">What is Athlete Mode?</h3>
+            <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200/80">
               <li className="flex items-start gap-2">
                 <span className="text-blue-500 mt-1">•</span>
                 <span>Create and track your own training programs</span>
@@ -153,8 +153,8 @@ export default async function BusinessAthleteProfileSettingsPage({ params }: Bus
                 <span>Switch between coach and athlete views anytime</span>
               </li>
             </ul>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     </div>
   )

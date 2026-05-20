@@ -6,7 +6,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -592,46 +592,46 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       </div>
 
       <div className="grid gap-4 md:grid-cols-4 mb-8">
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader className="pb-2">
-            <CardDescription>{t('stats.players')}</CardDescription>
-            <CardTitle className="text-2xl dark:text-white">{team.members.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader className="pb-2">
-            <CardDescription>{t('stats.assignedWorkouts')}</CardDescription>
-            <CardTitle className="text-2xl dark:text-white">{totalWorkoutsAssigned}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader className="pb-2">
-            <CardDescription>{t('stats.completedWorkouts')}</CardDescription>
-            <CardTitle className="text-2xl dark:text-white">{totalWorkoutsCompleted}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader className="pb-2">
-            <CardDescription>{t('stats.completionRate')}</CardDescription>
-            <CardTitle className="text-2xl flex items-center gap-2 dark:text-white">
+        <GlassCard glow="blue">
+          <GlassCardHeader className="pb-2">
+            <GlassCardDescription>{t('stats.players')}</GlassCardDescription>
+            <GlassCardTitle className="text-2xl dark:text-white">{team.members.length}</GlassCardTitle>
+          </GlassCardHeader>
+        </GlassCard>
+        <GlassCard glow="purple">
+          <GlassCardHeader className="pb-2">
+            <GlassCardDescription>{t('stats.assignedWorkouts')}</GlassCardDescription>
+            <GlassCardTitle className="text-2xl dark:text-white">{totalWorkoutsAssigned}</GlassCardTitle>
+          </GlassCardHeader>
+        </GlassCard>
+        <GlassCard glow="emerald">
+          <GlassCardHeader className="pb-2">
+            <GlassCardDescription>{t('stats.completedWorkouts')}</GlassCardDescription>
+            <GlassCardTitle className="text-2xl dark:text-white">{totalWorkoutsCompleted}</GlassCardTitle>
+          </GlassCardHeader>
+        </GlassCard>
+        <GlassCard glow="amber">
+          <GlassCardHeader className="pb-2">
+            <GlassCardDescription>{t('stats.completionRate')}</GlassCardDescription>
+            <GlassCardTitle className="text-2xl flex items-center gap-2 dark:text-white">
               {overallCompletionRate}%
               <Progress value={overallCompletionRate} className="w-16 h-2" />
-            </CardTitle>
-          </CardHeader>
-        </Card>
+            </GlassCardTitle>
+          </GlassCardHeader>
+        </GlassCard>
       </div>
 
-      <Card className="mb-8 border-cyan-200/80 bg-cyan-50/60 dark:bg-cyan-950/20 dark:border-cyan-900/60">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 dark:text-white">
-            <CheckCircle2 className="h-5 w-5 text-cyan-600" />
+      <GlassCard glow="teal" className="mb-8">
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2 dark:text-white">
+            <CheckCircle2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
             {t('readiness.title')}
-          </CardTitle>
-          <CardDescription>
+          </GlassCardTitle>
+          <GlassCardDescription>
             {t('readiness.description')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <PilotReadinessItem
               label={t('readiness.roster')}
@@ -662,8 +662,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
               pendingLabel={t('readiness.pending')}
             />
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       <div className="mb-8">
         {activeTeamPlan ? (
@@ -682,55 +682,55 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             }
           />
         ) : (
-          <Card className="dark:bg-slate-900/50 dark:border-white/10">
-            <CardHeader>
-              <CardTitle className="dark:text-white">{t('teamPlan.title')}</CardTitle>
-              <CardDescription>
+          <GlassCard glow="blue">
+            <GlassCardHeader>
+              <GlassCardTitle className="dark:text-white">{t('teamPlan.title')}</GlassCardTitle>
+              <GlassCardDescription>
                 {t('teamPlan.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               <CreateTeamPlanDialog
                 teamId={teamId}
                 teamName={team.name}
                 businessSlug={businessSlug}
               />
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         )}
       </div>
 
       <div className="mb-8">
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 dark:text-white">
+        <GlassCard glow="purple">
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
               <Users className="h-5 w-5" />
               {t('roster.title', { count: team.members.length })}
-            </CardTitle>
-            <CardDescription>
+            </GlassCardTitle>
+            <GlassCardDescription>
               {t('roster.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <TeamRosterTable
               teamId={teamId}
               businessSlug={businessSlug}
               members={membersWithRosterStatus}
             />
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 dark:text-white">
+        <GlassCard glow="emerald">
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
               <Calendar className="h-5 w-5" />
               {t('recentWorkouts.title')}
-            </CardTitle>
-            <CardDescription>{t('recentWorkouts.description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardTitle>
+            <GlassCardDescription>{t('recentWorkouts.description')}</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             {recentBroadcasts.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 {t('recentWorkouts.empty')}
@@ -775,18 +775,18 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 dark:text-white">
+        <GlassCard glow="amber">
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
               <TrendingUp className="h-5 w-5" />
               {t('playerStats.title')}
-            </CardTitle>
-            <CardDescription>{t('playerStats.description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardTitle>
+            <GlassCardDescription>{t('playerStats.description')}</GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             {memberStats.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 {t('playerStats.empty')}
@@ -826,8 +826,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       <div className="mt-8">
@@ -835,47 +835,47 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader>
-            <CardTitle className="dark:text-white">{t('quickLinks.analysis.title')}</CardTitle>
-            <CardDescription>
+        <GlassCard glow="blue">
+          <GlassCardHeader>
+            <GlassCardTitle className="dark:text-white">{t('quickLinks.analysis.title')}</GlassCardTitle>
+            <GlassCardDescription>
               {t('quickLinks.analysis.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <Link href={`/${businessSlug}/coach/teams/${teamId}/analysis`}>
               <Button>{t('quickLinks.analysis.cta')}</Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader>
-            <CardTitle className="dark:text-white">{t('quickLinks.tests.title')}</CardTitle>
-            <CardDescription>
+        <GlassCard glow="emerald">
+          <GlassCardHeader>
+            <GlassCardTitle className="dark:text-white">{t('quickLinks.tests.title')}</GlassCardTitle>
+            <GlassCardDescription>
               {t('quickLinks.tests.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <Link href={`/${businessSlug}/coach/teams/${teamId}/tests`}>
               <Button variant="outline">{t('quickLinks.tests.cta')}</Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="dark:bg-slate-900/50 dark:border-white/10">
-          <CardHeader>
-            <CardTitle className="dark:text-white">{t('quickLinks.multivariate.title')}</CardTitle>
-            <CardDescription>
+        <GlassCard glow="purple">
+          <GlassCardHeader>
+            <GlassCardTitle className="dark:text-white">{t('quickLinks.multivariate.title')}</GlassCardTitle>
+            <GlassCardDescription>
               {t('quickLinks.multivariate.description')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
             <Link href={`/${businessSlug}/coach/teams/${teamId}/multivariate`}>
               <Button variant="outline">{t('quickLinks.multivariate.cta')}</Button>
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     </div>
   )

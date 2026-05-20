@@ -10,7 +10,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import {
   Dialog,
   DialogContent,
@@ -302,8 +302,8 @@ export function InvitationsClient({ invitations: initialInvitations, userId: _us
       {/* Content */}
       <div className="max-w-4xl mx-auto p-4 space-y-4">
         {invitations.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
+          <GlassCard glow="blue">
+            <GlassCardContent className="py-12 text-center">
               <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-medium mb-2">{t('empty.title')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
@@ -313,39 +313,39 @@ export function InvitationsClient({ invitations: initialInvitations, userId: _us
                 <Plus className="h-4 w-4 mr-2" />
                 {t('empty.createFirst')}
               </Button>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ) : (
           invitations.map((invitation) => {
             const expired = isExpired(invitation.expiresAt)
             const used = invitation.currentUses >= invitation.maxUses
 
             return (
-              <Card key={invitation.id} className={expired || used ? 'opacity-60' : ''}>
-                <CardContent className="py-4">
+              <GlassCard key={invitation.id} glow={expired || used ? 'none' : 'blue'} className={expired || used ? 'opacity-60' : ''}>
+                <GlassCardContent className="py-4">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                        <code className="bg-gray-100 dark:bg-white/10 px-2 py-1 rounded text-sm font-mono dark:text-slate-200">
                           {invitation.code}
                         </code>
-                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded">
                           {getTypeLabel(invitation.type)}
                         </span>
                         {expired && (
-                          <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">
+                          <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 rounded">
                             {t('status.expired')}
                           </span>
                         )}
                         {used && !expired && (
-                          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                          <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 rounded">
                             {t('status.used')}
                           </span>
                         )}
                       </div>
 
                       {invitation.recipientName && (
-                        <p className="text-sm">
+                        <p className="text-sm dark:text-slate-200">
                           <span className="text-muted-foreground">{t('recipientPrefix')}</span> {invitation.recipientName}
                           {invitation.recipientEmail && ` (${invitation.recipientEmail})`}
                         </p>
@@ -365,7 +365,7 @@ export function InvitationsClient({ invitations: initialInvitations, userId: _us
                       </div>
 
                       {invitation.usedByClient && (
-                        <p className="text-xs text-green-600">
+                        <p className="text-xs text-green-600 dark:text-green-400">
                           {t('usedBy', { name: invitation.usedByClient.name })}
                         </p>
                       )}
@@ -388,14 +388,14 @@ export function InvitationsClient({ invitations: initialInvitations, userId: _us
                         variant="outline"
                         size="icon"
                         onClick={() => deleteInvitation(invitation.code)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             )
           })
         )}
