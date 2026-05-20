@@ -8,13 +8,13 @@ import { logger } from '@/lib/logger'
  * GET /api/users/me/business
  * Returns the current user's primary business slug (via Prisma, bypasses RLS)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Obehörig' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching user business context', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Misslyckades med att hämta affärskontext' },
+      { success: false, error: 'Failed to fetch business context' },
       { status: 500 }
     )
   }

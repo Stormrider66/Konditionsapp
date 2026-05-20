@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger'
  * GET /api/users/me
  * Get current authenticated user info
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const user = await getCurrentUser()
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: 'Unauthorized',
         },
         { status: 401 }
       )
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att hämta användarinformation',
+        error: 'Failed to fetch user information',
       },
       { status: 500 }
     )

@@ -7,8 +7,14 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const birthDateSchema = z.object({
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ogiltigt datumformat'),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })
 
 /**
@@ -16,6 +22,8 @@ const birthDateSchema = z.object({
  * Update athlete's own birth date
  */
 export async function PATCH(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
 
@@ -26,14 +34,15 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await request.json()
     const validation = birthDateSchema.safeParse(body)
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: validation.error.errors[0].message },
+        { success: false, error: t(locale, 'Invalid date format', 'Ogiltigt datumformat') },
         { status: 400 }
       )
     }
@@ -42,7 +51,7 @@ export async function PATCH(request: NextRequest) {
 
     if (isNaN(parsedDate.getTime())) {
       return NextResponse.json(
-        { success: false, error: 'Ogiltigt datum' },
+        { success: false, error: t(locale, 'Invalid date', 'Ogiltigt datum') },
         { status: 400 }
       )
     }
@@ -50,7 +59,7 @@ export async function PATCH(request: NextRequest) {
     const now = new Date()
     if (parsedDate > now) {
       return NextResponse.json(
-        { success: false, error: 'Födelsedatum kan inte vara i framtiden' },
+        { success: false, error: t(locale, 'Birth date cannot be in the future', 'Födelsedatum kan inte vara i framtiden') },
         { status: 400 }
       )
     }
@@ -58,7 +67,7 @@ export async function PATCH(request: NextRequest) {
     const age = now.getFullYear() - parsedDate.getFullYear()
     if (age > 120) {
       return NextResponse.json(
-        { success: false, error: 'Ogiltigt födelsedatum' },
+        { success: false, error: t(locale, 'Invalid birth date', 'Ogiltigt födelsedatum') },
         { status: 400 }
       )
     }
@@ -76,7 +85,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     logger.error('Error updating athlete birth date', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update birth date' },
+      { success: false, error: t(locale, 'Failed to update birth date', 'Kunde inte uppdatera födelsedatum') },
       { status: 500 }
     )
   }
