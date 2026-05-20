@@ -133,9 +133,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Workout is not completed yet' }, { status: 400 })
   }
 
-  const message = parsed.data.message || `Bra jobbat med ${assignment.workoutName}!`
-  const coachName = user.name || 'Din coach'
-  const title = `${coachName}: Bra jobbat`
+  const message = parsed.data.message || `Great work on ${assignment.workoutName}!`
+  const coachName = user.name || 'Your coach'
+  const title = `${coachName}: Great work`
 
   const [notification, messageRecord] = await prisma.$transaction([
     prisma.aINotification.create({
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         title,
         message,
         icon: 'thumbs-up',
-        actionLabel: 'Visa pass',
+        actionLabel: 'View workout',
         contextData: {
           kind,
           assignmentId,
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
       data: {
         senderId: user.id,
         receiverId: assignment.athleteUserId,
-        subject: `Bra jobbat: ${assignment.workoutName}`,
+        subject: `Great work: ${assignment.workoutName}`,
         content: message,
       },
     }),
