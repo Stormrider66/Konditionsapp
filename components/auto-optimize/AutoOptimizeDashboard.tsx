@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { CriterionName, PromptSlot } from '@/lib/auto-optimize/types'
+import { useLocale } from '@/i18n/client'
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -62,22 +63,24 @@ interface AutoOptimizeDashboardProps {
 
 // ── Criterion Labels ────────────────────────────────────────────────
 
-const CRITERION_LABELS: Record<CriterionName, string> = {
-  structuralCompleteness: 'Struktur',
-  progressiveOverload: 'Progression',
-  zoneDistribution: 'Zoner',
-  sportSpecificCorrectness: 'Sport',
-  calendarCompliance: 'Kalender',
-  injuryAwareness: 'Skador',
-  periodizationQuality: 'Periodisering',
-  segmentDetail: 'Segment',
+type AppLocale = 'en' | 'sv'
+
+const CRITERION_LABELS: Record<CriterionName, Record<AppLocale, string>> = {
+  structuralCompleteness: { en: 'Structure', sv: 'Struktur' },
+  progressiveOverload: { en: 'Progression', sv: 'Progression' },
+  zoneDistribution: { en: 'Zones', sv: 'Zoner' },
+  sportSpecificCorrectness: { en: 'Sport', sv: 'Sport' },
+  calendarCompliance: { en: 'Calendar', sv: 'Kalender' },
+  injuryAwareness: { en: 'Injuries', sv: 'Skador' },
+  periodizationQuality: { en: 'Periodization', sv: 'Periodisering' },
+  segmentDetail: { en: 'Segments', sv: 'Segment' },
 }
 
-const SLOT_LABELS: Record<PromptSlot, string> = {
-  system: 'System',
-  outline: 'Outline',
-  phase: 'Fas',
-  full_program: 'Fullständigt program',
+const SLOT_LABELS: Record<PromptSlot, Record<AppLocale, string>> = {
+  system: { en: 'System', sv: 'System' },
+  outline: { en: 'Outline', sv: 'Outline' },
+  phase: { en: 'Phase', sv: 'Fas' },
+  full_program: { en: 'Full program', sv: 'Fullständigt program' },
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -87,14 +90,106 @@ const STATUS_COLORS: Record<string, string> = {
   DEPRECATED: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
 }
 
+const copy = {
+  en: {
+    subtitle: 'Autonomous quality improvement for AI-generated training programs',
+    run: 'Run iteration',
+    running: 'Running...',
+    noCandidate: 'No candidate to test. Create a new variant first.',
+    done: 'Done',
+    keep: 'KEEP',
+    reject: 'REJECT',
+    candidate: 'Candidate',
+    baseline: 'Baseline',
+    error: 'Error',
+    unknownError: 'Unknown error',
+    activeVariant: 'Active variant',
+    none: 'None',
+    totalScore: 'Total score',
+    outOf100: 'out of 100',
+    totalVariants: 'Total variants',
+    forSlot: 'for',
+    iterations: 'Iterations',
+    latest20: 'latest 20',
+    criteriaBreakdown: 'Criteria breakdown',
+    criteriaDescription: 'Score per evaluation criterion',
+    score: 'Score',
+    noEvaluationData: 'No evaluation data available',
+    scoreTrend: 'Score trend',
+    scoreTrendDescription: 'Development across iterations',
+    noTrendData: 'No trend data available',
+    recentIterations: 'Recent iterations',
+    decisionDescription: 'KEEP/REJECT decision per run',
+    date: 'Date',
+    slot: 'Slot',
+    delta: 'Delta',
+    decision: 'Decision',
+    noIterations: 'No iterations have run yet.',
+    variants: 'Variants',
+    variantDescription: 'All prompt variants for selected slot',
+    noVariants: 'No variants created yet for this slot.',
+  },
+  sv: {
+    subtitle: 'Autonom kvalitetsförbättring av AI-genererade träningsprogram',
+    run: 'Kör iteration',
+    running: 'Kör...',
+    noCandidate: 'Ingen kandidat att testa. Skapa en ny variant först.',
+    done: 'Klar',
+    keep: 'BEHÅLL',
+    reject: 'FÖRKASTA',
+    candidate: 'Kandidat',
+    baseline: 'Baslinje',
+    error: 'Fel',
+    unknownError: 'Okänt fel',
+    activeVariant: 'Aktiv variant',
+    none: 'Ingen',
+    totalScore: 'Totalpoäng',
+    outOf100: 'av 100',
+    totalVariants: 'Totala varianter',
+    forSlot: 'för',
+    iterations: 'Iterationer',
+    latest20: 'senaste 20',
+    criteriaBreakdown: 'Kriteriefördelning',
+    criteriaDescription: 'Poäng per utvärderingskriterium',
+    score: 'Poäng',
+    noEvaluationData: 'Ingen utvärderingsdata tillgänglig',
+    scoreTrend: 'Poängtrend',
+    scoreTrendDescription: 'Utveckling över iterationer',
+    noTrendData: 'Ingen trenddata tillgänglig',
+    recentIterations: 'Senaste iterationer',
+    decisionDescription: 'BEHÅLL/FÖRKASTA-beslut per körning',
+    date: 'Datum',
+    slot: 'Slot',
+    delta: 'Delta',
+    decision: 'Beslut',
+    noIterations: 'Inga iterationer har körts ännu.',
+    variants: 'Varianter',
+    variantDescription: 'Alla promptvarianter för vald slot',
+    noVariants: 'Inga varianter skapade ännu för denna slot.',
+  },
+} satisfies Record<AppLocale, Record<string, string>>
+
+function formatDate(value: string, locale: AppLocale): string {
+  return new Date(value).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
+}
+
+function formatTime(value: string, locale: AppLocale): string {
+  return new Date(value).toLocaleTimeString(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 // ── Component ───────────────────────────────────────────────────────
 
 export function AutoOptimizeDashboard({
-  basePath,
+  basePath: _basePath,
   activeVariants,
   recentSnapshots,
   allVariants,
 }: AutoOptimizeDashboardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const text = copy[locale]
   const [selectedSlot, setSelectedSlot] = useState<PromptSlot>('full_program')
   const [isRunning, setIsRunning] = useState(false)
   const [runResult, setRunResult] = useState<string | null>(null)
@@ -105,14 +200,14 @@ export function AutoOptimizeDashboard({
     return recentSnapshots
       .filter(s => s.programOutcomes?.type === 'auto_optimize')
       .map(s => ({
-        date: new Date(s.createdAt).toLocaleDateString('sv-SE'),
+        date: formatDate(s.createdAt, locale),
         score: s.overallAccuracy ?? 0,
         slot: s.programOutcomes?.slot ?? '',
         decision: s.programOutcomes?.decision ?? '',
         delta: s.programOutcomes?.delta ?? 0,
       }))
       .reverse()
-  }, [recentSnapshots])
+  }, [locale, recentSnapshots])
 
   const filteredTrend = useMemo(() => {
     return trendData.filter(d => !selectedSlot || d.slot === selectedSlot)
@@ -130,11 +225,11 @@ export function AutoOptimizeDashboard({
     if (!scores) return null
 
     return Object.entries(scores).map(([key, value]) => ({
-      criterion: CRITERION_LABELS[key as CriterionName] || key,
+      criterion: CRITERION_LABELS[key as CriterionName]?.[locale] || key,
       score: value,
       fullMark: 100,
     }))
-  }, [activeVariants, selectedSlot])
+  }, [activeVariants, locale, selectedSlot])
 
   // ── Recent Runs ─────────────────────────────────────────────────
 
@@ -144,15 +239,15 @@ export function AutoOptimizeDashboard({
       .slice(0, 10)
       .map(s => ({
         id: s.programOutcomes?.runId ?? s.id,
-        date: new Date(s.createdAt).toLocaleDateString('sv-SE'),
-        time: new Date(s.createdAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+        date: formatDate(s.createdAt, locale),
+        time: formatTime(s.createdAt, locale),
         slot: s.programOutcomes?.slot ?? 'unknown',
         candidateScore: s.programOutcomes?.candidateScore ?? 0,
         baselineScore: s.programOutcomes?.baselineScore ?? 0,
         delta: s.programOutcomes?.delta ?? 0,
         decision: s.programOutcomes?.decision ?? 'UNKNOWN',
       }))
-  }, [recentSnapshots])
+  }, [locale, recentSnapshots])
 
   // ── Actions ─────────────────────────────────────────────────────
 
@@ -167,7 +262,7 @@ export function AutoOptimizeDashboard({
       )
 
       if (!candidate) {
-        setRunResult('Ingen kandidat att testa. Skapa en ny variant först.')
+        setRunResult(text.noCandidate)
         return
       }
 
@@ -180,16 +275,16 @@ export function AutoOptimizeDashboard({
       const data = await res.json()
       if (data.success) {
         setRunResult(
-          `Klar! ${data.run.decision === 'KEEP' ? 'BEHÅLL' : 'FÖRKASTA'} — ` +
-          `Kandidat: ${data.run.candidateAvgScore.toFixed(1)}, ` +
-          `Baslinje: ${data.run.baselineAvgScore.toFixed(1)} ` +
+          `${text.done}! ${data.run.decision === 'KEEP' ? text.keep : text.reject} - ` +
+          `${text.candidate}: ${data.run.candidateAvgScore.toFixed(1)}, ` +
+          `${text.baseline}: ${data.run.baselineAvgScore.toFixed(1)} ` +
           `(${data.run.scoreDelta >= 0 ? '+' : ''}${data.run.scoreDelta.toFixed(1)})`
         )
       } else {
-        setRunResult(`Fel: ${data.error}`)
+        setRunResult(`${text.error}: ${data.error}`)
       }
     } catch (error) {
-      setRunResult(`Fel: ${error instanceof Error ? error.message : 'Okänt fel'}`)
+      setRunResult(`${text.error}: ${error instanceof Error ? error.message : text.unknownError}`)
     } finally {
       setIsRunning(false)
     }
@@ -206,7 +301,7 @@ export function AutoOptimizeDashboard({
         <div>
           <h1 className="text-2xl font-bold">AutoOptimize</h1>
           <p className="text-muted-foreground">
-            Autonom kvalitetsförbättring av AI-genererade träningsprogram
+            {text.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -216,7 +311,7 @@ export function AutoOptimizeDashboard({
             </SelectTrigger>
             <SelectContent>
               {Object.entries(SLOT_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
+                <SelectItem key={key} value={key}>{label[locale]}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -224,7 +319,7 @@ export function AutoOptimizeDashboard({
             onClick={handleRunEvaluation}
             disabled={isRunning}
           >
-            {isRunning ? 'Kör...' : 'Kör iteration'}
+            {isRunning ? text.running : text.run}
           </Button>
         </div>
       </div>
@@ -241,9 +336,9 @@ export function AutoOptimizeDashboard({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Aktiv variant</CardDescription>
+            <CardDescription>{text.activeVariant}</CardDescription>
             <CardTitle className="text-lg">
-              {activeVariant?.versionName ?? 'Ingen'}
+              {activeVariant?.versionName ?? text.none}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -256,7 +351,7 @@ export function AutoOptimizeDashboard({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Totalpoäng</CardDescription>
+            <CardDescription>{text.totalScore}</CardDescription>
             <CardTitle className="text-2xl">
               {activeVariant?.overallAccuracy != null
                 ? activeVariant.overallAccuracy.toFixed(1)
@@ -264,29 +359,29 @@ export function AutoOptimizeDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">av 100</p>
+            <p className="text-xs text-muted-foreground">{text.outOf100}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Totala varianter</CardDescription>
+            <CardDescription>{text.totalVariants}</CardDescription>
             <CardTitle className="text-2xl">
               {allVariants.filter(v => v.modelType === `program_generation_${selectedSlot}`).length}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">för {SLOT_LABELS[selectedSlot]}</p>
+            <p className="text-xs text-muted-foreground">{text.forSlot} {SLOT_LABELS[selectedSlot][locale]}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Iterationer</CardDescription>
+            <CardDescription>{text.iterations}</CardDescription>
             <CardTitle className="text-2xl">
               {recentRuns.filter(r => r.slot === selectedSlot).length}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">senaste 20</p>
+            <p className="text-xs text-muted-foreground">{text.latest20}</p>
           </CardContent>
         </Card>
       </div>
@@ -296,8 +391,8 @@ export function AutoOptimizeDashboard({
         {/* Radar Chart — Criteria Breakdown */}
         <Card>
           <CardHeader>
-            <CardTitle>Kriteriefördelning</CardTitle>
-            <CardDescription>Poäng per utvärderingskriterium</CardDescription>
+            <CardTitle>{text.criteriaBreakdown}</CardTitle>
+            <CardDescription>{text.criteriaDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             {radarData ? (
@@ -307,7 +402,7 @@ export function AutoOptimizeDashboard({
                   <PolarAngleAxis dataKey="criterion" tick={{ fontSize: 11 }} />
                   <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
                   <Radar
-                    name="Poäng"
+                    name={text.score}
                     dataKey="score"
                     stroke="hsl(var(--primary))"
                     fill="hsl(var(--primary))"
@@ -317,7 +412,7 @@ export function AutoOptimizeDashboard({
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[350px] text-muted-foreground">
-                Ingen utvärderingsdata tillgänglig
+                {text.noEvaluationData}
               </div>
             )}
           </CardContent>
@@ -326,8 +421,8 @@ export function AutoOptimizeDashboard({
         {/* Line Chart — Score Trend */}
         <Card>
           <CardHeader>
-            <CardTitle>Poängtrend</CardTitle>
-            <CardDescription>Utveckling över iterationer</CardDescription>
+            <CardTitle>{text.scoreTrend}</CardTitle>
+            <CardDescription>{text.scoreTrendDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             {filteredTrend.length > 0 ? (
@@ -339,14 +434,14 @@ export function AutoOptimizeDashboard({
                   <Tooltip
                     formatter={(value: number, name: string) => [
                       value.toFixed(1),
-                      name === 'score' ? 'Poäng' : name,
+                      name === 'score' ? text.score : name,
                     ]}
                   />
                   <Legend />
                   <Line
                     type="monotone"
                     dataKey="score"
-                    name="Poäng"
+                    name={text.score}
                     stroke="hsl(var(--primary))"
                     strokeWidth={2}
                     dot={{ r: 4 }}
@@ -355,7 +450,7 @@ export function AutoOptimizeDashboard({
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[350px] text-muted-foreground">
-                Ingen trenddata tillgänglig
+                {text.noTrendData}
               </div>
             )}
           </CardContent>
@@ -365,8 +460,8 @@ export function AutoOptimizeDashboard({
       {/* Recent Iteration Runs */}
       <Card>
         <CardHeader>
-          <CardTitle>Senaste iterationer</CardTitle>
-          <CardDescription>BEHÅLL/FÖRKASTA-beslut per körning</CardDescription>
+          <CardTitle>{text.recentIterations}</CardTitle>
+          <CardDescription>{text.decisionDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {recentRuns.length > 0 ? (
@@ -374,12 +469,12 @@ export function AutoOptimizeDashboard({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2 pr-4">Datum</th>
-                    <th className="text-left py-2 pr-4">Slot</th>
-                    <th className="text-right py-2 pr-4">Kandidat</th>
-                    <th className="text-right py-2 pr-4">Baslinje</th>
-                    <th className="text-right py-2 pr-4">Delta</th>
-                    <th className="text-left py-2">Beslut</th>
+                    <th className="text-left py-2 pr-4">{text.date}</th>
+                    <th className="text-left py-2 pr-4">{text.slot}</th>
+                    <th className="text-right py-2 pr-4">{text.candidate}</th>
+                    <th className="text-right py-2 pr-4">{text.baseline}</th>
+                    <th className="text-right py-2 pr-4">{text.delta}</th>
+                    <th className="text-left py-2">{text.decision}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -389,7 +484,7 @@ export function AutoOptimizeDashboard({
                         {run.date} {run.time}
                       </td>
                       <td className="py-2 pr-4">
-                        {SLOT_LABELS[run.slot as PromptSlot] ?? run.slot}
+                        {SLOT_LABELS[run.slot as PromptSlot]?.[locale] ?? run.slot}
                       </td>
                       <td className="text-right py-2 pr-4 font-mono">
                         {run.candidateScore.toFixed(1)}
@@ -410,7 +505,7 @@ export function AutoOptimizeDashboard({
                               : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           }
                         >
-                          {run.decision === 'KEEP' ? 'BEHÅLL' : 'FÖRKASTA'}
+                          {run.decision === 'KEEP' ? text.keep : text.reject}
                         </Badge>
                       </td>
                     </tr>
@@ -419,7 +514,7 @@ export function AutoOptimizeDashboard({
               </table>
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm">Inga iterationer har körts ännu.</p>
+            <p className="text-muted-foreground text-sm">{text.noIterations}</p>
           )}
         </CardContent>
       </Card>
@@ -427,8 +522,8 @@ export function AutoOptimizeDashboard({
       {/* Variant List */}
       <Card>
         <CardHeader>
-          <CardTitle>Varianter ({SLOT_LABELS[selectedSlot]})</CardTitle>
-          <CardDescription>Alla promptvarianter för vald slot</CardDescription>
+          <CardTitle>{text.variants} ({SLOT_LABELS[selectedSlot][locale]})</CardTitle>
+          <CardDescription>{text.variantDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -455,14 +550,14 @@ export function AutoOptimizeDashboard({
                       </span>
                     )}
                     <span className="text-muted-foreground text-xs">
-                      {new Date(variant.createdAt).toLocaleDateString('sv-SE')}
+                      {formatDate(variant.createdAt, locale)}
                     </span>
                   </div>
                 </div>
               ))}
             {allVariants.filter(v => v.modelType === `program_generation_${selectedSlot}`).length === 0 && (
               <p className="text-muted-foreground text-sm">
-                Inga varianter skapade ännu för denna slot.
+                {text.noVariants}
               </p>
             )}
           </div>
