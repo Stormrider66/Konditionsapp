@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -39,16 +40,16 @@ import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
 import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
 import { calculateLongJumpPowerIndex } from '@/lib/calculations/sport-tests/power-tests'
 
-const standingLongJumpSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createStandingLongJumpSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   jumpDistance: z.number().min(100).max(400),
   bodyWeight: z.number().min(30).max(200),
   attempts: z.number().min(1).max(5).optional(),
   notes: z.string().optional(),
 })
 
-type StandingLongJumpFormData = z.infer<typeof standingLongJumpSchema>
+type StandingLongJumpFormData = z.infer<ReturnType<typeof createStandingLongJumpSchema>>
 
 interface Client {
   id: string
@@ -78,12 +79,14 @@ function classifyLongJump(
 }
 
 export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<StandingLongJumpFormData>({
-    resolver: zodResolver(standingLongJumpSchema),
+    resolver: zodResolver(createStandingLongJumpSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -112,7 +115,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       const tier = classifyLongJump(data.jumpDistance, client.gender)
       const powerIndex = calculateLongJumpPowerIndex(data.jumpDistance, data.bodyWeight)
@@ -137,7 +140,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -157,7 +160,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
       })
     } catch (err) {
       console.error('Failed to save standing long jump test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -171,10 +174,12 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MoveHorizontal className="h-5 w-5" />
-                Stående längdhopp
+                {locale === 'sv' ? 'Stående längdhopp' : 'Standing long jump'}
               </CardTitle>
               <CardDescription>
-                Mäter horisontell explosivitet. Standard test för floorball och ungdomsidrott.
+                {locale === 'sv'
+                  ? 'Mäter horisontell explosivitet. Standard test för floorball och ungdomsidrott.'
+                  : 'Measures horizontal explosiveness. Standard test for floorball and youth athletes.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -184,11 +189,11 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -209,7 +214,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -225,18 +230,20 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
                   name="jumpDistance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hopplängd (cm)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Hopplängd (cm)' : 'Jump distance (cm)'}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           min={100}
                           max={400}
-                          placeholder="t.ex. 245"
+                          placeholder={locale === 'sv' ? 't.ex. 245' : 'e.g. 245'}
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value))}
                         />
                       </FormControl>
-                      <FormDescription>Bästa hopp av alla försök</FormDescription>
+                      <FormDescription>
+                        {locale === 'sv' ? 'Bästa hopp av alla försök' : 'Best jump from all attempts'}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -247,7 +254,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
                   name="bodyWeight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Kroppsvikt (kg)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Kroppsvikt (kg)' : 'Body weight (kg)'}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -269,7 +276,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
                 name="attempts"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Antal försök</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Antal försök' : 'Number of attempts'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -288,7 +295,7 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm font-medium mb-2 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
-                    Kraftindex
+                    {locale === 'sv' ? 'Kraftindex' : 'Power index'}
                   </p>
                   <span className="text-2xl font-bold text-primary">{livePowerIndex}</span>
                 </div>
@@ -299,10 +306,10 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Teknik, underlag, observationer..."
+                        placeholder={locale === 'sv' ? 'Teknik, underlag, observationer...' : 'Technique, surface, observations...'}
                         {...field}
                       />
                     </FormControl>
@@ -314,7 +321,9 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara stående längdhopp'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara stående längdhopp' : 'Save standing long jump'}
           </Button>
         </form>
       </Form>
@@ -331,26 +340,28 @@ export function StandingLongJumpForm({ clients, onTestSaved }: StandingLongJumpF
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {locale === 'sv' ? 'Test sparat' : 'Test saved'}
             </CardTitle>
             <CardDescription>
-              {result.client?.name} - {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {result.client?.name} - {new Date(result.testDate).toLocaleDateString(dateLocale)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <CompactResult
-                label="Hopplängd"
+                label={locale === 'sv' ? 'Hopplängd' : 'Jump distance'}
                 value={result.primaryResult}
                 unit="cm"
                 tier={result.tier}
               />
-              <CompactResult label="Kraftindex" value={result.powerIndex} />
+              <CompactResult label={locale === 'sv' ? 'Kraftindex' : 'Power index'} value={result.powerIndex} />
             </div>
 
             {result.tier && (
               <div className="mt-4 flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Prestandanivå:</span>
+                <span className="text-sm text-muted-foreground">
+                  {locale === 'sv' ? 'Prestandanivå:' : 'Performance level:'}
+                </span>
                 <TestBenchmarkBadge tier={result.tier} />
               </div>
             )}
