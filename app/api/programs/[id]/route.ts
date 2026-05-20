@@ -5,14 +5,22 @@ import { getCurrentUser, canAccessProgram } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/programs/[id]
  * Get a single program with all details
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
@@ -20,11 +28,12 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: 'Unauthorized',
         },
         { status: 401 }
       )
     }
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const { id } = await params
 
@@ -34,7 +43,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig åtkomst till detta program',
+          error: t(locale, 'Unauthorized access to this program', 'Obehörig åtkomst till detta program'),
         },
         { status: 403 }
       )
@@ -101,7 +110,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Program hittades inte',
+          error: t(locale, 'Program not found', 'Program hittades inte'),
         },
         { status: 404 }
       )
@@ -116,7 +125,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att hämta program',
+        error: t(locale, 'Failed to fetch program', 'Misslyckades med att hämta program'),
       },
       { status: 500 }
     )
@@ -131,6 +140,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
@@ -138,11 +149,12 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: 'Unauthorized',
         },
         { status: 401 }
       )
     }
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const { id } = await params
 
@@ -151,7 +163,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Endast tränare kan uppdatera träningsprogram',
+          error: t(locale, 'Only coaches can update training programs', 'Endast tränare kan uppdatera träningsprogram'),
         },
         { status: 403 }
       )
@@ -163,7 +175,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig åtkomst till detta program',
+          error: t(locale, 'Unauthorized access to this program', 'Obehörig åtkomst till detta program'),
         },
         { status: 403 }
       )
@@ -201,14 +213,14 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: program,
-      message: 'Program uppdaterat',
+      message: t(locale, 'Program updated', 'Program uppdaterat'),
     })
   } catch (error) {
     logger.error('Error updating program', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att uppdatera program',
+        error: t(locale, 'Failed to update program', 'Misslyckades med att uppdatera program'),
       },
       { status: 500 }
     )
@@ -220,9 +232,11 @@ export async function PUT(
  * Delete a program (coaches only)
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
@@ -230,11 +244,12 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig',
+          error: 'Unauthorized',
         },
         { status: 401 }
       )
     }
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const { id } = await params
 
@@ -243,7 +258,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Endast tränare kan ta bort träningsprogram',
+          error: t(locale, 'Only coaches can delete training programs', 'Endast tränare kan ta bort träningsprogram'),
         },
         { status: 403 }
       )
@@ -255,7 +270,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Obehörig åtkomst till detta program',
+          error: t(locale, 'Unauthorized access to this program', 'Obehörig åtkomst till detta program'),
         },
         { status: 403 }
       )
@@ -268,14 +283,14 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Program raderat',
+      message: t(locale, 'Program deleted', 'Program raderat'),
     })
   } catch (error) {
     logger.error('Error deleting program', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Misslyckades med att radera program',
+        error: t(locale, 'Failed to delete program', 'Misslyckades med att radera program'),
       },
       { status: 500 }
     )
