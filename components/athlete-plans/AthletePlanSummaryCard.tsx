@@ -1,6 +1,7 @@
 import { format, differenceInCalendarDays } from 'date-fns'
 import type { ReactNode } from 'react'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
+import { useLocale } from 'next-intl'
 import { CalendarDays, Layers3 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,12 +36,20 @@ interface AthletePlanSummaryCardProps {
   action?: ReactNode
 }
 
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const t = (locale: AppLocale, svText: string, enText: string) => (
+  locale === 'sv' ? svText : enText
+)
+
 function toDate(value: string | Date) {
   return value instanceof Date ? value : new Date(value)
 }
 
-function formatShortDate(value: string | Date) {
-  return format(toDate(value), 'd MMM', { locale: sv })
+function formatShortDate(value: string | Date, locale: AppLocale) {
+  return format(toDate(value), 'd MMM', { locale: locale === 'sv' ? sv : enUS })
 }
 
 function getCurrentBlock(plan: AthletePlanSummary, now: Date) {
@@ -66,6 +75,7 @@ export function AthletePlanSummaryCard({
   className,
   action,
 }: AthletePlanSummaryCardProps) {
+  const locale = getAppLocale(useLocale())
   const currentBlock = getCurrentBlock(plan, now)
   const planProgress = progressPercent(plan.startDate, plan.endDate, now)
   const currentBlockProgress = currentBlock
@@ -83,12 +93,16 @@ export function AthletePlanSummaryCard({
             </CardTitle>
             <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" />
-              {formatShortDate(plan.startDate)} - {formatShortDate(plan.endDate)}
+              {formatShortDate(plan.startDate, locale)} - {formatShortDate(plan.endDate, locale)}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Badge variant="outline">
-              {variant === 'athlete' ? 'Min plan' : variant === 'team' ? 'Lagplan' : 'Blockplan'}
+              {variant === 'athlete'
+                ? t(locale, 'Min plan', 'My plan')
+                : variant === 'team'
+                  ? t(locale, 'Lagplan', 'Team plan')
+                  : t(locale, 'Blockplan', 'Block plan')}
             </Badge>
             {action}
           </div>
@@ -99,7 +113,7 @@ export function AthletePlanSummaryCard({
           <div className="rounded-lg border bg-muted/30 p-3">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Nuvarande block</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{t(locale, 'Nuvarande block', 'Current block')}</p>
                 <h3 className="mt-1 text-sm font-semibold">{currentBlock.title}</h3>
                 {currentBlock.focus && (
                   <p className="mt-1 text-sm text-muted-foreground">{currentBlock.focus}</p>
@@ -113,7 +127,7 @@ export function AthletePlanSummaryCard({
           </div>
         ) : (
           <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Inga block inlagda ännu.
+            {t(locale, 'Inga block inlagda ännu.', 'No blocks added yet.')}
           </div>
         )}
 
@@ -138,7 +152,7 @@ export function AthletePlanSummaryCard({
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{block.title}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {formatShortDate(block.startDate)} - {formatShortDate(block.endDate)}
+                    {formatShortDate(block.startDate, locale)} - {formatShortDate(block.endDate, locale)}
                     {block.focus ? ` · ${block.focus}` : ''}
                   </p>
                 </div>
