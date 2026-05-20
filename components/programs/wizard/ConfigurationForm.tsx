@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { SportType } from '@prisma/client'
 import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
@@ -34,7 +35,7 @@ import {
 } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CalendarIcon, Loader2, Info, Sparkles, AlertTriangle, Plane, Briefcase, Palmtree, Mountain } from 'lucide-react'
+import { CalendarIcon, Loader2, Info, Sparkles, AlertTriangle, Plane, Briefcase, Palmtree, Mountain, Activity, Gauge, ShieldCheck } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import {
@@ -54,6 +55,7 @@ import { getDefaultDuration, getSuggestedMethodology, type AppLocale } from './c
 import { HyroxStationTimes } from './configuration-form/HyroxStationTimes'
 import { StrengthPRs } from './configuration-form/StrengthPRs'
 import { StrengthCoreIntegration } from './configuration-form/StrengthCoreIntegration'
+import { buildTeamSportPlanningSummary, type TeamSportPlanningSummary } from '@/lib/program-generator/team-sports/explainability'
 
 const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
 
@@ -192,6 +194,15 @@ export function ConfigurationForm({
   const [calendarLoading, setCalendarLoading] = useState(false)
 
   const watchDurationWeeks = form.watch('durationWeeks')
+  const watchSessionsPerWeek = form.watch('sessionsPerWeek')
+  const teamSportPlanningSummary = useMemo(() => buildTeamSportPlanningSummary({
+    sport,
+    goal,
+    sessionsPerWeek: watchSessionsPerWeek,
+    locale,
+    hockeySettings: selectedClient?.sportProfile?.hockeySettings,
+    footballSettings: selectedClient?.sportProfile?.footballSettings,
+  }), [goal, locale, selectedClient?.sportProfile?.footballSettings, selectedClient?.sportProfile?.hockeySettings, sport, watchSessionsPerWeek])
 
   // Fetch calendar constraints when client or duration changes
   useEffect(() => {
@@ -743,6 +754,10 @@ export function ConfigurationForm({
           )}
         </div>
 
+        {teamSportPlanningSummary && (
+          <TeamSportPlanningPanel summary={teamSportPlanningSummary} locale={locale} />
+        )}
+
         {/* Calendar Constraints Section */}
         {watchClientId && (
           <div className="border rounded-lg p-4 mt-6">
@@ -1118,5 +1133,75 @@ export function ConfigurationForm({
         </div>
       </form>
     </Form>
+  )
+}
+
+function TeamSportPlanningPanel({
+  summary,
+  locale,
+}: {
+  summary: TeamSportPlanningSummary
+  locale: AppLocale
+}) {
+  const hasLoadGuidance = summary.loadGuidance.length > 0
+  return (
+    <div className="border rounded-lg p-4 mt-6 bg-muted/20">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            <h3 className="font-medium">{summary.title}</h3>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{summary.description}</p>
+        </div>
+        <Badge variant={hasLoadGuidance ? 'secondary' : 'outline'} className="w-fit">
+          <Gauge className="mr-1 h-3.5 w-3.5" />
+          {hasLoadGuidance
+            ? t(locale, 'Belastning anpassas', 'Load adjusted')
+            : t(locale, 'Normal belastning', 'Normal load')}
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+        {summary.assumptions.map((item) => (
+          <div key={item.label} className="rounded-md border bg-background/70 p-3">
+            <div className="text-xs text-muted-foreground">{item.label}</div>
+            <div className="mt-1 text-sm font-medium">{item.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="rounded-md border bg-background/70 p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+            {t(locale, 'Prioriterad prevention', 'Priority prevention')}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {summary.prevention.map((item) => (
+              <Badge key={item} variant="outline">{item}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-md border bg-background/70 p-3">
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+            <Gauge className="h-4 w-4 text-amber-600" />
+            {t(locale, 'Belastningssignal', 'Load signal')}
+          </div>
+          {hasLoadGuidance ? (
+            <ul className="space-y-1 text-sm text-muted-foreground">
+              {summary.loadGuidance.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {t(locale, 'Ingen extra reducering behövs utifrån profilen.', 'No extra reduction is needed from the profile.')}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
