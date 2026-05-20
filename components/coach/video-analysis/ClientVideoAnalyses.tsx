@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -33,6 +33,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { escapeHtml } from '@/lib/sanitize'
+import { useLocale } from '@/i18n/client'
 
 interface VideoAnalysis {
   id: string
@@ -62,10 +63,28 @@ interface ClientVideoAnalysesProps {
   onLoadToAI?: (analysis: VideoAnalysis) => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+const localizedText = (locale: AppLocale, svText: string, enText: string) =>
+  locale === 'sv' ? svText : enText
+
 const VIDEO_TYPE_INFO = {
-  STRENGTH: { label: 'Styrkeövning', icon: Dumbbell, color: 'text-orange-500' },
-  RUNNING_GAIT: { label: 'Löpteknik', icon: PersonStanding, color: 'text-blue-500' },
-  SPORT_SPECIFIC: { label: 'Sportspecifik', icon: Activity, color: 'text-purple-500' },
+  STRENGTH: {
+    label: { sv: 'Styrkeövning', en: 'Strength exercise' },
+    icon: Dumbbell,
+    color: 'text-orange-500',
+  },
+  RUNNING_GAIT: {
+    label: { sv: 'Löpteknik', en: 'Running technique' },
+    icon: PersonStanding,
+    color: 'text-blue-500',
+  },
+  SPORT_SPECIFIC: {
+    label: { sv: 'Sportspecifik', en: 'Sport-specific' },
+    icon: Activity,
+    color: 'text-purple-500',
+  },
 }
 
 function getScoreColor(score: number) {
@@ -74,22 +93,26 @@ function getScoreColor(score: number) {
   return 'text-red-600'
 }
 
-function getScoreLabel(score: number) {
-  if (score >= 90) return 'Utmärkt'
-  if (score >= 80) return 'Mycket bra'
-  if (score >= 70) return 'Bra'
-  if (score >= 60) return 'Godkänt'
-  if (score >= 50) return 'Behöver förbättring'
-  return 'Behöver betydande förbättring'
+function getScoreLabel(score: number, locale: AppLocale) {
+  if (score >= 90) return localizedText(locale, 'Utmärkt', 'Excellent')
+  if (score >= 80) return localizedText(locale, 'Mycket bra', 'Very good')
+  if (score >= 70) return localizedText(locale, 'Bra', 'Good')
+  if (score >= 60) return localizedText(locale, 'Godkänt', 'Pass')
+  if (score >= 50) return localizedText(locale, 'Behöver förbättring', 'Needs improvement')
+  return localizedText(locale, 'Behöver betydande förbättring', 'Needs major improvement')
 }
 
 export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: ClientVideoAnalysesProps) {
   const { toast } = useToast()
+  const locale = getAppLocale(useLocale())
+  const t = (svText: string, enText: string) => localizedText(locale, svText, enText)
+  const dateFnsLocale = locale === 'sv' ? sv : enUS
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const branding = useBusinessBrandingOptional()
-  const printBrandName = branding?.hasWhiteLabel && branding.hidePlatformBranding ? branding.businessName : PLATFORM_NAME
+  const printBrandName =
+    branding?.hasWhiteLabel && branding.hidePlatformBranding ? branding.businessName : PLATFORM_NAME
   const [analyses, setAnalyses] = useState<VideoAnalysis[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAnalysis, setSelectedAnalysis] = useState<VideoAnalysis | null>(null)
@@ -102,38 +125,53 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte hämta videoanalyser')
+        throw new Error(
+          data.error ||
+            localizedText(locale, 'Kunde inte hämta videoanalyser', 'Could not fetch video analyses')
+        )
       }
 
       setAnalyses(data.analyses || [])
     } catch (error) {
       console.error('Failed to fetch video analyses:', error)
       toast({
-        title: 'Fel',
-        description: 'Kunde inte hämta videoanalyser',
+        title: localizedText(locale, 'Fel', 'Error'),
+        description: localizedText(
+          locale,
+          'Kunde inte hämta videoanalyser',
+          'Could not fetch video analyses'
+        ),
         variant: 'destructive',
       })
     } finally {
       setIsLoading(false)
     }
-  }, [clientId, toast])
+  }, [clientId, locale, toast])
 
   useEffect(() => {
-    fetchAnalyses()
+    void fetchAnalyses()
   }, [fetchAnalyses])
 
   const handlePrint = (analysis: VideoAnalysis) => {
     const printWindow = window.open('', '_blank')
     if (!printWindow) {
       toast({
-        title: 'Kunde inte öppna utskriftsfönster',
-        description: 'Kontrollera att popup-blockerare är avstängda',
+        title: t('Kunde inte öppna utskriftsfönster', 'Could not open print window'),
+        description: t(
+          'Kontrollera att popup-blockerare är avstängda',
+          'Check that pop-up blockers are disabled'
+        ),
         variant: 'destructive',
       })
       return
     }
 
     const typeInfo = VIDEO_TYPE_INFO[analysis.videoType as keyof typeof VIDEO_TYPE_INFO] || VIDEO_TYPE_INFO.SPORT_SPECIFIC
+    const typeLabel = typeInfo.label[locale]
+    const exerciseName =
+      locale === 'sv'
+        ? analysis.exercise?.nameSv || analysis.exercise?.name
+        : analysis.exercise?.name || analysis.exercise?.nameSv
     const issues = analysis.issuesDetected || []
     const recommendations = analysis.recommendations || []
 
@@ -141,7 +179,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Videoanalys - ${escapeHtml(clientName)}</title>
+        <title>${t('Videoanalys', 'Video analysis')} - ${escapeHtml(clientName)}</title>
         <style>
           body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
           h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -169,53 +207,53 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
       <body>
         <div class="header">
           <div>
-            <h1>Videoanalys Rapport</h1>
-            <p style="color: #6b7280;">${escapeHtml(clientName)} - ${format(new Date(analysis.createdAt), 'PPP', { locale: sv })}</p>
+            <h1>${t('Videoanalys Rapport', 'Video Analysis Report')}</h1>
+            <p style="color: #6b7280;">${escapeHtml(clientName)} - ${format(new Date(analysis.createdAt), 'PPP', { locale: dateFnsLocale })}</p>
           </div>
           ${analysis.formScore !== null ? `
           <div style="text-align: center;">
             <div class="score">${analysis.formScore}</div>
-            <div class="score-label">${getScoreLabel(analysis.formScore)}</div>
+            <div class="score-label">${getScoreLabel(analysis.formScore, locale)}</div>
           </div>
           ` : ''}
         </div>
 
         <div class="meta">
           <div class="meta-item">
-            <label>Analystyp</label>
-            <p>${escapeHtml(typeInfo.label)}</p>
+            <label>${t('Analystyp', 'Analysis type')}</label>
+            <p>${escapeHtml(typeLabel)}</p>
           </div>
           <div class="meta-item">
-            <label>Övning</label>
-            <p>${escapeHtml(analysis.exercise?.nameSv || analysis.exercise?.name || 'Ej angiven')}</p>
+            <label>${t('Övning', 'Exercise')}</label>
+            <p>${escapeHtml(exerciseName || t('Ej angiven', 'Not specified'))}</p>
           </div>
           <div class="meta-item">
-            <label>Datum</label>
-            <p>${format(new Date(analysis.createdAt), 'PPP HH:mm', { locale: sv })}</p>
+            <label>${t('Datum', 'Date')}</label>
+            <p>${format(new Date(analysis.createdAt), 'PPP HH:mm', { locale: dateFnsLocale })}</p>
           </div>
           <div class="meta-item">
             <label>Status</label>
-            <p>${escapeHtml(analysis.status === 'COMPLETED' ? 'Klar' : analysis.status)}</p>
+            <p>${escapeHtml(analysis.status === 'COMPLETED' ? t('Klar', 'Complete') : analysis.status)}</p>
           </div>
         </div>
 
         ${issues.length > 0 ? `
-        <h2>Identifierade problem (${issues.length})</h2>
+        <h2>${t('Identifierade problem', 'Identified issues')} (${issues.length})</h2>
         ${issues.map(issue => `
           <div class="issue ${issue.severity === 'HIGH' || issue.severity === 'MEDIUM' || issue.severity === 'LOW' ? issue.severity : 'LOW'}">
             <div class="issue-title">${escapeHtml(issue.issue)}</div>
             <div class="issue-desc">${escapeHtml(issue.description)}</div>
-            ${issue.timestamp ? `<div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">Tidpunkt: ${escapeHtml(issue.timestamp)}</div>` : ''}
+            ${issue.timestamp ? `<div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${t('Tidpunkt', 'Timestamp')}: ${escapeHtml(issue.timestamp)}</div>` : ''}
           </div>
         `).join('')}
         ` : ''}
 
         ${recommendations.length > 0 ? `
-        <h2>Rekommendationer (${recommendations.length})</h2>
+        <h2>${t('Rekommendationer', 'Recommendations')} (${recommendations.length})</h2>
         ${recommendations.sort((a, b) => a.priority - b.priority).map(rec => `
           <div class="recommendation">
             <div class="rec-title">
-              <span class="rec-priority">Prioritet ${rec.priority}</span>
+              <span class="rec-priority">${t('Prioritet', 'Priority')} ${rec.priority}</span>
               ${escapeHtml(rec.recommendation)}
             </div>
             <div class="rec-desc">${escapeHtml(rec.explanation)}</div>
@@ -224,7 +262,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
         ` : ''}
 
         <div class="footer">
-          <p>Genererad ${format(new Date(), 'PPP HH:mm', { locale: sv })} | ${printBrandName}</p>
+          <p>${t('Genererad', 'Generated')} ${format(new Date(), 'PPP HH:mm', { locale: dateFnsLocale })} | ${escapeHtml(printBrandName)}</p>
         </div>
       </body>
       </html>
@@ -241,8 +279,11 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
     if (onLoadToAI) {
       onLoadToAI(analysis)
       toast({
-        title: 'Laddat till AI',
-        description: 'Videoanalysen har laddats som kontext i AI Studio',
+        title: t('Laddat till AI', 'Loaded to AI'),
+        description: t(
+          'Videoanalysen har laddats som kontext i AI Studio',
+          'The video analysis has been loaded as context in AI Studio'
+        ),
       })
     }
   }
@@ -250,7 +291,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Videoanalyser</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('Videoanalyser', 'Video analyses')}</h2>
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -262,22 +303,24 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
     return (
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Videoanalyser</h2>
+          <h2 className="text-xl font-semibold">{t('Videoanalyser', 'Video analyses')}</h2>
           <Link href={`${basePath}/coach/video-analysis`}>
             <Button size="sm">
               <Video className="h-4 w-4 mr-2" />
-              Ny analys
+              {t('Ny analys', 'New analysis')}
             </Button>
           </Link>
         </div>
         <div className="text-center py-8 text-gray-500">
           <Video className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-          <p className="mb-2">Inga videoanalyser för denna atlet</p>
+          <p className="mb-2">
+            {t('Inga videoanalyser för denna atlet', 'No video analyses for this athlete')}
+          </p>
           <Link
             href={`${basePath}/coach/video-analysis`}
             className="text-blue-600 hover:text-blue-800 font-medium"
           >
-            Skapa första videoanalysen
+            {t('Skapa första videoanalysen', 'Create first video analysis')}
           </Link>
         </div>
       </div>
@@ -288,15 +331,16 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-xl font-semibold">Videoanalyser</h2>
+          <h2 className="text-xl font-semibold">{t('Videoanalyser', 'Video analyses')}</h2>
           <p className="text-sm text-gray-600 mt-1">
-            {analyses.length} {analyses.length === 1 ? 'analys' : 'analyser'}
+            {analyses.length}{' '}
+            {analyses.length === 1 ? t('analys', 'analysis') : t('analyser', 'analyses')}
           </p>
         </div>
         <Link href={`${basePath}/coach/video-analysis`}>
           <Button size="sm">
             <Video className="h-4 w-4 mr-2" />
-            Ny analys
+            {t('Ny analys', 'New analysis')}
           </Button>
         </Link>
       </div>
@@ -304,6 +348,11 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
       <div className="space-y-3">
         {analyses.map((analysis) => {
           const typeInfo = VIDEO_TYPE_INFO[analysis.videoType as keyof typeof VIDEO_TYPE_INFO] || VIDEO_TYPE_INFO.SPORT_SPECIFIC
+          const typeLabel = typeInfo.label[locale]
+          const exerciseName =
+            locale === 'sv'
+              ? analysis.exercise?.nameSv || analysis.exercise?.name
+              : analysis.exercise?.name || analysis.exercise?.nameSv
           const TypeIcon = typeInfo.icon
           const issueCount = analysis.issuesDetected?.length || 0
 
@@ -320,22 +369,24 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium">
-                        {analysis.exercise?.nameSv || analysis.exercise?.name || typeInfo.label}
+                        {exerciseName || typeLabel}
                       </span>
                       <Badge
                         variant={analysis.status === 'COMPLETED' ? 'default' : 'secondary'}
                         className={analysis.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : ''}
                       >
-                        {analysis.status === 'COMPLETED' ? 'Klar' : analysis.status}
+                        {analysis.status === 'COMPLETED' ? t('Klar', 'Complete') : analysis.status}
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-500">
-                      {format(new Date(analysis.createdAt), 'PPP', { locale: sv })}
+                      {format(new Date(analysis.createdAt), 'PPP', { locale: dateFnsLocale })}
                     </p>
                     {issueCount > 0 && (
                       <p className="text-sm text-orange-600 mt-1">
                         <AlertTriangle className="h-3 w-3 inline mr-1" />
-                        {issueCount} {issueCount === 1 ? 'problem' : 'problem'} identifierade
+                        {issueCount}{' '}
+                        {issueCount === 1 ? t('problem', 'issue') : t('problem', 'issues')}{' '}
+                        {t('identifierade', 'identified')}
                       </p>
                     )}
                   </div>
@@ -347,7 +398,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                     <div className={`text-2xl font-bold ${getScoreColor(analysis.formScore)}`}>
                       {analysis.formScore}
                     </div>
-                    <div className="text-xs text-gray-500">poäng</div>
+                    <div className="text-xs text-gray-500">{t('poäng', 'points')}</div>
                   </div>
                 )}
               </div>
@@ -370,7 +421,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                   }}
                 >
                   <Play className="h-4 w-4 mr-1" />
-                  Visa detaljer
+                  {t('Visa detaljer', 'View details')}
                 </Button>
                 <Button
                   variant="outline"
@@ -378,7 +429,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                   onClick={() => handlePrint(analysis)}
                 >
                   <Printer className="h-4 w-4 mr-1" />
-                  Skriv ut
+                  {t('Skriv ut', 'Print')}
                 </Button>
                 {onLoadToAI && (
                   <Button
@@ -387,13 +438,13 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                     onClick={() => handleLoadToAI(analysis)}
                   >
                     <Brain className="h-4 w-4 mr-1" />
-                    Till AI
+                    {t('Till AI', 'To AI')}
                   </Button>
                 )}
                 <Link href={`${basePath}/coach/video-analysis`} className="ml-auto">
                   <Button variant="ghost" size="sm">
                     <ExternalLink className="h-4 w-4 mr-1" />
-                    Öppna
+                    {t('Öppna', 'Open')}
                   </Button>
                 </Link>
               </div>
@@ -408,7 +459,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Analysresultat
+              {t('Analysresultat', 'Analysis results')}
             </DialogTitle>
           </DialogHeader>
 
@@ -421,7 +472,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                     {selectedAnalysis.formScore}
                   </div>
                   <div className="text-lg text-muted-foreground mt-1">
-                    {getScoreLabel(selectedAnalysis.formScore)}
+                    {getScoreLabel(selectedAnalysis.formScore, locale)}
                   </div>
                   <Progress value={selectedAnalysis.formScore} className="h-3 mt-4" />
                 </div>
@@ -432,7 +483,10 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                 <div className="space-y-3">
                   <h3 className="font-semibold flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    Identifierade problem ({selectedAnalysis.issuesDetected.length})
+                    {t(
+                      `Identifierade problem (${selectedAnalysis.issuesDetected.length})`,
+                      `Identified issues (${selectedAnalysis.issuesDetected.length})`
+                    )}
                   </h3>
                   <div className="space-y-2">
                     {selectedAnalysis.issuesDetected.map((issue, i) => (
@@ -459,7 +513,10 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                 <div className="space-y-3">
                   <h3 className="font-semibold flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-blue-500" />
-                    Rekommendationer ({selectedAnalysis.recommendations.length})
+                    {t(
+                      `Rekommendationer (${selectedAnalysis.recommendations.length})`,
+                      `Recommendations (${selectedAnalysis.recommendations.length})`
+                    )}
                   </h3>
                   <div className="space-y-2">
                     {selectedAnalysis.recommendations
@@ -468,7 +525,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                         <div key={i} className="p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant="outline" className="bg-blue-100 text-blue-700">
-                              Prioritet {rec.priority}
+                              {t('Prioritet', 'Priority')} {rec.priority}
                             </Badge>
                             <span className="font-medium">{rec.recommendation}</span>
                           </div>
@@ -483,12 +540,12 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
               <div className="flex gap-2 pt-4 border-t">
                 <Button onClick={() => handlePrint(selectedAnalysis)}>
                   <Printer className="h-4 w-4 mr-2" />
-                  Skriv ut rapport
+                  {t('Skriv ut rapport', 'Print report')}
                 </Button>
                 {onLoadToAI && (
                   <Button variant="outline" onClick={() => handleLoadToAI(selectedAnalysis)}>
                     <Brain className="h-4 w-4 mr-2" />
-                    Ladda till AI Studio
+                    {t('Ladda till AI Studio', 'Load to AI Studio')}
                   </Button>
                 )}
               </div>
