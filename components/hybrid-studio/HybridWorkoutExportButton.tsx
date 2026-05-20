@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import type { HybridWorkoutWithSections } from '@/types';
 import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider';
 import type { ThemeId } from '@/lib/themes/types';
+import { useLocale } from '@/i18n/client';
 
 interface HybridWorkoutExportButtonProps {
   workout: HybridWorkoutWithSections;
@@ -37,6 +38,8 @@ export function HybridWorkoutExportButton({
   size = 'sm',
   themeId: propThemeId,
 }: HybridWorkoutExportButtonProps) {
+  const locale: 'en' | 'sv' = useLocale() === 'sv' ? 'sv' : 'en';
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en);
   const [isExporting, setIsExporting] = useState(false);
 
   // Get theme from context if available, otherwise use prop or default
@@ -61,7 +64,7 @@ export function HybridWorkoutExportButton({
         repScheme: workout.repScheme,
         scalingLevel: workout.scalingLevel,
         movements: workout.movements.map((m) => ({
-          exerciseName: m.exercise.nameSv || m.exercise.name,
+          exerciseName: locale === 'sv' ? m.exercise.nameSv || m.exercise.name : m.exercise.name || m.exercise.nameSv || '',
           reps: m.reps,
           calories: m.calories,
           distance: m.distance,
@@ -77,19 +80,20 @@ export function HybridWorkoutExportButton({
         coachName,
         date: new Date(),
         themeId: pdfThemeId,
+        locale,
       };
 
       const blob = await generateHybridWorkoutExcel(exportData);
       const filename = generateFilename(workout.name, 'xlsx');
       downloadBlob(blob, filename);
 
-      toast.success('Excel exporterad!', {
-        description: 'Passet har laddats ner som Excel-fil.',
+      toast.success(t('Excel exporterad!', 'Excel exported'), {
+        description: t('Passet har laddats ner som Excel-fil.', 'The workout has been downloaded as an Excel file.'),
       });
     } catch (error) {
       console.error('Excel export error:', error);
-      toast.error('Export misslyckades', {
-        description: 'Kunde inte exportera till Excel.',
+      toast.error(t('Export misslyckades', 'Export failed'), {
+        description: t('Kunde inte exportera till Excel.', 'Could not export to Excel.'),
       });
     } finally {
       setIsExporting(false);
@@ -114,7 +118,7 @@ export function HybridWorkoutExportButton({
         repScheme: workout.repScheme,
         scalingLevel: workout.scalingLevel,
         movements: workout.movements.map((m) => ({
-          exerciseName: m.exercise.nameSv || m.exercise.name,
+          exerciseName: locale === 'sv' ? m.exercise.nameSv || m.exercise.name : m.exercise.name || m.exercise.nameSv || '',
           reps: m.reps,
           calories: m.calories,
           distance: m.distance,
@@ -130,19 +134,20 @@ export function HybridWorkoutExportButton({
         coachName,
         date: new Date(),
         themeId: pdfThemeId,
+        locale,
       };
 
       const blob = generateHybridWorkoutPDF(exportData);
       const filename = generateFilename(workout.name, 'pdf');
       downloadBlob(blob, filename);
 
-      toast.success('PDF exporterad!', {
-        description: 'Passet har laddats ner som PDF.',
+      toast.success(t('PDF exporterad!', 'PDF exported'), {
+        description: t('Passet har laddats ner som PDF.', 'The workout has been downloaded as a PDF.'),
       });
     } catch (error) {
       console.error('PDF export error:', error);
-      toast.error('Export misslyckades', {
-        description: 'Kunde inte exportera till PDF.',
+      toast.error(t('Export misslyckades', 'Export failed'), {
+        description: t('Kunde inte exportera till PDF.', 'Could not export to PDF.'),
       });
     } finally {
       setIsExporting(false);
@@ -162,7 +167,7 @@ export function HybridWorkoutExportButton({
           ) : (
             <Download className="h-4 w-4 mr-1" />
           )}
-          Exportera
+          {t('Exportera', 'Export')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -176,7 +181,7 @@ export function HybridWorkoutExportButton({
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handlePrint}>
           <Printer className="h-4 w-4 mr-2" />
-          Skriv ut
+          {t('Skriv ut', 'Print')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

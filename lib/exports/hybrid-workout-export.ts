@@ -42,18 +42,25 @@ export interface HybridWorkoutExportData {
   date?: Date
   themeId?: ThemeId // Theme for PDF styling
   organization?: string
+  locale?: 'en' | 'sv'
 }
 
-const formatLabels: Record<string, string> = {
-  AMRAP: 'AMRAP',
-  FOR_TIME: 'For Time',
-  EMOM: 'EMOM',
-  TABATA: 'Tabata',
-  CHIPPER: 'Chipper',
-  LADDER: 'Ladder',
-  INTERVALS: 'Intervaller',
-  HYROX_SIM: 'HYROX',
-  CUSTOM: 'Anpassad',
+type ExportLocale = 'en' | 'sv'
+
+const getExportLocale = (locale?: string): ExportLocale => (locale === 'sv' ? 'sv' : 'en')
+const t = (locale: ExportLocale, svText: string, enText: string) =>
+  locale === 'sv' ? svText : enText
+
+const formatLabels: Record<string, { en: string; sv: string }> = {
+  AMRAP: { en: 'AMRAP', sv: 'AMRAP' },
+  FOR_TIME: { en: 'For Time', sv: 'For Time' },
+  EMOM: { en: 'EMOM', sv: 'EMOM' },
+  TABATA: { en: 'Tabata', sv: 'Tabata' },
+  CHIPPER: { en: 'Chipper', sv: 'Chipper' },
+  LADDER: { en: 'Ladder', sv: 'Ladder' },
+  INTERVALS: { en: 'Intervals', sv: 'Intervaller' },
+  HYROX_SIM: { en: 'HYROX', sv: 'HYROX' },
+  CUSTOM: { en: 'Custom', sv: 'Anpassad' },
 }
 
 const scalingLabels: Record<string, string> = {
@@ -63,7 +70,18 @@ const scalingLabels: Record<string, string> = {
   CUSTOM: 'Custom',
 }
 
-function formatMovementPrescription(m: HybridMovementExport | HybridSectionMovement): string {
+function getFormatLabel(format: string, locale: ExportLocale): string {
+  return formatLabels[format]?.[locale] || format
+}
+
+function formatExportDate(date: Date | undefined, locale: ExportLocale): string {
+  return (date || new Date()).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
+}
+
+function formatMovementPrescription(
+  m: HybridMovementExport | HybridSectionMovement,
+  locale: ExportLocale
+): string {
   const parts: string[] = []
   if ('sets' in m && m.sets) parts.push(`${m.sets}x`)
   if (m.reps) parts.push(`${m.reps} reps`)
@@ -73,19 +91,8 @@ function formatMovementPrescription(m: HybridMovementExport | HybridSectionMovem
   if (m.weightMale || m.weightFemale) {
     parts.push(`(${m.weightMale || '-'}/${m.weightFemale || '-'}kg)`)
   }
-  if ('restSeconds' in m && m.restSeconds) parts.push(`vila ${m.restSeconds}s`)
+  if ('restSeconds' in m && m.restSeconds) parts.push(`${t(locale, 'vila', 'rest')} ${m.restSeconds}s`)
   return parts.join(' ')
-}
-
-// Default color definitions for styling (fallback for Excel)
-const defaultColors = {
-  headerDark: '2D3436',      // Dark gray/black for headers
-  warmupGreen: '27AE60',     // Green for warmup/cooldown
-  metconRed: 'E74C3C',       // Red for metcon
-  accentOrange: 'E67E22',    // Orange for name and rep scheme
-  accentGreen: '2ECC71',     // Green for Rx/scaling
-  white: 'FFFFFF',
-  black: '000000',
 }
 
 // Get theme-aware colors for exports
@@ -112,6 +119,7 @@ function getExportColors(themeId?: ThemeId) {
  * Generate styled Excel workbook for a hybrid workout
  */
 export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData): Promise<Blob> {
+  const locale = getExportLocale(data.locale)
   const workbook = new ExcelJS.Workbook()
   workbook.creator = data.organization || 'Trainomics'
   workbook.created = new Date()
@@ -139,41 +147,41 @@ export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData):
   // Row 2: Empty
   infoSheet.getRow(2).height = 10
 
-  // Row 3: Namn
-  infoSheet.getCell('A3').value = 'Namn'
+  // Row 3: Name
+  infoSheet.getCell('A3').value = t(locale, 'Namn', 'Name')
   infoSheet.getCell('A3').font = { bold: true }
   infoSheet.getCell('B3').value = data.name
   infoSheet.getCell('B3').font = { bold: true, color: { argb: colors.accentOrange } }
 
   // Row 4: Format
   infoSheet.getCell('A4').value = 'Format'
-  infoSheet.getCell('B4').value = formatLabels[data.format] || data.format
+  infoSheet.getCell('B4').value = getFormatLabel(data.format, locale)
 
-  // Row 5: Skalning
-  infoSheet.getCell('A5').value = 'Skalning'
+  // Row 5: Scaling
+  infoSheet.getCell('A5').value = t(locale, 'Skalning', 'Scaling')
   infoSheet.getCell('B5').value = scalingLabels[data.scalingLevel] || data.scalingLevel
   infoSheet.getCell('B5').font = { bold: true, color: { argb: colors.accentGreen } }
 
-  // Row 6: Datum
-  infoSheet.getCell('A6').value = 'Datum'
-  infoSheet.getCell('B6').value = data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE')
+  // Row 6: Date
+  infoSheet.getCell('A6').value = t(locale, 'Datum', 'Date')
+  infoSheet.getCell('B6').value = formatExportDate(data.date, locale)
 
   // Row 7: Empty
   let currentRow = 7
 
-  // Row 8: Beskrivning (if exists)
+  // Row 8: Description (if exists)
   if (data.description) {
     currentRow++
-    infoSheet.getCell(`A${currentRow}`).value = 'Beskrivning'
+    infoSheet.getCell(`A${currentRow}`).value = t(locale, 'Beskrivning', 'Description')
     infoSheet.getCell(`B${currentRow}`).value = data.description
     currentRow++
   }
 
   currentRow++
 
-  // Rundor
+  // Rounds
   if (data.totalRounds) {
-    infoSheet.getCell(`A${currentRow}`).value = 'Rundor'
+    infoSheet.getCell(`A${currentRow}`).value = t(locale, 'Rundor', 'Rounds')
     infoSheet.getCell(`B${currentRow}`).value = data.totalRounds
     infoSheet.getCell(`B${currentRow}`).font = { bold: true, color: { argb: colors.accentOrange } }
     currentRow++
@@ -196,7 +204,7 @@ export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData):
 
   // Total Minutes
   if (data.totalMinutes) {
-    infoSheet.getCell(`A${currentRow}`).value = 'Tid'
+    infoSheet.getCell(`A${currentRow}`).value = t(locale, 'Tid', 'Time')
     infoSheet.getCell(`B${currentRow}`).value = `${data.totalMinutes} min`
     currentRow++
   }
@@ -240,28 +248,28 @@ export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData):
 
   // Warmup Section
   if (data.warmupData && (data.warmupData.notes || data.warmupData.movements?.length)) {
-    addSectionHeader('UPPVÄRMNING', colors.warmupGreen)
+    addSectionHeader(t(locale, 'UPPVÄRMNING', 'WARMUP'), colors.warmupGreen)
     data.warmupData.movements?.forEach((m, i) => {
-      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m))
+      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m, locale))
     })
     passRow++ // Empty row
   }
 
   // Strength Section
   if (data.strengthData && (data.strengthData.notes || data.strengthData.movements?.length)) {
-    addSectionHeader('STYRKA', colors.headerDark)
+    addSectionHeader(t(locale, 'STYRKA', 'STRENGTH'), colors.headerDark)
     data.strengthData.movements?.forEach((m, i) => {
-      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m))
+      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m, locale))
     })
     passRow++ // Empty row
   }
 
   // Metcon Section
-  addSectionHeader(`METCON - ${formatLabels[data.format] || data.format}`, colors.metconRed)
+  addSectionHeader(`METCON - ${getFormatLabel(data.format, locale)}`, colors.metconRed)
 
   // Metcon info rows
   if (data.totalRounds) {
-    passSheet.getCell(`A${passRow}`).value = `Rundor: ${data.totalRounds}`
+    passSheet.getCell(`A${passRow}`).value = `${t(locale, 'Rundor', 'Rounds')}: ${data.totalRounds}`
     passSheet.getCell(`A${passRow}`).font = { color: { argb: colors.accentGreen } }
     passRow++
   }
@@ -274,15 +282,15 @@ export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData):
 
   // Metcon movements
   data.movements.forEach((m, i) => {
-    addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m))
+    addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m, locale))
   })
   passRow++ // Empty row
 
   // Cooldown Section
   if (data.cooldownData && (data.cooldownData.notes || data.cooldownData.movements?.length)) {
-    addSectionHeader('NEDVARVNING', colors.warmupGreen)
+    addSectionHeader(t(locale, 'NEDVARVNING', 'COOLDOWN'), colors.warmupGreen)
     data.cooldownData.movements?.forEach((m, i) => {
-      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m))
+      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m, locale))
     })
   }
 
@@ -297,6 +305,7 @@ export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData):
  * Generate PDF for a hybrid workout (whiteboard-ready format)
  */
 export function generateHybridWorkoutPDF(data: HybridWorkoutExportData): Blob {
+  const locale = getExportLocale(data.locale)
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -334,7 +343,7 @@ export function generateHybridWorkoutPDF(data: HybridWorkoutExportData): Blob {
   pdf.setFontSize(12)
   pdf.setFont('helvetica', 'normal')
   pdf.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b)
-  const formatText = formatLabels[data.format] || data.format
+  const formatText = getFormatLabel(data.format, locale)
   const scalingText = scalingLabels[data.scalingLevel] || data.scalingLevel
   pdf.text(`${formatText} | ${scalingText}`, margin, y)
   y += 8
@@ -342,7 +351,7 @@ export function generateHybridWorkoutPDF(data: HybridWorkoutExportData): Blob {
   // Date
   pdf.setFontSize(10)
   pdf.setTextColor(secondaryColor.r, secondaryColor.g, secondaryColor.b)
-  pdf.text(data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE'), margin, y)
+  pdf.text(formatExportDate(data.date, locale), margin, y)
   pdf.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b)
   y += 8
 
@@ -358,12 +367,12 @@ export function generateHybridWorkoutPDF(data: HybridWorkoutExportData): Blob {
 
   // Warmup Section
   if (data.warmupData && (data.warmupData.notes || data.warmupData.movements?.length)) {
-    y = addSectionToPDF(pdf, 'UPPVÄRMNING', data.warmupData, margin, y, contentWidth)
+    y = addSectionToPDF(pdf, t(locale, 'UPPVÄRMNING', 'WARMUP'), data.warmupData, margin, y, contentWidth, locale)
   }
 
   // Strength Section
   if (data.strengthData && (data.strengthData.notes || data.strengthData.movements?.length)) {
-    y = addSectionToPDF(pdf, 'STYRKA', data.strengthData, margin, y, contentWidth)
+    y = addSectionToPDF(pdf, t(locale, 'STYRKA', 'STRENGTH'), data.strengthData, margin, y, contentWidth, locale)
   }
 
   // Metcon Section (Main workout)
@@ -371,7 +380,7 @@ export function generateHybridWorkoutPDF(data: HybridWorkoutExportData): Blob {
 
   // Cooldown Section
   if (data.cooldownData && (data.cooldownData.notes || data.cooldownData.movements?.length)) {
-    y = addSectionToPDF(pdf, 'NEDVARVNING', data.cooldownData, margin, y, contentWidth)
+    y = addSectionToPDF(pdf, t(locale, 'NEDVARVNING', 'COOLDOWN'), data.cooldownData, margin, y, contentWidth, locale)
   }
 
   // Footer with coach info
@@ -379,7 +388,7 @@ export function generateHybridWorkoutPDF(data: HybridWorkoutExportData): Blob {
     y += 10
     pdf.setFontSize(8)
     pdf.setTextColor(128, 128, 128)
-    if (data.athleteName) pdf.text(`Atlet: ${data.athleteName}`, margin, y)
+    if (data.athleteName) pdf.text(`${t(locale, 'Atlet', 'Athlete')}: ${data.athleteName}`, margin, y)
     if (data.coachName) pdf.text(`Coach: ${data.coachName}`, pageWidth - margin - pdf.getTextWidth(`Coach: ${data.coachName}`), y)
   }
 
@@ -392,7 +401,8 @@ function addSectionToPDF(
   section: HybridSectionData,
   margin: number,
   y: number,
-  contentWidth: number
+  contentWidth: number,
+  locale: ExportLocale
 ): number {
   // Check if we need a new page
   if (y > 250) {
@@ -421,7 +431,7 @@ function addSectionToPDF(
   // Movements
   if (section.movements && section.movements.length > 0) {
     section.movements.forEach((m, i) => {
-      const prescription = formatMovementPrescription(m)
+      const prescription = formatMovementPrescription(m, locale)
       const text = `${i + 1}. ${m.exerciseName}${prescription ? ` - ${prescription}` : ''}`
       pdf.text(text, margin + 3, y)
       y += 5
@@ -439,6 +449,7 @@ function addMetconToPDF(
   y: number,
   contentWidth: number
 ): number {
+  const locale = getExportLocale(data.locale)
   // Check if we need a new page
   if (y > 220) {
     pdf.addPage()
@@ -448,7 +459,7 @@ function addMetconToPDF(
   // Section title with format
   pdf.setFontSize(14)
   pdf.setFont('helvetica', 'bold')
-  const formatText = formatLabels[data.format] || data.format
+  const formatText = getFormatLabel(data.format, locale)
   pdf.text(`METCON - ${formatText}`, margin, y)
   pdf.setDrawColor(100, 100, 100)
   pdf.line(margin, y + 2, margin + contentWidth, y + 2)
@@ -459,7 +470,7 @@ function addMetconToPDF(
   pdf.setFont('helvetica', 'normal')
   const metaItems: string[] = []
   if (data.totalMinutes) metaItems.push(`${data.totalMinutes} min`)
-  if (data.totalRounds) metaItems.push(`${data.totalRounds} rundor`)
+  if (data.totalRounds) metaItems.push(`${data.totalRounds} ${t(locale, 'rundor', 'rounds')}`)
   if (data.timeCap) metaItems.push(`${Math.floor(data.timeCap / 60)} min cap`)
   if (data.repScheme) metaItems.push(data.repScheme)
 
@@ -471,7 +482,7 @@ function addMetconToPDF(
   // Movements
   pdf.setFontSize(11)
   data.movements.forEach((m, i) => {
-    const prescription = formatMovementPrescription(m)
+    const prescription = formatMovementPrescription(m, locale)
 
     // Check if we need a new page
     if (y > 275) {
