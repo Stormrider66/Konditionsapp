@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -195,7 +196,8 @@ function DiagnosticChip({ label, value, tone }: { label: string; value: string; 
   )
 }
 
-function MuscleLabPreview({ rows, maxima, raw }: { rows: MuscleLabRow[]; maxima: MuscleLabMaxima | null; raw: MuscleLabRawImport | null }) {
+function MuscleLabPreview({ rows, maxima, raw, locale }: { rows: MuscleLabRow[]; maxima: MuscleLabMaxima | null; raw: MuscleLabRawImport | null; locale: string }) {
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en
   if (rows.length === 0 && !raw?.traces.length) return null
 
   const chartData = rows
@@ -219,9 +221,9 @@ function MuscleLabPreview({ rows, maxima, raw }: { rows: MuscleLabRow[]; maxima:
     <div className="space-y-3 rounded-md border bg-muted/20 p-3">
       <div className="flex flex-wrap gap-2">
         <MetricChip label="Max AP" value={maxima?.maxAveragePowerW} unit="W" />
-        <MetricChip label="AP / kroppsvikt" value={maxima?.maxAveragePowerPerBodyMass} unit="W/kg" />
+        <MetricChip label={t('AP / kroppsvikt', 'AP / body weight')} value={maxima?.maxAveragePowerPerBodyMass} unit="W/kg" />
         <MetricChip
-          label="Power-platå"
+          label={t('Power-platå', 'Power plateau')}
           value={maxima?.powerPlateauLoadsKg?.length ? maxima.powerPlateauLoadsKg.map((load) => `+${load}`).join(', ') : null}
           unit="kg"
         />
@@ -250,7 +252,7 @@ function MuscleLabPreview({ rows, maxima, raw }: { rows: MuscleLabRow[]; maxima:
 
       {rawTrace && rawChartData.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[10px] font-medium uppercase text-muted-foreground">{rawTrace.label} råkurva</p>
+          <p className="text-[10px] font-medium uppercase text-muted-foreground">{rawTrace.label} {t('råkurva', 'raw curve')}</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={rawChartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
@@ -369,6 +371,8 @@ function parseMusclLabCSV(text: string): Record<string, unknown> {
 }
 
 export function HockeyTestForm({ clients, teams, businessSlug, initialClientId = '', onSaved }: HockeyTestFormProps) {
+  const locale = useLocale()
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en
   const scanInputRef = useRef<HTMLInputElement>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
   const [scanning, setScanning] = useState(false)
@@ -530,14 +534,16 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
       const res = await fetch('/api/coach/hockey-tests/scan', { method: 'POST', body: formData })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Scan misslyckades')
+        throw new Error(err.error || t('Scan misslyckades', 'Scan failed'))
       }
       const data = await res.json()
       applyData(data)
       const confidence = data.confidence ? `${Math.round(data.confidence * 100)}%` : ''
-      toast.success(`Testdata extraherad ${confidence ? `(${confidence} säkerhet)` : ''}`)
+      toast.success(locale === 'sv'
+        ? `Testdata extraherad ${confidence ? `(${confidence} säkerhet)` : ''}`
+        : `Test data extracted ${confidence ? `(${confidence} confidence)` : ''}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kunde inte läsa bilden')
+      toast.error(err instanceof Error ? err.message : t('Kunde inte läsa bilden', 'Could not read the image'))
     } finally {
       setScanning(false)
     }
@@ -556,11 +562,11 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
           if (!file.name.toLowerCase().endsWith('.xlsx')) {
             data = parseMusclLabCSV(await file.text())
             applyData(data)
-            toast.success('Muscle Lab-data importerad')
+            toast.success(t('Muscle Lab-data importerad', 'Muscle Lab data imported'))
             return
           }
           const err = await res.json()
-          throw new Error(err.error || 'MuscleLab-import misslyckades')
+          throw new Error(err.error || t('MuscleLab-import misslyckades', 'MuscleLab import failed'))
         }
         const parsed = await res.json() as MuscleLabImport
         data = {
@@ -578,9 +584,9 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
         data = parseMusclLabCSV(text)
       }
       applyData(data)
-      toast.success('Muscle Lab-data importerad')
+      toast.success(t('Muscle Lab-data importerad', 'Muscle Lab data imported'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Kunde inte läsa MuscleLab-filen')
+      toast.error(err instanceof Error ? err.message : t('Kunde inte läsa MuscleLab-filen', 'Could not read the MuscleLab file'))
     } finally {
       setScanning(false)
     }
@@ -588,7 +594,7 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
 
   const handleSave = async () => {
     if (!clientId || !testDate) {
-      toast.error('Välj atlet och datum')
+      toast.error(t('Välj atlet och datum', 'Select athlete and date'))
       return
     }
 
@@ -660,14 +666,14 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
       })
 
       if (res.ok) {
-        toast.success('Testresultat sparat')
+        toast.success(t('Testresultat sparat', 'Test result saved'))
         onSaved?.()
       } else {
         const err = await res.json()
-        toast.error(err.error || 'Kunde inte spara')
+        toast.error(err.error || t('Kunde inte spara', 'Could not save'))
       }
     } catch {
-      toast.error('Nätverksfel')
+      toast.error(t('Nätverksfel', 'Network error'))
     } finally {
       setSaving(false)
     }
@@ -685,15 +691,15 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleMuscleLabImport(f); e.target.value = '' }} />
             <Button variant="outline" className="flex-1" onClick={() => scanInputRef.current?.click()} disabled={scanning}>
               {scanning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
-              Skanna testprotokoll
+              {t('Skanna testprotokoll', 'Scan test protocol')}
             </Button>
             <Button variant="outline" className="flex-1" onClick={() => csvInputRef.current?.click()} disabled={scanning}>
               <Upload className="h-4 w-4 mr-2" />
-              Importera Muscle Lab
+              {t('Importera Muscle Lab', 'Import Muscle Lab')}
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground mt-2">
-            Fotografera ett testprotokoll eller importera .xlsx/CSV-export från Muscle Lab
+            {t('Fotografera ett testprotokoll eller importera .xlsx/CSV-export från Muscle Lab', 'Photograph a test protocol or import a .xlsx/CSV export from Muscle Lab')}
           </p>
         </CardContent>
       </Card>
@@ -703,10 +709,10 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
         <CardContent className="p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Atlet</Label>
+              <Label>{t('Atlet', 'Athlete')}</Label>
               <Select value={clientId} onValueChange={setClientId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj spelare..." />
+                  <SelectValue placeholder={t('Välj spelare...', 'Select player...')} />
                 </SelectTrigger>
                 <SelectContent>
                   {teams.map((team) => {
@@ -722,7 +728,7 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
                     )
                   })}
                   {clients.filter((c) => !c.teamId).length > 0 && (
-                    <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase">Individuella spelare</div>
+                    <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase">{t('Individuella spelare', 'Individual players')}</div>
                   )}
                   {clients.filter((c) => !c.teamId).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -731,12 +737,12 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
               </Select>
               {clients.filter((c) => !c.teamId).length > 0 && (
                 <p className="text-[10px] text-muted-foreground">
-                  Spelare utan lag kan testas här och kopplas till lag senare.
+                  {t('Spelare utan lag kan testas här och kopplas till lag senare.', 'Players without a team can be tested here and assigned to a team later.')}
                 </p>
               )}
             </div>
             <div className="space-y-1">
-              <Label>Testdatum</Label>
+              <Label>{t('Testdatum', 'Test date')}</Label>
               <Input type="date" value={testDate} onChange={(e) => setTestDate(e.target.value)} />
             </div>
           </div>
@@ -747,45 +753,45 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-sm font-medium">Batteristatus</p>
+              <p className="text-sm font-medium">{t('Batteristatus', 'Battery status')}</p>
               <p className="text-xs text-muted-foreground">
-                Direkt feedback på nyckelvärden innan testet sparas.
+                {t('Direkt feedback på nyckelvärden innan testet sparas.', 'Instant feedback on key values before the test is saved.')}
               </p>
             </div>
             <Badge variant={completedGroups >= 4 ? 'default' : 'secondary'}>
-              {completedGroups}/5 delar ifyllda
+              {completedGroups}/5 {t('delar ifyllda', 'sections completed')}
             </Badge>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {agilityBest != null && (
-              <DiagnosticChip label="Bästa 5-10-5" value={`${agilityBest.toFixed(2)} s`} tone="info" />
+              <DiagnosticChip label={t('Bästa 5-10-5', 'Best 5-10-5')} value={`${agilityBest.toFixed(2)} s`} tone="info" />
             )}
             {sprintBest != null && (
-              <DiagnosticChip label="Bästa sprintsplit" value={`${sprintBest.toFixed(2)} s`} tone="info" />
+              <DiagnosticChip label={t('Bästa sprintsplit', 'Best sprint split')} value={`${sprintBest.toFixed(2)} s`} tone="info" />
             )}
             {powerBest != null && (
               <DiagnosticChip
-                label={muscleLabMaxima?.maxAveragePowerPerBodyMass ? 'MuscleLab AP/BW' : 'Bästa power'}
+                label={muscleLabMaxima?.maxAveragePowerPerBodyMass ? 'MuscleLab AP/BW' : t('Bästa power', 'Best power')}
                 value={muscleLabMaxima?.maxAveragePowerPerBodyMass ? `${powerBest.toFixed(1)} W/kg` : `${powerBest.toFixed(0)} W`}
                 tone="good"
               />
             )}
             {strengthCount > 0 && (
-              <DiagnosticChip label="Maxstyrketester" value={`${strengthCount}/4`} tone={strengthCount >= 3 ? 'good' : 'info'} />
+              <DiagnosticChip label={t('Maxstyrketester', 'Max strength tests')} value={`${strengthCount}/4`} tone={strengthCount >= 3 ? 'good' : 'info'} />
             )}
             {parseNumber(standingLong) != null && (
-              <DiagnosticChip label="Stående längdhopp" value={`${parseNumber(standingLong)?.toFixed(0)} cm`} tone="info" />
+              <DiagnosticChip label={t('Stående längdhopp', 'Standing long jump')} value={`${parseNumber(standingLong)?.toFixed(0)} cm`} tone="info" />
             )}
             {threeJumpAsymmetry != null && (
               <DiagnosticChip
-                label="3-steg asymmetri"
+                label={t('3-steg asymmetri', '3-step asymmetry')}
                 value={`${threeJumpAsymmetry.toFixed(1)}%`}
                 tone={threeJumpAsymmetry >= 8 ? 'watch' : 'good'}
               />
             )}
             {gripAsymmetry != null && (
               <DiagnosticChip
-                label="Grepp asymmetri"
+                label={t('Grepp asymmetri', 'Grip asymmetry')}
                 value={`${gripAsymmetry.toFixed(1)}%`}
                 tone={gripAsymmetry >= 10 ? 'watch' : 'good'}
               />
@@ -799,7 +805,7 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
             )}
             {endurance.averageSpeedKmh != null && (
               <DiagnosticChip
-                label="7x40 RSA profil"
+                label={t('7x40 RSA profil', '7x40 RSA profile')}
                 value={`${endurance.averageSpeedKmh.toFixed(1)} km/h · ${endurance.fatigueResistancePct?.toFixed(0) ?? '-'}% resist`}
                 tone={endurance.fatigueDropPct != null && endurance.fatigueDropPct >= 10 ? 'watch' : 'info'}
               />
@@ -808,7 +814,7 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
               <DiagnosticChip label="VO2max" value={`${parseNumber(vo2Max)?.toFixed(1)} ml/kg/min`} tone="good" />
             )}
             {parseNumber(lt2SpeedKmh) != null && (
-              <DiagnosticChip label="LT2 löpfart" value={`${parseNumber(lt2SpeedKmh)?.toFixed(1)} km/h`} tone="info" />
+              <DiagnosticChip label={t('LT2 löpfart', 'LT2 running speed')} value={`${parseNumber(lt2SpeedKmh)?.toFixed(1)} km/h`} tone="info" />
             )}
           </div>
         </CardContent>
@@ -818,13 +824,13 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
       <Card>
         <Collapsible open={iceOpen} onOpenChange={setIceOpen}>
           <CollapsibleTrigger className="w-full px-4">
-            <SectionHeader icon={Timer} title="Istester" open={iceOpen} />
+            <SectionHeader icon={Timer} title={t('Istester', 'On-ice tests')} open={iceOpen} />
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <NumberInput label="Agility 5-10-5 Vänster" value={agility505Left} onChange={setAgility505Left} unit="s" placeholder="6.50" />
-                <NumberInput label="Agility 5-10-5 Höger" value={agility505Right} onChange={setAgility505Right} unit="s" placeholder="6.40" />
+                <NumberInput label={t('Agility 5-10-5 Vänster', 'Agility 5-10-5 left')} value={agility505Left} onChange={setAgility505Left} unit="s" placeholder="6.50" />
+                <NumberInput label={t('Agility 5-10-5 Höger', 'Agility 5-10-5 right')} value={agility505Right} onChange={setAgility505Right} unit="s" placeholder="6.40" />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <NumberInput label="Sprint 5m" value={sprint5m} onChange={setSprint5m} unit="s" placeholder="1.10" />
@@ -835,7 +841,7 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
                 <NumberInput label="Sprint 30m (fly)" value={sprint30mFly} onChange={setSprint30mFly} unit="s" placeholder="3.60" />
               </div>
               <div>
-                <Label className="text-xs mb-2 block">7x40m Uthållighet (10s vila)</Label>
+                <Label className="text-xs mb-2 block">{t('7x40m Uthållighet (10s vila)', '7x40 m endurance (10 s recovery)')}</Label>
                 <div className="grid grid-cols-7 gap-1">
                   {endurance7x40.map((v, i) => (
                     <div key={i} className="space-y-0.5">
@@ -858,8 +864,8 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
                 </div>
                 {endurance.count > 0 && (
                   <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <MetricChip label="Snabbaste rep" value={endurance.bestTimeS?.toFixed(2)} unit="s" />
-                    <MetricChip label="Snittfart" value={endurance.averageSpeedKmh?.toFixed(1)} unit="km/h" />
+                    <MetricChip label={t('Snabbaste rep', 'Fastest rep')} value={endurance.bestTimeS?.toFixed(2)} unit="s" />
+                    <MetricChip label={t('Snittfart', 'Average speed')} value={endurance.averageSpeedKmh?.toFixed(1)} unit="km/h" />
                     <MetricChip label="Drop" value={endurance.fatigueDropPct?.toFixed(1)} unit="%" />
                     <MetricChip label="Resistance" value={endurance.fatigueResistancePct?.toFixed(0)} unit="%" />
                   </div>
@@ -874,13 +880,13 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
       <Card>
         <Collapsible open={powerOpen} onOpenChange={setPowerOpen}>
           <CollapsibleTrigger className="w-full px-4">
-            <SectionHeader icon={Zap} title="Krafttester" open={powerOpen} />
+            <SectionHeader icon={Zap} title={t('Krafttester', 'Power tests')} open={powerOpen} />
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-4">
-              <MuscleLabPreview rows={muscleLabRows} maxima={muscleLabMaxima} raw={muscleLabRaw} />
+              <MuscleLabPreview rows={muscleLabRows} maxima={muscleLabMaxima} raw={muscleLabRaw} locale={locale} />
               <div>
-                <Label className="text-xs mb-2 block">Loaded squat jump / power squat profil (AP Watt)</Label>
+                <Label className="text-xs mb-2 block">{t('Loaded squat jump / power squat profil (AP Watt)', 'Loaded squat jump / power squat profile (AP watts)')}</Label>
                 <div className="grid grid-cols-5 gap-2">
                   {Object.keys(jumpSquat).map((load) => (
                     <div key={load} className="space-y-0.5">
@@ -897,7 +903,7 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
                 </div>
               </div>
               <div>
-                <Label className="text-xs mb-2 block">Enbenshopp Smith Vänster (Watt)</Label>
+                <Label className="text-xs mb-2 block">{t('Enbenshopp Smith Vänster (Watt)', 'Single-leg Smith jump left (watts)')}</Label>
                 <div className="grid grid-cols-6 gap-1.5">
                   {Object.keys(singleLegLeft).map((load) => (
                     <div key={load} className="space-y-0.5">
@@ -914,7 +920,7 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
                 </div>
               </div>
               <div>
-                <Label className="text-xs mb-2 block">Enbenshopp Smith Höger (Watt)</Label>
+                <Label className="text-xs mb-2 block">{t('Enbenshopp Smith Höger (Watt)', 'Single-leg Smith jump right (watts)')}</Label>
                 <div className="grid grid-cols-6 gap-1.5">
                   {Object.keys(singleLegRight).map((load) => (
                     <div key={load} className="space-y-0.5">
@@ -931,8 +937,8 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <NumberInput label="Max greppstyrka Vänster" value={gripLeft} onChange={setGripLeft} unit="kg" placeholder="55" />
-                <NumberInput label="Max greppstyrka Höger" value={gripRight} onChange={setGripRight} unit="kg" placeholder="58" />
+                <NumberInput label={t('Max greppstyrka Vänster', 'Max grip strength left')} value={gripLeft} onChange={setGripLeft} unit="kg" placeholder="55" />
+                <NumberInput label={t('Max greppstyrka Höger', 'Max grip strength right')} value={gripRight} onChange={setGripRight} unit="kg" placeholder="58" />
               </div>
             </CardContent>
           </CollapsibleContent>
@@ -943,18 +949,18 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
       <Card>
         <Collapsible open={strengthOpen} onOpenChange={setStrengthOpen}>
           <CollapsibleTrigger className="w-full px-4">
-            <SectionHeader icon={Dumbbell} title="Maxstyrka" open={strengthOpen} />
+            <SectionHeader icon={Dumbbell} title={t('Maxstyrka', 'Max strength')} open={strengthOpen} />
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <NumberInput label="1RM knäböj full depth" value={backSquat1RM} onChange={setBackSquat1RM} unit="kg" placeholder="140" />
+                <NumberInput label={t('1RM knäböj full depth', '1RM squat full depth')} value={backSquat1RM} onChange={setBackSquat1RM} unit="kg" placeholder="140" />
                 <NumberInput label="1RM power clean" value={powerClean1RM} onChange={setPowerClean1RM} unit="kg" placeholder="80" />
-                <NumberInput label="1RM bänkpress" value={benchPress1RM} onChange={setBenchPress1RM} unit="kg" placeholder="110" />
-                <NumberInput label="1RM pull-up extra vikt" value={pullUp1RM} onChange={setPullUp1RM} unit="kg" placeholder="40" />
+                <NumberInput label={t('1RM bänkpress', '1RM bench press')} value={benchPress1RM} onChange={setBenchPress1RM} unit="kg" placeholder="110" />
+                <NumberInput label={t('1RM pull-up extra vikt', '1RM pull-up extra weight')} value={pullUp1RM} onChange={setPullUp1RM} unit="kg" placeholder="40" />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Knäböj 1RM sparas separat från MuscleLab power squat eftersom djup och mål skiljer sig.
+                {t('Knäböj 1RM sparas separat från MuscleLab power squat eftersom djup och mål skiljer sig.', 'Squat 1RM is saved separately from MuscleLab power squat because depth and purpose differ.')}
               </p>
             </CardContent>
           </CollapsibleContent>
@@ -965,14 +971,14 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
       <Card>
         <Collapsible open={jumpOpen} onOpenChange={setJumpOpen}>
           <CollapsibleTrigger className="w-full px-4">
-            <SectionHeader icon={ArrowUpDown} title="Hopptester" open={jumpOpen} />
+            <SectionHeader icon={ArrowUpDown} title={t('Hopptester', 'Jump tests')} open={jumpOpen} />
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-3">
-              <NumberInput label="Stående längdhopp" value={standingLong} onChange={setStandingLong} unit="cm" placeholder="240" />
+              <NumberInput label={t('Stående längdhopp', 'Standing long jump')} value={standingLong} onChange={setStandingLong} unit="cm" placeholder="240" />
               <div className="grid grid-cols-2 gap-3">
-                <NumberInput label="3-steg längdhopp Vänster ben" value={threeJumpLeft} onChange={setThreeJumpLeft} unit="cm" placeholder="680" />
-                <NumberInput label="3-steg längdhopp Höger ben" value={threeJumpRight} onChange={setThreeJumpRight} unit="cm" placeholder="700" />
+                <NumberInput label={t('3-steg längdhopp Vänster ben', '3-step long jump left leg')} value={threeJumpLeft} onChange={setThreeJumpLeft} unit="cm" placeholder="680" />
+                <NumberInput label={t('3-steg längdhopp Höger ben', '3-step long jump right leg')} value={threeJumpRight} onChange={setThreeJumpRight} unit="cm" placeholder="700" />
               </div>
             </CardContent>
           </CollapsibleContent>
@@ -983,36 +989,36 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
       <Card>
         <Collapsible open={enduranceOpen} onOpenChange={setEnduranceOpen}>
           <CollapsibleTrigger className="w-full px-4">
-            <SectionHeader icon={Activity} title="Uthållighet" open={enduranceOpen} />
+            <SectionHeader icon={Activity} title={t('Uthållighet', 'Endurance')} open={enduranceOpen} />
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0 space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <NumberInput label="Beep test nivå" value={beepLevel} onChange={setBeepLevel} placeholder="13" />
+                <NumberInput label={t('Beep test nivå', 'Beep test level')} value={beepLevel} onChange={setBeepLevel} placeholder="13" />
                 <NumberInput label="Beep test shuttle" value={beepShuttle} onChange={setBeepShuttle} placeholder="6" />
               </div>
               <div className="rounded-md border bg-muted/20 p-3 space-y-3">
                 <div>
                   <p className="text-xs font-medium">VO2max / ramp</p>
                   <p className="text-[10px] text-muted-foreground">
-                    Spara labbvärden från spelarens VO2max-test direkt i hockeybatteriet.
+                    {t('Spara labbvärden från spelarens VO2max-test direkt i hockeybatteriet.', "Save lab values from the player's VO2max test directly in the hockey battery.")}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <NumberInput label="VO2max" value={vo2Max} onChange={setVo2Max} unit="ml/kg/min" placeholder="58.5" />
-                  <NumberInput label="Maxpuls" value={maxHeartRate} onChange={setMaxHeartRate} unit="bpm" placeholder="198" />
-                  <NumberInput label="Max laktat" value={maxLactate} onChange={setMaxLactate} unit="mmol/L" placeholder="12.4" />
-                  <NumberInput label="Ramptid" value={rampTimeMinutes} onChange={setRampTimeMinutes} unit="min" placeholder="13.5" />
-                  <NumberInput label="LT1 fart" value={lt1SpeedKmh} onChange={setLt1SpeedKmh} unit="km/h" placeholder="11.5" />
-                  <NumberInput label="LT1 puls" value={lt1HeartRate} onChange={setLt1HeartRate} unit="bpm" placeholder="154" />
-                  <NumberInput label="LT1 laktat" value={lt1Lactate} onChange={setLt1Lactate} unit="mmol/L" placeholder="1.8" />
-                  <NumberInput label="LT2 fart" value={lt2SpeedKmh} onChange={setLt2SpeedKmh} unit="km/h" placeholder="15.0" />
-                  <NumberInput label="LT2 puls" value={lt2HeartRate} onChange={setLt2HeartRate} unit="bpm" placeholder="178" />
-                  <NumberInput label="LT2 laktat" value={lt2Lactate} onChange={setLt2Lactate} unit="mmol/L" placeholder="3.8" />
+                  <NumberInput label={t('Maxpuls', 'Max heart rate')} value={maxHeartRate} onChange={setMaxHeartRate} unit="bpm" placeholder="198" />
+                  <NumberInput label={t('Max laktat', 'Max lactate')} value={maxLactate} onChange={setMaxLactate} unit="mmol/L" placeholder="12.4" />
+                  <NumberInput label={t('Ramptid', 'Ramp time')} value={rampTimeMinutes} onChange={setRampTimeMinutes} unit="min" placeholder="13.5" />
+                  <NumberInput label={t('LT1 fart', 'LT1 speed')} value={lt1SpeedKmh} onChange={setLt1SpeedKmh} unit="km/h" placeholder="11.5" />
+                  <NumberInput label={t('LT1 puls', 'LT1 heart rate')} value={lt1HeartRate} onChange={setLt1HeartRate} unit="bpm" placeholder="154" />
+                  <NumberInput label={t('LT1 laktat', 'LT1 lactate')} value={lt1Lactate} onChange={setLt1Lactate} unit="mmol/L" placeholder="1.8" />
+                  <NumberInput label={t('LT2 fart', 'LT2 speed')} value={lt2SpeedKmh} onChange={setLt2SpeedKmh} unit="km/h" placeholder="15.0" />
+                  <NumberInput label={t('LT2 puls', 'LT2 heart rate')} value={lt2HeartRate} onChange={setLt2HeartRate} unit="bpm" placeholder="178" />
+                  <NumberInput label={t('LT2 laktat', 'LT2 lactate')} value={lt2Lactate} onChange={setLt2Lactate} unit="mmol/L" placeholder="3.8" />
                 </div>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                LT1/LT2 kan anges som löpfart, puls och laktat så att coachen ser både aerob bas och tröskelkapacitet.
+                {t('LT1/LT2 kan anges som löpfart, puls och laktat så att coachen ser både aerob bas och tröskelkapacitet.', 'LT1/LT2 can be entered as running speed, heart rate, and lactate so the coach can see both aerobic base and threshold capacity.')}
               </p>
             </CardContent>
           </CollapsibleContent>
@@ -1022,14 +1028,14 @@ export function HockeyTestForm({ clients, teams, businessSlug, initialClientId =
       {/* Notes */}
       <Card>
         <CardContent className="p-4">
-          <Label className="text-xs">Anteckningar (valfritt)</Label>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="mt-1" placeholder="Kommentarer om testet..." />
+          <Label className="text-xs">{t('Anteckningar (valfritt)', 'Notes (optional)')}</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="mt-1" placeholder={t('Kommentarer om testet...', 'Comments about the test...')} />
         </CardContent>
       </Card>
 
       <Button onClick={handleSave} disabled={saving || !clientId} className="w-full" size="lg">
         <Save className="h-4 w-4 mr-2" />
-        {saving ? 'Sparar...' : 'Spara testresultat'}
+        {saving ? t('Sparar...', 'Saving...') : t('Spara testresultat', 'Save test result')}
       </Button>
     </div>
   )
