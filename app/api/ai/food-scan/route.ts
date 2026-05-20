@@ -44,37 +44,66 @@ const WEEKDAY_LABEL_SV = [
   'lördag',
 ] as const
 
+const WEEKDAY_LABEL_EN = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const
+
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function buildPrompt({
   clientHour,
   clientDayOfWeek,
   enhancedMode,
   memoryContext,
   userContext,
+  locale,
 }: {
   clientHour: number | null
   clientDayOfWeek: number | null
   enhancedMode: boolean
   memoryContext: string | null
   userContext: string | null
+  locale: AppLocale
 }) {
+  const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
   const timeLine =
     clientHour != null
-      ? `KONTEXT: Användaren loggar måltiden kl ${String(clientHour).padStart(2, '0')}:00${
-          clientDayOfWeek != null ? ` (${WEEKDAY_LABEL_SV[clientDayOfWeek]})` : ''
-        } (lokal tid). Använd tiden som primär signal för måltidstyp: före 10 = BREAKFAST, 10–11 = MORNING_SNACK, 11–14 = LUNCH, 14–16 = AFTERNOON_SNACK, 17–20 = DINNER, efter 20 = EVENING_SNACK. Avvik endast om maten uppenbart tillhör en annan kategori (t.ex. tydlig frukostgröt kl 15 → AFTERNOON_SNACK, inte BREAKFAST).\n\n`
+      ? locale === 'sv'
+        ? `KONTEXT: Användaren loggar måltiden kl ${String(clientHour).padStart(2, '0')}:00${
+            clientDayOfWeek != null ? ` (${WEEKDAY_LABEL_SV[clientDayOfWeek]})` : ''
+          } (lokal tid). Använd tiden som primär signal för måltidstyp: före 10 = BREAKFAST, 10-11 = MORNING_SNACK, 11-14 = LUNCH, 14-16 = AFTERNOON_SNACK, 17-20 = DINNER, efter 20 = EVENING_SNACK. Avvik endast om maten uppenbart tillhör en annan kategori (t.ex. tydlig frukostgröt kl 15 -> AFTERNOON_SNACK, inte BREAKFAST).\n\n`
+        : `CONTEXT: The user is logging the meal at ${String(clientHour).padStart(2, '0')}:00${
+            clientDayOfWeek != null ? ` (${WEEKDAY_LABEL_EN[clientDayOfWeek]})` : ''
+          } local time. Use the time as the primary signal for meal type: before 10 = BREAKFAST, 10-11 = MORNING_SNACK, 11-14 = LUNCH, 14-16 = AFTERNOON_SNACK, 17-20 = DINNER, after 20 = EVENING_SNACK. Only deviate if the food clearly belongs to another category (for example obvious breakfast porridge at 15:00 -> AFTERNOON_SNACK, not BREAKFAST).\n\n`
       : ''
 
   const memoryBlock = memoryContext ? `${memoryContext}\n\n` : ''
 
   const userContextBlock = userContext
-    ? `\nANVÄNDARENS KONTEXT (viktig information — prioritera detta över egna uppskattningar):\n${userContext}\n\nOm användaren angett en specifik vikt (t.ex. "200g kött"), använd EXAKT den vikten istället för att uppskatta.\nOm användaren angett en specifik matvara (t.ex. "älgfärs" istället för nötfärs), använd den matvarans näringsvärden.\n\n`
+    ? locale === 'sv'
+      ? `\nANVÄNDARENS KONTEXT (viktig information - prioritera detta över egna uppskattningar):\n${userContext}\n\nOm användaren angett en specifik vikt (t.ex. "200g kött"), använd EXAKT den vikten istället för att uppskatta.\nOm användaren angett en specifik matvara (t.ex. "älgfärs" istället för nötfärs), använd den matvarans näringsvärden.\n\n`
+      : `\nUSER CONTEXT (important information - prioritize this over your own estimates):\n${userContext}\n\nIf the user gave a specific weight (for example "200g meat"), use EXACTLY that weight instead of estimating.\nIf the user specified a specific food (for example "venison mince" instead of beef mince), use that food's nutrition values.\n\n`
     : ''
 
   const enhancedBlock = enhancedMode
-    ? `\n\nUTÖKAD ANALYS (detaljerade makrosubkategorier):\n8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)\n9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram\n10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)\n11. Proteinkälla per matvara: proteinSource ska vara ANIMAL, PLANT, MIXED eller UNKNOWN. Animaliskt är inte alltid samma sak som komplett; soja/tofu/tempeh och quinoa kan vara kompletta växtkällor.\n12. Summera fett- och kolhydratsubkategorier i totals`
+    ? locale === 'sv'
+      ? `\n\nUTÖKAD ANALYS (detaljerade makrosubkategorier):\n8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)\n9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram\n10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)\n11. Proteinkälla per matvara: proteinSource ska vara ANIMAL, PLANT, MIXED eller UNKNOWN. Animaliskt är inte alltid samma sak som komplett; soja/tofu/tempeh och quinoa kan vara kompletta växtkällor.\n12. Summera fett- och kolhydratsubkategorier i totals`
+      : `\n\nENHANCED ANALYSIS (detailed macro subcategories):\n8. Fat breakdown per food item: saturated, monounsaturated, and polyunsaturated fatty acids in grams\n9. Carbohydrate breakdown per food item: sugar and complex carbohydrates (starch) in grams\n10. Protein quality: indicate whether the food is a complete protein source with all essential amino acids\n11. Protein source per food item: proteinSource must be ANIMAL, PLANT, MIXED, or UNKNOWN. Animal does not always mean complete; soy, tofu, tempeh, and quinoa can be complete plant sources.\n12. Sum fat and carbohydrate subcategories in totals`
     : ''
 
+  if (locale === 'sv') {
   return `Du är en expert på näringslära och matidentifiering. Analysera denna bild av en måltid och uppskatta kalorier och makronäringsämnen.
+Skriv alla användarsynliga namn, portionsbeskrivningar, måltidsbeskrivningar och anteckningar på ${outputLanguage}.
 
 ${timeLine}${memoryBlock}${userContextBlock}INSTRUKTIONER:
 1. Identifiera varje separat matvara/ingrediens i bilden
@@ -92,6 +121,27 @@ VIKTIGT:
 - Om du ser förpackningar med näringsinformation, använd den informationen
 - För kött/fisk/fågel med ben: om vikt anges eller uppskattas inklusive ben, behåll vikten i estimatedGrams men beräkna kalorier och makros på ätbar del efter ben. Skriv gärna i portionDescription, t.ex. "300 g med ben (ca 200 g ätbart)".
 - Ange eventuella osäkerheter i notes-fältet${enhancedBlock}`
+  }
+
+  return `You are a nutrition and food-identification expert. Analyze this meal photo and estimate calories and macronutrients.
+Write all user-facing item names, portion descriptions, meal descriptions, and notes in ${outputLanguage}. Memory context may contain Swedish food names or correction notes; use it for calibration, but keep the final user-facing output in ${outputLanguage}.
+
+${timeLine}${memoryBlock}${userContextBlock}INSTRUCTIONS:
+1. Identify each separate food item or ingredient in the image
+2. Estimate portion size in grams and describe the portion in English (for example "1 slice", "2 dl", "1 serving")
+3. Calculate calories and macros (protein, carbohydrates, fat, fiber) per food item
+4. Sum total calories and macros for the full meal
+5. Provide a brief English description of the meal
+6. Suggest the most likely meal type (breakfast, lunch, dinner, snack, etc.)${clientHour != null ? ' - follow the time rule above' : ''}
+7. Set confidence (0-1) based on image clarity and how well you can identify the food
+
+IMPORTANT:
+- If the image does not show food, set success to false
+- Be realistic with portion sizes
+- Account for common foods and preparation methods from the image and user context; preserve culturally specific foods instead of replacing them
+- If you can see packaging with nutrition information, use that information
+- For meat/fish/poultry with bones: if weight is provided or estimated including bones, keep that weight in estimatedGrams but calculate calories and macros from the edible portion after bones. Mention this in portionDescription, for example "300 g with bone (about 200 g edible)".
+- Include any uncertainty in the notes field${enhancedBlock}`
 }
 
 function estimateFoodScanCost(
@@ -106,12 +156,14 @@ function estimateFoodScanCost(
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     // Subscription gate (athlete-level, reuse nutrition_planning feature)
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
@@ -148,7 +200,7 @@ export async function POST(request: NextRequest) {
 
     if (!imageFile) {
       return NextResponse.json(
-        { error: 'Ingen bild uppladdad' },
+        { error: t(locale, 'No image uploaded', 'Ingen bild uppladdad') },
         { status: 400 }
       )
     }
@@ -158,14 +210,26 @@ export async function POST(request: NextRequest) {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
     if (!validTypes.includes(normalizedType)) {
       return NextResponse.json(
-        { error: `Ogiltigt bildformat (${imageFile.type || 'okänt'}). Använd JPEG, PNG eller WebP.` },
+        {
+          error: t(
+            locale,
+            `Invalid image format (${imageFile.type || 'unknown'}). Use JPEG, PNG, or WebP.`,
+            `Ogiltigt bildformat (${imageFile.type || 'okänt'}). Använd JPEG, PNG eller WebP.`
+          ),
+        },
         { status: 400 }
       )
     }
 
     if (normalizedType === 'image/heic' || normalizedType === 'image/heif') {
       return NextResponse.json(
-        { error: 'Bilden är i HEIC/HEIF-format och kunde inte konverteras i webbläsaren. Ta om bilden eller välj JPEG/PNG/WebP.' },
+        {
+          error: t(
+            locale,
+            'The image is in HEIC/HEIF format and could not be converted in the browser. Retake the photo or choose JPEG/PNG/WebP.',
+            'Bilden är i HEIC/HEIF-format och kunde inte konverteras i webbläsaren. Ta om bilden eller välj JPEG/PNG/WebP.'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -173,7 +237,7 @@ export async function POST(request: NextRequest) {
     // Validate file size (max 10MB)
     if (imageFile.size > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'Bilden får inte vara större än 10MB.' },
+        { error: t(locale, 'The image cannot be larger than 10MB.', 'Bilden får inte vara större än 10MB.') },
         { status: 400 }
       )
     }
@@ -199,7 +263,13 @@ export async function POST(request: NextRequest) {
 
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.' },
+        {
+          error: t(
+            locale,
+            'Google/Gemini API key is missing for image analysis. Enable Gemini in AI settings.',
+            'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -231,6 +301,7 @@ export async function POST(request: NextRequest) {
       enhancedMode,
       memoryContext: null,
       userContext,
+      locale,
     })
 
     const firstPass = await generateObject({
@@ -280,6 +351,7 @@ export async function POST(request: NextRequest) {
           enhancedMode,
           memoryContext: memory.text,
           userContext,
+          locale,
         })
 
         // Isolated try/catch: a pass-2 failure (Gemini 5xx, rate limit, schema
@@ -390,7 +462,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Kunde inte analysera bilden',
+        error: t(locale, 'Could not analyze the image', 'Kunde inte analysera bilden'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
