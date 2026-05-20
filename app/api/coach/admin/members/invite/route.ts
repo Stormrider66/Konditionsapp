@@ -10,10 +10,17 @@ const inviteSchema = z.object({
   role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'COACH']).default('MEMBER'),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // POST /api/coach/admin/members/invite - Invite a new user to the coach's business
 export async function POST(request: NextRequest) {
   try {
     const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
+    const locale: AppLocale = admin.language === 'sv' ? 'sv' : 'en'
     const businessId = admin.businessId
 
     const body = await request.json()
@@ -22,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Only OWNER can invite another OWNER
     if (validatedData.role === 'OWNER' && admin.businessRole !== 'OWNER') {
       return NextResponse.json(
-        { success: false, error: 'Endast ägare kan bjuda in andra ägare' },
+        { success: false, error: t(locale, 'Only owners can invite other owners', 'Endast ägare kan bjuda in andra ägare') },
         { status: 403 }
       )
     }
@@ -50,7 +57,9 @@ export async function POST(request: NextRequest) {
           memberId: result.memberId,
         },
         emailSent: result.emailSent,
-        warning: result.emailSent === false ? 'Användaren skapades men inbjudningsmejlet kunde inte skickas' : undefined,
+        warning: result.emailSent === false
+          ? t(locale, 'The user was created, but the invitation email could not be sent', 'Användaren skapades men inbjudningsmejlet kunde inte skickas')
+          : undefined,
       },
       { status: 201 }
     )

@@ -8,6 +8,12 @@ import { resolveEmailBranding } from '@/lib/email/branding'
 import { logger } from '@/lib/logger'
 import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // POST /api/coach/admin/members/[memberId]/send-invite
 export async function POST(
   request: NextRequest,
@@ -15,6 +21,7 @@ export async function POST(
 ) {
   try {
     const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
+    const locale: AppLocale = admin.language === 'sv' ? 'sv' : 'en'
     const businessId = admin.businessId
     const { memberId } = await params
 
@@ -73,7 +80,7 @@ export async function POST(
       if (createError) {
         logger.error('Send invite: failed to create auth account', { email: user.email }, createError)
         return NextResponse.json(
-          { success: false, error: 'Kunde inte skapa autentiseringskonto. Försök igen senare.' },
+          { success: false, error: t(locale, 'Could not create an authentication account. Try again later.', 'Kunde inte skapa autentiseringskonto. Försök igen senare.') },
           { status: 500 }
         )
       }
@@ -124,7 +131,7 @@ export async function POST(
 
     if (!emailSent) {
       return NextResponse.json(
-        { success: false, error: 'Kunde inte skicka e-post. Försök igen senare.' },
+        { success: false, error: t(locale, 'Could not send email. Try again later.', 'Kunde inte skicka e-post. Försök igen senare.') },
         { status: 500 }
       )
     }
@@ -132,7 +139,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       emailSent: true,
-      message: `Inbjudan skickad till ${user.email}`,
+      message: t(locale, `Invitation sent to ${user.email}`, `Inbjudan skickad till ${user.email}`),
     })
   } catch (error) {
     return handleApiError(error, 'POST /api/coach/admin/members/[memberId]/send-invite')
