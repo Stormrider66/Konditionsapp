@@ -17,10 +17,20 @@ import { logger } from '@/lib/logger'
 import { handleApiError } from '@/lib/api/utils'
 
 export const maxDuration = 60
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale = getUserLocale(user.language)
     const body = await request.json()
     const { batchSize = 5 } = body
 
@@ -48,7 +58,11 @@ export async function POST(request: NextRequest) {
     if (exercisesWithoutImages.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'Alla övningar har redan bilder.',
+        message: t(
+          locale,
+          'All exercises already have images.',
+          'Alla övningar har redan bilder.'
+        ),
         generated: 0,
         remaining: 0,
       })
@@ -76,16 +90,26 @@ export async function POST(request: NextRequest) {
           isComplexMovement: false,
           coachId: user.id,
         })
-        results.push({ name: exercise.nameSv || exercise.name, success: true })
-      } catch (error: any) {
-        const errorMsg = error?.message || 'Unknown error'
-        results.push({ name: exercise.nameSv || exercise.name, success: false, error: errorMsg })
+        const displayName = locale === 'sv'
+          ? exercise.nameSv || exercise.name
+          : exercise.nameEn || exercise.name
+        results.push({ name: displayName, success: true })
+      } catch (error: unknown) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+        const displayName = locale === 'sv'
+          ? exercise.nameSv || exercise.name
+          : exercise.nameEn || exercise.name
+        results.push({ name: displayName, success: false, error: errorMsg })
 
         // Stop if API key issue
         if (errorMsg === 'NO_GOOGLE_API_KEY') {
           return NextResponse.json({
             success: false,
-            error: 'Ingen Google API-nyckel konfigurerad. Gå till Inställningar → AI för att lägga till.',
+            error: t(
+              locale,
+              'No Google API key is configured. Go to Settings -> AI to add one.',
+              'Ingen Google API-nyckel konfigurerad. Gå till Inställningar → AI för att lägga till.'
+            ),
             generated: results.filter((r) => r.success).length,
             failed: results.filter((r) => !r.success).length,
             remaining: totalWithout - results.filter((r) => r.success).length,
@@ -111,7 +135,11 @@ export async function POST(request: NextRequest) {
       failed: results.filter((r) => !r.success).length,
       remaining,
       results,
-      message: `${generated} bilder genererade. ${remaining} övningar kvar utan bilder.`,
+      message: t(
+        locale,
+        `${generated} images generated. ${remaining} exercises still need images.`,
+        `${generated} bilder genererade. ${remaining} övningar kvar utan bilder.`
+      ),
     })
   } catch (error) {
     return handleApiError(error)
