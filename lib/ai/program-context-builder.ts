@@ -94,6 +94,7 @@ export interface WizardFormData {
   padelSettings?: Record<string, unknown> | null
 
   notes?: string
+  locale?: 'en' | 'sv'
 }
 
 // Test data from database
@@ -166,6 +167,7 @@ export interface InjuryData {
 // Full context for AI
 export interface ProgramContext {
   wizardData: WizardFormData
+  locale?: 'en' | 'sv'
   athlete?: AthleteProfileData
   recentTests?: TestData[]
   raceResults?: RaceResultData[]
@@ -187,8 +189,13 @@ export interface ProgramContext {
  */
 export function buildProgramPrompt(context: ProgramContext): string {
   const { wizardData, athlete, recentTests, raceResults, injuries } = context
+  const locale = context.locale === 'sv' || wizardData.locale === 'sv' ? 'sv' : 'en'
+  const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
+  const formatDate = (date: Date) => new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
 
-  let prompt = '# PROGRAMFÖRFRÅGAN FÖR AI STUDIO\n\n'
+  let prompt = locale === 'sv' ? '# PROGRAMFÖRFRÅGAN FÖR AI STUDIO\n\n' : '# PROGRAM REQUEST FOR AI STUDIO\n\n'
+  prompt += `IMPORTANT: Generate the finished training program and all athlete-facing copy in ${outputLanguage}.\n\n`
 
   // Athlete Info
   prompt += '## ATLET\n'
@@ -258,7 +265,7 @@ export function buildProgramPrompt(context: ProgramContext): string {
   prompt += `- **Pass per vecka**: ${wizardData.sessionsPerWeek}\n`
 
   if (wizardData.targetRaceDate) {
-    prompt += `- **Tävlingsdatum**: ${new Date(wizardData.targetRaceDate).toLocaleDateString('sv-SE')}\n`
+    prompt += `- **${t('Tävlingsdatum', 'Race date')}**: ${formatDate(wizardData.targetRaceDate)}\n`
   }
   if (wizardData.targetTime) {
     prompt += `- **Måltid**: ${wizardData.targetTime}\n`
@@ -268,7 +275,7 @@ export function buildProgramPrompt(context: ProgramContext): string {
     sport: wizardData.sport,
     goal: wizardData.goal,
     sessionsPerWeek: wizardData.sessionsPerWeek,
-    locale: 'sv',
+    locale,
     variant: 'markdown',
     hockeySettings: wizardData.hockeySettings ?? context.hockeySettings,
     footballSettings: wizardData.footballSettings ?? context.footballSettings,
@@ -299,7 +306,7 @@ export function buildProgramPrompt(context: ProgramContext): string {
   if (recentTests && recentTests.length > 0) {
     const latestTest = recentTests[0]
     prompt += '\n## SENASTE TESTRESULTAT\n'
-    prompt += `- **Testdatum**: ${new Date(latestTest.testDate).toLocaleDateString('sv-SE')}\n`
+    prompt += `- **${t('Testdatum', 'Test date')}**: ${formatDate(latestTest.testDate)}\n`
     prompt += `- **Testtyp**: ${latestTest.testType}\n`
 
     if (latestTest.vo2max) prompt += `- **VO2max**: ${latestTest.vo2max.toFixed(1)} ml/kg/min\n`
@@ -341,7 +348,7 @@ export function buildProgramPrompt(context: ProgramContext): string {
   if (raceResults && raceResults.length > 0) {
     prompt += '\n## TÄVLINGSRESULTAT\n'
     for (const race of raceResults.slice(0, 5)) {
-      prompt += `- **${race.raceName || race.distance}** (${new Date(race.raceDate).toLocaleDateString('sv-SE')}): ${race.timeFormatted}`
+      prompt += `- **${race.raceName || race.distance}** (${formatDate(race.raceDate)}): ${race.timeFormatted}`
       if (race.vdot) prompt += ` (VDOT: ${race.vdot.toFixed(1)})`
       prompt += '\n'
     }
