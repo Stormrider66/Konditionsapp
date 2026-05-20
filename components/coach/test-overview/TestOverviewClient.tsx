@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useLocale } from 'next-intl'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,9 +15,8 @@ import {
 import { AthleteComparison } from './AthleteComparison'
 import { GroupStats } from './GroupStats'
 import { YearOverYearChart } from './YearOverYearChart'
-import { BarChart3, Users, Calendar, FlaskConical, ExternalLink } from 'lucide-react'
+import { FlaskConical, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 
 interface Team {
   id: string
@@ -61,6 +61,8 @@ interface TeamGroupStats {
 }
 
 export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: TestOverviewClientProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [tests, setTests] = useState<TestRecord[]>([])
   const [athletes, setAthletes] = useState<AthleteSummary[]>([])
   const [groupStats, setGroupStats] = useState<TeamGroupStats[]>([])
@@ -86,15 +88,15 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
         setGroupStats(data.groupStats || [])
       }
     } catch {
-      toast.error('Kunde inte hämta testdata')
+      toast.error(locale === 'sv' ? 'Kunde inte hämta testdata' : 'Could not load test data')
     } finally {
       setLoading(false)
     }
-  }, [businessSlug, selectedTeam])
+  }, [businessSlug, locale, selectedTeam])
 
   useEffect(() => {
     setLoading(true)
-    fetchData()
+    void fetchData()
   }, [fetchData])
 
   const toggleAthlete = (id: string) => {
@@ -111,10 +113,10 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
       <div className="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
         <Select value={selectedTeam} onValueChange={setSelectedTeam}>
           <SelectTrigger className="w-48 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
-            <SelectValue placeholder="Alla lag" />
+            <SelectValue placeholder={locale === 'sv' ? 'Alla lag' : 'All teams'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alla lag</SelectItem>
+            <SelectItem value="all">{locale === 'sv' ? 'Alla lag' : 'All teams'}</SelectItem>
             {teams.map((t) => (
               <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
             ))}
@@ -125,7 +127,7 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
           <a href={`${businessSlug ? `/${businessSlug}` : ''}/coach/teams/${selectedTeam}/multivariate`}>
             <Button variant="outline" size="sm" className="bg-white/50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white">
               <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
-              SIMCA-analys
+              {locale === 'sv' ? 'SIMCA-analys' : 'SIMCA analysis'}
               <ExternalLink className="h-3 w-3 ml-1" />
             </Button>
           </a>
@@ -133,17 +135,18 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
 
         {selectedAthleteIds.length > 0 && (
           <Badge variant="secondary" className="text-xs bg-blue-500/10 border-blue-500/30 text-blue-400">
-            {selectedAthleteIds.length} valda för jämförelse
+            {selectedAthleteIds.length}{' '}
+            {locale === 'sv' ? 'valda för jämförelse' : 'selected for comparison'}
           </Badge>
         )}
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex-wrap bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1">
-          <TabsTrigger value="overview" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Översikt</TabsTrigger>
-          <TabsTrigger value="comparison" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Jämförelse</TabsTrigger>
-          <TabsTrigger value="trends" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Utveckling</TabsTrigger>
-          <TabsTrigger value="group" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">Gruppstatistik</TabsTrigger>
+          <TabsTrigger value="overview" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{locale === 'sv' ? 'Översikt' : 'Overview'}</TabsTrigger>
+          <TabsTrigger value="comparison" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{locale === 'sv' ? 'Jämförelse' : 'Comparison'}</TabsTrigger>
+          <TabsTrigger value="trends" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{locale === 'sv' ? 'Utveckling' : 'Trends'}</TabsTrigger>
+          <TabsTrigger value="group" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{locale === 'sv' ? 'Gruppstatistik' : 'Group stats'}</TabsTrigger>
         </TabsList>
 
         {/* Overview - athlete list with selection */}
@@ -156,11 +159,15 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
             </div>
           ) : athletes.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              Inga testresultat hittades
+              {locale === 'sv' ? 'Inga testresultat hittades' : 'No test results found'}
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground mb-2">Klicka för att välja atleter till jämförelse</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {locale === 'sv'
+                  ? 'Klicka för att välja atleter till jämförelse'
+                  : 'Click to select athletes for comparison'}
+              </p>
               {athletes.map((a) => {
                 const isSelected = selectedAthleteIds.includes(a.id)
                 return (
@@ -182,8 +189,9 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
                       <div>
                         <p className="font-semibold text-sm text-slate-800 dark:text-white">{a.name}</p>
                         <p className="text-xs text-slate-500 dark:text-muted-foreground">
-                          {a.teamName || 'Inget lag'} · {a.testCount} tester
-                          {a.latestTestDate && ` · Senaste: ${new Date(a.latestTestDate).toLocaleDateString('sv-SE')}`}
+                          {a.teamName || (locale === 'sv' ? 'Inget lag' : 'No team')} · {a.testCount}{' '}
+                          {locale === 'sv' ? 'tester' : 'tests'}
+                          {a.latestTestDate && ` · ${locale === 'sv' ? 'Senaste' : 'Latest'}: ${new Date(a.latestTestDate).toLocaleDateString(dateLocale)}`}
                         </p>
                       </div>
                     </div>
@@ -229,7 +237,7 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5 border border-transparent'
                   }`}
                 >
-                  {m === 'vo2max' ? 'VO2max' : m === 'maxHR' ? 'Max HR' : 'Max Laktat'}
+                  {m === 'vo2max' ? 'VO2max' : m === 'maxHR' ? 'Max HR' : locale === 'sv' ? 'Max Laktat' : 'Max lactate'}
                 </Button>
               ))}
             </div>

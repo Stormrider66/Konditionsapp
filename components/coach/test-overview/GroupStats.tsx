@@ -1,12 +1,13 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import {
   GlassCard,
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
-import { Users, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Users } from 'lucide-react'
 
 interface TeamGroupStats {
   teamName: string
@@ -39,10 +40,12 @@ function StatValue({ label, avg, min, max, unit }: {
 }
 
 export function GroupStats({ stats }: GroupStatsProps) {
+  const locale = useLocale()
+
   if (stats.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground text-sm">
-        Inga testresultat tillgängliga
+        {locale === 'sv' ? 'Inga testresultat tillgängliga' : 'No test results available'}
       </div>
     )
   }
@@ -56,7 +59,7 @@ export function GroupStats({ stats }: GroupStatsProps) {
               <Users className="h-4 w-4" />
               {team.teamName}
               <span className="text-xs text-muted-foreground font-normal">
-                {team.athleteCount} atleter
+                {team.athleteCount} {locale === 'sv' ? 'atleter' : 'athletes'}
               </span>
             </GlassCardTitle>
           </GlassCardHeader>
@@ -64,7 +67,7 @@ export function GroupStats({ stats }: GroupStatsProps) {
             <div className="grid grid-cols-3 gap-4">
               <StatValue label="VO2max" avg={team.vo2max.avg} min={team.vo2max.min} max={team.vo2max.max} unit="ml/kg/min" />
               <StatValue label="Max HR" avg={team.maxHR.avg} min={team.maxHR.min} max={team.maxHR.max} unit="bpm" />
-              <StatValue label="Max Laktat" avg={team.maxLactate.avg} min={team.maxLactate.min} max={team.maxLactate.max} unit="mmol/L" />
+              <StatValue label={locale === 'sv' ? 'Max Laktat' : 'Max lactate'} avg={team.maxLactate.avg} min={team.maxLactate.min} max={team.maxLactate.max} unit="mmol/L" />
             </div>
           </GlassCardContent>
         </GlassCard>

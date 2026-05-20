@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import {
   LineChart,
   Line,
@@ -33,16 +34,22 @@ interface YearOverYearChartProps {
   metric: 'vo2max' | 'maxHR' | 'maxLactate'
 }
 
-const METRIC_CONFIG = {
+const getMetricConfig = (locale: string) => ({
   vo2max: { label: 'VO2max', unit: 'ml/kg/min', color: '#3B82F6' },
   maxHR: { label: 'Max HR', unit: 'bpm', color: '#EF4444' },
-  maxLactate: { label: 'Max Laktat', unit: 'mmol/L', color: '#F59E0B' },
-}
+  maxLactate: {
+    label: locale === 'sv' ? 'Max Laktat' : 'Max lactate',
+    unit: 'mmol/L',
+    color: '#F59E0B',
+  },
+})
 
 const COLORS = ['#3B82F6', '#EF4444', '#22C55E', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316']
 
 export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOverYearChartProps) {
-  const config = METRIC_CONFIG[metric]
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
+  const config = getMetricConfig(locale)[metric]
 
   // Filter to selected athletes
   const filteredTests = tests.filter((t) =>
@@ -62,7 +69,7 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
 
     const date = new Date(t.testDate)
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    const label = date.toLocaleDateString('sv-SE', { month: 'short', year: '2-digit' })
+    const label = date.toLocaleDateString(dateLocale, { month: 'short', year: '2-digit' })
 
     if (!monthMap.has(monthKey)) {
       monthMap.set(monthKey, { month: label })
@@ -84,7 +91,7 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
   if (chartData.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground text-sm">
-        Inga testresultat att visa över tid
+        {locale === 'sv' ? 'Inga testresultat att visa över tid' : 'No test results to show over time'}
       </div>
     )
   }
@@ -94,7 +101,7 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
       <GlassCardHeader className="pb-2">
         <GlassCardTitle className="text-sm flex items-center gap-2">
           <Calendar className="h-4 w-4" />
-          {config.label} över tid ({config.unit})
+          {config.label} {locale === 'sv' ? 'över tid' : 'over time'} ({config.unit})
         </GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>

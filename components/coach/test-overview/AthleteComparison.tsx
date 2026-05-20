@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import {
   BarChart,
   Bar,
@@ -7,7 +8,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts'
 import {
@@ -31,10 +31,12 @@ interface AthleteComparisonProps {
 }
 
 export function AthleteComparison({ athletes }: AthleteComparisonProps) {
+  const locale = useLocale()
+
   if (athletes.length < 2) {
     return (
       <div className="text-center py-8 text-muted-foreground text-sm">
-        Välj minst 2 atleter för jämförelse
+        {locale === 'sv' ? 'Välj minst 2 atleter för jämförelse' : 'Select at least 2 athletes for comparison'}
       </div>
     )
   }
@@ -49,7 +51,10 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
 
   const lactateData = athletes
     .filter((a) => a.latestMaxLactate)
-    .map((a) => ({ name: a.name.split(' ')[0], 'Max Laktat': a.latestMaxLactate }))
+    .map((a) => ({
+      name: a.name.split(' ')[0],
+      [locale === 'sv' ? 'Max Laktat' : 'Max lactate']: a.latestMaxLactate,
+    }))
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -94,7 +99,9 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
       {lactateData.length > 0 && (
         <GlassCard glow="amber">
           <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-sm">Max Laktat (mmol/L)</GlassCardTitle>
+          <GlassCardTitle className="text-sm">
+            {locale === 'sv' ? 'Max Laktat' : 'Max lactate'} (mmol/L)
+          </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <ResponsiveContainer width="100%" height={200}>
@@ -103,7 +110,7 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="Max Laktat" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                <Bar dataKey={locale === 'sv' ? 'Max Laktat' : 'Max lactate'} fill="#F59E0B" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </GlassCardContent>
@@ -113,17 +120,21 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
       {/* Data table */}
       <GlassCard className="md:col-span-2" glow="purple">
         <GlassCardHeader className="pb-2">
-          <GlassCardTitle className="text-sm">Detaljerad jämförelse</GlassCardTitle>
+          <GlassCardTitle className="text-sm">
+            {locale === 'sv' ? 'Detaljerad jämförelse' : 'Detailed comparison'}
+          </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2 pr-4 font-medium">Atlet</th>
-                <th className="text-left py-2 pr-4 font-medium">Lag</th>
+                <th className="text-left py-2 pr-4 font-medium">{locale === 'sv' ? 'Atlet' : 'Athlete'}</th>
+                <th className="text-left py-2 pr-4 font-medium">{locale === 'sv' ? 'Lag' : 'Team'}</th>
                 <th className="text-right py-2 pr-4 font-medium">VO2max</th>
                 <th className="text-right py-2 pr-4 font-medium">Max HR</th>
-                <th className="text-right py-2 font-medium">Max Laktat</th>
+                <th className="text-right py-2 font-medium">
+                  {locale === 'sv' ? 'Max Laktat' : 'Max lactate'}
+                </th>
               </tr>
             </thead>
             <tbody>
