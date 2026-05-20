@@ -6,11 +6,23 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCoach, getCurrentUser } from '@/lib/auth-utils';
+import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { logError } from '@/lib/logger-console'
+
+type AppLocale = 'en' | 'sv';
+
+function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
+  if (userLanguage === 'sv') return 'sv';
+  const header = request.headers.get('accept-language') || '';
+  return header.toLowerCase().startsWith('sv') ? 'sv' : 'en';
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
 
 // Validation schema for creating an invitation
 const createInvitationSchema = z.object({
@@ -36,8 +48,10 @@ function generateInviteCode(): string {
  * GET - List invitations
  */
 export async function GET(request: NextRequest) {
+  let locale = getRequestLocale(request);
   try {
     const user = await requireCoach();
+    locale = getRequestLocale(request, user.language);
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
@@ -88,11 +102,11 @@ export async function GET(request: NextRequest) {
     logError('Get invitations error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch invitations' },
+      { error: t(locale, 'Failed to fetch invitations', 'Kunde inte hämta inbjudningar') },
       { status: 500 }
     );
   }
@@ -102,15 +116,17 @@ export async function GET(request: NextRequest) {
  * POST - Create a new invitation
  */
 export async function POST(request: NextRequest) {
+  let locale = getRequestLocale(request);
   try {
     const user = await requireCoach();
+    locale = getRequestLocale(request, user.language);
     const body = await request.json();
 
     // Validate input
     const validationResult = createInvitationSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -127,7 +143,13 @@ export async function POST(request: NextRequest) {
     if (type === 'REPORT_VIEW') {
       if (!testId) {
         return NextResponse.json(
-          { error: 'testId is required for REPORT_VIEW invitations' },
+          {
+            error: t(
+              locale,
+              'testId is required for REPORT_VIEW invitations',
+              'testId krävs för REPORT_VIEW-inbjudningar',
+            ),
+          },
           { status: 400 }
         );
       }
@@ -138,7 +160,7 @@ export async function POST(request: NextRequest) {
 
       if (!test) {
         return NextResponse.json(
-          { error: 'Test not found' },
+          { error: t(locale, 'Test not found', 'Testet hittades inte') },
           { status: 404 }
         );
       }
@@ -146,7 +168,7 @@ export async function POST(request: NextRequest) {
       // Check access
       if (test.userId !== user.id) {
         return NextResponse.json(
-          { error: 'Access denied to this test' },
+          { error: t(locale, 'Access denied to this test', 'Åtkomst nekad till detta test') },
           { status: 403 }
         );
       }
@@ -170,7 +192,13 @@ export async function POST(request: NextRequest) {
 
     if (attempts >= 5) {
       return NextResponse.json(
-        { error: 'Failed to generate unique invitation code' },
+        {
+          error: t(
+            locale,
+            'Failed to generate unique invitation code',
+            'Kunde inte generera en unik inbjudningskod',
+          ),
+        },
         { status: 500 }
       );
     }
@@ -216,11 +244,11 @@ export async function POST(request: NextRequest) {
     logError('Create invitation error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to create invitation' },
+      { error: t(locale, 'Failed to create invitation', 'Kunde inte skapa inbjudan') },
       { status: 500 }
     );
   }

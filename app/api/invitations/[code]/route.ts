@@ -7,10 +7,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCoach, getCurrentUser } from '@/lib/auth-utils';
+import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+
+type AppLocale = 'en' | 'sv';
+
+function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
+  if (userLanguage === 'sv') return 'sv';
+  const header = request.headers.get('accept-language') || '';
+  return header.toLowerCase().startsWith('sv') ? 'sv' : 'en';
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -30,6 +42,7 @@ const useInvitationSchema = z.object({
  * Returns limited information for public access
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const locale = getRequestLocale(request);
   try {
     const { code } = await params;
 
@@ -48,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (!invitation) {
       return NextResponse.json(
-        { error: 'Invitation not found' },
+        { error: t(locale, 'Invitation not found', 'Inbjudan hittades inte') },
         { status: 404 }
       );
     }
@@ -87,7 +100,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     logError('Get invitation error:', error);
 
     return NextResponse.json(
-      { error: 'Failed to fetch invitation' },
+      { error: t(locale, 'Failed to fetch invitation', 'Kunde inte hämta inbjudan') },
       { status: 500 }
     );
   }
@@ -101,6 +114,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * For REPORT_VIEW: Just validates and increments usage
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  const locale = getRequestLocale(request);
   try {
     const { code } = await params;
     const body = await request.json().catch(() => ({}));
@@ -109,7 +123,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const validationResult = useInvitationSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -123,7 +137,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!invitation) {
       return NextResponse.json(
-        { error: 'Invitation not found' },
+        { error: t(locale, 'Invitation not found', 'Inbjudan hittades inte') },
         { status: 404 }
       );
     }
@@ -132,7 +146,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const now = new Date();
     if (invitation.expiresAt && invitation.expiresAt < now) {
       return NextResponse.json(
-        { error: 'Invitation has expired' },
+        { error: t(locale, 'Invitation has expired', 'Inbjudan har gått ut') },
         { status: 410 }
       );
     }
@@ -140,7 +154,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Check if already fully used
     if (invitation.currentUses >= invitation.maxUses) {
       return NextResponse.json(
-        { error: 'Invitation has already been used' },
+        { error: t(locale, 'Invitation has already been used', 'Inbjudan har redan använts') },
         { status: 410 }
       );
     }
@@ -150,7 +164,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       case 'ATHLETE_SIGNUP': {
         if (!clientId) {
           return NextResponse.json(
-            { error: 'clientId is required for athlete signup' },
+            {
+              error: t(
+                locale,
+                'clientId is required for athlete signup',
+                'clientId krävs för atletregistrering',
+              ),
+            },
             { status: 400 }
           );
         }
@@ -167,7 +187,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         return NextResponse.json({
           success: true,
-          message: 'Invitation used successfully',
+          message: t(locale, 'Invitation used successfully', 'Inbjudan har använts'),
           businessId: invitation.businessId,
         });
       }
@@ -203,14 +223,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         return NextResponse.json({
           success: true,
-          message: 'Referral recorded',
+          message: t(locale, 'Referral recorded', 'Rekommendationen har registrerats'),
           senderId: invitation.senderId,
         });
       }
 
       default:
         return NextResponse.json(
-          { error: 'Unknown invitation type' },
+          { error: t(locale, 'Unknown invitation type', 'Okänd inbjudningstyp') },
           { status: 400 }
         );
     }
@@ -218,7 +238,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     logError('Use invitation error:', error);
 
     return NextResponse.json(
-      { error: 'Failed to use invitation' },
+      { error: t(locale, 'Failed to use invitation', 'Kunde inte använda inbjudan') },
       { status: 500 }
     );
   }
@@ -230,8 +250,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
  * Only the sender or business admin can revoke
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale = getRequestLocale(request);
   try {
     const user = await requireCoach();
+    locale = getRequestLocale(request, user.language);
     const { code } = await params;
 
     // Get the invitation
@@ -241,7 +263,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     if (!invitation) {
       return NextResponse.json(
-        { error: 'Invitation not found' },
+        { error: t(locale, 'Invitation not found', 'Inbjudan hittades inte') },
         { status: 404 }
       );
     }
@@ -261,13 +283,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       });
       if (!businessMember) {
         return NextResponse.json(
-          { error: 'Access denied' },
+          { error: t(locale, 'Access denied', 'Åtkomst nekad') },
           { status: 403 }
         );
       }
     } else if (!canDelete) {
       return NextResponse.json(
-        { error: 'Access denied' },
+        { error: t(locale, 'Access denied', 'Åtkomst nekad') },
         { status: 403 }
       );
     }
@@ -282,11 +304,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     logError('Delete invitation error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete invitation' },
+      { error: t(locale, 'Failed to delete invitation', 'Kunde inte ta bort inbjudan') },
       { status: 500 }
     );
   }
