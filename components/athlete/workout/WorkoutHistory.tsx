@@ -53,7 +53,14 @@ import {
   Target,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useLocale } from '@/i18n/client'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
+
+type AppLocale = 'en' | 'sv'
+
+function formatWorkoutDate(date: Date | string, locale: AppLocale) {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
+}
 
 interface WorkoutLog {
   id: string
@@ -84,6 +91,7 @@ interface WorkoutHistoryProps {
 
 export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
   const { toast } = useToast()
+  const locale = useLocale() as AppLocale
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -253,7 +261,7 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
               <div className="flex items-center gap-4 mt-2 text-sm" style={{ color: theme.colors.textMuted }}>
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  <span>{new Date(workout.date).toLocaleDateString('sv-SE')}</span>
+                  <span>{formatWorkoutDate(workout.date, locale)}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
