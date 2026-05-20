@@ -28,6 +28,8 @@ interface Suggestion {
 type AppLocale = 'en' | 'sv'
 
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
 
@@ -36,7 +38,7 @@ export async function GET() {
     }
 
     const { user, clientId } = resolved
-    const locale = getUserLocale(user.language)
+    locale = getUserLocale(user.language)
     const athleteId = user.id
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -315,7 +317,7 @@ export async function GET() {
     logError('Error generating AI suggestions:', error)
 
     return NextResponse.json(
-      { error: 'Failed to generate suggestions' },
+      { error: t(locale, 'Failed to generate suggestions', 'Kunde inte skapa förslag') },
       { status: 500 }
     )
   }
