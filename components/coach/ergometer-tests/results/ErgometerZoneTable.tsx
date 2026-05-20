@@ -11,6 +11,11 @@ import { ErgometerType } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Info } from 'lucide-react';
+import { useLocale } from 'next-intl';
+
+type Locale = 'en' | 'sv';
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en;
 
 interface ErgometerZone {
   zone: number;
@@ -46,12 +51,12 @@ const ZONE_COLORS: Record<number, { bg: string; text: string; border: string }> 
   6: { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300' },
 };
 
-const ERGOMETER_LABELS: Record<ErgometerType, string> = {
-  CONCEPT2_ROW: 'Roddmaskin',
-  CONCEPT2_SKIERG: 'SkiErg',
-  CONCEPT2_BIKEERG: 'BikeErg',
-  WATTBIKE: 'Wattbike',
-  ASSAULT_BIKE: 'Air Bike',
+const ERGOMETER_LABELS: Record<ErgometerType, { en: string; sv: string }> = {
+  CONCEPT2_ROW: { en: 'RowErg', sv: 'Roddmaskin' },
+  CONCEPT2_SKIERG: { en: 'SkiErg', sv: 'SkiErg' },
+  CONCEPT2_BIKEERG: { en: 'BikeErg', sv: 'BikeErg' },
+  WATTBIKE: { en: 'Wattbike', sv: 'Wattbike' },
+  ASSAULT_BIKE: { en: 'Air Bike', sv: 'Air Bike' },
 };
 
 function formatPace(seconds: number): string {
@@ -72,16 +77,18 @@ export function ErgometerZoneTable({
   showPace = true,
   compact = false,
 }: ErgometerZoneTableProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
   const showPaceColumn = showPace && isConcept2(ergometerType);
+  const ergometerLabel = ERGOMETER_LABELS[ergometerType][locale];
 
   return (
     <Card>
       <CardHeader className={compact ? 'py-3' : undefined}>
         <CardTitle className={compact ? 'text-base' : undefined}>
-          Traningszoner - {ERGOMETER_LABELS[ergometerType]}
+          {copy(locale, 'Training zones', 'Träningszoner')} - {ergometerLabel}
         </CardTitle>
         <CardDescription>
-          Baserat pa troskel: <strong>{thresholdPower}W</strong> ({thresholdSource})
+          {copy(locale, 'Based on threshold', 'Baserat på tröskel')}: <strong>{thresholdPower}W</strong> ({thresholdSource})
         </CardDescription>
       </CardHeader>
       <CardContent className={compact ? 'py-2' : undefined}>
@@ -89,12 +96,12 @@ export function ErgometerZoneTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left">
-                <th className="py-2 px-2 font-medium">Zon</th>
-                <th className="py-2 px-2 font-medium">Namn</th>
-                <th className="py-2 px-2 font-medium">Effekt (W)</th>
-                <th className="py-2 px-2 font-medium">% Troskel</th>
-                {showPaceColumn && <th className="py-2 px-2 font-medium">Tempo /500m</th>}
-                {!compact && <th className="py-2 px-2 font-medium hidden sm:table-cell">Anvandning</th>}
+                <th className="py-2 px-2 font-medium">{copy(locale, 'Zone', 'Zon')}</th>
+                <th className="py-2 px-2 font-medium">{copy(locale, 'Name', 'Namn')}</th>
+                <th className="py-2 px-2 font-medium">{copy(locale, 'Power (W)', 'Effekt (W)')}</th>
+                <th className="py-2 px-2 font-medium">% {copy(locale, 'Threshold', 'Tröskel')}</th>
+                {showPaceColumn && <th className="py-2 px-2 font-medium">{copy(locale, 'Pace /500m', 'Tempo /500m')}</th>}
+                {!compact && <th className="py-2 px-2 font-medium hidden sm:table-cell">{copy(locale, 'Use', 'Användning')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -107,7 +114,7 @@ export function ErgometerZoneTable({
                         Z{zone.zone}
                       </Badge>
                     </td>
-                    <td className="py-2 px-2 font-medium">{zone.nameSwedish}</td>
+                    <td className="py-2 px-2 font-medium">{locale === 'sv' ? zone.nameSwedish : zone.name}</td>
                     <td className="py-2 px-2 font-mono">
                       {zone.powerMin}-{zone.powerMax}
                     </td>
@@ -140,16 +147,16 @@ export function ErgometerZoneTable({
               <Info className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div className="space-y-1">
                 <p>
-                  <strong>Z1-Z2:</strong> Aterhämtning och basuthallighet. Langre pass, lagre intensitet.
+                  <strong>Z1-Z2:</strong> {copy(locale, 'Recovery and base endurance. Longer sessions, lower intensity.', 'Återhämtning och basuthållighet. Längre pass, lägre intensitet.')}
                 </p>
                 <p>
-                  <strong>Z3:</strong> Tempo. Lagom anstrangande, lattare intervaller.
+                  <strong>Z3:</strong> {copy(locale, 'Tempo. Moderately demanding, lighter intervals.', 'Tempo. Lagom ansträngande, lättare intervaller.')}
                 </p>
                 <p>
-                  <strong>Z4:</strong> Troskel. Tuff men hallbar, typiska 4-20 min intervaller.
+                  <strong>Z4:</strong> {copy(locale, 'Threshold. Hard but sustainable, typical 4-20 minute intervals.', 'Tröskel. Tuff men hållbar, typiska 4-20 min intervaller.')}
                 </p>
                 <p>
-                  <strong>Z5-Z6:</strong> VO2max och anaerob. Korta, harda intervaller (30s-5min).
+                  <strong>Z5-Z6:</strong> {copy(locale, 'VO2max and anaerobic. Short, hard intervals (30s-5min).', 'VO2max och anaerob. Korta, hårda intervaller (30s-5min).')}
                 </p>
               </div>
             </div>
@@ -169,6 +176,8 @@ export function ErgometerZoneStrip({
   zones: ErgometerZone[];
   currentZone?: number;
 }) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
+
   return (
     <div className="flex gap-1">
       {zones.map((zone) => {
@@ -182,7 +191,7 @@ export function ErgometerZoneStrip({
               ${colors.bg} ${colors.text}
               ${isActive ? 'ring-2 ring-offset-1 ring-black' : ''}
             `}
-            title={`${zone.nameSwedish}: ${zone.powerMin}-${zone.powerMax}W`}
+            title={`${locale === 'sv' ? zone.nameSwedish : zone.name}: ${zone.powerMin}-${zone.powerMax}W`}
           >
             Z{zone.zone}
           </div>
@@ -201,17 +210,18 @@ export function ErgometerZoneCard({
   zone: ErgometerZone;
   showPace?: boolean;
 }) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
   const colors = ZONE_COLORS[zone.zone] || ZONE_COLORS[1];
 
   return (
     <div className={`rounded-lg border p-3 ${colors.bg} ${colors.border}`}>
       <div className="flex items-center justify-between mb-2">
         <Badge variant="outline" className={`${colors.text} ${colors.border}`}>
-          Zon {zone.zone}
+          {copy(locale, 'Zone', 'Zon')} {zone.zone}
         </Badge>
         <span className="text-xs text-muted-foreground">{zone.percentMin}-{zone.percentMax}%</span>
       </div>
-      <h4 className={`font-semibold ${colors.text}`}>{zone.nameSwedish}</h4>
+      <h4 className={`font-semibold ${colors.text}`}>{locale === 'sv' ? zone.nameSwedish : zone.name}</h4>
       <p className="text-lg font-mono font-bold mt-1">
         {zone.powerMin}-{zone.powerMax}W
       </p>
