@@ -31,11 +31,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts'
 import {
   Scale,
-  Percent,
   TrendingDown,
   TrendingUp,
   Minus,
@@ -49,6 +47,136 @@ import {
 } from 'lucide-react'
 import { BioimpedanceForm } from '@/components/forms/BioimpedanceForm'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = {
+  en: {
+    errors: {
+      fetch: 'Could not fetch data',
+      delete: 'Could not delete measurement',
+      unknown: 'Unknown error',
+      title: 'Error',
+    },
+    deletedTitle: 'Measurement deleted',
+    deletedDescription: 'The measurement has been deleted.',
+    title: 'Body composition',
+    newMeasurement: 'New measurement',
+    metrics: {
+      weight: 'Weight',
+      bodyFat: 'Body fat',
+      muscleMass: 'Muscle mass',
+      visceralFat: 'Visceral fat',
+    },
+    development: 'Progress',
+    basedOn: (count: number, days: number) => `Based on ${count} measurements over ${days} days`,
+    trends: {
+      totalWeight: 'Total weight change',
+      totalFat: 'Total fat change',
+      totalMuscle: 'Total muscle change',
+      weeklyWeight: 'Average weight change',
+      perWeek: 'kg/week',
+    },
+    chartTitle: 'Progress chart',
+    chart: {
+      weight: 'Weight (kg)',
+      fat: 'Body fat (%)',
+      muscle: 'Muscle mass (kg)',
+    },
+    history: 'Measurement history',
+    noMeasurements: 'No measurements registered yet.',
+    addFirst: 'Add first measurement',
+    historyLabels: {
+      weight: 'Weight',
+      fat: 'Fat',
+      muscle: 'Muscle',
+      visceral: 'Visc',
+    },
+    recommendations: 'Recommendations',
+    editMeasurement: 'Edit measurement',
+    deleteTitle: 'Delete measurement?',
+    deleteDescription: 'This action cannot be undone. The measurement will be permanently deleted.',
+    cancel: 'Cancel',
+    delete: 'Delete',
+  },
+  sv: {
+    errors: {
+      fetch: 'Kunde inte hämta data',
+      delete: 'Kunde inte ta bort mätning',
+      unknown: 'Okänt fel',
+      title: 'Fel',
+    },
+    deletedTitle: 'Mätning borttagen',
+    deletedDescription: 'Mätningen har tagits bort.',
+    title: 'Kroppssammansättning',
+    newMeasurement: 'Ny mätning',
+    metrics: {
+      weight: 'Vikt',
+      bodyFat: 'Kroppsfett',
+      muscleMass: 'Muskelmassa',
+      visceralFat: 'Visceralt fett',
+    },
+    development: 'Utveckling',
+    basedOn: (count: number, days: number) => `Baserat på ${count} mätningar över ${days} dagar`,
+    trends: {
+      totalWeight: 'Total viktförändring',
+      totalFat: 'Total fettförändring',
+      totalMuscle: 'Total muskelförändring',
+      weeklyWeight: 'Genomsnittlig viktförändring',
+      perWeek: 'kg/vecka',
+    },
+    chartTitle: 'Utvecklingskurva',
+    chart: {
+      weight: 'Vikt (kg)',
+      fat: 'Kroppsfett (%)',
+      muscle: 'Muskelmassa (kg)',
+    },
+    history: 'Mäthistorik',
+    noMeasurements: 'Inga mätningar registrerade ännu.',
+    addFirst: 'Lägg till första mätningen',
+    historyLabels: {
+      weight: 'Vikt',
+      fat: 'Fett',
+      muscle: 'Muskel',
+      visceral: 'Visc',
+    },
+    recommendations: 'Rekommendationer',
+    editMeasurement: 'Redigera mätning',
+    deleteTitle: 'Ta bort mätning?',
+    deleteDescription: 'Denna åtgärd kan inte ångras. Mätningen kommer att tas bort permanent.',
+    cancel: 'Avbryt',
+    delete: 'Ta bort',
+  },
+} as const
+
+function formatDate(date: Date | string, locale: AppLocale, options?: Intl.DateTimeFormatOptions) {
+  return new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', options)
+}
+
+function formatCategory(category: string | undefined, locale: AppLocale) {
+  if (!category || locale === 'sv') return category
+
+  const categoryMap: Record<string, string> = {
+    Normal: 'Normal',
+    Förhöjd: 'Elevated',
+    Hög: 'High',
+    Låg: 'Low',
+    Undervikt: 'Underweight',
+    Normalvikt: 'Normal weight',
+    Övervikt: 'Overweight',
+    Fetma: 'Obesity',
+    Atletisk: 'Athletic',
+    Vältränad: 'Well trained',
+    Genomsnittlig: 'Average',
+  }
+
+  return categoryMap[category] ?? category
+}
+
+function isElevatedVisceralFatCategory(category: string | undefined) {
+  return category === 'Förhöjd' || category === 'Elevated'
+}
 
 interface BodyComposition {
   id: string
@@ -97,6 +225,8 @@ interface BodyCompositionTrackerProps {
 
 export function BodyCompositionTracker({ clientId, clientName }: BodyCompositionTrackerProps) {
   const { toast } = useToast()
+  const locale = useLocale() as AppLocale
+  const t = copy[locale] ?? copy.en
   const [measurements, setMeasurements] = useState<BodyComposition[]>([])
   const [trends, setTrends] = useState<Trends | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -110,24 +240,28 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte hämta data')
+        throw new Error(data.error || t.errors.fetch)
       }
 
       setMeasurements(data.measurements)
       setTrends(data.trends)
     } catch (error) {
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t.errors.title,
+        description: error instanceof Error ? error.message : t.errors.unknown,
         variant: 'destructive',
       })
     } finally {
       setIsLoading(false)
     }
-  }, [clientId, toast])
+  }, [clientId, t.errors.fetch, t.errors.title, t.errors.unknown, toast])
 
   useEffect(() => {
-    fetchData()
+    const timeoutId = window.setTimeout(() => {
+      void fetchData()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
   }, [fetchData])
 
   const handleDelete = async () => {
@@ -139,19 +273,19 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
       })
 
       if (!response.ok) {
-        throw new Error('Kunde inte ta bort mätning')
+        throw new Error(t.errors.delete)
       }
 
       toast({
-        title: 'Mätning borttagen',
-        description: 'Mätningen har tagits bort.',
+        title: t.deletedTitle,
+        description: t.deletedDescription,
       })
 
-      fetchData()
+      void fetchData()
     } catch (error) {
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t.errors.title,
+        description: error instanceof Error ? error.message : t.errors.unknown,
         variant: 'destructive',
       })
     } finally {
@@ -163,7 +297,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
     .slice()
     .reverse()
     .map((m) => ({
-      date: new Date(m.measurementDate).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' }),
+      date: formatDate(m.measurementDate, locale, { month: 'short', day: 'numeric' }),
       vikt: m.weightKg,
       fett: m.bodyFatPercent,
       muskel: m.muscleMassKg,
@@ -186,13 +320,13 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-1.5">
             <Scale className="h-6 w-6" />
-            Kroppssammansättning <InfoTooltip conceptKey="bodyComposition" />
+            {t.title} <InfoTooltip conceptKey="bodyComposition" />
           </h2>
           {clientName && <p className="text-muted-foreground">{clientName}</p>}
         </div>
         <Button onClick={() => setShowAddDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Ny mätning
+          {t.newMeasurement}
         </Button>
       </div>
 
@@ -203,7 +337,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Vikt
+                {t.metrics.weight}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -218,7 +352,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
               </div>
               {latestMeasurement.bmi && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  BMI: {latestMeasurement.bmi} ({latestMeasurement.analysis?.bmiCategory})
+                  BMI: {latestMeasurement.bmi} ({formatCategory(latestMeasurement.analysis?.bmiCategory, locale)})
                 </p>
               )}
             </CardContent>
@@ -228,7 +362,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Kroppsfett
+                {t.metrics.bodyFat}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -243,7 +377,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
               </div>
               {latestMeasurement.analysis?.bodyFatCategory && (
                 <Badge variant="secondary" className="mt-1">
-                  {latestMeasurement.analysis.bodyFatCategory}
+                  {formatCategory(latestMeasurement.analysis.bodyFatCategory, locale)}
                 </Badge>
               )}
             </CardContent>
@@ -253,7 +387,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Muskelmassa
+                {t.metrics.muscleMass}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -268,7 +402,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
               </div>
               {latestMeasurement.ffmi && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  FFMI: {latestMeasurement.ffmi} ({latestMeasurement.analysis?.ffmiCategory})
+                  FFMI: {latestMeasurement.ffmi} ({formatCategory(latestMeasurement.analysis?.ffmiCategory, locale)})
                 </p>
               )}
             </CardContent>
@@ -278,7 +412,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Visceralt fett
+                {t.metrics.visceralFat}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -292,13 +426,13 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                   variant={
                     latestMeasurement.analysis.visceralFatCategory === 'Normal'
                       ? 'secondary'
-                      : latestMeasurement.analysis.visceralFatCategory === 'Förhöjd'
+                      : isElevatedVisceralFatCategory(latestMeasurement.analysis.visceralFatCategory)
                         ? 'outline'
                         : 'destructive'
                   }
                   className="mt-1"
                 >
-                  {latestMeasurement.analysis.visceralFatCategory}
+                  {formatCategory(latestMeasurement.analysis.visceralFatCategory, locale)}
                 </Badge>
               )}
               {latestMeasurement.visceralFat && (
@@ -318,35 +452,35 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Utveckling
+              {t.development}
             </CardTitle>
             <CardDescription>
-              Baserat på {trends.measurementCount} mätningar över {trends.periodDays} dagar
+              {t.basedOn(trends.measurementCount, trends.periodDays)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <TrendCard
-                label="Total viktförändring"
+                label={t.trends.totalWeight}
                 value={trends.totalWeightChange}
                 unit="kg"
                 invertColors
               />
               <TrendCard
-                label="Total fettförändring"
+                label={t.trends.totalFat}
                 value={trends.totalBodyFatChange}
                 unit="%"
                 invertColors
               />
               <TrendCard
-                label="Total muskelförändring"
+                label={t.trends.totalMuscle}
                 value={trends.totalMuscleMassChange}
                 unit="kg"
               />
             </div>
             {trends.weeklyWeightChange !== null && (
               <p className="text-sm text-muted-foreground mt-4 text-center">
-                Genomsnittlig viktförändring: {trends.weeklyWeightChange > 0 ? '+' : ''}{trends.weeklyWeightChange} kg/vecka
+                {t.trends.weeklyWeight}: {trends.weeklyWeightChange > 0 ? '+' : ''}{trends.weeklyWeightChange} {t.trends.perWeek}
               </p>
             )}
           </CardContent>
@@ -357,7 +491,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
       {chartData.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Utvecklingskurva</CardTitle>
+            <CardTitle>{t.chartTitle}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-80">
@@ -375,7 +509,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                     dataKey="vikt"
                     stroke="#2563eb"
                     strokeWidth={2}
-                    name="Vikt (kg)"
+                    name={t.chart.weight}
                     dot={{ r: 4 }}
                   />
                   <Line
@@ -384,7 +518,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                     dataKey="fett"
                     stroke="#dc2626"
                     strokeWidth={2}
-                    name="Kroppsfett (%)"
+                    name={t.chart.fat}
                     dot={{ r: 4 }}
                   />
                   <Line
@@ -393,7 +527,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                     dataKey="muskel"
                     stroke="#16a34a"
                     strokeWidth={2}
-                    name="Muskelmassa (kg)"
+                    name={t.chart.muscle}
                     dot={{ r: 4 }}
                   />
                 </LineChart>
@@ -408,21 +542,21 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Mäthistorik
+            {t.history}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {measurements.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Scale className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Inga mätningar registrerade ännu.</p>
+              <p>{t.noMeasurements}</p>
               <Button
                 variant="outline"
                 className="mt-4"
                 onClick={() => setShowAddDialog(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Lägg till första mätningen
+                {t.addFirst}
               </Button>
             </div>
           ) : (
@@ -435,7 +569,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <span className="font-medium">
-                        {new Date(m.measurementDate).toLocaleDateString('sv-SE')}
+                        {formatDate(m.measurementDate, locale)}
                       </span>
                       {m.deviceBrand && (
                         <Badge variant="outline" className="text-xs">
@@ -444,10 +578,10 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                       )}
                     </div>
                     <div className="flex flex-wrap gap-4 mt-1 text-sm text-muted-foreground">
-                      {m.weightKg && <span>Vikt: {m.weightKg} kg</span>}
-                      {m.bodyFatPercent && <span>Fett: {m.bodyFatPercent}%</span>}
-                      {m.muscleMassKg && <span>Muskel: {m.muscleMassKg} kg</span>}
-                      {m.visceralFat && <span>Visc: {m.visceralFat}</span>}
+                      {m.weightKg && <span>{t.historyLabels.weight}: {m.weightKg} kg</span>}
+                      {m.bodyFatPercent && <span>{t.historyLabels.fat}: {m.bodyFatPercent}%</span>}
+                      {m.muscleMassKg && <span>{t.historyLabels.muscle}: {m.muscleMassKg} kg</span>}
+                      {m.visceralFat && <span>{t.historyLabels.visceral}: {m.visceralFat}</span>}
                     </div>
                     {m.notes && (
                       <p className="text-xs text-muted-foreground mt-1 italic">
@@ -484,7 +618,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Rekommendationer
+              {t.recommendations}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -513,7 +647,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingMeasurement ? 'Redigera mätning' : 'Ny mätning'}
+              {editingMeasurement ? t.editMeasurement : t.newMeasurement}
             </DialogTitle>
           </DialogHeader>
           <BioimpedanceForm
@@ -539,7 +673,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
             onSuccess={() => {
               setShowAddDialog(false)
               setEditingMeasurement(null)
-              fetchData()
+              void fetchData()
             }}
             onCancel={() => {
               setShowAddDialog(false)
@@ -553,15 +687,15 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort mätning?</AlertDialogTitle>
+            <AlertDialogTitle>{t.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Denna åtgärd kan inte ångras. Mätningen kommer att tas bort permanent.
+              {t.deleteDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>
-              Ta bort
+              {t.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
