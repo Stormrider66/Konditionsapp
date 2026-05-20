@@ -33,6 +33,11 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { AthleteAttentionCard } from './AthleteAttentionCard'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface CoachAlert {
   id: string
@@ -71,6 +76,7 @@ interface CoachAIAssistantPanelProps {
 }
 
 export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [activeTab, setActiveTab] = useState('all')
   const businessSlug = basePath?.split('/').filter(Boolean)[0]
   const alertsUrl = useMemo(() => {
@@ -146,7 +152,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
             </div>
             <div>
               <GlassCardTitle className="text-lg flex items-center gap-2">
-                AI Assistent
+                {copy(locale, 'AI Assistant', 'AI Assistent')}
                 {totalActive > 0 && (
                   <Badge
                     variant="secondary"
@@ -162,13 +168,13 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                   </Badge>
                 )}
               </GlassCardTitle>
-              <GlassCardDescription>Atleter som behöver uppmärksamhet</GlassCardDescription>
+              <GlassCardDescription>{copy(locale, 'Athletes who need attention', 'Atleter som behöver uppmärksamhet')}</GlassCardDescription>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => mutate()}
+            onClick={() => void mutate()}
             disabled={isLoading}
             className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           >
@@ -185,7 +191,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
         {error ? (
           <div className="text-center py-8 text-muted-foreground">
             <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-red-500" />
-            <p>Kunde inte ladda alerts</p>
+            <p>{copy(locale, 'Could not load alerts', 'Kunde inte ladda alerts')}</p>
           </div>
         ) : isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -194,8 +200,8 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
         ) : alerts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-green-500" />
-            <p className="font-medium">Inga aktiva alerts</p>
-            <p className="text-sm mt-1">Alla atleter ser bra ut just nu</p>
+            <p className="font-medium">{copy(locale, 'No active alerts', 'Inga aktiva alerts')}</p>
+            <p className="text-sm mt-1">{copy(locale, 'All athletes look good right now', 'Alla atleter ser bra ut just nu')}</p>
           </div>
         ) : (
           <>
@@ -204,7 +210,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
               <TooltipProvider delayDuration={300}>
                 <TabsList className="w-full grid grid-cols-6 h-8 bg-muted/50 dark:bg-slate-900/50">
                   <TabsTrigger value="all" className="text-xs px-1">
-                    Alla
+                    {copy(locale, 'All', 'Alla')}
                   </TabsTrigger>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -212,7 +218,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                         <TrendingDown className="h-3 w-3" />
                       </TabsTrigger>
                     </TooltipTrigger>
-                    <TooltipContent>Beredskapsfall</TooltipContent>
+                    <TooltipContent>{copy(locale, 'Readiness drop', 'Beredskapsfall')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -220,7 +226,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                         <Calendar className="h-3 w-3" />
                       </TabsTrigger>
                     </TooltipTrigger>
-                    <TooltipContent>Missade check-ins</TooltipContent>
+                    <TooltipContent>{copy(locale, 'Missed check-ins', 'Missade check-ins')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -228,7 +234,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                         <Activity className="h-3 w-3" />
                       </TabsTrigger>
                     </TooltipTrigger>
-                    <TooltipContent>Missade pass</TooltipContent>
+                    <TooltipContent>{copy(locale, 'Missed workouts', 'Missade pass')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -236,7 +242,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                         <MessageSquare className="h-3 w-3" />
                       </TabsTrigger>
                     </TooltipTrigger>
-                    <TooltipContent>Smärtrapporter</TooltipContent>
+                    <TooltipContent>{copy(locale, 'Pain reports', 'Smärtrapporter')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -244,7 +250,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                         <AlertTriangle className="h-3 w-3" />
                       </TabsTrigger>
                     </TooltipTrigger>
-                    <TooltipContent>Hög belastning</TooltipContent>
+                    <TooltipContent>{copy(locale, 'High load', 'Hög belastning')}</TooltipContent>
                   </Tooltip>
                 </TabsList>
               </TooltipProvider>
@@ -264,7 +270,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                 ))}
                 {filteredAlerts.length === 0 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
-                    Inga alerts av denna typ
+                    {copy(locale, 'No alerts of this type', 'Inga alerts av denna typ')}
                   </div>
                 )}
               </div>
