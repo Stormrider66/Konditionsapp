@@ -46,6 +46,7 @@ import {
   Check,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useLocale } from 'next-intl'
 import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH'
@@ -83,6 +84,8 @@ interface BusinessMembersTabProps {
 
 export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps) {
   const businessHeaders = useBusinessAdminHeaders()
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = useCallback((en: string, sv: string) => locale === 'sv' ? sv : en, [locale])
   const [members, setMembers] = useState<BusinessMember[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -123,7 +126,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
   }, [businessHeaders])
 
   useEffect(() => {
-    fetchMembers()
+    void fetchMembers()
   }, [fetchMembers])
 
   const handleAddMember = async () => {
@@ -150,7 +153,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
 
       setIsAddOpen(false)
       setNewMember({ userEmail: '', role: 'MEMBER' })
-      fetchMembers()
+      void fetchMembers()
     } catch (err) {
       setAddError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -185,9 +188,9 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
         throw new Error(result.error || 'Failed to invite member')
       }
 
-      setAddSuccess(`Inbjudan skickad till ${inviteMember.email}`)
+      setAddSuccess(copy(`Invitation sent to ${inviteMember.email}`, `Inbjudan skickad till ${inviteMember.email}`))
       setInviteMember({ name: '', email: '', role: 'MEMBER' })
-      fetchMembers()
+      void fetchMembers()
     } catch (err) {
       setAddError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -214,7 +217,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
       }
 
       setEditingMember(null)
-      fetchMembers()
+      void fetchMembers()
     } catch (err) {
       console.error('Failed to update member:', err)
     } finally {
@@ -236,7 +239,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
         throw new Error(result.error || 'Failed to remove member')
       }
 
-      fetchMembers()
+      void fetchMembers()
     } catch (err) {
       console.error('Failed to remove member:', err)
     } finally {
@@ -323,7 +326,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                   onClick={() => { setAddMode('existing'); setAddError(null); setAddSuccess(null) }}
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Lägg till befintlig
+                  {copy('Add existing', 'Lägg till befintlig')}
                 </Button>
                 <Button
                   variant={addMode === 'invite' ? 'default' : 'outline'}
@@ -331,7 +334,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                   onClick={() => { setAddMode('invite'); setAddError(null); setAddSuccess(null) }}
                 >
                   <Mail className="h-4 w-4 mr-2" />
-                  Bjud in ny
+                  {copy('Invite new', 'Bjud in ny')}
                 </Button>
               </div>
               <div className="space-y-4 py-4">
@@ -383,7 +386,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="inviteName">Namn</Label>
+                      <Label htmlFor="inviteName">{copy('Name', 'Namn')}</Label>
                       <Input
                         id="inviteName"
                         value={inviteMember.name}
@@ -394,7 +397,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="inviteEmail">E-post</Label>
+                      <Label htmlFor="inviteEmail">{copy('Email', 'E-post')}</Label>
                       <Input
                         id="inviteEmail"
                         type="email"
@@ -406,7 +409,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="inviteRole">Roll</Label>
+                      <Label htmlFor="inviteRole">{copy('Role', 'Roll')}</Label>
                       <Select
                         value={inviteMember.role}
                         onValueChange={(value) =>
@@ -442,7 +445,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                     disabled={addLoading || !inviteMember.email || !inviteMember.name}
                   >
                     {addLoading && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                    Skicka inbjudan
+                    {copy('Send invitation', 'Skicka inbjudan')}
                   </Button>
                 )}
               </DialogFooter>
@@ -568,7 +571,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-blue-600"
                       disabled={actionLoading === `invite-${member.id}`}
-                      title="Skicka inbjudan med lösenordslänk"
+                      title={copy('Send invitation with password link', 'Skicka inbjudan med lösenordslänk')}
                       onClick={() => handleSendInvite(member.id)}
                     >
                       {actionLoading === `invite-${member.id}` ? (
