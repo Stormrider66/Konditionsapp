@@ -3,14 +3,23 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api/utils'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * POST /api/athlete/leave-business
  * Allows an athlete to leave a business. Their data is preserved but
  * business access is revoked.
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireAuth()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const { businessId } = await request.json()
 
@@ -32,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     if (!membership) {
       return NextResponse.json(
-        { success: false, error: 'Du är inte medlem i detta företag' },
+        { success: false, error: t(locale, 'You are not a member of this business', 'Du är inte medlem i detta företag') },
         { status: 404 }
       )
     }
@@ -40,7 +49,14 @@ export async function POST(request: NextRequest) {
     // Owners cannot leave their own business - they must transfer ownership first
     if (membership.role === 'OWNER') {
       return NextResponse.json(
-        { success: false, error: 'Ägare kan inte lämna sitt eget företag. Överför ägarskapet först.' },
+        {
+          success: false,
+          error: t(
+            locale,
+            'Owners cannot leave their own business. Transfer ownership first.',
+            'Ägare kan inte lämna sitt eget företag. Överför ägarskapet först.'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -82,12 +98,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Du har lämnat företaget',
+      message: t(locale, 'You have left the business', 'Du har lämnat företaget'),
     })
   } catch (error) {
     logger.error('Error leaving business', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Kunde inte lämna företaget' },
+      { success: false, error: t(locale, 'Could not leave the business', 'Kunde inte lämna företaget') },
       { status: 500 }
     )
   }
