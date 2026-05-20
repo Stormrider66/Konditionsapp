@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Watch, Check, Loader2 } from 'lucide-react'
@@ -26,6 +27,8 @@ export function PushToGarminButton({
   scheduleDate,
   alreadyPushed = false,
 }: PushToGarminButtonProps) {
+  const locale = useLocale()
+  const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [loading, setLoading] = useState(false)
   const [pushed, setPushed] = useState(alreadyPushed)
 
@@ -42,23 +45,32 @@ export function PushToGarminButton({
 
       if (!res.ok) {
         if (data.code === 'GARMIN_NOT_CONNECTED') {
-          toast.error('Garmin inte anslutet', {
-            description: 'Atleten behöver ansluta Garmin Connect i sina inställningar.',
+          toast.error(t('Garmin inte anslutet', 'Garmin is not connected'), {
+            description: t(
+              'Atleten behöver ansluta Garmin Connect i sina inställningar.',
+              'The athlete needs to connect Garmin Connect in their settings.'
+            ),
           })
         } else {
-          toast.error(data.error || 'Kunde inte skicka till Garmin')
+          toast.error(data.error || t('Kunde inte skicka till Garmin', 'Could not send to Garmin'))
         }
         return
       }
 
       setPushed(true)
-      toast.success('Skickat till Garmin', {
+      toast.success(t('Skickat till Garmin', 'Sent to Garmin'), {
         description: data.scheduled
-          ? 'Passet är schemalagt i atletens Garmin Connect-kalender.'
-          : 'Passet finns nu i atletens Garmin Connect.',
+          ? t(
+              'Passet är schemalagt i atletens Garmin Connect-kalender.',
+              "The session is scheduled in the athlete's Garmin Connect calendar."
+            )
+          : t(
+              'Passet finns nu i atletens Garmin Connect.',
+              "The session is now in the athlete's Garmin Connect."
+            ),
       })
     } catch {
-      toast.error('Nätverksfel — försök igen')
+      toast.error(t('Nätverksfel — försök igen', 'Network error - try again'))
     } finally {
       setLoading(false)
     }
@@ -74,7 +86,7 @@ export function PushToGarminButton({
             className={`h-8 w-8 p-0 ${pushed ? 'text-green-600' : 'text-slate-400 hover:text-primary'}`}
             onClick={handlePush}
             disabled={loading}
-            title={pushed ? 'Skickat till Garmin' : 'Skicka till Garmin'}
+            title={pushed ? t('Skickat till Garmin', 'Sent to Garmin') : t('Skicka till Garmin', 'Send to Garmin')}
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -86,7 +98,9 @@ export function PushToGarminButton({
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          {pushed ? 'Redan skickad till Garmin — tryck för att skicka igen' : 'Skicka till Garmin-klocka'}
+          {pushed
+            ? t('Redan skickad till Garmin — tryck för att skicka igen', 'Already sent to Garmin - click to send again')
+            : t('Skicka till Garmin-klocka', 'Send to Garmin watch')}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
