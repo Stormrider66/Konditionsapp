@@ -10,6 +10,11 @@ import { Badge } from '@/components/ui/badge'
 import { RefreshCw, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { GarminAttribution } from '@/components/ui/GarminAttribution'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface GarminSyncResult {
   clientId: string
@@ -24,6 +29,7 @@ interface GarminSyncPanelProps {
 }
 
 export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<GarminSyncResult[] | null>(null)
 
@@ -39,9 +45,9 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
 
       const data = await res.json()
       setResults(data.results)
-      toast.success(`Garmin-synk klar: ${data.summary.matched}/${data.summary.total} matchade`)
+      toast.success(copy(locale, `Garmin sync complete: ${data.summary.matched}/${data.summary.total} matched`, `Garmin-synk klar: ${data.summary.matched}/${data.summary.total} matchade`))
     } catch {
-      toast.error('Kunde inte synka Garmin Connect-data')
+      toast.error(copy(locale, 'Could not sync Garmin Connect data', 'Kunde inte synka Garmin Connect-data'))
     } finally {
       setLoading(false)
     }
@@ -51,19 +57,22 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
     <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
       <GlassCardHeader className="flex flex-row items-center justify-between">
         <div className="space-y-1">
-          <GlassCardTitle className="text-lg text-slate-900 dark:text-white font-semibold">Garmin Connect-synkronisering</GlassCardTitle>
+          <GlassCardTitle className="text-lg text-slate-900 dark:text-white font-semibold">{copy(locale, 'Garmin Connect sync', 'Garmin Connect-synkronisering')}</GlassCardTitle>
           <GarminAttribution />
         </div>
         <Button onClick={handleSync} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium">
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Synkar...' : 'Synka Garmin Connect'}
+          {loading ? copy(locale, 'Syncing...', 'Synkar...') : copy(locale, 'Sync Garmin Connect', 'Synka Garmin Connect')}
         </Button>
       </GlassCardHeader>
       <GlassCardContent>
         {!results ? (
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Synka Garmin Connect-data för att berika sessionen med puls- och hastighetsdata.
-            Matchar aktiviteter inom 30 min från sessionens tidsram.
+            {copy(
+              locale,
+              "Sync Garmin Connect data to enrich the session with heart-rate and speed data. Matches activities within 30 minutes of the session's time window.",
+              'Synka Garmin Connect-data för att berika sessionen med puls- och hastighetsdata. Matchar aktiviteter inom 30 min från sessionens tidsram.'
+            )}
           </p>
         ) : (
           <div className="space-y-2">
@@ -73,12 +82,12 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
                 {r.matched ? (
                   <Badge variant="default" className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
                     <Check className="h-3 w-3" />
-                    Matchad
+                    {copy(locale, 'Matched', 'Matchad')}
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="gap-1 border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-350">
                     <X className="h-3 w-3 text-rose-500" />
-                    {r.error || 'Ej matchad'}
+                    {r.error || copy(locale, 'Not matched', 'Ej matchad')}
                   </Badge>
                 )}
               </div>

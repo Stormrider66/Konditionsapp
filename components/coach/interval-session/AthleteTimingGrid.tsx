@@ -2,6 +2,11 @@
 
 import { AthleteTimingButton } from './AthleteTimingButton'
 import type { IntervalParticipantData, RestMode } from '@/lib/interval-session/types'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface AthleteTimingGridProps {
   participants: IntervalParticipantData[]
@@ -22,10 +27,12 @@ export function AthleteTimingGrid({
   restMode = 'NONE',
   restDurationSeconds,
 }: AthleteTimingGridProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+
   if (participants.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        Inga atleter tillagda. Lägg till atleter för att börja.
+        {copy(locale, 'No athletes added. Add athletes to get started.', 'Inga atleter tillagda. Lägg till atleter för att börja.')}
       </div>
     )
   }

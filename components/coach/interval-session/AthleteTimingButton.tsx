@@ -77,16 +77,20 @@ export function AthleteTimingButton({
 
   // Rest countdown + elapsed timer (for INDIVIDUAL mode)
   useEffect(() => {
+    const scheduleReset = () => {
+      const timeout = window.setTimeout(() => {
+        setRestRemaining(null)
+        setIntervalElapsed(null)
+      }, 0)
+      return () => window.clearTimeout(timeout)
+    }
+
     if (restMode !== 'INDIVIDUAL' || !restStartedAt || !restDurationSeconds || disabled || allIntervalsCompleted) {
-      setRestRemaining(null)
-      setIntervalElapsed(null)
-      return
+      return scheduleReset()
     }
 
     if (!latestLap) {
-      setRestRemaining(null)
-      setIntervalElapsed(null)
-      return
+      return scheduleReset()
     }
 
     const restEndMs = new Date(restStartedAt).getTime() + restDurationSeconds * 1000
@@ -106,10 +110,13 @@ export function AthleteTimingButton({
       }
     }
 
-    tick()
+    const initialTick = window.setTimeout(tick, 0)
     const interval = setInterval(tick, 100)
 
-    return () => clearInterval(interval)
+    return () => {
+      window.clearTimeout(initialTick)
+      clearInterval(interval)
+    }
   }, [restMode, restStartedAt, restDurationSeconds, latestLap, disabled, allIntervalsCompleted])
 
   // States
