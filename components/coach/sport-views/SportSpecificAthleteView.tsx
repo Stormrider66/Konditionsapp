@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
@@ -20,24 +21,24 @@ import { TennisAthleteView } from './TennisAthleteView'
 import { PadelAthleteView } from './PadelAthleteView'
 import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
 
-const SPORT_DISPLAY: Record<string, { icon: string; label: string }> = {
-  RUNNING: { icon: '🏃', label: 'Löpning' },
-  CYCLING: { icon: '🚴', label: 'Cykling' },
-  SKIING: { icon: '⛷️', label: 'Längdskidåkning' },
-  TRIATHLON: { icon: '🏊', label: 'Triathlon' },
-  HYROX: { icon: '💪', label: 'HYROX' },
-  GENERAL_FITNESS: { icon: '🏋️', label: 'Allmän Fitness' },
-  FUNCTIONAL_FITNESS: { icon: '🔥', label: 'Funktionell Fitness' },
-  SWIMMING: { icon: '🏊‍♂️', label: 'Simning' },
-  STRENGTH: { icon: '🏋️', label: 'Styrketräning' },
-  TEAM_ICE_HOCKEY: { icon: '🏒', label: 'Ishockey' },
-  TEAM_FOOTBALL: { icon: '⚽', label: 'Fotboll' },
-  TEAM_HANDBALL: { icon: '🤾', label: 'Handboll' },
-  TEAM_FLOORBALL: { icon: '🏑', label: 'Innebandy' },
-  TEAM_BASKETBALL: { icon: '🏀', label: 'Basket' },
-  TEAM_VOLLEYBALL: { icon: '🏐', label: 'Volleyboll' },
-  TENNIS: { icon: '🎾', label: 'Tennis' },
-  PADEL: { icon: '🎾', label: 'Padel' },
+const SPORT_DISPLAY: Record<string, { icon: string; label: string; labelSv: string }> = {
+  RUNNING: { icon: '🏃', label: 'Running', labelSv: 'Löpning' },
+  CYCLING: { icon: '🚴', label: 'Cycling', labelSv: 'Cykling' },
+  SKIING: { icon: '⛷️', label: 'Cross-Country Skiing', labelSv: 'Längdskidåkning' },
+  TRIATHLON: { icon: '🏊', label: 'Triathlon', labelSv: 'Triathlon' },
+  HYROX: { icon: '💪', label: 'HYROX', labelSv: 'HYROX' },
+  GENERAL_FITNESS: { icon: '🏋️', label: 'General Fitness', labelSv: 'Allmän Fitness' },
+  FUNCTIONAL_FITNESS: { icon: '🔥', label: 'Functional Fitness', labelSv: 'Funktionell Fitness' },
+  SWIMMING: { icon: '🏊‍♂️', label: 'Swimming', labelSv: 'Simning' },
+  STRENGTH: { icon: '🏋️', label: 'Strength Training', labelSv: 'Styrketräning' },
+  TEAM_ICE_HOCKEY: { icon: '🏒', label: 'Ice Hockey', labelSv: 'Ishockey' },
+  TEAM_FOOTBALL: { icon: '⚽', label: 'Football', labelSv: 'Fotboll' },
+  TEAM_HANDBALL: { icon: '🤾', label: 'Handball', labelSv: 'Handboll' },
+  TEAM_FLOORBALL: { icon: '🏑', label: 'Floorball', labelSv: 'Innebandy' },
+  TEAM_BASKETBALL: { icon: '🏀', label: 'Basketball', labelSv: 'Basket' },
+  TEAM_VOLLEYBALL: { icon: '🏐', label: 'Volleyball', labelSv: 'Volleyboll' },
+  TENNIS: { icon: '🎾', label: 'Tennis', labelSv: 'Tennis' },
+  PADEL: { icon: '🎾', label: 'Padel', labelSv: 'Padel' },
 }
 
 interface SportProfile {
@@ -74,6 +75,9 @@ export function SportSpecificAthleteView({
   sportProfile,
   basePath,
 }: SportSpecificAthleteViewProps) {
+  const locale = useLocale()
+  const isSv = locale === 'sv'
+  const t = (sv: string, en: string) => isSv ? sv : en
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
 
@@ -81,12 +85,12 @@ export function SportSpecificAthleteView({
     return (
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
-          <CardTitle style={{ color: theme.colors.textPrimary }}>Sportprofil</CardTitle>
-          <CardDescription style={{ color: theme.colors.textMuted }}>Atletens träningsinriktning</CardDescription>
+          <CardTitle style={{ color: theme.colors.textPrimary }}>{t('Sportprofil', 'Sport Profile')}</CardTitle>
+          <CardDescription style={{ color: theme.colors.textMuted }}>{t('Atletens träningsinriktning', "Athlete's training focus")}</CardDescription>
         </CardHeader>
         <CardContent>
           <p style={{ color: theme.colors.textMuted }}>
-            Denna atlet har inte slutfört sin sportprofil ännu.
+            {t('Denna atlet har inte slutfört sin sportprofil ännu.', 'This athlete has not completed their sport profile yet.')}
           </p>
         </CardContent>
       </Card>
@@ -227,14 +231,17 @@ export function SportSpecificAthleteView({
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{sportDisplay?.icon}</span>
                 <div>
-                  <CardTitle style={{ color: theme.colors.textPrimary }}>{sportDisplay?.label}</CardTitle>
-                  <CardDescription style={{ color: theme.colors.textMuted }}>Löparens testdata visas nedan</CardDescription>
+                  <CardTitle style={{ color: theme.colors.textPrimary }}>{isSv ? sportDisplay?.labelSv : sportDisplay?.label}</CardTitle>
+                  <CardDescription style={{ color: theme.colors.textMuted }}>{t('Löparens testdata visas nedan', 'Runner test data is shown below')}</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-                Se testhistorik och träningszoner nedan för fullständig löparanalys.
+                {t(
+                  'Se testhistorik och träningszoner nedan för fullständig löparanalys.',
+                  'See test history and training zones below for the full running analysis.'
+                )}
               </p>
             </CardContent>
           </Card>
@@ -243,15 +250,15 @@ export function SportSpecificAthleteView({
         return (
           <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
             <CardHeader>
-              <CardTitle style={{ color: theme.colors.textPrimary }}>Sportprofil</CardTitle>
+              <CardTitle style={{ color: theme.colors.textPrimary }}>{t('Sportprofil', 'Sport Profile')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-2xl">{sportDisplay?.icon}</span>
-                <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{sportDisplay?.label}</span>
+                <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{isSv ? sportDisplay?.labelSv : sportDisplay?.label}</span>
               </div>
               <p className="text-sm" style={{ color: theme.colors.textMuted }}>
-                Detaljerad vy för denna sport kommer snart.
+                {t('Detaljerad vy för denna sport kommer snart.', 'A detailed view for this sport is coming soon.')}
               </p>
             </CardContent>
           </Card>
@@ -264,7 +271,7 @@ export function SportSpecificAthleteView({
       {/* Sport badge header */}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge variant="default" className="text-sm px-3 py-1">
-          {sportDisplay?.icon} {sportDisplay?.label}
+          {sportDisplay?.icon} {isSv ? sportDisplay?.labelSv : sportDisplay?.label}
         </Badge>
         {sportProfile.secondarySports?.length > 0 && (
           <>
@@ -272,7 +279,7 @@ export function SportSpecificAthleteView({
               const display = SPORT_DISPLAY[sport]
               return (
                 <Badge key={sport} variant="secondary" className="text-sm px-3 py-1">
-                  {display?.icon} {display?.label}
+                  {display?.icon} {isSv ? display?.labelSv : display?.label}
                 </Badge>
               )
             })}
