@@ -6,11 +6,11 @@
  * Roster-aggregated analysis view for a team coach. Answers "who do I
  * need to talk to today?" via:
  *  - ACWR zone tiles (Optimal / Caution / Danger / Critical counts)
- *  - "Behöver uppmärksamhet" list with stacked reasons per athlete
+ *  - "Needs attention" list with stacked reasons per athlete
  *  - Per-member table: ACWR + days-since-last-activity + recent PRs
  *  - Recent team-wide PR feed
  *
- * Each member row links into the per-athlete client page's Analys tab
+ * Each member row links into the per-athlete client page's Analysis tab
  * for the full drill-down.
  */
 
@@ -37,6 +37,11 @@ import {
 import { StrengthPRFeed } from '@/components/coach/dashboard/StrengthPRFeed'
 import { BulkPRImportDialog } from '@/components/coach/strength/BulkPRImportDialog'
 import { PendingPRFeed } from '@/components/coach/strength/PendingPRFeed'
+import { useLocale } from 'next-intl'
+
+type Locale = 'en' | 'sv'
+
+const copy = (locale: Locale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 type AcwrZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL' | 'UNKNOWN'
 
@@ -99,17 +104,18 @@ interface TeamAnalysisClientProps {
 
 const ZONE_META: Record<
   AcwrZone,
-  { label: string; color: string; icon: React.ElementType; bg: string }
+  { label: Record<Locale, string>; color: string; icon: React.ElementType; bg: string }
 > = {
-  OPTIMAL: { label: 'Optimal', color: 'text-green-700 dark:text-green-400', icon: ShieldCheck, bg: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' },
-  CAUTION: { label: 'Caution', color: 'text-yellow-700 dark:text-yellow-400', icon: Shield, bg: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' },
-  DANGER: { label: 'Danger', color: 'text-orange-700 dark:text-orange-400', icon: ShieldAlert, bg: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' },
-  CRITICAL: { label: 'Kritisk', color: 'text-red-700 dark:text-red-400', icon: AlertTriangle, bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' },
-  DETRAINING: { label: 'Detraining', color: 'text-blue-700 dark:text-blue-400', icon: TrendingDown, bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' },
-  UNKNOWN: { label: 'Okänt', color: 'text-muted-foreground', icon: HelpCircle, bg: 'bg-muted/30' },
+  OPTIMAL: { label: { en: 'Optimal', sv: 'Optimal' }, color: 'text-green-700 dark:text-green-400', icon: ShieldCheck, bg: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' },
+  CAUTION: { label: { en: 'Caution', sv: 'Varning' }, color: 'text-yellow-700 dark:text-yellow-400', icon: Shield, bg: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' },
+  DANGER: { label: { en: 'Danger', sv: 'Fara' }, color: 'text-orange-700 dark:text-orange-400', icon: ShieldAlert, bg: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' },
+  CRITICAL: { label: { en: 'Critical', sv: 'Kritisk' }, color: 'text-red-700 dark:text-red-400', icon: AlertTriangle, bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' },
+  DETRAINING: { label: { en: 'Detraining', sv: 'Nedträning' }, color: 'text-blue-700 dark:text-blue-400', icon: TrendingDown, bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' },
+  UNKNOWN: { label: { en: 'Unknown', sv: 'Okänt' }, color: 'text-muted-foreground', icon: HelpCircle, bg: 'bg-muted/30' },
 }
 
 export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [data, setData] = useState<TeamAnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -130,16 +136,16 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
         const body = await res.json()
         if (!cancelled && body.success) setData(body.data)
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Kunde inte hämta data')
+        if (!cancelled) setError(e instanceof Error ? e.message : copy(locale, 'Could not fetch data', 'Kunde inte hämta data'))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
     }
-    load()
+    void load()
     return () => {
       cancelled = true
     }
-  }, [teamId, refreshKey])
+  }, [locale, teamId, refreshKey])
 
   if (isLoading) {
     return (
@@ -152,7 +158,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
   if (error || !data) {
     return (
       <div className="text-center py-12 text-destructive">
-        {error ?? 'Inget data tillgängligt'}
+        {error ?? copy(locale, 'No data available', 'Inget data tillgängligt')}
       </div>
     )
   }
@@ -162,7 +168,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground">
           <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p>Inga atleter i laget ännu.</p>
+          <p>{copy(locale, 'No athletes in the team yet.', 'Inga atleter i laget ännu.')}</p>
         </CardContent>
       </Card>
     )
@@ -183,17 +189,17 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
         <div className="text-sm text-muted-foreground">
           {missingPRCount > 0 ? (
             <>
-              <span className="text-orange-600 font-medium">{missingPRCount}</span> atlet
-              {missingPRCount === 1 ? '' : 'er'} saknar 1RM —
-              {' '}<span className="text-foreground">% av 1RM-pass</span> kräver registrerade PR.
+              <span className="text-orange-600 font-medium">{missingPRCount}</span>{' '}
+              {copy(locale, missingPRCount === 1 ? 'athlete is missing 1RM' : 'athletes are missing 1RM', missingPRCount === 1 ? 'atlet saknar 1RM' : 'atleter saknar 1RM')} -
+              {' '}<span className="text-foreground">% {copy(locale, 'of 1RM workouts', 'av 1RM-pass')}</span> {copy(locale, 'requires registered PRs.', 'kräver registrerade PR.')}
             </>
           ) : (
-            <>Alla atleter har minst en registrerad 1RM.</>
+            <>{copy(locale, 'All athletes have at least one registered 1RM.', 'Alla atleter har minst en registrerad 1RM.')}</>
           )}
         </div>
         <Button size="sm" onClick={() => setBulkOpen(true)}>
           <Upload className="h-4 w-4 mr-1.5" />
-          Importera PRs
+          {copy(locale, 'Import PRs', 'Importera PRs')}
         </Button>
       </div>
 
@@ -201,7 +207,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
       <div>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
           <Activity className="h-4 w-4" />
-          Belastning idag
+          {copy(locale, 'Load today', 'Belastning idag')}
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {zoneOrder.map((zone) => {
@@ -215,7 +221,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
               >
                 <div className={`flex items-center gap-1.5 ${meta.color}`}>
                   <Icon className="h-4 w-4" />
-                  <span className="text-xs font-medium">{meta.label}</span>
+                  <span className="text-xs font-medium">{meta.label[locale]}</span>
                 </div>
                 <div className="text-2xl font-bold mt-1 tabular-nums">{count}</div>
               </div>
@@ -229,18 +235,18 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-orange-500" />
-            Behöver uppmärksamhet
+            {copy(locale, 'Needs attention', 'Behöver uppmärksamhet')}
             <Badge variant="secondary">{aggregates.needsAttention.length}</Badge>
           </CardTitle>
           <CardDescription>
-            Atleter med hög skaderisk, lång inaktivitet eller saknad PR-data.
+            {copy(locale, 'Athletes with high injury risk, long inactivity, or missing PR data.', 'Atleter med hög skaderisk, lång inaktivitet eller saknad PR-data.')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {aggregates.needsAttention.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground text-sm">
               <ShieldCheck className="h-8 w-8 mx-auto mb-2 text-green-500 opacity-70" />
-              Allt under kontroll just nu.
+              {copy(locale, 'Everything is under control right now.', 'Allt under kontroll just nu.')}
             </div>
           ) : (
             <div className="divide-y">
@@ -274,10 +280,10 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-500" />
-            Atleter
+            {copy(locale, 'Athletes', 'Atleter')}
           </CardTitle>
           <CardDescription>
-            Klicka på en atlet för full analys.
+            {copy(locale, 'Click an athlete for the full analysis.', 'Klicka på en atlet för full analys.')}
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0 sm:px-6">
@@ -285,9 +291,9 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted-foreground uppercase tracking-wide border-b">
-                  <th className="text-left font-medium px-3 py-2">Namn</th>
+                  <th className="text-left font-medium px-3 py-2">{copy(locale, 'Name', 'Namn')}</th>
                   <th className="text-right font-medium px-3 py-2">ACWR</th>
-                  <th className="text-right font-medium px-3 py-2 hidden sm:table-cell">Senaste aktivitet</th>
+                  <th className="text-right font-medium px-3 py-2 hidden sm:table-cell">{copy(locale, 'Latest activity', 'Senaste aktivitet')}</th>
                   <th className="text-right font-medium px-3 py-2">PR (30d)</th>
                   <th className="px-3 py-2"></th>
                 </tr>
@@ -321,8 +327,8 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
                         {m.daysSinceLastActivity == null
                           ? '—'
                           : m.daysSinceLastActivity === 0
-                            ? 'Idag'
-                            : `${m.daysSinceLastActivity}d sedan`}
+                            ? copy(locale, 'Today', 'Idag')
+                            : copy(locale, `${m.daysSinceLastActivity}d ago`, `${m.daysSinceLastActivity}d sedan`)}
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums">
                         {m.recentPRs > 0 ? (
@@ -331,7 +337,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
                             {m.recentPRs}
                           </span>
                         ) : m.totalPRs === 0 ? (
-                          <Badge variant="outline" className="text-[10px] py-0">Saknar</Badge>
+                          <Badge variant="outline" className="text-[10px] py-0">{copy(locale, 'Missing', 'Saknar')}</Badge>
                         ) : (
                           <span className="text-muted-foreground">0</span>
                         )}
