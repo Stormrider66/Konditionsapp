@@ -12,6 +12,7 @@
  */
 
 import { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -34,9 +35,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Shuffle, CheckCircle, AlertTriangle, TrendingUp, SquareArrowOutUpRight } from 'lucide-react'
+import { Shuffle, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { CompactResult } from '@/components/tests/shared/TestResultDisplay'
 import { TestBenchmarkBadge, type BenchmarkTier } from '@/components/tests/shared/TestBenchmarkBadge'
@@ -45,14 +45,12 @@ import {
   classifyIllinoisAgility,
   classifyProAgility,
   classifyLaneAgility,
-  getAgilityTestDescription,
   calculateCODDeficit,
-  type AgilityTestType,
 } from '@/lib/calculations/sport-tests/agility-tests'
 
-const agilityTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+const createAgilityTestSchema = (locale: string) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   testType: z.enum(['T_TEST', 'ILLINOIS', 'PRO_AGILITY_5_10_5', 'LANE_AGILITY', 'ARROWHEAD_AGILITY']),
   time: z.number().min(3).max(30),
   linearTime: z.number().min(1).max(10).optional(), // For COD deficit calculation
@@ -61,7 +59,7 @@ const agilityTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type AgilityTestFormData = z.infer<typeof agilityTestSchema>
+type AgilityTestFormData = z.infer<ReturnType<typeof createAgilityTestSchema>>
 
 interface Client {
   id: string
@@ -76,11 +74,43 @@ interface AgilityTestFormProps {
 }
 
 const testTypeOptions = [
-  { value: 'T_TEST', label: 'T-Test', description: 'Snabbhetstest med riktningsförändringar i T-form' },
-  { value: 'ILLINOIS', label: 'Illinois Agility', description: 'Löpbana med slalom runt koner' },
-  { value: 'PRO_AGILITY_5_10_5', label: '5-10-5 Pro Agility', description: 'Kort shuttle med snabba riktningsförändringar' },
-  { value: 'LANE_AGILITY', label: 'Lane Agility (Basket)', description: 'Basketspecifikt test runt straffområdet' },
-  { value: 'ARROWHEAD_AGILITY', label: 'Arrowhead Agility', description: 'Pilformad bana med diagonala riktningsförändringar' },
+  {
+    value: 'T_TEST',
+    label: 'T-Test',
+    description: {
+      en: 'Speed test with T-shaped change of direction',
+      sv: 'Snabbhetstest med riktningsförändringar i T-form',
+    },
+  },
+  {
+    value: 'ILLINOIS',
+    label: 'Illinois Agility',
+    description: { en: 'Running course with cone slalom', sv: 'Löpbana med slalom runt koner' },
+  },
+  {
+    value: 'PRO_AGILITY_5_10_5',
+    label: '5-10-5 Pro Agility',
+    description: {
+      en: 'Short shuttle with fast changes of direction',
+      sv: 'Kort shuttle med snabba riktningsförändringar',
+    },
+  },
+  {
+    value: 'LANE_AGILITY',
+    label: 'Lane Agility (Basket)',
+    description: {
+      en: 'Basketball-specific test around the lane',
+      sv: 'Basketspecifikt test runt straffområdet',
+    },
+  },
+  {
+    value: 'ARROWHEAD_AGILITY',
+    label: 'Arrowhead Agility',
+    description: {
+      en: 'Arrow-shaped course with diagonal changes of direction',
+      sv: 'Pilformad bana med diagonala riktningsförändringar',
+    },
+  },
 ]
 
 function getClassifier(testType: string): (time: number, gender: 'MALE' | 'FEMALE') => BenchmarkTier {
@@ -101,12 +131,14 @@ function getClassifier(testType: string): (time: number, gender: 'MALE' | 'FEMAL
 }
 
 export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) {
+  const locale = useLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<AgilityTestFormData>({
-    resolver: zodResolver(agilityTestSchema),
+    resolver: zodResolver(createAgilityTestSchema(locale)),
     defaultValues: {
       clientId: clients[0]?.id ?? '',
       testDate: new Date().toISOString().split('T')[0],
@@ -140,7 +172,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(locale === 'sv' ? 'Klient hittades inte' : 'Client not found')
 
       const classifier = getClassifier(data.testType)
       const tier = classifier(data.time, client.gender)
@@ -170,7 +202,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Misslyckades att spara test')
+        throw new Error(errorData.error || (locale === 'sv' ? 'Misslyckades att spara test' : 'Failed to save test'))
       }
 
       const resultData = await response.json()
@@ -193,7 +225,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
       })
     } catch (err) {
       console.error('Failed to save agility test:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : locale === 'sv' ? 'Ett fel uppstod' : 'An error occurred')
     } finally {
       setSubmitting(false)
     }
@@ -205,12 +237,14 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shuffle className="h-5 w-5" />
-            Agilitytest
+            {locale === 'sv' ? 'Agilitytest' : 'Agility test'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {locale === 'sv'
+              ? 'Inga klienter hittades. Lägg till klienter för att kunna registrera test.'
+              : 'No clients found. Add clients before registering tests.'}
           </p>
         </CardContent>
       </Card>
@@ -225,10 +259,12 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shuffle className="h-5 w-5" />
-                Agilitytest
+                {locale === 'sv' ? 'Agilitytest' : 'Agility test'}
               </CardTitle>
               <CardDescription>
-                Mät snabbhet vid riktningsförändringar och rörelseförmåga
+                {locale === 'sv'
+                  ? 'Mät snabbhet vid riktningsförändringar och rörelseförmåga'
+                  : 'Measure speed, change of direction, and movement ability'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -238,11 +274,11 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Klient' : 'Client'}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={locale === 'sv' ? 'Välj klient' : 'Select client'} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -263,7 +299,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                   name="testDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Testdatum</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Testdatum' : 'Test date'}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -278,7 +314,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                 name="testType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testtyp</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Testtyp' : 'Test type'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -296,7 +332,9 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                       </SelectContent>
                     </Select>
                     {selectedTestOption && (
-                      <FormDescription>{selectedTestOption.description}</FormDescription>
+                      <FormDescription>
+                        {selectedTestOption.description[locale === 'sv' ? 'sv' : 'en']}
+                      </FormDescription>
                     )}
                     <FormMessage />
                   </FormItem>
@@ -309,19 +347,21 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                   name="time"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tid (s)</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Tid (s)' : 'Time (s)'}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.01"
                           min={3}
                           max={30}
-                          placeholder="t.ex. 10.5"
+                          placeholder={locale === 'sv' ? 't.ex. 10.5' : 'e.g. 10.5'}
                           {...field}
                           onChange={(e) => field.onChange(parseFloat(e.target.value))}
                         />
                       </FormControl>
-                      <FormDescription>Bästa tid av alla försök</FormDescription>
+                      <FormDescription>
+                        {locale === 'sv' ? 'Bästa tid av alla försök' : 'Best time from all attempts'}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -332,21 +372,25 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                   name="linearTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Linjär tid (s) - valfritt</FormLabel>
+                      <FormLabel>
+                        {locale === 'sv' ? 'Linjär tid (s) - valfritt' : 'Linear time (s) - optional'}
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.01"
                           min={1}
                           max={10}
-                          placeholder="t.ex. 4.5"
+                          placeholder={locale === 'sv' ? 't.ex. 4.5' : 'e.g. 4.5'}
                           {...field}
                           onChange={(e) =>
                             field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)
                           }
                         />
                       </FormControl>
-                      <FormDescription>För COD-deficit beräkning</FormDescription>
+                      <FormDescription>
+                        {locale === 'sv' ? 'För COD-deficit beräkning' : 'For COD-deficit calculation'}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -358,7 +402,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                 name="surface"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Underlag</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Underlag' : 'Surface'}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -366,10 +410,10 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="INDOOR">Inomhus</SelectItem>
-                        <SelectItem value="OUTDOOR_TRACK">Löparbana</SelectItem>
-                        <SelectItem value="GRASS">Gräs</SelectItem>
-                        <SelectItem value="TURF">Konstgräs</SelectItem>
+                        <SelectItem value="INDOOR">{locale === 'sv' ? 'Inomhus' : 'Indoor'}</SelectItem>
+                        <SelectItem value="OUTDOOR_TRACK">{locale === 'sv' ? 'Löparbana' : 'Outdoor track'}</SelectItem>
+                        <SelectItem value="GRASS">{locale === 'sv' ? 'Gräs' : 'Grass'}</SelectItem>
+                        <SelectItem value="TURF">{locale === 'sv' ? 'Konstgräs' : 'Turf'}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -382,7 +426,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                 name="attempts"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Antal försök</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Antal försök' : 'Number of attempts'}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -402,7 +446,7 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm font-medium mb-3 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
-                    Resultat
+                    {locale === 'sv' ? 'Resultat' : 'Result'}
                   </p>
                   <div className="flex items-center gap-4">
                     <TestBenchmarkBadge tier={liveTier} />
@@ -421,10 +465,10 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{locale === 'sv' ? 'Anteckningar' : 'Notes'}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Teknik, underlag, observationer..."
+                        placeholder={locale === 'sv' ? 'Teknik, underlag, observationer...' : 'Technique, surface, observations...'}
                         {...field}
                       />
                     </FormControl>
@@ -436,7 +480,9 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara agilitytest'}
+            {submitting
+              ? locale === 'sv' ? 'Sparar...' : 'Saving...'
+              : locale === 'sv' ? 'Spara agilitytest' : 'Save agility test'}
           </Button>
         </form>
       </Form>
@@ -453,17 +499,17 @@ export function AgilityTestForm({ clients, onTestSaved }: AgilityTestFormProps) 
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Test sparat
+              {locale === 'sv' ? 'Test sparat' : 'Test saved'}
             </CardTitle>
             <CardDescription>
               {result.client?.name} - {result.testTypeLabel} -{' '}
-              {new Date(result.testDate).toLocaleDateString('sv-SE')}
+              {new Date(result.testDate).toLocaleDateString(dateLocale)}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <CompactResult
-                label="Tid"
+                label={locale === 'sv' ? 'Tid' : 'Time'}
                 value={result.primaryResult}
                 unit="s"
                 tier={result.tier}
