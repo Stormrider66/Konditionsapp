@@ -42,10 +42,14 @@ interface TeamWithPartialOrg {
 type ExtendedTeam = TeamWithPartialOrg
 
 const sportTypeLabelKeys: Record<string, string> = {
-  TEAM_FOOTBALL: 'sports.football',
-  TEAM_ICE_HOCKEY: 'sports.iceHockey',
-  TEAM_HANDBALL: 'sports.handball',
-  TEAM_FLOORBALL: 'sports.floorball',
+  TEAM_FOOTBALL: 'football',
+  TEAM_ICE_HOCKEY: 'iceHockey',
+  TEAM_HANDBALL: 'handball',
+  TEAM_FLOORBALL: 'floorball',
+  TEAM_BASKETBALL: 'basketball',
+  TEAM_VOLLEYBALL: 'volleyball',
+  TENNIS: 'tennis',
+  PADEL: 'padel',
 }
 
 function TeamCard({
@@ -60,6 +64,7 @@ function TeamCard({
   onDelete: () => void
 }) {
   const t = useTranslations('coach.pages.teams')
+  const tSports = useTranslations('sports')
 
   return (
     <GlassCard glow="blue" className="hover:scale-[1.01] transition-all duration-300">
@@ -70,7 +75,7 @@ function TeamCard({
               <h3 className="text-lg font-semibold dark:text-white">{team.name}</h3>
               {team.sportType && (
                 <Badge variant="secondary" className="text-xs">
-                  {sportTypeLabelKeys[team.sportType] ? t(sportTypeLabelKeys[team.sportType]) : team.sportType}
+                  {sportTypeLabelKeys[team.sportType] ? tSports(sportTypeLabelKeys[team.sportType]) : team.sportType}
                 </Badge>
               )}
             </div>

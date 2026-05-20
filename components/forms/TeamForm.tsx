@@ -30,11 +30,16 @@ interface TeamFormProps {
 
 export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormProps) {
   const t = useTranslations('components.teamForm')
+  const tSports = useTranslations('sports')
   const sportTypeOptions = [
-    { value: 'TEAM_FOOTBALL', label: t('sportTypeOptions.football') },
-    { value: 'TEAM_ICE_HOCKEY', label: t('sportTypeOptions.iceHockey') },
-    { value: 'TEAM_HANDBALL', label: t('sportTypeOptions.handball') },
-    { value: 'TEAM_FLOORBALL', label: t('sportTypeOptions.floorball') },
+    { value: 'TEAM_FOOTBALL', label: tSports('football') },
+    { value: 'TEAM_ICE_HOCKEY', label: tSports('iceHockey') },
+    { value: 'TEAM_HANDBALL', label: tSports('handball') },
+    { value: 'TEAM_FLOORBALL', label: tSports('floorball') },
+    { value: 'TEAM_BASKETBALL', label: tSports('basketball') },
+    { value: 'TEAM_VOLLEYBALL', label: tSports('volleyball') },
+    { value: 'TENNIS', label: tSports('tennis') },
+    { value: 'PADEL', label: tSports('padel') },
   ]
   const [name, setName] = useState(team?.name || '')
   const [description, setDescription] = useState(team?.description || '')
@@ -65,7 +70,7 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
         setLoadingOrgs(false)
       }
     }
-    fetchOrganizations()
+    void fetchOrganizations()
   }, [businessSlug])
 
   const handleSubmit = async (e: React.FormEvent) => {

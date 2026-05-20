@@ -28,11 +28,14 @@ const sportLabelKeys: Record<string, string> = {
   TEAM_FLOORBALL: 'floorball',
   TEAM_BASKETBALL: 'basketball',
   TEAM_VOLLEYBALL: 'volleyball',
+  TENNIS: 'tennis',
+  PADEL: 'padel',
   RUNNING: 'running',
   CYCLING: 'cycling',
   SKIING: 'skiing',
   SWIMMING: 'swimming',
-  GENERAL_FITNESS: 'fitness',
+  GENERAL_FITNESS: 'generalFitness',
+  FUNCTIONAL_FITNESS: 'functionalFitness',
   STRENGTH: 'strength',
 }
 
@@ -46,6 +49,7 @@ function readinessTone(team: TeamSummary) {
 
 export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: TeamSummary[] }) {
   const t = useTranslations('components.teamQuickAccess')
+  const tSports = useTranslations('sports')
   const [activeAction, setActiveAction] = useState<TeamCoachAction | null>(null)
   const [activeTeamId, setActiveTeamId] = useState<string | undefined>()
 
@@ -96,7 +100,7 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
                       <p className="text-[11px] text-muted-foreground">
                         {team.sportType
                           ? sportLabelKeys[team.sportType]
-                            ? t(`sports.${sportLabelKeys[team.sportType]}`)
+                            ? tSports(sportLabelKeys[team.sportType])
                             : team.sportType
                           : t('teamFallback')}
                       </p>

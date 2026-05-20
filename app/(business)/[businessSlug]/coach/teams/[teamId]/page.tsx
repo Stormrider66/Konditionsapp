@@ -46,18 +46,23 @@ interface TeamPageProps {
 }
 
 const sportTypeLabelKeys: Record<string, string> = {
-  TEAM_FOOTBALL: 'sports.football',
-  TEAM_ICE_HOCKEY: 'sports.iceHockey',
-  TEAM_HANDBALL: 'sports.handball',
-  TEAM_FLOORBALL: 'sports.floorball',
-  RUNNING: 'sports.running',
-  CYCLING: 'sports.cycling',
-  SKIING: 'sports.skiing',
-  SWIMMING: 'sports.swimming',
-  TRIATHLON: 'Triathlon',
-  HYROX: 'HYROX',
-  GENERAL_FITNESS: 'sports.generalFitness',
-  STRENGTH: 'sports.strength',
+  TEAM_FOOTBALL: 'football',
+  TEAM_ICE_HOCKEY: 'iceHockey',
+  TEAM_HANDBALL: 'handball',
+  TEAM_FLOORBALL: 'floorball',
+  TEAM_BASKETBALL: 'basketball',
+  TEAM_VOLLEYBALL: 'volleyball',
+  TENNIS: 'tennis',
+  PADEL: 'padel',
+  RUNNING: 'running',
+  CYCLING: 'cycling',
+  SKIING: 'skiing',
+  SWIMMING: 'swimming',
+  TRIATHLON: 'triathlon',
+  HYROX: 'hyrox',
+  GENERAL_FITNESS: 'generalFitness',
+  FUNCTIONAL_FITNESS: 'functionalFitness',
+  STRENGTH: 'strength',
 }
 
 function PilotReadinessItem({
@@ -89,6 +94,7 @@ function PilotReadinessItem({
 export default async function BusinessTeamDashboardPage({ params }: TeamPageProps) {
   const { businessSlug, teamId } = await params
   const t = await getTranslations('coach.pages.teamDetail')
+  const tSports = await getTranslations('sports')
   const locale = await getLocale()
   const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const user = await requireCoach()
@@ -553,7 +559,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             <h1 className="text-3xl font-bold dark:text-white">{team.name}</h1>
             {team.sportType && (
               <Badge variant="secondary" className="text-sm">
-                {sportTypeLabelKeys[team.sportType] ? t(sportTypeLabelKeys[team.sportType]) : team.sportType}
+                {sportTypeLabelKeys[team.sportType] ? tSports(sportTypeLabelKeys[team.sportType]) : team.sportType}
               </Badge>
             )}
           </div>

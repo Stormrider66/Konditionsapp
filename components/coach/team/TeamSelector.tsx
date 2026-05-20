@@ -9,7 +9,7 @@
  * - Organization grouping
  */
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Select,
   SelectContent,
@@ -48,6 +48,10 @@ const sportTypeLabels: Record<string, string> = {
   TEAM_ICE_HOCKEY: 'Ishockey',
   TEAM_HANDBALL: 'Handboll',
   TEAM_FLOORBALL: 'Innebandy',
+  TEAM_BASKETBALL: 'Basket',
+  TEAM_VOLLEYBALL: 'Volleyboll',
+  TENNIS: 'Tennis',
+  PADEL: 'Padel',
   RUNNING: 'Löpning',
   CYCLING: 'Cykling',
   SKIING: 'Skidåkning',
@@ -55,6 +59,7 @@ const sportTypeLabels: Record<string, string> = {
   TRIATHLON: 'Triathlon',
   HYROX: 'HYROX',
   GENERAL_FITNESS: 'Allmän träning',
+  FUNCTIONAL_FITNESS: 'Funktionell fitness',
   STRENGTH: 'Styrka',
 }
 
@@ -70,10 +75,6 @@ export function TeamSelector({
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchTeams()
-  }, [])
-
   async function fetchTeams() {
     setLoading(true)
     try {
@@ -88,6 +89,10 @@ export function TeamSelector({
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    void fetchTeams()
+  }, [])
 
   // Group teams by organization
   const groupedTeams = teams.reduce(

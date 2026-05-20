@@ -71,17 +71,25 @@ interface Organization {
 }
 
 const sportTypeLabelKeys: Record<string, string> = {
-  TEAM_FOOTBALL: 'sports.football',
-  TEAM_ICE_HOCKEY: 'sports.iceHockey',
-  TEAM_HANDBALL: 'sports.handball',
-  TEAM_FLOORBALL: 'sports.floorball',
+  TEAM_FOOTBALL: 'football',
+  TEAM_ICE_HOCKEY: 'iceHockey',
+  TEAM_HANDBALL: 'handball',
+  TEAM_FLOORBALL: 'floorball',
+  TEAM_BASKETBALL: 'basketball',
+  TEAM_VOLLEYBALL: 'volleyball',
+  TENNIS: 'tennis',
+  PADEL: 'padel',
 }
 
 const sportTypeOptions = [
-  { value: 'TEAM_FOOTBALL', labelKey: 'sports.football' },
-  { value: 'TEAM_ICE_HOCKEY', labelKey: 'sports.iceHockey' },
-  { value: 'TEAM_HANDBALL', labelKey: 'sports.handball' },
-  { value: 'TEAM_FLOORBALL', labelKey: 'sports.floorball' },
+  { value: 'TEAM_FOOTBALL', labelKey: 'football' },
+  { value: 'TEAM_ICE_HOCKEY', labelKey: 'iceHockey' },
+  { value: 'TEAM_HANDBALL', labelKey: 'handball' },
+  { value: 'TEAM_FLOORBALL', labelKey: 'floorball' },
+  { value: 'TEAM_BASKETBALL', labelKey: 'basketball' },
+  { value: 'TEAM_VOLLEYBALL', labelKey: 'volleyball' },
+  { value: 'TENNIS', labelKey: 'tennis' },
+  { value: 'PADEL', labelKey: 'padel' },
 ]
 
 interface OrganizationsClientProps {
@@ -90,6 +98,7 @@ interface OrganizationsClientProps {
 
 export default function OrganizationsClient({ basePath = '/coach' }: OrganizationsClientProps) {
   const t = useTranslations('coach.pages.organizations')
+  const tSports = useTranslations('sports')
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -347,7 +356,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                         {org.name}
                         {org.sportType && (
                           <Badge variant="secondary" className="text-xs">
-                            {sportTypeLabelKeys[org.sportType] ? t(sportTypeLabelKeys[org.sportType]) : org.sportType}
+                            {sportTypeLabelKeys[org.sportType] ? tSports(sportTypeLabelKeys[org.sportType]) : org.sportType}
                           </Badge>
                         )}
                       </GlassCardTitle>
@@ -464,7 +473,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                 <SelectContent>
                   {sportTypeOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {t(option.labelKey)}
+                      {tSports(option.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
