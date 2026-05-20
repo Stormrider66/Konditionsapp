@@ -8,6 +8,7 @@ import { generateHyroxProgram, type HyroxProgramParams } from '../generators/hyr
 import { generateStrengthProgram, type StrengthProgramParams } from '../generators/strength-generator'
 import { generateFootballProgram } from '../generators/football-generator'
 import { generateHockeyProgram } from '../generators/hockey-generator'
+import { generateCourtSportProgram } from '../generators/court-sport-generator'
 import type { SportProgramParams } from './types'
 import { applyCalendarConstraints } from './calendar-constraints'
 import { generateRunningProgram } from './running'
@@ -46,14 +47,14 @@ export async function generateSportProgram(
         ...params,
         ftp: params.manualFtp,
         weeklyHours: params.weeklyHours || 8,
-        bikeType: params.bikeType as any,
+        bikeType: params.bikeType as CyclingProgramParams['bikeType'],
       } as CyclingProgramParams, client)
       break
 
     case 'SKIING':
       program = await generateSkiingProgram({
         ...params,
-        technique: params.technique as any,
+        technique: params.technique as SkiingProgramParams['technique'],
       } as SkiingProgramParams, client, test)
       break
 
@@ -61,7 +62,7 @@ export async function generateSportProgram(
       program = await generateSwimmingProgram({
         ...params,
         css: params.manualCss,
-        poolLength: params.poolLength as any,
+        poolLength: params.poolLength as SwimmingProgramParams['poolLength'],
       } as SwimmingProgramParams, client)
       break
 
@@ -106,6 +107,15 @@ export async function generateSportProgram(
 
     case 'TEAM_ICE_HOCKEY':
       program = await generateHockeyProgram(params, client)
+      break
+
+    case 'TEAM_BASKETBALL':
+    case 'TEAM_HANDBALL':
+    case 'TEAM_FLOORBALL':
+    case 'TEAM_VOLLEYBALL':
+    case 'TENNIS':
+    case 'PADEL':
+      program = await generateCourtSportProgram(params, client)
       break
 
     default:

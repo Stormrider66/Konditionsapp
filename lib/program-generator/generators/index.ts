@@ -7,3 +7,4 @@ export { generateSwimmingProgram, type SwimmingProgramParams } from './swimming-
 export { generateTriathlonProgram, type TriathlonProgramParams } from './triathlon-generator'
 export { generateHyroxProgram, type HyroxProgramParams } from './hyrox-generator'
 export { generateStrengthProgram, type StrengthProgramParams } from './strength-generator'
+export { generateCourtSportProgram } from './court-sport-generator'

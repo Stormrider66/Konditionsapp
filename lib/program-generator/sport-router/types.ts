@@ -1,4 +1,4 @@
-import type { Client, Test, CreateTrainingProgramDTO } from '@/types'
+import type { Test } from '@/types'
 import type { SportType } from '@prisma/client'
 import type { FitnessGoal, FitnessLevel } from '../templates/general-fitness'
 
@@ -178,9 +178,15 @@ export interface SportProgramParams {
   hasGymAccess?: boolean
   preferredActivities?: string[]
 
-  // Team sports profile settings
+  // Team, court and racket sports profile settings
   hockeySettings?: Record<string, unknown> | null
   footballSettings?: Record<string, unknown> | null
+  basketballSettings?: Record<string, unknown> | null
+  handballSettings?: Record<string, unknown> | null
+  floorballSettings?: Record<string, unknown> | null
+  volleyballSettings?: Record<string, unknown> | null
+  tennisSettings?: Record<string, unknown> | null
+  padelSettings?: Record<string, unknown> | null
 
   // Calendar constraints - blocked dates won't have workouts scheduled
   calendarConstraints?: {
