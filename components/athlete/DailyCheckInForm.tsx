@@ -273,8 +273,12 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
 
     setGarminApplied(true)
     toast({
-      title: 'Garmin-data tillämpat',
-      description: 'HRV, puls och sömndata har fyllts i från din Garmin.',
+      title: text(locale, 'Garmin-data tillämpat', 'Garmin data applied'),
+      description: text(
+        locale,
+        'HRV, puls och sömndata har fyllts i från din Garmin.',
+        'HRV, heart rate, and sleep data have been filled from Garmin.'
+      ),
     })
   }
 
@@ -288,7 +292,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
         const validation = validateInjurySelection(injurySelection, data.injuryPain)
         if (!validation.valid) {
           toast({
-            title: 'Vänligen specificera skadan',
+            title: text(locale, 'Vänligen specificera skadan', 'Please specify the injury'),
             description: validation.errors.join('. '),
             variant: 'destructive',
           })
@@ -441,12 +445,12 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
           : result.aiInterpretation.recommendedAction === 'EASY' ? 'LOW'
             : 'CRITICAL',
       recommendation: result.aiInterpretation.recommendedAction === 'PROCEED'
-        ? 'Kör enligt plan - du verkar redo för dagens träning!'
+        ? text(locale, 'Kör enligt plan - du verkar redo för dagens träning!', "Proceed as planned - you look ready for today's training!")
         : result.aiInterpretation.recommendedAction === 'REDUCE'
-          ? 'Minska intensiteten något idag baserat på din incheckning.'
+          ? text(locale, 'Minska intensiteten något idag baserat på din incheckning.', 'Reduce the intensity slightly today based on your check-in.')
           : result.aiInterpretation.recommendedAction === 'EASY'
-            ? 'Ta det lugnt idag - fokusera på återhämtning.'
-            : 'Vila rekommenderas. Lyssna på kroppen och återhämta dig.',
+            ? text(locale, 'Ta det lugnt idag - fokusera på återhämtning.', 'Keep it easy today - focus on recovery.')
+            : text(locale, 'Vila rekommenderas. Lyssna på kroppen och återhämta dig.', 'Rest is recommended. Listen to your body and recover.'),
       warnings: result.aiInterpretation.flaggedConcerns,
       criticalFlags: [],
     })
@@ -478,8 +482,12 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       })
 
     toast({
-      title: 'Röstincheckning klar',
-      description: 'Din incheckning har analyserats och sparats.',
+      title: text(locale, 'Röstincheckning klar', 'Voice check-in complete'),
+      description: text(
+        locale,
+        'Din incheckning har analyserats och sparats.',
+        'Your check-in has been analyzed and saved.'
+      ),
     })
 
     if (onSuccess) {
@@ -512,7 +520,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
               onClick={() => setVoiceMode(false)}
             >
               <ClipboardList className="h-4 w-4" />
-              Formulär
+              {text(locale, 'Formulär', 'Form')}
             </Button>
             <Button
               type="button"
@@ -526,12 +534,16 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
               onClick={() => setVoiceMode(true)}
             >
               <Mic className="h-4 w-4" />
-              Röstincheckning
+              {text(locale, 'Röstincheckning', 'Voice check-in')}
             </Button>
           </div>
           {voiceMode && (
             <p className="text-[11px] font-medium text-slate-400 text-center mt-3 animate-in fade-in duration-500 px-4">
-              Berätta hur du mår - fokusera på sömn, energi, ömhet, stress och motivation.
+              {text(
+                locale,
+                'Berätta hur du mår - fokusera på sömn, energi, ömhet, stress och motivation.',
+                'Tell us how you feel - focus on sleep, energy, soreness, stress, and motivation.'
+              )}
             </p>
           )}
         </GlassCardContent>
@@ -558,16 +570,24 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                 />
               </div>
               <div>
-                <p className={cn("font-black tracking-tight", isGlass ? "text-white" : "text-blue-900")}>Hämta från Garmin Connect&trade;</p>
+                <p className={cn("font-black tracking-tight", isGlass ? "text-white" : "text-blue-900")}>
+                  {text(locale, 'Hämta från Garmin Connect', 'Import from Garmin Connect')}&trade;
+                </p>
                 <p className={cn("text-xs font-medium", isGlass ? "text-slate-400" : "text-blue-700")}>
-                  HRV, puls och sömndata finns tillgängligt.
+                  {text(
+                    locale,
+                    'HRV, puls och sömndata finns tillgängligt.',
+                    'HRV, heart rate, and sleep data are available.'
+                  )}
                 </p>
               </div>
             </div>
             {garminApplied ? (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-in zoom-in-95">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Klart</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {text(locale, 'Klart', 'Done')}
+                </span>
               </div>
             ) : (
               <Button
@@ -580,7 +600,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                 )}
                 onClick={applyGarminData}
               >
-                Tillämpa
+                {text(locale, 'Tillämpa', 'Apply')}
               </Button>
             )}
           </div>
@@ -607,7 +627,11 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                   Heart Rate Variability
                 </GlassCardTitle>
                 <GlassCardDescription className="text-slate-400">
-                  Valfritt - hämta från Garmin Connect eller fyll i manuellt.
+                  {text(
+                    locale,
+                    'Valfritt - hämta från Garmin Connect eller fyll i manuellt.',
+                    'Optional - import from Garmin Connect or fill in manually.'
+                  )}
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent className="space-y-6">
@@ -621,7 +645,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                         <FormControl>
                           <Input
                             type="number"
-                            placeholder="t.ex. 65"
+                            placeholder={text(locale, 't.ex. 65', 'e.g. 65')}
                             className="bg-white/5 border-white/10 h-12 text-lg font-black"
                             {...field}
                             onChange={e =>
@@ -642,21 +666,23 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                     name="hrvQuality"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">Kvalitet</FormLabel>
+                        <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                          {text(locale, 'Kvalitet', 'Quality')}
+                        </FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value ?? undefined}
                         >
                           <FormControl>
                             <SelectTrigger className="bg-white/5 border-white/10 h-12">
-                              <SelectValue placeholder="Välj kvalitet" />
+                              <SelectValue placeholder={text(locale, 'Välj kvalitet', 'Choose quality')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="bg-slate-900 border-white/10">
-                            <SelectItem value="EXCELLENT">Utmärkt</SelectItem>
-                            <SelectItem value="GOOD">Bra</SelectItem>
-                            <SelectItem value="FAIR">Godkänd</SelectItem>
-                            <SelectItem value="POOR">Dålig</SelectItem>
+                            <SelectItem value="EXCELLENT">{text(locale, 'Utmärkt', 'Excellent')}</SelectItem>
+                            <SelectItem value="GOOD">{text(locale, 'Bra', 'Good')}</SelectItem>
+                            <SelectItem value="FAIR">{text(locale, 'Godkänd', 'Fair')}</SelectItem>
+                            <SelectItem value="POOR">{text(locale, 'Dålig', 'Poor')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -1037,8 +1063,12 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                     <AlertCircle className="h-8 w-8 text-red-500" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black tracking-tight uppercase text-slate-900 dark:text-white transition-colors">Skaderespons aktiverad</h3>
-                    <p className="text-slate-400 font-medium text-sm">Dina pass har justerats automatiskt.</p>
+                    <h3 className="text-xl font-black tracking-tight uppercase text-slate-900 dark:text-white transition-colors">
+                      {text(locale, 'Skaderespons aktiverad', 'Injury response activated')}
+                    </h3>
+                    <p className="text-slate-400 font-medium text-sm">
+                      {text(locale, 'Dina pass har justerats automatiskt.', 'Your workouts have been adjusted automatically.')}
+                    </p>
                   </div>
                 </div>
 
@@ -1050,7 +1080,9 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
 
                   {injuryResponse.summary?.programAdjustment && (
                     <div className="pt-4 border-t border-white/5">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Programjustering:</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                        {text(locale, 'Programjustering:', 'Program adjustment:')}
+                      </p>
                       <p className="font-bold p-3 rounded-xl border text-slate-900 dark:text-white bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 transition-colors">
                         {injuryResponse.summary.programAdjustment}
                       </p>
@@ -1058,9 +1090,12 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                   )}
 
                   <div className="flex items-center justify-between pt-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">Coach har notifierats</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
+                      {text(locale, 'Coach har notifierats', 'Coach notified')}
+                    </span>
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      {injuryResponse.injuryResponse?.workoutsModified || 0} pass modifierade
+                      {injuryResponse.injuryResponse?.workoutsModified || 0}{' '}
+                      {text(locale, 'pass modifierade', 'workouts modified')}
                     </span>
                   </div>
                 </div>
@@ -1095,7 +1130,9 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                 </div>
 
                 <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Rekommendation</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                    {text(locale, 'Rekommendation', 'Recommendation')}
+                  </p>
                   <p className="font-bold leading-relaxed text-slate-900 dark:text-white transition-colors">{readinessResult.recommendation}</p>
                 </div>
               </div>
