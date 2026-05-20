@@ -40,6 +40,11 @@ describe('generateHockeyProgram', () => {
     expect(instructions).toContain('Match')
     expect(instructions).toMatch(/Höft|höft/)
     expect(instructions).toMatch(/reaktion|Reaktion/)
+    expect(program.planningMetadata).toMatchObject({
+      sport: 'TEAM_ICE_HOCKEY',
+      position: 'goalie',
+      seasonPhase: 'in_season',
+    })
   })
 
   it('backs off off-ice load for high game and ice-time load', async () => {
@@ -62,5 +67,12 @@ describe('generateHockeyProgram', () => {
 
     expect(conditioning?.duration ?? 0).toBeLessThan(45)
     expect(program.notes).toContain('Hög istid/bytesbelastning')
+    expect(program.planningMetadata).toMatchObject({
+      sport: 'TEAM_ICE_HOCKEY',
+      position: 'defense',
+      hockey: {
+        matchesThisWeek: 2,
+      },
+    })
   })
 })

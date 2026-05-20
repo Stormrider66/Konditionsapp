@@ -6,7 +6,7 @@ import { generateSportProgram, SportProgramParams, DataSourceType } from '@/lib/
 import { getProgramStartDate, getProgramEndDate } from '@/lib/program-generator/date-utils'
 import { canAccessClient, requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-import { WorkoutType, WorkoutIntensity, SportType } from '@prisma/client'
+import { Prisma, WorkoutType, WorkoutIntensity, SportType } from '@prisma/client'
 import { logDebug, logError } from '@/lib/logger-console'
 import { Client as AppClient, Test as AppTest } from '@/types'
 import {
@@ -208,6 +208,7 @@ export async function POST(request: NextRequest) {
           endDate: programData.endDate,
           description: programData.notes || null,
           generatedFromTest: !!programData.testId,
+          planningMetadata: programData.planningMetadata as Prisma.InputJsonValue | undefined,
           weeks: {
             create: programData.weeks?.map((week) => ({
               weekNumber: week.weekNumber,
@@ -556,6 +557,7 @@ export async function POST(request: NextRequest) {
         endDate: programData.endDate,
         description: programData.notes || null,
         generatedFromTest: true,
+        planningMetadata: programData.planningMetadata as Prisma.InputJsonValue | undefined,
         weeks: {
           create: programData.weeks.map((week) => ({
             weekNumber: week.weekNumber,

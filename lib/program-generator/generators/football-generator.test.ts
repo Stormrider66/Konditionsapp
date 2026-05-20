@@ -38,6 +38,15 @@ describe('generateFootballProgram', () => {
     expect(workouts.some((workout) => workout.name.includes('MD-1'))).toBe(true)
     expect(workouts.some((workout) => workout.name === 'Match')).toBe(true)
     expect(workouts.some((workout) => workout.instructions?.includes('FIFA 11+'))).toBe(true)
+    expect(program.planningMetadata).toMatchObject({
+      sport: 'TEAM_FOOTBALL',
+      position: 'midfielder',
+      seasonPhase: 'in_season',
+      football: {
+        matchesPerWeek: 1,
+        sessionsPerWeek: 5,
+      },
+    })
   })
 
   it('reduces hard conditioning when GPS sprint load is high', async () => {
@@ -59,5 +68,10 @@ describe('generateFootballProgram', () => {
 
     expect(conditioning?.duration).toBeLessThan(55)
     expect(program.notes).toContain('GPS-belastning är hög')
+    expect(program.planningMetadata).toMatchObject({
+      sport: 'TEAM_FOOTBALL',
+      position: 'forward',
+      intensityMultiplier: expect.any(Number),
+    })
   })
 })

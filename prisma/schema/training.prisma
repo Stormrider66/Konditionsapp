@@ -111,6 +111,7 @@ model TrainingProgram {
 
   // Generated from which test?
   generatedFromTest Boolean @default(false)
+  planningMetadata  Json?
 
   // AI-generated infographic
   infographicUrl   String? // Supabase Storage public URL

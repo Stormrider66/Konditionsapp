@@ -7,6 +7,7 @@ import {
 } from '@/lib/training-engine/hockey'
 import { logger } from '@/lib/logger'
 import { buildHockeyPlanningContext, type HockeyPlanningContext } from '../team-sports/planning-context'
+import { buildHockeyPlanningMetadata } from '../team-sports/planning-metadata'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -71,6 +72,7 @@ export async function generateHockeyProgram(
       ...planning.trainingLoad.notes,
       ...planning.loadGuidance.notes,
     ].join(' '),
+    planningMetadata: buildHockeyPlanningMetadata(planning),
     weeks,
   }
 }

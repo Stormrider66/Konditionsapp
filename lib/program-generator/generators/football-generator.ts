@@ -7,6 +7,7 @@ import {
 } from '@/lib/training-engine/football'
 import { logger } from '@/lib/logger'
 import { buildFootballPlanningContext, type FootballPlanningContext } from '../team-sports/planning-context'
+import { buildFootballPlanningMetadata } from '../team-sports/planning-metadata'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -65,6 +66,7 @@ export async function generateFootballProgram(
       'Programmet följer matchveckans rytm och inkluderar positionsspecifik skadeprevention.',
       ...planning.loadGuidance.notes,
     ].join(' '),
+    planningMetadata: buildFootballPlanningMetadata(planning),
     weeks,
   }
 }

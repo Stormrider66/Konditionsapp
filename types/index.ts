@@ -1159,6 +1159,7 @@ export interface TrainingProgram {
   isActive: boolean
   isTemplate: boolean
   generatedFromTest: boolean
+  planningMetadata?: unknown
   createdAt: Date
   updatedAt: Date
   client?: Client
@@ -1312,6 +1313,7 @@ export interface CreateTrainingProgramDTO {
   startDate: Date
   endDate: Date
   notes?: string
+  planningMetadata?: unknown
   weeks?: CreateTrainingWeekDTO[]
 }
 
