@@ -10,6 +10,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { getSession } from '@/lib/interval-session/session-service'
 import { IntervalAnalysisView } from '@/components/coach/interval-session/IntervalAnalysisView'
 import { Button } from '@/components/ui/button'
+import { getLocale, type Locale } from '@/i18n/server'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -22,6 +23,8 @@ interface PageProps {
 
 export default async function IntervalSessionAnalysisPage({ params }: PageProps) {
   const { businessSlug, id } = await params
+  const locale = (await getLocale()) as Locale
+  const isSv = locale === 'sv'
   const user = await requireCoach()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -46,12 +49,13 @@ export default async function IntervalSessionAnalysisPage({ params }: PageProps)
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2 dark:text-white">
             <BarChart3 className="h-6 w-6" />
-            {session.name || 'Intervallsession'} - Analys
+            {session.name || (isSv ? 'Intervallsession' : 'Interval session')} - {isSv ? 'Analys' : 'Analysis'}
           </h1>
           <p className="text-sm text-muted-foreground">
             {session.teamName && `${session.teamName} | `}
-            {new Date(session.startedAt).toLocaleDateString('sv-SE')}
-            {session.participantCount > 0 && ` | ${session.participantCount} atleter`}
+            {new Date(session.startedAt).toLocaleDateString(isSv ? 'sv-SE' : 'en-US')}
+            {session.participantCount > 0 &&
+              ` | ${session.participantCount} ${isSv ? 'atleter' : session.participantCount === 1 ? 'athlete' : 'athletes'}`}
           </p>
         </div>
       </div>
