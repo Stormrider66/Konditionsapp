@@ -274,34 +274,34 @@ function generateFunFacts(data: {
 
   if (data.topFoods[0]) {
     facts.push(
-      `Din favoritmat var ${data.topFoods[0].name} — du åt det ${data.topFoods[0].count} gånger!`
+      `Your favorite food was ${data.topFoods[0].name} — you ate it ${data.topFoods[0].count} times!`
     )
     const kg = data.topFoods[0].totalGrams / 1000
     if (kg >= 1) {
       facts.push(
-        `Du konsumerade ${kg.toFixed(1)} kg ${data.topFoods[0].name} totalt`
+        `You logged ${kg.toFixed(1)} kg of ${data.topFoods[0].name} in total`
       )
     }
   }
 
   if (data.totalCalories > 0) {
     const bananas = Math.round(data.totalCalories / 89)
-    facts.push(`Dina ${data.totalCalories.toLocaleString()} kcal motsvarar ungefär ${bananas.toLocaleString()} bananer`)
+    facts.push(`Your ${data.totalCalories.toLocaleString()} kcal equals roughly ${bananas.toLocaleString()} bananas`)
   }
 
   if (data.totalProtein > 0) {
     const chickenBreasts = Math.round(data.totalProtein / 31) // ~31g protein per chicken breast
-    facts.push(`Du åt ${data.totalProtein}g protein — det är som ${chickenBreasts} kycklingbröst`)
+    facts.push(`You logged ${data.totalProtein}g of protein — about ${chickenBreasts} chicken breasts`)
   }
 
   if (data.longestStreak > 1) {
-    facts.push(`Din längsta loggningssvit var ${data.longestStreak} dagar i rad`)
+    facts.push(`Your longest logging streak was ${data.longestStreak} days in a row`)
   }
 
   if (data.uniqueFoods >= 20) {
-    facts.push(`Du åt ${data.uniqueFoods} olika livsmedel — bra variation!`)
+    facts.push(`You logged ${data.uniqueFoods} different foods — good variety!`)
   } else if (data.uniqueFoods >= 10) {
-    facts.push(`Du åt ${data.uniqueFoods} olika livsmedel`)
+    facts.push(`You logged ${data.uniqueFoods} different foods`)
   }
 
   return facts
