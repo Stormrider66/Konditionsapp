@@ -52,6 +52,11 @@ export async function POST(request: NextRequest) {
             nutritionGoal: true,
           },
         },
+        user: {
+          select: {
+            language: true,
+          },
+        },
       },
     })
 
@@ -188,6 +193,7 @@ export async function POST(request: NextRequest) {
         : undefined,
       weightKg: client.weight,
       currentTime: now,
+      locale: athleteAccount.user.language === 'sv' ? 'sv' : 'en',
     })
 
     logger.info('Generated nutrition tip', {

@@ -313,6 +313,7 @@ export interface TipGeneratorInput {
   goal?: NutritionGoalInput
   weightKg: number
   currentTime: Date
+  locale?: 'en' | 'sv'
 }
 
 export interface GuidanceGeneratorInput {
