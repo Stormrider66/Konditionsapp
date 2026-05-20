@@ -15,6 +15,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ErgometerTestProtocol } from '@prisma/client';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Trash2, Loader2, Info, Zap, Timer, Activity } from 'lucide-react';
+import { Loader2, Info, Zap, Timer, Activity } from 'lucide-react';
 
 interface Athlete {
   id: string;
@@ -38,10 +39,26 @@ interface Concept2RowTestFormProps {
 
 // ==================== ZOD SCHEMAS ====================
 
-const tt2kSchema = z.object({
+function isSwedish(locale: string) {
+  return locale === 'sv';
+}
+
+function localized(locale: string, sv: string, en: string) {
+  return isSwedish(locale) ? sv : en;
+}
+
+function athleteRequired(locale: string) {
+  return localized(locale, 'Välj en atlet', 'Select an athlete');
+}
+
+function testDateRequired(locale: string) {
+  return localized(locale, 'Ange testdatum', 'Enter a test date');
+}
+
+const createTt2kSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.TT_2K),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   dragFactor: z.number().min(80).max(200).optional(),
   rawData: z.object({
     distance: z.literal(2000),
@@ -59,10 +76,10 @@ const tt2kSchema = z.object({
   notes: z.string().optional(),
 });
 
-const sevenStrokeSchema = z.object({
+const createSevenStrokeSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.PEAK_POWER_7_STROKE),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   dragFactor: z.number().min(80).max(200).optional(),
   rawData: z.object({
     strokes: z.array(z.object({
@@ -78,10 +95,10 @@ const sevenStrokeSchema = z.object({
   notes: z.string().optional(),
 });
 
-const interval4x4Schema = z.object({
+const createInterval4x4Schema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.INTERVAL_4X4),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   dragFactor: z.number().min(80).max(200).optional(),
   rawData: z.object({
     intervals: z.array(z.object({
@@ -102,10 +119,10 @@ const interval4x4Schema = z.object({
   notes: z.string().optional(),
 });
 
-const cp3MinSchema = z.object({
+const createCp3MinSchema = (locale: string) => z.object({
   testProtocol: z.literal(ErgometerTestProtocol.CP_3MIN_ALL_OUT),
-  clientId: z.string().min(1, 'Valj en atlet'),
-  testDate: z.string().min(1, 'Ange testdatum'),
+  clientId: z.string().min(1, athleteRequired(locale)),
+  testDate: z.string().min(1, testDateRequired(locale)),
   dragFactor: z.number().min(80).max(200).optional(),
   rawData: z.object({
     powerSamples: z.array(z.number()).min(170).max(190),
@@ -118,20 +135,25 @@ const cp3MinSchema = z.object({
   notes: z.string().optional(),
 });
 
-type TT2KData = z.infer<typeof tt2kSchema>;
-type SevenStrokeData = z.infer<typeof sevenStrokeSchema>;
-type Interval4x4Data = z.infer<typeof interval4x4Schema>;
-type CP3MinData = z.infer<typeof cp3MinSchema>;
+type TT2KData = z.infer<ReturnType<typeof createTt2kSchema>>;
+type SevenStrokeData = z.infer<ReturnType<typeof createSevenStrokeSchema>>;
+type Interval4x4Data = z.infer<ReturnType<typeof createInterval4x4Schema>>;
+type CP3MinData = z.infer<ReturnType<typeof createCp3MinSchema>>;
 
 export function Concept2RowTestForm({ athletes, onSubmit, submitting }: Concept2RowTestFormProps) {
   const [protocol, setProtocol] = useState<'TT_2K' | '7_STROKE' | 'INTERVAL_4X4' | 'CP_3MIN'>('TT_2K');
+  const locale = useLocale();
+  const t = (sv: string, en: string) => localized(locale, sv, en);
 
   return (
     <div className="space-y-4">
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Concept2 roddmaskin testar uthallighet och kraft. Valj protokoll baserat pa vad du vill mata.
+          {t(
+            'Concept2 roddmaskin testar uthållighet och kraft. Välj protokoll baserat på vad du vill mäta.',
+            'Concept2 rowing tests endurance and power. Select a protocol based on what you want to measure.'
+          )}
         </AlertDescription>
       </Alert>
 
@@ -156,19 +178,19 @@ export function Concept2RowTestForm({ athletes, onSubmit, submitting }: Concept2
         </TabsList>
 
         <TabsContent value="TT_2K">
-          <TT2KForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <TT2KForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="7_STROKE">
-          <SevenStrokeForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <SevenStrokeForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="INTERVAL_4X4">
-          <Interval4x4Form athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <Interval4x4Form athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
 
         <TabsContent value="CP_3MIN">
-          <CP3MinForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} />
+          <CP3MinForm athletes={athletes} onSubmit={onSubmit} submitting={submitting} locale={locale} />
         </TabsContent>
       </Tabs>
     </div>
@@ -181,13 +203,16 @@ function TT2KForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<TT2KData>({
-    resolver: zodResolver(tt2kSchema),
+    resolver: zodResolver(createTt2kSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.TT_2K,
       testDate: new Date().toISOString().split('T')[0],
@@ -206,12 +231,6 @@ function TT2KForm({
     onSubmit(data);
   }
 
-  // Helper to convert MM:SS.s to seconds
-  function paceToSeconds(paceStr: string): number {
-    const [min, sec] = paceStr.split(':').map(parseFloat);
-    return min * 60 + (sec || 0);
-  }
-
   // Helper to convert seconds to MM:SS.s
   function secondsToPace(seconds: number): string {
     const min = Math.floor(seconds / 60);
@@ -224,7 +243,10 @@ function TT2KForm({
       <CardHeader>
         <CardTitle>2000m Time Trial</CardTitle>
         <CardDescription>
-          Standard roddtest for att berakna troskelvarden. Rodd 2000m sa snabbt som mojligt.
+          {t(
+            'Standard roddtest för att beräkna tröskelvärden. Rodd 2000 m så snabbt som möjligt.',
+            'Standard rowing test for estimating threshold values. Row 2000 m as fast as possible.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -237,11 +259,11 @@ function TT2KForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -262,7 +284,7 @@ function TT2KForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -286,7 +308,7 @@ function TT2KForm({
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>Typiskt 110-130 for rodd</FormDescription>
+                    <FormDescription>{t('Typiskt 110-130 för rodd', 'Typically 110-130 for rowing')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -300,7 +322,7 @@ function TT2KForm({
                 name="rawData.time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Total tid (sek)</FormLabel>
+                    <FormLabel>{t('Total tid (sek)', 'Total time (sec)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -322,7 +344,7 @@ function TT2KForm({
                 name="rawData.avgPace"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitttempo (sek/500m)</FormLabel>
+                    <FormLabel>{t('Snitttempo (sek/500 m)', 'Average pace (sec/500 m)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -344,7 +366,7 @@ function TT2KForm({
                 name="rawData.avgPower"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snitteffekt (W)</FormLabel>
+                    <FormLabel>{t('Snitteffekt (W)', 'Average power (W)')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -364,7 +386,7 @@ function TT2KForm({
                 name="rawData.avgStrokeRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Takttag/min</FormLabel>
+                    <FormLabel>{t('Takttag/min', 'Stroke rate/min')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -384,7 +406,7 @@ function TT2KForm({
                 name="rawData.avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -404,7 +426,7 @@ function TT2KForm({
                 name="rawData.maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -437,7 +459,7 @@ function TT2KForm({
                         onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       />
                     </FormControl>
-                    <FormDescription>Upplevd anstrangning</FormDescription>
+                    <FormDescription>{t('Upplevd ansträngning', 'Perceived exertion')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -448,9 +470,9 @@ function TT2KForm({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Valfria anteckningar..." />
+                      <Input {...field} placeholder={t('Valfria anteckningar...', 'Optional notes...')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -462,10 +484,10 @@ function TT2KForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -481,13 +503,16 @@ function SevenStrokeForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<SevenStrokeData>({
-    resolver: zodResolver(sevenStrokeSchema),
+    resolver: zodResolver(createSevenStrokeSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.PEAK_POWER_7_STROKE,
       testDate: new Date().toISOString().split('T')[0],
@@ -522,7 +547,10 @@ function SevenStrokeForm({
       <CardHeader>
         <CardTitle>7-Stroke Max Power Test</CardTitle>
         <CardDescription>
-          Maximal krafttest: 7 tag med full kraft fran stillastående. Mater maximal neuromuskulär effekt.
+          {t(
+            'Maximalt krafttest: 7 tag med full kraft från stillastående. Mäter maximal neuromuskulär effekt.',
+            'Max power test: 7 full-power strokes from a standstill. Measures maximal neuromuscular power.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -535,11 +563,11 @@ function SevenStrokeForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -560,7 +588,7 @@ function SevenStrokeForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -584,7 +612,7 @@ function SevenStrokeForm({
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>Hogt for krafttest (130+)</FormDescription>
+                    <FormDescription>{t('Högt för krafttest (130+)', 'High for power testing (130+)')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -593,12 +621,12 @@ function SevenStrokeForm({
 
             {/* Stroke Data */}
             <div className="space-y-4">
-              <h4 className="font-medium">Tagdata (7 tag)</h4>
+              <h4 className="font-medium">{t('Tagdata (7 tag)', 'Stroke data (7 strokes)')}</h4>
               <div className="grid grid-cols-7 gap-2">
                 {fields.map((field, index) => (
                   <div key={field.id} className="space-y-2">
                     <div className="text-center text-sm font-medium text-muted-foreground">
-                      Tag {index + 1}
+                      {t('Tag', 'Stroke')} {index + 1}
                     </div>
                     <FormField
                       control={form.control}
@@ -630,7 +658,7 @@ function SevenStrokeForm({
               name="rawData.bodyWeight"
               render={({ field }) => (
                 <FormItem className="max-w-xs">
-                  <FormLabel>Kroppsvikt (kg)</FormLabel>
+                  <FormLabel>{t('Kroppsvikt (kg)', 'Body weight (kg)')}</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -641,7 +669,7 @@ function SevenStrokeForm({
                       onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                     />
                   </FormControl>
-                  <FormDescription>For W/kg berakning</FormDescription>
+                  <FormDescription>{t('För W/kg-beräkning', 'For W/kg calculation')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -651,10 +679,10 @@ function SevenStrokeForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -670,13 +698,16 @@ function Interval4x4Form({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<Interval4x4Data>({
-    resolver: zodResolver(interval4x4Schema),
+    resolver: zodResolver(createInterval4x4Schema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.INTERVAL_4X4,
       testDate: new Date().toISOString().split('T')[0],
@@ -707,9 +738,12 @@ function Interval4x4Form({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>4x4min Intervalltest</CardTitle>
+        <CardTitle>{t('4x4 min intervalltest', '4x4 min Interval Test')}</CardTitle>
         <CardDescription>
-          Fyra 4-minuters intervall med 3 minuters aktiv vila. Uppskattar tröskeleffekt (~95% av snitteffekt).
+          {t(
+            'Fyra 4-minutersintervaller med 3 minuters aktiv vila. Uppskattar tröskeleffekt (~95% av snitteffekt).',
+            'Four 4-minute intervals with 3 minutes of active recovery. Estimates threshold power (~95% of average power).'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -722,11 +756,11 @@ function Interval4x4Form({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -747,7 +781,7 @@ function Interval4x4Form({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -779,16 +813,16 @@ function Interval4x4Form({
 
             {/* Interval Data */}
             <div className="space-y-4">
-              <h4 className="font-medium">Intervalldata</h4>
+              <h4 className="font-medium">{t('Intervalldata', 'Interval data')}</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-2 px-2">Intervall</th>
-                      <th className="text-left py-2 px-2">Effekt (W)</th>
-                      <th className="text-left py-2 px-2">Snittpuls</th>
-                      <th className="text-left py-2 px-2">Tempo (sek/500m)</th>
-                      <th className="text-left py-2 px-2">Takttag/min</th>
+                      <th className="text-left py-2 px-2">{t('Intervall', 'Interval')}</th>
+                      <th className="text-left py-2 px-2">{t('Effekt (W)', 'Power (W)')}</th>
+                      <th className="text-left py-2 px-2">{t('Snittpuls', 'Average HR')}</th>
+                      <th className="text-left py-2 px-2">{t('Tempo (sek/500 m)', 'Pace (sec/500 m)')}</th>
+                      <th className="text-left py-2 px-2">{t('Takttag/min', 'Stroke rate/min')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -900,9 +934,9 @@ function Interval4x4Form({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Valfria anteckningar..." />
+                      <Input {...field} placeholder={t('Valfria anteckningar...', 'Optional notes...')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -914,10 +948,10 @@ function Interval4x4Form({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
@@ -933,13 +967,16 @@ function CP3MinForm({
   athletes,
   onSubmit,
   submitting,
+  locale,
 }: {
   athletes: Athlete[];
   onSubmit: (data: Record<string, unknown>) => void;
   submitting: boolean;
+  locale: string;
 }) {
+  const t = (sv: string, en: string) => localized(locale, sv, en);
   const form = useForm<CP3MinData>({
-    resolver: zodResolver(cp3MinSchema),
+    resolver: zodResolver(createCp3MinSchema(locale)),
     defaultValues: {
       testProtocol: ErgometerTestProtocol.CP_3MIN_ALL_OUT,
       testDate: new Date().toISOString().split('T')[0],
@@ -950,7 +987,7 @@ function CP3MinForm({
     },
   });
 
-  const [manualEntry, setManualEntry] = useState(true);
+  const manualEntry = true;
   const [endPower, setEndPower] = useState<number>(200);
   const [peakPower, setPeakPower] = useState<number>(400);
 
@@ -975,7 +1012,10 @@ function CP3MinForm({
       <CardHeader>
         <CardTitle>3-Minute All-Out Test</CardTitle>
         <CardDescription>
-          Allt-ut test for att bestamma Critical Power (CP) och W&apos;. CP = sista 30s snitt, W&apos; = arbete over CP.
+          {t(
+            'All-out-test för att bestämma Critical Power (CP) och W\'. CP = sista 30 s snitt, W\' = arbete över CP.',
+            'All-out test for determining Critical Power (CP) and W\'. CP = final 30 s average, W\' = work above CP.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -988,11 +1028,11 @@ function CP3MinForm({
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Atlet</FormLabel>
+                    <FormLabel>{t('Atlet', 'Athlete')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Valj atlet" />
+                          <SelectValue placeholder={t('Välj atlet', 'Select athlete')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -1013,7 +1053,7 @@ function CP3MinForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel>{t('Testdatum', 'Test date')}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -1047,13 +1087,16 @@ function CP3MinForm({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                Ange toppeffekt (forsta sekunderna) och sluteffekt (sista 30s snitt) for att uppskatta CP-modellen.
+                {t(
+                  'Ange toppeffekt (första sekunderna) och sluteffekt (sista 30 s snitt) för att uppskatta CP-modellen.',
+                  'Enter peak power (first seconds) and end power (final 30 s average) to estimate the CP model.'
+                )}
               </AlertDescription>
             </Alert>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Toppeffekt (W)</label>
+                <label className="text-sm font-medium">{t('Toppeffekt (W)', 'Peak power (W)')}</label>
                 <Input
                   type="number"
                   min={200}
@@ -1061,11 +1104,13 @@ function CP3MinForm({
                   value={peakPower}
                   onChange={(e) => setPeakPower(parseInt(e.target.value))}
                 />
-                <p className="text-xs text-muted-foreground">Hogsta effekt i testets borjan</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('Högsta effekt i testets början', 'Highest power at the start of the test')}
+                </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Sluteffekt / CP (W)</label>
+                <label className="text-sm font-medium">{t('Sluteffekt / CP (W)', 'End power / CP (W)')}</label>
                 <Input
                   type="number"
                   min={50}
@@ -1073,7 +1118,9 @@ function CP3MinForm({
                   value={endPower}
                   onChange={(e) => setEndPower(parseInt(e.target.value))}
                 />
-                <p className="text-xs text-muted-foreground">Snitteffekt sista 30 sekunderna = CP</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('Snitteffekt sista 30 sekunderna = CP', 'Average power over the final 30 seconds = CP')}
+                </p>
               </div>
             </div>
 
@@ -1084,7 +1131,7 @@ function CP3MinForm({
                 name="rawData.avgHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Snittpuls</FormLabel>
+                    <FormLabel>{t('Snittpuls', 'Average HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -1104,7 +1151,7 @@ function CP3MinForm({
                 name="rawData.maxHR"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Maxpuls</FormLabel>
+                    <FormLabel>{t('Maxpuls', 'Max HR')}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -1147,9 +1194,9 @@ function CP3MinForm({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Valfria anteckningar..." />
+                      <Input {...field} placeholder={t('Valfria anteckningar...', 'Optional notes...')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1161,10 +1208,10 @@ function CP3MinForm({
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Bearbetar...
+                  {t('Bearbetar...', 'Processing...')}
                 </>
               ) : (
-                'Skicka in test'
+                t('Skicka in test', 'Submit test')
               )}
             </Button>
           </form>
