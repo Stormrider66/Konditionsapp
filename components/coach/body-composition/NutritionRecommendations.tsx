@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -30,11 +29,9 @@ import {
   CheckCircle2,
   Loader2,
   Sparkles,
-  Info,
 } from 'lucide-react'
 import {
   generateNutritionPlan,
-  calculateTDEE,
   calculateHydration,
   getProteinRequirements,
   calculateWeightTimeline,
@@ -43,6 +40,11 @@ import {
   type MacroProfile,
   type NutritionPlan,
 } from '@/lib/ai/nutrition-calculator'
+import { useLocale } from 'next-intl'
+
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
 
 interface NutritionRecommendationsProps {
   clientId: string
@@ -59,32 +61,32 @@ interface NutritionRecommendationsProps {
   onGenerateAIPlan?: () => void
 }
 
-const ACTIVITY_LEVELS: { value: ActivityLevel; label: string; description: string }[] = [
-  { value: 'SEDENTARY', label: 'Stillasittande', description: 'Lite eller ingen träning' },
-  { value: 'LIGHT', label: 'Lätt aktiv', description: 'Träning 1-3 dagar/vecka' },
-  { value: 'MODERATE', label: 'Måttligt aktiv', description: 'Träning 3-5 dagar/vecka' },
-  { value: 'ACTIVE', label: 'Mycket aktiv', description: 'Hård träning 6-7 dagar/vecka' },
-  { value: 'VERY_ACTIVE', label: 'Extremt aktiv', description: 'Mycket hård träning, fysiskt jobb' },
-  { value: 'ATHLETE', label: 'Elitidrottare', description: '2 pass/dag, elitträning' },
+const getActivityLevels = (locale: AppLocale): { value: ActivityLevel; label: string; description: string }[] => [
+  { value: 'SEDENTARY', label: copy(locale, 'Sedentary', 'Stillasittande'), description: copy(locale, 'Little or no training', 'Lite eller ingen träning') },
+  { value: 'LIGHT', label: copy(locale, 'Lightly active', 'Lätt aktiv'), description: copy(locale, 'Training 1-3 days/week', 'Träning 1-3 dagar/vecka') },
+  { value: 'MODERATE', label: copy(locale, 'Moderately active', 'Måttligt aktiv'), description: copy(locale, 'Training 3-5 days/week', 'Träning 3-5 dagar/vecka') },
+  { value: 'ACTIVE', label: copy(locale, 'Very active', 'Mycket aktiv'), description: copy(locale, 'Hard training 6-7 days/week', 'Hård träning 6-7 dagar/vecka') },
+  { value: 'VERY_ACTIVE', label: copy(locale, 'Extremely active', 'Extremt aktiv'), description: copy(locale, 'Very hard training, physical job', 'Mycket hård träning, fysiskt jobb') },
+  { value: 'ATHLETE', label: copy(locale, 'Elite athlete', 'Elitidrottare'), description: copy(locale, '2 sessions/day, elite training', '2 pass/dag, elitträning') },
 ]
 
-const CALORIC_GOALS: { value: CaloricGoal; label: string; description: string }[] = [
-  { value: 'AGGRESSIVE_LOSS', label: 'Snabb viktnedgång', description: '~0.75 kg/vecka' },
-  { value: 'MODERATE_LOSS', label: 'Viktnedgång', description: '~0.5 kg/vecka' },
-  { value: 'MILD_LOSS', label: 'Lätt viktnedgång', description: '~0.25 kg/vecka' },
-  { value: 'MAINTAIN', label: 'Bibehåll vikt', description: 'Balanserat intag' },
-  { value: 'MILD_GAIN', label: 'Lätt viktökning', description: '~0.25 kg/vecka' },
-  { value: 'MODERATE_GAIN', label: 'Viktökning', description: '~0.5 kg/vecka' },
-  { value: 'AGGRESSIVE_GAIN', label: 'Snabb viktökning', description: '~0.75 kg/vecka (bulking)' },
+const getCaloricGoals = (locale: AppLocale): { value: CaloricGoal; label: string; description: string }[] => [
+  { value: 'AGGRESSIVE_LOSS', label: copy(locale, 'Fast weight loss', 'Snabb viktnedgång'), description: copy(locale, '~0.75 kg/week', '~0.75 kg/vecka') },
+  { value: 'MODERATE_LOSS', label: copy(locale, 'Weight loss', 'Viktnedgång'), description: copy(locale, '~0.5 kg/week', '~0.5 kg/vecka') },
+  { value: 'MILD_LOSS', label: copy(locale, 'Mild weight loss', 'Lätt viktnedgång'), description: copy(locale, '~0.25 kg/week', '~0.25 kg/vecka') },
+  { value: 'MAINTAIN', label: copy(locale, 'Maintain weight', 'Bibehåll vikt'), description: copy(locale, 'Balanced intake', 'Balanserat intag') },
+  { value: 'MILD_GAIN', label: copy(locale, 'Mild weight gain', 'Lätt viktökning'), description: copy(locale, '~0.25 kg/week', '~0.25 kg/vecka') },
+  { value: 'MODERATE_GAIN', label: copy(locale, 'Weight gain', 'Viktökning'), description: copy(locale, '~0.5 kg/week', '~0.5 kg/vecka') },
+  { value: 'AGGRESSIVE_GAIN', label: copy(locale, 'Fast weight gain', 'Snabb viktökning'), description: copy(locale, '~0.75 kg/week (bulking)', '~0.75 kg/vecka (bulking)') },
 ]
 
-const MACRO_PROFILES: { value: MacroProfile; label: string; description: string }[] = [
-  { value: 'BALANCED', label: 'Balanserad', description: '25% protein, 45% kolhydrater, 30% fett' },
-  { value: 'HIGH_PROTEIN', label: 'Högt protein', description: '35% protein, 40% kolhydrater, 25% fett' },
-  { value: 'LOW_CARB', label: 'Låg kolhydrat', description: '30% protein, 30% kolhydrater, 40% fett' },
-  { value: 'ENDURANCE', label: 'Uthållighet', description: '20% protein, 55% kolhydrater, 25% fett' },
-  { value: 'STRENGTH', label: 'Styrka', description: '30% protein, 45% kolhydrater, 25% fett' },
-  { value: 'KETO', label: 'Keto', description: '25% protein, 5% kolhydrater, 70% fett' },
+const getMacroProfiles = (locale: AppLocale): { value: MacroProfile; label: string; description: string }[] => [
+  { value: 'BALANCED', label: copy(locale, 'Balanced', 'Balanserad'), description: copy(locale, '25% protein, 45% carbs, 30% fat', '25% protein, 45% kolhydrater, 30% fett') },
+  { value: 'HIGH_PROTEIN', label: copy(locale, 'High protein', 'Högt protein'), description: copy(locale, '35% protein, 40% carbs, 25% fat', '35% protein, 40% kolhydrater, 25% fett') },
+  { value: 'LOW_CARB', label: copy(locale, 'Low carb', 'Låg kolhydrat'), description: copy(locale, '30% protein, 30% carbs, 40% fat', '30% protein, 30% kolhydrater, 40% fett') },
+  { value: 'ENDURANCE', label: copy(locale, 'Endurance', 'Uthållighet'), description: copy(locale, '20% protein, 55% carbs, 25% fat', '20% protein, 55% kolhydrater, 25% fett') },
+  { value: 'STRENGTH', label: copy(locale, 'Strength', 'Styrka'), description: copy(locale, '30% protein, 45% carbs, 25% fat', '30% protein, 45% kolhydrater, 25% fett') },
+  { value: 'KETO', label: 'Keto', description: copy(locale, '25% protein, 5% carbs, 70% fat', '25% protein, 5% kolhydrater, 70% fett') },
 ]
 
 export function NutritionRecommendations({
@@ -92,6 +94,10 @@ export function NutritionRecommendations({
   clientData,
   onGenerateAIPlan,
 }: NutritionRecommendationsProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const activityLevels = getActivityLevels(locale)
+  const caloricGoals = getCaloricGoals(locale)
+  const macroProfiles = getMacroProfiles(locale)
   const { toast } = useToast()
   const [isGeneratingAI, setIsGeneratingAI] = useState(false)
 
@@ -105,7 +111,7 @@ export function NutritionRecommendations({
     clientData.sport === 'STRENGTH' ? 'STRENGTH' : 'BALANCED'
   )
   const [targetWeight, setTargetWeight] = useState<number | null>(null)
-  const [customProtein, setCustomProtein] = useState<number | null>(null)
+  const [customProtein] = useState<number | null>(null)
 
   // Calculated values
   const [nutritionPlan, setNutritionPlan] = useState<NutritionPlan | null>(null)
@@ -188,19 +194,19 @@ export function NutritionRecommendations({
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte generera plan')
+        throw new Error(data.error || copy(locale, 'Could not generate plan', 'Kunde inte generera plan'))
       }
 
       toast({
-        title: 'AI-plan genererad',
-        description: 'En personlig näringsplan har skapats.',
+        title: copy(locale, 'AI plan generated', 'AI-plan genererad'),
+        description: copy(locale, 'A personalized nutrition plan has been created.', 'En personlig näringsplan har skapats.'),
       })
 
       onGenerateAIPlan?.()
     } catch (error) {
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy(locale, 'Error', 'Fel'),
+        description: error instanceof Error ? error.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -214,10 +220,10 @@ export function NutritionRecommendations({
         <CardContent className="py-8 text-center">
           <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
           <p className="text-muted-foreground">
-            Vikt och längd krävs för att beräkna näringsrekommendationer.
+            {copy(locale, 'Weight and height are required to calculate nutrition recommendations.', 'Vikt och längd krävs för att beräkna näringsrekommendationer.')}
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            Lägg till en kroppssammansättningsmätning först.
+            {copy(locale, 'Add a body composition measurement first.', 'Lägg till en kroppssammansättningsmätning först.')}
           </p>
         </CardContent>
       </Card>
@@ -231,16 +237,16 @@ export function NutritionRecommendations({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5" />
-            Beräkna näringsplan
+            {copy(locale, 'Calculate nutrition plan', 'Beräkna näringsplan')}
           </CardTitle>
           <CardDescription>
-            Anpassa inställningar för att få personliga rekommendationer
+            {copy(locale, 'Adjust settings to get personalized recommendations', 'Anpassa inställningar för att få personliga rekommendationer')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Aktivitetsnivå</Label>
+              <Label>{copy(locale, 'Activity level', 'Aktivitetsnivå')}</Label>
               <Select
                 value={activityLevel}
                 onValueChange={(v) => setActivityLevel(v as ActivityLevel)}
@@ -249,7 +255,7 @@ export function NutritionRecommendations({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ACTIVITY_LEVELS.map((level) => (
+                  {activityLevels.map((level) => (
                     <SelectItem key={level.value} value={level.value}>
                       <div>
                         <span className="font-medium">{level.label}</span>
@@ -264,7 +270,7 @@ export function NutritionRecommendations({
             </div>
 
             <div className="space-y-2">
-              <Label>Mål</Label>
+              <Label>{copy(locale, 'Goal', 'Mål')}</Label>
               <Select
                 value={goal}
                 onValueChange={(v) => setGoal(v as CaloricGoal)}
@@ -273,7 +279,7 @@ export function NutritionRecommendations({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CALORIC_GOALS.map((g) => (
+                  {caloricGoals.map((g) => (
                     <SelectItem key={g.value} value={g.value}>
                       <div className="flex items-center gap-2">
                         {g.value.includes('LOSS') ? (
@@ -295,7 +301,7 @@ export function NutritionRecommendations({
             </div>
 
             <div className="space-y-2">
-              <Label>Makroprofil</Label>
+              <Label>{copy(locale, 'Macro profile', 'Makroprofil')}</Label>
               <Select
                 value={macroProfile}
                 onValueChange={(v) => setMacroProfile(v as MacroProfile)}
@@ -304,7 +310,7 @@ export function NutritionRecommendations({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MACRO_PROFILES.map((profile) => (
+                  {macroProfiles.map((profile) => (
                     <SelectItem key={profile.value} value={profile.value}>
                       <div>
                         <span className="font-medium">{profile.label}</span>
@@ -320,7 +326,7 @@ export function NutritionRecommendations({
           {(goal.includes('LOSS') || goal.includes('GAIN')) && (
             <div className="space-y-2">
               <Label>
-                Målvikt: {targetWeight || clientData.weight} kg
+                {copy(locale, 'Target weight', 'Målvikt')}: {targetWeight || clientData.weight} kg
                 {targetWeight && targetWeight !== clientData.weight && (
                   <span className="text-muted-foreground ml-2">
                     ({targetWeight > clientData.weight ? '+' : ''}
@@ -337,11 +343,11 @@ export function NutritionRecommendations({
               />
               {timeline && (
                 <p className="text-sm text-muted-foreground">
-                  Uppskattad tid: {timeline.weeks} veckor med {Math.abs(timeline.dailyDeficit)} kcal/dag{' '}
-                  {timeline.dailyDeficit < 0 ? 'underskott' : 'överskott'}
+                  {copy(locale, 'Estimated time', 'Uppskattad tid')}: {timeline.weeks} {copy(locale, 'weeks', 'veckor')} {copy(locale, 'with', 'med')} {Math.abs(timeline.dailyDeficit)} kcal/{copy(locale, 'day', 'dag')}{' '}
+                  {timeline.dailyDeficit < 0 ? copy(locale, 'deficit', 'underskott') : copy(locale, 'surplus', 'överskott')}
                   {!timeline.achievable && (
                     <span className="text-yellow-600 ml-2">
-                      (kan vara för aggressivt)
+                      {copy(locale, '(may be too aggressive)', '(kan vara för aggressivt)')}
                     </span>
                   )}
                 </p>
@@ -359,7 +365,7 @@ export function NutritionRecommendations({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Flame className="h-5 w-5 text-orange-500" />
-                Dagligt kaloriintag
+                {copy(locale, 'Daily calorie intake', 'Dagligt kaloriintag')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -367,15 +373,15 @@ export function NutritionRecommendations({
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">BMR</p>
                   <p className="text-2xl font-bold">{nutritionPlan.bmr}</p>
-                  <p className="text-xs text-muted-foreground">kcal/dag i vila</p>
+                  <p className="text-xs text-muted-foreground">{copy(locale, 'kcal/day at rest', 'kcal/dag i vila')}</p>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">TDEE</p>
                   <p className="text-2xl font-bold">{nutritionPlan.tdee}</p>
-                  <p className="text-xs text-muted-foreground">total förbrukning</p>
+                  <p className="text-xs text-muted-foreground">{copy(locale, 'total expenditure', 'total förbrukning')}</p>
                 </div>
                 <div className="text-center p-4 bg-primary/10 rounded-lg border-2 border-primary">
-                  <p className="text-sm text-muted-foreground">Målkalorier</p>
+                  <p className="text-sm text-muted-foreground">{copy(locale, 'Target calories', 'Målkalorier')}</p>
                   <p className="text-3xl font-bold text-primary">
                     {nutritionPlan.targetCalories}
                   </p>
@@ -393,10 +399,10 @@ export function NutritionRecommendations({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Utensils className="h-5 w-5" />
-                Makronutrienter
+                {copy(locale, 'Macronutrients', 'Makronutrienter')}
               </CardTitle>
               <CardDescription>
-                Rekommenderad fördelning baserat på dina mål
+                {copy(locale, 'Recommended distribution based on your goals', 'Rekommenderad fördelning baserat på dina mål')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -422,7 +428,7 @@ export function NutritionRecommendations({
                   </div>
                   {proteinReqs && (
                     <p className="text-xs text-muted-foreground text-center">
-                      Rekommenderat: {proteinReqs.min}-{proteinReqs.max}g
+                      {copy(locale, 'Recommended', 'Rekommenderat')}: {proteinReqs.min}-{proteinReqs.max}g
                     </p>
                   )}
                 </div>
@@ -432,7 +438,7 @@ export function NutritionRecommendations({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Wheat className="h-5 w-5 text-amber-500" />
-                      <span className="font-medium">Kolhydrater</span>
+                      <span className="font-medium">{copy(locale, 'Carbs', 'Kolhydrater')}</span>
                     </div>
                     <Badge variant="secondary">
                       {nutritionPlan.macros.carbs.percentage}%
@@ -453,7 +459,7 @@ export function NutritionRecommendations({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Droplet className="h-5 w-5 text-yellow-500" />
-                      <span className="font-medium">Fett</span>
+                      <span className="font-medium">{copy(locale, 'Fat', 'Fett')}</span>
                     </div>
                     <Badge variant="secondary">
                       {nutritionPlan.macros.fat.percentage}%
@@ -488,8 +494,8 @@ export function NutritionRecommendations({
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
                   <span>Protein</span>
-                  <span>Kolhydrater</span>
-                  <span>Fett</span>
+                  <span>{copy(locale, 'Carbs', 'Kolhydrater')}</span>
+                  <span>{copy(locale, 'Fat', 'Fett')}</span>
                 </div>
               </div>
             </CardContent>
@@ -501,7 +507,7 @@ export function NutritionRecommendations({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Droplet className="h-5 w-5 text-blue-500" />
-                  Vätskebehov
+                  {copy(locale, 'Fluid needs', 'Vätskebehov')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -510,7 +516,7 @@ export function NutritionRecommendations({
                     {(hydration.withActivityML / 1000).toFixed(1)}L
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    <p>per dag baserat på din aktivitetsnivå</p>
+                    <p>{copy(locale, 'per day based on your activity level', 'per dag baserat på din aktivitetsnivå')}</p>
                     <p className="text-xs">Bas: {(hydration.baseML / 1000).toFixed(1)}L</p>
                   </div>
                 </div>
@@ -527,7 +533,7 @@ export function NutritionRecommendations({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-yellow-800">
                   <AlertTriangle className="h-5 w-5" />
-                  Varningar
+                  {copy(locale, 'Warnings', 'Varningar')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -549,7 +555,7 @@ export function NutritionRecommendations({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-green-500" />
-                  Rekommendationer
+                  {copy(locale, 'Recommendations', 'Rekommendationer')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -572,9 +578,9 @@ export function NutritionRecommendations({
                 <div className="flex items-center gap-3">
                   <Sparkles className="h-6 w-6 text-purple-500" />
                   <div>
-                    <p className="font-medium">Vill du ha en mer detaljerad plan?</p>
+                    <p className="font-medium">{copy(locale, 'Want a more detailed plan?', 'Vill du ha en mer detaljerad plan?')}</p>
                     <p className="text-sm text-muted-foreground">
-                      AI kan skapa en personlig närings- och måltidsplan baserad på dina mål.
+                      {copy(locale, 'AI can create a personalized nutrition and meal plan based on your goals.', 'AI kan skapa en personlig närings- och måltidsplan baserad på dina mål.')}
                     </p>
                   </div>
                 </div>
@@ -586,12 +592,12 @@ export function NutritionRecommendations({
                   {isGeneratingAI ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Genererar...
+                      {copy(locale, 'Generating...', 'Genererar...')}
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Generera AI-plan
+                      {copy(locale, 'Generate AI plan', 'Generera AI-plan')}
                     </>
                   )}
                 </Button>
