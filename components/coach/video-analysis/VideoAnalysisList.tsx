@@ -12,9 +12,6 @@ import {
 } from '@/components/ui/select'
 import {
   GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
   GlassCardContent,
 } from '@/components/ui/GlassCard'
 import { VideoUploader } from './VideoUploader'
@@ -27,6 +24,7 @@ import {
   Loader2,
   VideoOff,
 } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 
 interface Issue {
   issue: string
@@ -67,6 +65,8 @@ interface Exercise {
 }
 
 export function VideoAnalysisList() {
+  const searchParams = useSearchParams()
+  const initialAnalysisId = searchParams.get('analysisId')
   const [analyses, setAnalyses] = useState<VideoAnalysis[]>([])
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -137,9 +137,9 @@ export function VideoAnalysisList() {
   }
 
   useEffect(() => {
-    fetchAnalyses()
-    fetchAthletes()
-    fetchExercises()
+    void fetchAnalyses()
+    void fetchAthletes()
+    void fetchExercises()
   }, [fetchAnalyses])
 
   // Filter analyses by search query
@@ -155,15 +155,15 @@ export function VideoAnalysisList() {
 
   const handleUploadComplete = () => {
     setShowUploader(false)
-    fetchAnalyses()
+    void fetchAnalyses()
   }
 
   const handleDelete = () => {
-    fetchAnalyses()
+    void fetchAnalyses()
   }
 
   const handleAnalysisComplete = () => {
-    fetchAnalyses()
+    void fetchAnalyses()
   }
 
   return (
@@ -280,6 +280,7 @@ export function VideoAnalysisList() {
               analysis={analysis}
               onDelete={handleDelete}
               onAnalysisComplete={handleAnalysisComplete}
+              initiallyOpen={analysis.id === initialAnalysisId}
             />
           ))}
         </div>

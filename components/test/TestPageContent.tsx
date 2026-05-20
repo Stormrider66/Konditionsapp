@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { TestDataForm } from '@/components/forms/TestDataForm'
+import { TestDataForm, type StageVideoSummary } from '@/components/forms/TestDataForm'
 import { BioimpedanceForm } from '@/components/forms/BioimpedanceForm'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
@@ -14,7 +14,7 @@ import { PLATFORM_NAME } from '@/lib/branding/types'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell, Shuffle, Waves, Activity, Flame, Shield } from 'lucide-react'
+import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell, Shuffle, Waves, Activity, Flame, Shield, Video, CheckCircle2, ExternalLink, AlertTriangle } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -89,6 +89,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
   const [testType, setTestType] = useState<TestType>('RUNNING')
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string>('')
+  const [stageVideos, setStageVideos] = useState<StageVideoSummary[]>([])
   const { toast } = useToast()
 
   useEffect(() => {
@@ -287,6 +288,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
           ? lactateWarnings[0].message || t('Rapporten är klar, men kontrollera laktatkurvan.', 'The report is ready, but check the lactate curve.')
           : t('Testet har sparats och rapporten är klar.', 'The test has been saved and the report is ready.'),
       })
+      return { testId: savedTest.id }
     } catch (error) {
       console.error('Error during calculation:', error)
       toast({
@@ -430,6 +432,8 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                         testType={testType}
                         onSubmit={handleSubmit}
                         clientId={selectedClient.id}
+                        videoAnalysisBasePath={`${basePath}/video-analysis`}
+                        onStageVideosChange={setStageVideos}
                       />
                     </GlassCardContent>
                   </GlassCard>
@@ -596,13 +600,68 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
             )}
           </div>
           {reportData && (
-            <ReportTemplate
-              client={reportData.client}
-              test={reportData.test}
-              calculations={reportData.calculations}
-              testLeader={userName || t('Testledare', 'Test leader')}
-              organization={orgName}
-            />
+            <div className="space-y-6">
+              {stageVideos.length > 0 && (
+                <GlassCard glow="blue">
+                  <GlassCardHeader>
+                    <GlassCardTitle className="flex items-center gap-2">
+                      <Video className="h-5 w-5" />
+                      {t('Löpvideo från testet', 'Running video from test')}
+                    </GlassCardTitle>
+                  </GlassCardHeader>
+                  <GlassCardContent>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {stageVideos.map((video) => (
+                        <div key={`${video.stageIndex}-${video.analysisId || video.status}`} className="rounded-lg border bg-background p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-medium">{t('Steg', 'Stage')} {video.stageSequence}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {video.speed ? `${video.speed} km/h` : t('Hastighet saknas', 'Speed missing')}
+                                {video.cameraAngle ? ` · ${video.cameraAngle}` : ''}
+                              </p>
+                            </div>
+                            {video.status === 'completed' ? (
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            ) : video.status === 'failed' ? (
+                              <AlertTriangle className="h-5 w-5 text-red-600" />
+                            ) : (
+                              <Video className="h-5 w-5 text-blue-600" />
+                            )}
+                          </div>
+                          <p className="mt-2 text-sm">
+                            {video.status === 'uploading' && t('Sparar video...', 'Saving video...')}
+                            {video.status === 'analyzing' && t('Gemini analyserar...', 'Gemini is analyzing...')}
+                            {video.status === 'completed' && (
+                              video.formScore != null
+                                ? t(`Analys klar: ${video.formScore}/100`, `Analysis complete: ${video.formScore}/100`)
+                                : t('Analys klar', 'Analysis complete')
+                            )}
+                            {video.status === 'failed' && (video.error || t('Videoanalys misslyckades', 'Video analysis failed'))}
+                          </p>
+                          {video.analysisId && (
+                            <Link
+                              href={`${basePath}/video-analysis?analysisId=${video.analysisId}`}
+                              className="mt-2 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                            >
+                              {t('Visa analys', 'View analysis')}
+                              <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </GlassCardContent>
+                </GlassCard>
+              )}
+              <ReportTemplate
+                client={reportData.client}
+                test={reportData.test}
+                calculations={reportData.calculations}
+                testLeader={userName || t('Testledare', 'Test leader')}
+                organization={orgName}
+              />
+            </div>
           )}
         </div>
       )}

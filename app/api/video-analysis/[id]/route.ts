@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
@@ -13,6 +14,11 @@ import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
 import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { z } from 'zod'
+
+const updateAnalysisSchema = z.object({
+  sourceContext: z.record(z.unknown()).optional(),
+})
 
 export async function GET(
   request: NextRequest,
@@ -76,6 +82,79 @@ export async function GET(
 
     return NextResponse.json(
       { error: 'Failed to get analysis' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await requireCoach();
+    const { id } = await params;
+
+    const rateLimited = await rateLimitJsonResponse('video:analysis:update', user.id, {
+      limit: 30,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
+    const body = await request.json()
+    const parsed = updateAnalysisSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation error', details: parsed.error.errors },
+        { status: 400 }
+      )
+    }
+
+    const analysis = await prisma.videoAnalysis.findFirst({
+      where: { id, coachId: user.id },
+      select: { id: true, comparisonData: true },
+    })
+
+    if (!analysis) {
+      return NextResponse.json(
+        { error: 'Analysis not found' },
+        { status: 404 }
+      );
+    }
+
+    const existingComparisonData =
+      analysis.comparisonData && typeof analysis.comparisonData === 'object' && !Array.isArray(analysis.comparisonData)
+        ? analysis.comparisonData as Record<string, unknown>
+        : {}
+
+    const sourceContext = parsed.data.sourceContext
+      ? Object.fromEntries(Object.entries(parsed.data.sourceContext).filter(([, value]) => value !== undefined))
+      : null
+
+    const comparisonData = (sourceContext
+      ? {
+          ...existingComparisonData,
+          ...sourceContext,
+        }
+      : existingComparisonData) as Prisma.InputJsonValue
+
+    const updated = await prisma.videoAnalysis.update({
+      where: { id },
+      data: {
+        comparisonData,
+      },
+    })
+
+    return NextResponse.json({ success: true, analysis: updated })
+  } catch (error) {
+    logger.error('Update analysis error', {}, error)
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to update analysis' },
       { status: 500 }
     );
   }

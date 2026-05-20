@@ -98,6 +98,7 @@ interface VideoAnalysisCardProps {
   analysis: VideoAnalysis
   onDelete: () => void
   onAnalysisComplete: () => void
+  initiallyOpen?: boolean
 }
 
 type AppLocale = 'en' | 'sv'
@@ -306,6 +307,7 @@ export function VideoAnalysisCard({
   analysis,
   onDelete,
   onAnalysisComplete,
+  initiallyOpen = false,
 }: VideoAnalysisCardProps) {
   const { toast } = useToast()
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
@@ -315,7 +317,7 @@ export function VideoAnalysisCard({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showVideoDialog, setShowVideoDialog] = useState(false)
-  const [showResultsDialog, setShowResultsDialog] = useState(false)
+  const [showResultsDialog, setShowResultsDialog] = useState(initiallyOpen && analysis.status === 'COMPLETED')
   const [showPoseDialog, setShowPoseDialog] = useState(false)
   const [isSavingPose, setIsSavingPose] = useState(false)
   const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
@@ -328,6 +330,7 @@ export function VideoAnalysisCard({
     frames: Array<{ timestamp: number; landmarks: Array<{ x: number; y: number; z: number; visibility: number }> }>
     metadata?: { analyzedAt: string; model: string }
   } | null>(null)
+
   const [isLoadingPoseData, setIsLoadingPoseData] = useState(false)
 
   const typeInfo = VIDEO_TYPE_INFO[analysis.videoType as keyof typeof VIDEO_TYPE_INFO] || VIDEO_TYPE_INFO.SPORT_SPECIFIC

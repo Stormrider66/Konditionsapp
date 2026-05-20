@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useLocale } from 'next-intl'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles, ChevronDown, ChevronRight, Activity, Video, Square, CheckCircle2 } from 'lucide-react'
+import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles, ChevronDown, ChevronRight, Activity, Video, Square, CheckCircle2, ExternalLink } from 'lucide-react'
 import { createTestSchema, CreateTestFormData, detectLactateDecreases } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -26,19 +26,77 @@ import type { TestImportResult } from '@/lib/validations/test-import-schema'
 
 interface TestDataFormProps {
   testType: TestType
-  onSubmit: (data: CreateTestFormData) => void
+  onSubmit: (data: CreateTestFormData) => Promise<TestSubmitResult | void> | TestSubmitResult | void
   clientId?: string
+  videoAnalysisBasePath?: string
+  onStageVideosChange?: (videos: StageVideoSummary[]) => void
 }
 
 type StageVideoStatus = 'uploading' | 'analyzing' | 'completed' | 'failed'
+type RunningCameraAngle = 'SIDE' | 'FRONT' | 'BACK'
 
 interface StageVideoState {
   status: StageVideoStatus
   analysisId?: string
   error?: string
+  cameraAngle?: RunningCameraAngle
+  formScore?: number | null
+  testId?: string
 }
 
-export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps) {
+export interface StageVideoSummary {
+  stageIndex: number
+  stageSequence: number
+  status: StageVideoStatus
+  analysisId?: string
+  cameraAngle?: RunningCameraAngle
+  speed?: number
+  formScore?: number | null
+  testId?: string
+  error?: string
+}
+
+interface TestSubmitResult {
+  testId: string
+}
+
+const CAMERA_ANGLE_OPTIONS: Array<{
+  value: RunningCameraAngle
+  labelSv: string
+  labelEn: string
+  descriptionSv: string
+  descriptionEn: string
+}> = [
+  {
+    value: 'SIDE',
+    labelSv: 'Sida',
+    labelEn: 'Side',
+    descriptionSv: 'Fotisättning, lutning, steglängd',
+    descriptionEn: 'Foot strike, lean, stride length',
+  },
+  {
+    value: 'FRONT',
+    labelSv: 'Fram',
+    labelEn: 'Front',
+    descriptionSv: 'Knäspårning, armsving, symmetri',
+    descriptionEn: 'Knee tracking, arm swing, symmetry',
+  },
+  {
+    value: 'BACK',
+    labelSv: 'Bak',
+    labelEn: 'Back',
+    descriptionSv: 'Höftfall, hälpiska, sidobalans',
+    descriptionEn: 'Hip drop, heel whip, lateral balance',
+  },
+]
+
+export function TestDataForm({
+  testType,
+  onSubmit,
+  clientId,
+  videoAnalysisBasePath,
+  onStageVideosChange,
+}: TestDataFormProps) {
   const locale = useLocale()
   const t = useCallback((sv: string, en: string) => locale === 'sv' ? sv : en, [locale])
   const { toast } = useToast()
@@ -167,6 +225,34 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const [recordingStageIndex, setRecordingStageIndex] = useState<number | null>(null)
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [stageVideoStates, setStageVideoStates] = useState<Record<number, StageVideoState>>({})
+  const [runningCameraAngle, setRunningCameraAngle] = useState<RunningCameraAngle>('SIDE')
+  const runningCameraAngleRef = useRef<RunningCameraAngle>('SIDE')
+
+  useEffect(() => {
+    runningCameraAngleRef.current = runningCameraAngle
+  }, [runningCameraAngle])
+
+  useEffect(() => {
+    if (!onStageVideosChange) return
+    const stages = getValues('stages')
+    const videos = Object.entries(stageVideoStates)
+      .map(([stageIndex, state]) => {
+        const numericStageIndex = Number(stageIndex)
+        return {
+          stageIndex: numericStageIndex,
+          stageSequence: numericStageIndex + 1,
+          status: state.status,
+          analysisId: state.analysisId,
+          cameraAngle: state.cameraAngle,
+          speed: stages[numericStageIndex]?.speed,
+          formScore: state.formScore,
+          testId: state.testId,
+          error: state.error,
+        } satisfies StageVideoSummary
+      })
+      .sort((a, b) => a.stageIndex - b.stageIndex)
+    onStageVideosChange(videos)
+  }, [getValues, onStageVideosChange, stageVideoStates])
 
   // OCR handler for lactate meter photo
   const handleLactateOCR = async (stageIndex: number, file: File) => {
@@ -244,6 +330,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const uploadAndAnalyzeStageVideo = useCallback(async (stageIndex: number, blob: Blob, recordedMimeType: string) => {
     if (!clientId) return
 
+    const cameraAngle = runningCameraAngleRef.current
     const uploadMimeType = (recordedMimeType || blob.type || 'video/webm').split(';')[0]
     const extension = uploadMimeType.includes('mp4') ? 'mp4' : 'webm'
     const stages = getValues('stages')
@@ -256,7 +343,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
     setStageVideoStates((prev) => ({
       ...prev,
-      [stageIndex]: { status: 'uploading' },
+      [stageIndex]: { status: 'uploading', cameraAngle },
     }))
 
     try {
@@ -269,7 +356,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           fileType: file.type,
           fileSize: file.size,
           videoType: 'RUNNING_GAIT',
-          cameraAngle: 'SIDE',
+          cameraAngle,
           athleteId: clientId,
         }),
       })
@@ -296,12 +383,14 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           action: 'confirm-upload',
           uploadPath: urlData.path,
           videoType: 'RUNNING_GAIT',
-          cameraAngle: 'SIDE',
+          cameraAngle,
           athleteId: clientId,
           sourceContext: {
             testType,
+            captureFlow: 'test_stage_video',
             testDate: getValues('testDate'),
             stageSequence: stageIndex + 1,
+            cameraAngle,
             speed,
             incline: stage?.incline,
             heartRate: stage?.heartRate,
@@ -323,7 +412,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
       setStageVideoStates((prev) => ({
         ...prev,
-        [stageIndex]: { status: 'analyzing', analysisId },
+        [stageIndex]: { status: 'analyzing', analysisId, cameraAngle },
       }))
 
       const analyzeResponse = await fetch(`/api/video-analysis/${analysisId}/analyze`, {
@@ -336,7 +425,12 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
       setStageVideoStates((prev) => ({
         ...prev,
-        [stageIndex]: { status: 'completed', analysisId },
+        [stageIndex]: {
+          status: 'completed',
+          analysisId,
+          cameraAngle,
+          formScore: typeof analyzeData?.result?.formScore === 'number' ? analyzeData.result.formScore : null,
+        },
       }))
       toast({
         title: t('Löpvideo analyserad', 'Running video analyzed'),
@@ -346,7 +440,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       const message = error instanceof Error ? error.message : t('Okänt fel', 'Unknown error')
       setStageVideoStates((prev) => ({
         ...prev,
-        [stageIndex]: { status: 'failed', error: message },
+        [stageIndex]: { status: 'failed', error: message, cameraAngle },
       }))
       toast({
         title: t('Video kunde inte analyseras', 'Video could not be analyzed'),
@@ -355,6 +449,36 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       })
     }
   }, [clientId, getValues, t, testType, toast])
+
+  const linkStageVideosToTest = useCallback(async (testId: string) => {
+    const entries = Object.entries(stageVideoStates)
+      .map(([stageIndex, state]) => ({ stageIndex: Number(stageIndex), state }))
+      .filter(({ state }) => state.analysisId && state.status !== 'failed')
+
+    if (entries.length === 0) return
+
+    await Promise.all(entries.map(async ({ stageIndex, state }) => {
+      const response = await fetch(`/api/video-analysis/${state.analysisId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceContext: {
+            testId,
+            stageSequence: stageIndex + 1,
+            linkedAt: new Date().toISOString(),
+          },
+        }),
+      })
+      if (!response.ok) return
+      setStageVideoStates((prev) => ({
+        ...prev,
+        [stageIndex]: {
+          ...prev[stageIndex],
+          testId,
+        },
+      }))
+    }))
+  }, [stageVideoStates])
 
   const startStageVideoRecording = async (stageIndex: number) => {
     if (testType !== 'RUNNING') return
@@ -629,7 +753,10 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
   const onSubmitHandler = async (data: CreateTestFormData) => {
     try {
-      await onSubmit(data)
+      const result = await onSubmit(data)
+      if (result?.testId) {
+        await linkStageVideosToTest(result.testId)
+      }
     } catch (error) {
       console.error('Error in form submission:', error)
     }
@@ -754,18 +881,42 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           </AlertDescription>
         </Alert>
 
-        {/* Toggle metabolic data fields */}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setShowMetabolicData(!showMetabolicData)}
-          className="gap-2"
-        >
-          <Activity className="w-4 h-4" />
-          {t('Metabol data (spirometri)', 'Metabolic data (spirometry)')}
-          {showMetabolicData ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </Button>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowMetabolicData(!showMetabolicData)}
+            className="gap-2 self-start"
+          >
+            <Activity className="w-4 h-4" />
+            {t('Metabol data (spirometri)', 'Metabolic data (spirometry)')}
+            {showMetabolicData ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </Button>
+
+          {testType === 'RUNNING' && (
+            <div className="space-y-1">
+              <Label className="text-xs">{t('Kameravinkel för löpvideo', 'Camera angle for running video')}</Label>
+              <div className="grid grid-cols-3 gap-1 rounded-md border bg-muted/30 p-1">
+                {CAMERA_ANGLE_OPTIONS.map((angle) => (
+                  <button
+                    key={angle.value}
+                    type="button"
+                    onClick={() => setRunningCameraAngle(angle.value)}
+                    className={`rounded px-3 py-2 text-left text-xs transition-colors ${
+                      runningCameraAngle === angle.value
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <span className="block font-medium">{t(angle.labelSv, angle.labelEn)}</span>
+                    <span className="hidden text-[11px] sm:block">{t(angle.descriptionSv, angle.descriptionEn)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {fields.map((field, index) => (
           <Card key={field.id}>
@@ -818,12 +969,29 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                         </Button>
                       </div>
                       {stageVideoStates[index] && (
-                        <p className={`text-xs ${stageVideoStates[index].status === 'failed' ? 'text-red-600' : 'text-muted-foreground'}`}>
-                          {stageVideoStates[index].status === 'uploading' && t('Sparar video...', 'Saving video...')}
-                          {stageVideoStates[index].status === 'analyzing' && t('Gemini analyserar...', 'Gemini is analyzing...')}
-                          {stageVideoStates[index].status === 'completed' && t('Video sparad på atletprofilen', 'Video saved to athlete profile')}
-                          {stageVideoStates[index].status === 'failed' && (stageVideoStates[index].error || t('Video misslyckades', 'Video failed'))}
-                        </p>
+                        <div className={`text-xs ${stageVideoStates[index].status === 'failed' ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          <p>
+                            {stageVideoStates[index].status === 'uploading' && t('Sparar video...', 'Saving video...')}
+                            {stageVideoStates[index].status === 'analyzing' && t('Gemini analyserar...', 'Gemini is analyzing...')}
+                            {stageVideoStates[index].status === 'completed' && (
+                              <>
+                                {stageVideoStates[index].formScore != null
+                                  ? t(`Video klar (${stageVideoStates[index].formScore}/100)`, `Video done (${stageVideoStates[index].formScore}/100)`)
+                                  : t('Video sparad på atletprofilen', 'Video saved to athlete profile')}
+                              </>
+                            )}
+                            {stageVideoStates[index].status === 'failed' && (stageVideoStates[index].error || t('Video misslyckades', 'Video failed'))}
+                          </p>
+                          {stageVideoStates[index].analysisId && videoAnalysisBasePath && (
+                            <a
+                              href={`${videoAnalysisBasePath}?analysisId=${stageVideoStates[index].analysisId}`}
+                              className="mt-1 inline-flex items-center gap-1 text-blue-600 hover:underline"
+                            >
+                              {t('Visa analys', 'View analysis')}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="space-y-1">
@@ -1235,7 +1403,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                 : t('Filmar löpteknik', 'Recording running technique')}
             </DialogTitle>
             <DialogDescription>
-              {t('Filma 8-15 sekunder från sidan. Videon sparas automatiskt på atletprofilen och skickas till Gemini.', 'Record 8-15 seconds from the side. The video is saved to the athlete profile and sent to Gemini automatically.')}
+              {t('Filma 8-15 sekunder från vald vinkel. Videon sparas automatiskt på atletprofilen och skickas till Gemini.', 'Record 8-15 seconds from the selected angle. The video is saved to the athlete profile and sent to Gemini automatically.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -1259,6 +1427,20 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                 })()}
               </span>
               <span>{recordingSeconds}s</span>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {CAMERA_ANGLE_OPTIONS.map((angle) => (
+                <span
+                  key={angle.value}
+                  className={`rounded-full border px-2 py-1 ${
+                    runningCameraAngle === angle.value
+                      ? 'border-blue-300 bg-blue-50 text-blue-700'
+                      : 'border-muted text-muted-foreground'
+                  }`}
+                >
+                  {t(angle.labelSv, angle.labelEn)}
+                </span>
+              ))}
             </div>
           </div>
 
