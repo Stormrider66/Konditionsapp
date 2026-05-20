@@ -389,7 +389,7 @@ function ErgometerTestList({
   avgLabel: string;
 }) {
   const ERGOMETER_LABELS: Record<string, string> = {
-    CONCEPT2_ROW: 'Concept2 Rodd',
+    CONCEPT2_ROW: locale === 'sv' ? 'Concept2 Rodd' : 'Concept2 Row',
     CONCEPT2_SKIERG: 'SkiErg',
     CONCEPT2_BIKEERG: 'BikeErg',
     WATTBIKE: 'Wattbike',
