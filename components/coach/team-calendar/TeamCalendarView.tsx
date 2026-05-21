@@ -6,7 +6,12 @@ import { Badge } from '@/components/ui/badge'
 import { CreateEventDialog } from './CreateEventDialog'
 import { EditEventDialog } from './EditEventDialog'
 import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
-import { AthletePlanSummaryCard, type AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
+import {
+  AthletePlanSummaryCard,
+  getPlanBlockColor,
+  type AthletePlanBlockSummary,
+  type AthletePlanSummary,
+} from '@/components/athlete-plans/AthletePlanSummaryCard'
 import Link from 'next/link'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
@@ -49,6 +54,7 @@ import type { PracticeBlock } from '@/lib/team-calendar/practice-plan'
 import { inputDateValue } from '@/lib/team-calendar/date-time'
 import { openCoachFloatingChat } from '@/lib/events/coach-floating-chat'
 import { useLocale } from '@/i18n/client'
+import { cn } from '@/lib/utils'
 
 interface TeamEvent {
   id: string
@@ -165,6 +171,19 @@ function getMonthDates(baseDate: Date): Date[] {
 
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+function planBlockForDate(blocks: AthletePlanBlockSummary[], date: Date) {
+  const day = new Date(date)
+  day.setHours(0, 0, 0, 0)
+
+  return blocks.find((block) => {
+    const start = new Date(block.startDate)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(block.endDate)
+    end.setHours(23, 59, 59, 999)
+    return day >= start && day <= end
+  }) ?? null
 }
 
 function planningColumnFor(type: string): 'ice' | 'physical' | 'team' | 'other' | 'annual' {
@@ -1414,6 +1433,11 @@ export function TeamCalendarView({
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6
                 const dayName = date.toLocaleDateString(dateLocale(locale), { weekday: 'short' }).toUpperCase()
                 const weekNumber = Math.ceil((((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 86400000) + new Date(date.getFullYear(), 0, 1).getDay() + 1) / 7)
+                const planBlock = activeTeamPlan ? planBlockForDate(activeTeamPlan.blocks, date) : null
+                const planBlockIndex = planBlock && activeTeamPlan
+                  ? activeTeamPlan.blocks.findIndex((block) => block.id === planBlock.id)
+                  : -1
+                const planBlockColor = planBlockIndex >= 0 ? getPlanBlockColor(planBlockIndex) : null
 
                 const renderQuickAdd = (defaultType: TeamEventType) => {
                   if (defaultType === 'STRENGTH') {
@@ -1498,10 +1522,29 @@ export function TeamCalendarView({
                 )
 
                 return (
-                  <tr key={date.toISOString()} className={isWeekend ? 'bg-muted/40' : ''}>
+                  <tr
+                    key={date.toISOString()}
+                    className={cn(
+                      'border-l-4',
+                      planBlockColor ? [planBlockColor.row, planBlockColor.rowBorder] : 'border-l-transparent',
+                      !planBlockColor && isWeekend ? 'bg-muted/40' : ''
+                    )}
+                  >
                     <td className="border-r border-t px-2 py-2 text-muted-foreground">{date.getDay() === 1 ? `${text(locale, 'v.', 'wk ')}${weekNumber}` : ''}</td>
                     <td className={`border-r border-t px-2 py-2 font-semibold ${date.getDay() === 0 ? 'text-red-600' : ''}`}>{dayName}</td>
-                    <td className="border-r border-t px-2 py-2">{date.getDate()}</td>
+                    <td className="border-r border-t px-2 py-2">
+                      <div className="flex items-center gap-2">
+                        {planBlockColor && (
+                          <span className={cn('h-2 w-2 rounded-full', planBlockColor.marker)} />
+                        )}
+                        <span>{date.getDate()}</span>
+                      </div>
+                      {planBlock && (
+                        <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                          {planBlock.title}
+                        </div>
+                      )}
+                    </td>
                     <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.ice, 'PRACTICE')}</td>
                     <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.physical, 'STRENGTH')}</td>
                     <td className="border-r border-t px-2 py-2 align-top">{renderCell(grouped.team, 'GAME')}</td>

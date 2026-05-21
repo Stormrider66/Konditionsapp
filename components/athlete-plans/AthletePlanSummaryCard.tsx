@@ -50,6 +50,55 @@ const t = (locale: AppLocale, svText: string, enText: string) => (
   locale === 'sv' ? svText : enText
 )
 
+const PLAN_BLOCK_COLORS = [
+  {
+    container: 'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-100',
+    marker: 'bg-blue-500',
+    chip: 'bg-blue-100 text-blue-900 dark:bg-blue-400/20 dark:text-blue-100',
+    row: 'bg-blue-50/55 dark:bg-blue-400/10',
+    rowBorder: 'border-l-blue-300 dark:border-l-blue-400/50',
+  },
+  {
+    container: 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-100',
+    marker: 'bg-emerald-500',
+    chip: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-400/20 dark:text-emerald-100',
+    row: 'bg-emerald-50/55 dark:bg-emerald-400/10',
+    rowBorder: 'border-l-emerald-300 dark:border-l-emerald-400/50',
+  },
+  {
+    container: 'border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-100',
+    marker: 'bg-violet-500',
+    chip: 'bg-violet-100 text-violet-900 dark:bg-violet-400/20 dark:text-violet-100',
+    row: 'bg-violet-50/55 dark:bg-violet-400/10',
+    rowBorder: 'border-l-violet-300 dark:border-l-violet-400/50',
+  },
+  {
+    container: 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100',
+    marker: 'bg-amber-500',
+    chip: 'bg-amber-100 text-amber-900 dark:bg-amber-400/20 dark:text-amber-100',
+    row: 'bg-amber-50/55 dark:bg-amber-400/10',
+    rowBorder: 'border-l-amber-300 dark:border-l-amber-400/50',
+  },
+  {
+    container: 'border-rose-200 bg-rose-50 text-rose-950 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-100',
+    marker: 'bg-rose-500',
+    chip: 'bg-rose-100 text-rose-900 dark:bg-rose-400/20 dark:text-rose-100',
+    row: 'bg-rose-50/55 dark:bg-rose-400/10',
+    rowBorder: 'border-l-rose-300 dark:border-l-rose-400/50',
+  },
+  {
+    container: 'border-cyan-200 bg-cyan-50 text-cyan-950 dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-100',
+    marker: 'bg-cyan-500',
+    chip: 'bg-cyan-100 text-cyan-900 dark:bg-cyan-400/20 dark:text-cyan-100',
+    row: 'bg-cyan-50/55 dark:bg-cyan-400/10',
+    rowBorder: 'border-l-cyan-300 dark:border-l-cyan-400/50',
+  },
+] as const
+
+export function getPlanBlockColor(index: number) {
+  return PLAN_BLOCK_COLORS[Math.abs(index) % PLAN_BLOCK_COLORS.length]
+}
+
 function toDate(value: string | Date) {
   return value instanceof Date ? value : new Date(value)
 }
@@ -89,6 +138,10 @@ export function AthletePlanSummaryCard({
   const displayDescription = blockPlanDescriptionWithActualWeeks(plan.description, displayBlocks, locale)
   const displayPlan = { ...plan, blocks: displayBlocks }
   const currentBlock = getCurrentBlock(displayPlan, now)
+  const currentBlockIndex = currentBlock
+    ? Math.max(0, displayBlocks.findIndex((block) => block.id === currentBlock.id))
+    : 0
+  const currentBlockColor = getPlanBlockColor(currentBlockIndex)
   const planProgress = progressPercent(displayStartDate, displayEndDate, now)
   const currentBlockProgress = currentBlock
     ? progressPercent(currentBlock.startDate, currentBlock.endDate, now)
@@ -122,17 +175,17 @@ export function AthletePlanSummaryCard({
       </CardHeader>
       <CardContent className="space-y-4">
         {currentBlock ? (
-          <div className="rounded-lg border bg-muted/30 p-3">
+          <div className={cn('rounded-lg border p-3', currentBlockColor.container)}>
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">{t(locale, 'Nuvarande block', 'Current block')}</p>
+                <p className="text-xs uppercase tracking-wide opacity-70">{t(locale, 'Nuvarande block', 'Current block')}</p>
                 <h3 className="mt-1 text-sm font-semibold">{currentBlock.title}</h3>
                 {currentBlock.focus && (
-                  <p className="mt-1 text-sm text-muted-foreground">{currentBlock.focus}</p>
+                  <p className="mt-1 text-sm opacity-75">{currentBlock.focus}</p>
                 )}
               </div>
-              <Badge variant="secondary" className="shrink-0">
-                {currentBlock.order}/{plan.blocks.length}
+              <Badge variant="secondary" className={cn('shrink-0', currentBlockColor.chip)}>
+                {currentBlock.order}/{displayBlocks.length}
               </Badge>
             </div>
             <Progress value={currentBlockProgress} className="mt-3 h-1.5" />
@@ -148,21 +201,26 @@ export function AthletePlanSummaryCard({
         )}
 
         <div className="space-y-2">
-          {displayBlocks.map((block) => {
+          {displayBlocks.map((block, index) => {
             const isCurrent = currentBlock?.id === block.id
+            const blockColor = getPlanBlockColor(index)
             return (
               <div
                 key={block.id}
                 className={cn(
-                  'flex items-center gap-3 rounded-md border px-3 py-2 text-sm',
-                  isCurrent ? 'border-blue-200 bg-blue-50 text-blue-950' : 'bg-background'
+                  'flex items-center gap-3 rounded-md border border-l-4 px-3 py-2 text-sm',
+                  isCurrent ? blockColor.container : 'bg-background',
+                  !isCurrent && blockColor.rowBorder
                 )}
               >
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                <div className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold', isCurrent ? blockColor.chip : 'bg-muted')}>
                   {block.order}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{block.title}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={cn('h-2 w-2 shrink-0 rounded-full', blockColor.marker)} />
+                    <p className="truncate font-medium">{block.title}</p>
+                  </div>
                   <p className="truncate text-xs text-muted-foreground">
                     {formatShortDate(block.startDate, locale)} - {formatShortDate(block.endDate, locale)}
                     {block.focus ? ` · ${block.focus}` : ''}
