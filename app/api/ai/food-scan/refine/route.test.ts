@@ -20,6 +20,10 @@ const mockPrisma = vi.hoisted(() => ({
   dietaryPreferences: {
     findUnique: vi.fn(),
   },
+  food: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+  },
 }))
 
 vi.mock('ai', () => ({
@@ -162,9 +166,149 @@ describe('food scan refine API route', () => {
     mockPrisma.dietaryPreferences.findUnique.mockResolvedValue({
       enhancedMacroAnalysis: true,
     })
+    mockPrisma.food.findFirst.mockResolvedValue(null)
+    mockPrisma.food.findMany.mockResolvedValue([])
     mockCreateGoogleGenerativeAI.mockReturnValue((modelId: string) => ({ modelId }))
     mockWithGoogleLogging.mockImplementation((model) => model)
     mockWithAiContext.mockImplementation((_ctx, fn) => fn())
+  })
+
+  it('updates corn pasta identity corrections from compound database matches', async () => {
+    mockPrisma.food.findMany.mockResolvedValueOnce([
+      {
+        nameSv: 'Pasta kokt m. salt majs 100% glutenfri',
+        nameEn: null,
+        category: 'GRAIN',
+        caloriesPer100g: 155,
+        proteinPer100g: 2.9,
+        carbsPer100g: 33,
+        fatPer100g: 0.8,
+        fiberPer100g: 1.2,
+        saturatedFatPer100g: null,
+        monounsaturatedFatPer100g: null,
+        polyunsaturatedFatPer100g: null,
+        sugarPer100g: null,
+        isCompleteProtein: false,
+        proteinSource: 'PLANT',
+      },
+    ])
+
+    const response = await POST(makeRequest({
+      originalAnalysis,
+      refinementText: 'Det är majspasta',
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(mockGenerateObject).not.toHaveBeenCalled()
+    expect(mockRequireAiAllowance).not.toHaveBeenCalled()
+    expect(mockResolveAthleteGoogleKeyContext).not.toHaveBeenCalled()
+    expect(body.fastRefine).toMatchObject({
+      source: 'reference_food',
+      targetIndex: 0,
+    })
+    expect(body.result).toMatchObject({
+      mealDescription: 'Pasta kokt m. salt majs 100% glutenfri',
+      items: [expect.objectContaining({
+        name: 'Pasta kokt m. salt majs 100% glutenfri',
+        calories: 388,
+        proteinGrams: 7.3,
+        carbsGrams: 82.5,
+        fatGrams: 2,
+        fiberGrams: 3,
+      })],
+      totals: expect.objectContaining({
+        calories: 388,
+        proteinGrams: 7.3,
+        carbsGrams: 82.5,
+        fatGrams: 2,
+        fiberGrams: 3,
+      }),
+    })
+  })
+
+  it('preserves macro density for simple identity corrections without a database match', async () => {
+    const response = await POST(makeRequest({
+      originalAnalysis,
+      refinementText: 'Det är specialpasta',
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(mockGenerateObject).not.toHaveBeenCalled()
+    expect(mockRequireAiAllowance).not.toHaveBeenCalled()
+    expect(body.fastRefine).toMatchObject({
+      source: 'preserved_similar_item',
+      targetIndex: 0,
+    })
+    expect(body.result).toMatchObject({
+      mealDescription: 'Specialpasta',
+      items: [expect.objectContaining({
+        name: 'Specialpasta',
+        calories: 500,
+        proteinGrams: 18,
+        carbsGrams: 82,
+      })],
+      totals: expect.objectContaining({
+        calories: 500,
+        proteinGrams: 18,
+        carbsGrams: 82,
+      }),
+    })
+  })
+
+  it('uses the reference food database for simple identity corrections when available', async () => {
+    mockPrisma.food.findFirst.mockResolvedValueOnce({
+      nameSv: 'Quinoa kokt',
+      nameEn: 'Cooked quinoa',
+      category: 'GRAIN',
+      caloriesPer100g: 120,
+      proteinPer100g: 4.4,
+      carbsPer100g: 21.3,
+      fatPer100g: 1.9,
+      fiberPer100g: 2.8,
+      saturatedFatPer100g: 0.2,
+      monounsaturatedFatPer100g: 0.5,
+      polyunsaturatedFatPer100g: 1,
+      sugarPer100g: 0.9,
+      isCompleteProtein: true,
+      proteinSource: 'PLANT',
+    })
+
+    const response = await POST(makeRequest({
+      originalAnalysis,
+      refinementText: 'Det är quinoa',
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(mockGenerateObject).not.toHaveBeenCalled()
+    expect(mockRequireAiAllowance).not.toHaveBeenCalled()
+    expect(body.fastRefine).toMatchObject({
+      source: 'reference_food',
+      targetIndex: 0,
+    })
+    expect(body.result.items[0]).toMatchObject({
+      name: 'Quinoa kokt',
+      category: 'GRAIN',
+      estimatedGrams: 250,
+      calories: 300,
+      proteinGrams: 11,
+      carbsGrams: 53.3,
+      fatGrams: 4.8,
+      fiberGrams: 7,
+      sugarGrams: 2.3,
+      complexCarbsGrams: 51,
+      isCompleteProtein: true,
+      proteinSource: 'PLANT',
+    })
+    expect(body.result.totals).toMatchObject({
+      calories: 300,
+      proteinGrams: 11,
+      carbsGrams: 53.3,
+      fatGrams: 4.8,
+      fiberGrams: 7,
+    })
   })
 
   it('retries transient Gemini overloads before returning the refined analysis', async () => {

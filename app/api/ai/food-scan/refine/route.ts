@@ -21,6 +21,13 @@ import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import {
+  applySimpleFoodIdentityCorrection,
+  getFoodCorrectionSearchTerm,
+  parseSimpleFoodIdentityCorrection,
+  type FoodReferenceMatch,
+  type SimpleFoodIdentityCorrection,
+} from '@/lib/nutrition/food-scan-fast-refine'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -145,6 +152,71 @@ function isTransientAiError(error: unknown): boolean {
   )
 }
 
+const FOOD_REFERENCE_SELECT = {
+  nameSv: true,
+  nameEn: true,
+  category: true,
+  caloriesPer100g: true,
+  proteinPer100g: true,
+  carbsPer100g: true,
+  fatPer100g: true,
+  fiberPer100g: true,
+  saturatedFatPer100g: true,
+  monounsaturatedFatPer100g: true,
+  polyunsaturatedFatPer100g: true,
+  sugarPer100g: true,
+  isCompleteProtein: true,
+  proteinSource: true,
+} as const
+
+async function findFoodReferenceMatch(
+  correction: SimpleFoodIdentityCorrection
+): Promise<FoodReferenceMatch | null> {
+  const q = getFoodCorrectionSearchTerm(correction)
+  if (q.length < 2) return null
+
+  const exact = await prisma.food.findFirst({
+    where: { searchName: q },
+    select: FOOD_REFERENCE_SELECT,
+  })
+  if (exact) return exact
+
+  const prefix = await prisma.food.findFirst({
+    where: { searchName: { startsWith: q } },
+    orderBy: [{ popularity: 'desc' }, { searchName: 'asc' }],
+    select: FOOD_REFERENCE_SELECT,
+  })
+  if (prefix) return prefix
+
+  if (q.includes('pasta') && (q.includes('majs') || q.includes('corn'))) {
+    const matches = await prisma.food.findMany({
+      where: {
+        AND: [
+          { searchName: { contains: 'pasta' } },
+          { searchName: { contains: 'majs' } },
+        ],
+      },
+      orderBy: [{ popularity: 'desc' }, { searchName: 'asc' }],
+      take: 20,
+      select: FOOD_REFERENCE_SELECT,
+    })
+    const cooked = matches.find((food) => food.nameSv.toLowerCase().includes('kokt'))
+    if (cooked) return cooked
+    if (matches[0]) return matches[0]
+  }
+
+  // Auto-applying a broad substring match can pick the wrong Livsmedelsverket
+  // row for short foods like "majs" or "pasta", so only use it for specific
+  // multi-syllable corrections where exact/prefix did not hit.
+  if (q.length < 8) return null
+
+  return prisma.food.findFirst({
+    where: { searchName: { contains: q } },
+    orderBy: [{ popularity: 'desc' }, { searchName: 'asc' }],
+    select: FOOD_REFERENCE_SELECT,
+  })
+}
+
 export async function POST(request: NextRequest) {
   let locale: AppLocale = 'en'
   let logContext:
@@ -174,9 +246,6 @@ export async function POST(request: NextRequest) {
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
 
-    const allowanceDenied = await requireAiAllowance(clientId)
-    if (allowanceDenied) return allowanceDenied
-
     const rateLimited = await rateLimitJsonResponse('ai:food-scan-refine', user.id, {
       limit: 10,
       windowSeconds: 60,
@@ -198,6 +267,46 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Check enhanced macro analysis preference
+    const prefs = await prisma.dietaryPreferences.findUnique({
+      where: { clientId },
+      select: { enhancedMacroAnalysis: true },
+    })
+    const enhancedMode = prefs?.enhancedMacroAnalysis ?? false
+
+    const simpleCorrection = parseSimpleFoodIdentityCorrection(String(refinementText))
+    const foodMatch = simpleCorrection
+      ? await findFoodReferenceMatch(simpleCorrection)
+      : null
+    const fastRefine = simpleCorrection
+      ? applySimpleFoodIdentityCorrection({
+          originalAnalysis,
+          correction: simpleCorrection,
+          foodMatch,
+        })
+      : null
+
+    if (fastRefine) {
+      requestLogger.info('Food scan refine fast path applied', {
+        source: fastRefine.source,
+        targetIndex: fastRefine.targetIndex,
+      })
+
+      return NextResponse.json({
+        success: true,
+        result: fastRefine.result,
+        enhancedMode,
+        fastRefine: {
+          source: fastRefine.source,
+          targetIndex: fastRefine.targetIndex,
+        },
+        generatedAt: new Date().toISOString(),
+      })
+    }
+
+    const allowanceDenied = await requireAiAllowance(clientId)
+    if (allowanceDenied) return allowanceDenied
 
     // Resolve Google API key
     const keyContext = await resolveAthleteGoogleKeyContext({
@@ -229,13 +338,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    // Check enhanced macro analysis preference
-    const prefs = await prisma.dietaryPreferences.findUnique({
-      where: { clientId },
-      select: { enhancedMacroAnalysis: true },
-    })
-    const enhancedMode = prefs?.enhancedMacroAnalysis ?? false
 
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
 
