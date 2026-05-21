@@ -10,6 +10,10 @@ import { requireCoach, getCurrentUser, resolveAthleteClientId } from '@/lib/auth
 import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { logError } from '@/lib/logger-console'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import {
+  hybridWorkoutAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope';
 
 // GET /api/hybrid-assignments - Get assignments
 // Query params: athleteId, workoutId, status, dateFrom, dateTo
@@ -26,6 +30,11 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
 
     // Build where clause based on user role
     const where: any = {};
@@ -38,7 +47,9 @@ export async function GET(request: NextRequest) {
         where.athleteId = resolved.clientId;
       } else if (hasCoachAccess) {
         // Default coach scope: only assignments for their own athletes.
-        where.athlete = { userId: user.id };
+        where.athlete = businessScope.businessId
+          ? { businessId: businessScope.businessId }
+          : { userId: user.id };
       } else if (user.role !== 'ADMIN') {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -113,6 +124,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
 
     const body = await request.json();
     const {
@@ -149,11 +165,7 @@ export async function POST(request: NextRequest) {
     const workout = await prisma.hybridWorkout.findFirst({
       where: {
         id: workoutId,
-        OR: [
-          { coachId: user.id },
-          { isPublic: true },
-          { coachId: null }, // system workouts
-        ],
+        AND: [hybridWorkoutAccessWhere(user.id, businessScope.businessId)],
       },
     });
 
@@ -174,6 +186,22 @@ export async function POST(request: NextRequest) {
         { error: 'Forbidden: one or more athletes are not accessible' },
         { status: 403 }
       );
+    }
+
+    if (businessScope.businessId) {
+      const athletesInBusiness = await prisma.client.count({
+        where: {
+          id: { in: athleteIds },
+          businessId: businessScope.businessId,
+        },
+      });
+
+      if (athletesInBusiness !== athleteIds.length) {
+        return NextResponse.json(
+          { error: 'Forbidden: one or more athletes are outside this business' },
+          { status: 403 }
+        );
+      }
     }
 
     // Resolve location name if locationId is provided

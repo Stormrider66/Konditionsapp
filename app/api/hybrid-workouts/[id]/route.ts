@@ -11,6 +11,12 @@ import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { HybridFormat, ScalingLevel } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
+import {
+  hybridWorkoutAccessWhere,
+  ownedHybridWorkoutWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope';
+import { normalizeWorkoutTags } from '@/lib/workouts/business-tags';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -19,16 +25,17 @@ interface RouteContext {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
     const { id } = await context.params;
 
     const workout = await prisma.hybridWorkout.findFirst({
       where: {
         id,
-        OR: [
-          { coachId: user.id },
-          { isPublic: true },
-          { coachId: null }, // System/benchmark workouts
-        ],
+        AND: [hybridWorkoutAccessWhere(user.id, businessScope.businessId)],
       },
       include: {
         movements: {
@@ -70,6 +77,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
           },
         },
         results: {
+          where: businessScope.businessId
+            ? { athlete: { businessId: businessScope.businessId } }
+            : undefined,
           take: 10,
           orderBy: { completedAt: 'desc' },
           include: {
@@ -107,15 +117,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
     const { id } = await context.params;
     const body = await request.json();
 
     // Check ownership
     const existing = await prisma.hybridWorkout.findFirst({
-      where: {
-        id,
-        coachId: user.id,
-      },
+      where: ownedHybridWorkoutWhere(id, user.id, businessScope.businessId),
+      select: { tags: true },
     });
 
     if (!existing) {
@@ -168,7 +181,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           repScheme,
           scalingLevel: scalingLevel as ScalingLevel,
           isPublic,
-          tags: tags || [],
+          tags: normalizeWorkoutTags(tags, businessScope.businessId, existing.tags),
           // Section data
           warmupData: warmupData ?? undefined,
           strengthData: strengthData ?? undefined,
@@ -237,14 +250,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
     const { id } = await context.params;
 
     // Check ownership
     const existing = await prisma.hybridWorkout.findFirst({
-      where: {
-        id,
-        coachId: user.id,
-      },
+      where: ownedHybridWorkoutWhere(id, user.id, businessScope.businessId),
     });
 
     if (!existing) {

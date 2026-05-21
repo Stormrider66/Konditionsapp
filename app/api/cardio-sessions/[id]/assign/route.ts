@@ -11,6 +11,11 @@ import { requireCoach } from '@/lib/auth-utils';
 import { logError } from '@/lib/logger-console'
 import { logger } from '@/lib/logger'
 import {
+  cardioSessionAccessWhere,
+  ownedCardioSessionWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope'
+import {
   createGarminWorkout,
   scheduleGarminWorkout,
   serializeWorkoutToGarmin,
@@ -66,16 +71,18 @@ interface CardioChildStep {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
     const { id } = await context.params;
 
     // Verify session exists and coach has access
     const session = await prisma.cardioSession.findFirst({
       where: {
         id,
-        OR: [
-          { coachId: user.id },
-          { isPublic: true },
-        ],
+        AND: [cardioSessionAccessWhere(user.id, businessScope.businessId)],
       },
     });
 
@@ -87,7 +94,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     const assignments = await prisma.cardioSessionAssignment.findMany({
-      where: { sessionId: id },
+      where: {
+        sessionId: id,
+        ...(businessScope.businessId ? { athlete: { businessId: businessScope.businessId } } : {}),
+      },
       include: {
         athlete: {
           select: {
@@ -119,6 +129,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
     const { id } = await context.params;
     const body: AssignmentRequest = await request.json();
 
@@ -144,10 +159,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // Verify session exists and coach owns it
     const session = await prisma.cardioSession.findFirst({
-      where: {
-        id,
-        coachId: user.id,
-      },
+      where: ownedCardioSessionWhere(id, user.id, businessScope.businessId),
     });
 
     if (!session) {
@@ -161,9 +173,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const athletes = await prisma.client.findMany({
       where: {
         id: { in: athleteIds },
-        userId: user.id,
+        ...(businessScope.businessId
+          ? { businessId: businessScope.businessId }
+          : { userId: user.id }),
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, businessId: true },
     });
 
     if (athletes.length !== athleteIds.length) {

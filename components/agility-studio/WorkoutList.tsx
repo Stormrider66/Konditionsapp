@@ -3,7 +3,8 @@
 // components/agility-studio/WorkoutList.tsx
 // List of agility workouts with actions
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -56,6 +57,8 @@ import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { AgilityWorkout } from '@/types'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import { visibleWorkoutTags } from '@/lib/workouts/business-tags'
 
 interface Athlete {
   id: string
@@ -71,6 +74,7 @@ interface WorkoutListProps {
   onEdit?: (workout: AgilityWorkout) => void
   onDelete: (workoutId: string) => void
   onDuplicate?: (workout: AgilityWorkout) => void
+  businessId?: string
 }
 
 export function WorkoutList({
@@ -79,10 +83,16 @@ export function WorkoutList({
   searchQuery,
   onEdit,
   onDelete,
-  onDuplicate
+  onDuplicate,
+  businessId,
 }: WorkoutListProps) {
   const t = useTranslations('agilityStudio')
   const tCommon = useTranslations('common')
+  const pathname = usePathname()
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname])
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedWorkout, setSelectedWorkout] = useState<AgilityWorkout | null>(null)
@@ -126,7 +136,7 @@ export function WorkoutList({
         dates.map((d) =>
           fetch(`/api/agility-workouts/${selectedWorkout.id}/assign`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...businessHeaders },
             body: JSON.stringify({
               athleteIds: selectedAthletes,
               assignedDate: format(d, 'yyyy-MM-dd'),
@@ -201,7 +211,8 @@ export function WorkoutList({
     setIsDeleting(true)
     try {
       const response = await fetch(`/api/agility-workouts/${selectedWorkout.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: businessHeaders,
       })
 
       if (!response.ok) throw new Error('Failed to delete workout')
@@ -253,7 +264,10 @@ export function WorkoutList({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredWorkouts.map(workout => (
+          {filteredWorkouts.map(workout => {
+            const visibleTags = visibleWorkoutTags(workout.tags)
+
+            return (
             <Card key={workout.id}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -327,23 +341,24 @@ export function WorkoutList({
                     </Badge>
                   )}
                 </div>
-                {workout.tags && workout.tags.length > 0 && (
+                {visibleTags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {workout.tags.slice(0, 3).map(tag => (
+                    {visibleTags.slice(0, 3).map(tag => (
                       <Badge key={tag} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
                     ))}
-                    {workout.tags.length > 3 && (
+                    {visibleTags.length > 3 && (
                       <Badge variant="outline" className="text-xs">
-                        +{workout.tags.length - 3}
+                        +{visibleTags.length - 3}
                       </Badge>
                     )}
                   </div>
                 )}
               </CardContent>
             </Card>
-          ))}
+            )
+          })}
         </div>
       )}
 

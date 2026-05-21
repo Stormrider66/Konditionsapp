@@ -9,7 +9,8 @@
  * - Quick actions
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,10 +48,13 @@ import { CardioSessionDetailSheet } from './CardioSessionDetailSheet';
 import { CardioSessionAssignmentDialog } from './CardioSessionAssignmentDialog';
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
+import { visibleWorkoutTags } from '@/lib/workouts/business-tags';
 
 interface CardioSessionLibraryProps {
   onNewSession?: () => void;
   onEditSession?: (session: CardioSessionData) => void;
+  businessId?: string;
 }
 
 const sportLabels: Record<string, { label: string; icon: string }> = {
@@ -93,9 +97,15 @@ function formatDistance(meters?: number): string {
 export function CardioSessionLibrary({
   onNewSession,
   onEditSession,
+  businessId,
 }: CardioSessionLibraryProps) {
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
 
   const [sessions, setSessions] = useState<CardioSessionData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,7 +138,9 @@ export function CardioSessionLibrary({
       if (sportFilter && sportFilter !== 'all') params.set('sport', sportFilter);
       params.set('limit', '50');
 
-      const response = await fetch(`/api/cardio-sessions?${params}`);
+      const response = await fetch(`/api/cardio-sessions?${params}`, {
+        headers: businessHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         setSessions(data.sessions || []);
@@ -138,7 +150,7 @@ export function CardioSessionLibrary({
     } finally {
       setLoading(false);
     }
-  }, [search, sportFilter]);
+  }, [businessHeaders, search, sportFilter]);
 
   useEffect(() => {
     fetchSessions();
@@ -186,6 +198,7 @@ export function CardioSessionLibrary({
     try {
       const response = await fetch(`/api/cardio-sessions/${deleteSession.id}`, {
         method: 'DELETE',
+        headers: businessHeaders,
       });
 
       if (response.ok) {
@@ -267,6 +280,7 @@ export function CardioSessionLibrary({
           {sessions.map((session) => {
             const sportInfo = sportLabels[session.sport] || { label: session.sport, icon: '🏃' };
             const segments = session.segments || [];
+            const visibleTags = visibleWorkoutTags(session.tags);
 
             return (
               <Card
@@ -319,16 +333,16 @@ export function CardioSessionLibrary({
                     )}
                   </div>
 
-                  {session.tags && session.tags.length > 0 && (
+                  {visibleTags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-3">
-                      {session.tags.slice(0, 3).map((tag) => (
+                      {visibleTags.slice(0, 3).map((tag) => (
                         <Badge key={tag} variant="outline" className="text-xs">
                           {tag}
                         </Badge>
                       ))}
-                      {session.tags.length > 3 && (
+                      {visibleTags.length > 3 && (
                         <Badge variant="outline" className="text-xs">
-                          +{session.tags.length - 3}
+                          +{visibleTags.length - 3}
                         </Badge>
                       )}
                     </div>
@@ -349,6 +363,7 @@ export function CardioSessionLibrary({
         onDelete={handleSheetDelete}
         onAssign={handleSheetAssign}
         onTeamAssign={handleSheetTeamAssign}
+        businessId={businessId}
       />
 
       {/* Assignment Dialog */}
@@ -361,6 +376,7 @@ export function CardioSessionLibrary({
           fetchSessions();
           setIsAssignOpen(false);
         }}
+        businessId={businessId}
       />
 
       {/* Team Assignment Dialog */}

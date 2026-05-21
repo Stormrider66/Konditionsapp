@@ -53,7 +53,7 @@ describe('non-running fallback generators', () => {
     }, client)
 
     expectRealProgram(program, 'SKIING', 4)
-    expect(program.notes).toContain('skidstyrka')
+    expect(program.notes).toContain('ski-specific strength')
   })
 
   it('creates useful custom swimming programs', async () => {

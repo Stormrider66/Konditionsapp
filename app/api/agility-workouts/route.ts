@@ -4,8 +4,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
-import { AgilityWorkoutFormat, AgilityDrillCategory, DevelopmentStage, SportType, WorkoutSectionType } from '@prisma/client'
+import { AgilityWorkoutFormat, AgilityDrillCategory, DevelopmentStage, Prisma, SportType, WorkoutSectionType } from '@prisma/client'
 import { z } from 'zod'
+import {
+  agilityWorkoutAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope'
+import { normalizeWorkoutTags } from '@/lib/workouts/business-tags'
 
 const workoutDrillSchema = z.object({
   drillId: z.string().uuid(),
@@ -42,6 +47,11 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     const { searchParams } = new URL(request.url)
     const format = searchParams.get('format') as AgilityWorkoutFormat | null
@@ -53,47 +63,44 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '100') || 100), 500)
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
 
-    const where: Record<string, unknown> = {}
+    const andFilters: Prisma.AgilityWorkoutWhereInput[] = []
 
     if (format) {
-      where.format = format
+      andFilters.push({ format })
     }
 
     if (developmentStage) {
-      where.developmentStage = developmentStage
+      andFilters.push({ developmentStage })
     }
 
     if (sport) {
-      where.targetSports = {
-        has: sport
-      }
+      andFilters.push({ targetSports: { has: sport } })
     }
 
     if (coachId) {
-      where.coachId = coachId
+      andFilters.push({ coachId })
+      if (businessScope.businessId) {
+        andFilters.push(agilityWorkoutAccessWhere(user.id, businessScope.businessId))
+      }
     } else {
       // Default: show user's workouts and public workouts
-      where.OR = [
-        { coachId: user.id },
-        { isPublic: true }
-      ]
+      andFilters.push(agilityWorkoutAccessWhere(user.id, businessScope.businessId))
     }
 
     if (templatesOnly) {
-      where.isTemplate = true
+      andFilters.push({ isTemplate: true })
     }
 
     if (search) {
-      where.AND = [
-        ...(where.AND as unknown[] || []),
-        {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } }
-          ]
-        }
-      ]
+      andFilters.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ]
+      })
     }
+
+    const where: Prisma.AgilityWorkoutWhereInput = { AND: andFilters }
 
     const [workouts, total] = await Promise.all([
       prisma.agilityWorkout.findMany({
@@ -146,6 +153,11 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     // Verify user is a coach
     const dbUser = await prisma.user.findUnique({
@@ -179,6 +191,7 @@ export async function POST(request: NextRequest) {
     const workout = await prisma.agilityWorkout.create({
       data: {
         ...workoutData,
+        tags: normalizeWorkoutTags(workoutData.tags, businessScope.businessId),
         coachId: user.id,
         drills: {
           create: drills.map(drill => ({

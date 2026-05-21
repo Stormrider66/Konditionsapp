@@ -9,7 +9,8 @@
  * - Recent assignments history
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import {
   Sheet,
@@ -43,6 +44,8 @@ import type { CardioSessionData, CardioSegment, SessionAssignment } from '@/type
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { useLocale } from '@/i18n/client';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
+import { visibleWorkoutTags } from '@/lib/workouts/business-tags';
 
 type AppLocale = 'en' | 'sv';
 
@@ -165,6 +168,7 @@ interface CardioSessionDetailSheetProps {
   onDelete: () => void;
   onAssign: () => void;
   onTeamAssign?: () => void;
+  businessId?: string;
 }
 
 const sportIcons: Record<string, string> = {
@@ -236,6 +240,7 @@ export function CardioSessionDetailSheet({
   onDelete,
   onAssign,
   onTeamAssign,
+  businessId,
 }: CardioSessionDetailSheetProps) {
   const locale = useLocale() as AppLocale;
   const t = copy[locale] ?? copy.en;
@@ -246,13 +251,20 @@ export function CardioSessionDetailSheet({
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
   const sessionId = session?.id;
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
 
   const fetchAssignments = useCallback(async () => {
     if (!sessionId) return;
 
     setLoadingAssignments(true);
     try {
-      const response = await fetch(`/api/cardio-sessions/${sessionId}/assign`);
+      const response = await fetch(`/api/cardio-sessions/${sessionId}/assign`, {
+        headers: businessHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         setAssignments(data.assignments || []);
@@ -262,7 +274,7 @@ export function CardioSessionDetailSheet({
     } finally {
       setLoadingAssignments(false);
     }
-  }, [sessionId]);
+  }, [businessHeaders, sessionId]);
 
   useEffect(() => {
     if (open && sessionId) {
@@ -279,6 +291,7 @@ export function CardioSessionDetailSheet({
   const sportLabel = t.sports[session.sport as keyof typeof t.sports] || session.sport;
   const sportIcon = sportIcons[session.sport] || '🏃';
   const segments = session.segments || [];
+  const visibleTags = visibleWorkoutTags(session.tags);
 
   // Prepare export data
   const exportData = {
@@ -554,10 +567,10 @@ export function CardioSessionDetailSheet({
         </Card>
 
         {/* Tags */}
-        {session.tags && session.tags.length > 0 && (
+        {visibleTags.length > 0 && (
           <div className="py-4">
             <div className="flex flex-wrap gap-1">
-              {session.tags.map((tag) => (
+              {visibleTags.map((tag) => (
                 <Badge key={tag} variant="outline" className="text-xs">
                   {tag}
                 </Badge>

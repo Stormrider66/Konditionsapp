@@ -6,6 +6,10 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
+import {
+  agilityWorkoutAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope'
 
 const assignWorkoutSchema = z.object({
   athleteIds: z.array(z.string().uuid()).min(1),
@@ -33,6 +37,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     // Verify user is a coach
     const dbUser = await prisma.user.findUnique({
@@ -45,18 +54,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify workout exists
-    const workout = await prisma.agilityWorkout.findUnique({
-      where: { id },
+    const workout = await prisma.agilityWorkout.findFirst({
+      where: {
+        id,
+        AND: [agilityWorkoutAccessWhere(user.id, businessScope.businessId)],
+      },
       select: { id: true, name: true, coachId: true, isPublic: true }
     })
 
     if (!workout) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
-    }
-
-    // Check access to workout
-    if (workout.coachId !== user.id && !workout.isPublic) {
-      return NextResponse.json({ error: 'Access denied to this workout' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -75,6 +82,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const athletes = await prisma.client.findMany({
       where: {
         id: { in: athleteIds },
+        ...(businessScope.businessId ? { businessId: businessScope.businessId } : {}),
       },
       select: { id: true, name: true }
     })

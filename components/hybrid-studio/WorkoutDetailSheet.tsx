@@ -9,7 +9,8 @@
  * - Past results history
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import {
   Sheet,
@@ -49,6 +50,8 @@ import { WorkoutVersionHistory } from './WorkoutVersionHistory';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { ExerciseIcon } from '@/components/themed';
 import { useLocale } from '@/i18n/client';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
+import { visibleWorkoutTags } from '@/lib/workouts/business-tags';
 
 interface WorkoutDetailSheetProps {
   workout: HybridWorkoutWithSections | null;
@@ -58,6 +61,7 @@ interface WorkoutDetailSheetProps {
   onDelete: () => void;
   onAssign: () => void;
   onTeamAssign?: () => void;
+  businessId?: string;
 }
 
 type AppLocale = 'en' | 'sv';
@@ -242,6 +246,7 @@ export function WorkoutDetailSheet({
   onDelete,
   onAssign,
   onTeamAssign,
+  businessId,
 }: WorkoutDetailSheetProps) {
   const [results, setResults] = useState<HybridWorkoutResult[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
@@ -253,13 +258,20 @@ export function WorkoutDetailSheet({
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
   const workoutId = workout?.id;
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
 
   const fetchResults = useCallback(async () => {
     if (!workoutId) return;
 
     setLoadingResults(true);
     try {
-      const response = await fetch(`/api/hybrid-workouts/${workoutId}/results?limit=10`);
+      const response = await fetch(`/api/hybrid-workouts/${workoutId}/results?limit=10`, {
+        headers: businessHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         setResults(data.results || []);
@@ -269,7 +281,7 @@ export function WorkoutDetailSheet({
     } finally {
       setLoadingResults(false);
     }
-  }, [workoutId]);
+  }, [businessHeaders, workoutId]);
 
   useEffect(() => {
     if (open && workoutId) {
@@ -278,6 +290,7 @@ export function WorkoutDetailSheet({
   }, [open, workoutId, fetchResults]);
 
   if (!workout) return null;
+  const visibleTags = visibleWorkoutTags(workout.tags);
 
   const formatInfo = formatLabels[appLocale][workout.format] || { label: workout.format, icon: <Dumbbell className="h-4 w-4" /> };
   const scalingInfo = scalingLabels[workout.scalingLevel] || { label: workout.scalingLevel, color: 'bg-gray-500' };
@@ -513,10 +526,10 @@ export function WorkoutDetailSheet({
         </div>
 
         {/* Tags */}
-        {workout.tags && workout.tags.length > 0 && (
+        {visibleTags.length > 0 && (
           <div className="py-4">
             <div className="flex flex-wrap gap-1">
-              {workout.tags.map((tag) => (
+              {visibleTags.map((tag) => (
                 <Badge key={tag} variant="outline" className="text-xs">
                   {tag}
                 </Badge>

@@ -11,7 +11,8 @@
  * - Weight/rep configuration per movement
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   DndContext,
   closestCenter,
@@ -72,6 +73,7 @@ import type { HybridMetconData, HybridSectionData } from '@/types';
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton';
 import { HOCKEY_HYBRID_PRESETS, type HockeyHybridPreset } from '@/lib/hockey/hockey-builder-presets';
 import { useLocale } from '@/i18n/client';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 
 interface Exercise {
   id: string;
@@ -142,6 +144,7 @@ interface HybridWorkoutBuilderProps {
   onSave: (workoutId?: string, workoutName?: string) => void;
   onCancel: () => void;
   initialData?: HybridWorkoutBuilderInitialData;
+  businessId?: string;
 }
 
 type AppLocale = 'en' | 'sv';
@@ -751,9 +754,14 @@ function SortableMovementCard({
   );
 }
 
-export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWorkoutBuilderProps) {
+export function HybridWorkoutBuilder({ onSave, onCancel, initialData, businessId }: HybridWorkoutBuilderProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const copy = COPY[locale];
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
   const [step, setStep] = useState(1);
   const [name, setName] = useState(initialData?.name || '');
   const [description, setDescription] = useState(initialData?.description || '');
@@ -1107,7 +1115,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...businessHeaders },
         body: JSON.stringify(payload),
       });
 

@@ -22,7 +22,7 @@ describe('normalizePrintableWorkout', () => {
           },
         ],
       },
-    })
+    }, { locale: 'sv' })
 
     expect(workout.sections[0].items[0].details).toContain('vila efter 3 min')
     expect(workout.sections[0].items[0].details).toContain('SkiErg 250 m')

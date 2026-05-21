@@ -132,7 +132,10 @@ describe('Training zones golden snapshots', () => {
       190,
       narrowLT1,
       narrowLT2,
-      'RUNNING'
+      'RUNNING',
+      undefined,
+      undefined,
+      'sv'
     )
 
     it('emits a warning about close thresholds', () => {

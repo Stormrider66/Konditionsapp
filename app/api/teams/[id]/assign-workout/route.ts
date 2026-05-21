@@ -11,9 +11,14 @@ import { prisma } from '@/lib/prisma'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import {
-  resolveStrengthBusinessScope,
   strengthSessionAccessWhere,
 } from '@/lib/strength/session-business-scope'
+import {
+  agilityWorkoutAccessWhere,
+  cardioSessionAccessWhere,
+  hybridWorkoutAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -43,9 +48,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(request)
-    const strengthBusinessScope = await resolveStrengthBusinessScope(user.id, request)
+    const workoutBusinessScope = await resolveWorkoutBusinessScope(user.id, request)
 
-    if (!strengthBusinessScope) {
+    if (!workoutBusinessScope) {
       return NextResponse.json({ success: false, error: 'Business not found' }, { status: 403 })
     }
 
@@ -111,7 +116,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const includeSet = includeAthleteIds ? new Set(includeAthleteIds) : null
     const excludeSet = new Set(excludeAthleteIds ?? [])
     const eligibleMembers = team.members.filter((member) => {
-      if (strengthBusinessScope.businessId && member.businessId !== strengthBusinessScope.businessId) return false
+      if (workoutBusinessScope.businessId && member.businessId !== workoutBusinessScope.businessId) return false
       if (includeSet && !includeSet.has(member.id)) return false
       return !excludeSet.has(member.id)
     })
@@ -129,7 +134,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const session = await prisma.strengthSession.findFirst({
         where: {
           id: workoutId,
-          AND: [strengthSessionAccessWhere(user.id, strengthBusinessScope.businessId)],
+          AND: [strengthSessionAccessWhere(user.id, workoutBusinessScope.businessId)],
         },
         select: { name: true },
       })
@@ -144,7 +149,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const session = await prisma.cardioSession.findFirst({
         where: {
           id: workoutId,
-          OR: [{ coachId: user.id }, { isPublic: true }],
+          AND: [cardioSessionAccessWhere(user.id, workoutBusinessScope.businessId)],
         },
         select: { name: true },
       })
@@ -159,7 +164,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const workout = await prisma.hybridWorkout.findFirst({
         where: {
           id: workoutId,
-          OR: [{ coachId: user.id }, { isPublic: true }, { coachId: null }],
+          AND: [hybridWorkoutAccessWhere(user.id, workoutBusinessScope.businessId)],
         },
         select: { name: true },
       })
@@ -174,7 +179,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const workout = await prisma.agilityWorkout.findFirst({
         where: {
           id: workoutId,
-          OR: [{ coachId: user.id }, { isPublic: true }],
+          AND: [agilityWorkoutAccessWhere(user.id, workoutBusinessScope.businessId)],
         },
         select: { name: true },
       })

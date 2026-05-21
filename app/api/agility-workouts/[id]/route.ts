@@ -6,6 +6,12 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { AgilityWorkoutFormat, AgilityDrillCategory, DevelopmentStage, SportType, WorkoutSectionType } from '@prisma/client'
 import { z } from 'zod'
+import {
+  agilityBusinessScopeWhere,
+  agilityWorkoutAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope'
+import { normalizeWorkoutTags } from '@/lib/workouts/business-tags'
 
 const workoutDrillSchema = z.object({
   id: z.string().uuid().optional(),
@@ -48,9 +54,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request)
 
-    const workout = await prisma.agilityWorkout.findUnique({
-      where: { id },
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
+
+    const workout = await prisma.agilityWorkout.findFirst({
+      where: {
+        id,
+        AND: [agilityWorkoutAccessWhere(user.id, businessScope.businessId)],
+      },
       include: {
         coach: {
           select: { id: true, name: true }
@@ -62,6 +76,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           }
         },
         assignments: {
+          where: businessScope.businessId
+            ? { athlete: { businessId: businessScope.businessId } }
+            : undefined,
           orderBy: { assignedDate: 'desc' },
           take: 10,
           include: {
@@ -71,6 +88,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           }
         },
         results: {
+          where: businessScope.businessId
+            ? { athlete: { businessId: businessScope.businessId } }
+            : undefined,
           orderBy: { completedAt: 'desc' },
           take: 10,
           include: {
@@ -90,11 +110,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (!workout) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
-    }
-
-    // Check access: own workout or public
-    if (workout.coachId !== user.id && !workout.isPublic) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     return NextResponse.json(workout)
@@ -117,11 +132,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     // Check ownership
-    const existingWorkout = await prisma.agilityWorkout.findUnique({
-      where: { id },
-      select: { coachId: true }
+    const existingWorkout = await prisma.agilityWorkout.findFirst({
+      where: businessScope.businessId
+        ? { id, AND: [agilityBusinessScopeWhere(businessScope.businessId)] }
+        : { id },
+      select: { coachId: true, tags: true }
     })
 
     if (!existingWorkout) {
@@ -142,14 +164,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json()
     const validatedData = updateWorkoutSchema.parse(body)
 
-    const { drills, ...workoutData } = validatedData
+    const { drills, tags, ...workoutData } = validatedData
 
     // Start transaction to update workout and drills
     const workout = await prisma.$transaction(async (tx) => {
       // Update workout fields
       const updatedWorkout = await tx.agilityWorkout.update({
         where: { id },
-        data: workoutData
+        data: {
+          ...workoutData,
+          ...(tags !== undefined
+            ? { tags: normalizeWorkoutTags(tags, businessScope.businessId, existingWorkout.tags) }
+            : {}),
+        }
       })
 
       // If drills provided, replace all drills
@@ -215,10 +242,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     // Check ownership
-    const existingWorkout = await prisma.agilityWorkout.findUnique({
-      where: { id },
+    const existingWorkout = await prisma.agilityWorkout.findFirst({
+      where: businessScope.businessId
+        ? { id, AND: [agilityBusinessScopeWhere(businessScope.businessId)] }
+        : { id },
       select: { coachId: true }
     })
 

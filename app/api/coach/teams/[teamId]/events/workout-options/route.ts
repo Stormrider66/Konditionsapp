@@ -4,9 +4,14 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import {
-  resolveStrengthBusinessScope,
   strengthSessionAccessWhere,
 } from '@/lib/strength/session-business-scope'
+import {
+  agilityWorkoutAccessWhere,
+  cardioSessionAccessWhere,
+  hybridWorkoutAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -20,7 +25,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
-    const businessScope = await resolveStrengthBusinessScope(user.id, req)
+    const businessScope = await resolveWorkoutBusinessScope(user.id, req)
 
     if (!businessScope) {
       return NextResponse.json({ error: 'Business not found' }, { status: 403 })
@@ -47,13 +52,6 @@ export async function GET(req: NextRequest, context: RouteContext) {
           ],
         }
       : {}
-    const ownershipWhere = {
-      OR: [
-        { coachId: user.id },
-        { isPublic: true },
-      ],
-    }
-
     if (parsedType.data === 'STRENGTH') {
       const workouts = await prisma.strengthSession.findMany({
         where: { AND: [strengthSessionAccessWhere(user.id, businessScope.businessId), searchWhere] },
@@ -66,7 +64,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     if (parsedType.data === 'CARDIO') {
       const workouts = await prisma.cardioSession.findMany({
-        where: { AND: [ownershipWhere, searchWhere] },
+        where: { AND: [cardioSessionAccessWhere(user.id, businessScope.businessId), searchWhere] },
         select: { id: true, name: true, description: true, totalDuration: true, updatedAt: true },
         orderBy: { updatedAt: 'desc' },
         take: 30,
@@ -76,18 +74,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     if (parsedType.data === 'HYBRID') {
       const workouts = await prisma.hybridWorkout.findMany({
-        where: {
-          AND: [
-            {
-              OR: [
-                { coachId: user.id },
-                { isPublic: true },
-                { coachId: null },
-              ],
-            },
-            searchWhere,
-          ],
-        },
+        where: { AND: [hybridWorkoutAccessWhere(user.id, businessScope.businessId), searchWhere] },
         select: { id: true, name: true, description: true, timeCap: true, updatedAt: true },
         orderBy: [{ isBenchmark: 'desc' }, { updatedAt: 'desc' }],
         take: 30,
@@ -96,7 +83,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
 
     const workouts = await prisma.agilityWorkout.findMany({
-      where: { AND: [ownershipWhere, searchWhere] },
+      where: { AND: [agilityWorkoutAccessWhere(user.id, businessScope.businessId), searchWhere] },
       select: { id: true, name: true, description: true, totalDuration: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
       take: 30,

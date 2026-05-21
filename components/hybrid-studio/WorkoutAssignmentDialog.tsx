@@ -6,7 +6,8 @@
  * Allows coaches to assign workouts to athletes for specific dates.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
@@ -49,6 +50,7 @@ import { format } from 'date-fns';
 import { enUS, sv } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { useLocale } from '@/i18n/client';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 
 interface Athlete {
   id: string;
@@ -64,6 +66,7 @@ interface WorkoutAssignmentDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onAssigned?: () => void;
+  businessId?: string;
 }
 
 export function WorkoutAssignmentDialog({
@@ -74,6 +77,7 @@ export function WorkoutAssignmentDialog({
   open: controlledOpen,
   onOpenChange,
   onAssigned,
+  businessId,
 }: WorkoutAssignmentDialogProps) {
   const locale = useLocale() === 'sv' ? 'sv' : 'en';
   const dateLocale = locale === 'sv' ? sv : enUS;
@@ -103,14 +107,22 @@ export function WorkoutAssignmentDialog({
   // Multi-date / weekly repeat state
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES);
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
 
   async function fetchAthletes() {
     try {
-      const response = await fetch('/api/clients?limit=100');
+      const response = await fetch(
+        businessId ? `/api/business/${businessId}/clients` : '/api/clients?limit=100',
+        { headers: businessHeaders }
+      );
       if (response.ok) {
         const data = await response.json();
         // API returns { success: true, data: clients }
-        setAthletes(data.data || []);
+        setAthletes(data.clients || data.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch athletes:', error);
@@ -155,7 +167,7 @@ export function WorkoutAssignmentDialog({
         dates.map((d) =>
           fetch('/api/hybrid-assignments', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...businessHeaders },
             body: JSON.stringify({
               workoutId,
               athleteIds: selectedAthletes,

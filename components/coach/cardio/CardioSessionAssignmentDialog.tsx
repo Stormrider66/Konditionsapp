@@ -10,7 +10,8 @@
  * - Optional notes
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ import {
   computeWeeklyDates,
   DEFAULT_OCCURRENCES,
 } from '@/components/coach/scheduling/RepeatWeeklyFields';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 
 interface Athlete {
   id: string;
@@ -65,6 +67,7 @@ interface CardioSessionAssignmentDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onAssigned?: () => void;
+  businessId?: string;
 }
 
 export function CardioSessionAssignmentDialog({
@@ -74,6 +77,7 @@ export function CardioSessionAssignmentDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   onAssigned,
+  businessId,
 }: CardioSessionAssignmentDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -107,6 +111,11 @@ export function CardioSessionAssignmentDialog({
   // Multi-date / weekly repeat state
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES);
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
 
   // Support both controlled and uncontrolled modes
   const isControlled = controlledOpen !== undefined;
@@ -152,16 +161,21 @@ export function CardioSessionAssignmentDialog({
       const allAthletes: Athlete[] = [];
 
       while (hasMore) {
-        const response = await fetch(`/api/clients?limit=${pageSize}&offset=${offset}`);
+        const url = businessId
+          ? `/api/business/${businessId}/clients`
+          : `/api/clients?limit=${pageSize}&offset=${offset}`;
+        const response = await fetch(url, {
+          headers: businessHeaders,
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch athletes');
         }
 
         const data = await response.json();
-        const pageAthletes = (data.data || []) as Athlete[];
+        const pageAthletes = (data.clients || data.data || []) as Athlete[];
         allAthletes.push(...pageAthletes);
 
-        hasMore = Boolean(data.pagination?.hasMore);
+        hasMore = businessId ? false : Boolean(data.pagination?.hasMore);
         offset += pageSize;
       }
 
@@ -176,7 +190,9 @@ export function CardioSessionAssignmentDialog({
 
   async function fetchLocations() {
     try {
-      const response = await fetch('/api/locations');
+      const response = await fetch('/api/locations', {
+        headers: businessHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         setLocations(data.locations || []);
@@ -188,7 +204,9 @@ export function CardioSessionAssignmentDialog({
 
   async function fetchTrainers() {
     try {
-      const response = await fetch('/api/trainers');
+      const response = await fetch('/api/trainers', {
+        headers: businessHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         setTrainers(data.trainers || []);
@@ -229,7 +247,7 @@ export function CardioSessionAssignmentDialog({
         dateStrings.map((isoDate) =>
           fetch(`/api/cardio-sessions/${sessionId}/assign`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...businessHeaders },
             body: JSON.stringify({
               athleteIds: selectedAthletes,
               assignedDate: isoDate,

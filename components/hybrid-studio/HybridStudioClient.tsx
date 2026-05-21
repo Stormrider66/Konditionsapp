@@ -74,6 +74,7 @@ import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutD
 import { toHybridBuilderInitialData } from '@/components/workouts/import/converters';
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner';
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 
 interface HybridMovement {
   id: string;
@@ -296,13 +297,19 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     if (match && match[1] !== 'coach') return match[1];
     return undefined;
   }, [pathname]);
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
 
   useEffect(() => {
     if (!editWorkoutId || appliedEditWorkoutIdRef.current === editWorkoutId) return;
     appliedEditWorkoutIdRef.current = editWorkoutId;
 
     let cancelled = false;
-    fetch(`/api/hybrid-workouts/${editWorkoutId}`)
+    fetch(`/api/hybrid-workouts/${editWorkoutId}`, {
+      headers: businessHeaders,
+    })
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -325,7 +332,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     return () => {
       cancelled = true;
     };
-  }, [copy.openError, copy.openErrorTitle, editWorkoutId]);
+  }, [businessHeaders, copy.openError, copy.openErrorTitle, editWorkoutId]);
 
   const handleDelete = async () => {
     if (!deleteWorkout) return;
@@ -334,6 +341,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     try {
       const response = await fetch(`/api/hybrid-workouts/${deleteWorkout.id}`, {
         method: 'DELETE',
+        headers: businessHeaders,
       });
 
       if (response.ok) {
@@ -391,7 +399,9 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       if (benchmarkOnly) params.set('benchmarkOnly', 'true');
       params.set('limit', '50');
 
-      const response = await fetch(`/api/hybrid-workouts?${params}`);
+      const response = await fetch(`/api/hybrid-workouts?${params}`, {
+        headers: businessHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         setWorkouts(data.workouts);
@@ -401,7 +411,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     } finally {
       setLoading(false);
     }
-  }, [search, formatFilter, benchmarkOnly]);
+  }, [benchmarkOnly, businessHeaders, formatFilter, search]);
 
   useEffect(() => {
     void fetchWorkouts();
@@ -485,6 +495,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
               </DialogHeader>
               <HybridWorkoutBuilder
                 initialData={importedInitialData ?? undefined}
+                businessId={businessId}
                 onSave={async (workoutId, workoutName) => {
                   if (teamCalendarLink.fromTeamCalendar && workoutId) {
                     await teamCalendarLink.linkSavedWorkout(workoutId, workoutName);
@@ -647,6 +658,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
         onDelete={handleSheetDelete}
         onAssign={handleSheetAssign}
         onTeamAssign={handleSheetTeamAssign}
+        businessId={businessId}
       />
 
       {/* Assignment Dialog */}
@@ -659,6 +671,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             setIsAssignOpen(false);
             void fetchWorkouts();
           }}
+          businessId={businessId}
         />
       )}
 
@@ -715,6 +728,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
                   weightFemale: m.weightFemale,
                 })),
               }}
+              businessId={businessId}
               onSave={() => {
                 setIsEditOpen(false);
                 setSelectedWorkout(null);

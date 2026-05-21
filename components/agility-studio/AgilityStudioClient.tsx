@@ -243,6 +243,7 @@ export default function AgilityStudioClient({
             athletes={initialAthletes}
             searchQuery={searchQuery}
             onDelete={handleWorkoutDeleted}
+            businessId={businessId}
           />
         </TabsContent>
 
@@ -275,6 +276,7 @@ export default function AgilityStudioClient({
           // steps — the wizard otherwise discards the seeded drills if the
           // coach doesn't navigate forward.
           initialStep={builderInitialStep}
+          businessId={businessId}
           onSave={(w) => {
             void handleWorkoutCreated(w)
             setImportedWorkoutSeed(null)

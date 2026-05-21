@@ -9,6 +9,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
+import { agilityBusinessScopeWhere } from '@/lib/workouts/business-scope'
 
 export const metadata: Metadata = {
   title: 'Agility Studio | Coach Dashboard',
@@ -44,7 +45,17 @@ async function getInitialData(userId: string, businessId: string, memberRole: st
     }),
     // Get coach's workouts
     prisma.agilityWorkout.findMany({
-      where: { coachId: userId },
+      where: {
+        AND: [
+          {
+            OR: [
+              { coachId: { in: coachIds } },
+              { isPublic: true },
+            ],
+          },
+          agilityBusinessScopeWhere(businessId),
+        ],
+      },
       orderBy: { updatedAt: 'desc' },
       take: 20,
       include: {

@@ -8,12 +8,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
-import { SportType } from '@prisma/client';
+import { Prisma, SportType } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import {
+  cardioSessionAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope';
+import { normalizeWorkoutTags } from '@/lib/workouts/business-tags';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const sport = searchParams.get('sport') as SportType | null;
@@ -22,27 +32,24 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {
-      OR: [
-        { coachId: user.id },
-        { isPublic: true },
-      ],
-    };
+    const andFilters: Prisma.CardioSessionWhereInput[] = [
+      cardioSessionAccessWhere(user.id, businessScope.businessId),
+    ];
 
     if (sport) {
-      where.sport = sport;
+      andFilters.push({ sport });
     }
 
     if (search) {
-      where.AND = [
-        {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
-          ],
-        },
-      ];
+      andFilters.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
+
+    const where: Prisma.CardioSessionWhereInput = { AND: andFilters };
 
     const [sessions, total] = await Promise.all([
       prisma.cardioSession.findMany({
@@ -80,6 +87,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
     const body = await request.json();
 
     const {
@@ -150,7 +162,7 @@ export async function POST(request: NextRequest) {
         avgZone,
         coachId: user.id,
         isPublic: isPublic || false,
-        tags: tags || [],
+        tags: normalizeWorkoutTags(tags, businessScope.businessId),
       },
       include: {
         _count: {

@@ -3,7 +3,8 @@
 // components/agility-studio/AgilityWorkoutBuilder.tsx
 // Multi-step workout builder dialog
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
   Dialog,
@@ -44,6 +45,7 @@ import type {
 } from '@/types'
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 import { HOCKEY_AGILITY_PRESETS, type HockeyAgilityPreset } from '@/lib/hockey/hockey-builder-presets'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 interface AgilityWorkoutBuilderProps {
   drills: AgilityDrill[]
@@ -58,6 +60,7 @@ interface AgilityWorkoutBuilderProps {
   initialStep?: 1 | 2 | 3 | 4
   onSave: (workout: AgilityWorkout) => void
   onClose: () => void
+  businessId?: string
 }
 
 interface SelectedDrill {
@@ -106,9 +109,15 @@ export function AgilityWorkoutBuilder({
   initialDrills,
   initialStep = 1,
   onSave,
-  onClose
+  onClose,
+  businessId,
 }: AgilityWorkoutBuilderProps) {
   const t = useTranslations('agilityStudio')
+  const pathname = usePathname()
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname])
   const [step, setStep] = useState<number>(initialStep)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -280,7 +289,7 @@ export function AgilityWorkoutBuilder({
     try {
       const response = await fetch('/api/agility-workouts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...businessHeaders },
         body: JSON.stringify({
           name,
           description: description || undefined,

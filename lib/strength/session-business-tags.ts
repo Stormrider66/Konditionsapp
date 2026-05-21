@@ -1,15 +1,20 @@
-const BUSINESS_TAG_PREFIX = '__business:'
+import {
+  getWorkoutBusinessTag,
+  isWorkoutBusinessTag,
+  normalizeWorkoutTags,
+  visibleWorkoutTags,
+} from '@/lib/workouts/business-tags'
 
 export function getStrengthBusinessTag(businessId: string): string {
-  return `${BUSINESS_TAG_PREFIX}${businessId}`
+  return getWorkoutBusinessTag(businessId)
 }
 
 export function isStrengthBusinessTag(tag: string): boolean {
-  return tag.startsWith(BUSINESS_TAG_PREFIX)
+  return isWorkoutBusinessTag(tag)
 }
 
 export function visibleStrengthSessionTags(tags: string[] | null | undefined): string[] {
-  return (tags ?? []).filter((tag) => !isStrengthBusinessTag(tag))
+  return visibleWorkoutTags(tags)
 }
 
 export function normalizeStrengthSessionTags(
@@ -17,15 +22,5 @@ export function normalizeStrengthSessionTags(
   businessId?: string,
   existingTags: string[] = []
 ): string[] {
-  const visibleTags = Array.isArray(inputTags)
-    ? inputTags.filter((tag): tag is string => typeof tag === 'string' && !isStrengthBusinessTag(tag))
-    : []
-  const hiddenTags = existingTags.filter(isStrengthBusinessTag)
-  const nextTags = [...visibleTags, ...hiddenTags]
-
-  if (businessId) {
-    nextTags.push(getStrengthBusinessTag(businessId))
-  }
-
-  return Array.from(new Set(nextTags))
+  return normalizeWorkoutTags(inputTags, businessId, existingTags)
 }

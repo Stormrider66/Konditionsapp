@@ -3,6 +3,13 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { prisma } from '@/lib/prisma'
 import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
+import { strengthSessionAccessWhere } from '@/lib/strength/session-business-scope'
+import {
+  agilityWorkoutAccessWhere,
+  cardioSessionAccessWhere,
+  hybridWorkoutAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -32,6 +39,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
+    const businessScope = await resolveWorkoutBusinessScope(user.id, req)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     const body = await req.json().catch(() => ({}))
     const parsed = assignFromEventSchema.safeParse(body)
@@ -78,16 +90,58 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unsupported workout type' }, { status: 400 })
     }
 
+    if (event.linkedWorkoutType === 'STRENGTH') {
+      const session = await prisma.strengthSession.findFirst({
+        where: {
+          id: event.linkedWorkoutId,
+          AND: [strengthSessionAccessWhere(user.id, businessScope.businessId)],
+        },
+        select: { id: true },
+      })
+      if (!session) return NextResponse.json({ error: 'Linked workout not found' }, { status: 404 })
+    } else if (event.linkedWorkoutType === 'CARDIO') {
+      const session = await prisma.cardioSession.findFirst({
+        where: {
+          id: event.linkedWorkoutId,
+          AND: [cardioSessionAccessWhere(user.id, businessScope.businessId)],
+        },
+        select: { id: true },
+      })
+      if (!session) return NextResponse.json({ error: 'Linked workout not found' }, { status: 404 })
+    } else if (event.linkedWorkoutType === 'HYBRID') {
+      const workout = await prisma.hybridWorkout.findFirst({
+        where: {
+          id: event.linkedWorkoutId,
+          AND: [hybridWorkoutAccessWhere(user.id, businessScope.businessId)],
+        },
+        select: { id: true },
+      })
+      if (!workout) return NextResponse.json({ error: 'Linked workout not found' }, { status: 404 })
+    } else {
+      const workout = await prisma.agilityWorkout.findFirst({
+        where: {
+          id: event.linkedWorkoutId,
+          AND: [agilityWorkoutAccessWhere(user.id, businessScope.businessId)],
+        },
+        select: { id: true },
+      })
+      if (!workout) return NextResponse.json({ error: 'Linked workout not found' }, { status: 404 })
+    }
+
     const teamWithMembers = await prisma.team.findUnique({
       where: { id: teamId },
       include: {
         members: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, businessId: true },
         },
       },
     })
 
-    if (!teamWithMembers || teamWithMembers.members.length === 0) {
+    const eligibleMembers = teamWithMembers?.members.filter((member) => (
+      businessScope.businessId ? member.businessId === businessScope.businessId : true
+    )) ?? []
+
+    if (!teamWithMembers || eligibleMembers.length === 0) {
       return NextResponse.json({ error: 'No team members to assign workout to' }, { status: 400 })
     }
 
@@ -111,14 +165,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
           startTime,
           endTime,
           locationName: event.location || null,
-          totalAssigned: teamWithMembers.members.length,
+          totalAssigned: eligibleMembers.length,
           totalCompleted: 0,
         },
       })
 
       if (event.linkedWorkoutType === 'STRENGTH') {
         await tx.strengthSessionAssignment.createMany({
-          data: teamWithMembers.members.map((member) => ({
+          data: eligibleMembers.map((member) => ({
             sessionId: event.linkedWorkoutId!,
             athleteId: member.id,
             assignedDate,
@@ -135,7 +189,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         })
       } else if (event.linkedWorkoutType === 'CARDIO') {
         await tx.cardioSessionAssignment.createMany({
-          data: teamWithMembers.members.map((member) => ({
+          data: eligibleMembers.map((member) => ({
             sessionId: event.linkedWorkoutId!,
             athleteId: member.id,
             assignedDate,
@@ -152,7 +206,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         })
       } else if (event.linkedWorkoutType === 'HYBRID') {
         await tx.hybridWorkoutAssignment.createMany({
-          data: teamWithMembers.members.map((member) => ({
+          data: eligibleMembers.map((member) => ({
             workoutId: event.linkedWorkoutId!,
             athleteId: member.id,
             assignedDate,
@@ -169,7 +223,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         })
       } else {
         await tx.agilityWorkoutAssignment.createMany({
-          data: teamWithMembers.members.map((member) => ({
+          data: eligibleMembers.map((member) => ({
             workoutId: event.linkedWorkoutId!,
             athleteId: member.id,
             assignedDate,
@@ -202,7 +256,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       success: true,
       broadcast: result.broadcast,
       event: result.event,
-      assignmentCount: teamWithMembers.members.length,
+      assignmentCount: eligibleMembers.length,
       workoutName: event.linkedWorkoutName,
     }, { status: 201 })
   } catch (error) {

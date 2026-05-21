@@ -8,12 +8,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
-import { HybridFormat, ScalingLevel } from '@prisma/client';
+import { HybridFormat, Prisma, ScalingLevel } from '@prisma/client';
 import { handleApiError, ApiError, validateRequired, parseJsonBody } from '@/lib/api-error';
+import {
+  hybridWorkoutAccessWhere,
+  resolveWorkoutBusinessScope,
+} from '@/lib/workouts/business-scope';
+import { normalizeWorkoutTags } from '@/lib/workouts/business-tags';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') as HybridFormat | null;
@@ -24,37 +34,33 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {
-      OR: [
-        { coachId: user.id },
-        { isPublic: true },
-        { coachId: null }, // System/benchmark workouts
-      ],
-    };
+    const andFilters: Prisma.HybridWorkoutWhereInput[] = [
+      hybridWorkoutAccessWhere(user.id, businessScope.businessId),
+    ];
 
     if (format) {
-      where.format = format;
+      andFilters.push({ format });
     }
 
     if (scalingLevel) {
-      where.scalingLevel = scalingLevel;
+      andFilters.push({ scalingLevel });
     }
 
     if (benchmarkOnly) {
-      where.isBenchmark = true;
+      andFilters.push({ isBenchmark: true });
     }
 
     if (search) {
-      where.AND = [
-        {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
-            { benchmarkSource: { contains: search, mode: 'insensitive' } },
-          ],
-        },
-      ];
+      andFilters.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+          { benchmarkSource: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
+
+    const where: Prisma.HybridWorkoutWhereInput = { AND: andFilters };
 
     const [workouts, total] = await Promise.all([
       prisma.hybridWorkout.findMany({
@@ -105,6 +111,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
     const body = await parseJsonBody<{
       name: string;
       description?: string;
@@ -178,7 +189,7 @@ export async function POST(request: NextRequest) {
         scalingLevel: scalingLevel || 'RX',
         coachId: user.id,
         isPublic: isPublic || false,
-        tags: tags || [],
+        tags: normalizeWorkoutTags(tags, businessScope.businessId),
         // Section data
         warmupData: warmupData ?? undefined,
         strengthData: strengthData ?? undefined,

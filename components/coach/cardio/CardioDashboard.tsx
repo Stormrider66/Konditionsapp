@@ -17,6 +17,7 @@ import { toCardioSessionData } from '@/components/workouts/import/converters'
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link'
 import { useLocale } from 'next-intl'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 type AppLocale = 'en' | 'sv'
 
@@ -50,13 +51,19 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
     if (match && match[1] !== 'coach') return match[1]
     return undefined
   }, [pathname])
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname])
 
   React.useEffect(() => {
     if (!editSessionId || appliedEditSessionIdRef.current === editSessionId) return
     appliedEditSessionIdRef.current = editSessionId
 
     let cancelled = false
-    fetch(`/api/cardio-sessions/${editSessionId}`)
+    fetch(`/api/cardio-sessions/${editSessionId}`, {
+      headers: businessHeaders,
+    })
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
@@ -79,7 +86,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
     return () => {
       cancelled = true
     }
-  }, [editSessionId, locale])
+  }, [businessHeaders, editSessionId, locale])
 
   return (
     <div className="container mx-auto py-6 px-4 space-y-8">
@@ -127,6 +134,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
         <TabsContent value="builder">
           <CardioSessionBuilder
             initialData={editSession}
+            businessId={businessId}
             onSaved={async (sessionId, sessionName) => {
               if (teamCalendarLink.fromTeamCalendar && sessionId) {
                 await teamCalendarLink.linkSavedWorkout(sessionId, sessionName)
@@ -148,6 +156,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
 
         <TabsContent value="library" className="space-y-4">
           <CardioSessionLibrary
+            businessId={businessId}
             onNewSession={() => {
               setEditSession(null)
               setActiveTab('builder')

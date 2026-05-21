@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   DndContext,
   closestCenter,
@@ -44,6 +44,7 @@ import type { CardioSessionData, CardioSegment as CardioSegmentType } from '@/ty
 import { PatternBlockDialog, type GeneratedPatternStep } from './PatternBlockDialog'
 import { HOCKEY_CARDIO_PRESETS, type HockeyCardioPreset } from '@/lib/hockey/hockey-builder-presets'
 import { useLocale } from '@/i18n/client'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 // Types
 type CardioFlatSegment = {
@@ -253,11 +254,17 @@ interface CardioSessionBuilderProps {
   initialData?: CardioSessionData | null
   onSaved?: (sessionId?: string, sessionName?: string) => void
   onCancel?: () => void
+  businessId?: string
 }
 
-export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioSessionBuilderProps) {
+export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessId }: CardioSessionBuilderProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const businessHeaders = React.useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname])
   const workoutId = searchParams.get('workoutId')
   const programId = searchParams.get('programId')
 
@@ -518,7 +525,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...businessHeaders },
         body: JSON.stringify(payload),
       })
 

@@ -45,19 +45,19 @@ describe('calculateRunningEconomy', () => {
 
 describe('evaluateRunningEconomy', () => {
   it('bands male economy values correctly', () => {
-    expect(evaluateRunningEconomy(190, 'MALE')).toBe('Utmärkt')
-    expect(evaluateRunningEconomy(205, 'MALE')).toBe('Mycket god')
-    expect(evaluateRunningEconomy(215, 'MALE')).toBe('God')
-    expect(evaluateRunningEconomy(230, 'MALE')).toBe('Acceptabel')
-    expect(evaluateRunningEconomy(260, 'MALE')).toBe('Behöver förbättring')
+    expect(evaluateRunningEconomy(190, 'MALE', 'sv')).toBe('Utmärkt')
+    expect(evaluateRunningEconomy(205, 'MALE', 'sv')).toBe('Mycket god')
+    expect(evaluateRunningEconomy(215, 'MALE', 'sv')).toBe('God')
+    expect(evaluateRunningEconomy(230, 'MALE', 'sv')).toBe('Acceptabel')
+    expect(evaluateRunningEconomy(260, 'MALE', 'sv')).toBe('Behöver förbättring')
   })
 
   it('bands female economy values correctly (shifted higher)', () => {
-    expect(evaluateRunningEconomy(200, 'FEMALE')).toBe('Utmärkt')
-    expect(evaluateRunningEconomy(215, 'FEMALE')).toBe('Mycket god')
-    expect(evaluateRunningEconomy(230, 'FEMALE')).toBe('God')
-    expect(evaluateRunningEconomy(250, 'FEMALE')).toBe('Acceptabel')
-    expect(evaluateRunningEconomy(280, 'FEMALE')).toBe('Behöver förbättring')
+    expect(evaluateRunningEconomy(200, 'FEMALE', 'sv')).toBe('Utmärkt')
+    expect(evaluateRunningEconomy(215, 'FEMALE', 'sv')).toBe('Mycket god')
+    expect(evaluateRunningEconomy(230, 'FEMALE', 'sv')).toBe('God')
+    expect(evaluateRunningEconomy(250, 'FEMALE', 'sv')).toBe('Acceptabel')
+    expect(evaluateRunningEconomy(280, 'FEMALE', 'sv')).toBe('Behöver förbättring')
   })
 })
 
