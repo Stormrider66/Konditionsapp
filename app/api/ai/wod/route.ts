@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     const subscriptionTier = clientRecord?.athleteSubscription?.tier || 'FREE'
 
     // Build athlete context
-    const context = await buildWODContext(clientId)
+    const context = await buildWODContext(clientId, locale)
 
     if (!context) {
       return NextResponse.json(
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Run guardrails
-    const guardrails = await checkWODGuardrails(context, subscriptionTier)
+    const guardrails = await checkWODGuardrails(context, subscriptionTier, locale)
 
     // Check if generation is blocked
     if (!guardrails.canGenerate) {

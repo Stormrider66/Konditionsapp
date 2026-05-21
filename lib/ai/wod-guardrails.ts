@@ -13,6 +13,12 @@ import type {
 } from '@/types/wod'
 import { canGenerateWOD } from './wod-context-builder'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================
 // MAIN GUARDRAILS CHECK
 // ============================================
@@ -22,14 +28,15 @@ import { canGenerateWOD } from './wod-context-builder'
  */
 export async function checkWODGuardrails(
   context: WODAthleteContext,
-  subscriptionTier: string
+  subscriptionTier: string,
+  locale: AppLocale = 'en'
 ): Promise<WODGuardrailResult> {
   // Run all checks
-  const acwrCheck = checkACWR(context)
-  const injuryCheck = checkInjuries(context)
-  const fatigueCheck = checkFatigue(context)
-  const usageLimitCheck = await checkUsageLimit(context.clientId, subscriptionTier)
-  const restrictionsCheck = checkRestrictions(context)
+  const acwrCheck = checkACWR(context, locale)
+  const injuryCheck = checkInjuries(context, locale)
+  const fatigueCheck = checkFatigue(context, locale)
+  const usageLimitCheck = await checkUsageLimit(context.clientId, subscriptionTier, locale)
+  const restrictionsCheck = checkRestrictions(context, locale)
 
   // Collect all applied guardrails
   const guardrailsApplied: WODGuardrailApplied[] = []
@@ -47,11 +54,11 @@ export async function checkWODGuardrails(
   if (acwrCheck.zone === 'CRITICAL') {
     // Critical ACWR blocks generation entirely
     canGenerate = false
-    blockedReason = 'Din träningsbelastning är kritiskt hög. Vila rekommenderas starkt.'
+    blockedReason = t(locale, 'Your training load is critically high. Rest is strongly recommended.', 'Din träningsbelastning är kritiskt hög. Vila rekommenderas starkt.')
     guardrailsApplied.push({
       type: 'ACWR_CRITICAL',
-      description: 'ACWR i kritisk zon (>2.0)',
-      modification: 'Generering blockerad - vila rekommenderas',
+      description: t(locale, 'ACWR in critical zone (>2.0)', 'ACWR i kritisk zon (>2.0)'),
+      modification: t(locale, 'Generation blocked - rest is recommended', 'Generering blockerad - vila rekommenderas'),
     })
   }
 
@@ -59,21 +66,21 @@ export async function checkWODGuardrails(
   if (acwrCheck.zone === 'DANGER') {
     guardrailsApplied.push({
       type: 'ACWR_WARNING',
-      description: 'ACWR i farlig zon (1.5-2.0)',
-      modification: 'Intensitet sänkt till recovery',
+      description: t(locale, 'ACWR in danger zone (1.5-2.0)', 'ACWR i farlig zon (1.5-2.0)'),
+      modification: t(locale, 'Intensity lowered to recovery', 'Intensitet sänkt till recovery'),
     })
   } else if (acwrCheck.zone === 'CAUTION') {
     guardrailsApplied.push({
       type: 'ACWR_WARNING',
-      description: 'ACWR i varningszon (1.3-1.5)',
-      modification: 'Intensitet sänkt till easy',
+      description: t(locale, 'ACWR in caution zone (1.3-1.5)', 'ACWR i varningszon (1.3-1.5)'),
+      modification: t(locale, 'Intensity lowered to easy', 'Intensitet sänkt till easy'),
     })
   }
 
   if (!injuryCheck.passed && injuryCheck.excludedAreas.length > 0) {
     guardrailsApplied.push({
       type: 'INJURY_EXCLUDED',
-      description: `Undviker ${injuryCheck.excludedAreas.join(', ')}`,
+      description: t(locale, `Avoiding ${injuryCheck.excludedAreas.join(', ')}`, `Undviker ${injuryCheck.excludedAreas.join(', ')}`),
       modification: injuryCheck.reason,
     })
   }
@@ -81,7 +88,7 @@ export async function checkWODGuardrails(
   if (!fatigueCheck.passed) {
     guardrailsApplied.push({
       type: 'FATIGUE_REDUCED',
-      description: 'Hög trötthet upptäckt',
+      description: t(locale, 'High fatigue detected', 'Hög trötthet upptäckt'),
       modification: fatigueCheck.reason,
     })
   }
@@ -90,7 +97,7 @@ export async function checkWODGuardrails(
   if (!restrictionsCheck.passed && restrictionsCheck.restrictedAreas.length > 0) {
     guardrailsApplied.push({
       type: 'INJURY_EXCLUDED',
-      description: `Träningsrestriktioner aktiva: ${restrictionsCheck.restrictedAreas.join(', ')}`,
+      description: t(locale, `Training restrictions active: ${restrictionsCheck.restrictedAreas.join(', ')}`, `Träningsrestriktioner aktiva: ${restrictionsCheck.restrictedAreas.join(', ')}`),
       modification: restrictionsCheck.reason,
     })
   }
@@ -107,8 +114,8 @@ export async function checkWODGuardrails(
   if (adjustedIntensity === 'recovery' && canGenerate) {
     guardrailsApplied.push({
       type: 'RECOVERY_FORCED',
-      description: 'Återhämtningspass rekommenderas',
-      modification: 'Intensitet satt till recovery baserat på samlade faktorer',
+      description: t(locale, 'Recovery session recommended', 'Återhämtningspass rekommenderas'),
+      modification: t(locale, 'Intensity set to recovery based on combined factors', 'Intensitet satt till recovery baserat på samlade faktorer'),
     })
   }
 
@@ -169,29 +176,29 @@ interface ACWRCheckResult {
 /**
  * Check ACWR (Acute:Chronic Workload Ratio)
  */
-function checkACWR(context: WODAthleteContext): ACWRCheckResult {
+function checkACWR(context: WODAthleteContext, locale: AppLocale): ACWRCheckResult {
   const { acwrZone } = context
 
   switch (acwrZone) {
     case 'CRITICAL':
       return {
         zone: 'CRITICAL',
-        reason: 'Träningsbelastningen är kritiskt hög (ACWR > 2.0)',
-        modification: 'Vila rekommenderas',
+        reason: t(locale, 'Training load is critically high (ACWR > 2.0)', 'Träningsbelastningen är kritiskt hög (ACWR > 2.0)'),
+        modification: t(locale, 'Rest is recommended', 'Vila rekommenderas'),
       }
 
     case 'DANGER':
       return {
         zone: 'DANGER',
-        reason: 'Träningsbelastningen är för hög (ACWR 1.5-2.0)',
-        modification: 'Endast recovery-pass tillåtna',
+        reason: t(locale, 'Training load is too high (ACWR 1.5-2.0)', 'Träningsbelastningen är för hög (ACWR 1.5-2.0)'),
+        modification: t(locale, 'Only recovery sessions are allowed', 'Endast recovery-pass tillåtna'),
       }
 
     case 'CAUTION':
       return {
         zone: 'CAUTION',
-        reason: 'Träningsbelastningen är hög (ACWR 1.3-1.5)',
-        modification: 'Intensitet begränsad till easy',
+        reason: t(locale, 'Training load is high (ACWR 1.3-1.5)', 'Träningsbelastningen är hög (ACWR 1.3-1.5)'),
+        modification: t(locale, 'Intensity limited to easy', 'Intensitet begränsad till easy'),
       }
 
     case 'OPTIMAL':
@@ -200,7 +207,7 @@ function checkACWR(context: WODAthleteContext): ACWRCheckResult {
     case 'DETRAINING':
       return {
         zone: 'DETRAINING',
-        reason: 'Låg träningsbelastning - bra tid att öka',
+        reason: t(locale, 'Low training load - a good time to build', 'Låg träningsbelastning - bra tid att öka'),
       }
 
     default:
@@ -219,7 +226,7 @@ interface InjuryCheckResult {
  * Check for active injuries and determine excluded body areas
  * Uses Delaware pain rules
  */
-function checkInjuries(context: WODAthleteContext): InjuryCheckResult {
+function checkInjuries(context: WODAthleteContext, locale: AppLocale): InjuryCheckResult {
   const { activeInjuries } = context
 
   if (activeInjuries.length === 0) {
@@ -240,13 +247,13 @@ function checkInjuries(context: WODAthleteContext): InjuryCheckResult {
       if (!excludedAreas.includes(bodyArea)) {
         excludedAreas.push(bodyArea)
       }
-      modifications.push(`Exkluderar ${bodyArea} (smärta ${injury.painLevel}/10)`)
+      modifications.push(t(locale, `Excluding ${bodyArea} (pain ${injury.painLevel}/10)`, `Exkluderar ${bodyArea} (smärta ${injury.painLevel}/10)`))
     } else if (injury.painLevel >= 3) {
       // Moderate pain (3-5): Reduce volume, avoid impact
       if (!excludedAreas.includes(bodyArea)) {
         excludedAreas.push(bodyArea)
       }
-      modifications.push(`Reducerar ${bodyArea}-övningar (smärta ${injury.painLevel}/10)`)
+      modifications.push(t(locale, `Reducing ${bodyArea} exercises (pain ${injury.painLevel}/10)`, `Reducerar ${bodyArea}-övningar (smärta ${injury.painLevel}/10)`))
     }
     // Low pain (1-2): Can proceed with caution
   }
@@ -254,9 +261,9 @@ function checkInjuries(context: WODAthleteContext): InjuryCheckResult {
   return {
     passed: !hasHighPain,
     reason: hasHighPain
-      ? 'Aktiv skada med hög smärta - vissa områden exkluderas'
+      ? t(locale, 'Active injury with high pain - some areas are excluded', 'Aktiv skada med hög smärta - vissa områden exkluderas')
       : excludedAreas.length > 0
-        ? 'Aktiv skada - volym reducerad för drabbade områden'
+        ? t(locale, 'Active injury - volume reduced for affected areas', 'Aktiv skada - volym reducerad för drabbade områden')
         : undefined,
     modification: modifications.join(', '),
     excludedAreas,
@@ -304,7 +311,7 @@ interface FatigueCheckResult {
 /**
  * Check fatigue and soreness levels
  */
-function checkFatigue(context: WODAthleteContext): FatigueCheckResult {
+function checkFatigue(context: WODAthleteContext, locale: AppLocale): FatigueCheckResult {
   const { fatigueLevel, sorenessLevel, sleepQuality, recentWorkouts } = context
 
   // Check for high fatigue (1=bad, 10=good in some systems, but often inverted)
@@ -312,8 +319,8 @@ function checkFatigue(context: WODAthleteContext): FatigueCheckResult {
   if (fatigueLevel !== null && fatigueLevel >= 7) {
     return {
       passed: false,
-      reason: 'Hög trötthetsnivå rapporterad',
-      modification: 'Intensitet sänkt, fokus på rörelse',
+      reason: t(locale, 'High fatigue level reported', 'Hög trötthetsnivå rapporterad'),
+      modification: t(locale, 'Intensity lowered, focus on movement', 'Intensitet sänkt, fokus på rörelse'),
     }
   }
 
@@ -321,8 +328,8 @@ function checkFatigue(context: WODAthleteContext): FatigueCheckResult {
   if (sorenessLevel !== null && sorenessLevel >= 7) {
     return {
       passed: false,
-      reason: 'Hög muskeltrötthet rapporterad',
-      modification: 'Undviker tunga styrkeövningar',
+      reason: t(locale, 'High muscle soreness reported', 'Hög muskeltrötthet rapporterad'),
+      modification: t(locale, 'Avoiding heavy strength exercises', 'Undviker tunga styrkeövningar'),
     }
   }
 
@@ -330,8 +337,8 @@ function checkFatigue(context: WODAthleteContext): FatigueCheckResult {
   if (sleepQuality !== null && sleepQuality <= 3) {
     return {
       passed: false,
-      reason: 'Dålig sömnkvalitet rapporterad',
-      modification: 'Lättare pass rekommenderas',
+      reason: t(locale, 'Poor sleep quality reported', 'Dålig sömnkvalitet rapporterad'),
+      modification: t(locale, 'Lighter session recommended', 'Lättare pass rekommenderas'),
     }
   }
 
@@ -343,8 +350,8 @@ function checkFatigue(context: WODAthleteContext): FatigueCheckResult {
   if (hardSessionsLast4Days >= 3) {
     return {
       passed: false,
-      reason: '3+ tunga pass de senaste 4 dagarna',
-      modification: 'Easy day rekommenderas',
+      reason: t(locale, '3+ hard sessions in the last 4 days', '3+ tunga pass de senaste 4 dagarna'),
+      modification: t(locale, 'Easy day recommended', 'Easy day rekommenderas'),
     }
   }
 
@@ -362,9 +369,10 @@ interface UsageLimitCheckResult {
  */
 async function checkUsageLimit(
   clientId: string,
-  subscriptionTier: string
+  subscriptionTier: string,
+  locale: AppLocale
 ): Promise<UsageLimitCheckResult> {
-  const result = await canGenerateWOD(clientId, subscriptionTier)
+  const result = await canGenerateWOD(clientId, subscriptionTier, locale)
 
   return {
     passed: result.allowed,
@@ -384,7 +392,7 @@ interface RestrictionsCheckResult {
 /**
  * Check training restrictions from physio system
  */
-function checkRestrictions(context: WODAthleteContext): RestrictionsCheckResult {
+function checkRestrictions(context: WODAthleteContext, locale: AppLocale): RestrictionsCheckResult {
   const restrictions = context.trainingRestrictions
 
   if (!restrictions || !restrictions.hasRestrictions) {
@@ -401,25 +409,25 @@ function checkRestrictions(context: WODAthleteContext): RestrictionsCheckResult 
   for (const type of restrictions.restrictionTypes) {
     switch (type) {
       case 'NO_RUNNING':
-        modifications.push('Ingen löpning - ersätt med cykling/simning')
+        modifications.push(t(locale, 'No running - replace with cycling/swimming', 'Ingen löpning - ersätt med cykling/simning'))
         break
       case 'NO_JUMPING':
-        modifications.push('Inga hopp eller plyometriska övningar')
+        modifications.push(t(locale, 'No jumping or plyometric exercises', 'Inga hopp eller plyometriska övningar'))
         break
       case 'NO_IMPACT':
-        modifications.push('Ingen stötbelastning')
+        modifications.push(t(locale, 'No impact load', 'Ingen stötbelastning'))
         break
       case 'NO_UPPER_BODY':
-        modifications.push('Inga överkroppsövningar')
+        modifications.push(t(locale, 'No upper-body exercises', 'Inga överkroppsövningar'))
         break
       case 'NO_LOWER_BODY':
-        modifications.push('Inga underkroppsövningar')
+        modifications.push(t(locale, 'No lower-body exercises', 'Inga underkroppsövningar'))
         break
       case 'REDUCED_VOLUME':
-        modifications.push(`Volymreduktion: ${restrictions.volumeReduction}%`)
+        modifications.push(t(locale, `Volume reduction: ${restrictions.volumeReduction}%`, `Volymreduktion: ${restrictions.volumeReduction}%`))
         break
       case 'REDUCED_INTENSITY':
-        modifications.push(`Max intensitetszon: ${restrictions.maxIntensityZone}/5`)
+        modifications.push(t(locale, `Max intensity zone: ${restrictions.maxIntensityZone}/5`, `Max intensitetszon: ${restrictions.maxIntensityZone}/5`))
         break
     }
   }
@@ -427,7 +435,7 @@ function checkRestrictions(context: WODAthleteContext): RestrictionsCheckResult 
   return {
     passed: restrictedAreas.length === 0,
     reason: restrictedAreas.length > 0
-      ? `Aktiva restriktioner för: ${restrictedAreas.join(', ')}`
+      ? t(locale, `Active restrictions for: ${restrictedAreas.join(', ')}`, `Aktiva restriktioner för: ${restrictedAreas.join(', ')}`)
       : undefined,
     modification: modifications.join(', '),
     restrictedAreas,
@@ -486,16 +494,25 @@ function calculateAdjustedIntensity(
  * Generate prompt constraints based on guardrails
  */
 export function generateGuardrailConstraints(
-  guardrails: WODGuardrailResult
+  guardrails: WODGuardrailResult,
+  locale: AppLocale = 'en'
 ): string {
   const constraints: string[] = []
 
   // Add intensity constraint
-  constraints.push(`INTENSITET: ${getIntensityDescription(guardrails.adjustedIntensity)}`)
+  constraints.push(t(
+    locale,
+    `INTENSITY: ${getIntensityDescription(guardrails.adjustedIntensity, locale)}`,
+    `INTENSITET: ${getIntensityDescription(guardrails.adjustedIntensity, locale)}`
+  ))
 
   // Add excluded areas
   if (guardrails.excludedAreas.length > 0) {
-    constraints.push(`UNDVIK HELT: Övningar som belastar ${guardrails.excludedAreas.join(', ')}`)
+    constraints.push(t(
+      locale,
+      `AVOID COMPLETELY: Exercises loading ${guardrails.excludedAreas.join(', ')}`,
+      `UNDVIK HELT: Övningar som belastar ${guardrails.excludedAreas.join(', ')}`
+    ))
   }
 
   // Add restriction constraints from physio system
@@ -513,16 +530,16 @@ export function generateGuardrailConstraints(
   return constraints.join('\n')
 }
 
-function getIntensityDescription(intensity: AdjustedIntensity): string {
+function getIntensityDescription(intensity: AdjustedIntensity, locale: AppLocale): string {
   switch (intensity) {
     case 'recovery':
-      return 'Endast lätt rörelse och mobilitet. Ingen ansträngning. Fokus på återhämtning.'
+      return t(locale, 'Only light movement and mobility. No strain. Focus on recovery.', 'Endast lätt rörelse och mobilitet. Ingen ansträngning. Fokus på återhämtning.')
     case 'easy':
-      return 'Lätt intensitet. Kan prata obehindrat. Max 60% av max HR.'
+      return t(locale, 'Easy intensity. The athlete can talk comfortably. Max 60% HRmax.', 'Lätt intensitet. Kan prata obehindrat. Max 60% av max HR.')
     case 'moderate':
-      return 'Måttlig intensitet. Kan prata i korta meningar. 60-75% av max HR.'
+      return t(locale, 'Moderate intensity. The athlete can talk in short sentences. 60-75% HRmax.', 'Måttlig intensitet. Kan prata i korta meningar. 60-75% av max HR.')
     case 'threshold':
-      return 'Hög intensitet tillåten vid behov. Kan inkludera intervaller. 75-90% av max HR.'
+      return t(locale, 'Higher intensity allowed if appropriate. Intervals may be included. 75-90% HRmax.', 'Hög intensitet tillåten vid behov. Kan inkludera intervaller. 75-90% av max HR.')
   }
 }
 

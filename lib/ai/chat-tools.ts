@@ -76,7 +76,7 @@ export function createChatTools(
 
         try {
           // Fetch athlete context for readiness-aware creation
-          const context = await buildWODContext(clientId)
+          const context = await buildWODContext(clientId, locale)
 
           // Calculate totals
           const totalExercises = sections.reduce(

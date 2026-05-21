@@ -13,6 +13,12 @@ import { getRestrictionsForWOD } from '@/lib/training-restrictions'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 
+type AppLocale = 'en' | 'sv'
+
+function wodText(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================
 // LOCATION EQUIPMENT FETCHING
 // ============================================
@@ -138,7 +144,7 @@ async function getLocationEquipment(clientId: string): Promise<WODAthleteContext
  * Gather all necessary athlete context for WOD generation
  * Uses parallel queries for optimal performance
  */
-export async function buildWODContext(clientId: string): Promise<WODAthleteContext | null> {
+export async function buildWODContext(clientId: string, locale: AppLocale = 'en'): Promise<WODAthleteContext | null> {
   const now = new Date()
   const fourDaysAgo = subDays(now, 4)
 
@@ -307,7 +313,7 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
     getLocationEquipment(clientId),
 
     // 9. Active training restrictions (physio system)
-    getRestrictionsForWOD(clientId),
+    getRestrictionsForWOD(clientId, locale),
   ])
 
   if (!client) {
@@ -481,7 +487,8 @@ export async function getWODUsageStats(
  */
 export async function canGenerateWOD(
   clientId: string,
-  subscriptionTier: string
+  subscriptionTier: string,
+  locale: AppLocale = 'en'
 ): Promise<{ allowed: boolean; reason?: string; remaining: number }> {
   const stats = await getWODUsageStats(clientId, subscriptionTier)
 
@@ -492,7 +499,11 @@ export async function canGenerateWOD(
   if (stats.remaining <= 0) {
     return {
       allowed: false,
-      reason: `Du har använt alla dina ${stats.weeklyLimit} WOD-pass denna vecka. Uppgradera för fler!`,
+      reason: wodText(
+        locale,
+        `You have used all ${stats.weeklyLimit} of your WOD sessions this week. Upgrade for more!`,
+        `Du har använt alla dina ${stats.weeklyLimit} WOD-pass denna vecka. Uppgradera för fler!`
+      ),
       remaining: 0,
     }
   }

@@ -613,7 +613,13 @@ export async function deactivateRestrictionsForInjury(injuryId: string): Promise
 /**
  * Get restrictions formatted for WOD context
  */
-export async function getRestrictionsForWOD(clientId: string): Promise<{
+type RestrictionLocale = 'en' | 'sv'
+
+function restrictionText(locale: RestrictionLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+export async function getRestrictionsForWOD(clientId: string, locale: RestrictionLocale = 'en'): Promise<{
   hasRestrictions: boolean
   restrictedAreas: string[]
   restrictionTypes: string[]
@@ -639,36 +645,48 @@ export async function getRestrictionsForWOD(clientId: string): Promise<{
 
   // Add body part restrictions
   if (summary.restrictedBodyParts.length > 0) {
-    constraints.push(`UNDVIK HELT: Övningar som belastar ${summary.restrictedBodyParts.join(', ')}`)
+    constraints.push(restrictionText(
+      locale,
+      `AVOID COMPLETELY: Exercises loading ${summary.restrictedBodyParts.join(', ')}`,
+      `UNDVIK HELT: Övningar som belastar ${summary.restrictedBodyParts.join(', ')}`
+    ))
   }
 
   // Add intensity limit
   if (summary.lowestMaxIntensityZone < 5) {
-    constraints.push(`MAX INTENSITETSZON: ${summary.lowestMaxIntensityZone}/5`)
+    constraints.push(restrictionText(
+      locale,
+      `MAX INTENSITY ZONE: ${summary.lowestMaxIntensityZone}/5`,
+      `MAX INTENSITETSZON: ${summary.lowestMaxIntensityZone}/5`
+    ))
   }
 
   // Add volume reduction
   if (summary.maxVolumeReduction > 0) {
-    constraints.push(`VOLYMREDUKTION: ${summary.maxVolumeReduction}%`)
+    constraints.push(restrictionText(
+      locale,
+      `VOLUME REDUCTION: ${summary.maxVolumeReduction}%`,
+      `VOLYMREDUKTION: ${summary.maxVolumeReduction}%`
+    ))
   }
 
   // Add specific restriction types
   for (const type of summary.restrictionTypes) {
     switch (type) {
       case 'NO_RUNNING':
-        constraints.push('INGEN LÖPNING - använd cykling/simning istället')
+        constraints.push(restrictionText(locale, 'NO RUNNING - use cycling/swimming instead', 'INGEN LÖPNING - använd cykling/simning istället'))
         break
       case 'NO_JUMPING':
-        constraints.push('INGA HOPP eller plyometriska övningar')
+        constraints.push(restrictionText(locale, 'NO JUMPING or plyometric exercises', 'INGA HOPP eller plyometriska övningar'))
         break
       case 'NO_IMPACT':
-        constraints.push('INGEN STÖTBELASTNING - endast lågintensiva övningar')
+        constraints.push(restrictionText(locale, 'NO IMPACT LOAD - low-intensity exercises only', 'INGEN STÖTBELASTNING - endast lågintensiva övningar'))
         break
       case 'NO_UPPER_BODY':
-        constraints.push('INGA ÖVERKROPPSÖVNINGAR')
+        constraints.push(restrictionText(locale, 'NO UPPER-BODY EXERCISES', 'INGA ÖVERKROPPSÖVNINGAR'))
         break
       case 'NO_LOWER_BODY':
-        constraints.push('INGA UNDERKROPPSÖVNINGAR')
+        constraints.push(restrictionText(locale, 'NO LOWER-BODY EXERCISES', 'INGA UNDERKROPPSÖVNINGAR'))
         break
     }
   }

@@ -40,7 +40,7 @@ export function buildWODPrompt(
   const modePrompt = getModePrompt(request.mode)
   const workoutTypePrompt = getWorkoutTypePrompt(workoutType)
   const sportContext = getSportContext(context.primarySport)
-  const constraintsSection = generateGuardrailConstraints(guardrails)
+  const constraintsSection = generateGuardrailConstraints(guardrails, 'sv')
   const excludedCategories = getExcludedExerciseCategories(guardrails.excludedAreas)
   const jsonTemplate = getJsonTemplate(workoutType)
   const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
