@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { ZONE_COLORS } from '@/lib/live-hr/types'
 import { Heart, Users, Activity } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface SessionSummaryProps {
   totalParticipants: number
@@ -26,12 +27,36 @@ interface SessionSummaryProps {
   }
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  athletes: string
+  activeSignal: string
+  averageHeartRate: string
+  zoneDistribution: string
+}> = {
+  en: {
+    athletes: 'Athletes',
+    activeSignal: 'Active signal',
+    averageHeartRate: 'Avg heart rate',
+    zoneDistribution: 'Zone distribution',
+  },
+  sv: {
+    athletes: 'Atleter',
+    activeSignal: 'Aktiv signal',
+    averageHeartRate: 'Snitt puls',
+    zoneDistribution: 'Zonfördelning',
+  },
+}
+
 export function SessionSummary({
   totalParticipants,
   activeParticipants,
   avgHeartRate,
   zoneDistribution,
 }: SessionSummaryProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const total = Object.values(zoneDistribution).reduce((sum, count) => sum + count, 0)
 
   return (
@@ -42,7 +67,7 @@ export function SessionSummary({
           <Users className="h-8 w-8 text-blue-500" />
           <div>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalParticipants}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Atleter</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{copy.athletes}</p>
           </div>
         </GlassCardContent>
       </GlassCard>
@@ -53,7 +78,7 @@ export function SessionSummary({
           <Activity className="h-8 w-8 text-emerald-500 animate-pulse" />
           <div>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">{activeParticipants}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Aktiv signal</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{copy.activeSignal}</p>
           </div>
         </GlassCardContent>
       </GlassCard>
@@ -66,7 +91,7 @@ export function SessionSummary({
             <p className="text-2xl font-bold text-slate-900 dark:text-white">
               {avgHeartRate ?? '-'}
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Snitt puls</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{copy.averageHeartRate}</p>
           </div>
         </GlassCardContent>
       </GlassCard>
@@ -74,7 +99,7 @@ export function SessionSummary({
       {/* Zone distribution */}
       <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-sm">
         <GlassCardContent className="p-4">
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">Zonfördelning</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">{copy.zoneDistribution}</p>
           <div className="flex gap-1 h-6">
             {[1, 2, 3, 4, 5].map((zone) => {
               const count = zoneDistribution[`zone${zone}` as keyof typeof zoneDistribution]

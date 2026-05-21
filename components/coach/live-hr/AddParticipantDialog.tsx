@@ -20,6 +20,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { UserPlus } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface AvailableClient {
   id: string
@@ -31,7 +32,37 @@ interface AddParticipantDialogProps {
   onAdd: (clientIds: string[]) => Promise<void>
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  trigger: string
+  title: string
+  description: string
+  cancel: string
+  adding: string
+  add: (count: number) => string
+}> = {
+  en: {
+    trigger: 'Add athletes',
+    title: 'Add athletes',
+    description: 'Select athletes to add to the session.',
+    cancel: 'Cancel',
+    adding: 'Adding...',
+    add: (count) => `Add (${count})`,
+  },
+  sv: {
+    trigger: 'Lägg till atleter',
+    title: 'Lägg till atleter',
+    description: 'Välj atleter att lägga till i sessionen.',
+    cancel: 'Avbryt',
+    adding: 'Lägger till...',
+    add: (count) => `Lägg till (${count})`,
+  },
+}
+
 export function AddParticipantDialog({ availableClients, onAdd }: AddParticipantDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -68,14 +99,14 @@ export function AddParticipantDialog({ availableClients, onAdd }: AddParticipant
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <UserPlus className="h-4 w-4 mr-1" />
-          Lägg till atleter
+          {copy.trigger}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Lägg till atleter</DialogTitle>
+          <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>
-            Välj atleter att lägga till i sessionen.
+            {copy.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -99,10 +130,10 @@ export function AddParticipantDialog({ availableClients, onAdd }: AddParticipant
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Avbryt
+            {copy.cancel}
           </Button>
           <Button onClick={handleAdd} disabled={isLoading || selectedIds.size === 0}>
-            {isLoading ? 'Lägger till...' : `Lägg till (${selectedIds.size})`}
+            {isLoading ? copy.adding : copy.add(selectedIds.size)}
           </Button>
         </DialogFooter>
       </DialogContent>

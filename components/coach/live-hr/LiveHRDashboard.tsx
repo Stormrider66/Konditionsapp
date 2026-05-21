@@ -19,6 +19,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { toast } from 'sonner'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { useLocale } from '@/i18n/client'
 
 interface AvailableClient {
   id: string
@@ -31,11 +32,47 @@ interface LiveHRDashboardProps {
   initialAvailableClients: AvailableClient[]
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  connectionLost: string
+  updateError: string
+  sessionEnded: string
+  participantAdded: (count: number) => string
+  participantRemoved: string
+  removeError: string
+  connected: string
+  disconnected: string
+}> = {
+  en: {
+    connectionLost: 'Connection lost',
+    updateError: 'Could not update session',
+    sessionEnded: 'Session ended',
+    participantAdded: (count) => `${count} athlete(s) added`,
+    participantRemoved: 'Athlete removed',
+    removeError: 'Could not remove athlete',
+    connected: 'Connected',
+    disconnected: 'Disconnected',
+  },
+  sv: {
+    connectionLost: 'Anslutningen bröts',
+    updateError: 'Kunde inte uppdatera sessionen',
+    sessionEnded: 'Session avslutad',
+    participantAdded: (count) => `${count} atlet(er) tillagda`,
+    participantRemoved: 'Atlet borttagen',
+    removeError: 'Kunde inte ta bort atleten',
+    connected: 'Ansluten',
+    disconnected: 'Frånkopplad',
+  },
+}
+
 export function LiveHRDashboard({
   sessionId,
   initialData,
   initialAvailableClients,
 }: LiveHRDashboardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const router = useRouter()
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
@@ -73,18 +110,18 @@ export function LiveHRDashboard({
     eventSource.addEventListener('error', () => {
       eventSource.close()
       setIsConnected(false)
-      setConnectionError('Anslutningen bröts')
+      setConnectionError(copy.connectionLost)
     })
 
     eventSource.onerror = () => {
       setIsConnected(false)
-      setConnectionError('Anslutningen bröts')
+      setConnectionError(copy.connectionLost)
     }
 
     return () => {
       eventSource.close()
     }
-  }, [sessionId, data.status])
+  }, [copy.connectionLost, sessionId, data.status])
 
   // Update session status
   const handleStatusChange = useCallback(async (status: LiveHRSessionStatus) => {
@@ -101,13 +138,13 @@ export function LiveHRDashboard({
       setData((prev) => ({ ...prev, status: session.status }))
 
       if (status === 'ENDED') {
-        toast.success('Session avslutad')
+        toast.success(copy.sessionEnded)
         router.push(`${basePath}/coach/live-hr`)
       }
     } catch {
-      toast.error('Kunde inte uppdatera sessionen')
+      toast.error(copy.updateError)
     }
-  }, [basePath, sessionId, router])
+  }, [basePath, copy.sessionEnded, copy.updateError, sessionId, router])
 
   // Add participants
   const handleAddParticipants = useCallback(async (clientIds: string[]) => {
@@ -124,8 +161,8 @@ export function LiveHRDashboard({
     const { availableClients: newClients } = await res.json()
     setAvailableClients(newClients)
 
-    toast.success(`${clientIds.length} atlet(er) tillagda`)
-  }, [sessionId])
+    toast.success(copy.participantAdded(clientIds.length))
+  }, [copy, sessionId])
 
   // Remove participant
   const handleRemoveParticipant = useCallback(async (clientId: string) => {
@@ -139,11 +176,11 @@ export function LiveHRDashboard({
       const { availableClients: newClients } = await res.json()
       setAvailableClients(newClients)
 
-      toast.success('Atlet borttagen')
+      toast.success(copy.participantRemoved)
     } catch {
-      toast.error('Kunde inte ta bort atleten')
+      toast.error(copy.removeError)
     }
-  }, [sessionId])
+  }, [copy.participantRemoved, copy.removeError, sessionId])
 
   return (
     <div>
@@ -165,7 +202,7 @@ export function LiveHRDashboard({
               }`}
             />
             <span className="text-muted-foreground">
-              {isConnected ? 'Ansluten' : connectionError || 'Frånkopplad'}
+              {isConnected ? copy.connected : connectionError || copy.disconnected}
             </span>
             {!isConnected && data.status !== 'ENDED' && (
               <Button
