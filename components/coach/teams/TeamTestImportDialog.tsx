@@ -49,6 +49,13 @@ import {
 import { Loader2, Check, X, AlertCircle, Upload } from 'lucide-react'
 import { parseWideFormat, type ParsedWideFormat } from '@/lib/strength/parse-wide-format'
 import { PR_UNITS, PR_UNIT_LABELS, type PrUnit } from '@/lib/strength/units'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface Member {
   id: string
@@ -59,6 +66,7 @@ interface Exercise {
   id: string
   name: string
   nameSv: string | null
+  nameEn?: string | null
 }
 
 interface TeamTestImportDialogProps {
@@ -69,10 +77,19 @@ interface TeamTestImportDialogProps {
   onImported?: () => void
 }
 
-const PLACEHOLDER = `Namn\tBenböj\tFrivändning\tBänkpress\tChins\tVikt
+const PLACEHOLDER_SV = `Namn\tBenböj\tFrivändning\tBänkpress\tChins\tVikt
 Oscar Nilsson\t\t\t\t25\t82.4
 Edward Björk\t160\t100\t\t25\t79.6
 Wilmer Lindqvist\t\t180 Hex\t\t20\t90.8`
+
+const PLACEHOLDER_EN = `Name\tBack Squat\tPower Clean\tBench Press\tPull-ups\tWeight
+Oscar Nilsson\t\t\t\t25\t82.4
+Edward Bjork\t160\t100\t\t25\t79.6
+Wilmer Lindqvist\t\t180 Hex\t\t20\t90.8`
+
+function exerciseDisplayName(exercise: Exercise, locale: AppLocale): string {
+  return locale === 'sv' ? exercise.nameSv || exercise.name : exercise.nameEn || exercise.name
+}
 
 function normalize(s: string): string {
   return s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim()
@@ -127,6 +144,7 @@ export function TeamTestImportDialog({
   teamName,
   onImported,
 }: TeamTestImportDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [paste, setPaste] = useState('')
   const [testDate, setTestDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [members, setMembers] = useState<Member[]>([])
@@ -168,10 +186,11 @@ export function TeamTestImportDialog({
           const list = Array.isArray(body) ? body : body.exercises ?? []
           if (!cancelled) {
             setExercises(
-              list.map((e: { id: string; name: string; nameSv: string | null }) => ({
+              list.map((e: { id: string; name: string; nameSv: string | null; nameEn?: string | null }) => ({
                 id: e.id,
                 name: e.name,
                 nameSv: e.nameSv,
+                nameEn: e.nameEn,
               }))
             )
           }
@@ -277,12 +296,20 @@ export function TeamTestImportDialog({
         throw new Error(body?.error ?? `HTTP ${res.status}`)
       }
       const body = await res.json()
-      const updatedSuffix = body.updated > 0 ? ` · ${body.updated} uppdaterade befintliga` : ''
-      setResultMsg(`Sparade ${body.created} nya PRs${updatedSuffix} från testpasset.`)
+      const updatedSuffix = body.updated > 0
+        ? text(locale, ` · ${body.updated} uppdaterade befintliga`, ` · ${body.updated} existing updated`)
+        : ''
+      setResultMsg(
+        text(
+          locale,
+          `Sparade ${body.created} nya PRs${updatedSuffix} från testpasset.`,
+          `Saved ${body.created} new PRs${updatedSuffix} from the test session.`,
+        )
+      )
       setPaste('')
       onImported?.()
     } catch (e) {
-      setServerError(e instanceof Error ? e.message : 'Kunde inte spara')
+      setServerError(e instanceof Error ? e.message : text(locale, 'Kunde inte spara', 'Could not save'))
     } finally {
       setIsSubmitting(false)
     }
@@ -294,25 +321,26 @@ export function TeamTestImportDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-blue-500" />
-            Importera testresultat – {teamName}
+            {text(locale, 'Importera testresultat', 'Import test results')} – {teamName}
           </DialogTitle>
           <DialogDescription>
-            Klistra in en testtabell. Första raden är rubriker (övningar). Varje
-            efterföljande rad är en atlet. Cellvärden som &quot;180 Hex&quot; sparas som
-            180 kg med &quot;Hex&quot; som notering. En &quot;Vikt&quot;-kolumn används som
-            kroppsvikt för alla rader.
+            {text(
+              locale,
+              'Klistra in en testtabell. Första raden är rubriker (övningar). Varje efterföljande rad är en atlet. Cellvärden som "180 Hex" sparas som 180 kg med "Hex" som notering. En "Vikt"-kolumn används som kroppsvikt för alla rader.',
+              'Paste a test table. The first row is headers (exercises). Each following row is an athlete. Cell values such as "180 Hex" are saved as 180 kg with "Hex" as a note. A "Weight" column is used as body weight for all rows.',
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="grid grid-cols-[1fr_180px] gap-3">
             <div>
-              <Label htmlFor="test-paste">Testtabell</Label>
+              <Label htmlFor="test-paste">{text(locale, 'Testtabell', 'Test table')}</Label>
               <Textarea
                 id="test-paste"
                 value={paste}
                 onChange={(e) => setPaste(e.target.value)}
-                placeholder={PLACEHOLDER}
+                placeholder={text(locale, PLACEHOLDER_SV, PLACEHOLDER_EN)}
                 rows={8}
                 className="font-mono text-xs"
                 spellCheck={false}
@@ -320,7 +348,7 @@ export function TeamTestImportDialog({
               />
             </div>
             <div>
-              <Label htmlFor="test-date">Testdatum</Label>
+              <Label htmlFor="test-date">{text(locale, 'Testdatum', 'Test date')}</Label>
               <Input
                 id="test-date"
                 type="date"
@@ -330,7 +358,7 @@ export function TeamTestImportDialog({
               />
               {parsed.bodyWeightDetected && (
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  Vikt-kolumn upptäckt → sparas som kroppsvikt per atlet.
+                  {text(locale, 'Vikt-kolumn upptäckt → sparas som kroppsvikt per atlet.', 'Weight column detected -> saved as body weight per athlete.')}
                 </p>
               )}
             </div>
@@ -340,22 +368,21 @@ export function TeamTestImportDialog({
             <div className="rounded-md bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-2 text-xs text-orange-800 dark:text-orange-200 space-y-1">
               <div className="flex items-center gap-1.5 font-medium">
                 <AlertCircle className="h-3.5 w-3.5" />
-                Cellantal stämmer inte i {parsed.warnings.length} rad
-                {parsed.warnings.length === 1 ? '' : 'er'}
+                {text(locale, 'Cellantal stämmer inte i', 'Cell count mismatch in')} {parsed.warnings.length} {parsed.warnings.length === 1 ? text(locale, 'rad', 'row') : text(locale, 'rader', 'rows')}
               </div>
               <ul className="list-disc list-inside opacity-90">
                 {parsed.warnings.slice(0, 5).map((w, i) => (
                   <li key={i}>
                     <span className="font-medium">{w.rawName}</span> – {w.actual} celler i
-                    raden, förväntade {w.expected}.{' '}
+                    {text(locale, 'raden, förväntade', 'row, expected')} {w.expected}.{' '}
                     {w.kind === 'missing_cells'
-                      ? 'Saknade celler tolkas som tomma.'
-                      : 'Extra celler ignoreras.'}
+                      ? text(locale, 'Saknade celler tolkas som tomma.', 'Missing cells are treated as empty.')
+                      : text(locale, 'Extra celler ignoreras.', 'Extra cells are ignored.')}
                   </li>
                 ))}
                 {parsed.warnings.length > 5 && (
                   <li className="opacity-70">
-                    …och {parsed.warnings.length - 5} till.
+                    {text(locale, `…och ${parsed.warnings.length - 5} till.`, `...and ${parsed.warnings.length - 5} more.`)}
                   </li>
                 )}
               </ul>
@@ -365,9 +392,13 @@ export function TeamTestImportDialog({
           {parsed.headers.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Förhandsgranskning ({entries.length} PRs klara
+                {text(locale, 'Förhandsgranskning', 'Preview')} ({entries.length} PRs {text(locale, 'klara', 'ready')}
                 {unmatchedHeaders + unmatchedNames > 0 &&
-                  ` · ${unmatchedHeaders} kolumn(er) + ${unmatchedNames} atlet(er) behöver matchning`}
+                  text(
+                    locale,
+                    ` · ${unmatchedHeaders} kolumn(er) + ${unmatchedNames} atlet(er) behöver matchning`,
+                    ` · ${unmatchedHeaders} column(s) + ${unmatchedNames} athlete(s) need matching`,
+                  )}
                 )
               </p>
 
@@ -375,7 +406,7 @@ export function TeamTestImportDialog({
                 <table className="text-xs">
                   <thead className="bg-muted/40 sticky top-0">
                     <tr>
-                      <th className="px-2 py-1.5 text-left min-w-[160px]">Atlet</th>
+                      <th className="px-2 py-1.5 text-left min-w-[160px]">{text(locale, 'Atlet', 'Athlete')}</th>
                       {parsed.headers.map((h, i) => {
                         const matched = matchedHeaders[i]
                         return (
@@ -383,7 +414,7 @@ export function TeamTestImportDialog({
                             <div className="flex flex-col gap-0.5">
                               {matched ? (
                                 <span className="font-medium">
-                                  {matched.nameSv || matched.name}
+                                  {exerciseDisplayName(matched, locale)}
                                 </span>
                               ) : (
                                 <Select
@@ -393,12 +424,12 @@ export function TeamTestImportDialog({
                                   }
                                 >
                                   <SelectTrigger className="h-6 text-[11px]">
-                                    <SelectValue placeholder={h || '— välj —'} />
+                                    <SelectValue placeholder={h || text(locale, '— välj —', '- select -')} />
                                   </SelectTrigger>
                                   <SelectContent className="max-h-[300px]">
                                     {exercises.map((e) => (
                                       <SelectItem key={e.id} value={e.id}>
-                                        {e.nameSv || e.name}
+                                        {exerciseDisplayName(e, locale)}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -518,14 +549,14 @@ export function TeamTestImportDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Stäng
+            {text(locale, 'Stäng', 'Close')}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || entries.length === 0 || isLoading}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Spara {entries.length > 0 ? `${entries.length} ` : ''}PR
+            {text(locale, 'Spara', 'Save')} {entries.length > 0 ? `${entries.length} ` : ''}PR
             {entries.length === 1 ? '' : 's'}
           </Button>
         </DialogFooter>
