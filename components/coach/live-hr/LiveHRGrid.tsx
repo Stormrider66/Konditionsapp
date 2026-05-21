@@ -9,19 +9,39 @@
 import { LiveHRParticipantData } from '@/lib/live-hr/types'
 import { AthleteHRCard } from './AthleteHRCard'
 import { Users } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface LiveHRGridProps {
   participants: LiveHRParticipantData[]
   onRemoveParticipant?: (clientId: string) => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  emptyTitle: string
+  emptyHint: string
+}> = {
+  en: {
+    emptyTitle: 'No athletes in the session',
+    emptyHint: 'Add athletes to start monitoring their heart rate',
+  },
+  sv: {
+    emptyTitle: 'Inga atleter i sessionen',
+    emptyHint: 'Lägg till atleter för att börja övervaka deras puls',
+  },
+}
+
 export function LiveHRGrid({ participants, onRemoveParticipant }: LiveHRGridProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
+
   if (participants.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
         <Users className="h-12 w-12 mb-4" />
-        <p className="text-lg font-medium">Inga atleter i sessionen</p>
-        <p className="text-sm">Lägg till atleter för att börja övervaka deras puls</p>
+        <p className="text-lg font-medium">{copy.emptyTitle}</p>
+        <p className="text-sm">{copy.emptyHint}</p>
       </div>
     )
   }

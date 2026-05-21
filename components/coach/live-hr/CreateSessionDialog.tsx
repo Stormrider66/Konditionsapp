@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Radio } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface Team {
   id: string
@@ -38,7 +39,55 @@ interface CreateSessionDialogProps {
   onCreate: (data: { name?: string; teamId?: string }) => Promise<void>
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  trigger: string
+  title: string
+  description: string
+  nameLabel: string
+  namePlaceholder: string
+  teamLabel: string
+  teamPlaceholder: string
+  noTeam: string
+  teamHelp: string
+  cancel: string
+  starting: string
+  start: string
+}> = {
+  en: {
+    trigger: 'Start live session',
+    title: 'Start new live HR session',
+    description: "Create a session to monitor athletes' heart rate in real time.",
+    nameLabel: 'Session name (optional)',
+    namePlaceholder: 'e.g. Bike session 2024-01-15',
+    teamLabel: 'Add team (optional)',
+    teamPlaceholder: 'Select team to monitor',
+    noTeam: 'No team',
+    teamHelp: 'All team members are automatically added to the session.',
+    cancel: 'Cancel',
+    starting: 'Starting...',
+    start: 'Start session',
+  },
+  sv: {
+    trigger: 'Starta live-session',
+    title: 'Starta ny live HR-session',
+    description: 'Skapa en session för att övervaka atleters puls i realtid.',
+    nameLabel: 'Sessionsnamn (valfritt)',
+    namePlaceholder: 't.ex. Cykelpass 2024-01-15',
+    teamLabel: 'Lägg till lag (valfritt)',
+    teamPlaceholder: 'Välj lag att övervaka',
+    noTeam: 'Inget lag',
+    teamHelp: 'Alla lagmedlemmar läggs automatiskt till i sessionen.',
+    cancel: 'Avbryt',
+    starting: 'Startar...',
+    start: 'Starta session',
+  },
+}
+
 export function CreateSessionDialog({ teams, onCreate }: CreateSessionDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [name, setName] = useState('')
@@ -64,23 +113,23 @@ export function CreateSessionDialog({ teams, onCreate }: CreateSessionDialogProp
       <DialogTrigger asChild>
         <Button>
           <Radio className="h-4 w-4 mr-2" />
-          Starta live-session
+          {copy.trigger}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Starta ny live HR-session</DialogTitle>
+          <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>
-            Skapa en session för att övervaka atleters puls i realtid.
+            {copy.description}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Sessionsnamn (valfritt)</Label>
+            <Label htmlFor="name">{copy.nameLabel}</Label>
             <Input
               id="name"
-              placeholder="t.ex. Cykelpass 2024-01-15"
+              placeholder={copy.namePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -88,13 +137,13 @@ export function CreateSessionDialog({ teams, onCreate }: CreateSessionDialogProp
 
           {teams.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="team">Lägg till lag (valfritt)</Label>
+              <Label htmlFor="team">{copy.teamLabel}</Label>
               <Select value={teamId || '__none__'} onValueChange={(v) => setTeamId(v === '__none__' ? '' : v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj lag att övervaka" />
+                  <SelectValue placeholder={copy.teamPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">Inget lag</SelectItem>
+                  <SelectItem value="__none__">{copy.noTeam}</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
@@ -103,7 +152,7 @@ export function CreateSessionDialog({ teams, onCreate }: CreateSessionDialogProp
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Alla lagmedlemmar läggs automatiskt till i sessionen.
+                {copy.teamHelp}
               </p>
             </div>
           )}
@@ -111,15 +160,15 @@ export function CreateSessionDialog({ teams, onCreate }: CreateSessionDialogProp
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Avbryt
+            {copy.cancel}
           </Button>
           <Button onClick={handleCreate} disabled={isLoading}>
             {isLoading ? (
-              'Startar...'
+              copy.starting
             ) : (
               <>
                 <Plus className="h-4 w-4 mr-1" />
-                Starta session
+                {copy.start}
               </>
             )}
           </Button>

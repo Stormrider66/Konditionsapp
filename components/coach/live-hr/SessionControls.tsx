@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { Play, Pause, Square, Radio } from 'lucide-react'
 import { LiveHRSessionStatus } from '@/lib/live-hr/types'
+import { useLocale } from '@/i18n/client'
 
 interface SessionControlsProps {
   sessionId: string
@@ -34,11 +35,50 @@ interface SessionControlsProps {
   onStatusChange: (status: LiveHRSessionStatus) => Promise<void>
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  paused: string
+  ended: string
+  pause: string
+  resume: string
+  end: string
+  endTitle: string
+  endDescription: string
+  cancel: string
+  endSession: string
+}> = {
+  en: {
+    paused: 'PAUSED',
+    ended: 'ENDED',
+    pause: 'Pause',
+    resume: 'Resume',
+    end: 'End',
+    endTitle: 'End session?',
+    endDescription: 'This ends live monitoring. You cannot resume the session afterward.',
+    cancel: 'Cancel',
+    endSession: 'End session',
+  },
+  sv: {
+    paused: 'PAUSAD',
+    ended: 'AVSLUTAD',
+    pause: 'Pausa',
+    resume: 'Återuppta',
+    end: 'Avsluta',
+    endTitle: 'Avsluta session?',
+    endDescription: 'Detta avslutar live-övervakningen. Du kan inte återuppta sessionen efteråt.',
+    cancel: 'Avbryt',
+    endSession: 'Avsluta session',
+  },
+}
+
 export function SessionControls({
   sessionName,
   status,
   onStatusChange,
 }: SessionControlsProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [isLoading, setIsLoading] = useState(false)
 
   const handleStatusChange = async (newStatus: LiveHRSessionStatus) => {
@@ -64,9 +104,9 @@ export function SessionControls({
               <Badge variant="destructive">LIVE</Badge>
             </>
           ) : status === 'PAUSED' ? (
-            <Badge variant="secondary">PAUSAD</Badge>
+            <Badge variant="secondary">{copy.paused}</Badge>
           ) : (
-            <Badge variant="outline">AVSLUTAD</Badge>
+            <Badge variant="outline">{copy.ended}</Badge>
           )}
         </div>
 
@@ -88,7 +128,7 @@ export function SessionControls({
             disabled={isLoading}
           >
             <Pause className="h-4 w-4 mr-1" />
-            Pausa
+            {copy.pause}
           </Button>
         )}
 
@@ -100,7 +140,7 @@ export function SessionControls({
             disabled={isLoading}
           >
             <Play className="h-4 w-4 mr-1" />
-            Återuppta
+            {copy.resume}
           </Button>
         )}
 
@@ -109,22 +149,22 @@ export function SessionControls({
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" disabled={isLoading}>
                 <Square className="h-4 w-4 mr-1" />
-                Avsluta
+                {copy.end}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Avsluta session?</AlertDialogTitle>
+                <AlertDialogTitle>{copy.endTitle}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Detta avslutar live-övervakningen. Du kan inte återuppta sessionen efteråt.
+                  {copy.endDescription}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                <AlertDialogCancel>{copy.cancel}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => handleStatusChange('ENDED')}
                 >
-                  Avsluta session
+                  {copy.endSession}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
