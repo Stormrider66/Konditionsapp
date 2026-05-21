@@ -328,9 +328,11 @@ LJUDSPECIFIKT:
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     // Subscription gate
     const denied = await requireCoachFeatureAccess(user.id, 'smart_test_import')
@@ -624,7 +626,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Kunde inte extrahera testdata',
+        error: t(locale, 'Could not extract test data', 'Kunde inte extrahera testdata'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
