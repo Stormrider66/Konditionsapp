@@ -47,6 +47,8 @@ import { SportSwitcher } from './SportSwitcher'
 import { SportType } from '@prisma/client'
 import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
 import { getAthleteTestsHref } from '@/lib/athlete-tests/navigation'
+import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
+import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider'
 import { useTranslations } from '@/i18n/client'
 import type { User } from '@supabase/supabase-js'
 
@@ -78,13 +80,43 @@ export function BusinessAthleteHeader({
 }: BusinessAthleteHeaderProps) {
     const pathname = usePathname()
     const router = useRouter()
+    const branding = useBusinessBrandingOptional()
+    const themeContext = useWorkoutThemeOptional()
+    const isDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
     const t = useTranslations('components.businessAthleteHeader')
     const [isOpen, setIsOpen] = useState(false)
     const displayName = clientName || athleteName || user?.email || t('fallbackAthlete')
+    const resolvedBusinessName = branding?.businessName || businessName
+    const resolvedBusinessLogo = branding?.logoUrl ?? businessLogo
+    const brandAccent = branding?.primaryColor || '#f97316'
 
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
     const athleteTestsHref = getAthleteTestsHref(basePath, sportProfile)
+    const headerClassName = cn(
+        'fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-md transition-all duration-300',
+        isDark
+            ? 'border-white/5 bg-slate-950/50'
+            : 'border-black/10 bg-white/90 text-slate-950 shadow-sm'
+    )
+    const navLinkClassName = (isActive: boolean) => cn(
+        'text-sm font-medium transition-colors flex items-center gap-2',
+        isActive
+            ? isDark ? 'text-white' : 'text-slate-950'
+            : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-950'
+    )
+    const dropdownContentClassName = cn(
+        'w-56',
+        isDark
+            ? 'bg-slate-900 border-white/10 text-slate-200'
+            : 'bg-white border-slate-200 text-slate-900 shadow-lg'
+    )
+    const dropdownItemClassName = cn(
+        'cursor-pointer',
+        isDark ? 'focus:bg-white/10 focus:text-white' : 'focus:bg-slate-100 focus:text-slate-950'
+    )
+    const separatorClassName = isDark ? 'bg-white/10' : 'bg-slate-200'
+    const desktopControlsClassName = isDark ? 'text-slate-200' : 'text-slate-700'
 
     const handleSignOut = async () => {
         const supabase = createClient()
@@ -137,35 +169,46 @@ export function BusinessAthleteHeader({
     ]
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-slate-950/50 backdrop-blur-md transition-all duration-300">
+        <header className={headerClassName}>
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
 
                 {/* Logo Area - Business Branding */}
                 <div className="flex items-center gap-4">
                     <Link href={`${basePath}/athlete/dashboard`} className="flex items-center gap-2 group">
-                        {businessLogo ? (
-                            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-[0_0_15px_rgba(249,115,22,0.5)] group-hover:shadow-[0_0_20px_rgba(249,115,22,0.8)] transition-all">
+                        {resolvedBusinessLogo ? (
+                            <div
+                                className={cn(
+                                    'w-10 h-10 rounded-lg overflow-hidden ring-1 flex items-center justify-center transition-all',
+                                    isDark
+                                        ? 'bg-white/5 ring-white/10 group-hover:ring-white/30'
+                                        : 'bg-slate-50 ring-black/10 group-hover:ring-black/20'
+                                )}
+                            >
                                 <Image
-                                    src={businessLogo}
-                                    alt={businessName}
-                                    width={32}
-                                    height={32}
-                                    className="w-full h-full object-cover"
+                                    src={resolvedBusinessLogo}
+                                    alt={resolvedBusinessName}
+                                    width={40}
+                                    height={40}
+                                    className="h-9 w-9 object-contain"
+                                    unoptimized
                                 />
                             </div>
                         ) : (
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(249,115,22,0.5)] group-hover:shadow-[0_0_20px_rgba(249,115,22,0.8)] transition-all">
-                                {businessName.charAt(0).toUpperCase()}
+                            <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold transition-all"
+                                style={{ backgroundColor: brandAccent, boxShadow: `0 0 15px ${brandAccent}80` }}
+                            >
+                                {resolvedBusinessName.charAt(0).toUpperCase()}
                             </div>
                         )}
-                        <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
-                            {businessName}
+                        <span className={cn('font-bold text-lg tracking-tight hidden sm:inline', isDark ? 'text-white' : 'text-slate-950')}>
+                            {resolvedBusinessName}
                         </span>
                     </Link>
 
                     {/* Sport Switcher */}
                     {sportProfile && sportProfile.secondarySports.length > 0 && (
-                        <div className="hidden md:block border-l border-white/10 pl-4">
+                        <div className={cn("hidden md:block border-l pl-4", isDark ? "border-white/10" : "border-slate-200")}>
                             <SportSwitcher
                                 primarySport={sportProfile.primarySport}
                                 secondarySports={sportProfile.secondarySports}
@@ -184,11 +227,10 @@ export function BusinessAthleteHeader({
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "text-sm font-medium transition-colors hover:text-white flex items-center gap-2",
-                                    isActive ? "text-white" : "text-slate-400"
+                                    navLinkClassName(isActive)
                                 )}
                             >
-                                <item.icon className={cn("w-4 h-4", isActive ? "text-orange-500" : "opacity-0")} />
+                                <item.icon className={cn("w-4 h-4", !isActive && "opacity-0")} style={isActive ? { color: brandAccent } : undefined} />
                                 {item.label}
                             </Link>
                         )
@@ -198,19 +240,19 @@ export function BusinessAthleteHeader({
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button className={cn(
-                                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-white",
+                                "flex items-center gap-2 text-sm font-medium transition-colors",
                                 navGroups.training.items.some(i => pathname === i.href)
-                                    ? "text-white"
-                                    : "text-slate-400"
+                                    ? isDark ? "text-white" : "text-slate-950"
+                                    : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
                             )}>
                                 <navGroups.training.icon className="w-4 h-4 opacity-50" />
                                 {navGroups.training.label}
                                 <ChevronDown className="w-3 h-3 opacity-50" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 bg-slate-950 border-white/10 text-slate-200" align="start">
+                        <DropdownMenuContent className={dropdownContentClassName} align="start">
                             {navGroups.training.items.map((item) => (
-                                <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                <DropdownMenuItem key={item.href} asChild className={dropdownItemClassName}>
                                     <Link href={item.href} className="flex items-center gap-2">
                                         <item.icon className="w-4 h-4" />
                                         {item.label}
@@ -224,19 +266,19 @@ export function BusinessAthleteHeader({
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button className={cn(
-                                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-white",
+                                "flex items-center gap-2 text-sm font-medium transition-colors",
                                 navGroups.more.items.some(i => pathname === i.href)
-                                    ? "text-white"
-                                    : "text-slate-400"
+                                    ? isDark ? "text-white" : "text-slate-950"
+                                    : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
                             )}>
                                 <navGroups.more.icon className="w-4 h-4 opacity-50" />
                                 {navGroups.more.label}
                                 <ChevronDown className="w-3 h-3 opacity-50" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 bg-slate-900 border-white/10 text-slate-200" align="start">
+                        <DropdownMenuContent className={dropdownContentClassName} align="start">
                             {navGroups.more.items.map((item) => (
-                                <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                <DropdownMenuItem key={item.href} asChild className={dropdownItemClassName}>
                                     <Link href={item.href} className="flex items-center gap-2">
                                         <item.icon className="w-4 h-4" />
                                         {item.label}
@@ -251,7 +293,7 @@ export function BusinessAthleteHeader({
                 <div className="flex items-center gap-4">
 
                     {/* Language & Notifications (Desktop) */}
-                    <div className="hidden md:flex items-center gap-1 text-slate-200">
+                    <div className={cn("hidden md:flex items-center gap-1", desktopControlsClassName)}>
                         <LanguageSwitcher showLabel={false} variant="ghost" />
                         <BroadcastNotificationBell />
                         <NotificationBell clientId={clientId} />
@@ -261,40 +303,44 @@ export function BusinessAthleteHeader({
                     <div className="hidden md:block">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full ring-2 ring-white/10 hover:ring-orange-500/50 transition-all p-0">
+                                <Button
+                                    variant="ghost"
+                                    className={cn("relative h-8 w-8 rounded-full ring-2 transition-all p-0", isDark ? "ring-white/10" : "ring-black/10")}
+                                    style={{ '--tw-ring-color': `${brandAccent}80` } as React.CSSProperties}
+                                >
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={user?.user_metadata?.avatar_url} alt={displayName} />
-                                        <AvatarFallback className="bg-slate-800 text-orange-500 font-bold">
+                                        <AvatarFallback className={cn("font-bold", isDark ? "bg-slate-800" : "bg-slate-100")} style={{ color: brandAccent }}>
                                             {displayName.charAt(0).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 bg-slate-900 border-white/10 text-slate-200" align="end" forceMount>
+                            <DropdownMenuContent className={dropdownContentClassName} align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none text-white">{displayName}</p>
-                                        <p className="text-xs leading-none text-slate-400">
+                                        <p className={cn("text-sm font-medium leading-none", isDark ? "text-white" : "text-slate-950")}>{displayName}</p>
+                                        <p className={cn("text-xs leading-none", isDark ? "text-slate-400" : "text-slate-500")}>
                                             {user?.email}
                                         </p>
                                     </div>
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                <DropdownMenuSeparator className={separatorClassName} />
+                                <DropdownMenuItem asChild className={dropdownItemClassName}>
                                     <Link href={`${basePath}/athlete/profile`}>
                                         <UserIcon className="mr-2 h-4 w-4" />
                                         <span>{t('userMenu.profile')}</span>
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                <DropdownMenuItem asChild className={dropdownItemClassName}>
                                     <Link href={`${basePath}/athlete/settings`}>
                                         <Settings className="mr-2 h-4 w-4" />
                                         <span>{t('userMenu.settings')}</span>
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-white/10" />
+                                <DropdownMenuSeparator className={separatorClassName} />
                                 <AthleteModeToggle variant="dropdown" />
-                                <DropdownMenuSeparator className="bg-white/10" />
+                                <DropdownMenuSeparator className={separatorClassName} />
                                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>{t('userMenu.logOut')}</span>
@@ -306,16 +352,30 @@ export function BusinessAthleteHeader({
                     {/* Mobile Menu Trigger */}
                     <Sheet open={isOpen} onOpenChange={setIsOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="xl:hidden text-slate-300 hover:text-white hover:bg-white/10">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                    "xl:hidden",
+                                    isDark ? "text-slate-300 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
+                                )}
+                            >
                                 <Menu className="h-6 w-6" />
                                 <span className="sr-only">{t('mobile.toggleMenu')}</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="right" className="bg-slate-950 border-l border-white/10 text-slate-200 w-[300px] overflow-y-auto" aria-describedby={undefined}>
+                        <SheetContent
+                            side="right"
+                            className={cn(
+                                "w-[300px] overflow-y-auto",
+                                isDark ? "bg-slate-950 border-l border-white/10 text-slate-200" : "bg-white border-l border-slate-200 text-slate-950"
+                            )}
+                            aria-describedby={undefined}
+                        >
                             <SheetTitle className="sr-only">{t('mobile.navigationMenu')}</SheetTitle>
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
-                                    <span className="font-bold text-lg">{businessName}</span>
+                                    <span className="font-bold text-lg">{resolvedBusinessName}</span>
                                     <div className="flex gap-1">
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
                                         <BroadcastNotificationBell />
@@ -329,7 +389,7 @@ export function BusinessAthleteHeader({
                                         <SportSwitcher
                                             primarySport={sportProfile.primarySport}
                                             secondarySports={sportProfile.secondarySports}
-                                            className="w-full justify-start bg-white/5 hover:bg-white/10"
+                                            className={cn("w-full justify-start", isDark ? "bg-white/5 hover:bg-white/10" : "bg-slate-100 hover:bg-slate-200")}
                                         />
                                     </div>
                                 )}
@@ -346,18 +406,18 @@ export function BusinessAthleteHeader({
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                                                     isActive
-                                                        ? "bg-white/10 text-white"
-                                                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                                                        ? isDark ? "bg-white/10 text-white" : "bg-slate-100 text-slate-950"
+                                                        : isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-600 hover:text-slate-950 hover:bg-slate-100"
                                                 )}
                                             >
-                                                <item.icon className={cn("w-5 h-5", isActive ? "text-orange-500" : "")} />
+                                                <item.icon className="w-5 h-5" style={isActive ? { color: brandAccent } : undefined} />
                                                 {item.label}
                                             </Link>
                                         )
                                     })}
                                 </div>
 
-                                <div className="h-px bg-white/10 my-2" />
+                                <div className={cn("h-px my-2", separatorClassName)} />
 
                                 {/* Mobile User Actions */}
                                 <div className="flex flex-col gap-2 px-4">

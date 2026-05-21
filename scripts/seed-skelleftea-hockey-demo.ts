@@ -1,14 +1,22 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { Gender, PrismaClient, TestStatus, TestType } from '@prisma/client'
+import { FeatureFlag, Gender, PrismaClient, TestStatus, TestType } from '@prisma/client'
 import { buildRepeatedSprintProfile } from '../lib/hockey/ice-speed'
 
 const prisma = new PrismaClient()
 const dotenvLocalPath = path.join(process.cwd(), '.env.local')
 
 const businessSlug = process.env.SKELLEFTEA_BUSINESS_SLUG ?? 'skelleftea-aik'
-const businessName = process.env.SKELLEFTEA_BUSINESS_NAME ?? 'Skelleftea AIK'
+const businessName = process.env.SKELLEFTEA_BUSINESS_NAME ?? 'Skellefteå AIK'
 const ownerEmail = process.env.SKELLEFTEA_OWNER_EMAIL
+const skellefteaBranding = {
+  logoUrl: '/brands/skelleftea-aik-logo.png',
+  primaryColor: '#FFC323',
+  secondaryColor: '#000000',
+  backgroundColor: '#FFFFFF',
+  faviconUrl: '/brands/skelleftea-aik-logo.png',
+  fontFamily: 'Inter',
+}
 
 type TeamName = 'A-team' | 'J20' | 'J18'
 
@@ -175,8 +183,7 @@ async function main() {
       name: businessName,
       type: 'CLUB',
       isActive: true,
-      primaryColor: '#f6c445',
-      secondaryColor: '#111827',
+      ...skellefteaBranding,
       country: 'SE',
     },
     create: {
@@ -184,10 +191,28 @@ async function main() {
       slug: businessSlug,
       type: 'CLUB',
       isActive: true,
-      primaryColor: '#f6c445',
-      secondaryColor: '#111827',
+      ...skellefteaBranding,
       country: 'SE',
       email: owner.email,
+    },
+  })
+
+  await prisma.businessFeature.upsert({
+    where: {
+      businessId_feature: {
+        businessId: business.id,
+        feature: FeatureFlag.CUSTOM_BRANDING,
+      },
+    },
+    update: {
+      isEnabled: true,
+      enabledAt: new Date(),
+    },
+    create: {
+      businessId: business.id,
+      feature: FeatureFlag.CUSTOM_BRANDING,
+      isEnabled: true,
+      enabledAt: new Date(),
     },
   })
 

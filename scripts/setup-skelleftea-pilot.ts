@@ -1,10 +1,18 @@
-import { PrismaClient } from '@prisma/client'
+import { FeatureFlag, PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 const ownerEmail = process.env.SKELLEFTEA_OWNER_EMAIL
 const businessSlug = process.env.SKELLEFTEA_BUSINESS_SLUG ?? 'skelleftea-aik'
-const businessName = process.env.SKELLEFTEA_BUSINESS_NAME ?? 'Skelleftea AIK'
+const businessName = process.env.SKELLEFTEA_BUSINESS_NAME ?? 'Skellefteå AIK'
+const skellefteaBranding = {
+  logoUrl: '/brands/skelleftea-aik-logo.png',
+  primaryColor: '#FFC323',
+  secondaryColor: '#000000',
+  backgroundColor: '#FFFFFF',
+  faviconUrl: '/brands/skelleftea-aik-logo.png',
+  fontFamily: 'Inter',
+}
 
 async function main() {
   if (!ownerEmail) {
@@ -26,8 +34,7 @@ async function main() {
       name: businessName,
       type: 'CLUB',
       isActive: true,
-      primaryColor: '#f6c445',
-      secondaryColor: '#111827',
+      ...skellefteaBranding,
       country: 'SE',
     },
     create: {
@@ -35,12 +42,30 @@ async function main() {
       slug: businessSlug,
       type: 'CLUB',
       isActive: true,
-      primaryColor: '#f6c445',
-      secondaryColor: '#111827',
+      ...skellefteaBranding,
       country: 'SE',
       email: owner.email,
     },
     select: { id: true, name: true, slug: true },
+  })
+
+  await prisma.businessFeature.upsert({
+    where: {
+      businessId_feature: {
+        businessId: business.id,
+        feature: FeatureFlag.CUSTOM_BRANDING,
+      },
+    },
+    update: {
+      isEnabled: true,
+      enabledAt: new Date(),
+    },
+    create: {
+      businessId: business.id,
+      feature: FeatureFlag.CUSTOM_BRANDING,
+      isEnabled: true,
+      enabledAt: new Date(),
+    },
   })
 
   await prisma.businessMember.upsert({

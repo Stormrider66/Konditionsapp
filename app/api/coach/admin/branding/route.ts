@@ -10,6 +10,11 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 const hexColorRegex = /^#[0-9A-Fa-f]{6}$/
+const publicAssetPathRegex = /^\/(?!\/)[A-Za-z0-9._~/-]+$/
+const urlOrPublicAssetPath = z.union([
+  z.string().url(),
+  z.string().regex(publicAssetPathRegex),
+])
 type AppLocale = 'en' | 'sv'
 
 function resolveLocale(language: string | null | undefined): AppLocale {
@@ -23,7 +28,7 @@ function t(locale: AppLocale, en: string, sv: string) {
 function updateBrandingSchema(locale: AppLocale) {
   return z.object({
   // Tier 0: always available
-  logoUrl: z.string().url().optional().nullable(),
+  logoUrl: urlOrPublicAssetPath.optional().nullable(),
   primaryColor: z.string().regex(hexColorRegex).optional().nullable(),
   replyToEmail: z.string().email().max(254).optional().nullable(),
 
@@ -31,7 +36,7 @@ function updateBrandingSchema(locale: AppLocale) {
   secondaryColor: z.string().regex(hexColorRegex).optional().nullable(),
   backgroundColor: z.string().regex(hexColorRegex).optional().nullable(),
   fontFamily: z.enum(CURATED_FONTS as unknown as [string, ...string[]]).optional().nullable(),
-  faviconUrl: z.string().url().optional().nullable(),
+  faviconUrl: urlOrPublicAssetPath.optional().nullable(),
 
   // Tier 2: WHITE_LABEL
   // Block RFC 5322 separators (<, >, @, CR, LF) so the resolved
