@@ -9,7 +9,8 @@
  * - Organization grouping
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, Users } from 'lucide-react'
 import { SportType } from '@/types'
 import { getSportLabel } from '@/lib/sports/catalog'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 interface Team {
   id: string
@@ -54,11 +56,15 @@ export function TeamSelector({
 }: TeamSelectorProps) {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const pathname = usePathname()
+  const businessHeaders = useMemo(() => getBusinessScopeHeaders(pathname), [pathname])
 
-  async function fetchTeams() {
+  const fetchTeams = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/teams')
+      const response = await fetch('/api/teams', {
+        headers: businessHeaders,
+      })
       if (response.ok) {
         const data = await response.json()
         setTeams(data.data || [])
@@ -68,11 +74,11 @@ export function TeamSelector({
     } finally {
       setLoading(false)
     }
-  }
+  }, [businessHeaders])
 
   useEffect(() => {
     void fetchTeams()
-  }, [])
+  }, [fetchTeams])
 
   // Group teams by organization
   const groupedTeams = teams.reduce(

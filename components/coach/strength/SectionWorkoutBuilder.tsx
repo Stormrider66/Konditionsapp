@@ -11,7 +11,8 @@
  * - Cooldown (stretching, mobility)
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   DndContext,
   closestCenter,
@@ -94,6 +95,7 @@ import {
   matchesStrengthLibraryCategoryFilter,
 } from '@/lib/strength/exercise-library-filters'
 import { useLocale } from '@/i18n/client'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
@@ -364,6 +366,8 @@ export function SectionWorkoutBuilder({
   onCancel,
 }: SectionWorkoutBuilderProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const pathname = usePathname()
+  const businessHeaders = useMemo(() => getBusinessScopeHeaders(pathname), [pathname])
   const [sessionName, setSessionName] = useState(text(locale, 'Nytt Styrkepass', 'New Strength Session'))
   const [description, setDescription] = useState('')
   const [phase, setPhase] = useState('Base')
@@ -1084,7 +1088,7 @@ export function SectionWorkoutBuilder({
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
         body: JSON.stringify(payload),
       })
 

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   DndContext,
   closestCenter,
@@ -40,6 +40,7 @@ import {
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { StrengthSessionData } from '@/types'
 import { useTranslations } from '@/i18n/client'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 // Types
 type Exercise = {
@@ -77,6 +78,8 @@ interface SessionBuilderProps {
 
 export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilderProps) {
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const businessHeaders = React.useMemo(() => getBusinessScopeHeaders(pathname), [pathname])
   const workoutId = searchParams.get('workoutId')
   const tSessionBuilder = useTranslations('components.sessionBuilder')
 
@@ -350,7 +353,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
         body: JSON.stringify(payload),
       })
 

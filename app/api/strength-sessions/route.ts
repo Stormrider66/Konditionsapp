@@ -8,17 +8,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
-import { StrengthPhase } from '@prisma/client';
+import { Prisma, StrengthPhase } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import {
   calculateStrengthSessionVolumeLoad,
   countStrengthSessionExercises,
   countStrengthSessionSets,
 } from '@/lib/strength/session-sections';
+import {
+  resolveStrengthBusinessScope,
+  strengthSessionAccessWhere,
+} from '@/lib/strength/session-business-scope';
+import { normalizeStrengthSessionTags } from '@/lib/strength/session-business-tags';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveStrengthBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const phase = searchParams.get('phase') as StrengthPhase | null;
@@ -27,27 +37,24 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {
-      OR: [
-        { coachId: user.id },
-        { isPublic: true },
-      ],
-    };
+    const andFilters: Prisma.StrengthSessionWhereInput[] = [
+      strengthSessionAccessWhere(user.id, businessScope.businessId),
+    ];
 
     if (phase) {
-      where.phase = phase;
+      andFilters.push({ phase });
     }
 
     if (search) {
-      where.AND = [
-        {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
-          ],
-        },
-      ];
+      andFilters.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
+
+    const where: Prisma.StrengthSessionWhereInput = { AND: andFilters };
 
     const [sessions, total] = await Promise.all([
       prisma.strengthSession.findMany({
@@ -88,6 +95,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveStrengthBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
+
     const body = await request.json();
 
     const {
@@ -141,7 +154,7 @@ export async function POST(request: NextRequest) {
         volumeLoad: volumeLoad > 0 ? volumeLoad : null,
         coachId: user.id,
         isPublic: isPublic || false,
-        tags: tags || [],
+        tags: normalizeStrengthSessionTags(tags, businessScope.businessId),
       },
       include: {
         _count: {

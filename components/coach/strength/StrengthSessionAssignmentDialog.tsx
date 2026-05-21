@@ -10,7 +10,8 @@
  * - Optional notes
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ import {
 import { Users, Calendar, Loader2, Clock, ChevronDown, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 
 interface Athlete {
   id: string;
@@ -93,6 +95,11 @@ export function StrengthSessionAssignmentDialog({
   const [locationId, setLocationId] = useState('');
   const [locationName, setLocationName] = useState('');
   const [createCalendarEvent, setCreateCalendarEvent] = useState(true);
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
 
   // Support both controlled and uncontrolled modes
   const isControlled = controlledOpen !== undefined;
@@ -211,7 +218,7 @@ export function StrengthSessionAssignmentDialog({
     try {
       const response = await fetch(`/api/strength-sessions/${sessionId}/assign`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...businessHeaders },
         body: JSON.stringify({
           athleteIds: selectedAthletes,
           assignedDate,

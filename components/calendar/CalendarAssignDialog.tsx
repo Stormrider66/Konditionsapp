@@ -229,7 +229,11 @@ export function CalendarAssignDialog({
           try {
             const r = await fetch(url!, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+                ...(businessId ? { 'x-business-id': businessId } : {}),
+              },
               body: JSON.stringify(body!),
             })
             return r.ok

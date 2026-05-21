@@ -3,6 +3,10 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import {
+  resolveStrengthBusinessScope,
+  strengthSessionAccessWhere,
+} from '@/lib/strength/session-business-scope'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -16,6 +20,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
+    const businessScope = await resolveStrengthBusinessScope(user.id, req)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
+
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
@@ -46,7 +56,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     if (parsedType.data === 'STRENGTH') {
       const workouts = await prisma.strengthSession.findMany({
-        where: { AND: [ownershipWhere, searchWhere] },
+        where: { AND: [strengthSessionAccessWhere(user.id, businessScope.businessId), searchWhere] },
         select: { id: true, name: true, description: true, estimatedDuration: true, updatedAt: true },
         orderBy: { updatedAt: 'desc' },
         take: 30,

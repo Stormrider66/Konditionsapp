@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCoach } from '@/lib/auth-utils';
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -26,10 +26,19 @@ const createLocationSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const scope = getRequestedBusinessScope(request);
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true },
+      where: {
+        userId: user.id,
+        isActive: true,
+        ...(scope.businessId ? { businessId: scope.businessId } : {}),
+        business: {
+          isActive: true,
+          ...(scope.businessSlug ? { slug: scope.businessSlug } : {}),
+        },
+      },
       include: { business: true },
     });
 
@@ -82,6 +91,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const scope = getRequestedBusinessScope(request);
     const body = await request.json();
 
     // Validate input
@@ -98,7 +108,15 @@ export async function POST(request: NextRequest) {
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true },
+      where: {
+        userId: user.id,
+        isActive: true,
+        ...(scope.businessId ? { businessId: scope.businessId } : {}),
+        business: {
+          isActive: true,
+          ...(scope.businessSlug ? { slug: scope.businessSlug } : {}),
+        },
+      },
     });
 
     if (!businessMember) {

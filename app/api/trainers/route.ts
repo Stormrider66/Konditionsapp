@@ -4,17 +4,26 @@
  * GET /api/trainers - List coaches/trainers for the current user's business
  */
 
-import { NextResponse } from 'next/server';
-import { requireCoach } from '@/lib/auth-utils';
+import { NextRequest, NextResponse } from 'next/server';
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const scope = getRequestedBusinessScope(request);
 
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true },
+      where: {
+        userId: user.id,
+        isActive: true,
+        ...(scope.businessId ? { businessId: scope.businessId } : {}),
+        business: {
+          isActive: true,
+          ...(scope.businessSlug ? { slug: scope.businessSlug } : {}),
+        },
+      },
     });
 
     if (!businessMember) {

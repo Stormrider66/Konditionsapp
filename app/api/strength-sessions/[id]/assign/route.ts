@@ -9,6 +9,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { logError } from '@/lib/logger-console'
+import {
+  ownedStrengthSessionWhere,
+  resolveStrengthBusinessScope,
+  strengthSessionAccessWhere,
+} from '@/lib/strength/session-business-scope';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -30,16 +35,19 @@ interface AssignmentRequest {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveStrengthBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
+
     const { id } = await context.params;
 
     // Verify session exists and coach has access
     const session = await prisma.strengthSession.findFirst({
       where: {
         id,
-        OR: [
-          { coachId: user.id },
-          { isPublic: true },
-        ],
+        AND: [strengthSessionAccessWhere(user.id, businessScope.businessId)],
       },
     });
 
@@ -51,7 +59,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     const assignments = await prisma.strengthSessionAssignment.findMany({
-      where: { sessionId: id },
+      where: {
+        sessionId: id,
+        ...(businessScope.businessId ? { athlete: { businessId: businessScope.businessId } } : {}),
+      },
       include: {
         athlete: {
           select: {
@@ -83,6 +94,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveStrengthBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
+
     const { id } = await context.params;
     const body: AssignmentRequest = await request.json();
 
@@ -108,10 +125,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // Verify session exists and coach owns it
     const session = await prisma.strengthSession.findFirst({
-      where: {
-        id,
-        coachId: user.id,
-      },
+      where: ownedStrengthSessionWhere(id, user.id, businessScope.businessId),
     });
 
     if (!session) {
@@ -125,9 +139,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const athletes = await prisma.client.findMany({
       where: {
         id: { in: athleteIds },
-        userId: user.id,
+        ...(businessScope.businessId
+          ? { businessId: businessScope.businessId }
+          : { userId: user.id }),
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, businessId: true },
     });
 
     if (athletes.length !== athleteIds.length) {

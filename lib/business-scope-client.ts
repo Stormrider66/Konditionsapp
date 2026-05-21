@@ -21,7 +21,7 @@ export function getBusinessSlugFromPathname(pathname: string | null): string | n
   return firstSegment
 }
 
-export function getBusinessScopeHeaders(pathname: string | null): HeadersInit | undefined {
+export function getBusinessScopeHeaders(pathname: string | null): Record<string, string> | undefined {
   const businessSlug = getBusinessSlugFromPathname(pathname)
 
   if (!businessSlug) {

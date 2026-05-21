@@ -10,6 +10,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
+import {
+  resolveStrengthBusinessScope,
+  strengthSessionAccessWhere,
+} from '@/lib/strength/session-business-scope'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -39,6 +43,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
     const scope = getRequestedBusinessScope(request)
+    const strengthBusinessScope = await resolveStrengthBusinessScope(user.id, request)
+
+    if (!strengthBusinessScope) {
+      return NextResponse.json({ success: false, error: 'Business not found' }, { status: 403 })
+    }
+
     const { id: teamId } = await context.params
     const body = await request.json()
 
@@ -85,6 +95,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           select: {
             id: true,
             name: true,
+            businessId: true,
           },
         },
       },
@@ -100,6 +111,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const includeSet = includeAthleteIds ? new Set(includeAthleteIds) : null
     const excludeSet = new Set(excludeAthleteIds ?? [])
     const eligibleMembers = team.members.filter((member) => {
+      if (strengthBusinessScope.businessId && member.businessId !== strengthBusinessScope.businessId) return false
       if (includeSet && !includeSet.has(member.id)) return false
       return !excludeSet.has(member.id)
     })
@@ -117,7 +129,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const session = await prisma.strengthSession.findFirst({
         where: {
           id: workoutId,
-          OR: [{ coachId: user.id }, { isPublic: true }],
+          AND: [strengthSessionAccessWhere(user.id, strengthBusinessScope.businessId)],
         },
         select: { name: true },
       })

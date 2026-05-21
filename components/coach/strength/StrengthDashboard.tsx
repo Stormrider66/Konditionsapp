@@ -46,6 +46,7 @@ import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutD
 import { toStrengthSessionData } from '@/components/workouts/import/converters'
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 const ProgressionDashboard = dynamic(
   () => import('@/components/coach/progression/ProgressionDashboard').then(mod => mod.ProgressionDashboard),
@@ -241,13 +242,19 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
     if (match && match[1] !== 'coach') return match[1]
     return undefined
   }, [pathname])
+  const businessHeaders = React.useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname])
 
   useEffect(() => {
     if (!editSessionId || appliedEditSessionIdRef.current === editSessionId) return
     appliedEditSessionIdRef.current = editSessionId
 
     let cancelled = false
-    fetch(`/api/strength-sessions/${editSessionId}`)
+    fetch(`/api/strength-sessions/${editSessionId}`, {
+      headers: businessHeaders,
+    })
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
@@ -271,7 +278,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
     return () => {
       cancelled = true
     }
-  }, [copy.openSessionError, copy.openSessionToast, editSessionId])
+  }, [businessHeaders, copy.openSessionError, copy.openSessionToast, editSessionId])
 
   // Set rich page context for AI chat
   useEffect(() => {
@@ -560,7 +567,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
 
         const res = await fetch(`/api/strength-sessions/${weeklySavedIds[i]}/assign`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...businessHeaders },
           body: JSON.stringify({
             athleteIds: [weeklyAthleteId],
             assignedDate: date.toISOString().split('T')[0],

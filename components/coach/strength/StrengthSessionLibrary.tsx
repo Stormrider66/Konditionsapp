@@ -9,7 +9,8 @@
  * - Quick actions
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,8 @@ import { StrengthSessionAssignmentDialog } from './StrengthSessionAssignmentDial
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { countStrengthSessionExercises } from '@/lib/strength/session-sections';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
+import { visibleStrengthSessionTags } from '@/lib/strength/session-business-tags';
 
 interface SystemTemplate {
   id: string;
@@ -115,6 +118,11 @@ export function StrengthSessionLibrary({
 }: StrengthSessionLibraryProps) {
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname]);
 
   const [activeTab, setActiveTab] = useState<'sessions' | 'templates'>('sessions');
   const [sessions, setSessions] = useState<StrengthSessionData[]>([]);
@@ -152,7 +160,9 @@ export function StrengthSessionLibrary({
       if (phaseFilter && phaseFilter !== 'all') params.set('phase', phaseFilter);
       params.set('limit', '50');
 
-      const response = await fetch(`/api/strength-sessions?${params}`);
+      const response = await fetch(`/api/strength-sessions?${params}`, {
+        headers: businessHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         setSessions(data.sessions || []);
@@ -162,7 +172,7 @@ export function StrengthSessionLibrary({
     } finally {
       setLoading(false);
     }
-  }, [search, phaseFilter]);
+  }, [businessHeaders, search, phaseFilter]);
 
   useEffect(() => {
     fetchSessions();
@@ -207,7 +217,7 @@ export function StrengthSessionLibrary({
       // Create a session based on the template
       const createResponse = await fetch('/api/strength-sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...businessHeaders },
         body: JSON.stringify({
           name: template.nameSv,
           description: template.descriptionSv,
@@ -327,6 +337,7 @@ export function StrengthSessionLibrary({
     try {
       const response = await fetch(`/api/strength-sessions/${deleteSession.id}`, {
         method: 'DELETE',
+        headers: businessHeaders,
       });
 
       if (response.ok) {
@@ -422,6 +433,7 @@ export function StrengthSessionLibrary({
           {sessions.map((session) => {
             const phaseInfo = phaseLabels[session.phase] || { label: session.phase, color: 'bg-gray-500' };
             const exerciseCount = countStrengthSessionExercises(session);
+            const visibleTags = visibleStrengthSessionTags(session.tags);
 
             return (
               <Card
@@ -466,16 +478,16 @@ export function StrengthSessionLibrary({
                     )}
                   </div>
 
-                  {session.tags && session.tags.length > 0 && (
+                  {visibleTags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-3">
-                      {session.tags.slice(0, 3).map((tag) => (
+                      {visibleTags.slice(0, 3).map((tag) => (
                         <Badge key={tag} variant="outline" className="text-xs">
                           {tag}
                         </Badge>
                       ))}
-                      {session.tags.length > 3 && (
+                      {visibleTags.length > 3 && (
                         <Badge variant="outline" className="text-xs">
-                          +{session.tags.length - 3}
+                          +{visibleTags.length - 3}
                         </Badge>
                       )}
                     </div>

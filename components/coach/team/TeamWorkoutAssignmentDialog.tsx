@@ -11,7 +11,8 @@
  * - Optional notes
  */
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ import { Users, Calendar, Loader2, CheckCircle2, Clock, ChevronDown, MapPin, Use
 import { toast } from 'sonner'
 import { TeamSelector } from './TeamSelector'
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 interface LocationOption {
   id: string
@@ -105,16 +107,64 @@ export function TeamWorkoutAssignmentDialog({
   const [locationId, setLocationId] = useState('')
   const [locationName, setLocationName] = useState('')
   const [createCalendarEvent, setCreateCalendarEvent] = useState(true)
+  const pathname = usePathname()
+  const businessHeaders = useMemo(() => getBusinessScopeHeaders(pathname), [pathname])
 
   // Support both controlled and uncontrolled modes
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
 
+  const fetchLocations = useCallback(async () => {
+    try {
+      const response = await fetch('/api/locations', {
+        headers: businessHeaders,
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setLocations(data.locations || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch locations:', error)
+    }
+  }, [businessHeaders])
+
+  const fetchTrainers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/trainers', {
+        headers: businessHeaders,
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setTrainers(data.trainers || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch trainers:', error)
+    }
+  }, [businessHeaders])
+
+  const fetchTeamDetails = useCallback(async (teamId: string) => {
+    setLoadingTeam(true)
+    try {
+      const response = await fetch(`/api/teams/${teamId}`, {
+        headers: businessHeaders,
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setTeam(data.data)
+        setExcludedMembers([]) // Reset exclusions when team changes
+      }
+    } catch (error) {
+      console.error('Failed to fetch team:', error)
+    } finally {
+      setLoadingTeam(false)
+    }
+  }, [businessHeaders])
+
   useEffect(() => {
     if (open) {
-      fetchLocations()
-      fetchTrainers()
+      void fetchLocations()
+      void fetchTrainers()
       // Reset form
       setSelectedTeamId('')
       setTeam(null)
@@ -134,56 +184,16 @@ export function TeamWorkoutAssignmentDialog({
       setLocationName('')
       setCreateCalendarEvent(true)
     }
-  }, [open])
-
-  async function fetchLocations() {
-    try {
-      const response = await fetch('/api/locations')
-      if (response.ok) {
-        const data = await response.json()
-        setLocations(data.locations || [])
-      }
-    } catch (error) {
-      console.error('Failed to fetch locations:', error)
-    }
-  }
-
-  async function fetchTrainers() {
-    try {
-      const response = await fetch('/api/trainers')
-      if (response.ok) {
-        const data = await response.json()
-        setTrainers(data.trainers || [])
-      }
-    } catch (error) {
-      console.error('Failed to fetch trainers:', error)
-    }
-  }
+  }, [fetchLocations, fetchTrainers, open])
 
   useEffect(() => {
     if (selectedTeamId) {
-      fetchTeamDetails(selectedTeamId)
+      void fetchTeamDetails(selectedTeamId)
     } else {
       setTeam(null)
       setExcludedMembers([])
     }
-  }, [selectedTeamId])
-
-  async function fetchTeamDetails(teamId: string) {
-    setLoadingTeam(true)
-    try {
-      const response = await fetch(`/api/teams/${teamId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setTeam(data.data)
-        setExcludedMembers([]) // Reset exclusions when team changes
-      }
-    } catch (error) {
-      console.error('Failed to fetch team:', error)
-    } finally {
-      setLoadingTeam(false)
-    }
-  }
+  }, [fetchTeamDetails, selectedTeamId])
 
   function toggleMemberExclusion(memberId: string) {
     setExcludedMembers((prev) =>
@@ -214,7 +224,7 @@ export function TeamWorkoutAssignmentDialog({
     try {
       const response = await fetch(`/api/teams/${selectedTeamId}/assign-workout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
         body: JSON.stringify({
           workoutType,
           workoutId,

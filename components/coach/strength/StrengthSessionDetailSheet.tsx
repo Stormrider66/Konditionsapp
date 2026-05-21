@@ -9,7 +9,8 @@
  * - Recent assignments history
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import {
   Sheet,
@@ -51,6 +52,8 @@ import {
   countStrengthSessionExercises,
   countStrengthSessionSets,
 } from '@/lib/strength/session-sections';
+import { visibleStrengthSessionTags } from '@/lib/strength/session-business-tags';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 
 type AppLocale = 'en' | 'sv';
 
@@ -222,6 +225,9 @@ export function StrengthSessionDetailSheet({
   const t = copy[locale] ?? copy.en;
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+  const pathname = usePathname();
+  const businessHeaders = useMemo(() => getBusinessScopeHeaders(pathname), [pathname]);
+  const visibleTags = visibleStrengthSessionTags(session?.tags);
 
   const [assignments, setAssignments] = useState<SessionAssignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
@@ -233,7 +239,9 @@ export function StrengthSessionDetailSheet({
 
     setLoadingAssignments(true);
     try {
-      const response = await fetch(`/api/strength-sessions/${sessionId}/assign`);
+      const response = await fetch(`/api/strength-sessions/${sessionId}/assign`, {
+        headers: businessHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         setAssignments(data.assignments || []);
@@ -243,7 +251,7 @@ export function StrengthSessionDetailSheet({
     } finally {
       setLoadingAssignments(false);
     }
-  }, [sessionId]);
+  }, [businessHeaders, sessionId]);
 
   useEffect(() => {
     if (open && sessionId) {
@@ -560,10 +568,10 @@ export function StrengthSessionDetailSheet({
         </div>
 
         {/* Tags */}
-        {session.tags && session.tags.length > 0 && (
+        {visibleTags.length > 0 && (
           <div className="py-4">
             <div className="flex flex-wrap gap-1">
-              {session.tags.map((tag) => (
+              {visibleTags.map((tag) => (
                 <Badge key={tag} variant="outline" className="text-xs">
                   {tag}
                 </Badge>

@@ -16,6 +16,12 @@ import {
   countStrengthSessionExercises,
   countStrengthSessionSets,
 } from '@/lib/strength/session-sections';
+import {
+  ownedStrengthSessionWhere,
+  resolveStrengthBusinessScope,
+  strengthSessionAccessWhere,
+} from '@/lib/strength/session-business-scope';
+import { normalizeStrengthSessionTags } from '@/lib/strength/session-business-tags';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -24,15 +30,18 @@ interface RouteContext {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveStrengthBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
+
     const { id } = await context.params;
 
     const session = await prisma.strengthSession.findFirst({
       where: {
         id,
-        OR: [
-          { coachId: user.id },
-          { isPublic: true },
-        ],
+        AND: [strengthSessionAccessWhere(user.id, businessScope.businessId)],
       },
       include: {
         assignments: {
@@ -76,15 +85,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveStrengthBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
+
     const { id } = await context.params;
     const body = await request.json();
 
     // Check ownership
     const existing = await prisma.strengthSession.findFirst({
-      where: {
-        id,
-        coachId: user.id,
-      },
+      where: ownedStrengthSessionWhere(id, user.id, businessScope.businessId),
     });
 
     if (!existing) {
@@ -141,7 +153,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         totalExercises,
         volumeLoad: volumeLoad > 0 ? volumeLoad : null,
         isPublic,
-        tags: tags || [],
+        tags: normalizeStrengthSessionTags(tags, businessScope.businessId, existing.tags),
       },
       include: {
         _count: {
@@ -166,14 +178,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
+    const businessScope = await resolveStrengthBusinessScope(user.id, request);
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+    }
+
     const { id } = await context.params;
 
     // Check ownership
     const existing = await prisma.strengthSession.findFirst({
-      where: {
-        id,
-        coachId: user.id,
-      },
+      where: ownedStrengthSessionWhere(id, user.id, businessScope.businessId),
     });
 
     if (!existing) {
