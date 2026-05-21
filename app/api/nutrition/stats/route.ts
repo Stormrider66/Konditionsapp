@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { startOfDay } from 'date-fns'
+import { addDays, startOfDay } from 'date-fns'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
@@ -21,6 +21,23 @@ const RANGE_DAYS: Record<string, number> = {
   '90d': 90,
 }
 
+function parseDateParam(value: string | null): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null
+  }
+
+  return date
+}
+
 export async function GET(request: NextRequest) {
   const t = await getTranslations('api.nutrition.stats')
   try {
@@ -32,16 +49,18 @@ export async function GET(request: NextRequest) {
 
     const range = request.nextUrl.searchParams.get('range') || '30d'
     const days = RANGE_DAYS[range] || 30
+    const requestedDate = parseDateParam(request.nextUrl.searchParams.get('date'))
     const startDate = range === '1d'
-      ? startOfDay(new Date())
+      ? startOfDay(requestedDate ?? new Date())
       : new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    const endDate = range === '1d' ? addDays(startDate, 1) : null
 
     // Parallel queries
     const [meals, nutritionGoal, workoutLogs] = await Promise.all([
       prisma.mealLog.findMany({
         where: {
           clientId,
-          date: { gte: startDate },
+          date: endDate ? { gte: startDate, lt: endDate } : { gte: startDate },
         },
         orderBy: { date: 'asc' },
         select: {
@@ -89,7 +108,7 @@ export async function GET(request: NextRequest) {
           workout: {
             day: { week: { program: { clientId } } },
           },
-          completedAt: { gte: startDate },
+          completedAt: endDate ? { gte: startDate, lt: endDate } : { gte: startDate },
         },
         select: {
           completedAt: true,

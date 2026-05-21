@@ -12395,6 +12395,10 @@
       "actions": {
         "retry": "Försök igen"
       },
+      "dayNavigation": {
+        "previous": "Föregående dag",
+        "next": "Nästa dag"
+      },
       "empty": {
         "title": "Ingen kostdata hittades",
         "description": "Logga måltider för att se statistik och trender."
