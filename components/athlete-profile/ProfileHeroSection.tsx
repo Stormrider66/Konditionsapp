@@ -227,7 +227,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
               {sportProfile?.primarySport && (
                 <div className="flex items-center gap-2">
                   <Badge className={cn("rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0 transition-colors", sportBadgeColor)}>
-                    {getSportDisplayName(sportProfile.primarySport)}
+                    {getSportDisplayName(sportProfile.primarySport, locale)}
                   </Badge>
                   {isAthlete && (
                     <Button

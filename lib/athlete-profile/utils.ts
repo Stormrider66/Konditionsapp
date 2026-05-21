@@ -15,8 +15,20 @@ export function calculateAge(birthDate: Date): number {
   return age
 }
 
-export function getSportDisplayName(sport: string): string {
-  const sportNames: Record<string, string> = {
+type AppLocale = 'en' | 'sv'
+
+const SPORT_DISPLAY_NAMES: Record<AppLocale, Record<string, string>> = {
+  en: {
+    RUNNING: 'Running',
+    CYCLING: 'Cycling',
+    SWIMMING: 'Swimming',
+    TRIATHLON: 'Triathlon',
+    HYROX: 'HYROX',
+    SKIING: 'Cross-country skiing',
+    GENERAL_FITNESS: 'General fitness',
+    STRENGTH: 'Strength training',
+  },
+  sv: {
     RUNNING: 'Löpning',
     CYCLING: 'Cykling',
     SWIMMING: 'Simning',
@@ -25,6 +37,9 @@ export function getSportDisplayName(sport: string): string {
     SKIING: 'Längdskidåkning',
     GENERAL_FITNESS: 'Allmän fitness',
     STRENGTH: 'Styrketräning',
-  }
-  return sportNames[sport] || sport
+  },
+}
+
+export function getSportDisplayName(sport: string, locale: AppLocale = 'en'): string {
+  return SPORT_DISPLAY_NAMES[locale][sport] || sport
 }
