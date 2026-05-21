@@ -76,7 +76,7 @@ export function WorkoutPrintPageClient() {
       })
       .then((data) => {
         if (cancelled) return
-        setWorkout(normalizePrintableWorkout(kind, data, { dateLabel, athleteName }))
+        setWorkout(normalizePrintableWorkout(kind, data, { dateLabel, athleteName, locale }))
       })
       .catch((err) => {
         if (cancelled) return

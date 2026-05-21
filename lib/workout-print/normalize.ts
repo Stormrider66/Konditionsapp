@@ -1,4 +1,5 @@
 export type PrintableWorkoutKind = 'strength' | 'cardio' | 'hybrid' | 'agility'
+type AppLocale = 'en' | 'sv'
 
 export interface PrintableWorkoutItem {
   title: string
@@ -29,35 +30,73 @@ export interface PrintableWorkout {
   sections: PrintableWorkoutSection[]
 }
 
-const KIND_LABELS: Record<PrintableWorkoutKind, string> = {
-  strength: 'Styrka',
-  cardio: 'Kondition',
-  hybrid: 'Hybrid',
-  agility: 'Agility',
+const KIND_LABELS: Record<AppLocale, Record<PrintableWorkoutKind, string>> = {
+  en: {
+    strength: 'Strength',
+    cardio: 'Cardio',
+    hybrid: 'Hybrid',
+    agility: 'Agility',
+  },
+  sv: {
+    strength: 'Styrka',
+    cardio: 'Kondition',
+    hybrid: 'Hybrid',
+    agility: 'Agility',
+  },
 }
 
-const SECTION_LABELS: Record<string, string> = {
-  WARMUP: 'Uppvärmning',
-  MAIN: 'Huvudpass',
-  CORE: 'Core',
-  COOLDOWN: 'Nedvarvning',
-  STRENGTH: 'Styrka',
-  METCON: 'Metcon',
+const SECTION_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    WARMUP: 'Warm-up',
+    MAIN: 'Main session',
+    CORE: 'Core',
+    COOLDOWN: 'Cool-down',
+    STRENGTH: 'Strength',
+    METCON: 'Metcon',
+  },
+  sv: {
+    WARMUP: 'Uppvärmning',
+    MAIN: 'Huvudpass',
+    CORE: 'Core',
+    COOLDOWN: 'Nedvarvning',
+    STRENGTH: 'Styrka',
+    METCON: 'Metcon',
+  },
 }
 
-const CARDIO_SEGMENT_LABELS: Record<string, string> = {
-  WARMUP: 'Uppvärmning',
-  COOLDOWN: 'Nedvarvning',
-  INTERVAL: 'Intervall',
-  STEADY: 'Distansträning',
-  RECOVERY: 'Återhämtning',
-  HILL: 'Backe',
-  DRILLS: 'Löpskolning',
-  CORE: 'Core',
-  PREHAB: 'Stabilitet / Prehab',
-  PLYOMETRIC: 'Plyometri',
-  REST: 'Vila',
-  REPEAT_GROUP: 'Repetitionsblock',
+const CARDIO_SEGMENT_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    WARMUP: 'Warm-up',
+    COOLDOWN: 'Cool-down',
+    INTERVAL: 'Interval',
+    STEADY: 'Steady run',
+    RECOVERY: 'Recovery',
+    HILL: 'Hill',
+    DRILLS: 'Running drills',
+    CORE: 'Core',
+    PREHAB: 'Stability / Prehab',
+    PLYOMETRIC: 'Plyometrics',
+    REST: 'Rest',
+    REPEAT_GROUP: 'Repeat block',
+  },
+  sv: {
+    WARMUP: 'Uppvärmning',
+    COOLDOWN: 'Nedvarvning',
+    INTERVAL: 'Intervall',
+    STEADY: 'Distansträning',
+    RECOVERY: 'Återhämtning',
+    HILL: 'Backe',
+    DRILLS: 'Löpskolning',
+    CORE: 'Core',
+    PREHAB: 'Stabilitet / Prehab',
+    PLYOMETRIC: 'Plyometri',
+    REST: 'Vila',
+    REPEAT_GROUP: 'Repetitionsblock',
+  },
+}
+
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -76,17 +115,17 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-function formatSeconds(seconds?: number): string | undefined {
+function formatSeconds(seconds?: number, locale: AppLocale = 'en'): string | undefined {
   if (!seconds || seconds <= 0) return undefined
   const minutes = Math.floor(seconds / 60)
   const remainder = seconds % 60
   if (minutes > 0 && remainder > 0) return `${minutes}:${String(remainder).padStart(2, '0')}`
   if (minutes > 0) return `${minutes} min`
-  return `${seconds} sek`
+  return `${seconds} ${text(locale, 'sec', 'sek')}`
 }
 
-function formatDuration(seconds?: number, minutes?: number): string | undefined {
-  if (seconds && seconds > 0) return formatSeconds(seconds)
+function formatDuration(seconds?: number, minutes?: number, locale: AppLocale = 'en'): string | undefined {
+  if (seconds && seconds > 0) return formatSeconds(seconds, locale)
   if (minutes && minutes > 0) return `${minutes} min`
   return undefined
 }
@@ -96,15 +135,15 @@ function formatDistance(meters?: number): string | undefined {
   return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`
 }
 
-function sectionTitle(type: string): string {
-  return SECTION_LABELS[type] || type
+function sectionTitle(type: string, locale: AppLocale): string {
+  return SECTION_LABELS[locale][type] || type
 }
 
 function joinDetails(details: Array<string | undefined | null | false>): string[] {
   return details.filter((detail): detail is string => typeof detail === 'string' && detail.trim().length > 0)
 }
 
-function normalizeStrengthExercise(exercise: Record<string, unknown>): PrintableWorkoutItem {
+function normalizeStrengthExercise(exercise: Record<string, unknown>, locale: AppLocale): PrintableWorkoutItem {
   const setRows = asArray(exercise.setRows)
   const followUps = asArray(exercise.followUps)
   const weight = asNumber(exercise.weight)
@@ -115,7 +154,7 @@ function normalizeStrengthExercise(exercise: Record<string, unknown>): Printable
 
   const details = isCardio
     ? joinDetails([
-        formatDuration(durationSeconds),
+        formatDuration(durationSeconds, undefined, locale),
         formatDistance(distanceMeters),
         asString(exercise.intensity),
         asString(exercise.notes),
@@ -124,7 +163,7 @@ function normalizeStrengthExercise(exercise: Record<string, unknown>): Printable
         `${asNumber(exercise.sets) || 1} set`,
         exercise.reps != null ? `${String(exercise.reps)} reps` : undefined,
         weight != null ? `${weight} ${weightUnit}` : undefined,
-        asNumber(exercise.restSeconds) ? `vila ${exercise.restSeconds} sek` : undefined,
+        asNumber(exercise.restSeconds) ? `${text(locale, 'rest', 'vila')} ${exercise.restSeconds} ${text(locale, 'sec', 'sek')}` : undefined,
         asString(exercise.tempo) ? `tempo ${exercise.tempo}` : undefined,
       ])
 
@@ -134,38 +173,39 @@ function normalizeStrengthExercise(exercise: Record<string, unknown>): Printable
   }
 
   for (const followUp of followUps) {
-    details.push(`Följdövning: ${asString(followUp.exerciseName) || asString(followUp.name) || 'Övning'} ${followUp.reps ?? ''}`.trim())
+    details.push(`${text(locale, 'Follow-up exercise', 'Följdövning')}: ${asString(followUp.exerciseName) || asString(followUp.name) || text(locale, 'Exercise', 'Övning')} ${followUp.reps ?? ''}`.trim())
   }
 
   return {
-    title: asString(exercise.exerciseName) || asString(exercise.name) || 'Övning',
+    title: asString(exercise.exerciseName) || asString(exercise.name) || text(locale, 'Exercise', 'Övning'),
     details,
     notes: asString(exercise.notes),
   }
 }
 
-function normalizeStrengthSection(title: string, data: unknown, fallbackExercises?: unknown): PrintableWorkoutSection | null {
+function normalizeStrengthSection(title: string, data: unknown, locale: AppLocale, fallbackExercises?: unknown): PrintableWorkoutSection | null {
   const sectionData = isRecord(data) ? data : {}
   const exercises = asArray(sectionData.exercises ?? fallbackExercises)
   if (exercises.length === 0) return null
 
   return {
     title,
-    subtitle: formatDuration(undefined, asNumber(sectionData.duration)),
+    subtitle: formatDuration(undefined, asNumber(sectionData.duration), locale),
     notes: asString(sectionData.notes),
-    items: exercises.map(normalizeStrengthExercise),
+    items: exercises.map((exercise) => normalizeStrengthExercise(exercise, locale)),
   }
 }
 
-function normalizeCardioSegment(segment: Record<string, unknown>, index: number): PrintableWorkoutItem {
+function normalizeCardioSegment(segment: Record<string, unknown>, index: number, locale: AppLocale): PrintableWorkoutItem {
+  const segmentLabels = CARDIO_SEGMENT_LABELS[locale]
   if (segment.type === 'CORE' || segment.type === 'PREHAB' || segment.type === 'PLYOMETRIC') {
     const exercises = asArray(segment.exercises)
     return {
-      title: `${index + 1}. ${CARDIO_SEGMENT_LABELS[String(segment.type)]}`,
+      title: `${index + 1}. ${segmentLabels[String(segment.type)]}`,
       details: joinDetails([
-        formatDuration(asNumber(segment.duration)),
+        formatDuration(asNumber(segment.duration), undefined, locale),
         ...exercises.map((exercise) => {
-          const title = asString(exercise.name) || asString(exercise.exerciseName) || 'Övning'
+          const title = asString(exercise.name) || asString(exercise.exerciseName) || text(locale, 'Exercise', 'Övning')
           const sets = asNumber(exercise.sets)
           const reps = asString(exercise.reps)
           return [title, sets ? `${sets} set` : undefined, reps].filter(Boolean).join(' • ')
@@ -179,15 +219,15 @@ function normalizeCardioSegment(segment: Record<string, unknown>, index: number)
     const steps = asArray(segment.steps)
     const repeats = asNumber(segment.repeats) || 1
     return {
-      title: `${CARDIO_SEGMENT_LABELS.REPEAT_GROUP} x${repeats}`,
+      title: `${segmentLabels.REPEAT_GROUP} x${repeats}`,
       details: [
         ...joinDetails([
-          asNumber(segment.restBetweenRounds) ? `vila mellan rundor ${formatSeconds(asNumber(segment.restBetweenRounds))}` : undefined,
+          asNumber(segment.restBetweenRounds) ? `${text(locale, 'rest between rounds', 'vila mellan rundor')} ${formatSeconds(asNumber(segment.restBetweenRounds), locale)}` : undefined,
         ]),
         ...steps.map((step, stepIndex) => {
-          const duration = formatDuration(asNumber(step.duration))
+          const duration = formatDuration(asNumber(step.duration), undefined, locale)
           const distance = formatDistance(asNumber(step.distance))
-          return `${stepIndex + 1}. ${CARDIO_SEGMENT_LABELS[String(step.type)] || String(step.type || 'Steg')}${duration ? `, ${duration}` : ''}${distance ? `, ${distance}` : ''}${step.zone ? `, zon ${step.zone}` : ''}`
+          return `${stepIndex + 1}. ${segmentLabels[String(step.type)] || String(step.type || text(locale, 'Step', 'Steg'))}${duration ? `, ${duration}` : ''}${distance ? `, ${distance}` : ''}${step.zone ? `, ${text(locale, 'zone', 'zon')} ${step.zone}` : ''}`
         }),
       ],
       notes: asString(segment.notes),
@@ -195,49 +235,48 @@ function normalizeCardioSegment(segment: Record<string, unknown>, index: number)
   }
 
   return {
-    title: `${index + 1}. ${CARDIO_SEGMENT_LABELS[String(segment.type)] || String(segment.type || 'Segment')}`,
+    title: `${index + 1}. ${segmentLabels[String(segment.type)] || String(segment.type || 'Segment')}`,
     details: joinDetails([
-      formatDuration(asNumber(segment.duration)),
+      formatDuration(asNumber(segment.duration), undefined, locale),
       formatDistance(asNumber(segment.distance)),
-      segment.zone ? `zon ${segment.zone}` : undefined,
-      asString(segment.pace) ? `tempo ${segment.pace}` : undefined,
-      asString(segment.heartRate) ? `puls ${segment.heartRate}` : undefined,
-      asNumber(segment.repeats) && asNumber(segment.repeats)! > 1 ? `${segment.repeats} repetitioner` : undefined,
-      asNumber(segment.restDuration) ? `vila ${formatSeconds(asNumber(segment.restDuration))}` : undefined,
+      segment.zone ? `${text(locale, 'zone', 'zon')} ${segment.zone}` : undefined,
+      asString(segment.pace) ? `${text(locale, 'pace', 'tempo')} ${segment.pace}` : undefined,
+      asString(segment.heartRate) ? `${text(locale, 'heart rate', 'puls')} ${segment.heartRate}` : undefined,
+      asNumber(segment.repeats) && asNumber(segment.repeats)! > 1 ? `${segment.repeats} ${text(locale, 'repetitions', 'repetitioner')}` : undefined,
+      asNumber(segment.restDuration) ? `${text(locale, 'rest', 'vila')} ${formatSeconds(asNumber(segment.restDuration), locale)}` : undefined,
     ]),
     notes: asString(segment.notes),
   }
 }
 
-function normalizeHybridMovement(movement: Record<string, unknown>): PrintableWorkoutItem {
+function normalizeHybridMovement(movement: Record<string, unknown>, locale: AppLocale): PrintableWorkoutItem {
   const exercise = isRecord(movement.exercise) ? movement.exercise : {}
   const title =
     asString(movement.exerciseName) ||
-    asString(exercise.nameSv) ||
-    asString(exercise.name) ||
+    (locale === 'sv' ? asString(exercise.nameSv) || asString(exercise.name) : asString(exercise.name) || asString(exercise.nameSv)) ||
     asString(movement.name) ||
-    'Rörelse'
+    text(locale, 'Movement', 'Rörelse')
   return {
     title,
     details: joinDetails([
       movement.reps != null ? `${movement.reps} reps` : undefined,
       movement.calories != null ? `${movement.calories} cal` : undefined,
       formatDistance(asNumber(movement.distance)),
-      formatDuration(asNumber(movement.duration)),
-      asNumber(movement.weightMale) ? `herr ${movement.weightMale} kg` : undefined,
-      asNumber(movement.weightFemale) ? `dam ${movement.weightFemale} kg` : undefined,
+      formatDuration(asNumber(movement.duration), undefined, locale),
+      asNumber(movement.weightMale) ? `${text(locale, 'men', 'herr')} ${movement.weightMale} kg` : undefined,
+      asNumber(movement.weightFemale) ? `${text(locale, 'women', 'dam')} ${movement.weightFemale} kg` : undefined,
       asNumber(movement.percentOfMax) ? `${movement.percentOfMax}%` : undefined,
     ]),
     notes: asString(movement.notes),
   }
 }
 
-function formatHybridMovementSummary(movement: Record<string, unknown>): string {
-  const item = normalizeHybridMovement(movement)
+function formatHybridMovementSummary(movement: Record<string, unknown>, locale: AppLocale): string {
+  const item = normalizeHybridMovement(movement, locale)
   return [item.title, item.details.join(', ')].filter(Boolean).join(' ')
 }
 
-function normalizeHybridSection(title: string, data: unknown): PrintableWorkoutSection | null {
+function normalizeHybridSection(title: string, data: unknown, locale: AppLocale): PrintableWorkoutSection | null {
   if (!isRecord(data)) return null
   const blocks = asArray(data.blocks)
   if (blocks.length > 0) {
@@ -248,12 +287,12 @@ function normalizeHybridSection(title: string, data: unknown): PrintableWorkoutS
         title: asString(block.title) || asString(block.format) || 'Block',
         details: joinDetails([
           asString(block.format),
-          asNumber(block.rounds) ? `${block.rounds} rundor` : undefined,
-          formatDuration(asNumber(block.intervalSeconds)),
-          formatDuration(asNumber(block.workSeconds)) ? `arbete ${formatDuration(asNumber(block.workSeconds))}` : undefined,
-          formatDuration(asNumber(block.restSeconds)) ? `vila ${formatDuration(asNumber(block.restSeconds))}` : undefined,
-          formatDuration(asNumber(block.restAfterSeconds)) ? `vila efter ${formatDuration(asNumber(block.restAfterSeconds))}` : undefined,
-          ...asArray(block.movements).map(formatHybridMovementSummary),
+          asNumber(block.rounds) ? `${block.rounds} ${text(locale, 'rounds', 'rundor')}` : undefined,
+          formatDuration(asNumber(block.intervalSeconds), undefined, locale),
+          formatDuration(asNumber(block.workSeconds), undefined, locale) ? `${text(locale, 'work', 'arbete')} ${formatDuration(asNumber(block.workSeconds), undefined, locale)}` : undefined,
+          formatDuration(asNumber(block.restSeconds), undefined, locale) ? `${text(locale, 'rest', 'vila')} ${formatDuration(asNumber(block.restSeconds), undefined, locale)}` : undefined,
+          formatDuration(asNumber(block.restAfterSeconds), undefined, locale) ? `${text(locale, 'rest after', 'vila efter')} ${formatDuration(asNumber(block.restAfterSeconds), undefined, locale)}` : undefined,
+          ...asArray(block.movements).map((movement) => formatHybridMovementSummary(movement, locale)),
         ]),
         notes: asString(block.notes),
       })),
@@ -266,46 +305,48 @@ function normalizeHybridSection(title: string, data: unknown): PrintableWorkoutS
   return {
     title,
     notes: asString(data.notes),
-    items: movements.map(normalizeHybridMovement),
+    items: movements.map((movement) => normalizeHybridMovement(movement, locale)),
   }
 }
 
-function normalizeAgilityDrill(item: Record<string, unknown>): PrintableWorkoutItem {
+function normalizeAgilityDrill(item: Record<string, unknown>, locale: AppLocale): PrintableWorkoutItem {
   const drill = isRecord(item.drill) ? item.drill : {}
   return {
-    title: asString(drill.nameSv) || asString(drill.name) || 'Drill',
+    title: (locale === 'sv' ? asString(drill.nameSv) || asString(drill.name) : asString(drill.name) || asString(drill.nameSv)) || 'Drill',
     details: joinDetails([
       asNumber(item.sets) ? `${item.sets} set` : undefined,
       asNumber(item.reps) ? `${item.reps} reps` : undefined,
-      formatDuration(asNumber(item.duration)),
-      asNumber(item.restSeconds) ? `vila ${item.restSeconds} sek` : undefined,
+      formatDuration(asNumber(item.duration), undefined, locale),
+      asNumber(item.restSeconds) ? `${text(locale, 'rest', 'vila')} ${item.restSeconds} ${text(locale, 'sec', 'sek')}` : undefined,
       asString(drill.category),
       asNumber(drill.distanceMeters) ? `${drill.distanceMeters} m` : undefined,
     ]),
-    notes: asString(item.notes) || asString(drill.descriptionSv) || asString(drill.description),
+    notes: asString(item.notes) || (locale === 'sv' ? asString(drill.descriptionSv) || asString(drill.description) : asString(drill.description) || asString(drill.descriptionSv)),
   }
 }
 
 export function normalizePrintableWorkout(
   kind: PrintableWorkoutKind,
   workout: Record<string, unknown>,
-  context?: { dateLabel?: string | null; athleteName?: string | null }
+  context?: { dateLabel?: string | null; athleteName?: string | null; locale?: AppLocale }
 ): PrintableWorkout {
+  const locale = context?.locale === 'sv' ? 'sv' : 'en'
+
   if (kind === 'strength') {
     const sections = [
-      normalizeStrengthSection('Uppvärmning', workout.warmupData),
-      normalizeStrengthSection('Huvudpass', {}, workout.exercises),
-      normalizeStrengthSection('Stabilitet / Prehab', workout.prehabData),
-      normalizeStrengthSection('Core', workout.coreData),
-      normalizeStrengthSection('Nedvarvning', workout.cooldownData),
+      normalizeStrengthSection(text(locale, 'Warm-up', 'Uppvärmning'), workout.warmupData, locale),
+      normalizeStrengthSection(text(locale, 'Main session', 'Huvudpass'), {}, locale, workout.exercises),
+      normalizeStrengthSection(text(locale, 'Stability / Prehab', 'Stabilitet / Prehab'), workout.prehabData, locale),
+      normalizeStrengthSection('Core', workout.coreData, locale),
+      normalizeStrengthSection(text(locale, 'Cool-down', 'Nedvarvning'), workout.cooldownData, locale),
     ].filter((section): section is PrintableWorkoutSection => !!section)
 
     return {
-      title: asString(workout.name) || 'Styrkepass',
+      title: asString(workout.name) || text(locale, 'Strength session', 'Styrkepass'),
       kind,
-      kindLabel: KIND_LABELS[kind],
+      kindLabel: KIND_LABELS[locale][kind],
       description: asString(workout.description),
-      durationLabel: formatDuration(undefined, asNumber(workout.estimatedDuration)),
+      durationLabel: formatDuration(undefined, asNumber(workout.estimatedDuration), locale),
       dateLabel: context?.dateLabel,
       athleteName: context?.athleteName,
       tags: Array.isArray(workout.tags) ? workout.tags.filter((tag): tag is string => typeof tag === 'string') : [],
@@ -315,44 +356,44 @@ export function normalizePrintableWorkout(
 
   if (kind === 'cardio') {
     return {
-      title: asString(workout.name) || 'Konditionspass',
+      title: asString(workout.name) || text(locale, 'Cardio session', 'Konditionspass'),
       kind,
-      kindLabel: KIND_LABELS[kind],
+      kindLabel: KIND_LABELS[locale][kind],
       description: asString(workout.description),
-      durationLabel: formatDuration(asNumber(workout.totalDuration)),
+      durationLabel: formatDuration(asNumber(workout.totalDuration), undefined, locale),
       dateLabel: context?.dateLabel,
       athleteName: context?.athleteName,
       tags: Array.isArray(workout.tags) ? workout.tags.filter((tag): tag is string => typeof tag === 'string') : [],
       sections: [{
-        title: 'Passupplägg',
+        title: text(locale, 'Session structure', 'Passupplägg'),
         subtitle: joinDetails([
           asString(workout.sport),
           formatDistance(asNumber(workout.totalDistance)),
-          asNumber(workout.avgZone) ? `snittzon ${Number(workout.avgZone).toFixed(1)}` : undefined,
+          asNumber(workout.avgZone) ? `${text(locale, 'avg zone', 'snittzon')} ${Number(workout.avgZone).toFixed(1)}` : undefined,
         ]).join(' · '),
-        items: asArray(workout.segments).map(normalizeCardioSegment),
+        items: asArray(workout.segments).map((segment, index) => normalizeCardioSegment(segment, index, locale)),
       }],
     }
   }
 
   if (kind === 'hybrid') {
-    const metconSection = normalizeHybridSection('Metcon', workout.metconData) || {
+    const metconSection = normalizeHybridSection('Metcon', workout.metconData, locale) || {
       title: 'Metcon',
-      items: asArray(workout.movements).map(normalizeHybridMovement),
+      items: asArray(workout.movements).map((movement) => normalizeHybridMovement(movement, locale)),
     }
     const sections = [
-      normalizeHybridSection('Uppvärmning', workout.warmupData),
-      normalizeHybridSection('Styrka', workout.strengthData),
+      normalizeHybridSection(text(locale, 'Warm-up', 'Uppvärmning'), workout.warmupData, locale),
+      normalizeHybridSection(text(locale, 'Strength', 'Styrka'), workout.strengthData, locale),
       metconSection.items.length > 0 ? metconSection : null,
-      normalizeHybridSection('Nedvarvning', workout.cooldownData),
+      normalizeHybridSection(text(locale, 'Cool-down', 'Nedvarvning'), workout.cooldownData, locale),
     ].filter((section): section is PrintableWorkoutSection => !!section)
 
     return {
-      title: asString(workout.name) || 'Hybridpass',
+      title: asString(workout.name) || text(locale, 'Hybrid session', 'Hybridpass'),
       kind,
-      kindLabel: KIND_LABELS[kind],
+      kindLabel: KIND_LABELS[locale][kind],
       description: asString(workout.description),
-      durationLabel: formatDuration(asNumber(workout.timeCap)) || (asNumber(workout.totalMinutes) ? `${workout.totalMinutes} min` : undefined),
+      durationLabel: formatDuration(asNumber(workout.timeCap), undefined, locale) || (asNumber(workout.totalMinutes) ? `${workout.totalMinutes} min` : undefined),
       dateLabel: context?.dateLabel,
       athleteName: context?.athleteName,
       tags: Array.isArray(workout.tags) ? workout.tags.filter((tag): tag is string => typeof tag === 'string') : [],
@@ -368,17 +409,17 @@ export function normalizePrintableWorkout(
   }, {})
 
   return {
-    title: asString(workout.name) || 'Agilitypass',
+    title: asString(workout.name) || text(locale, 'Agility session', 'Agilitypass'),
     kind,
-    kindLabel: KIND_LABELS[kind],
+    kindLabel: KIND_LABELS[locale][kind],
     description: asString(workout.description),
-    durationLabel: formatDuration(undefined, asNumber(workout.totalDuration)),
+    durationLabel: formatDuration(undefined, asNumber(workout.totalDuration), locale),
     dateLabel: context?.dateLabel,
     athleteName: context?.athleteName,
     tags: Array.isArray(workout.tags) ? workout.tags.filter((tag): tag is string => typeof tag === 'string') : [],
     sections: Object.entries(grouped).map(([section, drills]) => ({
-      title: sectionTitle(section),
-      items: drills.map(normalizeAgilityDrill),
+      title: sectionTitle(section, locale),
+      items: drills.map((drill) => normalizeAgilityDrill(drill, locale)),
     })),
   }
 }

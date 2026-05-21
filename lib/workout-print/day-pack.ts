@@ -192,6 +192,7 @@ export async function getOrganizationDayPrintItems({
     })
     const normalizedWorkout = normalizePrintableWorkout(details.kind, details.workout, {
       dateLabel,
+      locale,
     })
     const workout: PrintableWorkout = {
       ...normalizedWorkout,
