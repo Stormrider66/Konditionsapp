@@ -28,6 +28,12 @@ export interface ChatToolCapabilities {
   canGenerateProgram?: boolean
 }
 
+type ChatLocale = 'en' | 'sv'
+
+function chatText(locale: ChatLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Create all chat tools for an athlete session.
  * Uses closure to capture clientId and optional conversationId.
@@ -37,36 +43,41 @@ export function createChatTools(
   clientId: string,
   conversationId?: string,
   capabilities?: ChatToolCapabilities,
-  locale: 'en' | 'sv' = 'en'
+  locale: ChatLocale = 'en'
 ) {
   const tools: Record<string, any> = { // eslint-disable-line
     createTodayWorkout: tool({
       description:
-        'Skapa ett träningspass åt atleten för idag. Passet sparas på dashboarden och i kalendern. ' +
-        'Använd detta verktyg när atleten ber dig skapa, skriva, föreslå eller ge dem ett pass.',
+        chatText(
+          locale,
+          'Create a workout for the athlete today. The workout is saved to the dashboard and calendar. ' +
+            'Use this tool when the athlete asks you to create, write, suggest, or give them a workout.',
+          'Skapa ett träningspass åt atleten för idag. Passet sparas på dashboarden och i kalendern. ' +
+            'Använd detta verktyg när atleten ber dig skapa, skriva, föreslå eller ge dem ett pass.'
+        ),
       inputSchema: z.object({
-        title: z.string().describe('Kort, motiverande svensk titel (t.ex. "Explosiv Styrka")'),
-        subtitle: z.string().optional().describe('Motiverande undertitel'),
-        description: z.string().describe('Kort beskrivning av vad passet fokuserar på'),
-        workoutType: z.enum(['strength', 'cardio', 'mixed', 'core']).describe('Passtyp'),
-        duration: z.number().min(10).max(180).describe('Total duration i minuter'),
+        title: z.string().describe(chatText(locale, 'Short, motivating title in the chat language (for example "Explosive Strength")', 'Kort, motiverande svensk titel (t.ex. "Explosiv Styrka")')),
+        subtitle: z.string().optional().describe(chatText(locale, 'Motivating subtitle', 'Motiverande undertitel')),
+        description: z.string().describe(chatText(locale, 'Short description of what the workout focuses on', 'Kort beskrivning av vad passet fokuserar på')),
+        workoutType: z.enum(['strength', 'cardio', 'mixed', 'core']).describe(chatText(locale, 'Workout type', 'Passtyp')),
+        duration: z.number().min(10).max(180).describe(chatText(locale, 'Total duration in minutes', 'Total duration i minuter')),
         intensity: z.enum(['recovery', 'easy', 'moderate', 'threshold']).optional()
-          .describe('Intensitetsnivå baserat på atletens beredskap'),
+          .describe(chatText(locale, 'Intensity level based on athlete readiness', 'Intensitetsnivå baserat på atletens beredskap')),
         sections: z.array(z.object({
-          type: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN']).describe('Sektionstyp'),
-          name: z.string().describe('Svenskt sektionsnamn (t.ex. "Uppvärmning")'),
-          duration: z.number().describe('Sektionens längd i minuter'),
+          type: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN']).describe(chatText(locale, 'Section type', 'Sektionstyp')),
+          name: z.string().describe(chatText(locale, 'Section name in the chat language (for example "Warm-up")', 'Svenskt sektionsnamn (t.ex. "Uppvärmning")')),
+          duration: z.number().describe(chatText(locale, 'Section duration in minutes', 'Sektionens längd i minuter')),
           exercises: z.array(z.object({
-            name: z.string().describe('Övningsnamn på engelska'),
-            nameSv: z.string().describe('Övningsnamn på svenska'),
+            name: z.string().describe(chatText(locale, 'Exercise name in English', 'Övningsnamn på engelska')),
+            nameSv: z.string().describe(chatText(locale, 'Exercise name in Swedish', 'Övningsnamn på svenska')),
             sets: z.number().optional(),
-            reps: z.string().optional().describe('"10" eller "10-12" eller "AMRAP"'),
+            reps: z.string().optional().describe(chatText(locale, '"10", "10-12", or "AMRAP"', '"10" eller "10-12" eller "AMRAP"')),
             weight: z.string().optional().describe('"Bodyweight", "Light", "Moderate", "60% 1RM"'),
             restSeconds: z.number().optional(),
-            duration: z.number().optional().describe('Tid i sekunder (för cardio)'),
-            distance: z.number().optional().describe('Distans i meter'),
-            zone: z.number().min(1).max(5).optional().describe('Pulszon 1-5'),
-            notes: z.string().optional().describe('Korta instruktioner'),
+            duration: z.number().optional().describe(chatText(locale, 'Time in seconds (for cardio)', 'Tid i sekunder (för cardio)')),
+            distance: z.number().optional().describe(chatText(locale, 'Distance in meters', 'Distans i meter')),
+            zone: z.number().min(1).max(5).optional().describe(chatText(locale, 'Heart-rate zone 1-5', 'Pulszon 1-5')),
+            notes: z.string().optional().describe(chatText(locale, 'Short instructions', 'Korta instruktioner')),
           })),
         })),
       }),
@@ -108,7 +119,7 @@ export function createChatTools(
                 instructions: e.notes,
               })),
             })),
-            coachNotes: `Skapat via AI-chatt baserat på atletens önskemål.`,
+            coachNotes: chatText(locale, 'Created via AI chat based on the athlete request.', 'Skapat via AI-chatt baserat på atletens önskemål.'),
             totalDuration: duration,
             totalExercises,
             totalSets,
@@ -211,7 +222,7 @@ export function createChatTools(
           logger.error('Failed to create WOD via chat tool', { clientId }, error)
           return {
             success: false,
-            error: 'Kunde inte skapa passet. Försök igen.',
+            error: chatText(locale, 'Could not create the workout. Please try again.', 'Kunde inte skapa passet. Försök igen.'),
           }
         }
       },
