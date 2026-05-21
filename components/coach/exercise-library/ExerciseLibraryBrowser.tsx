@@ -69,6 +69,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
+import { useLocale } from '@/i18n/client'
 
 interface ExerciseLibraryBrowserProps {
   onSelectExercise?: (exercise: Exercise) => void
@@ -82,6 +83,13 @@ export function ExerciseLibraryBrowser({
   userId,
 }: ExerciseLibraryBrowserProps) {
   const { toast } = useToast()
+  const locale = useLocale()
+  const exerciseDisplayName = useCallback(
+    (exercise: Exercise) => locale === 'sv'
+      ? exercise.nameSv || exercise.name
+      : exercise.nameEn || exercise.name,
+    [locale],
+  )
 
   // View state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -347,7 +355,7 @@ export function ExerciseLibraryBrowser({
         <CardHeader className="pb-2 pt-3">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-sm truncate">{exercise.nameSv || exercise.name}</CardTitle>
+              <CardTitle className="text-sm truncate">{exerciseDisplayName(exercise)}</CardTitle>
               <p className="text-xs text-gray-500 mt-1 truncate">{exercise.muscleGroup}</p>
             </div>
             <Button
@@ -407,7 +415,7 @@ export function ExerciseLibraryBrowser({
 
       toast({
         title: 'Deleted',
-        description: `"${exercise.nameSv || exercise.name}" has been deleted.`,
+        description: `"${exerciseDisplayName(exercise)}" has been deleted.`,
       })
       setShowDetailModal(false)
       setSelectedExercise(null)
@@ -441,7 +449,7 @@ export function ExerciseLibraryBrowser({
 
       toast({
         title: 'Hidden',
-        description: `"${exercise.nameSv || exercise.name}" has been hidden from your library.`,
+        description: `"${exerciseDisplayName(exercise)}" has been hidden from your library.`,
       })
       setShowDetailModal(false)
       setSelectedExercise(null)
@@ -486,7 +494,7 @@ export function ExerciseLibraryBrowser({
             <div className="flex-1 min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
                 <div className="min-w-0 sm:w-2/5">
-                  <p className="font-semibold text-sm truncate">{exercise.nameSv || exercise.name}</p>
+                  <p className="font-semibold text-sm truncate">{exerciseDisplayName(exercise)}</p>
                   <p className="text-xs text-gray-500 truncate">{exercise.muscleGroup}</p>
                 </div>
 
@@ -528,7 +536,7 @@ export function ExerciseLibraryBrowser({
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>{selectedExercise.name}</DialogTitle>
+            <DialogTitle>{exerciseDisplayName(selectedExercise)}</DialogTitle>
             <DialogDescription>{selectedExercise.muscleGroup}</DialogDescription>
           </DialogHeader>
 
@@ -606,20 +614,20 @@ export function ExerciseLibraryBrowser({
                       <Card>
                         <CardContent className="p-3 flex items-center gap-2">
                           <TrendingDown className="h-4 w-4 text-blue-500" />
-                          <span className="text-sm">Easier: {progressionPath.easier.name}</span>
+                          <span className="text-sm">Easier: {exerciseDisplayName(progressionPath.easier)}</span>
                         </CardContent>
                       </Card>
                     )}
                     <Card className="bg-gray-50">
                       <CardContent className="p-3 flex items-center gap-2">
-                        <span className="text-sm font-semibold">Current: {progressionPath.current.name}</span>
+                        <span className="text-sm font-semibold">Current: {exerciseDisplayName(progressionPath.current)}</span>
                       </CardContent>
                     </Card>
                     {progressionPath.harder && (
                       <Card>
                         <CardContent className="p-3 flex items-center gap-2">
                           <TrendingUp className="h-4 w-4 text-red-500" />
-                          <span className="text-sm">Harder: {progressionPath.harder.name}</span>
+                          <span className="text-sm">Harder: {exerciseDisplayName(progressionPath.harder)}</span>
                         </CardContent>
                       </Card>
                     )}
@@ -636,7 +644,7 @@ export function ExerciseLibraryBrowser({
                   variant="destructive"
                   size="sm"
                   onClick={() => {
-                    if (confirm(`Are you sure you want to delete "${selectedExercise.nameSv || selectedExercise.name}"?`)) {
+                    if (confirm(`Are you sure you want to delete "${exerciseDisplayName(selectedExercise)}"?`)) {
                       deleteExercise(selectedExercise)
                     }
                   }}
@@ -649,7 +657,7 @@ export function ExerciseLibraryBrowser({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (confirm(`Hide "${selectedExercise.nameSv || selectedExercise.name}" from your library?`)) {
+                  if (confirm(`Hide "${exerciseDisplayName(selectedExercise)}" from your library?`)) {
                     hideExercise(selectedExercise)
                   }
                 }}
