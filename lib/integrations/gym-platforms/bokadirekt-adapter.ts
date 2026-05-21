@@ -9,6 +9,7 @@
 import type { GymPlatformAdapter, ConnectionConfig, ExternalClass, ExternalBooking } from './types'
 
 const BOKADIREKT_BASE_URL = 'https://api.bokadirekt.se/v1'
+const t = (config: ConnectionConfig, en: string, sv: string) => config.locale === 'sv' ? sv : en
 
 async function bokadirektFetch(path: string, apiKey: string): Promise<Response> {
   return fetch(`${BOKADIREKT_BASE_URL}${path}`, {
@@ -70,7 +71,7 @@ export class BokaDirektAdapter implements GymPlatformAdapter {
           type: 'PT_SESSION' as const,
           clientName: customer
             ? String(customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim())
-            : String(b.customerName || 'Okänd'),
+            : String(b.customerName || t(config, 'Unknown', 'Okänd')),
           clientEmail: customer?.email ? String(customer.email) : null,
           clientExternalId: customer?.id ? String(customer.id) : null,
           className: b.serviceName ? String(b.serviceName) : (b.service ? String(b.service) : null),

@@ -10,6 +10,7 @@
 import type { GymPlatformAdapter, ConnectionConfig, ExternalClass, ExternalBooking } from './types'
 
 const MINDBODY_BASE_URL = 'https://api.mindbodyonline.com/public/v6'
+const t = (config: ConnectionConfig, en: string, sv: string) => config.locale === 'sv' ? sv : en
 
 async function mindbodyFetch(path: string, config: ConnectionConfig): Promise<Response> {
   const headers: Record<string, string> = {
@@ -124,7 +125,7 @@ export class MindBodyAdapter implements GymPlatformAdapter {
           type: 'PT_SESSION' as const,
           clientName: client
             ? String(client.Name || `${client.FirstName || ''} ${client.LastName || ''}`.trim())
-            : 'Okänd',
+            : t(config, 'Unknown', 'Okänd'),
           clientEmail: client?.Email ? String(client.Email) : null,
           clientExternalId: client?.Id ? String(client.Id) : null,
           className: sessionType ? String(sessionType.Name || '') : null,

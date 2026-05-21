@@ -10,6 +10,7 @@ export type GymProvider = 'ZOEZI' | 'WONDR' | 'BOKADIREKT' | 'MINDBODY'
 
 export interface ConnectionConfig {
   provider: GymProvider
+  locale?: 'en' | 'sv'
   apiKey?: string
   apiSecret?: string
   siteId?: string
@@ -82,6 +83,13 @@ export const PROVIDER_LABELS: Record<GymProvider, string> = {
 }
 
 export const PROVIDER_SETUP_DOCS: Record<GymProvider, string> = {
+  ZOEZI: 'Register as a developer at developer.zoezi.se to get an API key.',
+  WONDR: 'Contact BRP Systems to become a partner and get API access.',
+  BOKADIREKT: 'API access is included in Boka Direkt premium plans. Find your API key in the business settings.',
+  MINDBODY: 'Create a free developer account at developers.mindbodyonline.com. Fewer than 5,000 API calls per cycle are free.',
+}
+
+export const PROVIDER_SETUP_DOCS_SV: Record<GymProvider, string> = {
   ZOEZI: 'Registrera dig som utvecklare på developer.zoezi.se för att få en API-nyckel.',
   WONDR: 'Kontakta BRP Systems för att bli partner och få API-åtkomst.',
   BOKADIREKT: 'API-åtkomst ingår i Boka Direkts premiumplaner. Hitta din API-nyckel i affärsinställningarna.',

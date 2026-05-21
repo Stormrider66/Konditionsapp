@@ -12,6 +12,7 @@
 import type { GymPlatformAdapter, ConnectionConfig, ExternalClass, ExternalBooking } from './types'
 
 const BRP_BASE_URL = 'https://api.brpsystems.com/v1'
+const t = (config: ConnectionConfig, en: string, sv: string) => config.locale === 'sv' ? sv : en
 
 async function brpFetch(path: string, config: ConnectionConfig): Promise<Response> {
   const headers: Record<string, string> = {
@@ -104,7 +105,7 @@ export class BrpAdapter implements GymPlatformAdapter {
       return bookings.map((b: Record<string, unknown>) => ({
         externalId: String(b.id || b.bookingId || ''),
         type: 'CLASS' as const,
-        clientName: String(b.memberName || b.clientName || 'Okänd'),
+        clientName: String(b.memberName || b.clientName || t(config, 'Unknown', 'Okänd')),
         clientEmail: b.email ? String(b.email) : null,
         clientExternalId: b.memberId ? String(b.memberId) : null,
         className: b.activityName ? String(b.activityName) : null,

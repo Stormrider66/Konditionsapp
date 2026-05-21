@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
 
     const config: ConnectionConfig = {
       provider: body.provider,
+      locale,
       apiKey: body.apiKey || undefined,
       apiSecret: body.apiSecret || undefined,
       siteId: body.siteId || undefined,

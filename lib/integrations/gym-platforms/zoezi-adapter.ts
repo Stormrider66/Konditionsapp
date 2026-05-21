@@ -9,6 +9,7 @@
 import type { GymPlatformAdapter, ConnectionConfig, ExternalClass, ExternalBooking } from './types'
 
 const ZOEZI_BASE_URL = 'https://api.zoezi.se/api/v1'
+const t = (config: ConnectionConfig, en: string, sv: string) => config.locale === 'sv' ? sv : en
 
 async function zoeziFetch(path: string, apiKey: string): Promise<Response> {
   const res = await fetch(`${ZOEZI_BASE_URL}${path}`, {
@@ -24,7 +25,7 @@ async function zoeziFetch(path: string, apiKey: string): Promise<Response> {
 export class ZoeziAdapter implements GymPlatformAdapter {
   async testConnection(config: ConnectionConfig): Promise<{ success: boolean; error?: string }> {
     if (!config.apiKey) {
-      return { success: false, error: 'API-nyckel saknas. Registrera dig på developer.zoezi.se' }
+      return { success: false, error: t(config, 'API key is missing. Register at developer.zoezi.se', 'API-nyckel saknas. Registrera dig på developer.zoezi.se') }
     }
 
     try {
@@ -32,9 +33,9 @@ export class ZoeziAdapter implements GymPlatformAdapter {
       if (res.ok) {
         return { success: true }
       }
-      return { success: false, error: `Zoezi API svarade med status ${res.status}` }
+      return { success: false, error: t(config, `Zoezi API responded with status ${res.status}`, `Zoezi API svarade med status ${res.status}`) }
     } catch (err) {
-      return { success: false, error: `Kunde inte ansluta till Zoezi: ${err}` }
+      return { success: false, error: t(config, `Could not connect to Zoezi: ${err}`, `Kunde inte ansluta till Zoezi: ${err}`) }
     }
   }
 
@@ -57,7 +58,7 @@ export class ZoeziAdapter implements GymPlatformAdapter {
 
       return activities.map((a: Record<string, unknown>) => ({
         externalId: String(a.id || a.activityId || ''),
-        name: String(a.name || a.title || 'Okänd klass'),
+        name: String(a.name || a.title || t(config, 'Unknown class', 'Okänd klass')),
         instructor: a.instructor ? String((a.instructor as Record<string, unknown>)?.name || a.instructor) : null,
         startTime: new Date(a.startTime as string || a.start as string),
         endTime: new Date(a.endTime as string || a.end as string),
@@ -97,7 +98,7 @@ export class ZoeziAdapter implements GymPlatformAdapter {
           externalId: String(b.id || b.bookingId || ''),
           type: (b.type === 'PT' || b.type === 'PERSONAL_TRAINING') ? 'PT_SESSION' as const :
                 (b.type === 'DROP_IN') ? 'DROP_IN' as const : 'CLASS' as const,
-          clientName: person ? String(person.name || `${person.firstName || ''} ${person.lastName || ''}`.trim()) : String(b.clientName || 'Okänd'),
+          clientName: person ? String(person.name || `${person.firstName || ''} ${person.lastName || ''}`.trim()) : String(b.clientName || t(config, 'Unknown', 'Okänd')),
           clientEmail: person ? (person.email ? String(person.email) : null) : null,
           clientExternalId: person ? String(person.id || person.memberId || '') : null,
           className: b.activityName ? String(b.activityName) : (b.name ? String(b.name) : null),
