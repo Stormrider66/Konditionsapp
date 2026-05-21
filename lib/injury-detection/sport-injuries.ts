@@ -74,7 +74,8 @@ export interface IllnessDefinition {
   labelSv: string
   labelEn: string
   minRestDays: number
-  returnCriteria: string
+  returnCriteriaSv: string
+  returnCriteriaEn: string
 }
 
 // ============================================
@@ -105,42 +106,48 @@ export const ILLNESSES: IllnessDefinition[] = [
     labelSv: 'Feber',
     labelEn: 'Fever',
     minRestDays: 3,
-    returnCriteria: 'Feberfri i minst 24 timmar utan febernedsättande medicin',
+    returnCriteriaSv: 'Feberfri i minst 24 timmar utan febernedsättande medicin',
+    returnCriteriaEn: 'Fever-free for at least 24 hours without fever-reducing medication',
   },
   {
     id: 'GASTROINTESTINAL',
     labelSv: 'Magsjuka/Kräkningar/Diarré',
     labelEn: 'Stomach flu/Vomiting/Diarrhea',
     minRestDays: 2,
-    returnCriteria: 'Symptomfri i minst 24 timmar, vätskebalans återställd',
+    returnCriteriaSv: 'Symptomfri i minst 24 timmar, vätskebalans återställd',
+    returnCriteriaEn: 'Symptom-free for at least 24 hours with hydration restored',
   },
   {
     id: 'COLD',
     labelSv: 'Förkylning/Halsont',
     labelEn: 'Cold/Sore throat',
     minRestDays: 1,
-    returnCriteria: 'Inga symptom under halsen (hosta, bröstsmärta)',
+    returnCriteriaSv: 'Inga symptom under halsen (hosta, bröstsmärta)',
+    returnCriteriaEn: 'No symptoms below the neck (cough, chest pain)',
   },
   {
     id: 'HEADACHE',
     labelSv: 'Huvudvärk/Migrän',
     labelEn: 'Headache/Migraine',
     minRestDays: 1,
-    returnCriteria: 'Smärtfri utan medicin',
+    returnCriteriaSv: 'Smärtfri utan medicin',
+    returnCriteriaEn: 'Pain-free without medication',
   },
   {
     id: 'GENERAL_ILLNESS',
     labelSv: 'Allmänt sjuk/Annat',
     labelEn: 'Generally unwell/Other',
     minRestDays: 2,
-    returnCriteria: 'Energinivå tillbaka till normalt',
+    returnCriteriaSv: 'Energinivå tillbaka till normalt',
+    returnCriteriaEn: 'Energy level back to normal',
   },
   {
     id: 'CHRONIC',
     labelSv: 'Kronisk sjukdom (Crohn, diabetes, etc.)',
     labelEn: 'Chronic condition (Crohn\'s, diabetes, etc.)',
     minRestDays: 0,
-    returnCriteria: 'Ingen vila krävs — kronisk sjukdom hanteras individuellt',
+    returnCriteriaSv: 'Ingen vila krävs — kronisk sjukdom hanteras individuellt',
+    returnCriteriaEn: 'No rest required by default; chronic conditions are managed individually',
   },
 ]
 
