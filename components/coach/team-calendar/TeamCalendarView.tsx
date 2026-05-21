@@ -99,6 +99,7 @@ interface TeamCalendarPermissions {
 
 type PlanningFilter = 'all' | 'needsReview' | 'iceMissingPlan' | 'needsContent' | 'ready' | 'assigned' | 'ice' | 'physical'
 type LoadLevel = 'low' | 'moderate' | 'high'
+type CalendarViewMode = 'day' | 'week' | 'month'
 
 function getTypeConfig(type: string, locale: TeamCalendarLocale) {
   if (isTeamEventType(type)) {
@@ -463,7 +464,7 @@ export function TeamCalendarView({
   const [loading, setLoading] = useState(true)
   const [weekBase, setWeekBase] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<TeamEvent | null>(null)
-  const [viewMode, setViewMode] = useState<'week' | 'planning'>('week')
+  const [viewMode, setViewMode] = useState<CalendarViewMode>('week')
   const [planningFilter, setPlanningFilter] = useState<PlanningFilter>('all')
   const [queueOwnerFilter, setQueueOwnerFilter] = useState<'all' | TeamEventContentOwner>('all')
   const [queueStatusFilter, setQueueStatusFilter] = useState<'open' | TeamEventContentStatus>('open')
@@ -475,9 +476,10 @@ export function TeamCalendarView({
   const creatableTypes = calendarPermissions?.creatableTypes ?? []
   const assignableContentTypes = calendarPermissions?.assignableContentTypes ?? []
   const isStaffPlanningView = creatableTypes.length > 0 || assignableContentTypes.length > 0
-  const effectiveViewMode = isStaffPlanningView ? viewMode : 'week'
-  const rangeStart = effectiveViewMode === 'planning' ? monthDates[0] : weekDates[0]
-  const rangeEnd = new Date(effectiveViewMode === 'planning' ? monthDates[monthDates.length - 1] : weekDates[6])
+  const dayStart = new Date(weekBase)
+  dayStart.setHours(0, 0, 0, 0)
+  const rangeStart = viewMode === 'month' ? monthDates[0] : viewMode === 'week' ? weekDates[0] : dayStart
+  const rangeEnd = new Date(viewMode === 'month' ? monthDates[monthDates.length - 1] : viewMode === 'week' ? weekDates[6] : dayStart)
   rangeEnd.setHours(23, 59, 59, 999)
   const weekEnd = new Date(weekDates[6])
   weekEnd.setHours(23, 59, 59, 999)
@@ -533,6 +535,7 @@ export function TeamCalendarView({
     const eventDate = new Date(event.startDate)
     return eventDate >= weekDates[0] && eventDate <= weekEnd
   })
+  const selectedDayEvents = visibleEvents.filter((event) => isSameDay(new Date(event.startDate), dayStart))
   const weeklyIceEvents = weekEvents.filter(isIcePracticeEvent)
   const weeklyPhysicalEvents = weekEvents.filter(isPhysicalEvent)
   const weeklyGameEvents = weekEvents.filter((event) => event.type === 'GAME')
@@ -636,8 +639,10 @@ export function TeamCalendarView({
 
   const navigateWeek = (direction: number) => {
     const next = new Date(weekBase)
-    if (effectiveViewMode === 'planning') {
+    if (viewMode === 'month') {
       next.setMonth(next.getMonth() + direction)
+    } else if (viewMode === 'day') {
+      next.setDate(next.getDate() + direction)
     } else {
       next.setDate(next.getDate() + direction * 7)
     }
@@ -649,6 +654,24 @@ export function TeamCalendarView({
     setWeekBase(new Date())
     setLoading(true)
   }
+
+  const viewLabel = viewMode === 'month'
+    ? weekBase.toLocaleDateString(dateLocale(locale), { month: 'long', year: 'numeric' })
+    : viewMode === 'day'
+      ? weekBase.toLocaleDateString(dateLocale(locale), { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
+      : `${weekDates[0].toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })} - ${weekDates[6].toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short', year: 'numeric' })}`
+
+  const previousLabel = viewMode === 'month'
+    ? text(locale, 'Föregående månad', 'Previous month')
+    : viewMode === 'day'
+      ? text(locale, 'Föregående dag', 'Previous day')
+      : text(locale, 'Föregående vecka', 'Previous week')
+
+  const nextLabel = viewMode === 'month'
+    ? text(locale, 'Nästa månad', 'Next month')
+    : viewMode === 'day'
+      ? text(locale, 'Nästa dag', 'Next day')
+      : text(locale, 'Nästa vecka', 'Next week')
 
   const handleDelete = async (eventId: string) => {
     if (!confirm(text(locale, 'Ta bort händelse?', 'Delete event?'))) return
@@ -729,48 +752,41 @@ export function TeamCalendarView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(-1)} aria-label={text(locale, 'Föregående vecka', 'Previous week')}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(-1)} aria-label={previousLabel}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={goToday}>
             {text(locale, 'Idag', 'Today')}
           </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(1)} aria-label={text(locale, 'Nästa vecka', 'Next week')}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateWeek(1)} aria-label={nextLabel}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium ml-2">
-            {effectiveViewMode === 'planning'
-              ? weekBase.toLocaleDateString(dateLocale(locale), { month: 'long', year: 'numeric' })
-              : `${weekDates[0].toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })} - ${weekDates[6].toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short', year: 'numeric' })}`}
+          <span className="ml-2 text-sm font-medium capitalize">
+            {viewLabel}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {isStaffPlanningView && (
-            <div className="flex rounded-md border bg-background p-0.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-md border bg-background p-0.5" aria-label={text(locale, 'Kalendervy', 'Calendar view')}>
+            {([
+              ['day', text(locale, 'Dag', 'Day')],
+              ['week', text(locale, 'Vecka', 'Week')],
+              ['month', text(locale, 'Månad', 'Month')],
+            ] as Array<[CalendarViewMode, string]>).map(([mode, label]) => (
               <Button
-                variant={viewMode === 'week' ? 'default' : 'ghost'}
+                key={mode}
+                type="button"
+                variant={viewMode === mode ? 'default' : 'ghost'}
                 size="sm"
                 className="h-7 px-3"
                 onClick={() => {
-                  setViewMode('week')
+                  setViewMode(mode)
                   setLoading(true)
                 }}
               >
-                {text(locale, 'Vecka', 'Week')}
+                {label}
               </Button>
-              <Button
-                variant={viewMode === 'planning' ? 'default' : 'ghost'}
-                size="sm"
-                className="h-7 px-3"
-                onClick={() => {
-                  setViewMode('planning')
-                  setLoading(true)
-                }}
-              >
-                {text(locale, 'Planering', 'Planning')}
-              </Button>
-            </div>
-          )}
+            ))}
+          </div>
           {isStaffPlanningView && (
             <Button variant="outline" size="sm" onClick={() => openAiCalendarBrief()}>
               <Sparkles className="h-3.5 w-3.5 mr-1.5" />
@@ -842,7 +858,7 @@ export function TeamCalendarView({
         </div>
       )}
 
-      {isStaffPlanningView && effectiveViewMode === 'week' && (
+      {isStaffPlanningView && viewMode === 'week' && (
         <div className="rounded-lg border bg-background p-4">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -1283,7 +1299,94 @@ export function TeamCalendarView({
             <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
           ))}
         </div>
-      ) : effectiveViewMode === 'planning' ? (
+      ) : viewMode === 'day' ? (
+        <div className="rounded-lg border bg-background">
+          <div className="border-b px-4 py-3">
+            <div className="text-xs font-medium uppercase text-muted-foreground">
+              {dayStart.toLocaleDateString(dateLocale(locale), { weekday: 'long' })}
+            </div>
+            <div className="text-2xl font-semibold">
+              {dayStart.toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'long' })}
+            </div>
+          </div>
+          <div className="space-y-2 p-3">
+            {selectedDayEvents.length === 0 ? (
+              <div className="flex min-h-[140px] items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                {text(locale, 'Inga händelser den här dagen.', 'No events on this day.')}
+              </div>
+            ) : (
+              selectedDayEvents.map((event) => {
+                const typeConf = getTypeConfig(event.type, locale)
+                const descriptionLine = firstDescriptionLine(event.description)
+                return (
+                  <div
+                    key={event.id}
+                    className="flex items-start gap-2 rounded-md border bg-card p-3 text-sm group cursor-pointer hover:border-primary/40 hover:bg-muted/30"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedEvent(event)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setSelectedEvent(event)
+                      }
+                    }}
+                  >
+                    <div className={`w-1 self-stretch rounded-full shrink-0 ${typeConf.color}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{event.title}</span>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {typeConf.label}
+                        </Badge>
+                        <PlanningBadges event={event} locale={locale} />
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        {!event.allDay && (
+                          <span className="flex items-center gap-0.5">
+                            <Clock className="h-3 w-3" />
+                            {formatTime(event.startDate, locale)}
+                            {event.endDate && ` - ${formatTime(event.endDate, locale)}`}
+                          </span>
+                        )}
+                        {event.location && (
+                          <span className="flex items-center gap-0.5">
+                            <MapPin className="h-3 w-3" />
+                            {event.location}
+                          </span>
+                        )}
+                      </div>
+                      {descriptionLine && (
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          {descriptionLine}
+                        </div>
+                      )}
+                      {event.linkedWorkoutName && (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {text(locale, 'Kopplat pass', 'Linked workout')}: {event.linkedWorkoutName}
+                        </div>
+                      )}
+                    </div>
+                    {canCreateType(event.type as TeamEventType) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 text-destructive shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void handleDelete(event.id)
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+      ) : viewMode === 'month' ? (
         <div className="overflow-x-auto rounded-lg border bg-background">
           <table className="w-full min-w-[960px] border-collapse text-sm">
             <thead>
