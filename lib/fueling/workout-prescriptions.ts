@@ -288,26 +288,26 @@ function buildFuelingInstructions(
   const total = durationHours > 0 ? Math.round(targetCarbsGPerHour * durationHours) : null
 
   return [
-    `Magträning: sikta på ${targetCarbsGPerHour} g kolhydrater/timme.`,
-    `Praktiskt upplägg: cirka ${every20} g var 20:e minut.`,
-    total ? `Totalt för passet: ungefär ${total} g kolhydrater.` : null,
+    `Gut training: aim for ${targetCarbsGPerHour} g carbohydrates/hour.`,
+    `Practical setup: about ${every20} g every 20 minutes.`,
+    total ? `Total for the session: about ${total} g carbohydrates.` : null,
     feedbackHint(feedbackStatus),
-    targetCarbsGPerHour > 60 ? 'Använd gärna glukos/fruktos-blandning eftersom målet är över 60 g/timme.' : null,
-    'Använd produkter som är tänkta för tävling och notera magrespons efter passet.',
+    targetCarbsGPerHour > 60 ? 'Prefer a glucose/fructose mix because the target is above 60 g/hour.' : null,
+    'Use products intended for racing and note gut response after the session.',
   ].filter(Boolean).join(' ')
 }
 
 function feedbackHint(status: FuelingFeedbackSummary['status']): string | null {
   if (status === 'REDUCE') {
-    return 'Senaste magresponsen talar för att backa lite och prioritera stabil känsla före höjning.'
+    return 'The latest gut response suggests backing off slightly and prioritizing stable tolerance before increasing.'
   }
 
   if (status === 'HOLD') {
-    return 'Upprepa nivån tills intag och magrespons är stabila innan nästa höjning.'
+    return 'Repeat this level until intake and gut response are stable before the next increase.'
   }
 
   if (status === 'READY_TO_PROGRESS') {
-    return 'Toleransen ser stabil ut, därför kan nivån höjas försiktigt.'
+    return 'Tolerance looks stable, so the level can be increased carefully.'
   }
 
   return null
