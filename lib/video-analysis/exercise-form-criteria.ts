@@ -11,8 +11,8 @@ export interface JointCriterion {
   idealMax: number
   warningMin: number
   warningMax: number
-  cueBelow: string  // Swedish coaching cue when angle is too low
-  cueAbove: string  // Swedish coaching cue when angle is too high
+  cueBelow: string
+  cueAbove: string
   phase?: 'bottom' | 'top' | 'concentric' | 'eccentric' | 'any'
 }
 
@@ -22,7 +22,152 @@ export interface ExerciseFormCriteria {
   exerciseNameSv: string
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   criteria: JointCriterion[]
-  generalCues: string[]  // General coaching cues in Swedish
+  generalCues: string[]
+}
+
+export type FormLocale = 'en' | 'sv'
+
+const isSv = (locale: FormLocale) => locale === 'sv'
+
+const JOINT_NAMES: Record<string, string> = {
+  'Vänster knä': 'Left knee',
+  'Höger knä': 'Right knee',
+  'Vänster höft': 'Left hip',
+  'Höger höft': 'Right hip',
+  'Vänster armbåge': 'Left elbow',
+  'Höger armbåge': 'Right elbow',
+}
+
+const COACHING_CUES: Record<string, string> = {
+  'Gå djupare i knäböjen för full rörlighet': 'Squat deeper to use the full range of motion',
+  'Böj knäna mer i bottenläget': 'Bend your knees more at the bottom position',
+  'Luta bröstkorgen framåt för bättre balans': 'Lean your torso forward slightly for better balance',
+  'Håll bröstkorgen mer upprätt': 'Keep your chest more upright',
+  'Sträck ut knäna mer i toppläget': 'Extend your knees more at the top position',
+  'Låt knäna vara lätt böjda': 'Keep a slight bend in your knees',
+  'Driv höfterna framåt i toppläget': 'Drive your hips forward at the top position',
+  'Undvik överdriven bakåtlutning': 'Avoid excessive backward lean',
+  'Sänk höfterna djupare': 'Lower your hips deeper',
+  'Stoppa när knät är i 90 grader': 'Stop when the knee is at 90 degrees',
+  'Håll överkroppen mer upprätt': 'Keep your torso more upright',
+  'Sänk höfterna rakt ned': 'Lower your hips straight down',
+  'Böj mer från höfterna, inte ryggen': 'Hinge more from the hips, not the back',
+  'Sträck på höfterna i toppläget': 'Extend your hips at the top position',
+  'Håll benen nästan raka': 'Keep your legs nearly straight',
+  'Sänk inte höfterna - håll rak linje': 'Do not let your hips drop; keep a straight line',
+  'Sänk inte höfterna': 'Do not let your hips drop',
+  'Lyft inte rumpan för högt': 'Do not lift your hips too high',
+  'Placera armbågarna rakt under axlarna': 'Place your elbows directly under your shoulders',
+  'Håll armbågarna i 90 grader': 'Keep your elbows at 90 degrees',
+  'Gå djupare i nedgången': 'Go deeper in the descent',
+  'Undvik att gå för djupt': 'Avoid going too deep',
+  'Håll kroppen rak som en planka': 'Keep your body straight like a plank',
+  'Håll benen raka genom hela rörelsen': 'Keep your legs straight throughout the movement',
+  'Undvik överutsträckning': 'Avoid overextension',
+  'Undvik överdriven knälyft': 'Avoid excessive knee lift',
+  'Håll knäna mer böjda vid landing': 'Keep your knees more bent on landing',
+  'Öka höftextensionen vid avslut': 'Increase hip extension at toe-off',
+  'Undvik överdriven framåtlutning': 'Avoid excessive forward lean',
+  'Håll armbågarna i ca 90 grader': 'Keep your elbows at about 90 degrees',
+  'Slappna av i armarna': 'Relax your arms',
+  'Lyft höfterna högre': 'Lift your hips higher',
+  'Undvik överdriven extension': 'Avoid excessive extension',
+  'Flytta fötterna närmare': 'Move your feet closer',
+  'Flytta fötterna längre bort': 'Move your feet farther away',
+  'Driv höfterna helt upp': 'Drive your hips all the way up',
+  'Undvik överextension i ryggen': 'Avoid overextending your back',
+  'Justera fotplaceringen': 'Adjust your foot placement',
+  'Knäna ska vara rakt över vristerna i toppen': 'Your knees should be directly over your ankles at the top',
+  'Höj armbågarna högre': 'Lift your elbows higher',
+  'Armbågarna ska peka framåt': 'Your elbows should point forward',
+  'Använd en högre låda': 'Use a higher box',
+  'Använd en lägre låda': 'Use a lower box',
+  'Lyft höften högre - håll rak linje': 'Lift your hip higher and keep a straight line',
+  'Sänk inte höften': 'Do not let your hip drop',
+  'Håll höften i 90 grader': 'Keep your hip at 90 degrees',
+  'Dra knät närmare bröstet': 'Pull your knee closer to your chest',
+  'Håll knät i 90 grader': 'Keep your knee at 90 degrees',
+  'Böj knät mer': 'Bend your knee more',
+}
+
+const GENERAL_CUES: Record<string, string> = {
+  'Pressa ner hälarna i golvet': 'Press your heels into the floor',
+  'Spänn sätesmusklerna i toppläget': 'Squeeze your glutes at the top',
+  'Undvik att svänga i ryggen': 'Avoid arching through your back',
+  'Håll ryggen rak genom hela rörelsen': 'Keep your back straight throughout the movement',
+  'Skjut höfterna bakåt': 'Push your hips back',
+  'Känn sträckningen i hamstrings': 'Feel the stretch in your hamstrings',
+  'Håll stången nära kroppen': 'Keep the bar close to your body',
+  'Håll ryggen neutral': 'Keep your back neutral',
+  'Driv med benen först': 'Drive with your legs first',
+  'Lås ut höfterna i toppen': 'Lock out your hips at the top',
+  'Håll hakan mot bröstet': 'Keep your chin tucked',
+  'Driv genom hälarna': 'Drive through your heels',
+  'Spänn sätesmusklerna hårt i toppen': 'Squeeze your glutes hard at the top',
+  'Tryck ut knäna över tårna': 'Push your knees out over your toes',
+  'Håll bröstkorgen uppe': 'Keep your chest up',
+  'Spänna core genom hela rörelsen': 'Brace your core throughout the movement',
+  'Fördela vikten jämnt på foten': 'Distribute your weight evenly across the foot',
+  'Håll vikten nära bröstet': 'Keep the weight close to your chest',
+  'Armbågarna mellan knäna i botten': 'Keep your elbows between your knees at the bottom',
+  'Håll överkroppen upprätt': 'Keep your torso upright',
+  'Håll armbågarna högt': 'Keep your elbows high',
+  'Håll överkroppen mer upprätt än bakknäböj': 'Keep your torso more upright than in a back squat',
+  'Fokusera på quadriceps-aktivering': 'Focus on quadriceps activation',
+  'Håll vikten på främre benet': 'Keep the weight on your front leg',
+  'Kontrollerad rörelse ned': 'Control the movement down',
+  'Främre knät ska följa tåriktningen': 'Your front knee should track in line with your toes',
+  'Ta ett lagom långt steg': 'Take a suitably long step',
+  'Bakre knät ska nästan nudda golvet': 'Your back knee should almost touch the floor',
+  'Steg bakåt med kontroll': 'Step back with control',
+  'Främre knät stannar över vristen': 'Keep your front knee over your ankle',
+  'Driv upp genom främre hälen': 'Drive up through your front heel',
+  'Driv genom hela foten på lådan': 'Drive through the whole foot on the box',
+  'Undvik att skjuta iväg med bakre benet': 'Avoid pushing off with the back leg',
+  'Kontrollerad nedgång': 'Control the descent',
+  'Spänn magen som om du väntar på ett slag': 'Brace your abs as if preparing for contact',
+  'Håll blicken i golvet framför dig': 'Keep your gaze on the floor in front of you',
+  'Andas lugnt och kontrollerat': 'Breathe calmly and with control',
+  'Rak linje från huvud till hälar': 'Keep a straight line from head to heels',
+  'Stapla axel över armbåge': 'Stack your shoulder over your elbow',
+  'Lyft höften så kroppen bildar en rak linje': 'Lift your hip so your body forms a straight line',
+  'Aktivera sneda bukmusklerna': 'Engage your obliques',
+  'Pressa ländyggen mot golvet': 'Press your lower back into the floor',
+  'Långsam och kontrollerad rörelse': 'Move slowly and with control',
+  'Andas ut när du sträcker ut': 'Exhale as you extend',
+  'Full rörelseomfång - häl ned och upp på tå': 'Use full range of motion: heel down, then up onto the toes',
+  'Undvik att svänga': 'Avoid swinging',
+  'Pausa kort i toppläget': 'Pause briefly at the top',
+  'Landa med foten under höften': 'Land with your foot under your hip',
+  'Kort markontakt': 'Keep ground contact short',
+  'Avslappnade axlar': 'Relax your shoulders',
+  'Blicken framåt': 'Keep your gaze forward',
+  'Armpendel fram och bak, inte i sidled': 'Swing your arms forward and back, not side to side',
+  'Håll ryggen rak': 'Keep your back straight',
+  'Kontrollerad rörelse': 'Use controlled movement',
+  'Andas ut vid ansträngning': 'Exhale during effort',
+}
+
+function text(locale: FormLocale, en: string, sv: string): string {
+  return isSv(locale) ? sv : en
+}
+
+function localizeJoint(joint: string, locale: FormLocale): string {
+  return isSv(locale) ? joint : JOINT_NAMES[joint] || joint
+}
+
+function localizeCue(cue: string, locale: FormLocale): string {
+  return isSv(locale) ? cue : COACHING_CUES[cue] || cue
+}
+
+export function getLocalizedGeneralCues(criteria: ExerciseFormCriteria, locale: FormLocale = 'en'): string[] {
+  return isSv(locale)
+    ? criteria.generalCues
+    : criteria.generalCues.map((cue) => GENERAL_CUES[cue] || cue)
+}
+
+export function getLocalizedExerciseName(criteria: ExerciseFormCriteria, locale: FormLocale = 'en'): string {
+  return isSv(locale) ? criteria.exerciseNameSv : criteria.exerciseName
 }
 
 // Common angle criteria for different exercise categories
@@ -708,7 +853,8 @@ export interface FormFeedback {
 
 export function generateFormFeedback(
   angles: { name: string; angle: number; status: string }[],
-  criteria: ExerciseFormCriteria
+  criteria: ExerciseFormCriteria,
+  locale: FormLocale = 'en'
 ): FormFeedback[] {
   const feedback: FormFeedback[] = []
 
@@ -720,24 +866,24 @@ export function generateFormFeedback(
     if (criterion) {
       const idealRange = `${criterion.idealMin}°-${criterion.idealMax}°`
       let status: 'good' | 'warning' | 'critical' = 'good'
-      let feedbackText = 'Bra vinkel!'
+      let feedbackText = text(locale, 'Good angle!', 'Bra vinkel!')
 
       if (angle.angle < criterion.warningMin) {
         status = 'critical'
-        feedbackText = criterion.cueBelow
+        feedbackText = localizeCue(criterion.cueBelow, locale)
       } else if (angle.angle < criterion.idealMin) {
         status = 'warning'
-        feedbackText = criterion.cueBelow
+        feedbackText = localizeCue(criterion.cueBelow, locale)
       } else if (angle.angle > criterion.warningMax) {
         status = 'critical'
-        feedbackText = criterion.cueAbove
+        feedbackText = localizeCue(criterion.cueAbove, locale)
       } else if (angle.angle > criterion.idealMax) {
         status = 'warning'
-        feedbackText = criterion.cueAbove
+        feedbackText = localizeCue(criterion.cueAbove, locale)
       }
 
       feedback.push({
-        joint: angle.name,
+        joint: localizeJoint(angle.name, locale),
         detectedAngle: angle.angle,
         idealRange,
         status,
@@ -754,32 +900,34 @@ export function generateFormFeedback(
  */
 export function generateFormSummary(
   feedback: FormFeedback[],
-  criteria: ExerciseFormCriteria
+  criteria: ExerciseFormCriteria,
+  locale: FormLocale = 'en'
 ): string {
   const goodCount = feedback.filter((f) => f.status === 'good').length
   const warningCount = feedback.filter((f) => f.status === 'warning').length
   const criticalCount = feedback.filter((f) => f.status === 'critical').length
 
-  let summary = `## Teknikanalys: ${criteria.exerciseNameSv}\n\n`
+  const exerciseName = isSv(locale) ? criteria.exerciseNameSv : criteria.exerciseName
+  let summary = `## ${text(locale, 'Technique Analysis', 'Teknikanalys')}: ${exerciseName}\n\n`
 
   // Overall score
   const totalJoints = feedback.length
   const score = Math.round((goodCount / Math.max(totalJoints, 1)) * 100)
-  summary += `**Teknisk poäng:** ${score}%\n\n`
+  summary += `**${text(locale, 'Technique score', 'Teknisk poäng')}:** ${score}%\n\n`
 
   // Status breakdown
-  summary += `### Sammanfattning\n`
-  summary += `- ✅ Godkända vinklar: ${goodCount}\n`
-  summary += `- ⚠️ Behöver justering: ${warningCount}\n`
-  summary += `- ❌ Behöver förbättring: ${criticalCount}\n\n`
+  summary += `### ${text(locale, 'Summary', 'Sammanfattning')}\n`
+  summary += `- ✅ ${text(locale, 'Good angles', 'Godkända vinklar')}: ${goodCount}\n`
+  summary += `- ⚠️ ${text(locale, 'Needs adjustment', 'Behöver justering')}: ${warningCount}\n`
+  summary += `- ❌ ${text(locale, 'Needs improvement', 'Behöver förbättring')}: ${criticalCount}\n\n`
 
   // Specific feedback
   if (criticalCount > 0 || warningCount > 0) {
-    summary += `### Förbättringsområden\n`
+    summary += `### ${text(locale, 'Improvement Areas', 'Förbättringsområden')}\n`
     for (const fb of feedback) {
       if (fb.status !== 'good') {
         const icon = fb.status === 'critical' ? '❌' : '⚠️'
-        summary += `${icon} **${fb.joint}:** ${fb.feedback} (Detekterad: ${fb.detectedAngle}°, Ideal: ${fb.idealRange})\n`
+        summary += `${icon} **${fb.joint}:** ${fb.feedback} (${text(locale, 'Detected', 'Detekterad')}: ${fb.detectedAngle}°, ${text(locale, 'Ideal', 'Ideal')}: ${fb.idealRange})\n`
       }
     }
     summary += '\n'
@@ -787,8 +935,8 @@ export function generateFormSummary(
 
   // General coaching cues
   if (criteria.generalCues.length > 0) {
-    summary += `### Generella tips\n`
-    for (const cue of criteria.generalCues) {
+    summary += `### ${text(locale, 'General Tips', 'Generella tips')}\n`
+    for (const cue of getLocalizedGeneralCues(criteria, locale)) {
       summary += `- ${cue}\n`
     }
   }

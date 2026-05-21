@@ -23,8 +23,9 @@ import {
 import {
   getExerciseFormCriteria,
   generateFormFeedback,
-  type FormFeedback,
-  type ExerciseFormCriteria,
+  getLocalizedExerciseName,
+  getLocalizedGeneralCues,
+  type FormLocale,
 } from '@/lib/video-analysis/exercise-form-criteria'
 
 interface JointAngle {
@@ -55,6 +56,7 @@ interface FormFeedbackPanelProps {
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   exerciseName?: string
   exerciseNameSv?: string
+  locale?: FormLocale
   aiAnalysis?: AIAnalysisData
 }
 
@@ -63,6 +65,7 @@ export function FormFeedbackPanel({
   videoType,
   exerciseName,
   exerciseNameSv,
+  locale = 'en',
   aiAnalysis,
 }: FormFeedbackPanelProps) {
   const criteria = useMemo(
@@ -72,8 +75,13 @@ export function FormFeedbackPanel({
 
   const feedback = useMemo(() => {
     if (!criteria || angles.length === 0) return []
-    return generateFormFeedback(angles, criteria)
-  }, [angles, criteria])
+    return generateFormFeedback(angles, criteria, locale)
+  }, [angles, criteria, locale])
+
+  const generalCues = useMemo(() => {
+    if (!criteria) return []
+    return getLocalizedGeneralCues(criteria, locale)
+  }, [criteria, locale])
 
   const stats = useMemo(() => {
     const good = feedback.filter((f) => f.status === 'good').length
@@ -134,27 +142,37 @@ export function FormFeedbackPanel({
   }
 
   const getScoreLabel = (score: number) => {
-    if (score >= 90) return 'Utmärkt teknik'
-    if (score >= 80) return 'Mycket bra'
-    if (score >= 70) return 'Bra'
-    if (score >= 60) return 'Godkänt'
-    if (score >= 40) return 'Behöver förbättras'
-    return 'Kräver träning'
+    if (locale === 'sv') {
+      if (score >= 90) return 'Utmärkt teknik'
+      if (score >= 80) return 'Mycket bra'
+      if (score >= 70) return 'Bra'
+      if (score >= 60) return 'Godkänt'
+      if (score >= 40) return 'Behöver förbättras'
+      return 'Kräver träning'
+    }
+    if (score >= 90) return 'Excellent technique'
+    if (score >= 80) return 'Very good'
+    if (score >= 70) return 'Good'
+    if (score >= 60) return 'Acceptable'
+    if (score >= 40) return 'Needs improvement'
+    return 'Needs practice'
   }
+
+  const t = (en: string, sv: string) => (locale === 'sv' ? sv : en)
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Target className="h-5 w-5" />
-          Teknikfeedback: {criteria.exerciseNameSv}
+          {t('Technique feedback', 'Teknikfeedback')}: {getLocalizedExerciseName(criteria, locale)}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Score overview */}
         <div className="p-4 bg-muted rounded-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Teknisk poäng</span>
+            <span className="text-sm font-medium">{t('Technique score', 'Teknisk poäng')}</span>
             <span className={`text-2xl font-bold ${getScoreColor(stats.score)}`}>
               {stats.score}%
             </span>
@@ -185,7 +203,7 @@ export function FormFeedbackPanel({
         <div className="space-y-2">
           <h4 className="text-sm font-medium flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            Detaljerad analys
+            {t('Detailed analysis', 'Detaljerad analys')}
           </h4>
           <Accordion type="single" collapsible className="w-full">
             {feedback.map((fb, index) => (
@@ -198,7 +216,7 @@ export function FormFeedbackPanel({
                       {fb.detectedAngle}°
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      (Ideal: {fb.idealRange})
+                      ({t('Ideal', 'Ideal')}: {fb.idealRange})
                     </span>
                   </div>
                 </AccordionTrigger>
@@ -206,10 +224,10 @@ export function FormFeedbackPanel({
                   <div className="pl-6 space-y-2">
                     <p className="text-sm">{fb.feedback}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>Detekterad:</span>
+                      <span>{t('Detected', 'Detekterad')}:</span>
                       <Badge variant="secondary">{fb.detectedAngle}°</Badge>
                       <span>→</span>
-                      <span>Idealområde:</span>
+                      <span>{t('Ideal range', 'Idealområde')}:</span>
                       <Badge variant="outline">{fb.idealRange}</Badge>
                     </div>
                   </div>
@@ -224,7 +242,7 @@ export function FormFeedbackPanel({
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-purple-500" />
-              AI-identifierade problem
+              {t('AI-identified issues', 'AI-identifierade problem')}
               <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
                 Gemini
               </Badge>
@@ -262,12 +280,16 @@ export function FormFeedbackPanel({
                               : 'bg-yellow-100 text-yellow-800 border-yellow-200'
                           }`}
                         >
-                          {issue.severity === 'HIGH' ? 'Hög' : issue.severity === 'MEDIUM' ? 'Medel' : 'Låg'}
+                          {issue.severity === 'HIGH'
+                            ? t('High', 'Hög')
+                            : issue.severity === 'MEDIUM'
+                            ? t('Medium', 'Medel')
+                            : t('Low', 'Låg')}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{issue.description}</p>
                       {issue.timestamp && (
-                        <span className="text-xs text-muted-foreground">Tidpunkt: {issue.timestamp}</span>
+                        <span className="text-xs text-muted-foreground">{t('Timestamp', 'Tidpunkt')}: {issue.timestamp}</span>
                       )}
                     </div>
                   </div>
@@ -282,7 +304,7 @@ export function FormFeedbackPanel({
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Target className="h-4 w-4 text-blue-500" />
-              AI-rekommendationer
+              {t('AI recommendations', 'AI-rekommendationer')}
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
                 Gemini
               </Badge>
@@ -314,14 +336,14 @@ export function FormFeedbackPanel({
         )}
 
         {/* General coaching cues (MediaPipe) */}
-        {criteria.generalCues.length > 0 && !aiAnalysis?.recommendations?.length && (
+        {generalCues.length > 0 && !aiAnalysis?.recommendations?.length && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-yellow-500" />
-              Träningstips
+              {t('Training tips', 'Träningstips')}
             </h4>
             <div className="space-y-1">
-              {criteria.generalCues.map((cue, index) => (
+              {generalCues.map((cue, index) => (
                 <div
                   key={index}
                   className="flex items-start gap-2 text-sm text-muted-foreground"
@@ -338,7 +360,7 @@ export function FormFeedbackPanel({
         {(stats.critical > 0 || stats.warning > 0) && (
           <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
             <h4 className="text-sm font-medium text-orange-800 mb-2">
-              Prioriterade förbättringar
+              {t('Priority improvements', 'Prioriterade förbättringar')}
             </h4>
             <div className="space-y-1">
               {feedback
