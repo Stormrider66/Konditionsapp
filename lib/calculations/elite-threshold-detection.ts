@@ -59,6 +59,8 @@ export interface BaselineCorrectionResult {
   originalValues: { index: number; original: number; corrected: number }[];
 }
 
+type AppLocale = 'en' | 'sv';
+
 /**
  * Detect elevated baseline in early stages of a lactate test.
  *
@@ -74,7 +76,7 @@ export interface BaselineCorrectionResult {
  * 4. Only correct if elevation > 0.15 mmol/L (analyzer noise threshold)
  * 5. Replace elevated stages' lactate with the minimum value
  */
-export function detectElevatedBaseline(data: LactateDataPoint[]): BaselineCorrectionResult {
+export function detectElevatedBaseline(data: LactateDataPoint[], locale: AppLocale = 'en'): BaselineCorrectionResult {
   const noop: BaselineCorrectionResult = {
     correctedData: data,
     wasApplied: false,
@@ -135,11 +137,15 @@ export function detectElevatedBaseline(data: LactateDataPoint[]): BaselineCorrec
   if (correctedIndices.length === 0) return noop;
 
   const stageNumbers = correctedIndices.map(i => i + 1).join(', ');
-  const description =
-    `Förhöjd baslinje upptäckt: steg ${stageNumbers} hade förhöjda laktatvärden ` +
-    `(trolig orsak: svett­kontaminering eller nervositet). ` +
-    `Värden korrigerades till den verkliga baslinjen ${minLactate.toFixed(1)} mmol/L ` +
-    `(steg ${minIndex + 1}) för korrekt tröskelberäkning.`;
+  const description = locale === 'sv'
+    ? `Förhöjd baslinje upptäckt: steg ${stageNumbers} hade förhöjda laktatvärden ` +
+      `(trolig orsak: svett­kontaminering eller nervositet). ` +
+      `Värden korrigerades till den verkliga baslinjen ${minLactate.toFixed(1)} mmol/L ` +
+      `(steg ${minIndex + 1}) för korrekt tröskelberäkning.`
+    : `Elevated baseline detected: stage ${stageNumbers} had elevated lactate values ` +
+      `(likely cause: sweat contamination or nervousness). ` +
+      `Values were corrected to the true baseline ${minLactate.toFixed(1)} mmol/L ` +
+      `(stage ${minIndex + 1}) for accurate threshold calculation.`;
 
   logger.debug('Elevated baseline detected and corrected', {
     trueBaseline: minLactate,
@@ -162,8 +168,8 @@ export function detectElevatedBaseline(data: LactateDataPoint[]): BaselineCorrec
 /**
  * Pre-process lactate data with full metadata about corrections applied.
  */
-export function preprocessDataWithMetadata(data: LactateDataPoint[]): BaselineCorrectionResult {
-  return detectElevatedBaseline(data);
+export function preprocessDataWithMetadata(data: LactateDataPoint[], locale: AppLocale = 'en'): BaselineCorrectionResult {
+  return detectElevatedBaseline(data, locale);
 }
 
 /**

@@ -6,11 +6,27 @@ export function calculateBMI(weight: number, height: number): number {
   return Number((weight / (heightInMeters * heightInMeters)).toFixed(1))
 }
 
-export function getBMICategory(bmi: number): string {
-  if (bmi < 18.5) return 'Undervikt'
-  if (bmi < 25) return 'Normalvikt'
-  if (bmi < 30) return 'Övervikt'
-  return 'Fetma'
+type AppLocale = 'en' | 'sv'
+
+export function getBMICategory(bmi: number, locale: AppLocale = 'en'): string {
+  const labels = locale === 'sv'
+    ? {
+        underweight: 'Undervikt',
+        normal: 'Normalvikt',
+        overweight: 'Övervikt',
+        obesity: 'Fetma',
+      }
+    : {
+        underweight: 'Underweight',
+        normal: 'Normal weight',
+        overweight: 'Overweight',
+        obesity: 'Obesity',
+      }
+
+  if (bmi < 18.5) return labels.underweight
+  if (bmi < 25) return labels.normal
+  if (bmi < 30) return labels.overweight
+  return labels.obesity
 }
 
 export function calculateAge(birthDateInput: Date | string): number {
