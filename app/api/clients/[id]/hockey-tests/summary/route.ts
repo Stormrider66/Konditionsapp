@@ -16,10 +16,11 @@ import { buildRepeatedSprintProfile, positiveSplit, speedKmh } from '@/lib/hocke
 import { buildHockeyQualityFlags, type HockeyQualityFlag } from '@/lib/hockey/test-quality'
 import {
   buildHockeyNormGap,
-  DEFAULT_HOCKEY_NORM_REFERENCES,
   findHockeyNormReference,
+  mergeHockeyNormReferences,
   normalizeNormPosition,
   type HockeyNormGap,
+  type HockeyNormReferenceConfig,
 } from '@/lib/hockey/norm-references'
 import {
   buildHockeyCoachInterpretations,
@@ -91,6 +92,7 @@ interface HockeyPathwayMilestone {
 interface HockeyPathwayReadinessGap {
   metricKey: string
   label: string
+  level: string
   value: number | null
   target: number
   elite: number
@@ -99,6 +101,7 @@ interface HockeyPathwayReadinessGap {
   unit: string
   lowerIsBetter: boolean
   status: 'missing' | 'below-target' | 'target' | 'elite'
+  progress: number | null
 }
 
 interface HockeyPathwayReadiness {
@@ -116,6 +119,11 @@ interface HockeyPathway {
   milestones: HockeyPathwayMilestone[]
   readiness: HockeyPathwayReadiness[]
   nextLevel: HockeyPathwayReadiness | null
+}
+
+interface HockeySingleTestGoals {
+  level: string
+  goals: HockeyPathwayReadinessGap[]
 }
 
 type LoadedHockeyTest = Awaited<ReturnType<typeof loadTests>>[number]
@@ -159,6 +167,16 @@ const READINESS_METRIC_LABELS: Record<string, string> = {
   vo2Max: 'VO2max',
   lt2SpeedKmh: 'LT2 speed',
   backSquat1RM: 'Back squat',
+  powerClean1RM: 'Power clean',
+  benchPress1RM: 'Bench press',
+  gripMax: 'Grip strength',
+  standingLongJump: 'Standing long jump',
+  threeJumpBest: '3-jump',
+  maxLactate: 'Max lactate',
+  rampTimeSeconds: 'Ramp time',
+  sprint30m: '30m ice sprint',
+  endurance7x40Resistance: '7x40 resistance',
+  enduranceFatigueDrop: '7x40 drop',
 }
 
 function numberFromJson(value: unknown, key: string): number | null {
@@ -314,14 +332,31 @@ function readinessProgress(value: number, gap: HockeyNormGap): number {
   return gap.target > 0 ? Math.min(value / gap.target, 1) : 0
 }
 
-function buildReadinessGap(metricKey: string, value: number | null, level: string, position: string): HockeyPathwayReadinessGap | null {
-  const norm = findHockeyNormReference(DEFAULT_HOCKEY_NORM_REFERENCES, level, position, metricKey)
+function normComparableValue(metricValue: number | null | undefined, unit: string, bodyMassKg: number | null | undefined): number | null {
+  if (metricValue == null || !Number.isFinite(metricValue)) return null
+  if (unit === 'xBW') {
+    return bodyMassKg && bodyMassKg > 0 ? round(metricValue / bodyMassKg, 2) : null
+  }
+  return metricValue
+}
+
+function buildGoalGap(
+  metricKey: string,
+  rawValue: number | null | undefined,
+  level: string,
+  position: string,
+  bodyMassKg: number | null | undefined,
+  normReferences: HockeyNormReferenceConfig[],
+): HockeyPathwayReadinessGap | null {
+  const norm = findHockeyNormReference(normReferences, level, position, metricKey)
   if (!norm) return null
+  const value = normComparableValue(rawValue, norm.unit, bodyMassKg)
   const gap = buildHockeyNormGap(value, norm)
 
   return {
     metricKey,
     label: READINESS_METRIC_LABELS[metricKey] ?? metricKey,
+    level,
     value,
     target: norm.target,
     elite: norm.elite,
@@ -336,17 +371,23 @@ function buildReadinessGap(metricKey: string, value: number | null, level: strin
         : gap && gap.gapToTarget >= 0
           ? 'target'
           : 'below-target',
+    progress: value != null && gap ? round(readinessProgress(value, gap) * 100, 0) : null,
   }
 }
 
-function buildPathwayReadiness(latest: HockeySummary | null, position: string): HockeyPathwayReadiness[] {
+function buildPathwayReadiness(
+  latest: HockeySummary | null,
+  position: string,
+  bodyMassKg: number | null | undefined,
+  normReferences: HockeyNormReferenceConfig[],
+): HockeyPathwayReadiness[] {
   const metrics = latest?.metrics ?? {}
   return PATHWAY_LEVELS.map((level) => {
     const gaps = [
-      buildReadinessGap('muscleLabWkg', metrics.muscleLabWkg, level, position),
-      buildReadinessGap('sprint10m', metrics.sprint10m, level, position),
-      buildReadinessGap('endurance7x40AverageKmh', metrics.endurance7x40AverageKmh, level, position),
-      buildReadinessGap('backSquat1RM', metrics.backSquatRelative, level, position),
+      buildGoalGap('muscleLabWkg', metrics.muscleLabWkg, level, position, bodyMassKg, normReferences),
+      buildGoalGap('sprint10m', metrics.sprint10m, level, position, bodyMassKg, normReferences),
+      buildGoalGap('endurance7x40AverageKmh', metrics.endurance7x40AverageKmh, level, position, bodyMassKg, normReferences),
+      buildGoalGap('backSquat1RM', metrics.backSquat1RM, level, position, bodyMassKg, normReferences),
     ].filter((gap): gap is HockeyPathwayReadinessGap => gap != null)
 
     const measured = gaps.filter((gap) => gap.value != null)
@@ -354,16 +395,7 @@ function buildPathwayReadiness(latest: HockeySummary | null, position: string): 
     const eliteHits = measured.filter((gap) => gap.status === 'elite').length
     const score = measured.length
       ? round(measured.reduce((sum, gap) => {
-          const normGap = buildHockeyNormGap(gap.value, {
-            level,
-            position,
-            metricKey: gap.metricKey,
-            target: gap.target,
-            elite: gap.elite,
-            unit: gap.unit,
-            lowerIsBetter: gap.lowerIsBetter,
-          })
-          return sum + (normGap && gap.value != null ? readinessProgress(gap.value, normGap) : 0)
+          return sum + ((gap.progress ?? 0) / 100)
         }, 0) / measured.length * 100, 0)
       : null
     const primaryGap = measured
@@ -382,7 +414,12 @@ function buildPathwayReadiness(latest: HockeySummary | null, position: string): 
   })
 }
 
-function buildPathway(history: HockeySummary[], position: string): HockeyPathway {
+function buildPathway(
+  history: HockeySummary[],
+  position: string,
+  bodyMassKg: number | null | undefined,
+  normReferences: HockeyNormReferenceConfig[],
+): HockeyPathway {
   const chronological = [...history].sort((a, b) => a.testDate.localeCompare(b.testDate))
   const bySeason = new Map<string, HockeySummary[]>()
   for (const test of chronological) {
@@ -446,7 +483,7 @@ function buildPathway(history: HockeySummary[], position: string): HockeyPathway
   }
 
   const latest = history[0] ?? null
-  const readiness = buildPathwayReadiness(latest, position)
+  const readiness = buildPathwayReadiness(latest, position, bodyMassKg, normReferences)
 
   return {
     seasons,
@@ -454,6 +491,34 @@ function buildPathway(history: HockeySummary[], position: string): HockeyPathway
     readiness,
     nextLevel: readiness.find((level) => level.score == null || level.score < 100) ?? readiness[readiness.length - 1] ?? null,
   }
+}
+
+function buildSingleTestGoals(
+  latest: HockeySummary | null,
+  level: string | null | undefined,
+  position: string,
+  bodyMassKg: number | null | undefined,
+  normReferences: HockeyNormReferenceConfig[],
+): HockeySingleTestGoals | null {
+  if (!latest || !level) return null
+  const levelKey = level.trim().toLowerCase()
+  const metricKeys = Array.from(new Set(
+    normReferences
+      .filter((norm) => norm.level.trim().toLowerCase() === levelKey)
+      .map((norm) => norm.metricKey)
+  ))
+  const goals = metricKeys
+    .map((metricKey) => buildGoalGap(
+      metricKey,
+      latest.metrics[metricKey],
+      level,
+      position,
+      bodyMassKg,
+      normReferences
+    ))
+    .filter((goal): goal is HockeyPathwayReadinessGap => goal != null)
+
+  return { level, goals }
 }
 
 function buildTrends(latest: HockeySummary | null, previous: HockeySummary | null): HockeyTrend[] {
@@ -635,9 +700,32 @@ async function loadTests(clientId: string) {
       benchPress1RM: true,
       pullUp1RM: true,
       muscleLabMaxima: true,
-      team: { select: { name: true } },
+      teamId: true,
+      team: { select: { id: true, name: true, userId: true } },
     },
   })
+}
+
+async function loadSavedHockeyNormReferences(
+  teamId: string | null | undefined,
+  preferredCoachIds: Array<string | null | undefined>,
+) {
+  if (!teamId) return []
+  const uniqueCoachIds = Array.from(new Set(preferredCoachIds.filter((id): id is string => Boolean(id))))
+
+  for (const coachId of uniqueCoachIds) {
+    const saved = await prisma.hockeyNormReference.findMany({
+      where: { teamId, coachId },
+      orderBy: [
+        { level: 'asc' },
+        { metricKey: 'asc' },
+        { position: 'asc' },
+      ],
+    })
+    if (saved.length > 0) return saved
+  }
+
+  return []
 }
 
 export async function GET(
@@ -657,9 +745,22 @@ export async function GET(
       loadTests(clientId),
       prisma.client.findUnique({
         where: { id: clientId },
-        select: { birthDate: true, position: true, weight: true },
+        select: {
+          birthDate: true,
+          position: true,
+          weight: true,
+          teamId: true,
+          team: { select: { id: true, userId: true } },
+        },
       }),
     ])
+    const normTeamId = client?.teamId ?? tests[0]?.teamId ?? null
+    const savedNormReferences = await loadSavedHockeyNormReferences(normTeamId, [
+      user.id,
+      client?.team?.userId,
+      tests[0]?.team?.userId,
+    ])
+    const hockeyNormReferences = mergeHockeyNormReferences(savedNormReferences)
     const linkedProfiles = await getLinkedHockeyAerobicProfiles([clientId])
     const enrichedTests = tests.map((test) => (
       applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId))
@@ -669,7 +770,15 @@ export async function GET(
     const previous = history[1] ?? null
     const trends = buildTrends(latest, previous)
     const bests = buildBests(history)
-    const pathway = buildPathway(history, normalizeNormPosition(client?.position))
+    const normPosition = normalizeNormPosition(client?.position)
+    const pathway = buildPathway(history, normPosition, client?.weight ?? null, hockeyNormReferences)
+    const singleTestGoals = buildSingleTestGoals(
+      latest,
+      pathway.nextLevel?.level ?? latest?.developmentLevel,
+      normPosition,
+      client?.weight ?? null,
+      hockeyNormReferences
+    )
 
     return NextResponse.json({
       success: true,
@@ -681,6 +790,7 @@ export async function GET(
         flags: buildFlags(latest, trends),
         history,
         pathway,
+        singleTestGoals,
         interpretations: buildHockeyCoachInterpretations({
           latest,
           trends,

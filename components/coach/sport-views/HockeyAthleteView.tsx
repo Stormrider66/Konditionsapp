@@ -123,6 +123,7 @@ interface HockeySummaryResponse {
       gaps: Array<{
         metricKey: string
         label: string
+        level: string
         value: number | null
         target: number
         elite: number
@@ -131,10 +132,12 @@ interface HockeySummaryResponse {
         unit: string
         lowerIsBetter: boolean
         status: 'missing' | 'below-target' | 'target' | 'elite'
+        progress: number | null
       }>
       primaryGap: {
         metricKey: string
         label: string
+        level: string
         value: number | null
         target: number
         elite: number
@@ -143,6 +146,7 @@ interface HockeySummaryResponse {
         unit: string
         lowerIsBetter: boolean
         status: 'missing' | 'below-target' | 'target' | 'elite'
+        progress: number | null
       } | null
     }>
     nextLevel: {
@@ -154,6 +158,7 @@ interface HockeySummaryResponse {
       primaryGap: {
         metricKey: string
         label: string
+        level: string
         value: number | null
         target: number
         elite: number
@@ -162,9 +167,27 @@ interface HockeySummaryResponse {
         unit: string
         lowerIsBetter: boolean
         status: 'missing' | 'below-target' | 'target' | 'elite'
+        progress: number | null
       } | null
     } | null
   }
+  singleTestGoals: {
+    level: string
+    goals: Array<{
+      metricKey: string
+      label: string
+      level: string
+      value: number | null
+      target: number
+      elite: number
+      gapToTarget: number
+      gapToElite: number
+      unit: string
+      lowerIsBetter: boolean
+      status: 'missing' | 'below-target' | 'target' | 'elite'
+      progress: number | null
+    }>
+  } | null
   interpretations: Array<{
     id: string
     tone: 'priority' | 'watch' | 'maintain' | 'quality' | 'positive'
@@ -686,6 +709,37 @@ function readinessGapText(gap: NonNullable<HockeySummaryResponse['pathway']['nex
   )
 }
 
+type SingleTestGoal = NonNullable<HockeySummaryResponse['singleTestGoals']>['goals'][number]
+
+function goalValueDecimals(unit: string): number {
+  if (unit === 's' || unit === 'xBW') return 2
+  if (unit === 'mmol/L' || unit === 'km/h' || unit === '%' || unit === 'ml/kg/min') return 1
+  return 0
+}
+
+function formatGoalValue(value: number, unit: string): string {
+  const decimals = goalValueDecimals(unit)
+  return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
+}
+
+function singleTestGoalStatus(goal: SingleTestGoal, locale: string): string {
+  if (goal.value == null) return tr(locale, 'Testvärde saknas', 'Test value missing')
+  if (goal.status === 'elite') return tr(locale, `Elite för ${goal.level}`, `Elite for ${goal.level}`)
+  if (goal.status === 'target') return tr(locale, `Målet uppnått för ${goal.level}`, `Target reached for ${goal.level}`)
+
+  const amount = formatGoalValue(Math.abs(goal.gapToTarget), goal.unit)
+  return goal.lowerIsBetter
+    ? tr(locale, `${amount} snabbare till mål`, `${amount} faster to target`)
+    : tr(locale, `${amount} kvar till mål`, `${amount} left to target`)
+}
+
+function singleTestGoalBarClasses(status: SingleTestGoal['status']): string {
+  if (status === 'elite') return 'bg-emerald-600'
+  if (status === 'target') return 'bg-emerald-500'
+  if (status === 'below-target') return 'bg-amber-500'
+  return 'bg-slate-400'
+}
+
 export function HockeyAthleteView({ clientId, clientName, settings, basePath = '' }: HockeyAthleteViewProps) {
   const locale = useLocale()
   const themeContext = useWorkoutThemeOptional()
@@ -749,6 +803,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
     ? Math.round((hockeySettings.averageIceTimeMinutes * 60) / hockeySettings.shiftsPerGame)
     : null
   const trendByKey = new Map(summary?.trends.map((trend) => [trend.key, trend]) ?? [])
+  const singleTestGoalByKey = new Map(summary?.singleTestGoals?.goals.map((goal) => [goal.metricKey, goal]) ?? [])
   const snapshotMetrics = SNAPSHOT_METRICS
     .map((key) => METRIC_BY_KEY.get(key))
     .filter((metric): metric is (typeof PHYSICAL_METRICS)[number] => metric != null)
@@ -1145,6 +1200,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                   const TrendIcon = trend?.direction === 'up' ? ArrowUp : ArrowDown
                   const best = summary.bests[metric.key]
                   const isBest = best?.testId === summary.latest?.id
+                  const goal = singleTestGoalByKey.get(metric.key)
 
                   return (
                     <div
@@ -1168,6 +1224,27 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                           <TrendIcon className="h-3 w-3" />
                           <span>{formatDelta(trend.delta, metric.unit, metric.decimals)}</span>
                           {trend.percentChange != null && <span>({formatDelta(trend.percentChange, '%', 1)})</span>}
+                        </div>
+                      )}
+                      {goal && (
+                        <div className="mt-3 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2 text-[10px]" style={{ color: theme.colors.textMuted }}>
+                            <span className="min-w-0 truncate">
+                              {tr(locale, `Mål ${goal.level}:`, `${goal.level} target:`)} {formatGoalValue(goal.target, goal.unit)}
+                            </span>
+                            <span className="shrink-0 font-mono" style={{ color: theme.colors.textPrimary }}>
+                              {goal.progress == null ? '-' : `${goal.progress}%`}
+                            </span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className={`h-full ${singleTestGoalBarClasses(goal.status)}`}
+                              style={{ width: `${Math.min(goal.progress ?? 0, 100)}%` }}
+                            />
+                          </div>
+                          <div className="text-[10px]" style={{ color: theme.colors.textMuted }}>
+                            {singleTestGoalStatus(goal, locale)}
+                          </div>
                         </div>
                       )}
                     </div>
