@@ -190,7 +190,8 @@ export function classifyStrength(
 export function calculateStrengthRatios(
   squat1RM: number,
   bench1RM: number,
-  deadlift1RM: number
+  deadlift1RM: number,
+  locale: 'en' | 'sv' = 'en'
 ): {
   squatToBench: number
   deadliftToSquat: number
@@ -204,18 +205,33 @@ export function calculateStrengthRatios(
   // Ideal ratios:
   // Squat should be ~1.25-1.5x Bench
   // Deadlift should be ~1.1-1.25x Squat
-  let ratioAssessment = 'Balanserad'
+  const labels = locale === 'sv'
+    ? {
+        balanced: 'Balanserad',
+        lowerBodyWeak: 'Svag underkropp relativt överkropp',
+        upperBodyWeak: 'Svag överkropp relativt underkropp',
+        posteriorWeak: 'Svag bakre kedja (posterior chain)',
+        posteriorStrong: 'Stark bakre kedja, fokusera på quad-styrka',
+      }
+    : {
+        balanced: 'Balanced',
+        lowerBodyWeak: 'Lower body weak relative to upper body',
+        upperBodyWeak: 'Upper body weak relative to lower body',
+        posteriorWeak: 'Weak posterior chain',
+        posteriorStrong: 'Strong posterior chain, focus on quad strength',
+      }
+  let ratioAssessment = labels.balanced
 
   if (squatToBench < 1.1) {
-    ratioAssessment = 'Svag underkropp relativt överkropp'
+    ratioAssessment = labels.lowerBodyWeak
   } else if (squatToBench > 1.8) {
-    ratioAssessment = 'Svag överkropp relativt underkropp'
+    ratioAssessment = labels.upperBodyWeak
   }
 
   if (deadliftToSquat < 0.95) {
-    ratioAssessment = 'Svag bakre kedja (posterior chain)'
+    ratioAssessment = labels.posteriorWeak
   } else if (deadliftToSquat > 1.4) {
-    ratioAssessment = 'Stark bakre kedja, fokusera på quad-styrka'
+    ratioAssessment = labels.posteriorStrong
   }
 
   return {

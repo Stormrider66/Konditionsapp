@@ -371,16 +371,16 @@ export function calculateReactiveAgilityIndex(
 }
 
 /**
- * Get test description in Swedish
+ * Get localized test description
  *
  * @param testType - Type of agility test
- * @returns Swedish description
+ * @returns Localized description
  */
-export function getAgilityTestDescription(testType: AgilityTestType): {
+export function getAgilityTestDescription(testType: AgilityTestType, locale: 'en' | 'sv' = 'en'): {
   name: string
   description: string
 } {
-  const descriptions: Record<AgilityTestType, { name: string; description: string }> = {
+  const descriptions: Record<AgilityTestType, { name: string; description: string }> = locale === 'sv' ? {
     T_TEST: {
       name: 'T-test',
       description: 'Snabbhetstest med riktningsförändringar i T-form (40 yards)',
@@ -400,6 +400,27 @@ export function getAgilityTestDescription(testType: AgilityTestType): {
     ARROWHEAD: {
       name: 'Arrowhead Agility',
       description: 'Pilformad bana med diagonala riktningsförändringar',
+    },
+  } : {
+    T_TEST: {
+      name: 'T-test',
+      description: 'Speed test with T-shaped direction changes (40 yards)',
+    },
+    ILLINOIS: {
+      name: 'Illinois Agility Test',
+      description: 'Running course with slalom around cones (10m x 5m)',
+    },
+    PRO_AGILITY_5_10_5: {
+      name: '5-10-5 Pro Agility',
+      description: 'Short shuttle with quick changes of direction',
+    },
+    LANE_AGILITY: {
+      name: 'Lane Agility (Basketball)',
+      description: 'Basketball-specific test around the free-throw lane',
+    },
+    ARROWHEAD: {
+      name: 'Arrowhead Agility',
+      description: 'Arrow-shaped course with diagonal direction changes',
     },
   }
 

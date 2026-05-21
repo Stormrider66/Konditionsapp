@@ -344,12 +344,12 @@ export function formatStationTime(seconds: number): string {
 }
 
 /**
- * Get station description in Swedish
+ * Get localized station description
  *
  * @param station - HYROX station
- * @returns Swedish description
+ * @returns Localized description
  */
-export function getStationDescription(station: HYROXStation): {
+export function getStationDescription(station: HYROXStation, locale: 'en' | 'sv' = 'en'): {
   name: string
   description: string
   distance?: string
@@ -357,7 +357,7 @@ export function getStationDescription(station: HYROXStation): {
   const descriptions: Record<
     HYROXStation,
     { name: string; description: string; distance?: string }
-  > = {
+  > = locale === 'sv' ? {
     SKIERG_1K: {
       name: 'SkiErg',
       description: 'Skidmaskin',
@@ -396,6 +396,46 @@ export function getStationDescription(station: HYROXStation): {
     WALL_BALLS: {
       name: 'Wall Balls',
       description: 'Kasta boll mot vägg',
+    },
+  } : {
+    SKIERG_1K: {
+      name: 'SkiErg',
+      description: 'Ski ergometer',
+      distance: '1000m',
+    },
+    SLED_PUSH: {
+      name: 'Sled Push',
+      description: 'Push sled',
+      distance: '50m',
+    },
+    SLED_PULL: {
+      name: 'Sled Pull',
+      description: 'Pull sled with rope',
+      distance: '50m',
+    },
+    BURPEE_BROAD_JUMP: {
+      name: 'Burpee Broad Jump',
+      description: 'Burpees with broad jump',
+      distance: '80m',
+    },
+    ROW_1K: {
+      name: 'Rowing',
+      description: 'Rowing machine',
+      distance: '1000m',
+    },
+    FARMERS_CARRY: {
+      name: 'Farmers Carry',
+      description: 'Carry weights',
+      distance: '200m',
+    },
+    SANDBAG_LUNGE: {
+      name: 'Sandbag Lunge',
+      description: 'Walking lunges with sandbag',
+      distance: '100m',
+    },
+    WALL_BALLS: {
+      name: 'Wall Balls',
+      description: 'Throw ball against wall',
     },
   }
 
