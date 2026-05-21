@@ -231,20 +231,25 @@ export function createChatTools(
     // ── Meal logging tool ──────────────────────────────────────────────
     logMeal: tool({
       description:
-        'Logga en måltid åt atleten. Använd detta verktyg när atleten berättar vad de ätit ' +
-        'eller ber dig registrera en måltid. Uppskatta kalorier och makron baserat på beskrivningen.',
+        chatText(
+          locale,
+          'Log a meal for the athlete. Use this tool when the athlete tells you what they ate ' +
+            'or asks you to register a meal. Estimate calories and macros from the description.',
+          'Logga en måltid åt atleten. Använd detta verktyg när atleten berättar vad de ätit ' +
+            'eller ber dig registrera en måltid. Uppskatta kalorier och makron baserat på beskrivningen.'
+        ),
       inputSchema: z.object({
-        date: z.string().optional().describe('Datum i ISO-format (YYYY-MM-DD). Standard: idag.'),
+        date: z.string().optional().describe(chatText(locale, 'Date in ISO format (YYYY-MM-DD). Default: today.', 'Datum i ISO-format (YYYY-MM-DD). Standard: idag.')),
         mealType: z.enum([
           'BREAKFAST', 'MORNING_SNACK', 'LUNCH', 'AFTERNOON_SNACK',
           'PRE_WORKOUT', 'POST_WORKOUT', 'DINNER', 'EVENING_SNACK',
-        ]).describe('Måltidstyp'),
-        time: z.string().optional().describe('Tid i HH:MM-format'),
-        description: z.string().describe('Beskrivning av måltiden'),
-        calories: z.number().int().positive().optional().describe('Uppskattade kalorier'),
-        proteinGrams: z.number().positive().optional().describe('Protein i gram'),
-        carbsGrams: z.number().positive().optional().describe('Kolhydrater i gram'),
-        fatGrams: z.number().positive().optional().describe('Fett i gram'),
+        ]).describe(chatText(locale, 'Meal type', 'Måltidstyp')),
+        time: z.string().optional().describe(chatText(locale, 'Time in HH:MM format', 'Tid i HH:MM-format')),
+        description: z.string().describe(chatText(locale, 'Meal description', 'Beskrivning av måltiden')),
+        calories: z.number().int().positive().optional().describe(chatText(locale, 'Estimated calories', 'Uppskattade kalorier')),
+        proteinGrams: z.number().positive().optional().describe(chatText(locale, 'Protein in grams', 'Protein i gram')),
+        carbsGrams: z.number().positive().optional().describe(chatText(locale, 'Carbohydrates in grams', 'Kolhydrater i gram')),
+        fatGrams: z.number().positive().optional().describe(chatText(locale, 'Fat in grams', 'Fett i gram')),
         isPreWorkout: z.boolean().optional(),
         isPostWorkout: z.boolean().optional(),
       }),
@@ -284,7 +289,7 @@ export function createChatTools(
           }
         } catch (error) {
           logger.error('Failed to log meal via chat tool', { clientId }, error)
-          return { success: false, error: 'Kunde inte logga måltiden. Försök igen.' }
+          return { success: false, error: chatText(locale, 'Could not log the meal. Please try again.', 'Kunde inte logga måltiden. Försök igen.') }
         }
       },
     }),
@@ -292,20 +297,25 @@ export function createChatTools(
     // ── Meal editing tool ─────────────────────────────────────────────
     updateMeal: tool({
       description:
-        'Uppdatera en befintlig måltid. Använd detta verktyg när atleten vill ändra en loggad måltid, ' +
-        't.ex. korrigera beskrivning, kalorier eller makron. Du behöver måltids-ID:t.',
+        chatText(
+          locale,
+          'Update an existing meal. Use this tool when the athlete wants to change a logged meal, ' +
+            'for example correcting the description, calories, or macros. You need the meal ID.',
+          'Uppdatera en befintlig måltid. Använd detta verktyg när atleten vill ändra en loggad måltid, ' +
+            't.ex. korrigera beskrivning, kalorier eller makron. Du behöver måltids-ID:t.'
+        ),
       inputSchema: z.object({
-        mealId: z.string().describe('ID för måltiden som ska uppdateras'),
+        mealId: z.string().describe(chatText(locale, 'ID of the meal to update', 'ID för måltiden som ska uppdateras')),
         mealType: z.enum([
           'BREAKFAST', 'MORNING_SNACK', 'LUNCH', 'AFTERNOON_SNACK',
           'PRE_WORKOUT', 'POST_WORKOUT', 'DINNER', 'EVENING_SNACK',
-        ]).optional().describe('Ny måltidstyp'),
-        time: z.string().nullable().optional().describe('Ny tid i HH:MM-format'),
-        description: z.string().optional().describe('Ny beskrivning'),
-        calories: z.number().int().positive().nullable().optional().describe('Nya kalorier'),
-        proteinGrams: z.number().positive().nullable().optional().describe('Nytt protein i gram'),
-        carbsGrams: z.number().positive().nullable().optional().describe('Nya kolhydrater i gram'),
-        fatGrams: z.number().positive().nullable().optional().describe('Nytt fett i gram'),
+        ]).optional().describe(chatText(locale, 'New meal type', 'Ny måltidstyp')),
+        time: z.string().nullable().optional().describe(chatText(locale, 'New time in HH:MM format', 'Ny tid i HH:MM-format')),
+        description: z.string().optional().describe(chatText(locale, 'New description', 'Ny beskrivning')),
+        calories: z.number().int().positive().nullable().optional().describe(chatText(locale, 'New calories', 'Nya kalorier')),
+        proteinGrams: z.number().positive().nullable().optional().describe(chatText(locale, 'New protein in grams', 'Nytt protein i gram')),
+        carbsGrams: z.number().positive().nullable().optional().describe(chatText(locale, 'New carbohydrates in grams', 'Nya kolhydrater i gram')),
+        fatGrams: z.number().positive().nullable().optional().describe(chatText(locale, 'New fat in grams', 'Nytt fett i gram')),
       }),
       execute: async (input) => {
         try {
@@ -317,7 +327,7 @@ export function createChatTools(
           })
 
           if (!existing) {
-            return { success: false, error: 'Måltiden hittades inte.' }
+            return { success: false, error: chatText(locale, 'The meal was not found.', 'Måltiden hittades inte.') }
           }
 
           const data: Record<string, unknown> = {}
@@ -347,7 +357,7 @@ export function createChatTools(
           }
         } catch (error) {
           logger.error('Failed to update meal via chat tool', { clientId, mealId: input.mealId }, error)
-          return { success: false, error: 'Kunde inte uppdatera måltiden. Försök igen.' }
+          return { success: false, error: chatText(locale, 'Could not update the meal. Please try again.', 'Kunde inte uppdatera måltiden. Försök igen.') }
         }
       },
     }),
@@ -355,9 +365,9 @@ export function createChatTools(
     // ── Meal deletion tool ────────────────────────────────────────────
     deleteMeal: tool({
       description:
-        'Ta bort en loggad måltid. Använd detta verktyg när atleten vill radera en felaktig måltid.',
+        chatText(locale, 'Delete a logged meal. Use this tool when the athlete wants to remove an incorrect meal.', 'Ta bort en loggad måltid. Använd detta verktyg när atleten vill radera en felaktig måltid.'),
       inputSchema: z.object({
-        mealId: z.string().describe('ID för måltiden som ska tas bort'),
+        mealId: z.string().describe(chatText(locale, 'ID of the meal to delete', 'ID för måltiden som ska tas bort')),
       }),
       execute: async ({ mealId }) => {
         try {
@@ -366,16 +376,16 @@ export function createChatTools(
           })
 
           if (!existing) {
-            return { success: false, error: 'Måltiden hittades inte.' }
+            return { success: false, error: chatText(locale, 'The meal was not found.', 'Måltiden hittades inte.') }
           }
 
           await prisma.mealLog.delete({ where: { id: mealId } })
 
           logger.info('Meal deleted via chat tool', { mealId, clientId })
-          return { success: true, mealId, message: 'Måltiden har tagits bort.' }
+          return { success: true, mealId, message: chatText(locale, 'The meal has been deleted.', 'Måltiden har tagits bort.') }
         } catch (error) {
           logger.error('Failed to delete meal via chat tool', { clientId, mealId }, error)
-          return { success: false, error: 'Kunde inte ta bort måltiden. Försök igen.' }
+          return { success: false, error: chatText(locale, 'Could not delete the meal. Please try again.', 'Kunde inte ta bort måltiden. Försök igen.') }
         }
       },
     }),
@@ -383,11 +393,14 @@ export function createChatTools(
     // ── List recent meals tool ────────────────────────────────────────
     listRecentMeals: tool({
       description:
-        'Hämta atletens senaste måltider. Använd detta verktyg för att hitta måltids-ID:n ' +
-        'innan du uppdaterar eller tar bort en måltid, eller för att ge näringsfeedback.',
+        chatText(
+          locale,
+          'Fetch the athlete\'s recent meals. Use this tool to find meal IDs before updating or deleting a meal, or to provide nutrition feedback.',
+          'Hämta atletens senaste måltider. Använd detta verktyg för att hitta måltids-ID:n innan du uppdaterar eller tar bort en måltid, eller för att ge näringsfeedback.'
+        ),
       inputSchema: z.object({
-        date: z.string().optional().describe('Datum att hämta måltider för (YYYY-MM-DD). Standard: idag.'),
-        limit: z.number().min(1).max(20).optional().describe('Max antal måltider att hämta (standard: 10)'),
+        date: z.string().optional().describe(chatText(locale, 'Date to fetch meals for (YYYY-MM-DD). Default: today.', 'Datum att hämta måltider för (YYYY-MM-DD). Standard: idag.')),
+        limit: z.number().min(1).max(20).optional().describe(chatText(locale, 'Maximum number of meals to fetch (default: 10)', 'Max antal måltider att hämta (standard: 10)')),
       }),
       execute: async ({ date, limit }) => {
         try {
@@ -433,7 +446,7 @@ export function createChatTools(
           }
         } catch (error) {
           logger.error('Failed to list meals via chat tool', { clientId }, error)
-          return { success: false, error: 'Kunde inte hämta måltider.' }
+          return { success: false, error: chatText(locale, 'Could not fetch meals.', 'Kunde inte hämta måltider.') }
         }
       },
     }),
