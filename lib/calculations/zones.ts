@@ -15,6 +15,59 @@ export interface ZoneCalculationResult {
 }
 
 type ThresholdValueType = 'SPEED' | 'POWER' | 'PACE'
+type AppLocale = 'en' | 'sv'
+
+function zoneCopy(locale: AppLocale) {
+  return locale === 'sv'
+    ? {
+        veryEasy: 'Mycket lätt',
+        easy: 'Lätt',
+        moderate: 'Måttlig',
+        hard: 'Hård',
+        maximal: 'Maximal',
+        recovery: 'Återhämtning',
+        baseLt1: 'Grundkondition (LT1)',
+        base: 'Grundkondition',
+        tempo: 'Tempo',
+        tempoThreshold: 'Tempo/Tröskel',
+        thresholdLt2: 'Tröskel (LT2)',
+        threshold: 'Tröskel',
+        zone1Effect: 'Återhämtning, uppvärmning, fettförbränning',
+        zone1FallbackEffect: 'Återhämtning, uppvärmning',
+        zone2Effect: 'Aerob grundträning, hög volym vid denna intensitet',
+        zone2FallbackEffect: 'Grundkondition, fettförbränning',
+        zone3Effect: 'Tempo, aerob kapacitet, längre intervaller',
+        zone3FallbackEffect: 'Tempo, aerob kapacitet',
+        zone4Effect: 'Anaerob tröskel, laktathantering, tävlingsfart',
+        zone4FallbackEffect: 'Anaerob tröskel',
+        zone5Effect: 'VO₂max, kortare intervaller, maximal syreupptagning',
+        zone5FallbackEffect: 'VO₂max, maximal kapacitet',
+      }
+    : {
+        veryEasy: 'Very easy',
+        easy: 'Easy',
+        moderate: 'Moderate',
+        hard: 'Hard',
+        maximal: 'Maximal',
+        recovery: 'Recovery',
+        baseLt1: 'Aerobic base (LT1)',
+        base: 'Aerobic base',
+        tempo: 'Tempo',
+        tempoThreshold: 'Tempo/threshold',
+        thresholdLt2: 'Threshold (LT2)',
+        threshold: 'Threshold',
+        zone1Effect: 'Recovery, warm-up, fat oxidation',
+        zone1FallbackEffect: 'Recovery, warm-up',
+        zone2Effect: 'Aerobic base training, high volume at this intensity',
+        zone2FallbackEffect: 'Base conditioning, fat oxidation',
+        zone3Effect: 'Tempo, aerobic capacity, longer intervals',
+        zone3FallbackEffect: 'Tempo, aerobic capacity',
+        zone4Effect: 'Anaerobic threshold, lactate handling, race pace',
+        zone4FallbackEffect: 'Anaerobic threshold',
+        zone5Effect: 'VO₂max, shorter intervals, maximal oxygen uptake',
+        zone5FallbackEffect: 'VO₂max, maximal capacity',
+      }
+}
 
 export interface IndividualizedThresholdInput {
   hr: number
@@ -43,6 +96,7 @@ export interface IndividualizedZoneRequest {
   age?: number
   gender?: Gender
   testType?: TestType
+  locale?: AppLocale
 }
 
 /**
@@ -60,7 +114,7 @@ export function calculateIndividualizedZones(params: IndividualizedZoneRequest):
   const lt1 = params.lt1 ? normalizeThresholdInput(params.lt1, maxHR) : null
   const lt2 = params.lt2 ? normalizeThresholdInput(params.lt2, maxHR) : null
 
-  const result = calculateTrainingZones(mockClient, maxHR, lt1, lt2, testType)
+  const result = calculateTrainingZones(mockClient, maxHR, lt1, lt2, testType, undefined, undefined, params.locale)
   return result.zones
 }
 
@@ -105,7 +159,8 @@ export function calculateTrainingZones(
   anaerobicThreshold: Threshold | undefined | null,
   testType: TestType,
   fitnessEstimate?: FitnessEstimate,
-  fieldTestData?: FieldTestZoneInput
+  fieldTestData?: FieldTestZoneInput,
+  locale: AppLocale = 'en'
 ): ZoneCalculationResult {
   // Tier 1: Lactate test data exists (Gold Standard)
   if (aerobicThreshold && anaerobicThreshold && maxHR) {
@@ -113,14 +168,15 @@ export function calculateTrainingZones(
       maxHR,
       aerobicThreshold,
       anaerobicThreshold,
-      testType
+      testType,
+      locale
     )
   }
 
   // Tier 2: Field test data (Silver Standard)
   // Uses 30-min TT (→ LT2) and HR drift (→ LT1) to estimate thresholds
   if (fieldTestData?.lt2HR && maxHR) {
-    return calculateZonesFromFieldTest(client, maxHR, fieldTestData, testType)
+    return calculateZonesFromFieldTest(client, maxHR, fieldTestData, testType, locale)
   }
 
   // Tier 3/3+: Fallback to %HRmax estimation (Bronze/Bronze+ Standard)
@@ -129,7 +185,8 @@ export function calculateTrainingZones(
     client,
     maxHR,
     testType,
-    fitnessEstimate
+    fitnessEstimate,
+    locale
   )
 }
 
@@ -150,8 +207,10 @@ function calculateZonesFromLactateTest(
   maxHR: number,
   lt1: Threshold,
   lt2: Threshold,
-  testType: TestType
+  testType: TestType,
+  locale: AppLocale = 'en'
 ): ZoneCalculationResult {
+  const copy = zoneCopy(locale)
   const lt1HR = Math.round(lt1.heartRate)
   const lt2HR = Math.round(lt2.heartRate)
   const hrGap = lt2HR - lt1HR
@@ -179,53 +238,53 @@ function calculateZonesFromLactateTest(
   const zones: TrainingZone[] = [
     {
       zone: 1,
-      name: 'Mycket lätt',
-      intensity: 'Återhämtning',
+      name: copy.veryEasy,
+      intensity: copy.recovery,
       hrMin: Math.round(maxHR * 0.5),
       hrMax: zone1Max,
       percentMin: Math.round((Math.round(maxHR * 0.5) / maxHR) * 100),
       percentMax: Math.round((zone1Max / maxHR) * 100),
-      effect: 'Återhämtning, uppvärmning, fettförbränning',
+      effect: copy.zone1Effect,
     },
     {
       zone: 2,
-      name: 'Lätt',
-      intensity: 'Grundkondition (LT1)',
+      name: copy.easy,
+      intensity: copy.baseLt1,
       hrMin: zone2Min,
       hrMax: zone2Max,
       percentMin: Math.round((zone2Min / maxHR) * 100),
       percentMax: Math.round((zone2Max / maxHR) * 100),
-      effect: 'Aerob grundträning, hög volym vid denna intensitet',
+      effect: copy.zone2Effect,
     },
     {
       zone: 3,
-      name: 'Måttlig',
-      intensity: hasZone3 ? 'Tempo' : 'Tempo/Tröskel',
+      name: copy.moderate,
+      intensity: hasZone3 ? copy.tempo : copy.tempoThreshold,
       hrMin: zone3Min,
       hrMax: zone3Max,
       percentMin: Math.round((zone3Min / maxHR) * 100),
       percentMax: Math.round((zone3Max / maxHR) * 100),
-      effect: 'Tempo, aerob kapacitet, längre intervaller',
+      effect: copy.zone3Effect,
     },
     {
       zone: 4,
-      name: 'Hård',
-      intensity: 'Tröskel (LT2)',
+      name: copy.hard,
+      intensity: copy.thresholdLt2,
       hrMin: zone4Min,
       hrMax: zone4Max,
       percentMin: Math.round((zone4Min / maxHR) * 100),
       percentMax: Math.round((zone4Max / maxHR) * 100),
-      effect: 'Anaerob tröskel, laktathantering, tävlingsfart',
+      effect: copy.zone4Effect,
     },
     {
       zone: 5,
-      name: 'Maximal',
+      name: copy.maximal,
       intensity: 'VO₂max',
       hrMin: zone5Min,
       hrMax: maxHR,
       percentMin: Math.round((zone5Min / maxHR) * 100),
       percentMax: 100,
-      effect: 'VO₂max, kortare intervaller, maximal syreupptagning',
+      effect: copy.zone5Effect,
     },
   ]
 
@@ -236,7 +295,11 @@ function calculateZonesFromLactateTest(
     zones,
     confidence: 'HIGH',
     method: 'LACTATE_TEST',
-    warning: useNarrowZones ? `Obs: LT1 och LT2 ligger nära varandra (${hrGap} slag/min). Zonerna är anpassade för detta.` : undefined
+    warning: useNarrowZones
+      ? locale === 'sv'
+        ? `Obs: LT1 och LT2 ligger nära varandra (${hrGap} slag/min). Zonerna är anpassade för detta.`
+        : `Note: LT1 and LT2 are close together (${hrGap} bpm). Zones have been adjusted for this.`
+      : undefined
   }
 }
 
@@ -252,7 +315,8 @@ function calculateZonesFromFieldTest(
   client: Client,
   maxHR: number,
   fieldTest: FieldTestZoneInput,
-  testType: TestType
+  testType: TestType,
+  locale: AppLocale = 'en'
 ): ZoneCalculationResult {
   const lt2HR = fieldTest.lt2HR!
   // If only LT2 available, estimate LT1 as ~85% of LT2 HR
@@ -284,14 +348,18 @@ function calculateZonesFromFieldTest(
   }
 
   // Use the same zone calculation logic as lactate test
-  const lactateResult = calculateZonesFromLactateTest(maxHR, lt1, lt2, effectiveTestType)
+  const lactateResult = calculateZonesFromLactateTest(maxHR, lt1, lt2, effectiveTestType, locale)
 
   // Build warning message
   const warnings: string[] = []
   if (lt1Estimated) {
-    warnings.push('LT1 uppskattad till 85% av LT2 puls. Gör ett HR drift-test för bättre noggrannhet.')
+    warnings.push(locale === 'sv'
+      ? 'LT1 uppskattad till 85% av LT2 puls. Gör ett HR drift-test för bättre noggrannhet.'
+      : 'LT1 estimated at 85% of LT2 heart rate. Perform an HR drift test for better accuracy.')
   }
-  warnings.push('Zoner baserade på fälttest. Laktattest ger högre noggrannhet (±1-2 slag/min).')
+  warnings.push(locale === 'sv'
+    ? 'Zoner baserade på fälttest. Laktattest ger högre noggrannhet (±1-2 slag/min).'
+    : 'Zones are based on field testing. Lactate testing provides higher accuracy (±1-2 bpm).')
   if (lactateResult.warning) {
     warnings.push(lactateResult.warning)
   }
@@ -332,8 +400,10 @@ function calculateZonesFromHRmaxFallback(
   client: Client,
   maxHR: number | undefined,
   testType: TestType,
-  fitnessEstimate?: FitnessEstimate
+  fitnessEstimate?: FitnessEstimate,
+  locale: AppLocale = 'en'
 ): ZoneCalculationResult {
+  const copy = zoneCopy(locale)
   const age = calculateAge(client.birthDate)
 
   // Use provided maxHR or estimate from age
@@ -382,67 +452,75 @@ function calculateZonesFromHRmaxFallback(
   const zones: TrainingZone[] = [
     {
       zone: 1,
-      name: 'Mycket lätt',
-      intensity: 'Återhämtning',
+      name: copy.veryEasy,
+      intensity: copy.recovery,
       percentMin: 50,
       percentMax: zone1MaxPercent,
       hrMin: Math.round(estimatedMaxHR * 0.5),
       hrMax: zone1Max,
-      effect: 'Återhämtning, uppvärmning',
+      effect: copy.zone1FallbackEffect,
     },
     {
       zone: 2,
-      name: 'Lätt',
-      intensity: fitnessEstimate ? 'Grundkondition (LT1)' : 'Grundkondition',
+      name: copy.easy,
+      intensity: fitnessEstimate ? copy.baseLt1 : copy.base,
       percentMin: zone2MinPercent,
       percentMax: zone2MaxPercent,
       hrMin: zone2Min,
       hrMax: zone2Max,
-      effect: 'Grundkondition, fettförbränning',
+      effect: copy.zone2FallbackEffect,
     },
     {
       zone: 3,
-      name: 'Måttlig',
-      intensity: 'Tempo',
+      name: copy.moderate,
+      intensity: copy.tempo,
       percentMin: zone3MinPercent,
       percentMax: zone3MaxPercent,
       hrMin: zone3Min,
       hrMax: zone3Max,
-      effect: 'Tempo, aerob kapacitet',
+      effect: copy.zone3FallbackEffect,
     },
     {
       zone: 4,
-      name: 'Hård',
-      intensity: fitnessEstimate ? 'Tröskel (LT2)' : 'Tröskel',
+      name: copy.hard,
+      intensity: fitnessEstimate ? copy.thresholdLt2 : copy.threshold,
       percentMin: zone4MinPercent,
       percentMax: zone4MaxPercent,
       hrMin: zone4Min,
       hrMax: zone4Max,
-      effect: 'Anaerob tröskel',
+      effect: copy.zone4FallbackEffect,
     },
     {
       zone: 5,
-      name: 'Maximal',
+      name: copy.maximal,
       intensity: 'VO₂max',
       percentMin: zone5MinPercent,
       percentMax: 100,
       hrMin: zone5Min,
       hrMax: estimatedMaxHR,
-      effect: 'VO₂max, maximal kapacitet',
+      effect: copy.zone5FallbackEffect,
     },
   ]
 
   // Build warning message
   let warning: string
   if (fitnessEstimate) {
-    const fitnessLabel = getFitnessLevelLabel(fitnessEstimate.level)
+    const fitnessLabel = getFitnessLevelLabel(fitnessEstimate.level, locale)
     warning = maxHR
-      ? `Zoner justerade för fitnessnivå (${fitnessLabel}). LT1 ≈ ${Math.round(lt1Percent * 100)}%, LT2 ≈ ${Math.round(lt2Percent * 100)}% av maxpuls.`
-      : `Zoner uppskattas från ålder (${age} år) och fitnessnivå (${fitnessLabel}). Maxpuls estimerad till ${estimatedMaxHR} bpm.`
+      ? locale === 'sv'
+        ? `Zoner justerade för fitnessnivå (${fitnessLabel}). LT1 ≈ ${Math.round(lt1Percent * 100)}%, LT2 ≈ ${Math.round(lt2Percent * 100)}% av maxpuls.`
+        : `Zones adjusted for fitness level (${fitnessLabel}). LT1 ≈ ${Math.round(lt1Percent * 100)}%, LT2 ≈ ${Math.round(lt2Percent * 100)}% of max HR.`
+      : locale === 'sv'
+        ? `Zoner uppskattas från ålder (${age} år) och fitnessnivå (${fitnessLabel}). Maxpuls estimerad till ${estimatedMaxHR} bpm.`
+        : `Zones are estimated from age (${age} years) and fitness level (${fitnessLabel}). Max HR estimated at ${estimatedMaxHR} bpm.`
   } else {
     warning = maxHR
-      ? 'Zoner baserade på % av maxpuls. För bättre noggrannhet, gör ett laktattest eller fälttest.'
-      : `Zoner uppskattas från ålder (${age} år) och kön. Maxpuls estimerad till ${estimatedMaxHR} bpm. För bästa noggrannhet, gör ett laktattest.`
+      ? locale === 'sv'
+        ? 'Zoner baserade på % av maxpuls. För bättre noggrannhet, gör ett laktattest eller fälttest.'
+        : 'Zones are based on % of max HR. For better accuracy, perform a lactate test or field test.'
+      : locale === 'sv'
+        ? `Zoner uppskattas från ålder (${age} år) och kön. Maxpuls estimerad till ${estimatedMaxHR} bpm. För bästa noggrannhet, gör ett laktattest.`
+        : `Zones are estimated from age (${age} years) and sex. Max HR estimated at ${estimatedMaxHR} bpm. For best accuracy, perform a lactate test.`
   }
 
   return {
@@ -456,15 +534,24 @@ function calculateZonesFromHRmaxFallback(
 /**
  * Get Swedish label for fitness level
  */
-function getFitnessLevelLabel(level: string): string {
-  const labels: Record<string, string> = {
-    UNTRAINED: 'otränad',
-    BEGINNER: 'nybörjare',
-    RECREATIONAL: 'motionär',
-    TRAINED: 'tränad',
-    WELL_TRAINED: 'vältränad',
-    ELITE: 'elit'
-  }
+function getFitnessLevelLabel(level: string, locale: AppLocale = 'en'): string {
+  const labels: Record<string, string> = locale === 'sv'
+    ? {
+        UNTRAINED: 'otränad',
+        BEGINNER: 'nybörjare',
+        RECREATIONAL: 'motionär',
+        TRAINED: 'tränad',
+        WELL_TRAINED: 'vältränad',
+        ELITE: 'elit',
+      }
+    : {
+        UNTRAINED: 'untrained',
+        BEGINNER: 'beginner',
+        RECREATIONAL: 'recreational',
+        TRAINED: 'trained',
+        WELL_TRAINED: 'well-trained',
+        ELITE: 'elite',
+      }
   return labels[level] || level.toLowerCase()
 }
 
