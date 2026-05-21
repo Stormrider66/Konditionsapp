@@ -35,11 +35,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2, Check, X, AlertCircle, Upload } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface Exercise {
   id: string
   name: string
   nameSv: string | null
+  nameEn?: string | null
 }
 
 interface ParsedRow {
@@ -58,9 +66,17 @@ interface ClientBulkPRImportDialogProps {
   onImported?: () => void
 }
 
-const PLACEHOLDER = `Knäböj, 120, 2026-04-15
+const PLACEHOLDER_SV = `Knäböj, 120, 2026-04-15
 Bänkpress, 90
 Marklyft, 140`
+
+const PLACEHOLDER_EN = `Back Squat, 120, 2026-04-15
+Bench Press, 90
+Deadlift, 140`
+
+function exerciseDisplayName(exercise: Exercise, locale: AppLocale): string {
+  return locale === 'sv' ? exercise.nameSv || exercise.name : exercise.nameEn || exercise.name
+}
 
 function normalize(s: string): string {
   return s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').trim()
@@ -84,7 +100,7 @@ function pickExercise(input: string, exercises: Exercise[]): Exercise | null {
   return null
 }
 
-function parseRows(paste: string, exercises: Exercise[]): ParsedRow[] {
+function parseRows(paste: string, exercises: Exercise[], locale: AppLocale): ParsedRow[] {
   return paste
     .split('\n')
     .map((line) => line.trim())
@@ -101,7 +117,7 @@ function parseRows(paste: string, exercises: Exercise[]): ParsedRow[] {
           exerciseLabel: cells[0] ?? '',
           oneRepMax: null,
           date: '',
-          problem: 'Behöver minst övning och vikt',
+          problem: text(locale, 'Behöver minst övning och vikt', 'Needs at least exercise and weight'),
         }
       }
 
@@ -111,12 +127,12 @@ function parseRows(paste: string, exercises: Exercise[]): ParsedRow[] {
       const date = dateInput && /^\d{4}-\d{2}-\d{2}$/.test(dateInput) ? dateInput : ''
 
       const problems: string[] = []
-      if (!exercise) problems.push('övning ej hittad')
-      if (!oneRepMax || oneRepMax <= 0) problems.push('ogiltig vikt')
+      if (!exercise) problems.push(text(locale, 'övning ej hittad', 'exercise not found'))
+      if (!oneRepMax || oneRepMax <= 0) problems.push(text(locale, 'ogiltig vikt', 'invalid weight'))
 
       return {
         exerciseId: exercise?.id ?? null,
-        exerciseLabel: exercise ? exercise.nameSv || exercise.name : exerciseInput,
+        exerciseLabel: exercise ? exerciseDisplayName(exercise, locale) : exerciseInput,
         oneRepMax: Number.isFinite(oneRepMax) ? oneRepMax : null,
         date,
         problem: problems.join(' · '),
@@ -131,6 +147,7 @@ export function ClientBulkPRImportDialog({
   clientName,
   onImported,
 }: ClientBulkPRImportDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [paste, setPaste] = useState('')
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -151,10 +168,11 @@ export function ClientBulkPRImportDialog({
           const list = Array.isArray(body) ? body : body.exercises ?? []
           if (!cancelled) {
             setExercises(
-              list.map((e: { id: string; name: string; nameSv: string | null }) => ({
+              list.map((e: { id: string; name: string; nameSv: string | null; nameEn?: string | null }) => ({
                 id: e.id,
                 name: e.name,
                 nameSv: e.nameSv,
+                nameEn: e.nameEn,
               }))
             )
           }
@@ -175,7 +193,7 @@ export function ClientBulkPRImportDialog({
     setOverrides({})
   }, [paste])
 
-  const rows = useMemo(() => parseRows(paste, exercises), [paste, exercises])
+  const rows = useMemo(() => parseRows(paste, exercises, locale), [paste, exercises, locale])
 
   const effectiveRows: ParsedRow[] = rows.map((r, i) => {
     const overrideId = overrides[i]
@@ -185,11 +203,11 @@ export function ClientBulkPRImportDialog({
     const next: ParsedRow = {
       ...r,
       exerciseId: ex.id,
-      exerciseLabel: ex.nameSv || ex.name,
+      exerciseLabel: exerciseDisplayName(ex, locale),
     }
     const problems: string[] = []
-    if (!next.exerciseId) problems.push('övning ej hittad')
-    if (!next.oneRepMax || next.oneRepMax <= 0) problems.push('ogiltig vikt')
+    if (!next.exerciseId) problems.push(text(locale, 'övning ej hittad', 'exercise not found'))
+    if (!next.oneRepMax || next.oneRepMax <= 0) problems.push(text(locale, 'ogiltig vikt', 'invalid weight'))
     next.problem = problems.join(' · ')
     return next
   })
@@ -221,14 +239,16 @@ export function ClientBulkPRImportDialog({
       }
       const body = await res.json()
       const skipped = effectiveRows.length - validRows.length
-      const updatedSuffix = body.updated > 0 ? ` · ${body.updated} uppdaterade` : ''
+      const updatedSuffix = body.updated > 0 ? text(locale, ` · ${body.updated} uppdaterade`, ` · ${body.updated} updated`) : ''
       setResultMsg(
-        `Sparade ${body.created} ny${body.created === 1 ? '' : 'a'} PR${updatedSuffix}${skipped > 0 ? ` · ${skipped} rad${skipped === 1 ? '' : 'er'} hoppades över` : ''}`
+        locale === 'sv'
+          ? `Sparade ${body.created} ny${body.created === 1 ? '' : 'a'} PR${updatedSuffix}${skipped > 0 ? ` · ${skipped} rad${skipped === 1 ? '' : 'er'} hoppades över` : ''}`
+          : `Saved ${body.created} new PR${body.created === 1 ? '' : 's'}${updatedSuffix}${skipped > 0 ? ` · ${skipped} row${skipped === 1 ? '' : 's'} skipped` : ''}`
       )
       setPaste('')
       onImported?.()
     } catch (e) {
-      setServerError(e instanceof Error ? e.message : 'Kunde inte spara')
+      setServerError(e instanceof Error ? e.message : text(locale, 'Kunde inte spara', 'Could not save'))
     } finally {
       setIsSubmitting(false)
     }
@@ -240,23 +260,25 @@ export function ClientBulkPRImportDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-blue-500" />
-            Importera PRs – {clientName}
+            {text(locale, 'Importera PRs', 'Import PRs')} – {clientName}
           </DialogTitle>
           <DialogDescription>
-            En rad per PR. Format:{' '}
-            <code className="bg-muted px-1 rounded">övning, vikt[, datum]</code>. Datum
-            är valfritt (default: idag). Källa sätts som &quot;Testat&quot;.
+            {text(locale, 'En rad per PR. Format:', 'One row per PR. Format:')}{' '}
+            <code className="bg-muted px-1 rounded">
+              {text(locale, 'övning, vikt[, datum]', 'exercise, weight[, date]')}
+            </code>
+            . {text(locale, 'Datum är valfritt (default: idag). Källa sätts som "Testat".', 'Date is optional (default: today). Source is set to "Tested".')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="client-bulk-paste">Klistra in</Label>
+            <Label htmlFor="client-bulk-paste">{text(locale, 'Klistra in', 'Paste')}</Label>
             <Textarea
               id="client-bulk-paste"
               value={paste}
               onChange={(e) => setPaste(e.target.value)}
-              placeholder={PLACEHOLDER}
+              placeholder={text(locale, PLACEHOLDER_SV, PLACEHOLDER_EN)}
               rows={6}
               className="font-mono text-xs"
               spellCheck={false}
@@ -265,7 +287,7 @@ export function ClientBulkPRImportDialog({
             {isLoading && (
               <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Hämtar övningar…
+                {text(locale, 'Hämtar övningar…', 'Loading exercises...')}
               </p>
             )}
           </div>
@@ -273,16 +295,16 @@ export function ClientBulkPRImportDialog({
           {effectiveRows.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Förhandsgranskning ({validRows.length} av {effectiveRows.length} klara)
+                {text(locale, 'Förhandsgranskning', 'Preview')} ({validRows.length} {text(locale, 'av', 'of')} {effectiveRows.length} {text(locale, 'klara', 'ready')})
               </p>
               <div className="rounded-md border max-h-[40vh] overflow-y-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-muted/40 sticky top-0">
                     <tr className="text-left">
                       <th className="px-2 py-1.5 w-6"></th>
-                      <th className="px-2 py-1.5">Övning</th>
-                      <th className="px-2 py-1.5 text-right">Vikt</th>
-                      <th className="px-2 py-1.5">Datum</th>
+                      <th className="px-2 py-1.5">{text(locale, 'Övning', 'Exercise')}</th>
+                      <th className="px-2 py-1.5 text-right">{text(locale, 'Vikt', 'Weight')}</th>
+                      <th className="px-2 py-1.5">{text(locale, 'Datum', 'Date')}</th>
                       <th className="px-2 py-1.5">Status</th>
                     </tr>
                   </thead>
@@ -307,12 +329,12 @@ export function ClientBulkPRImportDialog({
                               }
                             >
                               <SelectTrigger className="h-7 text-xs w-[180px]">
-                                <SelectValue placeholder={r.exerciseLabel || '— välj —'} />
+                                <SelectValue placeholder={r.exerciseLabel || text(locale, '— välj —', '- select -')} />
                               </SelectTrigger>
                               <SelectContent className="max-h-[300px]">
                                 {exercises.map((e) => (
                                   <SelectItem key={e.id} value={e.id}>
-                                    {e.nameSv || e.name}
+                                    {exerciseDisplayName(e, locale)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -323,14 +345,14 @@ export function ClientBulkPRImportDialog({
                           {r.oneRepMax ? `${r.oneRepMax} kg` : '—'}
                         </td>
                         <td className="px-2 py-1.5 text-muted-foreground">
-                          {r.date || 'idag'}
+                          {r.date || text(locale, 'idag', 'today')}
                         </td>
                         <td className="px-2 py-1.5">
                           {r.problem ? (
                             <span className="text-destructive">{r.problem}</span>
                           ) : (
                             <Badge variant="outline" className="text-[10px] py-0">
-                              klar
+                              {text(locale, 'klar', 'ready')}
                             </Badge>
                           )}
                         </td>
@@ -359,14 +381,14 @@ export function ClientBulkPRImportDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Stäng
+            {text(locale, 'Stäng', 'Close')}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || validRows.length === 0}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Spara {validRows.length > 0 ? `${validRows.length} ` : ''}PR
+            {text(locale, 'Spara', 'Save')} {validRows.length > 0 ? `${validRows.length} ` : ''}PR
             {validRows.length === 1 ? '' : 's'}
           </Button>
         </DialogFooter>
