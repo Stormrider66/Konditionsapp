@@ -21,7 +21,7 @@ export const fuelingPlanInputSchema = z.object({
 }).refine(
   (data) => Boolean(data.durationMinutes || (data.distanceKm && (data.targetSpeedKmh || data.targetPaceMinKm))),
   {
-    message: 'Ange förväntad tid, eller distans tillsammans med målfart.',
+    message: 'Enter expected time, or distance together with target pace/speed.',
     path: ['durationMinutes'],
   }
 )

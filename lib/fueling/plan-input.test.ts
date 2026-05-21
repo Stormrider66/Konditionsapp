@@ -40,6 +40,6 @@ describe('fuelingPlanInputSchema', () => {
     })
 
     expect(result.success).toBe(false)
-    expect(result.error?.issues[0]?.message).toBe('Ange förväntad tid, eller distans tillsammans med målfart.')
+    expect(result.error?.issues[0]?.message).toBe('Enter expected time, or distance together with target pace/speed.')
   })
 })
