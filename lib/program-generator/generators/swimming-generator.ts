@@ -105,22 +105,22 @@ export async function generateSwimmingProgram(
   }))
 
   const goalLabels: Record<string, string> = {
-    'css-builder': 'CSS-förbättrare',
+    'css-builder': 'CSS builder',
     'sprint': 'Sprint',
-    'distance': 'Distans',
-    'open-water': 'Öppet vatten',
-    'custom': 'Anpassad',
+    'distance': 'Distance',
+    'open-water': 'Open water',
+    'custom': 'Custom',
   }
 
   return {
     clientId: params.clientId,
     coachId: params.coachId,
     testId: undefined,
-    name: `${goalLabels[params.goal] || 'Simprogram'} - ${client.name}`,
+    name: `${goalLabels[params.goal] || 'Swimming program'} - ${client.name}`,
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `CSS-baserat simprogram${params.css ? ` (CSS: ${params.css}/100m)` : ''}`,
+    notes: params.notes || `CSS-based swimming program${params.css ? ` (CSS: ${params.css}/100m)` : ''}`,
     weeks,
   }
 }
@@ -142,7 +142,7 @@ function createDaysFromWorkouts(
 
     days.push({
       dayNumber: dayNum,
-      notes: hasWorkout ? '' : 'Vilodag',
+      notes: hasWorkout ? '' : 'Rest day',
       workouts: workout
         ? [mapSwimmingWorkoutToDTO(workout, cssSeconds)]
         : [],
@@ -185,11 +185,11 @@ function createFallbackSwimmingProgram(
     clientId: params.clientId,
     coachId: params.coachId,
     testId: undefined,
-    name: `Simprogram - ${client.name}`,
+    name: `Swimming program - ${client.name}`,
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `Simprogram med teknik, aerob volym, CSS/tröskel och målspecifik fart${params.css ? ` (CSS: ${params.css}/100m)` : ''}.`,
+    notes: params.notes || `Swimming program with technique, aerobic volume, CSS/threshold work, and goal-specific pace${params.css ? ` (CSS: ${params.css}/100m)` : ''}.`,
     weeks,
   }
 }
@@ -212,77 +212,77 @@ function createFallbackSwimmingDays(input: {
     {
       day: 2,
       workout: swimmingWorkout({
-        name: 'Teknik och vattenläge',
+        name: 'Technique and body position',
         intensity: 'EASY',
         duration: 45,
         distance: Math.round(baseDistance * 0.8),
         zone: 2,
         cssSeconds: input.cssSeconds,
-        instructions: 'Fokus på grepp, rotation, andning och effektiv frekvens. Låt tekniken styra farten.',
+        instructions: 'Focus on catch, rotation, breathing, and efficient stroke rate. Let technique guide the pace.',
       }),
     },
     {
       day: 4,
       workout: swimmingWorkout({
-        name: input.goal === 'sprint' ? 'Sprintfart och startstyrka' : 'CSS / tröskelset',
+        name: input.goal === 'sprint' ? 'Sprint speed and start power' : 'CSS / threshold set',
         intensity: input.goal === 'sprint' ? 'INTERVAL' : 'THRESHOLD',
         duration: input.goal === 'sprint' ? 45 : 55,
         distance: Math.round(baseDistance * (input.goal === 'sprint' ? 0.75 : 1)),
         zone: input.goal === 'sprint' ? 5 : 3,
         cssSeconds: input.cssSeconds,
         instructions: input.goal === 'sprint'
-          ? `Korta snabba repetitioner för ${targetEvent}m-fart med lång vila och ren teknik.`
-          : 'Tröskelnära repetitioner runt CSS. Jämna tider, kontrollerad andning och tekniskt avslut.',
+          ? `Short fast repetitions at ${targetEvent}m pace with long rest and clean technique.`
+          : 'Threshold-near repetitions around CSS. Even splits, controlled breathing, and a technical finish.',
       }),
     },
     {
       day: 6,
       workout: swimmingWorkout({
-        name: input.goal === 'open-water' ? 'Öppet vatten-simulering' : 'Aerob distanssimning',
+        name: input.goal === 'open-water' ? 'Open-water simulation' : 'Aerobic distance swim',
         intensity: 'EASY',
         duration: 60,
         distance: Math.round(baseDistance * (input.goal === 'open-water' ? 1.35 : 1.15)),
         zone: 2,
         cssSeconds: input.cssSeconds,
         instructions: input.goal === 'open-water'
-          ? 'Längre sammanhängande block, sighting var 6-10:e tag och trygg rytm i trängsel.'
-          : 'Jämn aerob simning med negativ split i sista tredjedelen.',
+          ? 'Longer continuous blocks, sighting every 6-10 strokes, and steady rhythm in traffic.'
+          : 'Steady aerobic swimming with a negative split in the final third.',
       }),
     },
     {
       day: 1,
       workout: swimmingWorkout({
-        name: 'Återhämtning och rörlighet i vattnet',
+        name: 'Recovery and mobility in the water',
         intensity: 'RECOVERY',
         duration: 35,
         distance: Math.round(baseDistance * 0.55),
         zone: 1,
         cssSeconds: input.cssSeconds,
-        instructions: 'Lätt simning, drills och rörlighet. Ingen jakt på tider.',
+        instructions: 'Easy swimming, drills, and mobility. Do not chase split times.',
       }),
     },
     {
       day: 5,
       workout: swimmingWorkout({
-        name: 'VO2 och fartuthållighet',
+        name: 'VO2 and speed endurance',
         intensity: 'INTERVAL',
         duration: 50,
         distance: Math.round(baseDistance * 0.9),
         zone: 4,
         cssSeconds: input.cssSeconds,
-        instructions: 'Kortare hårda repetitioner snabbare än CSS med bibehållen linje och stark frånskjutsteknik.',
+        instructions: 'Shorter hard repetitions faster than CSS while maintaining alignment and strong push-off technique.',
       }),
     },
     {
       day: 3,
       workout: swimmingWorkout({
-        name: 'Drag / styrka i vattnet',
+        name: 'Pull / strength in the water',
         intensity: 'MODERATE',
         duration: 45,
         distance: Math.round(baseDistance * 0.8),
         zone: 3,
         cssSeconds: input.cssSeconds,
-        instructions: 'Paddlar, dolme eller kontrollerat motstånd. Fokus på kraftfullt catch utan axelstress.',
+        instructions: 'Paddles, pull buoy, or controlled resistance. Focus on a powerful catch without shoulder stress.',
       }),
     },
   ]
@@ -290,7 +290,7 @@ function createFallbackSwimmingDays(input: {
   const keep = new Map(planned.slice(0, sessions).map((item) => [item.day, item.workout]))
   return Array.from({ length: 7 }).map((_, index) => ({
     dayNumber: index + 1,
-    notes: keep.has(index + 1) ? '' : 'Vilodag',
+    notes: keep.has(index + 1) ? '' : 'Rest day',
     workouts: keep.get(index + 1) ? [keep.get(index + 1)!] : [],
   }))
 }
@@ -310,11 +310,11 @@ function swimmingWorkout(input: {
     intensity: input.intensity,
     duration: input.duration,
     distance: input.distance,
-    instructions: input.cssSeconds ? `${input.instructions} Riktfart: ${formatCssPace(input.cssSeconds, input.zone)}.` : input.instructions,
+    instructions: input.cssSeconds ? `${input.instructions} Target pace: ${formatCssPace(input.cssSeconds, input.zone)}.` : input.instructions,
     segments: [
-      { order: 1, type: 'warmup', duration: 10, distance: Math.round(input.distance * 0.2), zone: 1, description: 'Lugn insimning och teknikdrill' },
+      { order: 1, type: 'warmup', duration: 10, distance: Math.round(input.distance * 0.2), zone: 1, description: 'Easy swim-in and technique drill' },
       { order: 2, type: 'work', duration: Math.max(15, input.duration - 20), distance: Math.round(input.distance * 0.65), zone: input.zone, pace: input.cssSeconds ? formatCssPace(input.cssSeconds, input.zone) : undefined, description: input.instructions },
-      { order: 3, type: 'cooldown', duration: 10, distance: Math.round(input.distance * 0.15), zone: 1, description: 'Avsimning' },
+      { order: 3, type: 'cooldown', duration: 10, distance: Math.round(input.distance * 0.15), zone: 1, description: 'Swim-down' },
     ],
   }
 }
@@ -337,14 +337,14 @@ function getSwimmingLoadFactor(weekNumber: number, totalWeeks: number): number {
 function getSwimmingFocus(goal: string, weekNum: number, totalWeeks: number): string {
   const progress = weekNum / totalWeeks
   if (goal === 'sprint') {
-    if (progress < 0.3) return 'Teknik och aerob grund'
-    if (progress < 0.6) return 'Fartlek och hastighetsarbete'
-    return 'Maximal hastighet och tävlingsförberedelse'
+    if (progress < 0.3) return 'Technique and aerobic base'
+    if (progress < 0.6) return 'Speed play and speed work'
+    return 'Maximal speed and race preparation'
   }
   if (goal === 'distance' || goal === 'open-water') {
-    if (progress < 0.3) return 'Aerob bas och teknik'
-    if (progress < 0.6) return 'Tröskelarbete'
-    return 'Distansspecifikt arbete'
+    if (progress < 0.3) return 'Aerobic base and technique'
+    if (progress < 0.6) return 'Threshold work'
+    return 'Distance-specific work'
   }
-  return 'Allmän träning'
+  return 'General training'
 }

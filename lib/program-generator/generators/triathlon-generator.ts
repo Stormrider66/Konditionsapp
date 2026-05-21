@@ -75,7 +75,7 @@ export async function generateTriathlonProgram(
     'olympic': 'Olympic Triathlon',
     'half-ironman': '70.3',
     'ironman': 'Ironman',
-    'custom': 'Anpassad',
+    'custom': 'Custom',
   }
 
   const goalDistances: Record<string, string> = {
@@ -83,7 +83,7 @@ export async function generateTriathlonProgram(
     'olympic': '1.5km / 40km / 10km',
     'half-ironman': '1.9km / 90km / 21km',
     'ironman': '3.8km / 180km / 42km',
-    'custom': 'Anpassad distans',
+    'custom': 'Custom distance',
   }
 
   return {
@@ -94,7 +94,7 @@ export async function generateTriathlonProgram(
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `Triathlonprogram för ${goalDistances[params.goal] || 'anpassad distans'}`,
+    notes: params.notes || `Triathlon program for ${goalDistances[params.goal] || 'custom distance'}`,
     weeks,
   }
 }
@@ -115,7 +115,7 @@ function createDaysFromWorkouts(
 
     days.push({
       dayNumber: dayNum,
-      notes: hasWorkout ? '' : 'Vilodag',
+      notes: hasWorkout ? '' : 'Rest day',
       workouts: workout
         ? [mapTriathlonWorkoutToDTO(workout)]
         : [],
@@ -137,7 +137,7 @@ function createFallbackTriathlonProgram(
     'olympic': '1.5km / 40km / 10km',
     'half-ironman': '1.9km / 90km / 21km',
     'ironman': '3.8km / 180km / 42km',
-    'custom': 'Anpassad distans',
+    'custom': 'Custom distance',
   }
 
   const weeks = Array.from({ length: params.durationWeeks }).map((_, i) => {
@@ -169,7 +169,7 @@ function createFallbackTriathlonProgram(
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `Triathlonprogram för ${goalDistances[params.goal] || 'anpassad distans'} med sim/cykel/löp, brick-pass och progressiv tävlingsförberedelse.`,
+    notes: params.notes || `Triathlon program for ${goalDistances[params.goal] || 'custom distance'} with swim/bike/run, brick sessions, and progressive race preparation.`,
     weeks,
   }
 }
@@ -192,47 +192,47 @@ function createFallbackTriathlonDays(input: {
       day: 1,
       workout: triathlonWorkout({
         type: 'SWIMMING',
-        name: 'Simteknik och aerob bas',
+        name: 'Swim technique and aerobic base',
         intensity: 'EASY',
         duration: Math.round(45 * loadFactor),
         distance: 1800,
-        instructions: 'Teknikdrillar, lugn aerob simning och jämn rytm. Fokus på effektivitet före fart.',
+        instructions: 'Technique drills, easy aerobic swimming, and steady rhythm. Focus on efficiency before speed.',
       }),
     },
     {
       day: 2,
       workout: triathlonWorkout({
         type: 'CYCLING',
-        name: 'Cykel tröskel / tempo',
+        name: 'Bike threshold / tempo',
         intensity: 'THRESHOLD',
         duration: Math.round(65 * loadFactor),
-        instructions: 'Kontrollerade block i tempo/tröskel. Håll aeroposition och jämnt tryck.',
+        instructions: 'Controlled tempo/threshold blocks. Hold aero position and steady pressure.',
       }),
     },
     {
       day: 4,
       workout: triathlonWorkout({
         type: 'RUNNING',
-        name: 'Löpning fartuthållighet',
+        name: 'Run speed endurance',
         intensity: 'MODERATE',
         duration: Math.round(50 * loadFactor),
         distance: Math.round(9000 * loadFactor),
-        instructions: 'Progressiv löpning från lätt till kontrollerat målfartsliknande arbete.',
+        instructions: 'Progressive running from easy to controlled goal-pace-like work.',
       }),
     },
     {
       day: 6,
       workout: triathlonWorkout({
         type: 'TRIATHLON',
-        name: 'Brick: cykel till löp',
+        name: 'Brick: bike to run',
         intensity: 'MODERATE',
         duration: Math.round((longBikeDuration * 0.65 + 20) * loadFactor),
-        instructions: 'Cykla jämnt i aerob/tempozon och spring direkt 15-25 minuter kontrollerat. Öva övergång och energi.',
+        instructions: 'Ride steadily in aerobic/tempo zones and run directly for 15-25 controlled minutes. Practice transition and fueling.',
         segments: [
-          { order: 1, type: 'warmup', duration: 10, description: 'Lätt cykeluppvärmning' },
-          { order: 2, type: 'work', duration: Math.round(longBikeDuration * 0.65 * loadFactor), description: 'Cykelblock med jämn belastning' },
-          { order: 3, type: 'work', duration: 20, description: 'Direkt övergång till lugn/steady löpning' },
-          { order: 4, type: 'cooldown', duration: 8, description: 'Nedvarvning och rörlighet' },
+          { order: 1, type: 'warmup', duration: 10, description: 'Easy bike warm-up' },
+          { order: 2, type: 'work', duration: Math.round(longBikeDuration * 0.65 * loadFactor), description: 'Bike block with steady load' },
+          { order: 3, type: 'work', duration: 20, description: 'Direct transition to easy/steady running' },
+          { order: 4, type: 'cooldown', duration: 8, description: 'Cool-down and mobility' },
         ],
       }),
     },
@@ -240,21 +240,21 @@ function createFallbackTriathlonDays(input: {
       day: 7,
       workout: triathlonWorkout({
         type: 'CYCLING',
-        name: 'Lång cykel',
+        name: 'Long bike',
         intensity: 'EASY',
         duration: Math.round(longBikeDuration * loadFactor),
-        instructions: 'Aerob distans med tävlingsnära energiintag och jämn intensitet.',
+        instructions: 'Aerobic distance with race-like fueling and steady intensity.',
       }),
     },
     {
       day: 5,
       workout: triathlonWorkout({
         type: 'SWIMMING',
-        name: 'CSS / fartkontroll',
+        name: 'CSS / pace control',
         intensity: 'THRESHOLD',
         duration: 50,
         distance: 2200,
-        instructions: 'Repetitioner runt CSS eller RPE 7/10. Jämna tider med tekniskt avslut.',
+        instructions: 'Repetitions around CSS or RPE 7/10. Even splits with a technical finish.',
       }),
     },
     {
@@ -263,11 +263,11 @@ function createFallbackTriathlonDays(input: {
         ? triathlonStrengthWorkout()
         : triathlonWorkout({
             type: 'RUNNING',
-            name: 'Lång löpning',
+            name: 'Long run',
             intensity: 'EASY',
             duration: Math.round(longRunDuration * loadFactor),
             distance: Math.round(longRunDuration * 150 * loadFactor),
-            instructions: 'Lugn aerob löpning. Håll kadens, hållning och låg muskulär stress.',
+            instructions: 'Easy aerobic running. Maintain cadence, posture, and low muscular stress.',
           }),
     },
   ]
@@ -275,7 +275,7 @@ function createFallbackTriathlonDays(input: {
   const keep = new Map(planned.slice(0, sessions).map((item) => [item.day, item.workout]))
   return Array.from({ length: 7 }).map((_, index) => ({
     dayNumber: index + 1,
-    notes: keep.has(index + 1) ? '' : 'Vilodag',
+    notes: keep.has(index + 1) ? '' : 'Rest day',
     workouts: keep.get(index + 1) ? [keep.get(index + 1)!] : [],
   }))
 }
@@ -297,9 +297,9 @@ function triathlonWorkout(input: {
     distance: input.distance,
     instructions: input.instructions,
     segments: input.segments || [
-      { order: 1, type: 'warmup', duration: 10, description: 'Lugn uppvärmning och teknikförberedelse' },
+      { order: 1, type: 'warmup', duration: 10, description: 'Easy warm-up and technique preparation' },
       { order: 2, type: 'work', duration: Math.max(15, input.duration - 20), distance: input.distance, description: input.instructions },
-      { order: 3, type: 'cooldown', duration: 10, description: 'Nedvarvning' },
+      { order: 3, type: 'cooldown', duration: 10, description: 'Cool-down' },
     ],
   }
 }
@@ -307,15 +307,15 @@ function triathlonWorkout(input: {
 function triathlonStrengthWorkout(): CreateWorkoutDTO {
   return {
     type: 'STRENGTH',
-    name: 'Triathlonstyrka och bål',
+    name: 'Triathlon strength and core',
     intensity: 'MODERATE',
     duration: 45,
-    instructions: 'Kort styrkepass som stödjer hållning på cykel, löpekonomi och skadeprevention.',
+    instructions: 'Short strength session supporting bike posture, running economy, and injury prevention.',
     segments: [
-      { order: 1, type: 'warmup', duration: 8, description: 'Rörlighet höft, bröstrygg och axlar' },
+      { order: 1, type: 'warmup', duration: 8, description: 'Hip, thoracic spine, and shoulder mobility' },
       { order: 2, type: 'exercise', duration: 12, sets: 3, repsCount: '6-8', description: 'Split squat eller step-up' },
-      { order: 3, type: 'exercise', duration: 12, sets: 3, repsCount: '8-10', description: 'Rodd + höftdominant styrka' },
-      { order: 4, type: 'exercise', duration: 13, sets: 3, repsCount: '30-45 sek', description: 'Bålstabilitet och antirotation' },
+      { order: 3, type: 'exercise', duration: 12, sets: 3, repsCount: '8-10', description: 'Row + hip-dominant strength' },
+      { order: 4, type: 'exercise', duration: 13, sets: 3, repsCount: '30-45 sec', description: 'Core stability and anti-rotation' },
     ],
   }
 }
@@ -339,9 +339,9 @@ function getTriathlonFocus(goal: string, weekNum: number, totalWeeks: number): s
   const progress = weekNum / totalWeeks
   const isLongDistance = goal === 'half-ironman' || goal === 'ironman'
 
-  if (progress < 0.25) return 'Teknik och aerob grund'
-  if (progress < 0.5) return isLongDistance ? 'Volymbyggnad' : 'Intensitetsbyggnad'
-  if (progress < 0.75) return 'Disciplinspecifikt arbete'
-  if (progress < 0.9) return 'Brick-sessioner och tävlingsförberedelse'
-  return 'Taper och vila'
+  if (progress < 0.25) return 'Technique and aerobic base'
+  if (progress < 0.5) return isLongDistance ? 'Volume build' : 'Intensity build'
+  if (progress < 0.75) return 'Discipline-specific work'
+  if (progress < 0.9) return 'Brick sessions and race preparation'
+  return 'Taper and rest'
 }

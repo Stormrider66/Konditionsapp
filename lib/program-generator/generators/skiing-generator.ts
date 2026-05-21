@@ -67,21 +67,21 @@ export async function generateSkiingProgram(
   }))
 
   const goalLabels: Record<string, string> = {
-    'threshold-builder': 'Tröskelbyggare',
-    'prep-phase': 'Förberedelse',
+    'threshold-builder': 'Threshold builder',
+    'prep-phase': 'Preparation',
     'vasaloppet': 'Vasaloppet',
-    'custom': 'Anpassad',
+    'custom': 'Custom',
   }
 
   return {
     clientId: params.clientId,
     coachId: params.coachId,
     testId: test?.id || undefined,
-    name: `${goalLabels[params.goal] || 'Skidprogram'} - ${client.name}`,
+    name: `${goalLabels[params.goal] || 'Skiing program'} - ${client.name}`,
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `Skidprogram för ${params.technique === 'classic' ? 'klassisk teknik' : params.technique === 'skating' ? 'skating' : 'båda tekniker'}`,
+    notes: params.notes || `Skiing program for ${params.technique === 'classic' ? 'classic technique' : params.technique === 'skating' ? 'skating' : 'both techniques'}`,
     weeks,
   }
 }
@@ -102,7 +102,7 @@ function createDaysFromWorkouts(
 
     days.push({
       dayNumber: dayNum,
-      notes: hasWorkout ? '' : 'Vilodag',
+      notes: hasWorkout ? '' : 'Rest day',
       workouts: workout
         ? [mapSkiingWorkoutToDTO(workout)]
         : [],
@@ -144,11 +144,11 @@ function createFallbackSkiingProgram(
     clientId: params.clientId,
     coachId: params.coachId,
     testId: test?.id || undefined,
-    name: `Skidprogram - ${client.name}`,
+    name: `Skiing program - ${client.name}`,
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `Skidprogram för ${params.technique === 'classic' ? 'klassisk teknik' : params.technique === 'skating' ? 'skating' : 'båda tekniker'} med teknik, tröskel, distans och skidstyrka.`,
+    notes: params.notes || `Skiing program for ${params.technique === 'classic' ? 'classic technique' : params.technique === 'skating' ? 'skating' : 'both techniques'} with technique, threshold work, endurance, and ski-specific strength.`,
     weeks,
   }
 }
@@ -163,40 +163,40 @@ function createFallbackSkiingDays(input: {
 }): CreateTrainingDayDTO[] {
   const sessions = Math.min(7, Math.max(1, input.sessionsPerWeek))
   const loadFactor = getSkiingLoadFactor(input.weekNumber, input.totalWeeks)
-  const techniqueLabel = input.technique === 'classic' ? 'klassisk teknik' : input.technique === 'skating' ? 'skate' : 'klassisk/skate'
+  const techniqueLabel = input.technique === 'classic' ? 'classic technique' : input.technique === 'skating' ? 'skating' : 'classic/skating'
   const longDuration = input.goal === 'vasaloppet' ? 150 : input.weeklyHours >= 10 ? 120 : 90
 
   const planned = [
     {
       day: 2,
       workout: skiingWorkout({
-        name: 'Teknik och aerob distans',
+        name: 'Technique and aerobic distance',
         intensity: 'EASY',
         duration: Math.round(65 * loadFactor),
         zone: 2,
-        instructions: `Lugn skidåkning med fokus på ${techniqueLabel}, tyngdöverföring och avslappnad rytm.`,
+        instructions: `Easy skiing focused on ${techniqueLabel}, weight transfer, and relaxed rhythm.`,
       }),
     },
     {
       day: 4,
       workout: skiingWorkout({
-        name: input.goal === 'threshold-builder' ? 'Tröskelintervaller' : 'Stakning / backstyrka',
+        name: input.goal === 'threshold-builder' ? 'Threshold intervals' : 'Double poling / hill strength',
         intensity: input.goal === 'threshold-builder' ? 'THRESHOLD' : 'MODERATE',
         duration: Math.round(60 * loadFactor),
         zone: input.goal === 'threshold-builder' ? 4 : 3,
         instructions: input.goal === 'threshold-builder'
-          ? 'Kontrollerade drag strax under/vid tröskel med stabil teknik hela vägen.'
-          : 'Stakning, diagonalåkning eller backdrag med teknisk kvalitet före maximal fart.',
+          ? 'Controlled reps just below/at threshold with stable technique all the way.'
+          : 'Double poling, diagonal stride, or hill reps with technical quality before maximal speed.',
       }),
     },
     {
       day: 6,
       workout: skiingWorkout({
-        name: input.goal === 'vasaloppet' ? 'Långpass Vasaloppet-specifikt' : 'Långpass skidor/rullskidor',
+        name: input.goal === 'vasaloppet' ? 'Vasaloppet-specific long session' : 'Long ski/roller-ski session',
         intensity: 'EASY',
         duration: Math.round(longDuration * loadFactor),
         zone: 2,
-        instructions: 'Jämn aerob belastning. Öva vätska/energi, stavarbete och avslappnad hållning.',
+        instructions: 'Steady aerobic load. Practice hydration/fueling, pole work, and relaxed posture.',
       }),
     },
     {
@@ -206,21 +206,21 @@ function createFallbackSkiingDays(input: {
     {
       day: 5,
       workout: skiingWorkout({
-        name: 'Fartväxlingar och ekonomi',
+        name: 'Surges and economy',
         intensity: 'INTERVAL',
         duration: Math.round(50 * loadFactor),
         zone: 5,
-        instructions: 'Korta fartökningar med full teknik. Låt vilan bli tillräcklig för hög rörelsekvalitet.',
+        instructions: 'Short surges with full technique. Keep recovery long enough for high movement quality.',
       }),
     },
     {
       day: 3,
       workout: skiingWorkout({
-        name: 'Aktiv återhämtning',
+        name: 'Active recovery',
         intensity: 'RECOVERY',
         duration: 35,
         zone: 1,
-        instructions: 'Lätt cirkulation, rörlighet för höft/rygg och enkel balans/koordination.',
+        instructions: 'Easy circulation, hip/back mobility, and simple balance/coordination work.',
       }),
     },
   ]
@@ -228,7 +228,7 @@ function createFallbackSkiingDays(input: {
   const keep = new Map(planned.slice(0, sessions).map((item) => [item.day, item.workout]))
   return Array.from({ length: 7 }).map((_, index) => ({
     dayNumber: index + 1,
-    notes: keep.has(index + 1) ? '' : 'Vilodag',
+    notes: keep.has(index + 1) ? '' : 'Rest day',
     workouts: keep.get(index + 1) ? [keep.get(index + 1)!] : [],
   }))
 }
@@ -247,9 +247,9 @@ function skiingWorkout(input: {
     duration: input.duration,
     instructions: input.instructions,
     segments: [
-      { order: 1, type: 'warmup', duration: 10, zone: 1, description: 'Lugn uppvärmning och teknikdrill' },
+      { order: 1, type: 'warmup', duration: 10, zone: 1, description: 'Easy warm-up and technique drill' },
       { order: 2, type: 'work', duration: Math.max(15, input.duration - 20), zone: input.zone, description: input.instructions },
-      { order: 3, type: 'cooldown', duration: 10, zone: 1, description: 'Nedvarvning och rörlighet' },
+      { order: 3, type: 'cooldown', duration: 10, zone: 1, description: 'Cool-down and mobility' },
     ],
   }
 }
@@ -257,15 +257,15 @@ function skiingWorkout(input: {
 function skiingStrengthWorkout(): CreateWorkoutDTO {
   return {
     type: 'STRENGTH',
-    name: 'Skidstyrka och bål',
+    name: 'Ski strength and core',
     intensity: 'MODERATE',
     duration: 45,
-    instructions: 'Skidnära styrka: stakmuskulatur, bålrotation, höftstabilitet och enbensstyrka.',
+    instructions: 'Ski-specific strength: double-poling muscles, trunk rotation, hip stability, and single-leg strength.',
     segments: [
-      { order: 1, type: 'warmup', duration: 8, description: 'Dynamisk uppvärmning för axlar, höft och bål' },
-      { order: 2, type: 'exercise', duration: 14, sets: 3, repsCount: '8-10', description: 'Pull-down/stakdrag eller chins-variant' },
+      { order: 1, type: 'warmup', duration: 8, description: 'Dynamic warm-up for shoulders, hips, and core' },
+      { order: 2, type: 'exercise', duration: 14, sets: 3, repsCount: '8-10', description: 'Pull-down/double-poling pull or chin-up variation' },
       { order: 3, type: 'exercise', duration: 12, sets: 3, repsCount: '8/ben', description: 'Step-up eller split squat' },
-      { order: 4, type: 'exercise', duration: 11, sets: 3, repsCount: '30-45 sek', description: 'Sidoplanka, dead bug och antirotation' },
+      { order: 4, type: 'exercise', duration: 11, sets: 3, repsCount: '30-45 sec', description: 'Side plank, dead bug, and anti-rotation' },
     ],
   }
 }
@@ -287,8 +287,8 @@ function getSkiingLoadFactor(weekNumber: number, totalWeeks: number): number {
 
 function getSkiingFocus(weekNum: number, totalWeeks: number): string {
   const progress = weekNum / totalWeeks
-  if (progress < 0.25) return 'Grunduthållighet'
-  if (progress < 0.5) return 'Teknikfokus'
-  if (progress < 0.75) return 'Intensitetsbyggnad'
-  return 'Toppform'
+  if (progress < 0.25) return 'Base endurance'
+  if (progress < 0.5) return 'Technique focus'
+  if (progress < 0.75) return 'Intensity build'
+  return 'Peak form'
 }
