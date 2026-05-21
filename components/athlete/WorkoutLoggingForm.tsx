@@ -38,6 +38,7 @@ import {
 } from '@/lib/fueling/product-plan'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
 import type { RaceContext } from './workout/WorkoutLogClient'
+import { useLocale } from '@/i18n/client'
 
 // Per-interval rep schema
 const intervalRepSchema = z.object({
@@ -102,6 +103,7 @@ const formSchema = z.object({
 })
 
 type FormData = z.infer<typeof formSchema>
+type AppLocale = 'en' | 'sv'
 
 interface WorkoutLoggingFormProps {
   workout: any
@@ -338,6 +340,7 @@ export function WorkoutLoggingForm({
   raceContext,
   onProgramCompletion,
 }: WorkoutLoggingFormProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const router = useRouter()
   const { toast } = useToast()
   const contextBasePath = useBasePath()
@@ -1588,7 +1591,9 @@ export function WorkoutLoggingForm({
                             className="py-4"
                           />
                         </FormControl>
-                        <FormDescription>1 = låg energi, 5 = stark hela vägen</FormDescription>
+                        <FormDescription>
+                          {locale === 'sv' ? '1 = låg energi, 5 = stark hela vägen' : '1 = low energy, 5 = strong all the way'}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1599,10 +1604,10 @@ export function WorkoutLoggingForm({
                   name="fuelingNotes"
                   render={({ field }) => (
                     <FormItem className="mt-4">
-                      <FormLabel>Kommentar om energi/mage</FormLabel>
+                      <FormLabel>{locale === 'sv' ? 'Kommentar om energi/mage' : 'Energy/gut comment'}</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Produkt, timing, magrespons, energi..."
+                          placeholder={locale === 'sv' ? 'Produkt, timing, magrespons, energi...' : 'Product, timing, gut response, energy...'}
                           rows={2}
                           {...field}
                           value={field.value || ''}
@@ -1616,16 +1621,16 @@ export function WorkoutLoggingForm({
                   <div className="mt-4 rounded-md border bg-white/70 p-3 text-sm dark:bg-slate-950/40">
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-medium text-slate-900 dark:text-white">
-                        {fuelingSessionFeedback.labelSv}
+                        {getFuelingFeedbackCopy(fuelingSessionFeedback, locale).label}
                       </p>
                       {fuelingSessionFeedback.nextTargetGPerHour && (
                         <Badge variant="outline">
-                          Nästa: {fuelingSessionFeedback.nextTargetGPerHour} g/h
+                          {locale === 'sv' ? 'Nästa' : 'Next'}: {fuelingSessionFeedback.nextTargetGPerHour} g/h
                         </Badge>
                       )}
                     </div>
                     <p className="mt-1 text-muted-foreground">
-                      {fuelingSessionFeedback.messageSv}
+                      {getFuelingFeedbackCopy(fuelingSessionFeedback, locale).message}
                     </p>
                   </div>
                 )}
@@ -1948,6 +1953,53 @@ function ProductInputRow({
 function parseProductCount(value: string): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+function getFuelingFeedbackCopy(
+  feedback: ReturnType<typeof buildFuelingSessionFeedback>,
+  locale: AppLocale
+): { label: string; message: string } {
+  if (locale === 'sv') {
+    return { label: feedback.labelSv, message: feedback.messageSv }
+  }
+
+  const nextTarget = feedback.nextTargetGPerHour
+  switch (feedback.status) {
+    case 'MISSING':
+      return {
+        label: 'Missing intake',
+        message: 'Log carbohydrates per hour to get the next recommendation.',
+      }
+    case 'REDUCE':
+      return {
+        label: 'Reduce next time',
+        message: nextTarget
+          ? `Gut response was not stable. Aim for about ${nextTarget} g/h next time and prioritize even timing.`
+          : 'Gut response was not stable. Reduce the next target and prioritize even timing.',
+      }
+    case 'HOLD':
+      return {
+        label: feedback.labelSv === 'Bygg upp till planen' ? 'Build up to the plan' : 'Hold level',
+        message: nextTarget
+          ? `Repeat about ${nextTarget} g/h until your gut feels more stable before increasing.`
+          : 'Repeat the current level until your gut feels more stable before increasing.',
+      }
+    case 'PROGRESS':
+      return {
+        label: 'Ready to increase',
+        message: nextTarget
+          ? `Good tolerance. The next long session can test about ${nextTarget} g/h if it is race-like.`
+          : 'Good tolerance. The next long session can test a small increase if it is race-like.',
+      }
+    case 'ON_TRACK':
+    default:
+      return {
+        label: 'On track',
+        message: nextTarget
+          ? `Continue with about ${nextTarget} g/h and log the response after the next long session.`
+          : 'Continue with the current target and log the response after the next long session.',
+      }
+  }
 }
 
 function getEffortBadgeClass(effort: number): string {
