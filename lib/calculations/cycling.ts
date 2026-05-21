@@ -3,6 +3,8 @@ import { Threshold, PowerZone, Gender, TestStage, CyclingData } from '@/types'
 import { calculateWattsPerKg } from './economy'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
 /**
  * Beräkna FTP (Functional Threshold Power) från anaerob tröskel
  * FTP motsvarar effekten vid 4 mmol/L laktat
@@ -21,7 +23,27 @@ export function calculateFTP(anaerobicThreshold: Threshold): number {
  * Beräkna power zones baserat på FTP
  * Använder 7-zonsmodellen som är standard inom cykling
  */
-export function calculatePowerZones(ftp: number): PowerZone[] {
+export function calculatePowerZones(ftp: number, locale: AppLocale = 'en'): PowerZone[] {
+  const descriptions = locale === 'sv'
+    ? {
+        activeRecovery: 'Aktiv återhämtning, mycket låg intensitet',
+        endurance: 'Grundträning, lång långsam distans',
+        tempo: 'Tempo, aerob kapacitet',
+        threshold: 'Laktattröskel, "sweet spot"',
+        vo2max: 'VO2 max intervaller',
+        anaerobic: 'Anaerob kapacitet, korta intervaller',
+        neuromuscular: 'Neuromuskulär träning, sprint',
+      }
+    : {
+        activeRecovery: 'Active recovery, very low intensity',
+        endurance: 'Base training, long slow distance',
+        tempo: 'Tempo, aerobic capacity',
+        threshold: 'Lactate threshold, "sweet spot"',
+        vo2max: 'VO2 max intervals',
+        anaerobic: 'Anaerobic capacity, short intervals',
+        neuromuscular: 'Neuromuscular training, sprint',
+      }
+
   const zones: PowerZone[] = [
     {
       zone: 1,
@@ -30,7 +52,7 @@ export function calculatePowerZones(ftp: number): PowerZone[] {
       percentMax: 55,
       powerMin: 0,
       powerMax: Math.round(ftp * 0.55),
-      description: 'Aktiv återhämtning, mycket låg intensitet',
+      description: descriptions.activeRecovery,
     },
     {
       zone: 2,
@@ -39,7 +61,7 @@ export function calculatePowerZones(ftp: number): PowerZone[] {
       percentMax: 75,
       powerMin: Math.round(ftp * 0.56),
       powerMax: Math.round(ftp * 0.75),
-      description: 'Grundträning, lång långsam distans',
+      description: descriptions.endurance,
     },
     {
       zone: 3,
@@ -48,7 +70,7 @@ export function calculatePowerZones(ftp: number): PowerZone[] {
       percentMax: 90,
       powerMin: Math.round(ftp * 0.76),
       powerMax: Math.round(ftp * 0.90),
-      description: 'Tempo, aerob kapacitet',
+      description: descriptions.tempo,
     },
     {
       zone: 4,
@@ -57,7 +79,7 @@ export function calculatePowerZones(ftp: number): PowerZone[] {
       percentMax: 105,
       powerMin: Math.round(ftp * 0.91),
       powerMax: Math.round(ftp * 1.05),
-      description: 'Laktattröskel, "sweet spot"',
+      description: descriptions.threshold,
     },
     {
       zone: 5,
@@ -66,7 +88,7 @@ export function calculatePowerZones(ftp: number): PowerZone[] {
       percentMax: 120,
       powerMin: Math.round(ftp * 1.06),
       powerMax: Math.round(ftp * 1.20),
-      description: 'VO2 max intervaller',
+      description: descriptions.vo2max,
     },
     {
       zone: 6,
@@ -75,7 +97,7 @@ export function calculatePowerZones(ftp: number): PowerZone[] {
       percentMax: 150,
       powerMin: Math.round(ftp * 1.21),
       powerMax: Math.round(ftp * 1.50),
-      description: 'Anaerob kapacitet, korta intervaller',
+      description: descriptions.anaerobic,
     },
     {
       zone: 7,
@@ -84,7 +106,7 @@ export function calculatePowerZones(ftp: number): PowerZone[] {
       percentMax: 200,
       powerMin: Math.round(ftp * 1.51),
       powerMax: Math.round(ftp * 2.0),
-      description: 'Neuromuskulär träning, sprint',
+      description: descriptions.neuromuscular,
     },
   ]
 
@@ -98,36 +120,52 @@ export function calculatePowerZones(ftp: number): PowerZone[] {
 export function evaluateCyclingPower(
   wattsPerKg: number,
   age: number,
-  gender: Gender
+  gender: Gender,
+  locale: AppLocale = 'en'
 ): string {
   // Bedömningskriterier (generella riktlinjer)
+  const labels = locale === 'sv'
+    ? {
+        beginner: 'Nybörjare - Bra utgångspunkt för träning',
+        recreational: 'Motionär - God grundnivå',
+        trained: 'Vältränad - Mycket god cykelkraft',
+        competitive: 'Mycket vältränad - Tävlingsnivå',
+        elite: 'Elitnivå - Exceptionell cykelkraft',
+      }
+    : {
+        beginner: 'Beginner - Good starting point for training',
+        recreational: 'Recreational - Good base level',
+        trained: 'Trained - Very good cycling power',
+        competitive: 'Highly trained - Competitive level',
+        elite: 'Elite level - Exceptional cycling power',
+      }
   let thresholds: number[]
 
   if (gender === 'MALE') {
     thresholds = [2.0, 3.0, 4.0, 5.0]
     if (wattsPerKg < thresholds[0]) {
-      return 'Nybörjare - Bra utgångspunkt för träning'
+      return labels.beginner
     } else if (wattsPerKg < thresholds[1]) {
-      return 'Motionär - God grundnivå'
+      return labels.recreational
     } else if (wattsPerKg < thresholds[2]) {
-      return 'Vältränad - Mycket god cykelkraft'
+      return labels.trained
     } else if (wattsPerKg < thresholds[3]) {
-      return 'Mycket vältränad - Tävlingsnivå'
+      return labels.competitive
     } else {
-      return 'Elitnivå - Exceptionell cykelkraft'
+      return labels.elite
     }
   } else {
     thresholds = [1.5, 2.5, 3.5, 4.5]
     if (wattsPerKg < thresholds[0]) {
-      return 'Nybörjare - Bra utgångspunkt för träning'
+      return labels.beginner
     } else if (wattsPerKg < thresholds[1]) {
-      return 'Motionär - God grundnivå'
+      return labels.recreational
     } else if (wattsPerKg < thresholds[2]) {
-      return 'Vältränad - Mycket god cykelkraft'
+      return labels.trained
     } else if (wattsPerKg < thresholds[3]) {
-      return 'Mycket vältränad - Tävlingsnivå'
+      return labels.competitive
     } else {
-      return 'Elitnivå - Exceptionell cykelkraft'
+      return labels.elite
     }
   }
 }
@@ -140,7 +178,8 @@ export function calculateCyclingData(
   anaerobicThreshold: Threshold,
   weight: number,
   age: number,
-  gender: Gender
+  gender: Gender,
+  locale: AppLocale = 'en'
 ): CyclingData {
   // Beräkna FTP
   const ftp = calculateFTP(anaerobicThreshold)
@@ -149,10 +188,10 @@ export function calculateCyclingData(
   const wattsPerKg = calculateWattsPerKg(ftp, weight)
 
   // Beräkna power zones
-  const powerZones = calculatePowerZones(ftp)
+  const powerZones = calculatePowerZones(ftp, locale)
 
   // Utvärdera cykelkraft
-  const evaluation = evaluateCyclingPower(wattsPerKg, age, gender)
+  const evaluation = evaluateCyclingPower(wattsPerKg, age, gender, locale)
 
   return {
     ftp,
