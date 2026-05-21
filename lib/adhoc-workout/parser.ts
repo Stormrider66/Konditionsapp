@@ -33,6 +33,12 @@ import type {
 } from './types'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale | undefined, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================
 // MAIN PARSER FUNCTIONS
 // ============================================
@@ -95,7 +101,8 @@ export async function parseWorkoutFromVoice(
  * Parse workout from Strava activity (no AI needed - direct mapping)
  */
 export async function parseWorkoutFromStrava(
-  activity: StravaActivityImport
+  activity: StravaActivityImport,
+  locale: AppLocale = 'en'
 ): Promise<ParsedWorkout> {
   const mapping = mapStravaType(activity.type)
 
@@ -119,8 +126,8 @@ export async function parseWorkoutFromStrava(
     maxHeartRate: activity.maxHeartrate,
     avgPace,
     elevationGain: activity.elevationGain > 0 ? activity.elevationGain : undefined,
-    rawInterpretation: `Importerat från Strava: ${activity.name} (${activity.type})`,
-    notes: `Strava aktivitet: ${activity.id}`,
+    rawInterpretation: t(locale, `Imported from Strava: ${activity.name} (${activity.type})`, `Importerat från Strava: ${activity.name} (${activity.type})`),
+    notes: t(locale, `Strava activity: ${activity.id}`, `Strava aktivitet: ${activity.id}`),
   }
 }
 
@@ -128,7 +135,8 @@ export async function parseWorkoutFromStrava(
  * Parse workout from Garmin activity (no AI needed - direct mapping)
  */
 export async function parseWorkoutFromGarmin(
-  activity: GarminActivityImport
+  activity: GarminActivityImport,
+  locale: AppLocale = 'en'
 ): Promise<ParsedWorkout> {
   const mapping = mapGarminType(activity.activityType)
 
@@ -152,8 +160,8 @@ export async function parseWorkoutFromGarmin(
     maxHeartRate: activity.maxHR,
     avgPace,
     elevationGain: activity.elevationGain > 0 ? activity.elevationGain : undefined,
-    rawInterpretation: `Importerat från Garmin: ${activity.activityName} (${activity.activityType})`,
-    notes: `Garmin aktivitet: ${activity.activityId}`,
+    rawInterpretation: t(locale, `Imported from Garmin: ${activity.activityName} (${activity.activityType})`, `Importerat från Garmin: ${activity.activityName} (${activity.activityType})`),
+    notes: t(locale, `Garmin activity: ${activity.activityId}`, `Garmin aktivitet: ${activity.activityId}`),
   }
 }
 
@@ -178,7 +186,7 @@ async function callAI(prompt: string, config: ParserConfig): Promise<ParsedWorko
     temperature: config.temperature || 0.3,
   })
 
-  return parseAIResponse(response.text)
+  return parseAIResponse(response.text, config.locale)
 }
 
 /**
@@ -210,7 +218,7 @@ async function callAIWithImage(
     }
   )
 
-  return parseAIResponse(response.text)
+  return parseAIResponse(response.text, config.locale)
 }
 
 /**
@@ -252,14 +260,14 @@ async function transcribeAudio(
 /**
  * Parse AI response text to ParsedWorkout
  */
-function parseAIResponse(text: string): ParsedWorkout {
+function parseAIResponse(text: string, locale: AppLocale = 'en'): ParsedWorkout {
   // Extract JSON from response (might be wrapped in markdown code blocks)
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
   const jsonText = jsonMatch ? jsonMatch[1] : text
 
   try {
     const parsed = JSON.parse(jsonText)
-    return validateParsedWorkout(parsed)
+    return validateParsedWorkout(parsed, locale)
   } catch (error) {
     logger.error('Failed to parse AI response as JSON', { text, error })
 
@@ -267,8 +275,8 @@ function parseAIResponse(text: string): ParsedWorkout {
     return {
       type: 'MIXED',
       confidence: 0,
-      rawInterpretation: 'Kunde inte tolka AI-svaret',
-      warnings: ['AI-svaret kunde inte tolkas som JSON', text.substring(0, 200)],
+      rawInterpretation: t(locale, 'Could not interpret the AI response', 'Kunde inte tolka AI-svaret'),
+      warnings: [t(locale, 'The AI response could not be parsed as JSON', 'AI-svaret kunde inte tolkas som JSON'), text.substring(0, 200)],
     }
   }
 }
@@ -276,7 +284,7 @@ function parseAIResponse(text: string): ParsedWorkout {
 /**
  * Validate and normalize parsed workout structure
  */
-function validateParsedWorkout(data: unknown): ParsedWorkout {
+function validateParsedWorkout(data: unknown, locale: AppLocale = 'en'): ParsedWorkout {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid parsed workout data')
   }
@@ -326,7 +334,7 @@ function validateParsedWorkout(data: unknown): ParsedWorkout {
     rawInterpretation:
       typeof workout.rawInterpretation === 'string'
         ? workout.rawInterpretation
-        : 'Ingen tolkning tillgänglig',
+        : t(locale, 'No interpretation available', 'Ingen tolkning tillgänglig'),
     warnings: Array.isArray(workout.warnings) ? workout.warnings : undefined,
   }
 }

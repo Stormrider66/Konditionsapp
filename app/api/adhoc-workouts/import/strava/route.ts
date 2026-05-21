@@ -119,7 +119,8 @@ export async function POST(request: NextRequest) {
     if (!resolved) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    const locale = user.language === 'sv' ? 'sv' : 'en'
 
     // Parse request body
     const body = await request.json()
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse the activity (no AI needed - direct mapping)
-    const parsedWorkout = await parseWorkoutFromStrava(importData)
+    const parsedWorkout = await parseWorkoutFromStrava(importData, locale)
 
     // Create ad-hoc workout entry
     const adHocWorkout = await prisma.adHocWorkout.create({
