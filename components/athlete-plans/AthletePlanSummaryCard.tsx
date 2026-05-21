@@ -6,6 +6,12 @@ import { CalendarDays, Layers3 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import {
+  blockPlanDescriptionWithActualWeeks,
+  blockPlanNameWithActualWeeks,
+  blockPlanTotalWeeks,
+  displayBlockPlanBlocks,
+} from '@/lib/block-plans/duration'
 import { cn } from '@/lib/utils'
 
 export interface AthletePlanBlockSummary {
@@ -76,8 +82,14 @@ export function AthletePlanSummaryCard({
   action,
 }: AthletePlanSummaryCardProps) {
   const locale = getAppLocale(useLocale())
-  const currentBlock = getCurrentBlock(plan, now)
-  const planProgress = progressPercent(plan.startDate, plan.endDate, now)
+  const displayBlocks = displayBlockPlanBlocks(plan.blocks)
+  const displayStartDate = displayBlocks[0]?.startDate ?? plan.startDate
+  const displayEndDate = displayBlocks[displayBlocks.length - 1]?.endDate ?? plan.endDate
+  const displayName = blockPlanNameWithActualWeeks(plan.name, blockPlanTotalWeeks(displayBlocks))
+  const displayDescription = blockPlanDescriptionWithActualWeeks(plan.description, displayBlocks, locale)
+  const displayPlan = { ...plan, blocks: displayBlocks }
+  const currentBlock = getCurrentBlock(displayPlan, now)
+  const planProgress = progressPercent(displayStartDate, displayEndDate, now)
   const currentBlockProgress = currentBlock
     ? progressPercent(currentBlock.startDate, currentBlock.endDate, now)
     : 0
@@ -89,11 +101,11 @@ export function AthletePlanSummaryCard({
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2 text-base">
               <Layers3 className="h-4 w-4 text-blue-600" />
-              <span className="truncate">{plan.name}</span>
+              <span className="truncate">{displayName}</span>
             </CardTitle>
             <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" />
-              {formatShortDate(plan.startDate, locale)} - {formatShortDate(plan.endDate, locale)}
+              {formatShortDate(displayStartDate, locale)} - {formatShortDate(displayEndDate, locale)}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -131,12 +143,12 @@ export function AthletePlanSummaryCard({
           </div>
         )}
 
-        {plan.description && (
-          <p className="text-sm text-muted-foreground">{plan.description}</p>
+        {displayDescription && (
+          <p className="text-sm text-muted-foreground">{displayDescription}</p>
         )}
 
         <div className="space-y-2">
-          {plan.blocks.map((block) => {
+          {displayBlocks.map((block) => {
             const isCurrent = currentBlock?.id === block.id
             return (
               <div

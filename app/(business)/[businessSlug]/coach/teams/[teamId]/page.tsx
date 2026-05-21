@@ -27,6 +27,7 @@ import {
   Zap,
   CheckCircle2,
   Clock,
+  Pencil,
 } from 'lucide-react'
 import { TeamDashboardClient } from '@/components/coach/teams/TeamDashboardClient'
 import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
@@ -665,7 +666,12 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
                 teamName={team.name}
                 businessSlug={businessSlug}
                 initialPlan={activeTeamPlan}
-                trigger={<Button variant="outline" size="sm">{t('teamPlan.edit')}</Button>}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {t('teamPlan.edit')}
+                  </Button>
+                }
               />
             }
           />

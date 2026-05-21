@@ -5,6 +5,13 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api/utils'
+import {
+  blockPlanDescriptionWithActualWeeks,
+  blockPlanNameWithActualWeeks,
+  blockPlanTotalWeeks,
+  hasOverlappingBlockPlanDates,
+  normalizeBlockPlanDates,
+} from '@/lib/block-plans/duration'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
@@ -130,19 +137,30 @@ export async function POST(request: NextRequest, context: RouteContext) {
         endDate: blockEnd,
         order: block.order,
       }
-    })
+    }).sort((a, b) => a.order - b.order)
+    const finalBlocks = hasOverlappingBlockPlanDates(blocks) ? normalizeBlockPlanDates(blocks) : blocks
+    const planStartDate = finalBlocks[0]?.startDate ?? startDate
+    const planEndDate = finalBlocks[finalBlocks.length - 1]?.endDate ?? endDate
+    const totalWeeks = blockPlanTotalWeeks(finalBlocks)
 
     const plan = await prisma.teamPlan.create({
       data: {
         teamId,
         coachId: user.id,
-        name: parsed.data.name,
-        description: parsed.data.description || null,
+        name: blockPlanNameWithActualWeeks(parsed.data.name, totalWeeks),
+        description: blockPlanDescriptionWithActualWeeks(parsed.data.description, finalBlocks) || null,
         status: parsed.data.status,
-        startDate,
-        endDate,
+        startDate: planStartDate,
+        endDate: planEndDate,
         blocks: {
-          create: blocks,
+          create: finalBlocks.map((block, index) => ({
+            title: block.title,
+            focus: block.focus,
+            description: block.description,
+            startDate: block.startDate,
+            endDate: block.endDate,
+            order: index + 1,
+          })),
         },
       },
       select: planSelect(),

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { addDays, addWeeks, differenceInCalendarDays, format } from 'date-fns'
+import { addDays, addWeeks, format } from 'date-fns'
 import { CalendarDays, Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,14 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
+import {
+  blockPlanBlockWeeks,
+  blockPlanDescriptionWithActualWeeks,
+  blockPlanNameWithActualWeeks,
+  blockPlanTotalWeeks,
+  displayBlockPlanBlocks,
+  hasAutoBlockPlanDescription,
+} from '@/lib/block-plans/duration'
 import { useLocale } from '@/i18n/client'
 
 interface BlockDraft {
@@ -281,7 +289,7 @@ function buildBlocksFromTemplate(template: PlanTemplate, startDate: Date): Block
 }
 
 function buildBlocksFromPlan(plan: AthletePlanSummary): BlockDraft[] {
-  return plan.blocks.map((block, index) => ({
+  return displayBlockPlanBlocks(plan.blocks).map((block, index) => ({
     draftId: block.id || draftId(plan.id, index, dateInput(toDate(block.startDate))),
     title: block.title,
     focus: block.focus ?? '',
@@ -296,10 +304,7 @@ function toDate(value: string | Date) {
 }
 
 function blockWeeks(block: BlockDraft) {
-  const start = new Date(block.startDate)
-  const end = new Date(block.endDate)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 1
-  return Math.max(1, Math.ceil((differenceInCalendarDays(end, start) + 1) / 7))
+  return blockPlanBlockWeeks(block)
 }
 
 function dateFromInput(value: string | undefined, fallback = new Date()) {
@@ -357,21 +362,35 @@ export function CreateBlockPlanDialog({
   const [templateKey, setTemplateKey] = useState(isEditing ? 'custom-edit' : initialTemplate.key)
   const [name, setName] = useState(initialPlan?.name ?? initialTemplate.planName)
   const [description, setDescription] = useState(initialPlan?.description ?? initialTemplate.description)
+  const [descriptionTracksBlocks, setDescriptionTracksBlocks] = useState(() =>
+    hasAutoBlockPlanDescription(initialPlan?.description ?? initialTemplate.description)
+  )
   const [blocks, setBlocks] = useState<BlockDraft[]>(() => initialPlan ? buildBlocksFromPlan(initialPlan) : buildBlocksFromTemplate(initialTemplate, today))
+  const totalWeeks = blockPlanTotalWeeks(blocks)
 
   function resetForm() {
     if (initialPlan) {
+      const nextBlocks = buildBlocksFromPlan(initialPlan)
+      const nextDescriptionTracksBlocks = hasAutoBlockPlanDescription(initialPlan.description ?? '')
       setTemplateKey('custom-edit')
-      setName(initialPlan.name)
-      setDescription(initialPlan.description ?? '')
-      setBlocks(buildBlocksFromPlan(initialPlan))
+      setName(blockPlanNameWithActualWeeks(initialPlan.name, blockPlanTotalWeeks(nextBlocks)))
+      setDescription(nextDescriptionTracksBlocks
+        ? blockPlanDescriptionWithActualWeeks(initialPlan.description, nextBlocks, locale)
+        : initialPlan.description ?? '')
+      setDescriptionTracksBlocks(nextDescriptionTracksBlocks)
+      setBlocks(nextBlocks)
       return
     }
 
+    const nextBlocks = buildBlocksFromTemplate(initialTemplate, today)
+    const nextDescriptionTracksBlocks = hasAutoBlockPlanDescription(initialTemplate.description)
     setTemplateKey(initialTemplate.key)
-    setName(initialTemplate.planName)
-    setDescription(initialTemplate.description)
-    setBlocks(buildBlocksFromTemplate(initialTemplate, today))
+    setName(blockPlanNameWithActualWeeks(initialTemplate.planName, blockPlanTotalWeeks(nextBlocks)))
+    setDescription(nextDescriptionTracksBlocks
+      ? blockPlanDescriptionWithActualWeeks(initialTemplate.description, nextBlocks, locale)
+      : initialTemplate.description)
+    setDescriptionTracksBlocks(nextDescriptionTracksBlocks)
+    setBlocks(nextBlocks)
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -381,100 +400,99 @@ export function CreateBlockPlanDialog({
 
   const planStartDate = blocks[0]?.startDate ?? dateInput(today)
   const planEndDate = blocks[blocks.length - 1]?.endDate ?? dateInput(addDays(addWeeks(today, 6), -1))
-  const totalWeeks = blocks.reduce((sum, block) => {
-    const weeks = blockWeeks(block)
-    return typeof weeks === 'number' ? sum + weeks : sum
-  }, 0)
+
+  function commitBlocks(nextBlocks: BlockDraft[]) {
+    setBlocks(nextBlocks)
+    setName((current) => blockPlanNameWithActualWeeks(current, blockPlanTotalWeeks(nextBlocks)))
+    if (descriptionTracksBlocks) {
+      setDescription((current) => blockPlanDescriptionWithActualWeeks(current, nextBlocks, locale))
+    }
+  }
 
   function applyTemplate(nextTemplateKey: string, startDate = new Date(planStartDate)) {
     const template = planTemplates.find((candidate) => candidate.key === nextTemplateKey)
     if (!template) return
+    const nextBlocks = buildBlocksFromTemplate(template, startDate)
+    const nextDescriptionTracksBlocks = hasAutoBlockPlanDescription(template.description)
     setTemplateKey(nextTemplateKey)
-    setName(template.planName)
-    setDescription(template.description)
-    setBlocks(buildBlocksFromTemplate(template, startDate))
+    setName(blockPlanNameWithActualWeeks(template.planName, blockPlanTotalWeeks(nextBlocks)))
+    setDescription(nextDescriptionTracksBlocks
+      ? blockPlanDescriptionWithActualWeeks(template.description, nextBlocks, locale)
+      : template.description)
+    setDescriptionTracksBlocks(nextDescriptionTracksBlocks)
+    setBlocks(nextBlocks)
   }
 
   function updatePlanStartDate(value: string) {
-    setBlocks((current) => recalculateFromBlock(current, 0, dateFromInput(value, today)))
+    commitBlocks(recalculateFromBlock(blocks, 0, dateFromInput(value, today)))
   }
 
   function updateBlock(index: number, patch: Partial<BlockDraft>) {
-    setBlocks((current) => current.map((block, i) => i === index ? { ...block, ...patch } : block))
+    commitBlocks(blocks.map((block, i) => i === index ? { ...block, ...patch } : block))
   }
 
   function updateBlockStartDate(index: number, value: string) {
-    setBlocks((current) => recalculateFromBlock(current, index, dateFromInput(value, today)))
+    commitBlocks(recalculateFromBlock(blocks, index, dateFromInput(value, today)))
   }
 
   function updateBlockEndDate(index: number, value: string) {
-    setBlocks((current) => {
-      const updated = current.map((block, i) => i === index ? { ...block, endDate: value } : block)
-      return recalculateFromBlock(updated, index + 1)
-    })
+    const updated = blocks.map((block, i) => i === index ? { ...block, endDate: value } : block)
+    commitBlocks(recalculateFromBlock(updated, index + 1))
   }
 
   function updateBlockWeeks(index: number, value: string) {
     const weeks = normalizedWeeks(Number(value) || 1)
-    setBlocks((current) => {
-      const updated = current.map((block, i) => {
-        if (i !== index) return block
-        const startDate = dateFromInput(block.startDate, today)
-        return {
-          ...block,
-          endDate: dateInput(blockEndFromWeeks(startDate, weeks)),
-        }
-      })
-      return recalculateFromBlock(updated, index + 1)
+    const updated = blocks.map((block, i) => {
+      if (i !== index) return block
+      const startDate = dateFromInput(block.startDate, today)
+      return {
+        ...block,
+        endDate: dateInput(blockEndFromWeeks(startDate, weeks)),
+      }
     })
+    commitBlocks(recalculateFromBlock(updated, index + 1))
   }
 
   function addBlock() {
-    setBlocks((current) => {
-      const last = current[current.length - 1]
-      const start = last ? addDays(new Date(last.endDate), 1) : new Date()
-      const end = addDays(addWeeks(start, 2), -1)
-      return [
-        ...current,
-        {
-          draftId: draftId('manual', current.length, dateInput(start)),
-          title: `Block ${current.length + 1}`,
-          focus: '',
-          description: '',
-          startDate: dateInput(start),
-          endDate: dateInput(end),
-        },
-      ]
-    })
+    const last = blocks[blocks.length - 1]
+    const start = last ? addDays(new Date(last.endDate), 1) : new Date()
+    const end = addDays(addWeeks(start, 2), -1)
+    commitBlocks([
+      ...blocks,
+      {
+        draftId: draftId('manual', blocks.length, dateInput(start)),
+        title: `Block ${blocks.length + 1}`,
+        focus: '',
+        description: '',
+        startDate: dateInput(start),
+        endDate: dateInput(end),
+      },
+    ])
   }
 
   function addEasyWeek(afterIndex: number) {
-    setBlocks((current) => {
-      const boundedIndex = Math.max(0, Math.min(afterIndex, current.length - 1))
-      const reference = current[boundedIndex]
-      const start = reference ? addDays(dateFromInput(reference.endDate, today), 1) : today
-      const easyWeek: BlockDraft = {
-        draftId: draftId('easy', current.length, dateInput(start)),
-        title: copy.easyWeek,
-        focus: copy.easyWeekFocus,
-        description: copy.easyWeekDescription,
-        startDate: dateInput(start),
-        endDate: dateInput(blockEndFromWeeks(start, 1)),
-      }
-      const next = [
-        ...current.slice(0, boundedIndex + 1),
-        easyWeek,
-        ...current.slice(boundedIndex + 1),
-      ]
-      return recalculateFromBlock(next, boundedIndex + 2)
-    })
+    const boundedIndex = Math.max(0, Math.min(afterIndex, blocks.length - 1))
+    const reference = blocks[boundedIndex]
+    const start = reference ? addDays(dateFromInput(reference.endDate, today), 1) : today
+    const easyWeek: BlockDraft = {
+      draftId: draftId('easy', blocks.length, dateInput(start)),
+      title: copy.easyWeek,
+      focus: copy.easyWeekFocus,
+      description: copy.easyWeekDescription,
+      startDate: dateInput(start),
+      endDate: dateInput(blockEndFromWeeks(start, 1)),
+    }
+    const next = [
+      ...blocks.slice(0, boundedIndex + 1),
+      easyWeek,
+      ...blocks.slice(boundedIndex + 1),
+    ]
+    commitBlocks(recalculateFromBlock(next, boundedIndex + 1))
   }
 
   function removeBlock(index: number) {
-    setBlocks((current) => {
-      const next = current.filter((_, i) => i !== index)
-      return next.length > 0 ? recalculateFromBlock(next, Math.max(0, index - 1)) : next
-    })
+    const next = blocks.filter((_, i) => i !== index)
+    commitBlocks(next.length > 0 ? recalculateFromBlock(next, Math.max(0, index - 1)) : next)
   }
 
   async function handleSubmit() {
@@ -484,8 +502,10 @@ export function CreateBlockPlanDialog({
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          description,
+          name: blockPlanNameWithActualWeeks(name, totalWeeks),
+          description: descriptionTracksBlocks
+            ? blockPlanDescriptionWithActualWeeks(description, blocks, locale)
+            : description,
           startDate: planStartDate,
           endDate: planEndDate,
           status: 'ACTIVE',
@@ -590,7 +610,10 @@ export function CreateBlockPlanDialog({
             <Textarea
               id="block-plan-description"
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              onChange={(event) => {
+                setDescriptionTracksBlocks(false)
+                setDescription(event.target.value)
+              }}
               rows={2}
             />
           </div>

@@ -3,6 +3,13 @@ import { z } from 'zod'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api/utils'
+import {
+  blockPlanDescriptionWithActualWeeks,
+  blockPlanNameWithActualWeeks,
+  blockPlanTotalWeeks,
+  hasOverlappingBlockPlanDates,
+  normalizeBlockPlanDates,
+} from '@/lib/block-plans/duration'
 
 const blockSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -128,19 +135,30 @@ export async function POST(
         endDate: blockEnd,
         order: block.order,
       }
-    })
+    }).sort((a, b) => a.order - b.order)
+    const finalBlocks = hasOverlappingBlockPlanDates(blocks) ? normalizeBlockPlanDates(blocks) : blocks
+    const planStartDate = finalBlocks[0]?.startDate ?? startDate
+    const planEndDate = finalBlocks[finalBlocks.length - 1]?.endDate ?? endDate
+    const totalWeeks = blockPlanTotalWeeks(finalBlocks)
 
     const plan = await prisma.athletePlan.create({
       data: {
         clientId,
         coachId: user.id,
-        name: parsed.data.name,
-        description: parsed.data.description || null,
+        name: blockPlanNameWithActualWeeks(parsed.data.name, totalWeeks),
+        description: blockPlanDescriptionWithActualWeeks(parsed.data.description, finalBlocks) || null,
         status: parsed.data.status,
-        startDate,
-        endDate,
+        startDate: planStartDate,
+        endDate: planEndDate,
         blocks: {
-          create: blocks,
+          create: finalBlocks.map((block, index) => ({
+            title: block.title,
+            focus: block.focus,
+            description: block.description,
+            startDate: block.startDate,
+            endDate: block.endDate,
+            order: index + 1,
+          })),
         },
       },
       select: planSelect(),
