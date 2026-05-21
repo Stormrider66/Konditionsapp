@@ -82,6 +82,7 @@ type LibraryExercise = {
   id: string
   name: string
   nameSv?: string | null
+  nameEn?: string | null
   category?: string | null
   muscleGroup?: string | null
   description?: string | null
@@ -356,8 +357,9 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
         const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
         setAvailableExercises(exercisesList.map((e: any) => ({
           id: e.id,
-          name: e.nameSv || e.name,
+          name: locale === 'sv' ? e.nameSv || e.name : e.nameEn || e.name,
           nameSv: e.nameSv,
+          nameEn: e.nameEn,
           category: e.category,
           muscleGroup: e.muscleGroup,
           description: e.description,
@@ -374,7 +376,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       }
     }
     fetchExercises()
-  }, [])
+  }, [locale])
 
   useEffect(() => {
     async function loadWorkout() {

@@ -167,6 +167,8 @@ const CARDIO_NAME_PATTERN = /\b(rodd|row(er|ing)?|skierg|ski.?erg|ergbike|bike.?
 interface LibraryExercise {
   id: string
   name: string
+  nameSv?: string | null
+  nameEn?: string | null
   category?: string
   pillar?: string
   muscleGroup?: string
@@ -570,8 +572,9 @@ export function SectionWorkoutBuilder({
         setAvailableExercises(
           exercisesList.map((e: any) => ({
             id: e.id,
-            name: e.nameSv || e.name,
+            name: locale === 'sv' ? e.nameSv || e.name : e.nameEn || e.name,
             nameSv: e.nameSv,
+            nameEn: e.nameEn,
             category: e.category,
             pillar: e.biomechanicalPillar,
             muscleGroup: e.muscleGroup,
@@ -590,7 +593,7 @@ export function SectionWorkoutBuilder({
     } catch (e) {
       console.error('Failed to fetch exercises', e)
     }
-  }, [])
+  }, [locale])
 
   useEffect(() => {
     fetchExercises()

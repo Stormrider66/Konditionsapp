@@ -33,56 +33,77 @@ import {
   Snowflake,
   Zap,
 } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, sv: string, en: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface VideoUploaderProps {
   open: boolean
   onClose: () => void
   onUploadComplete: () => void
   athletes: Array<{ id: string; name: string }>
-  exercises: Array<{ id: string; name: string; nameSv: string | null }>
+  exercises: Array<{ id: string; name: string; nameSv: string | null; nameEn?: string | null }>
 }
 
 const VIDEO_TYPES = [
   {
     value: 'STRENGTH',
     label: 'Styrkeövning',
+    labelEn: 'Strength exercise',
     description: 'Analys av teknik för styrkeövningar',
+    descriptionEn: 'Technique analysis for strength exercises',
     icon: Dumbbell,
   },
   {
     value: 'RUNNING_GAIT',
     label: 'Löpteknik',
+    labelEn: 'Running gait',
     description: 'Gång- och löpstilsanalys',
+    descriptionEn: 'Gait and running-form analysis',
     icon: PersonStanding,
   },
   {
     value: 'SKIING_CLASSIC',
     label: 'Klassisk skidåkning',
+    labelEn: 'Classic skiing',
     description: 'Diagonalgång, teknik och timing',
+    descriptionEn: 'Diagonal stride, technique, and timing',
     icon: Snowflake,
   },
   {
     value: 'SKIING_SKATING',
     label: 'Skate-skidåkning',
+    labelEn: 'Skate skiing',
     description: 'V1, V2 eller V2-alternativ teknik',
+    descriptionEn: 'V1, V2, or V2 alternate technique',
     icon: Snowflake,
   },
   {
     value: 'SKIING_DOUBLE_POLE',
     label: 'Dubbelstakning',
+    labelEn: 'Double poling',
     description: 'Stakningsteknik och rytm',
+    descriptionEn: 'Poling technique and rhythm',
     icon: Snowflake,
   },
   {
     value: 'HYROX_STATION',
     label: 'HYROX Station',
+    labelEn: 'HYROX Station',
     description: 'Analys av HYROX-stationer',
+    descriptionEn: 'Analysis of HYROX stations',
     icon: Zap,
   },
   {
     value: 'SPORT_SPECIFIC',
     label: 'Sportspecifik',
+    labelEn: 'Sport-specific',
     description: 'Annan idrottsspecifik rörelse',
+    descriptionEn: 'Other sport-specific movement',
     icon: Activity,
   },
 ] as const
@@ -92,7 +113,7 @@ const HYROX_STATIONS = [
   { value: 'SLED_PUSH', label: 'Sled Push', description: '50m' },
   { value: 'SLED_PULL', label: 'Sled Pull', description: '50m' },
   { value: 'BURPEE_BROAD_JUMP', label: 'Burpee Broad Jump', description: '80 reps' },
-  { value: 'ROWING', label: 'Rodd', description: '1000m' },
+  { value: 'ROWING', label: 'Rodd', labelEn: 'Rowing', description: '1000m' },
   { value: 'FARMERS_CARRY', label: 'Farmers Carry', description: '200m' },
   { value: 'SANDBAG_LUNGE', label: 'Sandbag Lunge', description: '100m' },
   { value: 'WALL_BALLS', label: 'Wall Balls', description: '75-100 reps' },
@@ -102,19 +123,25 @@ const CAMERA_ANGLES = [
   {
     value: 'FRONT',
     label: 'Framifrån',
+    labelEn: 'Front',
     description: 'Armsving, symmetri, knäspårning',
+    descriptionEn: 'Arm swing, symmetry, knee tracking',
     icon: User,
   },
   {
     value: 'SIDE',
     label: 'Från sidan',
+    labelEn: 'Side',
     description: 'Fotisättning, lutning, oscillation',
+    descriptionEn: 'Foot strike, lean, oscillation',
     icon: ArrowRight,
   },
   {
     value: 'BACK',
     label: 'Bakifrån',
+    labelEn: 'Back',
     description: 'Höftfall, hälpiska, gluteal',
+    descriptionEn: 'Hip drop, heel whip, gluteal mechanics',
     icon: UserRound,
   },
 ] as const
@@ -130,6 +157,7 @@ export function VideoUploader({
   exercises,
 }: VideoUploaderProps) {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [videoType, setVideoType] = useState<string>('')
   const [cameraAngle, setCameraAngle] = useState<string>('')
@@ -145,8 +173,8 @@ export function VideoUploader({
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       toast({
-        title: 'Filtyp stöds inte',
-        description: 'Ladda upp MP4, MOV, WebM eller AVI-filer.',
+        title: text(locale, 'Filtyp stöds inte', 'File type is not supported'),
+        description: text(locale, 'Ladda upp MP4, MOV, WebM eller AVI-filer.', 'Upload MP4, MOV, WebM, or AVI files.'),
         variant: 'destructive',
       })
       return
@@ -154,8 +182,8 @@ export function VideoUploader({
 
     if (file.size > MAX_SIZE) {
       toast({
-        title: 'Filen är för stor',
-        description: 'Maximal filstorlek är 100MB.',
+        title: text(locale, 'Filen är för stor', 'File is too large'),
+        description: text(locale, 'Maximal filstorlek är 100MB.', 'Maximum file size is 100 MB.'),
         variant: 'destructive',
       })
       return
@@ -165,7 +193,7 @@ export function VideoUploader({
     // Create preview URL
     const url = URL.createObjectURL(file)
     setPreviewUrl(url)
-  }, [toast])
+  }, [locale, toast])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -182,8 +210,8 @@ export function VideoUploader({
   const handleUpload = async () => {
     if (!selectedFile || !videoType) {
       toast({
-        title: 'Fyll i alla fält',
-        description: 'Välj en video och videotyp.',
+        title: text(locale, 'Fyll i alla fält', 'Complete all fields'),
+        description: text(locale, 'Välj en video och videotyp.', 'Select a video and analysis type.'),
         variant: 'destructive',
       })
       return
@@ -209,7 +237,7 @@ export function VideoUploader({
 
       const urlData = await urlRes.json()
       if (!urlRes.ok) {
-        throw new Error(urlData.error || 'Kunde inte skapa uppladdnings-URL')
+        throw new Error(urlData.error || text(locale, 'Kunde inte skapa uppladdnings-URL', 'Could not create upload URL'))
       }
 
       // Step 2: Upload directly to Supabase Storage via presigned URL
@@ -220,7 +248,7 @@ export function VideoUploader({
       })
 
       if (!uploadRes.ok) {
-        throw new Error('Uppladdning till lagring misslyckades')
+        throw new Error(text(locale, 'Uppladdning till lagring misslyckades', 'Upload to storage failed'))
       }
 
       // Step 3: Confirm upload and create DB record
@@ -240,20 +268,20 @@ export function VideoUploader({
 
       const confirmData = await confirmRes.json()
       if (!confirmRes.ok) {
-        throw new Error(confirmData.error || 'Kunde inte bekräfta uppladdningen')
+        throw new Error(confirmData.error || text(locale, 'Kunde inte bekräfta uppladdningen', 'Could not confirm the upload'))
       }
 
       toast({
-        title: 'Video uppladdad',
-        description: 'Videon har laddats upp. Klicka på "Analysera" för att starta AI-analysen.',
+        title: text(locale, 'Video uppladdad', 'Video uploaded'),
+        description: text(locale, 'Videon har laddats upp. Klicka på "Analysera" för att starta AI-analysen.', 'The video has been uploaded. Click "Analyze" to start the AI analysis.'),
       })
 
       onUploadComplete()
       handleClose()
     } catch (error) {
       toast({
-        title: 'Uppladdning misslyckades',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: text(locale, 'Uppladdning misslyckades', 'Upload failed'),
+        description: error instanceof Error ? error.message : text(locale, 'Okänt fel', 'Unknown error'),
         variant: 'destructive',
       })
     } finally {
@@ -291,14 +319,14 @@ export function VideoUploader({
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Video className="h-5 w-5" />
-            Ladda upp video för analys
+            {text(locale, 'Ladda upp video för analys', 'Upload video for analysis')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 overflow-y-auto flex-1 pr-2">
           {/* Video Type Selection */}
           <div className="space-y-2">
-            <Label>Typ av analys *</Label>
+            <Label>{text(locale, 'Typ av analys *', 'Analysis type *')}</Label>
             <div className="grid grid-cols-3 gap-2">
               {VIDEO_TYPES.map((type) => {
                 const Icon = type.icon
@@ -314,8 +342,8 @@ export function VideoUploader({
                     }`}
                   >
                     <Icon className={`h-5 w-5 mb-1 ${videoType === type.value ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`} />
-                    <div className="font-medium text-sm">{type.label}</div>
-                    <div className="text-xs text-slate-550 dark:text-slate-400 line-clamp-2">{type.description}</div>
+                    <div className="font-medium text-sm">{text(locale, type.label, type.labelEn)}</div>
+                    <div className="text-xs text-slate-550 dark:text-slate-400 line-clamp-2">{text(locale, type.description, type.descriptionEn)}</div>
                   </button>
                 )
               })}
@@ -325,9 +353,9 @@ export function VideoUploader({
           {/* Camera Angle Selection - Only for RUNNING_GAIT */}
           {videoType === 'RUNNING_GAIT' && (
             <div className="space-y-2">
-              <Label>Kameravinkel *</Label>
+              <Label>{text(locale, 'Kameravinkel *', 'Camera angle *')}</Label>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                Välj vilken vinkel videon är filmad från för mer precis analys
+                {text(locale, 'Välj vilken vinkel videon är filmad från för mer precis analys', 'Select the filming angle for a more precise analysis')}
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {CAMERA_ANGLES.map((angle) => {
@@ -344,8 +372,8 @@ export function VideoUploader({
                       }`}
                     >
                       <Icon className={`h-5 w-5 mb-1 ${cameraAngle === angle.value ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500'}`} />
-                      <div className="font-medium text-sm">{angle.label}</div>
-                      <div className="text-xs text-slate-550 dark:text-slate-400 line-clamp-2">{angle.description}</div>
+                      <div className="font-medium text-sm">{text(locale, angle.label, angle.labelEn)}</div>
+                      <div className="text-xs text-slate-550 dark:text-slate-400 line-clamp-2">{text(locale, angle.description, angle.descriptionEn)}</div>
                     </button>
                   )
                 })}
@@ -356,9 +384,9 @@ export function VideoUploader({
           {/* HYROX Station Selection - Only for HYROX_STATION */}
           {videoType === 'HYROX_STATION' && (
             <div className="space-y-2">
-              <Label>Välj station *</Label>
+              <Label>{text(locale, 'Välj station *', 'Select station *')}</Label>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                Vilken HYROX-station vill du analysera?
+                {text(locale, 'Vilken HYROX-station vill du analysera?', 'Which HYROX station do you want to analyze?')}
               </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {HYROX_STATIONS.map((station) => (
@@ -372,7 +400,7 @@ export function VideoUploader({
                         : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
                     }`}
                   >
-                    <div className="font-medium text-sm">{station.label}</div>
+                    <div className="font-medium text-sm">{text(locale, station.label, 'labelEn' in station ? station.labelEn : station.label)}</div>
                     <div className="text-xs text-slate-555 dark:text-slate-400">{station.description}</div>
                   </button>
                 ))}
@@ -383,16 +411,16 @@ export function VideoUploader({
           {/* Athlete & Exercise selection */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="athlete">Atlet (valfritt)</Label>
+              <Label htmlFor="athlete">{text(locale, 'Atlet (valfritt)', 'Athlete (optional)')}</Label>
               <Select
                 value={athleteId || "none"}
                 onValueChange={(val) => setAthleteId(val === "none" ? "" : val)}
               >
                 <SelectTrigger id="athlete" className="bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-white/10">
-                  <SelectValue placeholder="Välj atlet" />
+                  <SelectValue placeholder={text(locale, 'Välj atlet', 'Select athlete')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Ingen vald</SelectItem>
+                  <SelectItem value="none">{text(locale, 'Ingen vald', 'None selected')}</SelectItem>
                   {athletes.map((athlete) => (
                     <SelectItem key={athlete.id} value={athlete.id}>
                       {athlete.name}
@@ -404,19 +432,19 @@ export function VideoUploader({
 
             {videoType === 'STRENGTH' && (
               <div className="space-y-2">
-                <Label htmlFor="exercise">Övning (valfritt)</Label>
+                <Label htmlFor="exercise">{text(locale, 'Övning (valfritt)', 'Exercise (optional)')}</Label>
                 <Select
                   value={exerciseId || "none"}
                   onValueChange={(val) => setExerciseId(val === "none" ? "" : val)}
                 >
                   <SelectTrigger id="exercise" className="bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-white/10">
-                    <SelectValue placeholder="Välj övning" />
+                    <SelectValue placeholder={text(locale, 'Välj övning', 'Select exercise')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Ingen vald</SelectItem>
+                    <SelectItem value="none">{text(locale, 'Ingen vald', 'None selected')}</SelectItem>
                     {exercises.map((exercise) => (
                       <SelectItem key={exercise.id} value={exercise.id}>
-                        {exercise.nameSv || exercise.name}
+                        {locale === 'sv' ? exercise.nameSv || exercise.name : exercise.nameEn || exercise.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -438,11 +466,11 @@ export function VideoUploader({
               <input {...getInputProps()} />
               <Upload className="h-10 w-10 mx-auto text-slate-500 dark:text-slate-400 mb-4" />
               {isDragActive ? (
-                <p className="text-blue-600 dark:text-blue-400 font-medium">Släpp videon här...</p>
+                <p className="text-blue-600 dark:text-blue-400 font-medium">{text(locale, 'Släpp videon här...', 'Drop the video here...')}</p>
               ) : (
                 <>
                   <p className="font-medium mb-1 text-slate-800 dark:text-slate-200">
-                    Dra och släpp en video här, eller klicka för att välja
+                    {text(locale, 'Dra och släpp en video här, eller klicka för att välja', 'Drag and drop a video here, or click to choose')}
                   </p>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     MP4, MOV, WebM, AVI (max 100MB)
@@ -484,10 +512,10 @@ export function VideoUploader({
             <div className="p-3 bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 rounded-lg text-sm">
               <div className="font-medium flex items-center gap-2 text-slate-800 dark:text-slate-200">
                 <selectedVideoType.icon className="h-4 w-4" />
-                {selectedVideoType.label}
+                {text(locale, selectedVideoType.label, selectedVideoType.labelEn)}
               </div>
               <p className="text-slate-550 dark:text-slate-400 mt-1">
-                {selectedVideoType.description}
+                {text(locale, selectedVideoType.description, selectedVideoType.descriptionEn)}
               </p>
             </div>
           )}
@@ -495,18 +523,18 @@ export function VideoUploader({
 
         <DialogFooter className="flex-shrink-0 pt-4 border-t">
           <Button variant="outline" onClick={handleClose} disabled={isUploading}>
-            Avbryt
+            {text(locale, 'Avbryt', 'Cancel')}
           </Button>
           <Button onClick={handleUpload} disabled={!selectedFile || !videoType || (videoType === 'RUNNING_GAIT' && !cameraAngle) || (videoType === 'HYROX_STATION' && !hyroxStation) || isUploading}>
             {isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Laddar upp...
+                {text(locale, 'Laddar upp...', 'Uploading...')}
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                Ladda upp
+                {text(locale, 'Ladda upp', 'Upload')}
               </>
             )}
           </Button>
