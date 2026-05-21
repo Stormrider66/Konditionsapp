@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
 import type { WODWorkout, WODSection, WODExercise, WODSectionType } from '@/types/wod'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -67,6 +67,7 @@ export default function WODExecutionPage({ params }: PageProps) {
   const basePath = useBasePath()
   const router = useRouter()
   const t = useTranslations('athletePages.wodExecution')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -99,6 +100,11 @@ export default function WODExecutionPage({ params }: PageProps) {
   ) || []
 
   const currentExercise = flattenedExercises[currentIndex]
+  const currentExerciseName = currentExercise
+    ? locale === 'sv'
+      ? currentExercise.nameSv || currentExercise.name
+      : currentExercise.name
+    : ''
   const totalExercises = flattenedExercises.length
   const progressPercent = totalExercises > 0 ? (completedExercises.size / totalExercises) * 100 : 0
 
@@ -217,7 +223,7 @@ export default function WODExecutionPage({ params }: PageProps) {
       try {
         // Build exercise logs from completed exercises
         const exerciseLogs = flattenedExercises.map((exercise, index) => ({
-          name: exercise.nameSv || exercise.name,
+          name: locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name,
           type: exercise.sectionType,
           sets: exercise.sets,
           reps: exercise.reps,
@@ -419,7 +425,7 @@ export default function WODExecutionPage({ params }: PageProps) {
           <div className="relative mx-auto aspect-square w-full max-w-sm rounded-xl overflow-hidden mb-4 bg-muted">
             <ExerciseImage
               imageUrls={currentExercise.imageUrls}
-              alt={currentExercise.nameSv || currentExercise.name}
+              alt={currentExerciseName}
               size="full"
               className="w-full h-full"
             />
@@ -428,7 +434,7 @@ export default function WODExecutionPage({ params }: PageProps) {
 
         {/* Exercise name */}
         <h1 className="text-2xl font-bold mb-2">
-          {currentExercise?.nameSv || currentExercise?.name}
+          {currentExerciseName}
         </h1>
 
         {/* Exercise details */}

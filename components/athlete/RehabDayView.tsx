@@ -38,6 +38,7 @@ interface RehabExercise {
     id: string
     name: string
     nameSv?: string
+    nameEn?: string
     videoUrl?: string
     instructions?: string
   }
@@ -249,7 +250,9 @@ export function RehabDayView({
                           'font-medium',
                           isCompleted ? 'text-teal-400 line-through' : 'text-white'
                         )}>
-                          {ex.exercise.nameSv || ex.exercise.name}
+                          {locale === 'sv'
+                            ? ex.exercise.nameSv || ex.exercise.name
+                            : ex.exercise.nameEn || ex.exercise.name}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                           <span>{ex.sets} set</span>
