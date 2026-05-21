@@ -6,7 +6,7 @@
  * Dialog for auto-generating cardio workouts based on goals and parameters.
  */
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -45,8 +45,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 import {
-  generateCardioSession,
   generateCardioVariations,
   type GeneratedCardioSession,
   type CardioGenerationParams,
@@ -54,6 +54,8 @@ import {
 
 // Running icon (use Activity as fallback)
 const RunningIcon = Activity
+
+type AppLocale = 'en' | 'sv'
 
 interface AutoCardioDialogProps {
   open: boolean
@@ -63,28 +65,117 @@ interface AutoCardioDialogProps {
 }
 
 const SPORT_OPTIONS = [
-  { value: 'RUNNING', label: 'Löpning', icon: <RunningIcon className="h-4 w-4" /> },
-  { value: 'CYCLING', label: 'Cykling', icon: <Bike className="h-4 w-4" /> },
-  { value: 'SWIMMING', label: 'Simning', icon: <Waves className="h-4 w-4" /> },
-  { value: 'SKIING', label: 'Skidåkning', icon: <Snowflake className="h-4 w-4" /> },
+  { value: 'RUNNING', label: { en: 'Running', sv: 'Löpning' }, icon: <RunningIcon className="h-4 w-4" /> },
+  { value: 'CYCLING', label: { en: 'Cycling', sv: 'Cykling' }, icon: <Bike className="h-4 w-4" /> },
+  { value: 'SWIMMING', label: { en: 'Swimming', sv: 'Simning' }, icon: <Waves className="h-4 w-4" /> },
+  { value: 'SKIING', label: { en: 'Skiing', sv: 'Skidåkning' }, icon: <Snowflake className="h-4 w-4" /> },
 ]
 
 const GOAL_OPTIONS = [
-  { value: 'BASE_BUILDING', label: 'Basbyggnad', description: 'Bygg aerob bas i zon 2' },
-  { value: 'THRESHOLD_DEVELOPMENT', label: 'Tröskelutveckling', description: 'Förbättra mjölksyratröskeln' },
-  { value: 'VO2MAX_IMPROVEMENT', label: 'VO2max', description: 'Öka maximal syreupptagning' },
-  { value: 'SPEED_DEVELOPMENT', label: 'Fartighetsträning', description: 'Utveckla fart och ekonomi' },
-  { value: 'ENDURANCE', label: 'Uthållighet', description: 'Långpass för distans' },
-  { value: 'RECOVERY', label: 'Återhämtning', description: 'Aktiv vila och regenerering' },
-  { value: 'RACE_PREPARATION', label: 'Tävlingsförberedelse', description: 'Race-specifikt arbete' },
+  { value: 'BASE_BUILDING', label: { en: 'Base building', sv: 'Basbyggnad' }, description: { en: 'Build aerobic base in zone 2', sv: 'Bygg aerob bas i zon 2' } },
+  { value: 'THRESHOLD_DEVELOPMENT', label: { en: 'Threshold development', sv: 'Tröskelutveckling' }, description: { en: 'Improve lactate threshold', sv: 'Förbättra mjölksyratröskeln' } },
+  { value: 'VO2MAX_IMPROVEMENT', label: { en: 'VO2max', sv: 'VO2max' }, description: { en: 'Increase maximal oxygen uptake', sv: 'Öka maximal syreupptagning' } },
+  { value: 'SPEED_DEVELOPMENT', label: { en: 'Speed development', sv: 'Fartighetsträning' }, description: { en: 'Develop speed and economy', sv: 'Utveckla fart och ekonomi' } },
+  { value: 'ENDURANCE', label: { en: 'Endurance', sv: 'Uthållighet' }, description: { en: 'Long sessions for distance', sv: 'Långpass för distans' } },
+  { value: 'RECOVERY', label: { en: 'Recovery', sv: 'Återhämtning' }, description: { en: 'Active rest and regeneration', sv: 'Aktiv vila och regenerering' } },
+  { value: 'RACE_PREPARATION', label: { en: 'Race preparation', sv: 'Tävlingsförberedelse' }, description: { en: 'Race-specific work', sv: 'Race-specifikt arbete' } },
 ]
 
 const EXPERIENCE_OPTIONS = [
-  { value: 'BEGINNER', label: 'Nybörjare', description: '0-1 års träning' },
-  { value: 'INTERMEDIATE', label: 'Mellannivå', description: '1-3 års träning' },
-  { value: 'ADVANCED', label: 'Avancerad', description: '3-5 års träning' },
-  { value: 'ELITE', label: 'Elit', description: '5+ års träning' },
+  { value: 'BEGINNER', label: { en: 'Beginner', sv: 'Nybörjare' }, description: { en: '0-1 years of training', sv: '0-1 års träning' } },
+  { value: 'INTERMEDIATE', label: { en: 'Intermediate', sv: 'Mellannivå' }, description: { en: '1-3 years of training', sv: '1-3 års träning' } },
+  { value: 'ADVANCED', label: { en: 'Advanced', sv: 'Avancerad' }, description: { en: '3-5 years of training', sv: '3-5 års träning' } },
+  { value: 'ELITE', label: { en: 'Elite', sv: 'Elit' }, description: { en: '5+ years of training', sv: '5+ års träning' } },
 ]
+
+const COPY: Record<AppLocale, {
+  errorTitle: string
+  generateError: string
+  configureTitle: string
+  previewTitle: string
+  configureDescription: string
+  previewDescription: string
+  trainingGoal: string
+  goalPlaceholder: string
+  duration: string
+  experienceLevel: string
+  experiencePlaceholder: string
+  options: string
+  warmup: string
+  cooldown: string
+  hills: string
+  drills: string
+  variation: (current: number, total: number) => string
+  averageZone: string
+  zoneDistribution: string
+  zone: string
+  segments: (count: number) => string
+  cancel: string
+  generating: string
+  generate: string
+  back: string
+  regenerate: string
+  useSession: string
+}> = {
+  en: {
+    errorTitle: 'Error',
+    generateError: 'Could not generate workout',
+    configureTitle: 'Generate cardio workout',
+    previewTitle: 'Preview workout',
+    configureDescription: 'Configure the settings to automatically generate a training session.',
+    previewDescription: 'Choose the variation that best fits your athlete.',
+    trainingGoal: 'Training goal',
+    goalPlaceholder: 'Select goal',
+    duration: 'Duration',
+    experienceLevel: 'Experience level',
+    experiencePlaceholder: 'Select level',
+    options: 'Options',
+    warmup: 'Warmup',
+    cooldown: 'Cooldown',
+    hills: 'Hills',
+    drills: 'Drills',
+    variation: (current, total) => `Variation ${current} of ${total}`,
+    averageZone: 'Avg Zone',
+    zoneDistribution: 'Zone distribution',
+    zone: 'Zone',
+    segments: (count) => `Segments (${count})`,
+    cancel: 'Cancel',
+    generating: 'Generating...',
+    generate: 'Generate workout',
+    back: 'Back',
+    regenerate: 'Generate again',
+    useSession: 'Use this workout',
+  },
+  sv: {
+    errorTitle: 'Fel',
+    generateError: 'Kunde inte generera pass',
+    configureTitle: 'Generera Cardiopass',
+    previewTitle: 'Förhandsgranska Pass',
+    configureDescription: 'Konfigurera dina inställningar för att automatiskt generera ett träningspass.',
+    previewDescription: 'Välj den variation som passar bäst för din atlet.',
+    trainingGoal: 'Träningsmål',
+    goalPlaceholder: 'Välj mål',
+    duration: 'Längd',
+    experienceLevel: 'Erfarenhetsnivå',
+    experiencePlaceholder: 'Välj nivå',
+    options: 'Alternativ',
+    warmup: 'Uppvärmning',
+    cooldown: 'Nedvarvning',
+    hills: 'Backar',
+    drills: 'Övningar',
+    variation: (current, total) => `Variation ${current} av ${total}`,
+    averageZone: 'Snitt Zon',
+    zoneDistribution: 'Zonfördelning',
+    zone: 'Zon',
+    segments: (count) => `Segment (${count})`,
+    cancel: 'Avbryt',
+    generating: 'Genererar...',
+    generate: 'Generera pass',
+    back: 'Tillbaka',
+    regenerate: 'Generera igen',
+    useSession: 'Använd detta pass',
+  },
+}
 
 const ZONE_COLORS: Record<number, string> = {
   1: 'bg-gray-100 text-gray-700',
@@ -101,6 +192,8 @@ export function AutoCardioDialog({
   defaultSport = 'RUNNING',
 }: AutoCardioDialogProps) {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
 
   // Form state
   const [sport, setSport] = useState<'RUNNING' | 'CYCLING' | 'SWIMMING' | 'SKIING'>(defaultSport)
@@ -133,6 +226,7 @@ export function AutoCardioDialog({
         includeCooldown,
         includeHills,
         includeDrills,
+        locale,
       }
 
       try {
@@ -142,8 +236,8 @@ export function AutoCardioDialog({
         setStep('preview')
       } catch {
         toast({
-          title: 'Fel',
-          description: 'Kunde inte generera pass',
+          title: copy.errorTitle,
+          description: copy.generateError,
           variant: 'destructive',
         })
       } finally {
@@ -189,12 +283,12 @@ export function AutoCardioDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wand2 className="h-5 w-5" />
-            {step === 'configure' ? 'Generera Cardiopass' : 'Förhandsgranska Pass'}
+            {step === 'configure' ? copy.configureTitle : copy.previewTitle}
           </DialogTitle>
           <DialogDescription>
             {step === 'configure'
-              ? 'Konfigurera dina inställningar för att automatiskt generera ett träningspass.'
-              : 'Välj den variation som passar bäst för din atlet.'}
+              ? copy.configureDescription
+              : copy.previewDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -213,7 +307,7 @@ export function AutoCardioDialog({
                     onClick={() => setSport(option.value as typeof sport)}
                   >
                     {option.icon}
-                    <span className="text-xs mt-1">{option.label}</span>
+                    <span className="text-xs mt-1">{option.label[locale]}</span>
                   </Button>
                 ))}
               </div>
@@ -221,17 +315,17 @@ export function AutoCardioDialog({
 
             {/* Goal Selection */}
             <div className="space-y-2">
-              <Label>Träningsmål</Label>
+              <Label>{copy.trainingGoal}</Label>
               <Select value={goal} onValueChange={(v) => setGoal(v as typeof goal)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj mål" />
+                  <SelectValue placeholder={copy.goalPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {GOAL_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{option.label[locale]}</div>
+                        <div className="text-xs text-muted-foreground">{option.description[locale]}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -244,7 +338,7 @@ export function AutoCardioDialog({
               <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Längd
+                  {copy.duration}
                 </Label>
                 <Badge variant="outline" className="text-lg px-3">
                   {targetDuration} min
@@ -266,17 +360,17 @@ export function AutoCardioDialog({
 
             {/* Experience Level */}
             <div className="space-y-2">
-              <Label>Erfarenhetsnivå</Label>
+              <Label>{copy.experienceLevel}</Label>
               <Select value={experienceLevel} onValueChange={(v) => setExperienceLevel(v as typeof experienceLevel)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Välj nivå" />
+                  <SelectValue placeholder={copy.experiencePlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {EXPERIENCE_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{option.label[locale]}</div>
+                        <div className="text-xs text-muted-foreground">{option.description[locale]}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -286,10 +380,10 @@ export function AutoCardioDialog({
 
             {/* Options */}
             <div className="space-y-3">
-              <Label>Alternativ</Label>
+              <Label>{copy.options}</Label>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="warmup" className="text-sm">Uppvärmning</Label>
+                  <Label htmlFor="warmup" className="text-sm">{copy.warmup}</Label>
                   <Switch
                     id="warmup"
                     checked={includeWarmup}
@@ -297,7 +391,7 @@ export function AutoCardioDialog({
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="cooldown" className="text-sm">Nedvarvning</Label>
+                  <Label htmlFor="cooldown" className="text-sm">{copy.cooldown}</Label>
                   <Switch
                     id="cooldown"
                     checked={includeCooldown}
@@ -308,7 +402,7 @@ export function AutoCardioDialog({
                   <div className="flex items-center justify-between">
                     <Label htmlFor="hills" className="text-sm flex items-center gap-2">
                       <Mountain className="h-4 w-4" />
-                      Backar
+                      {copy.hills}
                     </Label>
                     <Switch
                       id="hills"
@@ -318,7 +412,7 @@ export function AutoCardioDialog({
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="drills" className="text-sm">Övningar</Label>
+                  <Label htmlFor="drills" className="text-sm">{copy.drills}</Label>
                   <Switch
                     id="drills"
                     checked={includeDrills}
@@ -342,7 +436,7 @@ export function AutoCardioDialog({
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Variation {selectedVariation + 1} av {generatedSessions.length}
+                  {copy.variation(selectedVariation + 1, generatedSessions.length)}
                 </span>
                 <Button
                   variant="ghost"
@@ -371,7 +465,7 @@ export function AutoCardioDialog({
                         {formatDuration(currentSession.totalDuration)}
                       </div>
                       <Badge className={cn('text-xs', ZONE_COLORS[Math.round(currentSession.avgZone)])}>
-                        Snitt Zon {currentSession.avgZone}
+                        {copy.averageZone} {currentSession.avgZone}
                       </Badge>
                     </div>
                   </CardContent>
@@ -382,7 +476,7 @@ export function AutoCardioDialog({
                   <CardContent className="pt-4">
                     <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
                       <Heart className="h-4 w-4" />
-                      Zonfördelning
+                      {copy.zoneDistribution}
                     </h4>
                     <div className="space-y-2">
                       {[1, 2, 3, 4, 5].map((zone) => {
@@ -390,7 +484,7 @@ export function AutoCardioDialog({
                         return (
                           <div key={zone} className="flex items-center gap-3">
                             <Badge className={cn('text-xs w-14', ZONE_COLORS[zone])}>
-                              Zon {zone}
+                              {copy.zone} {zone}
                             </Badge>
                             <div className="flex-1 bg-muted rounded-full h-2">
                               <div
@@ -418,7 +512,7 @@ export function AutoCardioDialog({
                 {/* Segments */}
                 <Card>
                   <CardContent className="pt-4">
-                    <h4 className="font-medium text-sm mb-3">Segment ({currentSession.segments.length})</h4>
+                    <h4 className="font-medium text-sm mb-3">{copy.segments(currentSession.segments.length)}</h4>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {currentSession.segments.map((segment, index) => (
                         <div
@@ -462,18 +556,18 @@ export function AutoCardioDialog({
           {step === 'configure' ? (
             <>
               <Button variant="outline" onClick={handleClose}>
-                Avbryt
+                {copy.cancel}
               </Button>
               <Button onClick={handleGenerate} disabled={isGenerating}>
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Genererar...
+                    {copy.generating}
                   </>
                 ) : (
                   <>
                     <Wand2 className="h-4 w-4 mr-2" />
-                    Generera pass
+                    {copy.generate}
                   </>
                 )}
               </Button>
@@ -482,15 +576,15 @@ export function AutoCardioDialog({
             <>
               <Button variant="outline" onClick={() => setStep('configure')}>
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Tillbaka
+                {copy.back}
               </Button>
               <Button variant="outline" onClick={handleGenerate}>
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Generera igen
+                {copy.regenerate}
               </Button>
               <Button onClick={handleSelect}>
                 <Check className="h-4 w-4 mr-2" />
-                Använd detta pass
+                {copy.useSession}
               </Button>
             </>
           )}

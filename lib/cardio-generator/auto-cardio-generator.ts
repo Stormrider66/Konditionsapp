@@ -14,6 +14,8 @@ type Methodology = 'POLARIZED' | 'PYRAMIDAL' | 'THRESHOLD_FOCUSED' | 'VO2MAX_FOC
 // Sport types
 type Sport = 'RUNNING' | 'CYCLING' | 'SWIMMING' | 'SKIING'
 
+type AppLocale = 'en' | 'sv'
+
 // Training goal options
 type TrainingGoal =
   | 'BASE_BUILDING'      // Build aerobic base (mostly Zone 2)
@@ -56,6 +58,7 @@ export interface CardioGenerationParams {
   includeCooldown?: boolean
   includeHills?: boolean
   includeDrills?: boolean
+  locale?: AppLocale
 }
 
 // Generation result
@@ -94,53 +97,83 @@ const GOAL_PARAMS: Record<TrainingGoal, {
   methodology: Methodology
   primaryZone: number
   intervalStructure?: { work: number; rest: number; repeats: number }
-  description: string
+  description: Record<AppLocale, string>
 }> = {
   BASE_BUILDING: {
     methodology: 'PYRAMIDAL',
     primaryZone: 2,
-    description: 'Fokus på aerob basbyggnad i zon 2',
+    description: {
+      en: 'Focus on aerobic base building in zone 2',
+      sv: 'Fokus på aerob basbyggnad i zon 2',
+    },
   },
   THRESHOLD_DEVELOPMENT: {
     methodology: 'THRESHOLD_FOCUSED',
     primaryZone: 4,
     intervalStructure: { work: 480, rest: 60, repeats: 4 }, // 4x8min
-    description: 'Utveckla mjölksyratröskeln genom zon 4-arbete',
+    description: {
+      en: 'Develop lactate threshold through zone 4 work',
+      sv: 'Utveckla mjölksyratröskeln genom zon 4-arbete',
+    },
   },
   VO2MAX_IMPROVEMENT: {
     methodology: 'VO2MAX_FOCUSED',
     primaryZone: 5,
     intervalStructure: { work: 180, rest: 180, repeats: 5 }, // 5x3min
-    description: 'Förbättra VO2max genom intensiva intervaller',
+    description: {
+      en: 'Improve VO2max through intense intervals',
+      sv: 'Förbättra VO2max genom intensiva intervaller',
+    },
   },
   SPEED_DEVELOPMENT: {
     methodology: 'POLARIZED',
     primaryZone: 5,
     intervalStructure: { work: 60, rest: 120, repeats: 8 }, // 8x1min
-    description: 'Utveckla fart och löpekonomi',
+    description: {
+      en: 'Develop speed and running economy',
+      sv: 'Utveckla fart och löpekonomi',
+    },
   },
   ENDURANCE: {
     methodology: 'POLARIZED',
     primaryZone: 2,
-    description: 'Bygg uthållighet genom längre pass i zon 2',
+    description: {
+      en: 'Build endurance through longer zone 2 sessions',
+      sv: 'Bygg uthållighet genom längre pass i zon 2',
+    },
   },
   RECOVERY: {
     methodology: 'PYRAMIDAL',
     primaryZone: 1,
-    description: 'Aktiv återhämtning för att främja anpassning',
+    description: {
+      en: 'Active recovery to support adaptation',
+      sv: 'Aktiv återhämtning för att främja anpassning',
+    },
   },
   RACE_PREPARATION: {
     methodology: 'PYRAMIDAL',
     primaryZone: 3,
     intervalStructure: { work: 300, rest: 90, repeats: 5 }, // 5x5min
-    description: 'Tävlingsspecifikt arbete nära tävlingstempo',
+    description: {
+      en: 'Race-specific work close to competition pace',
+      sv: 'Tävlingsspecifikt arbete nära tävlingstempo',
+    },
   },
+}
+
+function getLocale(locale?: AppLocale): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
 }
 
 /**
  * Generate warmup segments based on sport and experience
  */
-function generateWarmup(sport: Sport, experience: ExperienceLevel, includeDrills: boolean): GeneratedSegment[] {
+function generateWarmup(
+  sport: Sport,
+  experience: ExperienceLevel,
+  includeDrills: boolean,
+  locale: AppLocale
+): GeneratedSegment[] {
   const warmupDuration = experience === 'BEGINNER' ? 300 : experience === 'INTERMEDIATE' ? 600 : 900
   const segments: GeneratedSegment[] = []
 
@@ -149,10 +182,15 @@ function generateWarmup(sport: Sport, experience: ExperienceLevel, includeDrills
     type: 'WARMUP',
     duration: warmupDuration * 0.7,
     zone: 1,
-    notes: sport === 'RUNNING' ? 'Lugn jogg, gradvis ökning' :
-           sport === 'CYCLING' ? 'Lugnt tramp, 85-95 rpm' :
-           sport === 'SWIMMING' ? 'Blandad sim, fokus på teknik' :
-           'Lätt start, fokus på form',
+    notes: locale === 'sv'
+      ? sport === 'RUNNING' ? 'Lugn jogg, gradvis ökning' :
+        sport === 'CYCLING' ? 'Lugnt tramp, 85-95 rpm' :
+        sport === 'SWIMMING' ? 'Blandad sim, fokus på teknik' :
+        'Lätt start, fokus på form'
+      : sport === 'RUNNING' ? 'Easy jog, gradual build' :
+        sport === 'CYCLING' ? 'Easy spin, 85-95 rpm' :
+        sport === 'SWIMMING' ? 'Mixed swim, focus on technique' :
+        'Easy start, focus on form',
   })
 
   // Add drills if requested
@@ -161,9 +199,13 @@ function generateWarmup(sport: Sport, experience: ExperienceLevel, includeDrills
       type: 'DRILLS',
       duration: warmupDuration * 0.3,
       zone: 2,
-      notes: sport === 'RUNNING' ? 'Dynamiska övningar, 3-4 stegringar' :
-             sport === 'SWIMMING' ? 'Drill övningar: catch-up, fingertip drag' :
-             'Teknikfokus',
+      notes: locale === 'sv'
+        ? sport === 'RUNNING' ? 'Dynamiska övningar, 3-4 stegringar' :
+          sport === 'SWIMMING' ? 'Drill övningar: catch-up, fingertip drag' :
+          'Teknikfokus'
+        : sport === 'RUNNING' ? 'Dynamic drills, 3-4 strides' :
+          sport === 'SWIMMING' ? 'Drills: catch-up, fingertip drag' :
+          'Technique focus',
     })
   }
 
@@ -173,17 +215,22 @@ function generateWarmup(sport: Sport, experience: ExperienceLevel, includeDrills
 /**
  * Generate cooldown segments
  */
-function generateCooldown(sport: Sport, experience: ExperienceLevel): GeneratedSegment[] {
+function generateCooldown(sport: Sport, experience: ExperienceLevel, locale: AppLocale): GeneratedSegment[] {
   const cooldownDuration = experience === 'BEGINNER' ? 300 : 600
 
   return [{
     type: 'COOLDOWN',
     duration: cooldownDuration,
     zone: 1,
-    notes: sport === 'RUNNING' ? 'Lugn jogg, gradvis sänkning' :
-           sport === 'CYCLING' ? 'Lätt tramp, minska motstånd' :
-           sport === 'SWIMMING' ? 'Lugn sim, valfritt simsätt' :
-           'Mjuk avslutning, sänk pulsen',
+    notes: locale === 'sv'
+      ? sport === 'RUNNING' ? 'Lugn jogg, gradvis sänkning' :
+        sport === 'CYCLING' ? 'Lätt tramp, minska motstånd' :
+        sport === 'SWIMMING' ? 'Lugn sim, valfritt simsätt' :
+        'Mjuk avslutning, sänk pulsen'
+      : sport === 'RUNNING' ? 'Easy jog, gradually ease down' :
+        sport === 'CYCLING' ? 'Easy spin, reduce resistance' :
+        sport === 'SWIMMING' ? 'Easy swim, stroke of choice' :
+        'Smooth finish, lower heart rate',
   }]
 }
 
@@ -194,7 +241,8 @@ function generateIntervals(
   structure: { work: number; rest: number; repeats: number },
   workZone: number,
   restZone: number,
-  sport: Sport
+  sport: Sport,
+  locale: AppLocale
 ): GeneratedSegment[] {
   const segments: GeneratedSegment[] = []
 
@@ -204,9 +252,13 @@ function generateIntervals(
       type: 'INTERVAL',
       duration: structure.work,
       zone: workZone,
-      notes: i === 0 ? `Intervall ${i + 1}: Etablera tempo` :
-             i === structure.repeats - 1 ? `Intervall ${i + 1}: Sista! Ge allt!` :
-             `Intervall ${i + 1}: Bibehåll intensitet`,
+      notes: locale === 'sv'
+        ? i === 0 ? `Intervall ${i + 1}: Etablera tempo` :
+          i === structure.repeats - 1 ? `Intervall ${i + 1}: Sista! Ge allt!` :
+          `Intervall ${i + 1}: Bibehåll intensitet`
+        : i === 0 ? `Interval ${i + 1}: Settle into pace` :
+          i === structure.repeats - 1 ? `Interval ${i + 1}: Last one. Give it everything.` :
+          `Interval ${i + 1}: Hold intensity`,
     })
 
     // Recovery (except after last interval)
@@ -215,9 +267,13 @@ function generateIntervals(
         type: 'RECOVERY',
         duration: structure.rest,
         zone: restZone,
-        notes: sport === 'RUNNING' ? 'Lätt jogg, återhämta' :
-               sport === 'CYCLING' ? 'Lätt tramp, sänk puls' :
-               'Aktiv vila',
+        notes: locale === 'sv'
+          ? sport === 'RUNNING' ? 'Lätt jogg, återhämta' :
+            sport === 'CYCLING' ? 'Lätt tramp, sänk puls' :
+            'Aktiv vila'
+          : sport === 'RUNNING' ? 'Easy jog, recover' :
+            sport === 'CYCLING' ? 'Easy spin, lower heart rate' :
+            'Active recovery',
       })
     }
   }
@@ -232,18 +288,26 @@ function generateSteadyState(
   duration: number,
   zone: number,
   sport: Sport,
-  isMain: boolean
+  isMain: boolean,
+  locale: AppLocale
 ): GeneratedSegment {
   return {
     type: 'STEADY',
     duration,
     zone,
-    notes: isMain ?
-      (zone === 2 ? 'Håll konversationstempo, fokus på andning' :
-       zone === 3 ? 'Måttlig ansträngning, kontrollerad' :
-       zone === 4 ? 'Tröskeltempo, komfortabelt hårt' :
-       'Jämnt tempo') :
-      'Mjuk övergång',
+    notes: locale === 'sv'
+      ? isMain
+        ? (zone === 2 ? 'Håll konversationstempo, fokus på andning' :
+          zone === 3 ? 'Måttlig ansträngning, kontrollerad' :
+          zone === 4 ? 'Tröskeltempo, komfortabelt hårt' :
+          'Jämnt tempo')
+        : 'Mjuk övergång'
+      : isMain
+        ? (zone === 2 ? 'Hold conversation pace, focus on breathing' :
+          zone === 3 ? 'Moderate effort, controlled' :
+          zone === 4 ? 'Threshold pace, comfortably hard' :
+          'Steady pace')
+        : 'Smooth transition',
   }
 }
 
@@ -252,7 +316,8 @@ function generateSteadyState(
  */
 function generateHills(
   experience: ExperienceLevel,
-  sport: Sport
+  sport: Sport,
+  locale: AppLocale
 ): GeneratedSegment[] {
   if (sport !== 'RUNNING' && sport !== 'CYCLING') {
     return []
@@ -267,9 +332,13 @@ function generateHills(
       type: 'HILL',
       duration: hillDuration,
       zone: 5,
-      notes: i === 0 ? 'Uppför: kraftfullt men kontrollerat' :
-             i === repeats - 1 ? 'Sista backen! Fokus på teknik' :
-             'Uppför: lyft knäna högt',
+      notes: locale === 'sv'
+        ? i === 0 ? 'Uppför: kraftfullt men kontrollerat' :
+          i === repeats - 1 ? 'Sista backen! Fokus på teknik' :
+          'Uppför: lyft knäna högt'
+        : i === 0 ? 'Uphill: powerful but controlled' :
+          i === repeats - 1 ? 'Last hill. Focus on technique.' :
+          'Uphill: drive the knees high',
     })
 
     if (i < repeats - 1) {
@@ -277,7 +346,7 @@ function generateHills(
         type: 'RECOVERY',
         duration: hillDuration * 2,
         zone: 1,
-        notes: 'Jogg/gå ner',
+        notes: locale === 'sv' ? 'Jogg/gå ner' : 'Jog/walk down',
       })
     }
   }
@@ -324,25 +393,25 @@ function calculateAvgZone(segments: GeneratedSegment[]): number {
 /**
  * Generate workout name based on parameters
  */
-function generateWorkoutName(params: CardioGenerationParams): string {
-  const sportLabels: Record<Sport, string> = {
-    RUNNING: 'Löppass',
-    CYCLING: 'Cykelpass',
-    SWIMMING: 'Simpass',
-    SKIING: 'Skidpass',
+function generateWorkoutName(params: CardioGenerationParams, locale: AppLocale): string {
+  const sportLabels: Record<Sport, Record<AppLocale, string>> = {
+    RUNNING: { en: 'Run', sv: 'Löppass' },
+    CYCLING: { en: 'Ride', sv: 'Cykelpass' },
+    SWIMMING: { en: 'Swim', sv: 'Simpass' },
+    SKIING: { en: 'Ski session', sv: 'Skidpass' },
   }
 
-  const goalLabels: Record<TrainingGoal, string> = {
-    BASE_BUILDING: 'Basbygge',
-    THRESHOLD_DEVELOPMENT: 'Tröskel',
-    VO2MAX_IMPROVEMENT: 'VO2max',
-    SPEED_DEVELOPMENT: 'Fart',
-    ENDURANCE: 'Uthållighet',
-    RECOVERY: 'Återhämtning',
-    RACE_PREPARATION: 'Tävlingsförberedelse',
+  const goalLabels: Record<TrainingGoal, Record<AppLocale, string>> = {
+    BASE_BUILDING: { en: 'Base build', sv: 'Basbygge' },
+    THRESHOLD_DEVELOPMENT: { en: 'Threshold', sv: 'Tröskel' },
+    VO2MAX_IMPROVEMENT: { en: 'VO2max', sv: 'VO2max' },
+    SPEED_DEVELOPMENT: { en: 'Speed', sv: 'Fart' },
+    ENDURANCE: { en: 'Endurance', sv: 'Uthållighet' },
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    RACE_PREPARATION: { en: 'Race prep', sv: 'Tävlingsförberedelse' },
   }
 
-  return `${sportLabels[params.sport]} - ${goalLabels[params.goal]} ${params.targetDuration}min`
+  return `${sportLabels[params.sport][locale]} - ${goalLabels[params.goal][locale]} ${params.targetDuration}min`
 }
 
 /**
@@ -410,13 +479,14 @@ export function generateCardioSession(params: CardioGenerationParams): Generated
     includeDrills = false,
   } = params
 
+  const locale = getLocale(params.locale)
   const goalParams = GOAL_PARAMS[goal]
   const segments: GeneratedSegment[] = []
   let remainingDuration = targetDuration * 60 // Convert to seconds
 
   // Add warmup
   if (includeWarmup) {
-    const warmupSegments = generateWarmup(sport, experienceLevel, includeDrills)
+    const warmupSegments = generateWarmup(sport, experienceLevel, includeDrills, locale)
     segments.push(...warmupSegments)
     remainingDuration -= warmupSegments.reduce((sum, s) => sum + s.duration, 0)
   }
@@ -430,7 +500,7 @@ export function generateCardioSession(params: CardioGenerationParams): Generated
 
   // Add hills if requested
   if (includeHills && (sport === 'RUNNING' || sport === 'CYCLING')) {
-    const hillSegments = generateHills(experienceLevel, sport)
+    const hillSegments = generateHills(experienceLevel, sport, locale)
     const hillDuration = hillSegments.reduce((sum, s) => sum + s.duration, 0)
 
     if (hillDuration < remainingDuration * 0.5) {
@@ -445,7 +515,8 @@ export function generateCardioSession(params: CardioGenerationParams): Generated
       goalParams.intervalStructure,
       goalParams.primaryZone,
       goalParams.primaryZone <= 3 ? 1 : 2,
-      sport
+      sport,
+      locale
     )
     const intervalDuration = intervalSegments.reduce((sum, s) => sum + s.duration, 0)
 
@@ -458,12 +529,12 @@ export function generateCardioSession(params: CardioGenerationParams): Generated
   // Fill remaining time with steady-state
   if (remainingDuration > 60) {
     const steadyZone = goalParams.intervalStructure ? 2 : goalParams.primaryZone
-    segments.push(generateSteadyState(remainingDuration, steadyZone, sport, !goalParams.intervalStructure))
+    segments.push(generateSteadyState(remainingDuration, steadyZone, sport, !goalParams.intervalStructure, locale))
   }
 
   // Add cooldown
   if (includeCooldown) {
-    const cooldownSegments = generateCooldown(sport, experienceLevel)
+    const cooldownSegments = generateCooldown(sport, experienceLevel, locale)
     segments.push(...cooldownSegments)
   }
 
@@ -474,8 +545,8 @@ export function generateCardioSession(params: CardioGenerationParams): Generated
   const tags = generateTags(params, segments)
 
   return {
-    name: generateWorkoutName(params),
-    description: goalParams.description,
+    name: generateWorkoutName(params, locale),
+    description: goalParams.description[locale],
     sport,
     segments,
     totalDuration,
