@@ -8,6 +8,7 @@ import { ExerciseLogSheet } from './ExerciseLogSheet'
 import { FloatingRestTimer } from './FloatingRestTimer'
 import { CompleteSessionDialog } from './CompleteSessionDialog'
 import { useRestTimer } from './useRestTimer'
+import { useTranslations } from '@/i18n/client'
 import type {
   CompleteSessionPayload,
   LoggedSetPayload,
@@ -39,6 +40,7 @@ export function StrengthWorkoutPreview({
   onClose,
   onCompleted,
 }: StrengthWorkoutPreviewProps) {
+  const t = useTranslations('components.workoutPreview')
   const [data, setData] = useState<PreviewWorkoutData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,15 +58,15 @@ export function StrengthWorkoutPreview({
     setIsLoading(true)
     try {
       const res = await fetch(`/api/strength-sessions/${assignmentId}/focus-mode`)
-      if (!res.ok) throw new Error('Failed to load workout')
+      if (!res.ok) throw new Error(t('errors.loadFailed'))
       const json = (await res.json()) as FocusModeApiResponse
       setData(withDerivedWorkoutKind(json.data))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunde inte ladda passet')
+      setError(e instanceof Error ? e.message : t('errors.loadFailed'))
     } finally {
       setIsLoading(false)
     }
-  }, [assignmentId])
+  }, [assignmentId, t])
 
   useEffect(() => {
     startedAtRef.current = Date.now()
@@ -181,9 +183,9 @@ export function StrengthWorkoutPreview({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background p-6">
         <div className="max-w-sm rounded-xl border bg-card p-6 text-center">
           <p className="mb-3 text-sm text-muted-foreground">
-            {error ?? 'Kunde inte ladda passet.'}
+            {error ?? t('errors.loadFailed')}
           </p>
-          <Button onClick={onClose}>Stäng</Button>
+          <Button onClick={onClose}>{t('actions.close')}</Button>
         </div>
       </div>
     )
@@ -218,7 +220,7 @@ export function StrengthWorkoutPreview({
               variant={voiceCoachActive ? 'default' : 'outline'}
               size="icon"
               onClick={() => setVoiceCoachActive((v) => !v)}
-              title="AI-röstcoach"
+              title={t('actions.voiceCoach')}
             >
               <Radio className="h-4 w-4" />
             </Button>
