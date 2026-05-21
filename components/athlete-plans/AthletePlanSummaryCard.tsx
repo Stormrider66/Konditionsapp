@@ -97,7 +97,7 @@ export function AthletePlanSummaryCard({
   return (
     <Card className={cn('overflow-hidden', className)}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <CardTitle className="flex items-center gap-2 text-base">
               <Layers3 className="h-4 w-4 text-blue-600" />
@@ -108,7 +108,8 @@ export function AthletePlanSummaryCard({
               {formatShortDate(displayStartDate, locale)} - {formatShortDate(displayEndDate, locale)}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {action}
             <Badge variant="outline">
               {variant === 'athlete'
                 ? t(locale, 'Min plan', 'My plan')
@@ -116,7 +117,6 @@ export function AthletePlanSummaryCard({
                   ? t(locale, 'Lagplan', 'Team plan')
                   : t(locale, 'Blockplan', 'Block plan')}
             </Badge>
-            {action}
           </div>
         </div>
       </CardHeader>
