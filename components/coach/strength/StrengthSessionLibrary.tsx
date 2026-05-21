@@ -56,6 +56,7 @@ import { StrengthSessionDetailSheet } from './StrengthSessionDetailSheet';
 import { StrengthSessionAssignmentDialog } from './StrengthSessionAssignmentDialog';
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
+import { countStrengthSessionExercises } from '@/lib/strength/session-sections';
 
 interface SystemTemplate {
   id: string;
@@ -420,7 +421,7 @@ export function StrengthSessionLibrary({
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sessions.map((session) => {
             const phaseInfo = phaseLabels[session.phase] || { label: session.phase, color: 'bg-gray-500' };
-            const exercises = session.exercises || [];
+            const exerciseCount = countStrengthSessionExercises(session);
 
             return (
               <Card
@@ -449,7 +450,7 @@ export function StrengthSessionLibrary({
                   <div className="flex items-center gap-4 text-sm" style={{ color: theme.colors.textMuted }}>
                     <span className="flex items-center gap-1">
                       <Dumbbell className="h-3.5 w-3.5" />
-                      {exercises.length} övningar
+                      {exerciseCount} övningar
                     </span>
                     {session.estimatedDuration && (
                       <span className="flex items-center gap-1">

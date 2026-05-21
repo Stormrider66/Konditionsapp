@@ -11,6 +11,11 @@ import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { Prisma } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
+import {
+  calculateStrengthSessionVolumeLoad,
+  countStrengthSessionExercises,
+  countStrengthSessionSets,
+} from '@/lib/strength/session-sections';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -104,20 +109,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       isPublic,
     } = body;
 
-    // Calculate totals from exercises. A follow-up runs once per primary
-    // set, so each follow-up adds `primary.sets` extra rounds to totalSets.
-    const exerciseList = exercises || [];
-    const totalExercises = exerciseList.length;
-    const totalSets = exerciseList.reduce(
-      (sum: number, e: { sets?: number; followUps?: unknown[] }) =>
-        sum + (e.sets || 0) * (1 + (e.followUps?.length || 0)),
-      0
-    );
-    const volumeLoad = exerciseList.reduce(
-      (sum: number, e: { sets?: number; reps?: number; weight?: number }) =>
-        sum + (e.sets || 0) * (e.reps || 0) * (e.weight || 0),
-      0
-    );
+    const nextExercises = exercises ?? existing.exercises ?? [];
+    const sectionInput = {
+      exercises: nextExercises,
+      warmupData: warmupData === undefined ? existing.warmupData : warmupData,
+      prehabData: prehabData === undefined ? existing.prehabData : prehabData,
+      coreData: coreData === undefined ? existing.coreData : coreData,
+      cooldownData: cooldownData === undefined ? existing.cooldownData : cooldownData,
+    };
+    const totalExercises = countStrengthSessionExercises(sectionInput);
+    const totalSets = countStrengthSessionSets(sectionInput);
+    const volumeLoad = calculateStrengthSessionVolumeLoad(sectionInput);
 
     const sectionJson = (value: unknown) =>
       value === null ? Prisma.DbNull : value || undefined
@@ -130,7 +132,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         phase,
         timingRelativeToRun,
         estimatedDuration,
-        exercises: exercises || [],
+        exercises: nextExercises,
         warmupData: sectionJson(warmupData),
         prehabData: sectionJson(prehabData),
         coreData: sectionJson(coreData),

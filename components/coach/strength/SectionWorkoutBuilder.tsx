@@ -393,6 +393,25 @@ export function SectionWorkoutBuilder({
   const [targetSection, setTargetSection] = useState<SectionType>('MAIN')
   const [showExerciseCreator, setShowExerciseCreator] = useState(false)
 
+  const mapLibraryExercise = useCallback((e: any): LibraryExercise => ({
+    id: e.id,
+    name: locale === 'sv' ? e.nameSv || e.name : e.nameEn || e.name,
+    nameSv: e.nameSv,
+    nameEn: e.nameEn,
+    category: e.category,
+    pillar: e.biomechanicalPillar,
+    muscleGroup: e.muscleGroup,
+    description: e.description,
+    instructions: e.instructions,
+    progressionLevel: e.progressionLevel,
+    isRehabExercise: e.isRehabExercise,
+    rehabPhases: e.rehabPhases,
+    targetBodyParts: e.targetBodyParts,
+    contraindications: e.contraindications,
+    equipmentTypes: e.equipmentTypes,
+    iconCategory: e.iconCategory,
+  }), [locale])
+
   // Sync category filter to match the target section. Coach can override the
   // filter afterwards; next target-section change will realign it again.
   useEffect(() => {
@@ -563,41 +582,31 @@ export function SectionWorkoutBuilder({
   }, [initialData])
 
   // Fetch exercises
-  const fetchExercises = useCallback(async () => {
+  const fetchExercises = useCallback(async (search = '') => {
     try {
-      const res = await fetch('/api/exercises?limit=500')
+      const params = new URLSearchParams({ limit: '500' })
+      const trimmedSearch = search.trim()
+      if (trimmedSearch) params.set('search', trimmedSearch)
+
+      const res = await fetch(`/api/exercises?${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
         const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
-        setAvailableExercises(
-          exercisesList.map((e: any) => ({
-            id: e.id,
-            name: locale === 'sv' ? e.nameSv || e.name : e.nameEn || e.name,
-            nameSv: e.nameSv,
-            nameEn: e.nameEn,
-            category: e.category,
-            pillar: e.biomechanicalPillar,
-            muscleGroup: e.muscleGroup,
-            description: e.description,
-            instructions: e.instructions,
-            progressionLevel: e.progressionLevel,
-            isRehabExercise: e.isRehabExercise,
-            rehabPhases: e.rehabPhases,
-            targetBodyParts: e.targetBodyParts,
-            contraindications: e.contraindications,
-            equipmentTypes: e.equipmentTypes,
-            iconCategory: e.iconCategory,
-          }))
-        )
+        setAvailableExercises(exercisesList.map(mapLibraryExercise))
       }
     } catch (e) {
       console.error('Failed to fetch exercises', e)
     }
-  }, [locale])
+  }, [mapLibraryExercise])
 
   useEffect(() => {
-    fetchExercises()
-  }, [fetchExercises])
+    const timeoutId = window.setTimeout(
+      () => void fetchExercises(searchTerm),
+      searchTerm.trim() ? 200 : 0
+    )
+
+    return () => window.clearTimeout(timeoutId)
+  }, [fetchExercises, searchTerm])
 
   // Fetch favorites and most-used on mount
   useEffect(() => {
@@ -666,12 +675,21 @@ export function SectionWorkoutBuilder({
       list = [...list].sort((a, b) => mostUsedIds.indexOf(a.id) - mostUsedIds.indexOf(b.id))
     }
 
-    // Apply search and category filters
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
+    // Apply search and category filters. A typed search should look across
+    // the whole library, even if the target section temporarily set a narrow
+    // category like Warm-up.
     return list.filter((ex) => {
       const matchesSearch =
-        ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesCategory = matchesStrengthLibraryCategoryFilter(ex, categoryFilter)
+        normalizedSearch.length === 0 ||
+        ex.name.toLowerCase().includes(normalizedSearch) ||
+        (ex.nameSv && ex.nameSv.toLowerCase().includes(normalizedSearch)) ||
+        (ex.nameEn && ex.nameEn.toLowerCase().includes(normalizedSearch)) ||
+        (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(normalizedSearch))
+      const matchesCategory = normalizedSearch.length > 0
+        ? true
+        : matchesStrengthLibraryCategoryFilter(ex, categoryFilter)
       return matchesSearch && matchesCategory
     })
   })()
@@ -1542,9 +1560,33 @@ export function SectionWorkoutBuilder({
     <CustomExerciseCreator
       open={showExerciseCreator}
       onClose={() => setShowExerciseCreator(false)}
-      onSuccess={() => {
+      onSuccess={(exerciseId, exercise) => {
         setShowExerciseCreator(false)
-        fetchExercises()
+        let nextSearch = searchTerm
+        if (exercise) {
+          const mappedExercise = mapLibraryExercise(exercise)
+          const preferredSectionByCategory: Record<string, SectionType> = {
+            WARMUP: 'WARMUP',
+            STRENGTH: 'MAIN',
+            PLYOMETRIC: 'MAIN',
+            CORE: 'CORE',
+            RECOVERY: 'COOLDOWN',
+          }
+          const preferredSection = preferredSectionByCategory[mappedExercise.category || '']
+
+          setAvailableExercises((prev) => [
+            mappedExercise,
+            ...prev.filter((item) => item.id !== exerciseId),
+          ])
+          setBrowseMode('all')
+          setCategoryFilter('ALL')
+          setSearchTerm(mappedExercise.name)
+          nextSearch = mappedExercise.name
+          if (preferredSection && sections[preferredSection].enabled) {
+            setTargetSection(preferredSection)
+          }
+        }
+        void fetchExercises(nextSearch)
       }}
     />
     </>

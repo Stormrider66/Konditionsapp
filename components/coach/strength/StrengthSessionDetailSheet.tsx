@@ -38,11 +38,19 @@ import {
   Dumbbell,
   Activity,
   Heart,
+  Flame,
+  ShieldCheck,
+  Sparkles,
+  Target,
 } from 'lucide-react';
 import type { StrengthSessionData, StrengthSessionExercise, SessionAssignment } from '@/types';
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { useLocale } from '@/i18n/client';
+import {
+  countStrengthSessionExercises,
+  countStrengthSessionSets,
+} from '@/lib/strength/session-sections';
 
 type AppLocale = 'en' | 'sv';
 
@@ -79,6 +87,11 @@ const copy = {
     assign: 'Assign',
     assignTeam: 'Assign team',
     exercises: 'Exercises',
+    warmup: 'Warm-up',
+    mainSession: 'Main session',
+    prehab: 'Stability / Prehab',
+    core: 'Core',
+    cooldown: 'Cool-down',
     cardio: 'Cardio',
     rest: 'rest',
     followUp: 'Follow-up',
@@ -122,6 +135,11 @@ const copy = {
     assign: 'Tilldela',
     assignTeam: 'Tilldela lag',
     exercises: 'Övningar',
+    warmup: 'Uppvärmning',
+    mainSession: 'Huvudpass',
+    prehab: 'Stabilitet / Prehab',
+    core: 'Core',
+    cooldown: 'Nedvarvning',
     cardio: 'Kondition',
     rest: 'vila',
     followUp: 'Följd',
@@ -144,6 +162,25 @@ function formatDurationSeconds(s: number): string {
   const m = Math.floor(s / 60);
   const r = s % 60;
   return r === 0 ? `${m} min` : `${m}:${String(r).padStart(2, '0')} min`;
+}
+
+type DisplayExercise = Omit<StrengthSessionExercise, 'sets' | 'reps'> & {
+  sets?: number;
+  reps?: number | string;
+  duration?: number;
+};
+
+function getExerciseSets(exercise: DisplayExercise): number {
+  return exercise.sets ?? (exercise.duration || exercise.durationSeconds ? 1 : 0);
+}
+
+function getExerciseRest(exercise: DisplayExercise, defaultRest: number): number {
+  return exercise.restSeconds ?? defaultRest;
+}
+
+function formatExportWeight(exercise: DisplayExercise): string {
+  if (exercise.weight == null) return '';
+  return `${exercise.weight}${exercise.weightUnit === 'percent' ? '%' : 'kg'}`;
 }
 
 interface StrengthSessionDetailSheetProps {
@@ -223,23 +260,76 @@ export function StrengthSessionDetailSheet({
   const phaseLabel = t.phases[session.phase as keyof typeof t.phases] || session.phase;
   const phaseColor = phaseColors[session.phase] || 'bg-gray-500';
   const exercises = session.exercises || [];
+  const displaySections = [
+    {
+      type: 'WARMUP',
+      label: t.warmup,
+      icon: Flame,
+      iconClassName: 'text-yellow-500',
+      borderColor: '#f59e0b',
+      defaultRest: 30,
+      exercises: (session.warmupData?.exercises || []) as DisplayExercise[],
+    },
+    {
+      type: 'MAIN',
+      label: t.mainSession,
+      icon: Dumbbell,
+      iconClassName: 'text-red-500',
+      borderColor: theme.colors.accent,
+      defaultRest: 90,
+      exercises: exercises as DisplayExercise[],
+    },
+    {
+      type: 'PREHAB',
+      label: t.prehab,
+      icon: ShieldCheck,
+      iconClassName: 'text-teal-500',
+      borderColor: '#14b8a6',
+      defaultRest: 45,
+      exercises: (session.prehabData?.exercises || []) as DisplayExercise[],
+    },
+    {
+      type: 'CORE',
+      label: t.core,
+      icon: Target,
+      iconClassName: 'text-purple-500',
+      borderColor: '#a855f7',
+      defaultRest: 45,
+      exercises: (session.coreData?.exercises || []) as DisplayExercise[],
+    },
+    {
+      type: 'COOLDOWN',
+      label: t.cooldown,
+      icon: Sparkles,
+      iconClassName: 'text-green-500',
+      borderColor: '#22c55e',
+      defaultRest: 30,
+      exercises: (session.cooldownData?.exercises || []) as DisplayExercise[],
+    },
+  ].filter((section) => section.exercises.length > 0);
+
+  const totalExerciseCount = countStrengthSessionExercises(session);
+  const totalSetCount = countStrengthSessionSets(session);
+  const exportExercises = displaySections.flatMap((section) =>
+    section.exercises.map((exercise) => ({
+      id: exercise.exerciseId,
+      name: `${section.label} - ${exercise.exerciseName}`,
+      sets: getExerciseSets(exercise),
+      reps: String(exercise.reps ?? exercise.duration ?? exercise.durationSeconds ?? ''),
+      weight: formatExportWeight(exercise),
+      rest: getExerciseRest(exercise, section.defaultRest),
+      notes: exercise.notes,
+    }))
+  );
 
   // Prepare export data
   const exportData = {
     sessionName: session.name,
     phase: phaseLabel,
     date: new Date(),
-    exercises: exercises.map((e: StrengthSessionExercise, i: number) => ({
-      order: i + 1,
-      name: e.exerciseName,
-      sets: e.sets,
-      reps: e.reps,
-      weight: e.weight,
-      rest: e.restSeconds,
-      notes: e.notes,
-    })),
-    totalExercises: session.totalExercises || exercises.length,
-    totalSets: session.totalSets || 0,
+    exercises: exportExercises,
+    totalExercises: totalExerciseCount,
+    totalSets: totalSetCount,
     estimatedDuration: session.estimatedDuration,
   };
 
@@ -315,14 +405,14 @@ export function StrengthSessionDetailSheet({
             className="text-center p-3 rounded-lg"
             style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
           >
-            <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{session.totalExercises || exercises.length}</div>
+            <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{totalExerciseCount}</div>
             <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t.exercises}</div>
           </div>
           <div
             className="text-center p-3 rounded-lg"
             style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
           >
-            <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{session.totalSets || 0}</div>
+            <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{totalSetCount}</div>
             <div className="text-xs" style={{ color: theme.colors.textMuted }}>Set</div>
           </div>
           <div
@@ -340,119 +430,134 @@ export function StrengthSessionDetailSheet({
         <Separator className="my-2" />
 
         {/* Exercises */}
-        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.accent }}>
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-              <Dumbbell className="h-4 w-4 text-red-500" />
-              <span>{t.exercises}</span>
-              <Badge variant="secondary">{exercises.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            {exercises.length > 0 ? (
-              <ul className="space-y-3">
-                {exercises.map((exercise: StrengthSessionExercise, i: number) => {
-                  const isCardio = exercise.kind === 'cardio';
-                  const weightSuffix = exercise.weightUnit === 'percent' ? '%' : 'kg';
-                  return (
-                  <li key={i} className="flex items-start gap-3 text-sm">
-                    <span className="w-5 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
-                      {i + 1}.
-                    </span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="font-medium" style={{ color: theme.colors.textPrimary }}>{exercise.exerciseName}</div>
-                        {isCardio && (
-                          <Badge variant="secondary" className="text-[10px] py-0">
-                            <Heart className="h-3 w-3 mr-1" />
-                            {t.cardio}
-                          </Badge>
-                        )}
-                      </div>
-                      <div style={{ color: theme.colors.textMuted }}>
-                        {isCardio ? (
-                          <>
-                            {exercise.durationSeconds
-                              ? formatDurationSeconds(exercise.durationSeconds)
-                              : '—'}
-                            {exercise.distanceMeters
-                              ? ` · ${(exercise.distanceMeters / 1000).toFixed(2)} km`
-                              : ''}
-                            {exercise.intensity
-                              ? ` · ${t.cardioIntensity[exercise.intensity as keyof typeof t.cardioIntensity] ?? exercise.intensity}`
-                              : ''}
-                          </>
-                        ) : exercise.setRows && exercise.setRows.length > 0 ? (
-                          <>
-                            <div className="text-xs">
-                              {exercise.setRows.map((r, k) => (
-                                <span key={k}>
-                                  {k > 0 && ', '}
-                                  Set {k + 1}: {r.reps}
-                                  {r.weight ? ` @ ${r.weight}${weightSuffix}` : ''}
-                                </span>
-                              ))}
-                            </div>
-                            {exercise.restSeconds && (
-                              <span>{exercise.restSeconds}s {t.rest}</span>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {exercise.sets}×{exercise.reps}
-                            {exercise.weight && ` @ ${exercise.weight}${weightSuffix}`}
-                            {exercise.restSeconds && ` (${exercise.restSeconds}s ${t.rest})`}
-                          </>
-                        )}
-                      </div>
-                      {exercise.notes && (
-                        <div className="text-xs italic mt-1" style={{ color: theme.colors.textMuted }}>
-                          {exercise.notes}
-                        </div>
-                      )}
-                      {Array.isArray(exercise.followUps) && exercise.followUps.length > 0 && (
-                        <ul
-                          className="mt-2 space-y-1.5 pl-3 border-l-2 border-dashed"
-                          style={{ borderColor: theme.colors.accent }}
-                        >
-                          {exercise.followUps.map((fu, j) => (
-                            <li key={j} className="text-xs">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <Badge variant="outline" className="text-[10px] py-0">
-                                  {t.followUp} {j + 1}
-                                </Badge>
-                                <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
-                                  {fu.exerciseName}
-                                </span>
+        <div className="space-y-3">
+          {displaySections.length > 0 ? (
+            displaySections.map((section) => {
+              const SectionIcon = section.icon;
+              return (
+                <Card
+                  key={section.type}
+                  style={{ backgroundColor: theme.colors.backgroundCard, borderColor: section.borderColor }}
+                >
+                  <CardHeader className="py-3 px-4">
+                    <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
+                      <SectionIcon className={`h-4 w-4 ${section.iconClassName}`} />
+                      <span>{section.label}</span>
+                      <Badge variant="secondary">{section.exercises.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <ul className="space-y-3">
+                      {section.exercises.map((exercise, i: number) => {
+                        const isCardio = exercise.kind === 'cardio';
+                        const weightSuffix = exercise.weightUnit === 'percent' ? '%' : 'kg';
+                        const restSeconds = getExerciseRest(exercise, section.defaultRest);
+                        return (
+                          <li key={`${section.type}-${exercise.exerciseId}-${i}`} className="flex items-start gap-3 text-sm">
+                            <span className="w-5 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
+                              {i + 1}.
+                            </span>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className="font-medium" style={{ color: theme.colors.textPrimary }}>{exercise.exerciseName}</div>
+                                {isCardio && (
+                                  <Badge variant="secondary" className="text-[10px] py-0">
+                                    <Heart className="h-3 w-3 mr-1" />
+                                    {t.cardio}
+                                  </Badge>
+                                )}
                               </div>
                               <div style={{ color: theme.colors.textMuted }}>
-                                {exercise.sets}×{fu.reps}
-                                {fu.weight
-                                  ? ` @ ${fu.weight}${fu.weightUnit === 'percent' ? '%' : 'kg'}`
-                                  : ''}
-                                {fu.restBeforeSeconds
-                                  ? ` (${fu.restBeforeSeconds}s ${t.pauseBefore})`
-                                  : ` (${t.superset})`}
+                                {isCardio ? (
+                                  <>
+                                    {exercise.durationSeconds
+                                      ? formatDurationSeconds(exercise.durationSeconds)
+                                      : '—'}
+                                    {exercise.distanceMeters
+                                      ? ` · ${(exercise.distanceMeters / 1000).toFixed(2)} km`
+                                      : ''}
+                                    {exercise.intensity
+                                      ? ` · ${t.cardioIntensity[exercise.intensity as keyof typeof t.cardioIntensity] ?? exercise.intensity}`
+                                      : ''}
+                                  </>
+                                ) : exercise.setRows && exercise.setRows.length > 0 ? (
+                                  <>
+                                    <div className="text-xs">
+                                      {exercise.setRows.map((r, k) => (
+                                        <span key={k}>
+                                          {k > 0 && ', '}
+                                          Set {k + 1}: {r.reps}
+                                          {r.weight ? ` @ ${r.weight}${weightSuffix}` : ''}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    {restSeconds > 0 && (
+                                      <span>{restSeconds}s {t.rest}</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    {getExerciseSets(exercise)}×{exercise.reps ?? exercise.duration ?? ''}
+                                    {exercise.weight && ` @ ${exercise.weight}${weightSuffix}`}
+                                    {restSeconds > 0 && ` (${restSeconds}s ${t.rest})`}
+                                  </>
+                                )}
                               </div>
-                              {fu.notes && (
-                                <div className="italic mt-0.5" style={{ color: theme.colors.textMuted }}>
-                                  {fu.notes}
+                              {exercise.notes && (
+                                <div className="text-xs italic mt-1" style={{ color: theme.colors.textMuted }}>
+                                  {exercise.notes}
                                 </div>
                               )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-sm" style={{ color: theme.colors.textMuted }}>{t.noExercises}</p>
-            )}
-          </CardContent>
-        </Card>
+                              {Array.isArray(exercise.followUps) && exercise.followUps.length > 0 && (
+                                <ul
+                                  className="mt-2 space-y-1.5 pl-3 border-l-2 border-dashed"
+                                  style={{ borderColor: section.borderColor }}
+                                >
+                                  {exercise.followUps.map((fu, j) => (
+                                    <li key={j} className="text-xs">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <Badge variant="outline" className="text-[10px] py-0">
+                                          {t.followUp} {j + 1}
+                                        </Badge>
+                                        <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
+                                          {fu.exerciseName}
+                                        </span>
+                                      </div>
+                                      <div style={{ color: theme.colors.textMuted }}>
+                                        {getExerciseSets(exercise)}×{fu.reps}
+                                        {fu.weight
+                                          ? ` @ ${fu.weight}${fu.weightUnit === 'percent' ? '%' : 'kg'}`
+                                          : ''}
+                                        {fu.restBeforeSeconds
+                                          ? ` (${fu.restBeforeSeconds}s ${t.pauseBefore})`
+                                          : ` (${t.superset})`}
+                                      </div>
+                                      {fu.notes && (
+                                        <div className="italic mt-0.5" style={{ color: theme.colors.textMuted }}>
+                                          {fu.notes}
+                                        </div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+              <CardContent className="px-4 py-4">
+                <p className="text-sm" style={{ color: theme.colors.textMuted }}>{t.noExercises}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Tags */}
         {session.tags && session.tags.length > 0 && (

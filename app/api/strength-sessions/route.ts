@@ -10,6 +10,11 @@ import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { StrengthPhase } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import {
+  calculateStrengthSessionVolumeLoad,
+  countStrengthSessionExercises,
+  countStrengthSessionSets,
+} from '@/lib/strength/session-sections';
 
 export async function GET(request: NextRequest) {
   try {
@@ -108,20 +113,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate totals from exercises. A follow-up runs once per primary
-    // set, so each follow-up adds `primary.sets` extra rounds to totalSets.
-    const exerciseList = exercises || [];
-    const totalExercises = exerciseList.length;
-    const totalSets = exerciseList.reduce(
-      (sum: number, e: { sets?: number; followUps?: unknown[] }) =>
-        sum + (e.sets || 0) * (1 + (e.followUps?.length || 0)),
-      0
-    );
-    const volumeLoad = exerciseList.reduce(
-      (sum: number, e: { sets?: number; reps?: number; weight?: number }) =>
-        sum + (e.sets || 0) * (e.reps || 0) * (e.weight || 0),
-      0
-    );
+    const sectionInput = {
+      exercises: exercises || [],
+      warmupData,
+      prehabData,
+      coreData,
+      cooldownData,
+    };
+    const totalExercises = countStrengthSessionExercises(sectionInput);
+    const totalSets = countStrengthSessionSets(sectionInput);
+    const volumeLoad = calculateStrengthSessionVolumeLoad(sectionInput);
 
     const session = await prisma.strengthSession.create({
       data: {

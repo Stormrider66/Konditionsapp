@@ -56,7 +56,7 @@ import { useToast } from '@/components/ui/use-toast'
 interface CustomExerciseCreatorProps {
   open: boolean
   onClose: () => void
-  onSuccess: (exerciseId: string) => void
+  onSuccess: (exerciseId: string, exercise?: any) => void
 }
 
 interface ExerciseFormData {
@@ -200,7 +200,7 @@ export function CustomExerciseCreator({
         description: `${exercise.name} has been added to your custom library`,
       })
 
-      onSuccess(exercise.id)
+      onSuccess(exercise.id, exercise)
       handleReset()
     } catch (error: any) {
       toast({
