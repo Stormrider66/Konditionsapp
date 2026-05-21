@@ -122,6 +122,7 @@ export async function POST(
         businessId,
         targetId: memberId,
       },
+      locale,
     ).catch((emailErr) => {
       logger.error('Send invite: failed to send email', { email: user.email }, emailErr)
       return { success: false, error: 'Email send failed' }

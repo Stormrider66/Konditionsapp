@@ -487,7 +487,7 @@ export async function sendNewApplicationNotification(
 
 /**
  * Send invite email to a new coach/team member being added to a business.
- * Contains a "Skapa lösenord" (Create password) button.
+ * Contains a localized password setup button.
  */
 export async function sendCoachInviteEmail(
   to: string,

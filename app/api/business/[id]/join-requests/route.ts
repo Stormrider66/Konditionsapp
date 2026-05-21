@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       include: {
         members: {
           where: { role: 'OWNER' },
-          include: { user: { select: { email: true, name: true } } },
+          include: { user: { select: { email: true, name: true, language: true } } },
         },
       },
     })
@@ -77,7 +77,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       sendJoinRequestNotification(
         owner.user.email,
         user.name,
-        business.name
+        business.name,
+        undefined,
+        owner.user.language === 'sv' ? 'sv' : 'en'
       ).catch(() => {})
     }
 
