@@ -19,13 +19,119 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import type { Client, Team } from '@/types'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  fetchError: string
+  networkError: string
+  updateError: string
+  updatedTitle: string
+  updatedDescription: (name: string) => string
+  errorTitle: string
+  networkErrorTitle: string
+  alertPrefix: string
+  cardTitle: string
+  name: string
+  namePlaceholder: string
+  email: string
+  phone: string
+  gender: string
+  genderPlaceholder: string
+  male: string
+  female: string
+  birthDate: string
+  height: string
+  heightPlaceholder: string
+  weight: string
+  weightPlaceholder: string
+  team: string
+  loadingTeams: string
+  teamPlaceholder: string
+  noTeam: string
+  notes: string
+  notesPlaceholder: string
+  cancel: string
+  saving: string
+  save: string
+}> = {
+  en: {
+    fetchError: 'Failed to fetch client',
+    networkError: 'Network error',
+    updateError: 'Could not update client.',
+    updatedTitle: 'Client updated!',
+    updatedDescription: (name) => `${name} has been updated.`,
+    errorTitle: 'Error',
+    networkErrorTitle: 'Network error',
+    alertPrefix: 'Error',
+    cardTitle: 'Client information',
+    name: 'Name *',
+    namePlaceholder: 'First and last name',
+    email: 'Email',
+    phone: 'Phone',
+    gender: 'Gender *',
+    genderPlaceholder: 'Select gender',
+    male: 'Male',
+    female: 'Female',
+    birthDate: 'Birth date *',
+    height: 'Height (cm) *',
+    heightPlaceholder: 'e.g. 175',
+    weight: 'Weight (kg) *',
+    weightPlaceholder: 'e.g. 70',
+    team: 'Team/Club',
+    loadingTeams: 'Loading teams...',
+    teamPlaceholder: 'Select team (optional)',
+    noTeam: 'No team',
+    notes: 'Notes',
+    notesPlaceholder: 'Optional notes about the client...',
+    cancel: 'Cancel',
+    saving: 'Saving...',
+    save: 'Save changes',
+  },
+  sv: {
+    fetchError: 'Kunde inte hämta klient',
+    networkError: 'Nätverksfel',
+    updateError: 'Kunde inte uppdatera klienten.',
+    updatedTitle: 'Klient uppdaterad!',
+    updatedDescription: (name) => `${name} har uppdaterats.`,
+    errorTitle: 'Fel',
+    networkErrorTitle: 'Nätverksfel',
+    alertPrefix: 'Fel',
+    cardTitle: 'Klientinformation',
+    name: 'Namn *',
+    namePlaceholder: 'För- och efternamn',
+    email: 'E-post',
+    phone: 'Telefon',
+    gender: 'Kön *',
+    genderPlaceholder: 'Välj kön',
+    male: 'Man',
+    female: 'Kvinna',
+    birthDate: 'Födelsedatum *',
+    height: 'Längd (cm) *',
+    heightPlaceholder: 't.ex. 175',
+    weight: 'Vikt (kg) *',
+    weightPlaceholder: 't.ex. 70',
+    team: 'Lag/Klubb',
+    loadingTeams: 'Laddar lag...',
+    teamPlaceholder: 'Välj lag (valfritt)',
+    noTeam: 'Inget lag',
+    notes: 'Anteckningar',
+    notesPlaceholder: 'Valfria anteckningar om klienten...',
+    cancel: 'Avbryt',
+    saving: 'Sparar...',
+    save: 'Spara ändringar',
+  },
+}
 
 export default function EditClientPage() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
@@ -76,15 +182,15 @@ export default function EditClientPage() {
           teamId: client.teamId || '',
         })
       } else {
-        setError(result.error || 'Failed to fetch client')
+        setError(result.error || copy.fetchError)
       }
     } catch (err) {
       console.error(err)
-      setError('Network error')
+      setError(copy.networkError)
     } finally {
       setLoading(false)
     }
-  }, [businessSlug, id, reset])
+  }, [businessSlug, copy.fetchError, copy.networkError, id, reset])
 
   const fetchTeams = useCallback(async () => {
     try {
@@ -104,12 +210,12 @@ export default function EditClientPage() {
 
   useEffect(() => {
     const supabase = createSupabaseClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    void supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
     })
 
-    fetchClient()
-    fetchTeams()
+    void fetchClient()
+    void fetchTeams()
   }, [fetchClient, fetchTeams])
 
   const onSubmit = async (data: ClientFormData) => {
@@ -130,24 +236,24 @@ export default function EditClientPage() {
 
       if (result.success) {
         toast({
-          title: 'Klient uppdaterad!',
-          description: `${data.name} har uppdaterats.`,
+          title: copy.updatedTitle,
+          description: copy.updatedDescription(data.name),
         })
         router.push(`${basePath}/clients/${id}`)
       } else {
-        setError(result.error || 'Failed to update client')
+        setError(result.error || copy.updateError)
         toast({
-          title: 'Fel',
-          description: result.error || 'Kunde inte uppdatera klienten.',
+          title: copy.errorTitle,
+          description: result.error || copy.updateError,
           variant: 'destructive',
         })
       }
     } catch (err) {
       console.error(err)
-      setError('Network error')
+      setError(copy.networkError)
       toast({
-        title: 'Nätverksfel',
-        description: 'Något gick fel. Försök igen.',
+        title: copy.networkErrorTitle,
+        description: copy.networkError,
         variant: 'destructive',
       })
     } finally {
@@ -170,23 +276,22 @@ export default function EditClientPage() {
       <main className="max-w-3xl mx-auto px-4 py-6 lg:py-12">
         {error && (
           <Alert variant="destructive" className="mb-6">
-            <AlertDescription>Fel: {error}</AlertDescription>
+            <AlertDescription>{copy.alertPrefix}: {error}</AlertDescription>
           </Alert>
         )}
 
         <Card>
           <CardHeader>
-            <CardTitle>Klientinformation</CardTitle>
+            <CardTitle>{copy.cardTitle}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Namn */}
               <div className="space-y-2">
-                <Label htmlFor="name">Namn *</Label>
+                <Label htmlFor="name">{copy.name}</Label>
                 <Input
                   id="name"
                   {...register('name')}
-                  placeholder="För- och efternamn"
+                  placeholder={copy.namePlaceholder}
                   className={errors.name ? 'border-red-500' : ''}
                 />
                 {errors.name && (
@@ -194,10 +299,9 @@ export default function EditClientPage() {
                 )}
               </div>
 
-              {/* E-post och Telefon */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-post</Label>
+                  <Label htmlFor="email">{copy.email}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -211,7 +315,7 @@ export default function EditClientPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefon</Label>
+                  <Label htmlFor="phone">{copy.phone}</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -221,20 +325,19 @@ export default function EditClientPage() {
                 </div>
               </div>
 
-              {/* Kön och Födelsedatum */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Kön *</Label>
+                  <Label htmlFor="gender">{copy.gender}</Label>
                   <Select
                     value={gender}
                     onValueChange={(value) => setValue('gender', value as 'MALE' | 'FEMALE')}
                   >
                     <SelectTrigger id="gender">
-                      <SelectValue placeholder="Välj kön" />
+                      <SelectValue placeholder={copy.genderPlaceholder} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MALE">Man</SelectItem>
-                      <SelectItem value="FEMALE">Kvinna</SelectItem>
+                      <SelectItem value="MALE">{copy.male}</SelectItem>
+                      <SelectItem value="FEMALE">{copy.female}</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.gender && (
@@ -243,7 +346,7 @@ export default function EditClientPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="birthDate">Födelsedatum *</Label>
+                  <Label htmlFor="birthDate">{copy.birthDate}</Label>
                   <Input
                     id="birthDate"
                     type="date"
@@ -256,15 +359,14 @@ export default function EditClientPage() {
                 </div>
               </div>
 
-              {/* Längd och Vikt */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="height">Längd (cm) *</Label>
+                  <Label htmlFor="height">{copy.height}</Label>
                   <Input
                     id="height"
                     type="number"
                     {...register('height', { valueAsNumber: true })}
-                    placeholder="t.ex. 175"
+                    placeholder={copy.heightPlaceholder}
                     className={errors.height ? 'border-red-500' : ''}
                   />
                   {errors.height && (
@@ -273,13 +375,13 @@ export default function EditClientPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="weight">Vikt (kg) *</Label>
+                  <Label htmlFor="weight">{copy.weight}</Label>
                   <Input
                     id="weight"
                     type="number"
                     step="0.1"
                     {...register('weight', { valueAsNumber: true })}
-                    placeholder="t.ex. 70"
+                    placeholder={copy.weightPlaceholder}
                     className={errors.weight ? 'border-red-500' : ''}
                   />
                   {errors.weight && (
@@ -288,18 +390,17 @@ export default function EditClientPage() {
                 </div>
               </div>
 
-              {/* Lag/Klubb */}
               <div className="space-y-2">
-                <Label htmlFor="teamId">Lag/Klubb</Label>
+                <Label htmlFor="teamId">{copy.team}</Label>
                 <Select
                   value={selectedTeamId || 'none'}
                   onValueChange={(value) => setValue('teamId', value === 'none' ? undefined : value)}
                 >
                   <SelectTrigger id="teamId" disabled={teamsLoading}>
-                    <SelectValue placeholder={teamsLoading ? 'Laddar lag...' : 'Välj lag (valfritt)'} />
+                    <SelectValue placeholder={teamsLoading ? copy.loadingTeams : copy.teamPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Inget lag</SelectItem>
+                    <SelectItem value="none">{copy.noTeam}</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team.id} value={team.id}>
                         {team.name}
@@ -309,15 +410,14 @@ export default function EditClientPage() {
                 </Select>
               </div>
 
-              {/* Anteckningar */}
               <div className="space-y-2">
-                <Label htmlFor="notes">Anteckningar</Label>
+                <Label htmlFor="notes">{copy.notes}</Label>
                 <textarea
                   id="notes"
                   {...register('notes')}
                   rows={4}
                   className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Valfria anteckningar om klienten..."
+                  placeholder={copy.notesPlaceholder}
                 />
               </div>
 
@@ -325,17 +425,17 @@ export default function EditClientPage() {
               <div className="flex justify-end gap-4 pt-4">
                 <Link href={`${basePath}/clients/${id}`}>
                   <Button type="button" variant="outline">
-                    Avbryt
+                    {copy.cancel}
                   </Button>
                 </Link>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Sparar...
+                      {copy.saving}
                     </>
                   ) : (
-                    'Spara ändringar'
+                    copy.save
                   )}
                 </Button>
               </div>
