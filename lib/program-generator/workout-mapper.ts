@@ -170,8 +170,8 @@ export function mapSkiingWorkoutToDTO(
     type: 'work',
     duration: workout.duration,
     zone: workout.paceZone,
-    description: `${workout.description}${workout.technique !== 'any' ? ` (${workout.technique === 'classic' ? 'Klassisk' : workout.technique === 'skating' ? 'Skating' : 'Valfritt'})` : ''}`,
-    notes: workout.surface !== 'any' ? `Underlag: ${workout.surface === 'snow' ? 'Snö' : workout.surface === 'roller_ski' ? 'Rullskidor' : 'Löpning'}` : undefined,
+    description: `${workout.description}${workout.technique !== 'any' ? ` (${workout.technique === 'classic' ? 'Classic' : workout.technique === 'skating' ? 'Skating' : 'Optional'})` : ''}`,
+    notes: workout.surface !== 'any' ? `Surface: ${workout.surface === 'snow' ? 'Snow' : workout.surface === 'roller_ski' ? 'Roller skis' : 'Running'}` : undefined,
   })
 
   return {
@@ -250,11 +250,11 @@ function formatCssPace(cssSeconds: number, zone: number): string {
 function mapStrokeFocus(stroke: string): string {
   const mapping: Record<string, string> = {
     freestyle: 'Crawl',
-    backstroke: 'Ryggsim',
-    breaststroke: 'Bröstsim',
-    butterfly: 'Fjärilsim',
-    im: 'Medley',
-    mixed: 'Blandat',
+    backstroke: 'Backstroke',
+    breaststroke: 'Breaststroke',
+    butterfly: 'Butterfly',
+    im: 'Individual medley',
+    mixed: 'Mixed',
   }
   return mapping[stroke] || stroke
 }
@@ -275,7 +275,7 @@ export function mapTriathlonWorkoutToDTO(
       type: 'work',
       duration: workout.duration,
       distance: workout.swimDistance,
-      description: `Simning: ${workout.swimDistance}m`,
+      description: `Swimming: ${workout.swimDistance}m`,
     })
   }
 
@@ -285,7 +285,7 @@ export function mapTriathlonWorkoutToDTO(
       type: 'work',
       duration: workout.duration,
       distance: workout.bikeDistance * 1000, // km to m
-      description: `Cykling: ${workout.bikeDistance}km`,
+      description: `Cycling: ${workout.bikeDistance}km`,
     })
   }
 
@@ -295,7 +295,7 @@ export function mapTriathlonWorkoutToDTO(
       type: 'work',
       duration: workout.duration,
       distance: workout.runDistance * 1000, // km to m
-      description: `Löpning: ${workout.runDistance}km`,
+      description: `Running: ${workout.runDistance}km`,
     })
   }
 
@@ -342,13 +342,13 @@ export function mapHyroxWorkoutToDTO(
       type: 'work',
       distance: workout.runningDistance,
       duration: Math.round(workout.runningDistance / 1000 * 5), // ~5 min/km estimate
-      description: `Löpning: ${workout.runningDistance / 1000}km`,
+      description: `Running: ${workout.runningDistance / 1000}km`,
     })
   }
 
   // Add station segments if applicable
   if (workout.stations && workout.stations.length > 0) {
-    workout.stations.forEach((station, index) => {
+    workout.stations.forEach((station) => {
       segments.push({
         order: segments.length + 1,
         type: 'work',
@@ -397,10 +397,10 @@ export function mapHyroxWeekToWorkouts(
 function mapHyroxStation(station: string): string {
   const mapping: Record<string, string> = {
     skierg: 'SkiErg 1000m',
-    sled_push: 'Släde Push 50m',
-    sled_pull: 'Släde Pull 50m',
+    sled_push: 'Sled Push 50m',
+    sled_pull: 'Sled Pull 50m',
     burpee_broad_jump: 'Burpee Broad Jump 80m',
-    rowing: 'Rodd 1000m',
+    rowing: 'Rowing 1000m',
     farmers_carry: 'Farmers Carry 200m',
     sandbag_lunge: 'Sandbag Lunges 100m',
     wall_balls: 'Wall Balls 75-100 reps',
