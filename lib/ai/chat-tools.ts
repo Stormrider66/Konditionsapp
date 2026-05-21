@@ -545,20 +545,25 @@ export function createChatTools(
     // ── Injury reporting tool ─────────────────────────────────────────
     reportInjury: tool({
       description:
-        'Rapportera en skada eller smärta. Använd detta verktyg när atleten nämner smärta, skada, ' +
-        'obehag eller begränsningar. Ställ följdfrågor om kroppsdel, sida, smärtnivå och omständigheter.',
+        chatText(
+          locale,
+          'Report an injury or pain. Use this tool when the athlete mentions pain, injury, discomfort, ' +
+            'or limitations. Ask follow-up questions about body part, side, pain level, and circumstances.',
+          'Rapportera en skada eller smärta. Använd detta verktyg när atleten nämner smärta, skada, ' +
+            'obehag eller begränsningar. Ställ följdfrågor om kroppsdel, sida, smärtnivå och omständigheter.'
+        ),
       inputSchema: z.object({
-        bodyPart: z.string().describe('Kroppsdel (t.ex. "KNEE", "ANKLE", "SHOULDER", "LOWER_BACK", "HIP", "CALF", "HAMSTRING", "QUADRICEPS", "SHIN")'),
-        side: z.enum(['LEFT', 'RIGHT', 'BILATERAL', 'CENTRAL']).describe('Vilken sida'),
-        painLevel: z.number().min(0).max(10).describe('Smärtnivå 0-10'),
-        description: z.string().describe('Beskrivning av skadan/smärtan'),
-        mechanism: z.string().optional().describe('Hur skadan uppstod'),
+        bodyPart: z.string().describe(chatText(locale, 'Body part (for example "KNEE", "ANKLE", "SHOULDER", "LOWER_BACK", "HIP", "CALF", "HAMSTRING", "QUADRICEPS", "SHIN")', 'Kroppsdel (t.ex. "KNEE", "ANKLE", "SHOULDER", "LOWER_BACK", "HIP", "CALF", "HAMSTRING", "QUADRICEPS", "SHIN")')),
+        side: z.enum(['LEFT', 'RIGHT', 'BILATERAL', 'CENTRAL']).describe(chatText(locale, 'Which side', 'Vilken sida')),
+        painLevel: z.number().min(0).max(10).describe(chatText(locale, 'Pain level 0-10', 'Smärtnivå 0-10')),
+        description: z.string().describe(chatText(locale, 'Description of the injury/pain', 'Beskrivning av skadan/smärtan')),
+        mechanism: z.string().optional().describe(chatText(locale, 'How the injury occurred', 'Hur skadan uppstod')),
         painTiming: z.enum([
           'DURING_WARMUP', 'DURING_WORKOUT', 'AFTER_WORKOUT',
           'AT_REST', 'IN_MORNING', 'CONSTANT',
-        ]).optional().describe('När smärtan uppträder'),
-        gaitAffected: z.boolean().optional().describe('Påverkas gången? (röd flagga)'),
-        swelling: z.boolean().optional().describe('Finns svullnad?'),
+        ]).optional().describe(chatText(locale, 'When the pain occurs', 'När smärtan uppträder')),
+        gaitAffected: z.boolean().optional().describe(chatText(locale, 'Is gait affected? (red flag)', 'Påverkas gången? (röd flagga)')),
+        swelling: z.boolean().optional().describe(chatText(locale, 'Is there swelling?', 'Finns svullnad?')),
       }),
       execute: async ({ bodyPart, side, painLevel, description, mechanism, painTiming, gaitAffected, swelling }) => {
         try {
@@ -597,14 +602,14 @@ export function createChatTools(
             phase,
             assessment,
             warning: gaitAffected
-              ? 'RÖDA FLAGGOR: Gångpåverkan detekterad. Rekommendera vila och professionell bedömning.'
+              ? chatText(locale, 'RED FLAGS: Gait impact detected. Recommend rest and professional assessment.', 'RÖDA FLAGGOR: Gångpåverkan detekterad. Rekommendera vila och professionell bedömning.')
               : painLevel >= 7
-                ? 'Hög smärtnivå. Rekommendera anpassad träning och uppföljning.'
+                ? chatText(locale, 'High pain level. Recommend adapted training and follow-up.', 'Hög smärtnivå. Rekommendera anpassad träning och uppföljning.')
                 : null,
           }
         } catch (error) {
           logger.error('Failed to report injury via chat tool', { clientId }, error)
-          return { success: false, error: 'Kunde inte registrera skadan. Försök igen.' }
+          return { success: false, error: chatText(locale, 'Could not register the injury. Please try again.', 'Kunde inte registrera skadan. Försök igen.') }
         }
       },
     }),
@@ -612,22 +617,27 @@ export function createChatTools(
     // ── Profile update tool ───────────────────────────────────────────
     updateAthleteProfile: tool({
       description:
-        'Uppdatera atletens profil. Använd detta verktyg när atleten ger ny information om sig själv, ' +
-        't.ex. ny vikt, ny sport, nya mål, eller utrustning.',
+        chatText(
+          locale,
+          'Update the athlete profile. Use this tool when the athlete gives new information about themselves, ' +
+            'for example new weight, sport, goals, or equipment.',
+          'Uppdatera atletens profil. Använd detta verktyg när atleten ger ny information om sig själv, ' +
+            't.ex. ny vikt, ny sport, nya mål, eller utrustning.'
+        ),
       inputSchema: z.object({
-        weight: z.number().positive().optional().describe('Ny vikt i kg'),
-        height: z.number().positive().optional().describe('Ny längd i cm'),
+        weight: z.number().positive().optional().describe(chatText(locale, 'New weight in kg', 'Ny vikt i kg')),
+        height: z.number().positive().optional().describe(chatText(locale, 'New height in cm', 'Ny längd i cm')),
         primarySport: z.enum([
           'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON',
           'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH',
           'HOCKEY', 'FOOTBALL', 'HANDBALL', 'FLOORBALL',
           'BASKETBALL', 'VOLLEYBALL', 'TENNIS', 'PADEL',
-        ]).optional().describe('Primär sport'),
-        currentGoal: z.string().optional().describe('Nytt träningsmål'),
-        targetDate: z.string().optional().describe('Måldatum (YYYY-MM-DD)'),
-        aiInstructions: z.string().optional().describe('Speciella instruktioner för AI-coachen (t.ex. kroniska tillstånd, preferenser)'),
-        manualVo2max: z.number().optional().describe('Manuellt VO2max-värde (ml/kg/min)'),
-        manualMaxHR: z.number().int().optional().describe('Manuellt maxpulsvärde (bpm)'),
+        ]).optional().describe(chatText(locale, 'Primary sport', 'Primär sport')),
+        currentGoal: z.string().optional().describe(chatText(locale, 'New training goal', 'Nytt träningsmål')),
+        targetDate: z.string().optional().describe(chatText(locale, 'Goal date (YYYY-MM-DD)', 'Måldatum (YYYY-MM-DD)')),
+        aiInstructions: z.string().optional().describe(chatText(locale, 'Special instructions for the AI coach (for example chronic conditions or preferences)', 'Speciella instruktioner för AI-coachen (t.ex. kroniska tillstånd, preferenser)')),
+        manualVo2max: z.number().optional().describe(chatText(locale, 'Manual VO2max value (ml/kg/min)', 'Manuellt VO2max-värde (ml/kg/min)')),
+        manualMaxHR: z.number().int().optional().describe(chatText(locale, 'Manual max heart-rate value (bpm)', 'Manuellt maxpulsvärde (bpm)')),
       }),
       execute: async ({ weight, height, primarySport, currentGoal, targetDate, aiInstructions, manualVo2max, manualMaxHR }) => {
         try {
@@ -677,7 +687,7 @@ export function createChatTools(
           }
         } catch (error) {
           logger.error('Failed to update athlete profile via chat tool', { clientId }, error)
-          return { success: false, error: 'Kunde inte uppdatera profilen. Försök igen.' }
+          return { success: false, error: chatText(locale, 'Could not update the profile. Please try again.', 'Kunde inte uppdatera profilen. Försök igen.') }
         }
       },
     }),
@@ -685,23 +695,26 @@ export function createChatTools(
     // ── Calendar event tool ───────────────────────────────────────────
     createCalendarEvent: tool({
       description:
-        'Skapa en kalenderhändelse som påverkar träningsplaneringen. Använd detta verktyg ' +
-        'när atleten nämner semester, resa, sjukdom, arbetskonflikt eller träningsläger.',
+        chatText(
+          locale,
+          'Create a calendar event that affects training planning. Use this tool when the athlete mentions vacation, travel, illness, work conflicts, or training camps.',
+          'Skapa en kalenderhändelse som påverkar träningsplaneringen. Använd detta verktyg när atleten nämner semester, resa, sjukdom, arbetskonflikt eller träningsläger.'
+        ),
       inputSchema: z.object({
         type: z.enum([
           'ALTITUDE_CAMP', 'TRAINING_CAMP', 'TRAVEL', 'ILLNESS',
           'VACATION', 'WORK_BLOCKER', 'PERSONAL_BLOCKER', 'EXTERNAL_EVENT',
-        ]).describe('Typ av händelse'),
-        title: z.string().describe('Kort titel för händelsen'),
-        description: z.string().optional().describe('Beskrivning'),
-        startDate: z.string().describe('Startdatum (YYYY-MM-DD)'),
-        endDate: z.string().optional().describe('Slutdatum (YYYY-MM-DD). Standard: samma som start.'),
-        allDay: z.boolean().optional().describe('Heldagshändelse? Standard: true'),
-        startTime: z.string().optional().describe('Starttid (HH:mm) om inte heldag'),
-        endTime: z.string().optional().describe('Sluttid (HH:mm) om inte heldag'),
+        ]).describe(chatText(locale, 'Event type', 'Typ av händelse')),
+        title: z.string().describe(chatText(locale, 'Short event title', 'Kort titel för händelsen')),
+        description: z.string().optional().describe(chatText(locale, 'Description', 'Beskrivning')),
+        startDate: z.string().describe(chatText(locale, 'Start date (YYYY-MM-DD)', 'Startdatum (YYYY-MM-DD)')),
+        endDate: z.string().optional().describe(chatText(locale, 'End date (YYYY-MM-DD). Default: same as start.', 'Slutdatum (YYYY-MM-DD). Standard: samma som start.')),
+        allDay: z.boolean().optional().describe(chatText(locale, 'All-day event? Default: true', 'Heldagshändelse? Standard: true')),
+        startTime: z.string().optional().describe(chatText(locale, 'Start time (HH:mm), unless all-day', 'Starttid (HH:mm) om inte heldag')),
+        endTime: z.string().optional().describe(chatText(locale, 'End time (HH:mm), unless all-day', 'Sluttid (HH:mm) om inte heldag')),
         trainingImpact: z.enum(['NO_TRAINING', 'REDUCED', 'MODIFIED', 'NORMAL']).optional()
-          .describe('Påverkan på träning. Standard: NO_TRAINING'),
-        impactNotes: z.string().optional().describe('Detaljer om påverkan (t.ex. "Bara morgonpass")'),
+          .describe(chatText(locale, 'Training impact. Default: NO_TRAINING', 'Påverkan på träning. Standard: NO_TRAINING')),
+        impactNotes: z.string().optional().describe(chatText(locale, 'Details about the impact (for example "Morning sessions only")', 'Detaljer om påverkan (t.ex. "Bara morgonpass")')),
       }),
       execute: async ({ type, title, description, startDate, endDate, allDay, startTime, endTime, trainingImpact, impactNotes }) => {
         try {
@@ -712,7 +725,7 @@ export function createChatTools(
           })
 
           if (!client) {
-            return { success: false, error: 'Kunde inte hitta atletens profil.' }
+            return { success: false, error: chatText(locale, 'Could not find the athlete profile.', 'Kunde inte hitta atletens profil.') }
           }
 
           const event = await prisma.calendarEvent.create({
@@ -746,7 +759,7 @@ export function createChatTools(
           }
         } catch (error) {
           logger.error('Failed to create calendar event via chat tool', { clientId }, error)
-          return { success: false, error: 'Kunde inte skapa händelsen. Försök igen.' }
+          return { success: false, error: chatText(locale, 'Could not create the event. Please try again.', 'Kunde inte skapa händelsen. Försök igen.') }
         }
       },
     }),
