@@ -18,10 +18,14 @@ export async function readFutureCompletionWarning(
 }
 
 export function confirmFutureCompletion(warning: FutureCompletionWarning): boolean {
+  if (warning.error) {
+    return window.confirm(warning.error)
+  }
+
   const scheduledDate = warning.scheduledDate
   const message = scheduledDate
-    ? `Passet är planerat till ${scheduledDate}. Vill du ändå registrera det redan nu?`
-    : 'Passet är planerat i framtiden. Vill du ändå registrera det redan nu?'
+    ? `This workout is scheduled for ${scheduledDate}. Do you still want to log it now?`
+    : 'This workout is scheduled in the future. Do you still want to log it now?'
 
   return window.confirm(message)
 }
