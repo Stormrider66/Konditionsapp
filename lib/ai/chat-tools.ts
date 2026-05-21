@@ -769,21 +769,27 @@ export function createChatTools(
   if (capabilities?.canGenerateProgram) {
     tools.generateTrainingProgram = tool({
       description:
-        'Starta generering av ett komplett flervekkors träningsprogram åt atleten. ' +
-        'Programmet genereras i bakgrunden (1-10 min). ' +
-        'Använd detta verktyg EFTER att du samlat in sport, mål, programlängd och pass per vecka från atleten.',
+        chatText(
+          locale,
+          'Start generation of a complete multi-week training program for the athlete. ' +
+            'The program is generated in the background (1-10 min). ' +
+            'Use this tool AFTER you have collected sport, goal, program length, and sessions per week from the athlete.',
+          'Starta generering av ett komplett flervekkors träningsprogram åt atleten. ' +
+            'Programmet genereras i bakgrunden (1-10 min). ' +
+            'Använd detta verktyg EFTER att du samlat in sport, mål, programlängd och pass per vecka från atleten.'
+        ),
       inputSchema: z.object({
-        sport: z.string().describe('Primär sport. Stödjer t.ex. Running, Cycling, Swimming, HYROX, Triathlon, Football/Fotboll, Ice hockey/Ishockey, Handball/Handboll, Floorball/Innebandy, Basketball/Basket, Volleyball/Volleyboll, Tennis och Padel.'),
-        totalWeeks: z.number().min(1).max(52).describe('Programlängd i veckor'),
+        sport: z.string().describe(chatText(locale, 'Primary sport. Supports for example Running, Cycling, Swimming, HYROX, Triathlon, Football, Ice hockey, Handball, Floorball, Basketball, Volleyball, Tennis, and Padel.', 'Primär sport. Stödjer t.ex. Running, Cycling, Swimming, HYROX, Triathlon, Football/Fotboll, Ice hockey/Ishockey, Handball/Handboll, Floorball/Innebandy, Basketball/Basket, Volleyball/Volleyboll, Tennis och Padel.')),
+        totalWeeks: z.number().min(1).max(52).describe(chatText(locale, 'Program length in weeks', 'Programlängd i veckor')),
         sessionsPerWeek: z.number().min(1).max(14).optional()
-          .describe('Antal träningspass per vecka'),
-        goal: z.string().describe('Atletens huvudmål (t.ex. "Springa ett marathon under 3:30")'),
+          .describe(chatText(locale, 'Number of training sessions per week', 'Antal träningspass per vecka')),
+        goal: z.string().describe(chatText(locale, 'Athlete main goal (for example "Run a marathon under 3:30")', 'Atletens huvudmål (t.ex. "Springa ett marathon under 3:30")')),
         goalDate: z.string().optional()
-          .describe('Måldatum i ISO-format (t.ex. "2026-06-15")'),
+          .describe(chatText(locale, 'Goal date in ISO format (for example "2026-06-15")', 'Måldatum i ISO-format (t.ex. "2026-06-15")')),
         methodology: z.enum(['POLARIZED', 'NORWEGIAN', 'CANOVA', 'PYRAMIDAL', 'GENERAL']).optional()
-          .describe('Träningsmetodik'),
+          .describe(chatText(locale, 'Training methodology', 'Träningsmetodik')),
         notes: z.string().optional()
-          .describe('Ytterligare önskemål eller begränsningar från atleten'),
+          .describe(chatText(locale, 'Additional requests or limitations from the athlete', 'Ytterligare önskemål eller begränsningar från atleten')),
       }),
       execute: async ({ sport, totalWeeks, sessionsPerWeek, goal, goalDate, methodology, notes }) => {
         try {
@@ -803,7 +809,7 @@ export function createChatTools(
           if (activeSession) {
             return {
               success: false,
-              error: 'Det pågår redan en programgenerering. Vänta tills den är klar innan du startar en ny.',
+              error: chatText(locale, 'A program generation is already in progress. Wait until it finishes before starting a new one.', 'Det pågår redan en programgenerering. Vänta tills den är klar innan du startar en ny.'),
               activeSessionId: activeSession.id,
             }
           }
@@ -822,7 +828,7 @@ export function createChatTools(
           if (!clientRecord?.userId) {
             return {
               success: false,
-              error: 'Kunde inte hitta din profil. Kontakta support.',
+              error: chatText(locale, 'Could not find your profile. Contact support.', 'Kunde inte hitta din profil. Kontakta support.'),
             }
           }
 
@@ -833,7 +839,7 @@ export function createChatTools(
           if (!access.allowed) {
             return {
               success: false,
-              error: access.reason || 'Programgenerering kräver en STANDARD- eller PRO-prenumeration.',
+              error: access.reason || chatText(locale, 'Program generation requires a STANDARD or PRO subscription.', 'Programgenerering kräver en STANDARD- eller PRO-prenumeration.'),
               code: access.code,
             }
           }
@@ -849,7 +855,7 @@ export function createChatTools(
               error:
                 body && typeof body === 'object' && typeof (body as { error?: unknown }).error === 'string'
                   ? (body as { error: string }).error
-                  : 'Dina AI-krediter är slut för den här månaden.',
+                  : chatText(locale, 'Your AI credits are used up for this month.', 'Dina AI-krediter är slut för den här månaden.'),
             }
           }
 
@@ -859,7 +865,7 @@ export function createChatTools(
           if (!resolved) {
             return {
               success: false,
-              error: 'Inga AI-nycklar konfigurerade. Be din coach konfigurera API-nycklar.',
+              error: chatText(locale, 'No AI keys are configured. Ask your coach to configure API keys.', 'Inga AI-nycklar konfigurerade. Be din coach konfigurera API-nycklar.'),
             }
           }
 
@@ -994,7 +1000,7 @@ export function createChatTools(
           logger.error('Failed to start program generation via chat tool', { clientId }, error)
           return {
             success: false,
-            error: 'Kunde inte starta programgenereringen. Försök igen.',
+            error: chatText(locale, 'Could not start program generation. Please try again.', 'Kunde inte starta programgenereringen. Försök igen.'),
           }
         }
       },
