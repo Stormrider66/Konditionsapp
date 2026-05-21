@@ -1,6 +1,8 @@
 // lib/calculations/vo2max.ts
 import { TestStage, Gender } from '@/types'
 
+type AppLocale = 'en' | 'sv'
+
 export function identifyVO2max(stages: TestStage[]): number | null {
   // Hitta högsta VO2-värdet
   let maxVO2 = 0
@@ -47,14 +49,36 @@ function getVO2maxCategories(age: number, gender: Gender): VO2maxCategories {
   return categories[ageGroup]
 }
 
-export function evaluateVO2max(vo2max: number, age: number, gender: Gender): string {
+export function evaluateVO2max(
+  vo2max: number,
+  age: number,
+  gender: Gender,
+  locale: AppLocale = 'en'
+): string {
   // Åldersbaserade referensvärden
   const categories = getVO2maxCategories(age, gender)
+  const labels = locale === 'sv'
+    ? {
+        superior: 'Överlägsen',
+        excellent: 'Utmärkt',
+        good: 'God',
+        fair: 'Acceptabel',
+        poor: 'Under genomsnitt',
+        veryPoor: 'Dålig',
+      }
+    : {
+        superior: 'Superior',
+        excellent: 'Excellent',
+        good: 'Good',
+        fair: 'Fair',
+        poor: 'Below average',
+        veryPoor: 'Poor',
+      }
 
-  if (vo2max >= categories.superior) return 'Överlägsen'
-  if (vo2max >= categories.excellent) return 'Utmärkt'
-  if (vo2max >= categories.good) return 'God'
-  if (vo2max >= categories.fair) return 'Acceptabel'
-  if (vo2max >= categories.poor) return 'Under genomsnitt'
-  return 'Dålig'
+  if (vo2max >= categories.superior) return labels.superior
+  if (vo2max >= categories.excellent) return labels.excellent
+  if (vo2max >= categories.good) return labels.good
+  if (vo2max >= categories.fair) return labels.fair
+  if (vo2max >= categories.poor) return labels.poor
+  return labels.veryPoor
 }

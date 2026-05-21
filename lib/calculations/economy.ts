@@ -1,25 +1,43 @@
 // lib/calculations/economy.ts
 import { TestStage, EconomyData, Gender } from '@/types'
 
+type AppLocale = 'en' | 'sv'
+
 export function calculateRunningEconomy(vo2: number, speed: number): number {
   // O₂-kostnad i ml/kg/km
   return Number(((vo2 * 60) / speed).toFixed(0))
 }
 
-export function evaluateRunningEconomy(economy: number, gender: Gender): string {
+export function evaluateRunningEconomy(economy: number, gender: Gender, locale: AppLocale = 'en'): string {
   // Baserat på kön och värde
+  const labels = locale === 'sv'
+    ? {
+        excellent: 'Utmärkt',
+        veryGood: 'Mycket god',
+        good: 'God',
+        fair: 'Acceptabel',
+        improve: 'Behöver förbättring',
+      }
+    : {
+        excellent: 'Excellent',
+        veryGood: 'Very good',
+        good: 'Good',
+        fair: 'Fair',
+        improve: 'Needs improvement',
+      }
+
   if (gender === 'MALE') {
-    if (economy < 200) return 'Utmärkt'
-    if (economy < 210) return 'Mycket god'
-    if (economy < 220) return 'God'
-    if (economy < 240) return 'Acceptabel'
-    return 'Behöver förbättring'
+    if (economy < 200) return labels.excellent
+    if (economy < 210) return labels.veryGood
+    if (economy < 220) return labels.good
+    if (economy < 240) return labels.fair
+    return labels.improve
   } else {
-    if (economy < 210) return 'Utmärkt'
-    if (economy < 220) return 'Mycket god'
-    if (economy < 240) return 'God'
-    if (economy < 260) return 'Acceptabel'
-    return 'Behöver förbättring'
+    if (economy < 210) return labels.excellent
+    if (economy < 220) return labels.veryGood
+    if (economy < 240) return labels.good
+    if (economy < 260) return labels.fair
+    return labels.improve
   }
 }
 

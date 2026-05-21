@@ -1,18 +1,22 @@
 'use client'
 
+import { useTranslations } from '@/i18n/client'
+
 interface StrengthsWeaknessesProps {
   strengths: string[]
   weaknesses: string[]
 }
 
 export function StrengthsWeaknesses({ strengths, weaknesses }: StrengthsWeaknessesProps) {
+  const t = useTranslations('components.strengthsWeaknesses')
+
   if (strengths.length === 0 && weaknesses.length === 0) {
     return null
   }
 
   return (
     <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
-      <h2 className="text-2xl font-semibold mb-4">Sammanfattad bedomning</h2>
+      <h2 className="text-2xl font-semibold mb-4">{t('title')}</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Strengths */}
@@ -22,7 +26,7 @@ export function StrengthsWeaknesses({ strengths, weaknesses }: StrengthsWeakness
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              Styrkor
+              {t('strengths')}
             </h3>
             <ul className="space-y-2">
               {strengths.map((strength, index) => (
@@ -44,7 +48,7 @@ export function StrengthsWeaknesses({ strengths, weaknesses }: StrengthsWeakness
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
-              Utvecklingsomraden
+              {t('developmentAreas')}
             </h3>
             <ul className="space-y-2">
               {weaknesses.map((weakness, index) => (
@@ -62,7 +66,7 @@ export function StrengthsWeaknesses({ strengths, weaknesses }: StrengthsWeakness
 
       {/* Context note */}
       <p className="mt-4 text-xs text-gray-500 italic">
-        Bedomningen baseras pa testresultaten i forhallande till alder, kon och referensvarden for motionarer och elitidrottare.
+        {t('note')}
       </p>
     </section>
   )

@@ -978,7 +978,7 @@ export interface EconomyData {
   power?: number
   vo2: number
   economy: number // ml/kg/km för löpning
-  efficiency: 'Utmärkt' | 'Mycket god' | 'God' | 'Acceptabel' | 'Behöver förbättring'
+  efficiency: 'Excellent' | 'Very good' | 'Good' | 'Fair' | 'Needs improvement' | 'Utmärkt' | 'Mycket god' | 'God' | 'Acceptabel' | 'Behöver förbättring'
 }
 
 // Cykel-specifika typer

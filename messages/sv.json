@@ -11896,6 +11896,31 @@
         "sending": "Skickar..."
       }
     },
+    "summaryBox": {
+      "title": "Testsammanfattning",
+      "notMeasured": "Ej mätt",
+      "anaerobicThreshold": "Anaerob tröskel",
+      "percentOfMax": "{percent}% av max",
+      "notCalculated": "Ej beräknad",
+      "runningEconomy": "Löpekonomi",
+      "requiresVo2": "Kräver VO₂-data",
+      "powerWeight": "Effekt/vikt",
+      "maxLactate": "Max laktat",
+      "athleteProfile": "Atletprofil:",
+      "economy": {
+        "excellent": "Utmärkt",
+        "veryGood": "Mycket god",
+        "good": "God",
+        "fair": "Acceptabel",
+        "needsImprovement": "Kan förbättras"
+      }
+    },
+    "strengthsWeaknesses": {
+      "title": "Sammanfattad bedömning",
+      "strengths": "Styrkor",
+      "developmentAreas": "Utvecklingsområden",
+      "note": "Bedömningen baseras på testresultaten i förhållande till ålder, kön och referensvärden för motionärer och elitidrottare."
+    },
     "trainingFocus": {
       "title": "Träningsfokus",
       "description": "Baserat på dina testresultat rekommenderas fokus på följande områden:",

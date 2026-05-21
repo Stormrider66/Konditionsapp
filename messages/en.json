@@ -11536,6 +11536,31 @@
         "sending": "Sending..."
       }
     },
+    "summaryBox": {
+      "title": "Test summary",
+      "notMeasured": "Not measured",
+      "anaerobicThreshold": "Anaerobic threshold",
+      "percentOfMax": "{percent}% of max",
+      "notCalculated": "Not calculated",
+      "runningEconomy": "Running economy",
+      "requiresVo2": "Requires VO₂ data",
+      "powerWeight": "Power/weight",
+      "maxLactate": "Max lactate",
+      "athleteProfile": "Athlete profile:",
+      "economy": {
+        "excellent": "Excellent",
+        "veryGood": "Very good",
+        "good": "Good",
+        "fair": "Fair",
+        "needsImprovement": "Needs improvement"
+      }
+    },
+    "strengthsWeaknesses": {
+      "title": "Summary assessment",
+      "strengths": "Strengths",
+      "developmentAreas": "Development areas",
+      "note": "The assessment is based on test results in relation to age, sex, and reference values for recreational and elite athletes."
+    },
     "trainingFocus": {
       "title": "Training focus",
       "description": "Based on your test results, we recommend focusing on the following areas:",

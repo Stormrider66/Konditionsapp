@@ -44,7 +44,8 @@ export function ReportTemplate({
     calculations,
     client,
     test.testStages,
-    test.testType
+    test.testType,
+    locale === 'sv' ? 'sv' : 'en'
   )
 
   return (
@@ -134,7 +135,6 @@ export function ReportTemplate({
       {/* Summary Box - Key Metrics at a Glance */}
       <SummaryBox
         calculations={calculations}
-        client={client}
         testType={test.testType}
         vo2maxInterpretation={interpretation.vo2max}
         athleteType={interpretation.athleteType}
