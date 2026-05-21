@@ -9,6 +9,12 @@ import { prisma } from '@/lib/prisma'
 import type { Exercise } from '@prisma/client'
 import type { ExerciseMatch, ExerciseLibraryEntry, ExerciseMatchSuggestion } from './types'
 
+type MatchLocale = 'en' | 'sv'
+
+function matchText(locale: MatchLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================
 // CACHE
 // ============================================
@@ -99,7 +105,7 @@ export async function matchExercise(
       id: null,
       name: inputName,
       confidence: 0,
-      alternatives: matches.slice(0, 3).map(({ score, ...m }) => m),
+      alternatives: matches.slice(0, 3).map(({ score: _score, ...m }) => m),
     }
   }
 
@@ -107,7 +113,7 @@ export async function matchExercise(
     id: bestMatch.id,
     name: bestMatch.name,
     confidence: bestMatch.score,
-    alternatives: matches.slice(1, 4).map(({ score, ...m }) => m),
+    alternatives: matches.slice(1, 4).map(({ score: _score, ...m }) => m),
   }
 }
 
@@ -132,7 +138,8 @@ export async function matchExercises(
  */
 export async function getExerciseSuggestions(
   partialName: string,
-  limit: number = 5
+  limit: number = 5,
+  locale: MatchLocale = 'en'
 ): Promise<ExerciseMatchSuggestion[]> {
   const library = await getExerciseLibrary()
   const normalizedInput = normalizeExerciseName(partialName)
@@ -145,7 +152,7 @@ export async function getExerciseSuggestions(
       suggestions.push({
         exercise,
         confidence: score,
-        reason: getMatchReason(normalizedInput, exercise),
+        reason: getMatchReason(normalizedInput, exercise, locale),
       })
     }
   }
@@ -327,27 +334,27 @@ function generateAliases(exercise: Pick<Exercise, 'name' | 'nameSv' | 'nameEn'>)
 /**
  * Get human-readable reason for match
  */
-function getMatchReason(input: string, exercise: ExerciseLibraryEntry): string {
+function getMatchReason(input: string, exercise: ExerciseLibraryEntry, locale: MatchLocale): string {
   const normalizedInput = normalizeExerciseName(input)
   const normalizedName = normalizeExerciseName(exercise.name)
 
   if (normalizedInput === normalizedName) {
-    return 'Exakt matchning'
+    return matchText(locale, 'Exact match', 'Exakt matchning')
   }
 
   if (normalizedName.includes(normalizedInput)) {
-    return `Innehåller "${input}"`
+    return matchText(locale, `Contains "${input}"`, `Innehåller "${input}"`)
   }
 
   if (exercise.aliases?.some((a) => normalizeExerciseName(a) === normalizedInput)) {
-    return 'Matchad via förkortning'
+    return matchText(locale, 'Matched by abbreviation', 'Matchad via förkortning')
   }
 
   if (exercise.nameSv && normalizeExerciseName(exercise.nameSv).includes(normalizedInput)) {
-    return 'Matchad via svenskt namn'
+    return matchText(locale, 'Matched by Swedish name', 'Matchad via svenskt namn')
   }
 
-  return 'Liknar namnet'
+  return matchText(locale, 'Similar name', 'Liknar namnet')
 }
 
 // ============================================
