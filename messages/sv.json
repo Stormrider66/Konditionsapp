@@ -3669,6 +3669,9 @@
           "strength": "Styrka",
           "cardio": "Kondition"
         },
+        "actions": {
+          "teamCalendar": "Lagkalender"
+        },
         "stats": {
           "players": "Spelare",
           "assignedWorkouts": "Tilldelade pass (30 dagar)",

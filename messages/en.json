@@ -3669,6 +3669,9 @@
           "strength": "Strength",
           "cardio": "Cardio"
         },
+        "actions": {
+          "teamCalendar": "Team calendar"
+        },
         "stats": {
           "players": "Players",
           "assignedWorkouts": "Assigned workouts (30 days)",

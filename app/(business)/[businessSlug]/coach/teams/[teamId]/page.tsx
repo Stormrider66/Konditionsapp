@@ -559,7 +559,13 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/${businessSlug}/coach/teams/${teamId}/calendar`}>
+              <Calendar className="mr-2 h-4 w-4" />
+              {t('actions.teamCalendar')}
+            </Link>
+          </Button>
           <TeamDayPrintButton
             teamId={teamId}
             teamName={team.name}
