@@ -30,7 +30,7 @@ import { RoundTracker } from './RoundTracker'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { LiveVoiceCoachButton } from '@/components/athlete/cardio/LiveVoiceCoachButton'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 type HybridFormat =
   | 'FOR_TIME'
@@ -47,6 +47,7 @@ interface Movement {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   reps?: number
   calories?: number
   distance?: number
@@ -114,7 +115,12 @@ export function HybridFocusModeWorkout({
   onRoundComplete,
 }: HybridFocusModeWorkoutProps) {
   const t = useTranslations('components.hybridFocusModeWorkout')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const movements = initialMovements
+  const movementDisplayName = useCallback(
+    (movement: Movement) => locale === 'sv' ? movement.nameSv || movement.name : movement.nameEn || movement.name,
+    [locale],
+  )
   const [currentRound, setCurrentRound] = useState(1)
   const [completedRounds, setCompletedRounds] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
@@ -137,7 +143,7 @@ export function HybridFocusModeWorkout({
     workoutType: 'hybrid',
     segments: movements.map((m) => ({
       type: format,
-      typeName: m.name,
+      typeName: movementDisplayName(m),
       notes: [m.reps && `${m.reps} reps`, m.calories && `${m.calories} cal`, m.distance && `${m.distance}m`].filter(Boolean).join(', '),
     })),
     currentSegmentIndex: currentRound - 1,
@@ -344,7 +350,7 @@ export function HybridFocusModeWorkout({
               key={movement.id}
               className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded"
             >
-              <span className="text-sm">{movement.nameSv || movement.name}</span>
+              <span className="text-sm">{movementDisplayName(movement)}</span>
               <div className="flex gap-2 text-xs">
                 {movement.reps && <Badge variant="secondary">{movement.reps}</Badge>}
                 {movement.calories && <Badge variant="secondary">{movement.calories} cal</Badge>}
@@ -383,7 +389,7 @@ export function HybridFocusModeWorkout({
           {movements.map((movement) => (
             <MovementCheckCard
               key={movement.id}
-              name={movement.name}
+              name={movementDisplayName(movement)}
               nameSv={movement.nameSv}
               reps={movement.reps}
               calories={movement.calories}

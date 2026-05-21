@@ -73,6 +73,7 @@ interface HybridMovement {
     id: string;
     name: string;
     nameSv?: string | null;
+    nameEn?: string | null;
     standardAbbreviation?: string | null;
     equipmentTypes: string[];
   };
@@ -469,9 +470,13 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
 }
 
 function MovementRow({ movement, index }: { movement: HybridMovement; index: number }) {
+  const locale = useLocale();
   // Get theme from context (optional - falls back to default)
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+  const exerciseName = locale === 'sv'
+    ? movement.exercise.nameSv || movement.exercise.name
+    : movement.exercise.nameEn || movement.exercise.name;
 
   const prescription: string[] = [];
 
@@ -503,7 +508,7 @@ function MovementRow({ movement, index }: { movement: HybridMovement; index: num
         {index + 1}
       </div>
       <div className="flex-1">
-        <div className="font-medium">{movement.exercise.nameSv || movement.exercise.name}</div>
+        <div className="font-medium">{exerciseName}</div>
         <div className="text-sm text-muted-foreground">
           {prescription.join(' • ')}
           {weight && <span className="ml-2 text-primary">@ {weight}</span>}
@@ -526,6 +531,7 @@ interface ScoreLoggingFormProps {
 
 function ScoreLoggingForm({ workout, personalBest, initialTimeMs, onSuccess }: ScoreLoggingFormProps) {
   const t = useTranslations('components.hybridWorkoutDetail');
+  const locale = useLocale();
   const [loading, setLoading] = useState(false);
   const [scalingLevel, setScalingLevel] = useState<string>(workout.scalingLevel);
   const [showCustomScaling, setShowCustomScaling] = useState(false);
@@ -559,12 +565,15 @@ function ScoreLoggingForm({ workout, personalBest, initialTimeMs, onSuccess }: S
 
   function addModification(movement: HybridMovement) {
     const existing = modifications.find((m) => m.movementId === movement.id);
+    const movementName = locale === 'sv'
+      ? movement.exercise.nameSv || movement.exercise.name
+      : movement.exercise.nameEn || movement.exercise.name;
     if (!existing) {
       setModifications([
         ...modifications,
         {
           movementId: movement.id,
-          movementName: movement.exercise.nameSv || movement.exercise.name,
+          movementName,
           modificationType: 'weight',
           originalValue: movement.weightMale ? `${movement.weightMale}kg` : '-',
           newValue: '',
@@ -717,6 +726,9 @@ function ScoreLoggingForm({ workout, personalBest, initialTimeMs, onSuccess }: S
                 {workout.movements.map((movement) => {
                   const existingMod = modifications.find((m) => m.movementId === movement.id);
                   if (existingMod) return null;
+                  const movementName = locale === 'sv'
+                    ? movement.exercise.nameSv || movement.exercise.name
+                    : movement.exercise.nameEn || movement.exercise.name;
 
                   return (
                     <Button
@@ -727,7 +739,7 @@ function ScoreLoggingForm({ workout, personalBest, initialTimeMs, onSuccess }: S
                       onClick={() => addModification(movement)}
                       className="mr-2 mb-2"
                     >
-                      + {movement.exercise.nameSv || movement.exercise.name}
+                      + {movementName}
                     </Button>
                   );
                 })}
