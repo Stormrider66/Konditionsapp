@@ -22,6 +22,7 @@ import { DEFAULT_VOLLEYBALL_SETTINGS } from '@/components/onboarding/VolleyballO
 import { DEFAULT_TENNIS_SETTINGS } from '@/components/onboarding/TennisOnboarding'
 import { DEFAULT_PADEL_SETTINGS } from '@/components/onboarding/PadelOnboarding'
 import { SPORT_OPTIONS as SHARED_SPORT_OPTIONS } from '@/lib/sports/catalog'
+import { useLocale } from '@/i18n/client'
 
 interface SportProfileEditorProps {
   clientId: string
@@ -41,9 +42,11 @@ interface SportProfileEditorProps {
   onUpdated: (sportProfile: SportProfileEditorProps['sportProfile']) => void
 }
 
+type AppLocale = 'en' | 'sv'
+
 const SPORT_OPTIONS = [
-  ...SHARED_SPORT_OPTIONS.map((sport) => ({ value: sport.value, label: sport.sv })),
-  { value: 'NUTRITION', label: 'Nutrition' },
+  ...SHARED_SPORT_OPTIONS.map((sport) => ({ value: sport.value, label: { en: sport.en, sv: sport.sv } })),
+  { value: 'NUTRITION', label: { en: 'Nutrition', sv: 'Nutrition' } },
 ]
 
 type SportSettingsMap = {
@@ -64,167 +67,167 @@ type TeamField = 'teamName' | 'clubName'
 type SportProfileConfig = {
   sport: string
   settingsKey: SportSettingsKey
-  label: string
+  label: Record<AppLocale, string>
   teamField: TeamField
-  teamLabel: string
+  teamLabel: Record<AppLocale, string>
   profileField: ProfileField
-  profileLabel: string
+  profileLabel: Record<AppLocale, string>
   defaultSettings: SportSettingsMap[SportSettingsKey]
-  profileOptions: Array<{ value: string; label: string }>
-  phaseOptions: Array<{ value: string; label: string }>
+  profileOptions: Array<{ value: string; label: Record<AppLocale, string> }>
+  phaseOptions: Array<{ value: string; label: Record<AppLocale, string> }>
 }
 
 const TEAM_PHASE_OPTIONS = [
-  { value: 'off_season', label: 'Off-season' },
-  { value: 'pre_season', label: 'Försäsong' },
-  { value: 'in_season', label: 'Säsong' },
-  { value: 'playoffs', label: 'Slutspel' },
+  { value: 'off_season', label: { en: 'Off-season', sv: 'Off-season' } },
+  { value: 'pre_season', label: { en: 'Pre-season', sv: 'Försäsong' } },
+  { value: 'in_season', label: { en: 'In-season', sv: 'Säsong' } },
+  { value: 'playoffs', label: { en: 'Playoffs', sv: 'Slutspel' } },
 ]
 
 const RACKET_PHASE_OPTIONS = [
-  { value: 'off_season', label: 'Off-season' },
-  { value: 'pre_season', label: 'Försäsong' },
-  { value: 'in_season', label: 'Säsong' },
-  { value: 'tournament', label: 'Turnering' },
+  { value: 'off_season', label: { en: 'Off-season', sv: 'Off-season' } },
+  { value: 'pre_season', label: { en: 'Pre-season', sv: 'Försäsong' } },
+  { value: 'in_season', label: { en: 'In-season', sv: 'Säsong' } },
+  { value: 'tournament', label: { en: 'Tournament', sv: 'Turnering' } },
 ]
 
 const SPORT_PROFILE_CONFIGS: SportProfileConfig[] = [
   {
     sport: 'TEAM_ICE_HOCKEY',
     settingsKey: 'hockeySettings',
-    label: 'Ishockey',
+    label: { en: 'Ice hockey', sv: 'Ishockey' },
     teamField: 'teamName',
-    teamLabel: 'Lag',
+    teamLabel: { en: 'Team', sv: 'Lag' },
     profileField: 'position',
-    profileLabel: 'Position',
+    profileLabel: { en: 'Position', sv: 'Position' },
     defaultSettings: { ...DEFAULT_HOCKEY_SETTINGS },
     profileOptions: [
-      { value: 'center', label: 'Center' },
-      { value: 'wing', label: 'Wing/Forward' },
-      { value: 'defense', label: 'Back' },
-      { value: 'goalie', label: 'Målvakt' },
+      { value: 'center', label: { en: 'Center', sv: 'Center' } },
+      { value: 'wing', label: { en: 'Wing/Forward', sv: 'Wing/Forward' } },
+      { value: 'defense', label: { en: 'Defense', sv: 'Back' } },
+      { value: 'goalie', label: { en: 'Goalkeeper', sv: 'Målvakt' } },
     ],
     phaseOptions: TEAM_PHASE_OPTIONS,
   },
   {
     sport: 'TEAM_FOOTBALL',
     settingsKey: 'footballSettings',
-    label: 'Fotboll',
+    label: { en: 'Football', sv: 'Fotboll' },
     teamField: 'teamName',
-    teamLabel: 'Lag',
+    teamLabel: { en: 'Team', sv: 'Lag' },
     profileField: 'position',
-    profileLabel: 'Position',
+    profileLabel: { en: 'Position', sv: 'Position' },
     defaultSettings: { ...DEFAULT_FOOTBALL_SETTINGS },
     profileOptions: [
-      { value: 'goalkeeper', label: 'Målvakt' },
-      { value: 'defender', label: 'Försvarare' },
-      { value: 'midfielder', label: 'Mittfältare' },
-      { value: 'forward', label: 'Anfallare' },
+      { value: 'goalkeeper', label: { en: 'Goalkeeper', sv: 'Målvakt' } },
+      { value: 'defender', label: { en: 'Defender', sv: 'Försvarare' } },
+      { value: 'midfielder', label: { en: 'Midfielder', sv: 'Mittfältare' } },
+      { value: 'forward', label: { en: 'Forward', sv: 'Anfallare' } },
     ],
     phaseOptions: TEAM_PHASE_OPTIONS,
   },
   {
     sport: 'TEAM_HANDBALL',
     settingsKey: 'handballSettings',
-    label: 'Handboll',
+    label: { en: 'Handball', sv: 'Handboll' },
     teamField: 'teamName',
-    teamLabel: 'Lag',
+    teamLabel: { en: 'Team', sv: 'Lag' },
     profileField: 'position',
-    profileLabel: 'Position',
+    profileLabel: { en: 'Position', sv: 'Position' },
     defaultSettings: { ...DEFAULT_HANDBALL_SETTINGS },
     profileOptions: [
-      { value: 'goalkeeper', label: 'Målvakt' },
-      { value: 'wing', label: 'Kantspelare' },
-      { value: 'back', label: '9-meter' },
-      { value: 'center_back', label: 'Mittnia' },
-      { value: 'pivot', label: 'Linjespelare' },
+      { value: 'goalkeeper', label: { en: 'Goalkeeper', sv: 'Målvakt' } },
+      { value: 'wing', label: { en: 'Wing', sv: 'Kantspelare' } },
+      { value: 'back', label: { en: 'Backcourt', sv: '9-meter' } },
+      { value: 'center_back', label: { en: 'Center back', sv: 'Mittnia' } },
+      { value: 'pivot', label: { en: 'Pivot', sv: 'Linjespelare' } },
     ],
     phaseOptions: TEAM_PHASE_OPTIONS,
   },
   {
     sport: 'TEAM_FLOORBALL',
     settingsKey: 'floorballSettings',
-    label: 'Innebandy',
+    label: { en: 'Floorball', sv: 'Innebandy' },
     teamField: 'teamName',
-    teamLabel: 'Lag',
+    teamLabel: { en: 'Team', sv: 'Lag' },
     profileField: 'position',
-    profileLabel: 'Position',
+    profileLabel: { en: 'Position', sv: 'Position' },
     defaultSettings: { ...DEFAULT_FLOORBALL_SETTINGS },
     profileOptions: [
-      { value: 'goalkeeper', label: 'Målvakt' },
-      { value: 'defender', label: 'Back' },
-      { value: 'center', label: 'Center' },
-      { value: 'forward', label: 'Forward' },
+      { value: 'goalkeeper', label: { en: 'Goalkeeper', sv: 'Målvakt' } },
+      { value: 'defender', label: { en: 'Defense', sv: 'Back' } },
+      { value: 'center', label: { en: 'Center', sv: 'Center' } },
+      { value: 'forward', label: { en: 'Forward', sv: 'Forward' } },
     ],
     phaseOptions: TEAM_PHASE_OPTIONS,
   },
   {
     sport: 'TEAM_BASKETBALL',
     settingsKey: 'basketballSettings',
-    label: 'Basket',
+    label: { en: 'Basketball', sv: 'Basket' },
     teamField: 'teamName',
-    teamLabel: 'Lag',
+    teamLabel: { en: 'Team', sv: 'Lag' },
     profileField: 'position',
-    profileLabel: 'Roll',
+    profileLabel: { en: 'Role', sv: 'Roll' },
     defaultSettings: { ...DEFAULT_BASKETBALL_SETTINGS },
     profileOptions: [
-      { value: 'point_guard', label: 'Point guard' },
-      { value: 'shooting_guard', label: 'Shooting guard' },
-      { value: 'small_forward', label: 'Small forward' },
-      { value: 'power_forward', label: 'Power forward' },
-      { value: 'center', label: 'Center' },
+      { value: 'point_guard', label: { en: 'Point guard', sv: 'Point guard' } },
+      { value: 'shooting_guard', label: { en: 'Shooting guard', sv: 'Shooting guard' } },
+      { value: 'small_forward', label: { en: 'Small forward', sv: 'Small forward' } },
+      { value: 'power_forward', label: { en: 'Power forward', sv: 'Power forward' } },
+      { value: 'center', label: { en: 'Center', sv: 'Center' } },
     ],
     phaseOptions: TEAM_PHASE_OPTIONS,
   },
   {
     sport: 'TEAM_VOLLEYBALL',
     settingsKey: 'volleyballSettings',
-    label: 'Volleyboll',
+    label: { en: 'Volleyball', sv: 'Volleyboll' },
     teamField: 'teamName',
-    teamLabel: 'Lag',
+    teamLabel: { en: 'Team', sv: 'Lag' },
     profileField: 'position',
-    profileLabel: 'Position',
+    profileLabel: { en: 'Position', sv: 'Position' },
     defaultSettings: { ...DEFAULT_VOLLEYBALL_SETTINGS },
     profileOptions: [
-      { value: 'setter', label: 'Passare' },
-      { value: 'outside_hitter', label: 'Vänsterspiker' },
-      { value: 'opposite_hitter', label: 'Högerspiker' },
-      { value: 'middle_blocker', label: 'Center' },
-      { value: 'libero', label: 'Libero' },
+      { value: 'setter', label: { en: 'Setter', sv: 'Passare' } },
+      { value: 'outside_hitter', label: { en: 'Outside hitter', sv: 'Vänsterspiker' } },
+      { value: 'opposite_hitter', label: { en: 'Opposite hitter', sv: 'Högerspiker' } },
+      { value: 'middle_blocker', label: { en: 'Center', sv: 'Center' } },
+      { value: 'libero', label: { en: 'Libero', sv: 'Libero' } },
     ],
     phaseOptions: TEAM_PHASE_OPTIONS,
   },
   {
     sport: 'TENNIS',
     settingsKey: 'tennisSettings',
-    label: 'Tennis',
+    label: { en: 'Tennis', sv: 'Tennis' },
     teamField: 'clubName',
-    teamLabel: 'Klubb',
+    teamLabel: { en: 'Club', sv: 'Klubb' },
     profileField: 'playStyle',
-    profileLabel: 'Spelstil',
+    profileLabel: { en: 'Playing style', sv: 'Spelstil' },
     defaultSettings: { ...DEFAULT_TENNIS_SETTINGS },
     profileOptions: [
-      { value: 'aggressive_baseliner', label: 'Aggressiv baslinjespelare' },
-      { value: 'serve_and_volleyer', label: 'Serve och volley' },
-      { value: 'all_court', label: 'All-court' },
-      { value: 'counter_puncher', label: 'Kontringsspelare' },
-      { value: 'big_server', label: 'Stor servare' },
+      { value: 'aggressive_baseliner', label: { en: 'Aggressive baseliner', sv: 'Aggressiv baslinjespelare' } },
+      { value: 'serve_and_volleyer', label: { en: 'Serve and volley', sv: 'Serve och volley' } },
+      { value: 'all_court', label: { en: 'All-court', sv: 'All-court' } },
+      { value: 'counter_puncher', label: { en: 'Counter puncher', sv: 'Kontringsspelare' } },
+      { value: 'big_server', label: { en: 'Big server', sv: 'Stor servare' } },
     ],
     phaseOptions: RACKET_PHASE_OPTIONS,
   },
   {
     sport: 'PADEL',
     settingsKey: 'padelSettings',
-    label: 'Padel',
+    label: { en: 'Padel', sv: 'Padel' },
     teamField: 'clubName',
-    teamLabel: 'Klubb',
+    teamLabel: { en: 'Club', sv: 'Klubb' },
     profileField: 'position',
-    profileLabel: 'Sida',
+    profileLabel: { en: 'Side', sv: 'Sida' },
     defaultSettings: { ...DEFAULT_PADEL_SETTINGS },
     profileOptions: [
-      { value: 'right_side', label: 'Högersida' },
-      { value: 'left_side', label: 'Vänstersida' },
-      { value: 'all_court', label: 'All-court' },
+      { value: 'right_side', label: { en: 'Right side', sv: 'Högersida' } },
+      { value: 'left_side', label: { en: 'Left side', sv: 'Vänstersida' } },
+      { value: 'all_court', label: { en: 'All-court', sv: 'All-court' } },
     ],
     phaseOptions: RACKET_PHASE_OPTIONS,
   },
@@ -233,6 +236,44 @@ const SPORT_PROFILE_CONFIGS: SportProfileConfig[] = [
 const SPORT_PROFILE_CONFIG_BY_SPORT = Object.fromEntries(
   SPORT_PROFILE_CONFIGS.map((config) => [config.sport, config])
 ) as Record<string, SportProfileConfig | undefined>
+
+const COPY: Record<AppLocale, {
+  updateError: string;
+  updatedTitle: string;
+  profileSavedDescription: (sport: string) => string;
+  primaryUpdatedDescription: string;
+  errorTitle: string;
+  primarySport: string;
+  chooseSport: string;
+  saveSport: string;
+  seasonPhase: string;
+  savedValuesHint: string;
+}> = {
+  en: {
+    updateError: 'Could not update sport profile',
+    updatedTitle: 'Sport profile updated',
+    profileSavedDescription: (sport) => `${sport} profile saved and can be used in program generation.`,
+    primaryUpdatedDescription: 'Primary sport has been updated.',
+    errorTitle: 'Error',
+    primarySport: 'Primary sport',
+    chooseSport: 'Choose sport',
+    saveSport: 'Save sport',
+    seasonPhase: 'Season phase',
+    savedValuesHint: 'Saved values carry over to the program generator.',
+  },
+  sv: {
+    updateError: 'Kunde inte uppdatera sportprofilen',
+    updatedTitle: 'Sportprofil uppdaterad',
+    profileSavedDescription: (sport) => `${sport}-profilen sparades och kan användas i programgenerering.`,
+    primaryUpdatedDescription: 'Primär sport har uppdaterats.',
+    errorTitle: 'Fel',
+    primarySport: 'Primär sport',
+    chooseSport: 'Välj sport',
+    saveSport: 'Spara sport',
+    seasonPhase: 'Säsongsfas',
+    savedValuesHint: 'Sparade värden följer med till programgeneratorn.',
+  },
+}
 
 function asSettings(settings: unknown, defaults: object): Record<string, unknown> {
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
@@ -247,6 +288,8 @@ function asSettings(settings: unknown, defaults: object): Record<string, unknown
 
 export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportProfileEditorProps) {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [primarySport, setPrimarySport] = useState(sportProfile?.primarySport || 'RUNNING')
   const [settingsByKey, setSettingsByKey] = useState<SportSettingsMap>(() => ({
     hockeySettings: asSettings(sportProfile?.hockeySettings, DEFAULT_HOCKEY_SETTINGS),
@@ -300,21 +343,21 @@ export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportP
       const result = await response.json()
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Kunde inte uppdatera sportprofilen')
+        throw new Error(result.error || copy.updateError)
       }
 
       onUpdated(result.data)
       toast({
-        title: 'Sportprofil uppdaterad',
+        title: copy.updatedTitle,
         description: activeConfig
-          ? `${activeConfig.label}-profilen sparades och kan användas i programgenerering.`
-          : 'Primär sport har uppdaterats.',
+          ? copy.profileSavedDescription(activeConfig.label[locale])
+          : copy.primaryUpdatedDescription,
       })
     } catch (error) {
       console.error('Error updating sport profile:', error)
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte uppdatera sportprofilen',
+        title: copy.errorTitle,
+        description: error instanceof Error ? error.message : copy.updateError,
         variant: 'destructive',
       })
     } finally {
@@ -327,15 +370,15 @@ export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportP
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="primary-sport">Primär sport</Label>
+            <Label htmlFor="primary-sport">{copy.primarySport}</Label>
             <Select value={primarySport} onValueChange={setPrimarySport}>
               <SelectTrigger id="primary-sport">
-                <SelectValue placeholder="Välj sport" />
+                <SelectValue placeholder={copy.chooseSport} />
               </SelectTrigger>
               <SelectContent>
                 {SPORT_OPTIONS.map((sport) => (
                   <SelectItem key={sport.value} value={sport.value}>
-                    {sport.label}
+                    {sport.label[locale]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -344,12 +387,12 @@ export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportP
 
           {activeConfig && activeSettings && (
             <div className="space-y-2">
-              <Label htmlFor="sport-team">{activeConfig.teamLabel}</Label>
+              <Label htmlFor="sport-team">{activeConfig.teamLabel[locale]}</Label>
               <Input
                 id="sport-team"
                 value={String(activeSettings[activeConfig.teamField] ?? '')}
                 onChange={(event) => updateActiveSettings(activeConfig.teamField, event.target.value)}
-                placeholder={activeConfig.teamLabel}
+                placeholder={activeConfig.teamLabel[locale]}
               />
             </div>
           )}
@@ -357,14 +400,14 @@ export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportP
 
         <Button onClick={handleSave} disabled={saving} className="w-full md:w-auto">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Spara sport
+          {copy.saveSport}
         </Button>
       </div>
 
       {activeConfig && activeSettings && (
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label htmlFor="sport-profile">{activeConfig.profileLabel}</Label>
+            <Label htmlFor="sport-profile">{activeConfig.profileLabel[locale]}</Label>
             <Select
               value={String(activeSettings[activeConfig.profileField] ?? '')}
               onValueChange={(value) => updateActiveSettings(activeConfig.profileField, value)}
@@ -375,7 +418,7 @@ export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportP
               <SelectContent>
                 {activeConfig.profileOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {option.label[locale]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -383,7 +426,7 @@ export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="sport-phase">Säsongsfas</Label>
+            <Label htmlFor="sport-phase">{copy.seasonPhase}</Label>
             <Select
               value={String(activeSettings.seasonPhase ?? '')}
               onValueChange={(value) => updateActiveSettings('seasonPhase', value)}
@@ -394,7 +437,7 @@ export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportP
               <SelectContent>
                 {activeConfig.phaseOptions.map((phase) => (
                   <SelectItem key={phase.value} value={phase.value}>
-                    {phase.label}
+                    {phase.label[locale]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -403,7 +446,7 @@ export function SportProfileEditor({ clientId, sportProfile, onUpdated }: SportP
 
           <div className="flex items-end gap-2 text-sm text-gray-600 dark:text-slate-400">
             <Shield className="mb-2 h-4 w-4 text-blue-500" />
-            <span className="pb-1">Sparade värden följer med till programgeneratorn.</span>
+            <span className="pb-1">{copy.savedValuesHint}</span>
           </div>
         </div>
       )}
