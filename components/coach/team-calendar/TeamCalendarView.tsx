@@ -455,13 +455,14 @@ const PLANNING_FILTERS: Array<{ value: PlanningFilter; label: Record<TeamCalenda
   { value: 'physical', label: { en: 'Physical', sv: 'Fys' } },
 ]
 
-const PHYSICAL_QUICK_TYPES: Array<{ type: TeamEventType; title: Record<TeamCalendarLocale, string>; label: string }> = [
+const PLANNING_QUICK_TYPES: Array<{ type: TeamEventType; title: Record<TeamCalendarLocale, string>; label: string }> = [
   { type: 'STRENGTH', title: { en: 'Strength', sv: 'Styrka' }, label: 'Strength' },
   { type: 'CARDIO', title: { en: 'Conditioning', sv: 'Kondition' }, label: 'Conditioning' },
   { type: 'PREHAB', title: { en: 'Stability / Prehab', sv: 'Stabilitet / Prehab' }, label: 'Prehab' },
   { type: 'PLYOMETRICS', title: { en: 'Plyometrics', sv: 'Plyometri' }, label: 'Plyo' },
   { type: 'HYBRID', title: { en: 'Hybrid', sv: 'Hybrid' }, label: 'Hybrid' },
   { type: 'AGILITY', title: { en: 'Agility', sv: 'Agility' }, label: 'Agility' },
+  { type: 'TEST', title: { en: 'Test', sv: 'Test' }, label: 'Test' },
 ]
 
 interface TeamCalendarViewProps {
@@ -1407,12 +1408,22 @@ export function TeamCalendarView({
         </div>
       ) : viewMode === 'month' ? (
         <div className="overflow-x-auto rounded-lg border bg-background">
-          <table className="w-full min-w-[960px] border-collapse text-sm">
+          <table className="w-full min-w-[1230px] table-fixed border-collapse text-sm">
+            <colgroup>
+              <col className="w-[44px]" />
+              <col className="w-[58px]" />
+              <col className="w-[92px]" />
+              <col className="w-[52px]" />
+              <col className="w-[500px]" />
+              <col className="w-[150px]" />
+              <col className="w-[260px]" />
+              <col className="w-[124px]" />
+            </colgroup>
             <thead>
               <tr className="bg-muted/70 text-left">
-                <th className="w-16 border-r px-2 py-2 font-semibold">{text(locale, 'v.', 'wk')}</th>
-                <th className="w-16 border-r px-2 py-2 font-semibold">{text(locale, 'Dag', 'Day')}</th>
-                <th className="w-28 border-r px-2 py-2 font-semibold">{text(locale, 'Datum', 'Date')}</th>
+                <th className="border-r px-2 py-2 font-semibold">{text(locale, 'v.', 'wk')}</th>
+                <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Dag', 'Day')}</th>
+                <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Datum', 'Date')}</th>
                 <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Is', 'Ice')}</th>
                 <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Fys', 'Physical')}</th>
                 <th className="border-r px-2 py-2 font-semibold">{text(locale, 'Match / lag', 'Game / team')}</th>
@@ -1443,7 +1454,7 @@ export function TeamCalendarView({
                   if (defaultType === 'STRENGTH') {
                     return (
                       <div className="flex flex-wrap gap-1">
-                        {PHYSICAL_QUICK_TYPES.map((quickType) => (
+                        {PLANNING_QUICK_TYPES.map((quickType) => (
                           canCreateType(quickType.type) ? (
                             <CreateEventDialog
                               key={quickType.type}
@@ -1453,13 +1464,13 @@ export function TeamCalendarView({
                               defaultDate={inputDateValue(date)}
                               defaultType={quickType.type}
                               defaultTitle={quickType.title[locale]}
-                              defaultContentStatus="NEEDS_CONTENT"
+                              defaultContentStatus={quickType.type === 'TEST' ? 'PLANNED' : 'NEEDS_CONTENT'}
                               defaultContentOwner="physical_trainer"
                               allowedEventTypes={creatableTypes}
                               trigger={
                                 <button
                                   type="button"
-                                  className="rounded border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                                  className="rounded border bg-background px-1.5 py-0.5 text-[10px] leading-4 text-muted-foreground hover:bg-muted hover:text-foreground"
                                 >
                                   {quickType.label}
                                 </button>
@@ -1530,10 +1541,10 @@ export function TeamCalendarView({
                       !planBlockColor && isWeekend ? 'bg-muted/40' : ''
                     )}
                   >
-                    <td className="border-r border-t px-2 py-2 text-muted-foreground">{date.getDay() === 1 ? `${text(locale, 'v.', 'wk ')}${weekNumber}` : ''}</td>
-                    <td className={`border-r border-t px-2 py-2 font-semibold ${date.getDay() === 0 ? 'text-red-600' : ''}`}>{dayName}</td>
-                    <td className="border-r border-t px-2 py-2">
-                      <div className="flex items-center gap-2">
+                    <td className="border-r border-t px-1.5 py-2 text-muted-foreground">{date.getDay() === 1 ? `${text(locale, 'v.', 'wk ')}${weekNumber}` : ''}</td>
+                    <td className={`border-r border-t px-1.5 py-2 font-semibold ${date.getDay() === 0 ? 'text-red-600' : ''}`}>{dayName}</td>
+                    <td className="border-r border-t px-1.5 py-2">
+                      <div className="flex items-center gap-1.5">
                         {planBlockColor && (
                           <span className={cn('h-2 w-2 rounded-full', planBlockColor.marker)} />
                         )}
