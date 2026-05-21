@@ -1061,7 +1061,7 @@ export function AthleteFloatingChat({
     // Only auto-send if this is a fresh conversation (no messages yet)
     if (messages.length > 0) return
 
-    const message = buildMentalPrepMessage(mentalPrepContext)
+    const message = buildMentalPrepMessage(mentalPrepContext, locale)
 
     // Create conversation + send message
     async function startMentalPrepChat() {
@@ -1086,7 +1086,7 @@ export function AthleteFloatingChat({
         }
       }
 
-      const mentalPrepPageContext = buildMentalPrepPageContext(mentalPrepContext!)
+      const mentalPrepPageContext = buildMentalPrepPageContext(mentalPrepContext!, locale)
 
     void sendMessage({ text: message }, {
         body: {
@@ -1252,7 +1252,7 @@ export function AthleteFloatingChat({
     setInput('')
 
     const mentalPrepPageCtx = mentalPrepContextRef.current
-      ? buildMentalPrepPageContext(mentalPrepContextRef.current)
+      ? buildMentalPrepPageContext(mentalPrepContextRef.current, locale)
       : ''
     const combinedPageContext = [pageContextRef.current, mentalPrepPageCtx]
       .filter(Boolean)
@@ -1276,6 +1276,7 @@ export function AthleteFloatingChat({
     configReady,
     conversationId,
     isLoading,
+    locale,
     memoryContext,
     selectedIntent,
     selectedSkillIds,
