@@ -454,20 +454,25 @@ export function createChatTools(
     // ── Daily check-in tool ───────────────────────────────────────────
     logDailyCheckIn: tool({
       description:
-        'Logga en daglig check-in åt atleten. Använd detta verktyg när atleten berättar hur de mår, ' +
-        'sov, eller hur kroppen känns. Samla in så mycket information som möjligt från samtalet.',
+        chatText(
+          locale,
+          'Log a daily check-in for the athlete. Use this tool when the athlete tells you how they feel, ' +
+            'slept, or how their body feels. Gather as much information as possible from the conversation.',
+          'Logga en daglig check-in åt atleten. Använd detta verktyg när atleten berättar hur de mår, ' +
+            'sov, eller hur kroppen känns. Samla in så mycket information som möjligt från samtalet.'
+        ),
       inputSchema: z.object({
-        date: z.string().optional().describe('Datum i YYYY-MM-DD-format. Standard: idag.'),
-        sleepQuality: z.number().min(1).max(10).describe('Sömnkvalitet 1-10'),
-        sleepHours: z.number().min(0).max(24).optional().describe('Antal timmars sömn'),
-        soreness: z.number().min(1).max(10).describe('Muskelömhet 1=ingen, 10=extrem'),
-        fatigue: z.number().min(1).max(10).describe('Trötthet 1=ingen, 10=extrem'),
-        stress: z.number().min(1).max(10).describe('Stressnivå 1=ingen, 10=extrem'),
-        mood: z.number().min(1).max(10).describe('Humör 1=dåligt, 10=utmärkt'),
-        motivation: z.number().min(1).max(10).describe('Motivation 1=ingen, 10=maximal'),
-        restingHR: z.number().optional().describe('Vilopuls i bpm'),
-        hrv: z.number().optional().describe('HRV (RMSSD) i ms'),
-        notes: z.string().optional().describe('Fritext-anteckningar från atleten'),
+        date: z.string().optional().describe(chatText(locale, 'Date in YYYY-MM-DD format. Default: today.', 'Datum i YYYY-MM-DD-format. Standard: idag.')),
+        sleepQuality: z.number().min(1).max(10).describe(chatText(locale, 'Sleep quality 1-10', 'Sömnkvalitet 1-10')),
+        sleepHours: z.number().min(0).max(24).optional().describe(chatText(locale, 'Number of hours slept', 'Antal timmars sömn')),
+        soreness: z.number().min(1).max(10).describe(chatText(locale, 'Muscle soreness 1=none, 10=extreme', 'Muskelömhet 1=ingen, 10=extrem')),
+        fatigue: z.number().min(1).max(10).describe(chatText(locale, 'Fatigue 1=none, 10=extreme', 'Trötthet 1=ingen, 10=extrem')),
+        stress: z.number().min(1).max(10).describe(chatText(locale, 'Stress level 1=none, 10=extreme', 'Stressnivå 1=ingen, 10=extrem')),
+        mood: z.number().min(1).max(10).describe(chatText(locale, 'Mood 1=poor, 10=excellent', 'Humör 1=dåligt, 10=utmärkt')),
+        motivation: z.number().min(1).max(10).describe(chatText(locale, 'Motivation 1=none, 10=maximal', 'Motivation 1=ingen, 10=maximal')),
+        restingHR: z.number().optional().describe(chatText(locale, 'Resting heart rate in bpm', 'Vilopuls i bpm')),
+        hrv: z.number().optional().describe(chatText(locale, 'HRV (RMSSD) in ms', 'HRV (RMSSD) i ms')),
+        notes: z.string().optional().describe(chatText(locale, 'Free-text notes from the athlete', 'Fritext-anteckningar från atleten')),
       }),
       execute: async ({ date, sleepQuality, sleepHours, soreness, fatigue, stress, mood, motivation, restingHR, hrv, notes }) => {
         try {
@@ -532,7 +537,7 @@ export function createChatTools(
           }
         } catch (error) {
           logger.error('Failed to log daily check-in via chat tool', { clientId }, error)
-          return { success: false, error: 'Kunde inte logga check-in. Försök igen.' }
+          return { success: false, error: chatText(locale, 'Could not log the check-in. Please try again.', 'Kunde inte logga check-in. Försök igen.') }
         }
       },
     }),
