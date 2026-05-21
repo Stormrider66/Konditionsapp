@@ -31,7 +31,7 @@ import {
 import { buildChatContext } from '@/lib/ai/chat/context-builder'
 import {
   buildCoachSystemPrompt,
-  VISIBLE_ACTION_RESPONSE_POLICY,
+  visibleActionResponsePolicy,
 } from '@/lib/ai/chat/system-prompt'
 import { resolveAiModel, getMaxOutputTokens } from '@/lib/ai/chat/model-selector'
 import { buildOnFinishHandler } from '@/lib/ai/chat/on-finish'
@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
 
     // ── 6. System prompt ────────────────────────────────────────────
     const systemPrompt = isAthleteChat && context.athleteSystemPrompt
-      ? `${context.athleteSystemPrompt}\n${VISIBLE_ACTION_RESPONSE_POLICY}\n## OUTPUT LANGUAGE\n${responseLocale === 'sv' ? 'Svara på svenska om inte atleten uttryckligen ber om ett annat språk.' : 'Respond in English unless the athlete explicitly asks for another language.'}\n${pageContext}\n`
+      ? `${context.athleteSystemPrompt}\n${visibleActionResponsePolicy(responseLocale)}\n## OUTPUT LANGUAGE\n${responseLocale === 'sv' ? 'Svara på svenska om inte atleten uttryckligen ber om ett annat språk.' : 'Respond in English unless the athlete explicitly asks for another language.'}\n${pageContext}\n`
       : buildCoachSystemPrompt({
           locale: responseLocale,
           pageContext,

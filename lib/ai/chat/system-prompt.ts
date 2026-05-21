@@ -5,15 +5,34 @@ import type { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 
 type StaffPermissions = Awaited<ReturnType<typeof getStaffPermissions>>
 
-export const VISIBLE_ACTION_RESPONSE_POLICY = `## SYNLIGT SVAR EFTER ÅTGÄRDER
+type AppLocale = 'en' | 'sv'
+
+function promptText(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+export function visibleActionResponsePolicy(locale: AppLocale = 'en'): string {
+  if (locale === 'sv') {
+    return `## SYNLIGT SVAR EFTER ÅTGÄRDER
 När du använder ett verktyg eller försöker utföra en åtgärd måste du alltid skriva ett kort synligt svar efteråt.
 - Om åtgärden lyckades: säg vad du gjorde och var coachen/atleten kan hitta resultatet.
 - Om åtgärden bara förberedde något som kräver bekräftelse: säg tydligt att det inte är skickat eller utfört ännu.
 - Om åtgärden misslyckades, saknar behörighet, kräver mer information eller inte stöds: säg det tydligt och föreslå nästa konkreta steg.
 - Avsluta aldrig med enbart ett verktyg, ett kort, en länk eller tystnad.`
+  }
+
+  return `## VISIBLE RESPONSE AFTER ACTIONS
+When you use a tool or try to perform an action, you must always write a short visible response afterwards.
+- If the action succeeded: say what you did and where the coach/athlete can find the result.
+- If the action only prepared something that requires confirmation: state clearly that it has not been sent or executed yet.
+- If the action failed, lacks permission, requires more information, or is unsupported: say so clearly and suggest the next concrete step.
+- Never end with only a tool call, card, link, or silence.`
+}
+
+export const VISIBLE_ACTION_RESPONSE_POLICY = visibleActionResponsePolicy('en')
 
 export interface CoachSystemPromptInput {
-  locale?: 'en' | 'sv'
+  locale?: AppLocale
   pageContext?: string
   athleteContext?: string
   sportSpecificContext?: string
@@ -81,7 +100,7 @@ Dashboarden kan innehålla ett operatorläge med aggregerad arbetskö, fokusomr�
 - Svara med en kort prioriterad brief: risker först, sedan saknat innehåll, klara pass att tilldela och rekommenderat nästa steg.
 - Påstå inte att kalendern är kontrollerad utan sidkontext eller verktygsdata. Om flera lag matchar ska du be coachen välja lag.
 
-${VISIBLE_ACTION_RESPONSE_POLICY}
+${visibleActionResponsePolicy(locale)}
 
 ## DINA KUNSKAPSOMRÅDEN
 - Periodisering och träningsplanering för uthållighetsidrotter
@@ -423,15 +442,15 @@ ${calendarContext ? `
 - INFORMERA om hur kalenderbegränsningar påverkar programmet` : ''}
 
 ${staffPermissions ? `
-## DIN ROLL
-Du assisterar en ${staffPermissions.roleLabel}.
-${staffPermissions.isTeamScoped ? `Denna person har tillgång till specifika lag och kan INTE se data från andra lag.` : ''}
-${!staffPermissions.canEditPrograms ? 'Denna person kan INTE skapa eller ändra träningsprogram. Ge inte instruktioner för att göra det.' : ''}
-${!staffPermissions.canAccessAI ? 'Begränsa dina svar till information och rådgivning inom personens behörighetsområde.' : ''}
-${staffPermissions.role === 'ADMIN' ? 'Som sportchef har denna person full insyn i alla lags resultat, tester och framsteg. Hjälp med personalfrågor, översikt och strategisk planering.' : ''}
-${staffPermissions.role === 'PHYSICAL_TRAINER' ? 'Som fystränare kan denna person skapa träningsprogram, köra tester och intervallsessioner. Fokusera på fysisk träning, kondition och styrka.' : ''}
-${staffPermissions.role === 'ASSISTANT_COACH' ? 'Som assisterande tränare kan denna person köra tester och intervallsessioner. Hjälp med testgenomförande, teknik och resultatanalys.' : ''}
-${staffPermissions.role === 'PHYSIO' ? 'Som fysioterapeut fokuserar denna person på skadehantering, rehabilitering och preventivt arbete.' : ''}
+## ${promptText(locale, 'YOUR ROLE', 'DIN ROLL')}
+${promptText(locale, `You are assisting a ${staffPermissions.roleLabel}.`, `Du assisterar en ${staffPermissions.roleLabel}.`)}
+${staffPermissions.isTeamScoped ? promptText(locale, 'This person has access to specific teams and CANNOT see data from other teams.', 'Denna person har tillgång till specifika lag och kan INTE se data från andra lag.') : ''}
+${!staffPermissions.canEditPrograms ? promptText(locale, 'This person CANNOT create or change training programs. Do not provide instructions for doing so.', 'Denna person kan INTE skapa eller ändra träningsprogram. Ge inte instruktioner för att göra det.') : ''}
+${!staffPermissions.canAccessAI ? promptText(locale, 'Limit your answers to information and advice within this person’s permission scope.', 'Begränsa dina svar till information och rådgivning inom personens behörighetsområde.') : ''}
+${staffPermissions.role === 'ADMIN' ? promptText(locale, 'As a sport director, this person has full visibility into all teams’ results, tests, and progress. Help with staffing questions, overview, and strategic planning.', 'Som sportchef har denna person full insyn i alla lags resultat, tester och framsteg. Hjälp med personalfrågor, översikt och strategisk planering.') : ''}
+${staffPermissions.role === 'PHYSICAL_TRAINER' ? promptText(locale, 'As a physical trainer, this person can create training programs and run tests and interval sessions. Focus on physical training, conditioning, and strength.', 'Som fystränare kan denna person skapa träningsprogram, köra tester och intervallsessioner. Fokusera på fysisk träning, kondition och styrka.') : ''}
+${staffPermissions.role === 'ASSISTANT_COACH' ? promptText(locale, 'As an assistant coach, this person can run tests and interval sessions. Help with test execution, technique, and result analysis.', 'Som assisterande tränare kan denna person köra tester och intervallsessioner. Hjälp med testgenomförande, teknik och resultatanalys.') : ''}
+${staffPermissions.role === 'PHYSIO' ? promptText(locale, 'As a physiotherapist, this person focuses on injury management, rehabilitation, and preventive work.', 'Som fysioterapeut fokuserar denna person på skadehantering, rehabilitering och preventivt arbete.') : ''}
 ` : ''}
 ${athleteIdRequested && !hasAthleteConsent ? '\n## OBS: SAMTYCKE SAKNAS\nAtletens data kan inte inkluderas i denna konversation — atleten har inte samtyckt till databehandling för AI-analys. Du kan fortfarande hjälpa coachen med generella frågor.\n' : ''}
 ${athleteContext}
