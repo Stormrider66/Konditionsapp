@@ -207,9 +207,9 @@ function ProgramFuelingRecommendationBox({
         )}
       </div>
       <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">{copy.reason}</p>
-      {locale === 'sv' && recommendation.productSv && (
+      {getRecommendationProduct(recommendation, locale) && (
         <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-          {recommendation.productSv}
+          {getRecommendationProduct(recommendation, locale)}
         </p>
       )}
     </div>
@@ -341,6 +341,16 @@ function getRecommendationCopy(recommendation: FuelingCoachingRecommendation, lo
   }
 
   return copy[recommendation.status]
+}
+
+function getRecommendationProduct(recommendation: FuelingCoachingRecommendation, locale: AppLocale): string | null {
+  if (!recommendation.productSv) return null
+  if (locale === 'sv') return recommendation.productSv
+
+  return recommendation.productSv
+    .replace('Produkt/timing att justera:', 'Product/timing to adjust:')
+    .replace('Fungerande produkter att repetera:', 'Working products to repeat:')
+    .replace('Produkter från senaste logg:', 'Products from latest log:')
 }
 
 type FuelingSession = {
