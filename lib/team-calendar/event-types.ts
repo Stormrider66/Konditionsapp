@@ -112,6 +112,7 @@ export const TEAM_EVENT_CONTENT_OWNERS = [
   'physical_trainer',
   'physio',
   'shared',
+  'self',
 ] as const
 
 export type TeamEventContentOwner = (typeof TEAM_EVENT_CONTENT_OWNERS)[number]
@@ -121,6 +122,7 @@ export const TEAM_EVENT_CONTENT_OWNER_LABELS: Record<TeamEventContentOwner, stri
   physical_trainer: 'Physical trainer',
   physio: 'Physiotherapist',
   shared: 'Shared responsibility',
+  self: 'Own responsibility',
 }
 
 export const TEAM_EVENT_CONTENT_OWNER_LABELS_SV: Record<TeamEventContentOwner, string> = {
@@ -128,6 +130,7 @@ export const TEAM_EVENT_CONTENT_OWNER_LABELS_SV: Record<TeamEventContentOwner, s
   physical_trainer: 'Fystränare',
   physio: 'Fysioterapeut',
   shared: 'Delat ansvar',
+  self: 'Eget ansvar',
 }
 
 export function isTeamEventType(value: string): value is TeamEventType {

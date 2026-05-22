@@ -115,6 +115,7 @@ const TEAM_EVENT_CONTENT_OWNER_LABELS_EN: Record<TeamEventContentOwner, string> 
   physical_trainer: 'Physical trainer',
   physio: 'Physiotherapist',
   shared: 'Shared responsibility',
+  self: 'Own responsibility',
 }
 
 function getDateFormatter(locale: AppLocale): Intl.DateTimeFormat {
