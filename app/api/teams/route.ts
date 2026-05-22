@@ -10,16 +10,18 @@ import {
   getAccessibleTeamWhere,
 } from '@/lib/coach/team-access'
 
+const teamSportTypeSchema = z.enum([
+  'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH',
+  'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL', 'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL',
+  'TENNIS', 'PADEL'
+])
+
 // Validation schema for team creation
 const createTeamSchema = z.object({
   name: z.string().min(2, 'Team name must be at least 2 characters').max(100),
   description: z.string().max(500).optional(),
   organizationId: z.string().uuid().optional(),
-  sportType: z.enum([
-    'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH',
-    'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL', 'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL',
-    'TENNIS', 'PADEL'
-  ]).optional(),
+  sportType: teamSportTypeSchema,
 })
 
 // GET /api/teams - Get all teams for the authenticated user
@@ -133,7 +135,7 @@ export async function POST(request: NextRequest) {
         name: data.name,
         description: data.description || null,
         organizationId,
-        sportType: data.sportType || null,
+        sportType: data.sportType,
       },
       include: {
         members: true,

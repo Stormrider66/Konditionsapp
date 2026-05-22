@@ -4915,8 +4915,8 @@
           "noSelection": "Ingen organisation"
         },
         "sport": {
-          "label": "Sport",
-          "placeholder": "Välj sport (valfritt)...",
+          "label": "Sport *",
+          "placeholder": "Välj sport...",
           "noSelection": "Ingen sport vald"
         }
       },
@@ -4944,7 +4944,8 @@
         }
       },
       "validation": {
-        "nameRequired": "Laget måste ha ett namn"
+        "nameRequired": "Laget måste ha ett namn",
+        "sportRequired": "Välj sport för laget"
       },
       "errors": {
         "unknown": "Något gick fel"

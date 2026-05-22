@@ -77,6 +77,15 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
       return
     }
 
+    if (sportType === 'none') {
+      toast({
+        title: t('toasts.error.title'),
+        description: t('validation.sportRequired'),
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -93,7 +102,7 @@ export function TeamForm({ team, businessSlug, onSuccess, onCancel }: TeamFormPr
           name: name.trim(),
           description: description.trim() || undefined,
           organizationId: organizationId === 'none' ? undefined : organizationId,
-          sportType: sportType === 'none' ? undefined : sportType,
+          sportType,
         }),
       })
 

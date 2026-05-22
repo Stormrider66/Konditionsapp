@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { getAthleteSubscriptionDataForTier, type AthleteTier } from '@/lib/athlete-account-utils'
 import { resolveHockeyBetaSubscriptionInput } from '@/lib/hockey-beta'
+import { syncClientSportProfileToTeam } from '@/lib/coach/team-sport-profile'
 
 const VALID_ATHLETE_TIERS: readonly AthleteTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE']
 
@@ -132,12 +133,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     // Get team to find the coach (userId)
     let coachUserId: string | null = null
+    let teamSportType: string | null = null
     if (teamId) {
       const team = await prisma.team.findUnique({
         where: { id: teamId },
-        select: { userId: true },
+        select: { userId: true, sportType: true },
       })
       coachUserId = team?.userId || null
+      teamSportType = team?.sportType || null
     }
 
     if (!coachUserId) {
@@ -194,6 +197,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
           isDirect: true,
         },
       })
+
+      await syncClientSportProfileToTeam(client.id, teamSportType, tx)
 
       // Create AthleteAccount linking User ↔ Client
       await tx.athleteAccount.create({

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { getAccessibleOrganization, getAccessibleTeam } from '@/lib/coach/team-access'
+import { syncTeamMemberSportProfilesToTeam } from '@/lib/coach/team-sport-profile'
 
 type RouteParams = {
   params: Promise<{
@@ -128,25 +129,33 @@ export async function PUT(
       }
     }
 
-    const team = await prisma.team.update({
-      where: {
-        id,
-      },
-      data: {
-        ...(data.name && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description || null }),
-        ...(data.organizationId !== undefined && { organizationId: data.organizationId }),
-        ...(data.sportType !== undefined && { sportType: data.sportType }),
-      },
-      include: {
-        members: true,
-        organization: {
-          select: {
-            id: true,
-            name: true,
+    const team = await prisma.$transaction(async (tx) => {
+      const updatedTeam = await tx.team.update({
+        where: {
+          id,
+        },
+        data: {
+          ...(data.name && { name: data.name }),
+          ...(data.description !== undefined && { description: data.description || null }),
+          ...(data.organizationId !== undefined && { organizationId: data.organizationId }),
+          ...(data.sportType !== undefined && { sportType: data.sportType }),
+        },
+        include: {
+          members: true,
+          organization: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
+      })
+
+      if (data.sportType !== undefined && data.sportType !== null) {
+        await syncTeamMemberSportProfilesToTeam(id, data.sportType, tx)
+      }
+
+      return updatedTeam
     })
 
     return NextResponse.json({

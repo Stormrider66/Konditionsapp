@@ -4915,8 +4915,8 @@
           "noSelection": "No organization"
         },
         "sport": {
-          "label": "Sport",
-          "placeholder": "Select sport (optional)...",
+          "label": "Sport *",
+          "placeholder": "Select sport...",
           "noSelection": "No sport selected"
         }
       },
@@ -4944,7 +4944,8 @@
         }
       },
       "validation": {
-        "nameRequired": "Team must have a name"
+        "nameRequired": "Team must have a name",
+        "sportRequired": "Choose a sport for the team"
       },
       "errors": {
         "unknown": "Something went wrong"

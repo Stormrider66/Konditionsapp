@@ -4,6 +4,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import { ATHLETE_TIER_FEATURES } from '@/lib/subscription/feature-access'
 import { resolveHockeyBetaSubscriptionInput } from '@/lib/hockey-beta'
+import { syncClientSportProfileToTeam } from '@/lib/coach/team-sport-profile'
 import type { AthleteAccount, Client, User } from '@prisma/client'
 
 const COACH_CREATED_ATHLETE_TRIAL_DAYS = 14
@@ -253,6 +254,14 @@ export async function createAthleteAccountForClient(
               proactiveNudgesEnabled: false,
             },
           })
+        }
+
+        if (client.teamId) {
+          const team = await tx.team.findUnique({
+            where: { id: client.teamId },
+            select: { sportType: true },
+          })
+          await syncClientSportProfileToTeam(clientId, team?.sportType, tx)
         }
 
         const existingSportProfile = await tx.sportProfile.findUnique({

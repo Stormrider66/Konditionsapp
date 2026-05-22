@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { syncClientSportProfileToTeam } from '@/lib/coach/team-sport-profile'
 
 interface ConnectOptions {
   assignedByUserId?: string
@@ -27,7 +28,7 @@ export async function connectTeamMemberToCoach(
 ): Promise<{ connected: boolean; coachUserId?: string }> {
   const team = await prisma.team.findUnique({
     where: { id: teamId },
-    select: { userId: true },
+    select: { userId: true, sportType: true },
   })
 
   if (!team) {
@@ -49,6 +50,7 @@ export async function connectTeamMemberToCoach(
 
   // Already connected to this coach — nothing to do
   if (client.userId === teamCoachId) {
+    await syncClientSportProfileToTeam(clientId, team.sportType)
     return { connected: true, coachUserId: teamCoachId }
   }
 
@@ -73,6 +75,8 @@ export async function connectTeamMemberToCoach(
       where: { id: clientId },
       data: { userId: teamCoachId },
     })
+
+    await syncClientSportProfileToTeam(clientId, team.sportType, tx)
 
     // Create new CoachAgreement (upsert to handle unique constraint)
     await tx.coachAgreement.upsert({
