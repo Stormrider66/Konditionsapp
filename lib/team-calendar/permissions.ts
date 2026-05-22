@@ -1,5 +1,6 @@
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { getStaffPermissions, type StaffPermissions, type StaffRole } from '@/lib/permissions/assistant-coach'
+import { prisma } from '@/lib/prisma'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
   TEAM_EVENT_TYPES,
@@ -24,6 +25,20 @@ function hasTeamScope(
   if (team.userId === userId) return true
   if (!permissions.isTeamScoped) return true
   return permissions.assignedTeamIds.includes(team.id)
+}
+
+async function getDirectAssignment(userId: string, teamId: string) {
+  return prisma.teamCoachAssignment.findUnique({
+    where: {
+      teamId_userId: {
+        teamId,
+        userId,
+      },
+    },
+    select: {
+      canCreateEvents: true,
+    },
+  })
 }
 
 function canWriteType(role: string, eventType: string, action: TeamCalendarAction) {
@@ -52,13 +67,17 @@ export async function getTeamCalendarPermissionProfile(
 
   const permissions = await getStaffPermissions(userId, businessSlug, options)
   const isRolePreview = Boolean(options?.roleOverride)
+  const [directAssignment] = await Promise.all([
+    getDirectAssignment(userId, team.id),
+  ])
   const hasScope = isRolePreview || hasTeamScope(userId, team, permissions)
+  const canCreateEvents = isRolePreview || !directAssignment || directAssignment.canCreateEvents
 
   return {
     role: permissions.role,
     roleLabel: permissions.roleLabel,
     canView: hasScope && permissions.canViewCalendar,
-    creatableTypes: hasScope
+    creatableTypes: hasScope && canCreateEvents
       ? TEAM_EVENT_TYPES.filter((eventType) => canWriteType(permissions.role, eventType, 'create'))
       : [],
     assignableContentTypes: hasScope
@@ -79,6 +98,8 @@ export async function getTeamCalendarWritableTeam(
 
   const permissions = await getStaffPermissions(userId, businessSlug)
   if (!hasTeamScope(userId, team, permissions)) return null
+  const directAssignment = await getDirectAssignment(userId, team.id)
+  if (directAssignment && !directAssignment.canCreateEvents && action !== 'assignContent') return null
   if (!canWriteType(permissions.role, eventType, action)) return null
 
   return team

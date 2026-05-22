@@ -207,7 +207,12 @@ export async function getStaffPermissions(
     select: { role: true },
   })
 
-  const actualRole = (membership?.role || 'MEMBER') as StaffRole
+  const directAssignments = await prisma.teamCoachAssignment.findMany({
+    where: { userId },
+    select: { teamId: true },
+  })
+  const hasDirectTeamAssignment = directAssignments.length > 0
+  const actualRole = (membership?.role || (hasDirectTeamAssignment ? 'ASSISTANT_COACH' : 'MEMBER')) as StaffRole
   const previewRole = options?.roleOverride ?? null
   const role = previewRole ?? actualRole
 
@@ -230,14 +235,7 @@ export async function getStaffPermissions(
   const perms = PERMISSION_MATRIX[role] || PERMISSION_MATRIX.MEMBER
 
   // Get team assignments for team-scoped roles
-  let assignedTeamIds: string[] = []
-  if (perms.isTeamScoped) {
-    const assignments = await prisma.teamCoachAssignment.findMany({
-      where: { userId },
-      select: { teamId: true },
-    })
-    assignedTeamIds = assignments.map((a) => a.teamId)
-  }
+  const assignedTeamIds = perms.isTeamScoped ? directAssignments.map((a) => a.teamId) : []
 
   return {
     ...perms,
