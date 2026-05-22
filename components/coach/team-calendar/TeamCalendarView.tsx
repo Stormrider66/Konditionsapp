@@ -490,6 +490,7 @@ export function TeamCalendarView({
   const [queueStatusFilter, setQueueStatusFilter] = useState<'open' | TeamEventContentStatus>('open')
   const [calendarPermissions, setCalendarPermissions] = useState<TeamCalendarPermissions | null>(null)
   const [assigningEventId, setAssigningEventId] = useState<string | null>(null)
+  const [planningMode, setPlanningMode] = useState(false)
 
   const weekDates = getWeekDates(weekBase)
   const monthDates = getMonthDates(weekBase)
@@ -813,6 +814,16 @@ export function TeamCalendarView({
               AI-brief
             </Button>
           )}
+          {isStaffPlanningView && viewMode !== 'month' && (
+            <Button
+              variant={planningMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPlanningMode((current) => !current)}
+            >
+              <Dumbbell className="h-3.5 w-3.5 mr-1.5" />
+              {planningMode ? text(locale, 'Stäng planering', 'Close planning') : text(locale, 'Planera pass', 'Plan workouts')}
+            </Button>
+          )}
           {isStaffPlanningView && (
             <CreateTeamPlanDialog
               teamId={teamId}
@@ -874,6 +885,78 @@ export function TeamCalendarView({
                 </Button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {isStaffPlanningView && planningMode && viewMode !== 'month' && (
+        <div className="rounded-lg border bg-background p-4">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Dumbbell className="h-4 w-4" />
+                {text(locale, 'Planera individuella pass', 'Plan individual workouts')}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {text(locale, 'Skapa planerade fys- och testpass som sedan kan fyllas med innehåll.', 'Create planned physical and test sessions that can be filled with content later.')}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setPlanningMode(false)}
+            >
+              {text(locale, 'Klar', 'Done')}
+            </Button>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            {(viewMode === 'day' ? [dayStart] : weekDates).map((date) => (
+              <div
+                key={date.toISOString()}
+                className="flex flex-col gap-2 rounded-md border bg-muted/20 p-2 sm:flex-row sm:items-center"
+              >
+                <div className="w-24 shrink-0">
+                  <div className="text-xs font-semibold uppercase text-muted-foreground">
+                    {date.toLocaleDateString(dateLocale(locale), { weekday: 'short' })}
+                  </div>
+                  <div className="text-sm font-medium">
+                    {date.toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {PLANNING_QUICK_TYPES.map((quickType) => (
+                    canCreateType(quickType.type) ? (
+                      <CreateEventDialog
+                        key={quickType.type}
+                        teamId={teamId}
+                        businessSlug={businessSlug}
+                        onCreated={fetchEvents}
+                        defaultDate={inputDateValue(date)}
+                        defaultType={quickType.type}
+                        defaultTitle={quickType.title[locale]}
+                        defaultContentStatus={quickType.type === 'TEST' ? 'PLANNED' : 'NEEDS_CONTENT'}
+                        defaultContentOwner="physical_trainer"
+                        allowedEventTypes={creatableTypes}
+                        trigger={
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                          >
+                            <Plus className="mr-1 h-3 w-3" />
+                            {quickType.label}
+                          </Button>
+                        }
+                      />
+                    ) : null
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
