@@ -228,6 +228,7 @@ model User {
   // Team Sports System relations
   organizations         Organization[]
   teamWorkoutBroadcasts TeamWorkoutBroadcast[] @relation("CoachBroadcasts")
+  teamNotes             TeamNote[]             @relation("TeamNoteAuthor")
 
   // Calendar System relations
   createdCalendarEvents  CalendarEvent[]       @relation("CreatedCalendarEvents")
@@ -427,6 +428,9 @@ model Team {
   // Team drills
   drills TeamDrill[]
 
+  // Shared staff notes
+  notes TeamNote[]
+
   // Hockey physical tests
   hockeyPhysicalTests HockeyPhysicalTest[]
 
@@ -439,6 +443,22 @@ model Team {
   @@index([userId])
   @@index([name])
   @@index([organizationId])
+}
+
+model TeamNote {
+  id        String   @id @default(uuid())
+  teamId    String
+  authorId  String
+  body      String   @db.Text
+  tag       String   @default("OTHER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author User @relation("TeamNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, createdAt])
+  @@index([authorId])
 }
 
 model Client {

@@ -36,6 +36,7 @@ import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSu
 import { TeamLeaderboard } from '@/components/coach/leaderboards'
 import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
+import { TeamNotesCard, type TeamNoteSummary, type TeamNoteTag } from '@/components/coach/teams/TeamNotesCard'
 import { AssignmentStatus } from '@prisma/client'
 import { getLocale, getTranslations } from '@/i18n/server'
 import { getSportLabelKey } from '@/lib/sports/catalog'
@@ -196,6 +197,33 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     },
     orderBy: { startDate: 'desc' },
   })
+  const teamNotes = await prisma.teamNote.findMany({
+    where: { teamId },
+    select: {
+      id: true,
+      body: true,
+      tag: true,
+      authorId: true,
+      createdAt: true,
+      updatedAt: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  })
+  const initialTeamNotes: TeamNoteSummary[] = teamNotes.map((note) => ({
+    ...note,
+    tag: note.tag as TeamNoteTag,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
+  }))
+  const canManageAllTeamNotes = ['OWNER', 'ADMIN', 'COACH'].includes(membership.role)
   const activeAssignmentStatuses = [
     AssignmentStatus.PENDING,
     AssignmentStatus.SCHEDULED,
@@ -698,6 +726,16 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             </GlassCardContent>
           </GlassCard>
         )}
+      </div>
+
+      <div className="mb-8">
+        <TeamNotesCard
+          teamId={teamId}
+          businessSlug={businessSlug}
+          currentUserId={user.id}
+          canManageAllNotes={canManageAllTeamNotes}
+          initialNotes={initialTeamNotes}
+        />
       </div>
 
       <div className="mb-8">
