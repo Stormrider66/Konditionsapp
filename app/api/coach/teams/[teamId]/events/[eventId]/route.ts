@@ -41,11 +41,18 @@ const updateEventSchema = z.object({
   linkedWorkoutType: z.enum(['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY']).optional().nullable(),
   linkedWorkoutId: z.string().uuid().optional().nullable(),
   linkedWorkoutName: z.string().max(200).optional().nullable(),
+  applyToWeeks: z.number().int().min(1).max(52).optional(),
   attendance: z.array(z.object({
     clientId: z.string().uuid(),
     status: z.enum(['ATTENDING', 'ABSENT', 'UNKNOWN']),
   })).optional(),
 })
+
+function addWeeks(date: Date, weeks: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + weeks * 7)
+  return next
+}
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
@@ -128,11 +135,21 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       where: { id: eventId, teamId },
       select: {
         id: true,
+        title: true,
+        description: true,
         type: true,
         location: true,
         startDate: true,
         endDate: true,
         allDay: true,
+        contentStatus: true,
+        contentOwner: true,
+        practicePlan: true,
+        linkedWorkoutType: true,
+        linkedWorkoutId: true,
+        linkedWorkoutName: true,
+        recurrenceParentId: true,
+        attendance: true,
       },
     })
 
@@ -189,12 +206,96 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       }, { status: 409 })
     }
 
-    const event = await prisma.teamEvent.update({
-      where: { id: eventId },
-      data: updateData,
-      include: {
-        createdBy: { select: { name: true } },
-      },
+    const applyToWeeks = parsed.data.applyToWeeks ?? 1
+    const recurrenceRootId = existingEvent.recurrenceParentId ?? existingEvent.id
+    const recurrenceRule = applyToWeeks > 1
+      ? `FREQ=WEEKLY;INTERVAL=1;COUNT=${applyToWeeks}`
+      : undefined
+    const repeatedData = {
+      title: parsed.data.title ?? existingEvent.title,
+      description: parsed.data.description !== undefined ? parsed.data.description : existingEvent.description,
+      type: targetType,
+      location: targetLocation,
+      startDate: targetStartDate,
+      endDate: targetEndDate,
+      allDay: targetAllDay,
+      contentStatus: parsed.data.contentStatus ?? existingEvent.contentStatus,
+      contentOwner: parsed.data.contentOwner !== undefined ? parsed.data.contentOwner : existingEvent.contentOwner,
+      practicePlan: parsed.data.practicePlan !== undefined
+        ? parsed.data.practicePlan === null ? null : JSON.parse(JSON.stringify(parsed.data.practicePlan))
+        : existingEvent.practicePlan,
+      linkedWorkoutType: parsed.data.linkedWorkoutType !== undefined ? parsed.data.linkedWorkoutType : existingEvent.linkedWorkoutType,
+      linkedWorkoutId: parsed.data.linkedWorkoutId !== undefined ? parsed.data.linkedWorkoutId : existingEvent.linkedWorkoutId,
+      linkedWorkoutName: parsed.data.linkedWorkoutName !== undefined ? parsed.data.linkedWorkoutName : existingEvent.linkedWorkoutName,
+      attendance: parsed.data.attendance !== undefined
+        ? JSON.parse(JSON.stringify(parsed.data.attendance))
+        : existingEvent.attendance,
+    }
+
+    const event = await prisma.$transaction(async (tx) => {
+      const updated = await tx.teamEvent.update({
+        where: { id: eventId },
+        data: {
+          ...updateData,
+          ...(applyToWeeks > 1 ? { isRecurring: true, recurrenceRule } : {}),
+        },
+        include: {
+          createdBy: { select: { name: true } },
+        },
+      })
+
+      if (applyToWeeks <= 1) return updated
+
+      for (let index = 1; index < applyToWeeks; index += 1) {
+        const futureStartDate = addWeeks(targetStartDate, index)
+        const futureEndDate = targetEndDate ? addWeeks(targetEndDate, index) : null
+        const existingFutureEvent = await tx.teamEvent.findFirst({
+          where: {
+            teamId,
+            startDate: futureStartDate,
+            OR: [
+              { recurrenceParentId: recurrenceRootId },
+              { recurrenceParentId: existingEvent.id },
+              { title: repeatedData.title, type: repeatedData.type },
+            ],
+          },
+          select: {
+            id: true,
+            assignedBroadcastId: true,
+          },
+        })
+
+        if (existingFutureEvent?.assignedBroadcastId) continue
+
+        if (existingFutureEvent) {
+          await tx.teamEvent.update({
+            where: { id: existingFutureEvent.id },
+            data: {
+              ...repeatedData,
+              startDate: futureStartDate,
+              endDate: futureEndDate,
+              isRecurring: true,
+              recurrenceRule,
+              recurrenceParentId: recurrenceRootId,
+            },
+          })
+        } else {
+          await tx.teamEvent.create({
+            data: {
+              ...repeatedData,
+              teamId,
+              createdById: user.id,
+              startDate: futureStartDate,
+              endDate: futureEndDate,
+              isRecurring: true,
+              recurrenceRule,
+              recurrenceParentId: recurrenceRootId,
+            },
+          })
+        }
+      }
+
+      return updated
     })
 
     const assignmentSummaries = await getTeamCalendarAssignmentSummaries([event.assignedBroadcastId])

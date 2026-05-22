@@ -371,6 +371,7 @@ export function EditEventDialog({
   const [loadingWorkouts, setLoadingWorkouts] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
+  const [applyToWeeks, setApplyToWeeks] = useState('1')
   const builderLink = builderLinkFor(type, businessSlug, locale)
   const isPhysicalSession = PHYSICAL_TEAM_EVENT_TYPES.includes(type)
   const isIcePractice = type === 'PRACTICE' || type === 'ICE_PRACTICE'
@@ -429,6 +430,7 @@ export function EditEventDialog({
     setLinkedWorkoutId(event.linkedWorkoutId ?? 'none')
     setLinkedWorkoutName(event.linkedWorkoutName ?? null)
     setPracticeBlocks(Array.isArray(event.practicePlan) ? event.practicePlan.map(withPracticePlanningDefaults) : [])
+    setApplyToWeeks('1')
   }, [event])
 
   useEffect(() => {
@@ -519,6 +521,7 @@ export function EditEventDialog({
           linkedWorkoutType: linkedWorkoutId === 'none' ? null : linkedWorkoutType,
           linkedWorkoutId: linkedWorkoutId === 'none' ? null : linkedWorkoutId,
           linkedWorkoutName: linkedWorkoutId === 'none' ? null : linkedWorkoutName,
+          applyToWeeks: Math.max(1, Math.min(52, Number.parseInt(applyToWeeks, 10) || 1)),
         }),
       })
 
@@ -802,6 +805,29 @@ export function EditEventDialog({
                     </div>
                   )}
                 </div>
+
+                {linkedWorkoutId !== 'none' && canAssignContent && (
+                  <div className="rounded-md border bg-background p-3">
+                    <div className="grid gap-3 sm:grid-cols-[1fr_130px] sm:items-end">
+                      <div>
+                        <Label className="text-xs">{text(locale, 'Lägg till i flera veckor', 'Add for multiple weeks')}</Label>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {text(locale, 'Spara samma kopplade pass på den här veckan och kommande veckor.', 'Save the same linked workout on this week and following weeks.')}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">{text(locale, 'Antal veckor', 'Weeks')}</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={52}
+                          value={applyToWeeks}
+                          onChange={(e) => setApplyToWeeks(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="rounded-md border bg-background p-3">
                   {isAssigned ? (
