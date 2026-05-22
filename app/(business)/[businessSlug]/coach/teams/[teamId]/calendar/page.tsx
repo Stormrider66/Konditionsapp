@@ -74,7 +74,7 @@ export default async function TeamCalendarPage({ params }: PageProps) {
   }))
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
       <div className="flex items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <Link href={`/${businessSlug}/coach/teams`}>

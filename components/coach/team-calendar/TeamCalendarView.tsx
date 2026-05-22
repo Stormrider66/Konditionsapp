@@ -1434,16 +1434,16 @@ export function TeamCalendarView({
         </div>
       ) : viewMode === 'month' ? (
         <div className="overflow-x-auto rounded-lg border bg-background">
-          <table className="w-full min-w-[1230px] table-fixed border-collapse text-sm">
+          <table className="w-full min-w-[1280px] table-fixed border-collapse text-sm">
             <colgroup>
-              <col className="w-[44px]" />
-              <col className="w-[58px]" />
-              <col className="w-[92px]" />
-              <col className="w-[52px]" />
-              <col className="w-[500px]" />
-              <col className="w-[150px]" />
-              <col className="w-[260px]" />
-              <col className="w-[124px]" />
+              <col className="w-[40px]" />
+              <col className="w-[56px]" />
+              <col className="w-[68px]" />
+              <col className="w-[220px]" />
+              <col className="w-[360px]" />
+              <col className="w-[160px]" />
+              <col className="w-[220px]" />
+              <col className="w-[156px]" />
             </colgroup>
             <thead>
               <tr className="bg-muted/70 text-left">
@@ -1567,7 +1567,7 @@ export function TeamCalendarView({
                       !planBlockColor && isWeekend ? 'bg-muted/40' : ''
                     )}
                   >
-                    <td className="border-r border-t px-1.5 py-2 text-muted-foreground">{date.getDay() === 1 ? `${text(locale, 'v.', 'wk ')}${weekNumber}` : ''}</td>
+                    <td className="border-r border-t px-1 py-2 text-muted-foreground">{date.getDay() === 1 ? `${text(locale, 'v.', 'wk ')}${weekNumber}` : ''}</td>
                     <td className={`border-r border-t px-1.5 py-2 font-semibold ${date.getDay() === 0 ? 'text-red-600' : ''}`}>{dayName}</td>
                     <td className="border-r border-t px-1.5 py-2">
                       <div className="flex items-center gap-1.5">
