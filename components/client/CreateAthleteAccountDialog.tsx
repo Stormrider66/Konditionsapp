@@ -182,7 +182,7 @@ export function CreateAthleteAccountDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md overflow-hidden sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {hasExistingAccount ? t('dialog.sendInviteTitle') : t('dialog.createAndInviteTitle')}
@@ -195,10 +195,10 @@ export function CreateAthleteAccountDialog({
         </DialogHeader>
 
         {createdAccount ? (
-          <div className="space-y-4 py-4">
-            <Alert className="bg-green-50 border-green-200">
+          <div className="min-w-0 space-y-4 py-4">
+            <Alert className="max-w-full bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+              <AlertDescription className="min-w-0 text-green-800">
                 {createdAccount.method === 'email'
                   ? createdAccount.mode === 'created'
                     ? t('success.createdEmail')
@@ -209,15 +209,15 @@ export function CreateAthleteAccountDialog({
               </AlertDescription>
             </Alert>
 
-            <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-              <div>
+            <div className="min-w-0 space-y-3 rounded-lg bg-gray-50 p-4">
+              <div className="min-w-0">
                 <Label className="text-xs text-gray-500">{t('fields.email')}</Label>
-                <p className="font-medium">{createdAccount.email}</p>
+                <p className="break-words font-medium">{createdAccount.email}</p>
               </div>
               {createdAccount.inviteText && (
-                <div>
+                <div className="min-w-0">
                   <Label className="text-xs text-gray-500">{t('fields.inviteText')}</Label>
-                  <p className="mt-1 whitespace-pre-line rounded-md border bg-white p-3 text-sm">
+                  <p className="mt-1 max-w-full whitespace-pre-line rounded-md border bg-white p-3 text-sm leading-relaxed [overflow-wrap:anywhere]">
                     {createdAccount.inviteText}
                   </p>
                 </div>
@@ -229,7 +229,7 @@ export function CreateAthleteAccountDialog({
             </p>
 
             <DialogFooter>
-              <div className="grid w-full gap-2 sm:grid-cols-2">
+              <div className="grid w-full min-w-0 gap-2 sm:grid-cols-2">
                 {createdAccount.inviteText && (
                   <>
                     <Button variant="outline" onClick={() => openSms(createdAccount.inviteText!)}>
