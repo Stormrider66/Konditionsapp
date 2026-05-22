@@ -11,6 +11,7 @@ import {
   fetchFieldTests,
   fetchGarminActivities,
   fetchRaces,
+  fetchStandaloneScheduledAssignments,
   fetchWODs,
   fetchWorkouts,
 } from './queries'
@@ -21,6 +22,7 @@ import {
   serializeFieldTest,
   serializeGarmin,
   serializeRace,
+  serializeStandaloneScheduledAssignment,
   serializeWOD,
   serializeWorkout,
 } from './serializers'
@@ -105,9 +107,20 @@ export async function buildUnifiedCalendarPayload(
 
   const queryInput = { clientId, startDate, endDate, itemsMode, maxItemsPerSource }
 
-  const [workouts, races, fieldTests, events, checkIns, wods, adHocWorkouts, garminActivities] =
+  const [
+    workouts,
+    scheduledAssignments,
+    races,
+    fieldTests,
+    events,
+    checkIns,
+    wods,
+    adHocWorkouts,
+    garminActivities,
+  ] =
     await Promise.all([
       includeWorkouts ? fetchWorkouts(queryInput) : Promise.resolve([]),
+      includeEvents ? fetchStandaloneScheduledAssignments(queryInput) : Promise.resolve([]),
       includeRaces ? fetchRaces(queryInput) : Promise.resolve([]),
       includeFieldTests ? fetchFieldTests(queryInput) : Promise.resolve([]),
       includeEvents ? fetchCalendarEvents(queryInput) : Promise.resolve([]),
@@ -135,6 +148,11 @@ export async function buildUnifiedCalendarPayload(
     counts.total += 1
     counts.workouts += 1
     if (needsItems) items.push(serializeWorkout(workout, itemsMode))
+  }
+  for (const assignment of scheduledAssignments as any[]) {
+    counts.total += 1
+    counts.calendarEvents += 1
+    if (needsItems) items.push(serializeStandaloneScheduledAssignment(assignment, itemsMode))
   }
   for (const race of races as any[]) {
     counts.total += 1

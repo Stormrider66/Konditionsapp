@@ -369,6 +369,7 @@ export function CalendarEventItem({
   const eventType = (meta.eventType as string) || 'EXTERNAL_EVENT'
   const trainingImpact = (meta.trainingImpact as string) || 'NORMAL'
   const isReadOnly = meta.isReadOnly as boolean
+  const isVirtualAssignment = meta.isVirtualAssignment === true
   const scheduledWorkoutSource = meta.scheduledWorkoutSource as ScheduledWorkoutSource | null | undefined
   const canEditScheduledWorkoutSource = ['strength', 'cardio', 'hybrid'].includes(
     scheduledWorkoutSource?.kind || ''
@@ -625,42 +626,46 @@ export function CalendarEventItem({
               {t('calendarItem.event.actions.praise')}
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={onEdit}>
-            <Edit className="h-3 w-3 shrink-0 mr-1" />
-            {eventType === 'SCHEDULED_WORKOUT'
-              ? t('calendarItem.event.actions.time')
-              : t('calendarItem.event.actions.edit')}
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold text-red-400 hover:text-red-300">
-                <Trash2 className="h-3 w-3 shrink-0 mr-1" />
-                {t('calendarItem.event.actions.remove')}
+          {!isVirtualAssignment && (
+            <>
+              <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={onEdit}>
+                <Edit className="h-3 w-3 shrink-0 mr-1" />
+                {eventType === 'SCHEDULED_WORKOUT'
+                  ? t('calendarItem.event.actions.time')
+                  : t('calendarItem.event.actions.edit')}
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className={isGlass ? "bg-slate-900 border-white/10" : ""}>
-              <AlertDialogHeader>
-                <AlertDialogTitle className={isGlass ? "text-white font-black" : ""}>
-                  {t('calendarItem.event.deleteConfirmTitle')}
-                </AlertDialogTitle>
-                <AlertDialogDescription className={isGlass ? "text-slate-400" : ""}>
-                  {t('calendarItem.event.deleteConfirmMessage', { title: event.title })}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className={isGlass ? "bg-white/5 border-white/10 text-slate-300" : ""}>
-                  {t('calendarItem.event.actions.cancel')}
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-700"
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? t('calendarItem.event.actions.removing') : t('calendarItem.event.actions.remove')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold text-red-400 hover:text-red-300">
+                    <Trash2 className="h-3 w-3 shrink-0 mr-1" />
+                    {t('calendarItem.event.actions.remove')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className={isGlass ? "bg-slate-900 border-white/10" : ""}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className={isGlass ? "text-white font-black" : ""}>
+                      {t('calendarItem.event.deleteConfirmTitle')}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className={isGlass ? "text-slate-400" : ""}>
+                      {t('calendarItem.event.deleteConfirmMessage', { title: event.title })}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className={isGlass ? "bg-white/5 border-white/10 text-slate-300" : ""}>
+                      {t('calendarItem.event.actions.cancel')}
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? t('calendarItem.event.actions.removing') : t('calendarItem.event.actions.remove')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
         </div>
       )}
 

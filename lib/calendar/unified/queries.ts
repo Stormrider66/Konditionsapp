@@ -65,6 +65,14 @@ const scheduledWorkoutAssignmentSelect = {
   },
 } as const
 
+function scheduledAssignmentWhere(clientId: string, startDate: Date, endDate: Date) {
+  return {
+    athleteId: clientId,
+    assignedDate: { gte: startDate, lte: endDate },
+    calendarEventId: null,
+  }
+}
+
 export const fetchWorkouts = ({ clientId, startDate, endDate, itemsMode, maxItemsPerSource }: QueryInput) =>
   itemsMode === 'light'
     ? prisma.workout.findMany({
@@ -130,6 +138,154 @@ export const fetchWorkouts = ({ clientId, startDate, endDate, itemsMode, maxItem
         take: maxItemsPerSource,
         orderBy: { day: { date: 'asc' } },
       })
+
+export async function fetchStandaloneScheduledAssignments({
+  clientId,
+  startDate,
+  endDate,
+  itemsMode,
+  maxItemsPerSource,
+}: QueryInput) {
+  const commonWhere = scheduledAssignmentWhere(clientId, startDate, endDate)
+  const take = maxItemsPerSource
+
+  const [strength, cardio, hybrid, agility] = await Promise.all([
+    prisma.strengthSessionAssignment.findMany({
+      where: commonWhere,
+      select: {
+        id: true,
+        sessionId: true,
+        assignedDate: true,
+        status: true,
+        completedAt: true,
+        notes: true,
+        startTime: true,
+        endTime: true,
+        locationName: true,
+        teamBroadcastId: true,
+        responsibleCoach: { select: { id: true, name: true } },
+        teamBroadcast: { select: { id: true, team: { select: { id: true, name: true } } } },
+        session: {
+          select: {
+            id: true,
+            name: true,
+            description: itemsMode !== 'light',
+            estimatedDuration: itemsMode !== 'light',
+          },
+        },
+      },
+      take,
+      orderBy: { assignedDate: 'asc' },
+    }),
+    prisma.cardioSessionAssignment.findMany({
+      where: commonWhere,
+      select: {
+        id: true,
+        sessionId: true,
+        assignedDate: true,
+        status: true,
+        completedAt: true,
+        notes: true,
+        startTime: true,
+        endTime: true,
+        locationName: true,
+        teamBroadcastId: true,
+        responsibleCoach: { select: { id: true, name: true } },
+        teamBroadcast: { select: { id: true, team: { select: { id: true, name: true } } } },
+        session: {
+          select: {
+            id: true,
+            name: true,
+            description: itemsMode !== 'light',
+            totalDuration: itemsMode !== 'light',
+            totalDistance: itemsMode !== 'light',
+          },
+        },
+      },
+      take,
+      orderBy: { assignedDate: 'asc' },
+    }),
+    prisma.hybridWorkoutAssignment.findMany({
+      where: commonWhere,
+      select: {
+        id: true,
+        workoutId: true,
+        assignedDate: true,
+        status: true,
+        completedAt: true,
+        resultId: true,
+        notes: true,
+        startTime: true,
+        endTime: true,
+        locationName: true,
+        teamBroadcastId: true,
+        responsibleCoach: { select: { id: true, name: true } },
+        teamBroadcast: { select: { id: true, team: { select: { id: true, name: true } } } },
+        workout: {
+          select: {
+            id: true,
+            name: true,
+            description: itemsMode !== 'light',
+            format: itemsMode !== 'light',
+            timeCap: itemsMode !== 'light',
+            totalMinutes: itemsMode !== 'light',
+          },
+        },
+      },
+      take,
+      orderBy: { assignedDate: 'asc' },
+    }),
+    prisma.agilityWorkoutAssignment.findMany({
+      where: commonWhere,
+      select: {
+        id: true,
+        workoutId: true,
+        assignedDate: true,
+        status: true,
+        completedAt: true,
+        notes: true,
+        startTime: true,
+        endTime: true,
+        locationName: true,
+        teamBroadcastId: true,
+        responsibleCoach: { select: { id: true, name: true } },
+        teamBroadcast: { select: { id: true, team: { select: { id: true, name: true } } } },
+        workout: {
+          select: {
+            id: true,
+            name: true,
+            description: itemsMode !== 'light',
+            format: itemsMode !== 'light',
+            totalDuration: itemsMode !== 'light',
+          },
+        },
+      },
+      take,
+      orderBy: { assignedDate: 'asc' },
+    }),
+  ])
+
+  return [
+    ...strength.map((assignment) => ({ ...assignment, kind: 'strength' as const })),
+    ...cardio.map((assignment) => ({ ...assignment, kind: 'cardio' as const })),
+    ...hybrid.map((assignment) => ({ ...assignment, kind: 'hybrid' as const })),
+    ...agility.map((assignment) => ({ ...assignment, kind: 'agility' as const })),
+  ]
+    .sort((a, b) => a.assignedDate.getTime() - b.assignedDate.getTime())
+    .slice(0, maxItemsPerSource)
+}
+
+async function countStandaloneScheduledAssignments(clientId: string, startDate: Date, endDate: Date) {
+  const commonWhere = scheduledAssignmentWhere(clientId, startDate, endDate)
+  const [strength, cardio, hybrid, agility] = await Promise.all([
+    prisma.strengthSessionAssignment.count({ where: commonWhere }),
+    prisma.cardioSessionAssignment.count({ where: commonWhere }),
+    prisma.hybridWorkoutAssignment.count({ where: commonWhere }),
+    prisma.agilityWorkoutAssignment.count({ where: commonWhere }),
+  ])
+
+  return strength + cardio + hybrid + agility
+}
 
 export const fetchRaces = ({ clientId, startDate, endDate, itemsMode, maxItemsPerSource }: QueryInput) =>
   itemsMode === 'light'
@@ -400,6 +556,7 @@ export async function fetchAllCounts(
     checkIns,
     wods,
     adHoc,
+    standaloneScheduledAssignments,
   ] = await Promise.all([
     q.includeWorkouts
       ? prisma.workout.count({
@@ -457,7 +614,18 @@ export async function fetchAllCounts(
           },
         })
       : Promise.resolve(0),
+    q.includeEvents
+      ? countStandaloneScheduledAssignments(clientId, startDate, endDate)
+      : Promise.resolve(0),
   ])
 
-  return { workouts, races, fieldTests, events, checkIns, wods, adHoc }
+  return {
+    workouts,
+    races,
+    fieldTests,
+    events: events + standaloneScheduledAssignments,
+    checkIns,
+    wods,
+    adHoc,
+  }
 }

@@ -376,6 +376,7 @@ function isScheduledWorkoutEvent(item: UnifiedCalendarItem): boolean {
   return (
     item.type === 'CALENDAR_EVENT' &&
     item.metadata.eventType === 'SCHEDULED_WORKOUT' &&
+    item.metadata.isVirtualAssignment !== true &&
     item.metadata.isReadOnly !== true &&
     !isCompletedCalendarItem(item)
   )

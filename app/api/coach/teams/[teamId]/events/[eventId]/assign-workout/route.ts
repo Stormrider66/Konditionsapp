@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { prisma } from '@/lib/prisma'
+import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
 import { strengthSessionAccessWhere } from '@/lib/strength/session-business-scope'
 import {
@@ -251,6 +252,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
       return { broadcast, event: updatedEvent }
     })
+
+    await Promise.all(
+      eligibleMembers.map((member) => invalidateUnifiedCalendarCacheForClient(member.id))
+    )
 
     return NextResponse.json({
       success: true,

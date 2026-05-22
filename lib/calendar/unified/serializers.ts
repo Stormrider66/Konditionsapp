@@ -117,6 +117,71 @@ export function serializeWorkout(
   }
 }
 
+export function serializeStandaloneScheduledAssignment(
+  assignment: Row & {
+    id: string
+    kind: 'strength' | 'cardio' | 'hybrid' | 'agility'
+    assignedDate: Date
+    status: string
+    completedAt: Date | null
+  },
+  itemsMode: CalendarItemsMode
+): UnifiedCalendarItem {
+  const a = assignment as any
+  const source = a.session ?? a.workout ?? null
+  const sourceId = a.sessionId ?? a.workoutId ?? source?.id ?? null
+  const sourceName = source?.name ?? 'Schemalagt pass'
+  const isCompleted = Boolean(
+    a.completedAt ||
+      a.resultId ||
+      a.status === 'COMPLETED' ||
+      a.status === 'SKIPPED'
+  )
+
+  return {
+    id: `scheduled-assignment:${assignment.kind}:${assignment.id}`,
+    type: 'CALENDAR_EVENT',
+    title: sourceName,
+    description: itemsMode === 'light' ? (a.notes ?? null) : (a.notes ?? source?.description ?? null),
+    date: assignment.assignedDate,
+    endDate: assignment.assignedDate,
+    status: isCompleted ? 'COMPLETED' : 'SCHEDULED',
+    metadata: {
+      eventType: 'SCHEDULED_WORKOUT',
+      trainingImpact: 'NORMAL',
+      allDay: !a.startTime,
+      color: null,
+      isReadOnly: false,
+      isVirtualAssignment: true,
+      startTime: a.startTime,
+      endTime: a.endTime,
+      locationName: a.locationName,
+      teamBroadcastId: a.teamBroadcastId,
+      teamId: a.teamBroadcast?.team?.id ?? null,
+      teamName: a.teamBroadcast?.team?.name ?? null,
+      responsibleCoach: a.responsibleCoach ?? null,
+      scheduledWorkoutSource: {
+        kind: assignment.kind,
+        assignmentId: assignment.id,
+        sourceId,
+        sourceName,
+        status: assignment.status,
+        assignedDate: assignment.assignedDate,
+        completedAt: assignment.completedAt,
+        isCompleted,
+      },
+      ...(itemsMode === 'light'
+        ? {}
+        : {
+            format: source?.format,
+            duration: source?.estimatedDuration ?? source?.totalDuration ?? source?.totalMinutes ?? null,
+            timeCap: source?.timeCap,
+            distance: source?.totalDistance,
+          }),
+    },
+  }
+}
+
 export function serializeRace(
   race: Row & { id: string; name: string; date: Date },
   itemsMode: CalendarItemsMode

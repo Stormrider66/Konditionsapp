@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
+import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import {
   strengthSessionAccessWhere,
@@ -295,6 +296,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       return broadcast
     })
+
+    await Promise.all(
+      eligibleMembers.map((member) => invalidateUnifiedCalendarCacheForClient(member.id))
+    )
 
     return NextResponse.json(
       {
