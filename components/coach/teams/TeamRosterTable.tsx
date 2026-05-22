@@ -64,6 +64,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 
 export interface TeamRosterMember {
   id: string
@@ -72,6 +73,7 @@ export interface TeamRosterMember {
   jerseyNumber: number | null
   position: string | null
   photoUrl: string | null
+  hasAthleteAccount: boolean
   todayWorkoutCount: number
   upcomingWorkoutCount: number
   activeInjuryCount: number
@@ -304,7 +306,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
           <TableHead className="w-40">Position</TableHead>
           <TableHead className="min-w-48">Status</TableHead>
           <TableHead className="hidden md:table-cell">E-post</TableHead>
-          <TableHead className="w-24 text-right">Planera</TableHead>
+          <TableHead className="w-32 text-right">Planera</TableHead>
           <TableHead className="w-12"></TableHead>
         </TableRow>
       </TableHeader>
@@ -364,6 +366,24 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
                 >
                   <CalendarDays className="h-4 w-4" />
                 </Button>
+                <CreateAthleteAccountDialog
+                  clientId={m.id}
+                  clientName={m.name}
+                  clientEmail={m.email}
+                  hasExistingAccount={m.hasAthleteAccount}
+                  onAccountCreated={() => router.refresh()}
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-label={m.hasAthleteAccount ? `Skicka invite till ${m.name}` : `Bjud in ${m.name}`}
+                      title={m.hasAthleteAccount ? 'Skicka invite' : 'Skapa atletkonto och invite'}
+                    >
+                      <MailPlus className="h-4 w-4" />
+                    </Button>
+                  }
+                />
                 <Button
                   variant="ghost"
                   size="icon"

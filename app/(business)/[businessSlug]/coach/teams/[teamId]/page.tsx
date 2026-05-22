@@ -367,6 +367,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
 
   const membersWithRosterStatus = team.members.map((member) => ({
     ...member,
+    hasAthleteAccount: Boolean(member.athleteAccount),
     todayWorkoutCount: todayWorkoutCounts.get(member.id) ?? 0,
     upcomingWorkoutCount: upcomingWorkoutCounts.get(member.id) ?? 0,
     activeInjuryCount: injuryCounts.get(member.id) ?? 0,
