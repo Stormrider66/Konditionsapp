@@ -794,7 +794,7 @@ export function TestDataForm({
           className="max-w-[200px]"
           {...register('restingLactate', { valueAsNumber: true })}
         />
-        <p className="text-xs text-gray-500">{t('Laktatvärde före testet (valfritt)', 'Lactate value before the test (optional)')}</p>
+        <p className="text-xs text-muted-foreground">{t('Laktatvärde före testet (valfritt)', 'Lactate value before the test (optional)')}</p>
       </div>
 
       {/* Incline Unit Selector (only for running tests) */}
@@ -804,12 +804,12 @@ export function TestDataForm({
           <select
             id="inclineUnit"
             {...register('inclineUnit')}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="PERCENT">{t('Procent (%)', 'Percent (%)')}</option>
             <option value="DEGREES">{t('Grader (°)', 'Degrees (°)')}</option>
           </select>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {t('Välj om lutning mäts i procent eller grader', 'Choose whether incline is measured in percent or degrees')}
           </p>
         </div>
@@ -851,12 +851,12 @@ export function TestDataForm({
         {errors.stages && <p className="text-sm text-red-600">{errors.stages.message}</p>}
 
         {/* D-max Guidelines */}
-        <Alert className="bg-blue-50 border-blue-200">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-900 font-semibold">
+        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800/60 dark:bg-blue-950/30">
+          <Info className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+          <AlertTitle className="font-semibold text-blue-900 dark:text-blue-100">
             {t('Krav för D-max laktattröskelberäkning', 'Requirements for D-max lactate threshold calculation')}
           </AlertTitle>
-          <AlertDescription className="text-blue-800 text-sm space-y-2 mt-2">
+          <AlertDescription className="mt-2 space-y-2 text-sm text-blue-800 dark:text-blue-200">
             <p className="font-medium">{t('För optimal tröskelberäkning behövs:', 'For optimal threshold calculation you need:')}</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>
@@ -874,11 +874,11 @@ export function TestDataForm({
               <li>
                 <strong>{t('Komplett data', 'Complete data')}</strong> - {t('fyll i hastighet/watt, puls och laktat för varje steg', 'enter speed/watts, heart rate, and lactate for each stage')}
               </li>
-              <li className="text-xs text-blue-700">
+              <li className="text-xs text-blue-700 dark:text-blue-300">
                 <strong>{t('VO₂ är valfritt', 'VO₂ is optional')}</strong> - {t('trösklar kan beräknas utan VO₂-mätning', 'thresholds can be calculated without VO₂ measurement')}
               </li>
             </ul>
-            <div className="mt-3 pt-2 border-t border-blue-200">
+            <div className="mt-3 border-t border-blue-200 pt-2 dark:border-blue-800/60">
               <p className="font-medium mb-1">{t('Konfidensgrad baseras på:', 'Confidence level is based on:')}</p>
               <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
                 <li>{t('Hög konfidens: R² ≥ 0.95 och tröskel 2-4 mmol/L', 'High confidence: R² ≥ 0.95 and threshold 2-4 mmol/L')}</li>
@@ -1122,7 +1122,7 @@ export function TestDataForm({
 
                 <div className="space-y-1">
                   <Label htmlFor={`stages.${index}.vo2`} className="text-xs">
-                    VO₂ (ml/kg/min) <span className="text-gray-400 font-normal">{t('(valfritt)', '(optional)')}</span>
+                    VO₂ (ml/kg/min) <span className="font-normal text-muted-foreground">{t('(valfritt)', '(optional)')}</span>
                   </Label>
                   <Input
                     id={`stages.${index}.vo2`}
@@ -1242,9 +1242,9 @@ export function TestDataForm({
 
         {/* Lactate decrease warnings */}
         {lactateWarnings.length > 0 && (
-          <Alert className="bg-yellow-50 border-yellow-300">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800 text-sm">
+          <Alert className="border-yellow-300 bg-yellow-50 dark:border-yellow-800/60 dark:bg-yellow-950/30">
+            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-300" />
+            <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
               <strong>{t('Varning: Sjunkande laktatvärden', 'Warning: Decreasing lactate values')}</strong>
               <ul className="list-disc list-inside mt-1 space-y-0.5">
                 {lactateWarnings.map((w, i) => (
@@ -1295,7 +1295,7 @@ export function TestDataForm({
 
         <div className="grid gap-3">
           {postMeasurementFields.map((field, index) => (
-            <Card key={field.id} className="bg-orange-50/50 border-orange-200">
+            <Card key={field.id} className="border-orange-200 bg-orange-50/50 dark:border-orange-800/60 dark:bg-orange-950/20">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -1360,7 +1360,7 @@ export function TestDataForm({
           className="max-w-[250px]"
           {...register('recommendedNextTestDate')}
         />
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           {t('Föreslå ett datum för nästa laktattest (valfritt)', 'Suggest a date for the next lactate test (optional)')}
         </p>
       </div>
@@ -1371,7 +1371,7 @@ export function TestDataForm({
           id="notes"
           {...register('notes')}
           rows={3}
-          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
 
@@ -1454,7 +1454,7 @@ export function TestDataForm({
                   key={angle.value}
                   className={`rounded-full border px-2 py-1 ${
                     runningCameraAngle === angle.value
-                      ? 'border-blue-300 bg-blue-50 text-blue-700'
+                      ? 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200'
                       : 'border-muted text-muted-foreground'
                   }`}
                 >
@@ -1500,7 +1500,7 @@ export function TestDataForm({
                 value={templateDescription}
                 onChange={(e) => setTemplateDescription(e.target.value)}
                 rows={3}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
           </div>
