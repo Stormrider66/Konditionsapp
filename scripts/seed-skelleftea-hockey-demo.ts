@@ -18,6 +18,13 @@ const skellefteaBranding = {
   fontFamily: 'Inter',
 }
 
+function asSettingsObject(settings: unknown): Record<string, unknown> {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    return {}
+  }
+  return { ...(settings as Record<string, unknown>) }
+}
+
 type TeamName = 'A-team' | 'J20' | 'J18'
 
 const roster: Record<TeamName, Array<{ name: string; position: string; jersey: number; birthYear: number }>> = {
@@ -194,6 +201,16 @@ async function main() {
       ...skellefteaBranding,
       country: 'SE',
       email: owner.email,
+    },
+  })
+
+  await prisma.business.update({
+    where: { id: business.id },
+    data: {
+      settings: {
+        ...asSettingsObject(business.settings),
+        brandingHeaderVariant: 'modern',
+      },
     },
   })
 

@@ -72,7 +72,9 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const router = useRouter()
     const branding = useBusinessBrandingOptional()
     const themeContext = useWorkoutThemeOptional()
-    const isDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
+    const appIsDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
+    const usesModernHeader = branding?.headerVariant === 'modern'
+    const headerIsDark = appIsDark || !usesModernHeader
     const tBusinessCoachHeader = useTranslations('components.businessCoachHeader')
     const [isOpen, setIsOpen] = useState(false)
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
@@ -95,28 +97,28 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     const brandInitial = tBusinessCoachHeader('brand.initial')
     const headerClassName = cn(
         'fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-md transition-all duration-300',
-        isDark
+        headerIsDark
             ? 'border-white/5 bg-slate-950/50'
             : 'border-black/10 bg-white/90 text-slate-950 shadow-sm'
     )
     const navLinkClassName = (isActive: boolean) => cn(
         'text-sm font-medium transition-colors flex items-center gap-2',
         isActive
-            ? isDark ? 'text-white' : 'text-slate-950'
-            : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-950'
+            ? headerIsDark ? 'text-white' : 'text-slate-950'
+            : headerIsDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-950'
     )
     const dropdownContentClassName = cn(
         'w-56',
-        isDark
+        headerIsDark
             ? 'bg-slate-900 border-white/10 text-slate-200'
             : 'bg-white border-slate-200 text-slate-900 shadow-lg'
     )
     const dropdownItemClassName = cn(
         'cursor-pointer',
-        isDark ? 'focus:bg-white/10 focus:text-white' : 'focus:bg-slate-100 focus:text-slate-950'
+        headerIsDark ? 'focus:bg-white/10 focus:text-white' : 'focus:bg-slate-100 focus:text-slate-950'
     )
-    const separatorClassName = isDark ? 'bg-white/10' : 'bg-slate-200'
-    const desktopControlsClassName = isDark ? 'text-slate-200' : 'text-slate-700'
+    const separatorClassName = headerIsDark ? 'bg-white/10' : 'bg-slate-200'
+    const desktopControlsClassName = headerIsDark ? 'text-slate-200' : 'text-slate-700'
 
     // Base path for all business-scoped routes
     const basePath = `/${businessSlug}`
@@ -380,7 +382,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             <div
                                 className={cn(
                                     'w-10 h-10 rounded-lg overflow-hidden ring-1 flex items-center justify-center transition-all',
-                                    isDark
+                                    headerIsDark
                                         ? 'bg-white/5 ring-white/10 group-hover:ring-white/30'
                                         : 'bg-slate-50 ring-black/10 group-hover:ring-black/20'
                                 )}
@@ -411,7 +413,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                 {resolvedName ? resolvedName.charAt(0).toUpperCase() : brandInitial}
                             </div>
                         )}
-                        <span className={cn('font-bold text-lg tracking-tight hidden sm:inline', isDark ? 'text-white' : 'text-slate-950')}>
+                        <span className={cn('font-bold text-lg tracking-tight hidden sm:inline', headerIsDark ? 'text-white' : 'text-slate-950')}>
                             {resolvedName || portalName}
                         </span>
                     </Link>
@@ -443,8 +445,8 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             <button className={cn(
                                 "flex items-center gap-2 text-sm font-medium transition-colors",
                                 navGroups.tools.items.some(i => i.href === pathname)
-                                    ? isDark ? "text-white" : "text-slate-950"
-                                    : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
+                                    ? headerIsDark ? "text-white" : "text-slate-950"
+                                    : headerIsDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
                             )}>
                                 <navGroups.tools.icon className="w-4 h-4 opacity-50" />
                                 {navGroups.tools.label}
@@ -482,8 +484,8 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             <button className={cn(
                                 "flex items-center gap-2 text-sm font-medium transition-colors",
                                 moreItems.some(i => i.href === pathname)
-                                    ? isDark ? "text-white" : "text-slate-950"
-                                    : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
+                                    ? headerIsDark ? "text-white" : "text-slate-950"
+                                    : headerIsDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
                             )}>
                                 <navGroups.more.icon className="w-4 h-4 opacity-50" />
                                 {navGroups.more.label}
@@ -538,7 +540,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                         size="sm"
                                         className={cn(
                                             'h-8 gap-1.5 px-2 text-xs',
-                                            isDark
+                                            headerIsDark
                                                 ? 'text-slate-300 hover:bg-white/10 hover:text-white'
                                                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950',
                                             rolePreview && 'text-amber-200 ring-1 ring-amber-300/30'
@@ -553,7 +555,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                 <DropdownMenuContent className={dropdownContentClassName} align="end">
                                     <DropdownMenuLabel>
                                         {tBusinessCoachHeader('menu.rolePreview')}
-                                        <p className={cn("mt-1 text-[10px] font-normal", isDark ? "text-slate-400" : "text-slate-500")}>
+                                        <p className={cn("mt-1 text-[10px] font-normal", headerIsDark ? "text-slate-400" : "text-slate-500")}>
                                             {tBusinessCoachHeader('menu.note')}
                                         </p>
                                     </DropdownMenuLabel>
@@ -601,13 +603,13 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                     variant="ghost"
                                     className={cn(
                                         "relative h-8 w-8 rounded-full ring-2 transition-all p-0",
-                                        isDark ? "ring-white/10" : "ring-black/10"
+                                        headerIsDark ? "ring-white/10" : "ring-black/10"
                                     )}
                                     style={{ '--tw-ring-color': `${brandAccent}80` } as React.CSSProperties}
                                 >
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={user?.user_metadata?.avatar_url ?? undefined} alt={displayName} />
-                                        <AvatarFallback className={cn("font-bold", isDark ? "bg-slate-800" : "bg-slate-100")} style={{ color: brandAccent }}>
+                                        <AvatarFallback className={cn("font-bold", headerIsDark ? "bg-slate-800" : "bg-slate-100")} style={{ color: brandAccent }}>
                                             {displayName.charAt(0).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
@@ -616,8 +618,8 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             <DropdownMenuContent className={dropdownContentClassName} align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className={cn("text-sm font-medium leading-none", isDark ? "text-white" : "text-slate-950")}>{displayName}</p>
-                                        <p className={cn("text-xs leading-none", isDark ? "text-slate-400" : "text-slate-500")}>
+                                        <p className={cn("text-sm font-medium leading-none", headerIsDark ? "text-white" : "text-slate-950")}>{displayName}</p>
+                                        <p className={cn("text-xs leading-none", headerIsDark ? "text-slate-400" : "text-slate-500")}>
                                             {user?.email}
                                         </p>
                                     </div>
@@ -648,7 +650,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                 size="icon"
                                 className={cn(
                                     "xl:hidden",
-                                    isDark ? "text-slate-300 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
+                                    headerIsDark ? "text-slate-300 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
                                 )}
                             >
                                 <Menu className="h-6 w-6" />
@@ -659,7 +661,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                             side="right"
                             className={cn(
                                 "w-[300px] overflow-y-auto",
-                                isDark ? "bg-slate-950 border-l border-white/10 text-slate-200" : "bg-white border-l border-slate-200 text-slate-950"
+                                headerIsDark ? "bg-slate-950 border-l border-white/10 text-slate-200" : "bg-white border-l border-slate-200 text-slate-950"
                             )}
                             aria-describedby={undefined}
                         >
@@ -690,8 +692,8 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                                                             isActive
-                                                                ? isDark ? "bg-white/10 text-white" : "bg-slate-100 text-slate-950"
-                                                                : isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-600 hover:text-slate-950 hover:bg-slate-100"
+                                                                ? headerIsDark ? "bg-white/10 text-white" : "bg-slate-100 text-slate-950"
+                                                                : headerIsDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-600 hover:text-slate-950 hover:bg-slate-100"
                                                 )}
                                             >
                                                 <item.icon className="w-5 h-5" style={isActive ? { color: brandAccent } : undefined} />
@@ -702,7 +704,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                     {mobileRemaining.length > 0 && (
                                         <>
                                             <div className={cn("my-2 mx-4 h-px", separatorClassName)} />
-                                            <p className={cn("px-4 py-1 text-[10px] uppercase tracking-widest", isDark ? "text-slate-500" : "text-slate-400")}>
+                                            <p className={cn("px-4 py-1 text-[10px] uppercase tracking-widest", headerIsDark ? "text-slate-500" : "text-slate-400")}>
                                                 {tBusinessCoachHeader('nav.moreTools')}
                                             </p>
                                             {mobileRemaining.map((item) => {
@@ -715,8 +717,8 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                                                         className={cn(
                                                             "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors",
                                                             isActive
-                                                                ? isDark ? "bg-white/10 text-white" : "bg-slate-100 text-slate-950"
-                                                                : isDark ? "text-slate-500 hover:text-slate-300 hover:bg-white/5" : "text-slate-500 hover:text-slate-950 hover:bg-slate-100"
+                                                                ? headerIsDark ? "bg-white/10 text-white" : "bg-slate-100 text-slate-950"
+                                                                : headerIsDark ? "text-slate-500 hover:text-slate-300 hover:bg-white/5" : "text-slate-500 hover:text-slate-950 hover:bg-slate-100"
                                                         )}
                                                     >
                                                         <item.icon className="w-4 h-4" style={isActive ? { color: brandAccent } : undefined} />

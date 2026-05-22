@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { getBrandingFeatures } from '@/lib/branding/feature-gate'
-import { CURATED_FONTS } from '@/lib/branding/types'
+import { BUSINESS_HEADER_VARIANTS, CURATED_FONTS, DEFAULT_BRANDING, type BusinessHeaderVariant } from '@/lib/branding/types'
 import { sendReplyToVerificationEmail } from '@/lib/email/reply-to-verification'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
@@ -17,6 +17,18 @@ const urlOrPublicAssetPath = z.union([
 ])
 type AppLocale = 'en' | 'sv'
 
+function asSettingsObject(settings: unknown): Record<string, unknown> {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    return {}
+  }
+  return { ...(settings as Record<string, unknown>) }
+}
+
+function resolveHeaderVariant(settings: unknown): BusinessHeaderVariant {
+  const value = asSettingsObject(settings).brandingHeaderVariant
+  return value === 'modern' ? 'modern' : DEFAULT_BRANDING.headerVariant
+}
+
 function resolveLocale(language: string | null | undefined): AppLocale {
   return language === 'sv' ? 'sv' : 'en'
 }
@@ -27,32 +39,33 @@ function t(locale: AppLocale, en: string, sv: string) {
 
 function updateBrandingSchema(locale: AppLocale) {
   return z.object({
-  // Tier 0: always available
-  logoUrl: urlOrPublicAssetPath.optional().nullable(),
-  primaryColor: z.string().regex(hexColorRegex).optional().nullable(),
-  replyToEmail: z.string().email().max(254).optional().nullable(),
+    // Tier 0: always available
+    logoUrl: urlOrPublicAssetPath.optional().nullable(),
+    primaryColor: z.string().regex(hexColorRegex).optional().nullable(),
+    replyToEmail: z.string().email().max(254).optional().nullable(),
 
-  // Tier 1: CUSTOM_BRANDING
-  secondaryColor: z.string().regex(hexColorRegex).optional().nullable(),
-  backgroundColor: z.string().regex(hexColorRegex).optional().nullable(),
-  fontFamily: z.enum(CURATED_FONTS as unknown as [string, ...string[]]).optional().nullable(),
-  faviconUrl: urlOrPublicAssetPath.optional().nullable(),
+    // Tier 1: CUSTOM_BRANDING
+    secondaryColor: z.string().regex(hexColorRegex).optional().nullable(),
+    backgroundColor: z.string().regex(hexColorRegex).optional().nullable(),
+    fontFamily: z.enum(CURATED_FONTS as unknown as [string, ...string[]]).optional().nullable(),
+    faviconUrl: urlOrPublicAssetPath.optional().nullable(),
+    headerVariant: z.enum(BUSINESS_HEADER_VARIANTS).optional(),
 
-  // Tier 2: WHITE_LABEL
-  // Block RFC 5322 separators (<, >, @, CR, LF) so the resolved
-  // From: header (`${senderName} <noreply@…>`) can't be injected through.
-  emailSenderName: z
-    .string()
-    .min(1)
-    .max(100)
-    .regex(
-      /^[^<>@\r\n]+$/,
-      t(locale, 'Sender name cannot contain < > @ or line breaks', 'Avsändarnamn får inte innehålla < > @ eller radbrytningar'),
-    )
-    .optional()
-    .nullable(),
-  pageTitle: z.string().min(1).max(100).optional().nullable(),
-  hidePlatformBranding: z.boolean().optional(),
+    // Tier 2: WHITE_LABEL
+    // Block RFC 5322 separators (<, >, @, CR, LF) so the resolved
+    // From: header (`${senderName} <noreply@…>`) can't be injected through.
+    emailSenderName: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(
+        /^[^<>@\r\n]+$/,
+        t(locale, 'Sender name cannot contain < > @ or line breaks', 'Avsändarnamn får inte innehålla < > @ eller radbrytningar'),
+      )
+      .optional()
+      .nullable(),
+    pageTitle: z.string().min(1).max(100).optional().nullable(),
+    hidePlatformBranding: z.boolean().optional(),
   })
 }
 
@@ -84,6 +97,7 @@ export async function GET(request: NextRequest) {
           emailSenderName: true,
           pageTitle: true,
           hidePlatformBranding: true,
+          settings: true,
         },
       }),
       getBrandingFeatures(businessId),
@@ -100,6 +114,10 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         ...business,
+        headerVariant: features.hasCustomBranding
+          ? resolveHeaderVariant(business.settings)
+          : DEFAULT_BRANDING.headerVariant,
+        settings: undefined,
         hasCustomBranding: features.hasCustomBranding,
         hasWhiteLabel: features.hasWhiteLabel,
       },
@@ -166,6 +184,22 @@ export async function PUT(request: NextRequest) {
         )
       }
       updateData.faviconUrl = validatedData.faviconUrl
+    }
+    if (validatedData.headerVariant !== undefined) {
+      if (!features.hasCustomBranding) {
+        return NextResponse.json(
+          { success: false, error: 'Custom Branding feature required for header style' },
+          { status: 403 }
+        )
+      }
+      const current = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: { settings: true },
+      })
+      updateData.settings = {
+        ...asSettingsObject(current?.settings),
+        brandingHeaderVariant: validatedData.headerVariant,
+      }
     }
 
     // Tier 2: require WHITE_LABEL
@@ -261,13 +295,18 @@ export async function PUT(request: NextRequest) {
         emailSenderName: true,
         pageTitle: true,
         hidePlatformBranding: true,
+        settings: true,
         updatedAt: true,
       },
     })
 
     return NextResponse.json({
       success: true,
-      data: business,
+      data: {
+        ...business,
+        headerVariant: resolveHeaderVariant(business.settings),
+        settings: undefined,
+      },
       replyToVerificationSent,
     })
   } catch (error) {

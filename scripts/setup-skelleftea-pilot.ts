@@ -14,6 +14,13 @@ const skellefteaBranding = {
   fontFamily: 'Inter',
 }
 
+function asSettingsObject(settings: unknown): Record<string, unknown> {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    return {}
+  }
+  return { ...(settings as Record<string, unknown>) }
+}
+
 async function main() {
   if (!ownerEmail) {
     throw new Error('Set SKELLEFTEA_OWNER_EMAIL to the coach/user email that should own the pilot workspace.')
@@ -46,7 +53,17 @@ async function main() {
       country: 'SE',
       email: owner.email,
     },
-    select: { id: true, name: true, slug: true },
+    select: { id: true, name: true, slug: true, settings: true },
+  })
+
+  await prisma.business.update({
+    where: { id: business.id },
+    data: {
+      settings: {
+        ...asSettingsObject(business.settings),
+        brandingHeaderVariant: 'modern',
+      },
+    },
   })
 
   await prisma.businessFeature.upsert({

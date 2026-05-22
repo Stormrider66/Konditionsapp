@@ -11,6 +11,10 @@ export const CURATED_FONTS = [
 
 export type CuratedFont = (typeof CURATED_FONTS)[number]
 
+export const BUSINESS_HEADER_VARIANTS = ['classic', 'modern'] as const
+
+export type BusinessHeaderVariant = (typeof BUSINESS_HEADER_VARIANTS)[number]
+
 export interface BusinessBranding {
   // Identity
   businessName: string
@@ -25,6 +29,7 @@ export interface BusinessBranding {
   secondaryColor: string | null
   backgroundColor: string | null
   fontFamily: CuratedFont | null
+  headerVariant: BusinessHeaderVariant
 
   // Email reply-to (Tier 0: every business can route replies)
   replyToEmail: string | null
@@ -52,6 +57,7 @@ export const DEFAULT_BRANDING: Omit<BusinessBranding, 'businessName' | 'business
   secondaryColor: null,
   backgroundColor: null,
   fontFamily: null,
+  headerVariant: 'classic',
   replyToEmail: null,
   replyToEmailVerified: false,
   customDomain: null,

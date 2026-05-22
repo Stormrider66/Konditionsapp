@@ -4,7 +4,16 @@ import 'server-only'
 import { cache } from 'react'
 import { prisma } from '@/lib/prisma'
 import { getBrandingFeatures } from './feature-gate'
-import { BusinessBranding, DEFAULT_BRANDING, CURATED_FONTS, CuratedFont } from './types'
+import { BusinessBranding, DEFAULT_BRANDING, CURATED_FONTS, CuratedFont, BusinessHeaderVariant } from './types'
+
+function resolveHeaderVariant(settings: unknown): BusinessHeaderVariant {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    return DEFAULT_BRANDING.headerVariant
+  }
+
+  const variant = (settings as Record<string, unknown>).brandingHeaderVariant
+  return variant === 'modern' ? 'modern' : DEFAULT_BRANDING.headerVariant
+}
 
 /**
  * Resolve complete branding for a business.
@@ -36,6 +45,7 @@ export const resolveBusinessBranding = cache(
         emailSenderName: true,
         pageTitle: true,
         hidePlatformBranding: true,
+        settings: true,
       },
     })
 
@@ -68,6 +78,9 @@ export const resolveBusinessBranding = cache(
       secondaryColor: features.hasCustomBranding ? business.secondaryColor : null,
       backgroundColor: features.hasCustomBranding ? business.backgroundColor : null,
       fontFamily: features.hasCustomBranding ? validFont : null,
+      headerVariant: features.hasCustomBranding
+        ? resolveHeaderVariant(business.settings)
+        : DEFAULT_BRANDING.headerVariant,
 
       // Tier 2: WHITE_LABEL gated
       customDomain: features.hasWhiteLabel ? business.customDomain : null,

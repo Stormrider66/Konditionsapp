@@ -82,7 +82,9 @@ export function BusinessAthleteHeader({
     const router = useRouter()
     const branding = useBusinessBrandingOptional()
     const themeContext = useWorkoutThemeOptional()
-    const isDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
+    const appIsDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
+    const usesModernHeader = branding?.headerVariant === 'modern'
+    const headerIsDark = appIsDark || !usesModernHeader
     const t = useTranslations('components.businessAthleteHeader')
     const [isOpen, setIsOpen] = useState(false)
     const displayName = clientName || athleteName || user?.email || t('fallbackAthlete')
@@ -95,28 +97,28 @@ export function BusinessAthleteHeader({
     const athleteTestsHref = getAthleteTestsHref(basePath, sportProfile)
     const headerClassName = cn(
         'fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-md transition-all duration-300',
-        isDark
+        headerIsDark
             ? 'border-white/5 bg-slate-950/50'
             : 'border-black/10 bg-white/90 text-slate-950 shadow-sm'
     )
     const navLinkClassName = (isActive: boolean) => cn(
         'text-sm font-medium transition-colors flex items-center gap-2',
         isActive
-            ? isDark ? 'text-white' : 'text-slate-950'
-            : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-950'
+            ? headerIsDark ? 'text-white' : 'text-slate-950'
+            : headerIsDark ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-950'
     )
     const dropdownContentClassName = cn(
         'w-56',
-        isDark
+        headerIsDark
             ? 'bg-slate-900 border-white/10 text-slate-200'
             : 'bg-white border-slate-200 text-slate-900 shadow-lg'
     )
     const dropdownItemClassName = cn(
         'cursor-pointer',
-        isDark ? 'focus:bg-white/10 focus:text-white' : 'focus:bg-slate-100 focus:text-slate-950'
+        headerIsDark ? 'focus:bg-white/10 focus:text-white' : 'focus:bg-slate-100 focus:text-slate-950'
     )
-    const separatorClassName = isDark ? 'bg-white/10' : 'bg-slate-200'
-    const desktopControlsClassName = isDark ? 'text-slate-200' : 'text-slate-700'
+    const separatorClassName = headerIsDark ? 'bg-white/10' : 'bg-slate-200'
+    const desktopControlsClassName = headerIsDark ? 'text-slate-200' : 'text-slate-700'
 
     const handleSignOut = async () => {
         const supabase = createClient()
@@ -179,7 +181,7 @@ export function BusinessAthleteHeader({
                             <div
                                 className={cn(
                                     'w-10 h-10 rounded-lg overflow-hidden ring-1 flex items-center justify-center transition-all',
-                                    isDark
+                                    headerIsDark
                                         ? 'bg-white/5 ring-white/10 group-hover:ring-white/30'
                                         : 'bg-slate-50 ring-black/10 group-hover:ring-black/20'
                                 )}
@@ -201,14 +203,14 @@ export function BusinessAthleteHeader({
                                 {resolvedBusinessName.charAt(0).toUpperCase()}
                             </div>
                         )}
-                        <span className={cn('font-bold text-lg tracking-tight hidden sm:inline', isDark ? 'text-white' : 'text-slate-950')}>
+                        <span className={cn('font-bold text-lg tracking-tight hidden sm:inline', headerIsDark ? 'text-white' : 'text-slate-950')}>
                             {resolvedBusinessName}
                         </span>
                     </Link>
 
                     {/* Sport Switcher */}
                     {sportProfile && sportProfile.secondarySports.length > 0 && (
-                        <div className={cn("hidden md:block border-l pl-4", isDark ? "border-white/10" : "border-slate-200")}>
+                        <div className={cn("hidden md:block border-l pl-4", headerIsDark ? "border-white/10" : "border-slate-200")}>
                             <SportSwitcher
                                 primarySport={sportProfile.primarySport}
                                 secondarySports={sportProfile.secondarySports}
@@ -242,8 +244,8 @@ export function BusinessAthleteHeader({
                             <button className={cn(
                                 "flex items-center gap-2 text-sm font-medium transition-colors",
                                 navGroups.training.items.some(i => pathname === i.href)
-                                    ? isDark ? "text-white" : "text-slate-950"
-                                    : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
+                                    ? headerIsDark ? "text-white" : "text-slate-950"
+                                    : headerIsDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
                             )}>
                                 <navGroups.training.icon className="w-4 h-4 opacity-50" />
                                 {navGroups.training.label}
@@ -268,8 +270,8 @@ export function BusinessAthleteHeader({
                             <button className={cn(
                                 "flex items-center gap-2 text-sm font-medium transition-colors",
                                 navGroups.more.items.some(i => pathname === i.href)
-                                    ? isDark ? "text-white" : "text-slate-950"
-                                    : isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
+                                    ? headerIsDark ? "text-white" : "text-slate-950"
+                                    : headerIsDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-950"
                             )}>
                                 <navGroups.more.icon className="w-4 h-4 opacity-50" />
                                 {navGroups.more.label}
@@ -305,12 +307,12 @@ export function BusinessAthleteHeader({
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    className={cn("relative h-8 w-8 rounded-full ring-2 transition-all p-0", isDark ? "ring-white/10" : "ring-black/10")}
+                                    className={cn("relative h-8 w-8 rounded-full ring-2 transition-all p-0", headerIsDark ? "ring-white/10" : "ring-black/10")}
                                     style={{ '--tw-ring-color': `${brandAccent}80` } as React.CSSProperties}
                                 >
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={user?.user_metadata?.avatar_url} alt={displayName} />
-                                        <AvatarFallback className={cn("font-bold", isDark ? "bg-slate-800" : "bg-slate-100")} style={{ color: brandAccent }}>
+                                        <AvatarFallback className={cn("font-bold", headerIsDark ? "bg-slate-800" : "bg-slate-100")} style={{ color: brandAccent }}>
                                             {displayName.charAt(0).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
@@ -319,8 +321,8 @@ export function BusinessAthleteHeader({
                             <DropdownMenuContent className={dropdownContentClassName} align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className={cn("text-sm font-medium leading-none", isDark ? "text-white" : "text-slate-950")}>{displayName}</p>
-                                        <p className={cn("text-xs leading-none", isDark ? "text-slate-400" : "text-slate-500")}>
+                                        <p className={cn("text-sm font-medium leading-none", headerIsDark ? "text-white" : "text-slate-950")}>{displayName}</p>
+                                        <p className={cn("text-xs leading-none", headerIsDark ? "text-slate-400" : "text-slate-500")}>
                                             {user?.email}
                                         </p>
                                     </div>
@@ -357,7 +359,7 @@ export function BusinessAthleteHeader({
                                 size="icon"
                                 className={cn(
                                     "xl:hidden",
-                                    isDark ? "text-slate-300 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
+                                    headerIsDark ? "text-slate-300 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
                                 )}
                             >
                                 <Menu className="h-6 w-6" />
@@ -368,7 +370,7 @@ export function BusinessAthleteHeader({
                             side="right"
                             className={cn(
                                 "w-[300px] overflow-y-auto",
-                                isDark ? "bg-slate-950 border-l border-white/10 text-slate-200" : "bg-white border-l border-slate-200 text-slate-950"
+                                headerIsDark ? "bg-slate-950 border-l border-white/10 text-slate-200" : "bg-white border-l border-slate-200 text-slate-950"
                             )}
                             aria-describedby={undefined}
                         >
@@ -389,7 +391,7 @@ export function BusinessAthleteHeader({
                                         <SportSwitcher
                                             primarySport={sportProfile.primarySport}
                                             secondarySports={sportProfile.secondarySports}
-                                            className={cn("w-full justify-start", isDark ? "bg-white/5 hover:bg-white/10" : "bg-slate-100 hover:bg-slate-200")}
+                                            className={cn("w-full justify-start", headerIsDark ? "bg-white/5 hover:bg-white/10" : "bg-slate-100 hover:bg-slate-200")}
                                         />
                                     </div>
                                 )}
@@ -406,8 +408,8 @@ export function BusinessAthleteHeader({
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                                                     isActive
-                                                        ? isDark ? "bg-white/10 text-white" : "bg-slate-100 text-slate-950"
-                                                        : isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-600 hover:text-slate-950 hover:bg-slate-100"
+                                                        ? headerIsDark ? "bg-white/10 text-white" : "bg-slate-100 text-slate-950"
+                                                        : headerIsDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-600 hover:text-slate-950 hover:bg-slate-100"
                                                 )}
                                             >
                                                 <item.icon className="w-5 h-5" style={isActive ? { color: brandAccent } : undefined} />

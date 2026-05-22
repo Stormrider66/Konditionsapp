@@ -40,6 +40,11 @@ const CURATED_FONTS = [
   { value: 'Nunito', label: 'Nunito' },
 ]
 
+const HEADER_VARIANTS = [
+  { value: 'classic', label: 'Classic' },
+  { value: 'modern', label: 'Modern club header' },
+] as const
+
 const COPY = {
   en: {
     fetchError: 'Failed to fetch branding',
@@ -80,6 +85,7 @@ interface BrandingData {
   secondaryColor: string | null
   backgroundColor: string | null
   fontFamily: string | null
+  headerVariant: 'classic' | 'modern'
   faviconUrl: string | null
   customDomain: string | null
   domainVerified: boolean
@@ -135,6 +141,7 @@ export function BusinessBrandingTab() {
     secondaryColor: '',
     backgroundColor: '',
     fontFamily: '',
+    headerVariant: 'classic' as 'classic' | 'modern',
     faviconUrl: '',
     replyToEmail: '',
     emailSenderName: '',
@@ -158,6 +165,7 @@ export function BusinessBrandingTab() {
         secondaryColor: result.data.secondaryColor || '',
         backgroundColor: result.data.backgroundColor || '',
         fontFamily: result.data.fontFamily || '',
+        headerVariant: result.data.headerVariant === 'modern' ? 'modern' : 'classic',
         faviconUrl: result.data.faviconUrl || '',
         replyToEmail: result.data.replyToEmail || '',
         emailSenderName: result.data.emailSenderName || '',
@@ -196,6 +204,7 @@ export function BusinessBrandingTab() {
         body.backgroundColor = form.backgroundColor || null
         body.fontFamily = form.fontFamily || null
         body.faviconUrl = form.faviconUrl || null
+        body.headerVariant = form.headerVariant
       }
 
       // Include white-label fields if feature is enabled
@@ -454,6 +463,33 @@ export function BusinessBrandingTab() {
                   />
                   <p className="text-xs text-muted-foreground">32x32 PNG or ICO recommended</p>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="headerVariant">Header style</Label>
+                <Select
+                  value={form.headerVariant}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      headerVariant: value === 'modern' ? 'modern' : 'classic',
+                    }))
+                  }
+                >
+                  <SelectTrigger id="headerVariant">
+                    <SelectValue placeholder="Classic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HEADER_VARIANTS.map((variant) => (
+                      <SelectItem key={variant.value} value={variant.value}>
+                        {variant.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Classic keeps the original dark header. Modern uses a light branded header in light mode.
+                </p>
               </div>
             </div>
           ) : (
