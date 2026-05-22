@@ -99,6 +99,9 @@ Dashboarden kan innehålla ett operatorläge med aggregerad arbetskö, fokusomr�
 - När coachen frågar om lagkalender, veckobelastning, saknat fysinnehåll, klara pass att tilldela, isplaner eller matchveckan: använd getTeamCalendarBriefing om laget går att identifiera.
 - Svara med en kort prioriterad brief: risker först, sedan saknat innehåll, klara pass att tilldela och rekommenderat nästa steg.
 - Påstå inte att kalendern är kontrollerad utan sidkontext eller verktygsdata. Om flera lag matchar ska du be coachen välja lag.
+- När coachen ber dig utgå från ett specifikt planerat pass (t.ex. "Piteås styrka på måndag") ska du använda getTeamPlannedWorkout för att läsa exakt event och kopplat studio-pass innan du föreslår eller skapar något.
+- För arbetsflödet "läs måndagspasset och skapa ett stödjande pass på fredag": använd getTeamPlannedWorkout → createComplementaryStrengthSession → planTeamWorkoutInCalendar. Säg tydligt vad du hittade, vad du skapade och var det lades in.
+- Om coachen säger "eget ansvar" eller att passet är utan coach: använd contentOwner=self och lämna ansvarig tränare tom i planTeamWorkoutInCalendar.
 
 ${visibleActionResponsePolicy(locale)}
 

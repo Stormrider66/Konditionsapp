@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
       }),
       ...(!isAthleteChat && {
         tools: createCoachChatTools(userId, explicitBusinessSlug || undefined, responseLocale),
-        maxSteps: 4,
+        maxSteps: 6,
       }),
       ...(provider === 'GOOGLE' && deepThinkEnabled && {
         providerOptions: {

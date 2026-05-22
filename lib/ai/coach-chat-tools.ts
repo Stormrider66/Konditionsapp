@@ -5,7 +5,7 @@
  * Supports generating strength sessions and programs from the Strength Studio.
  */
 
-import { tool } from 'ai'
+import { tool, type LanguageModel } from 'ai'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { generateStrengthSession, generateWeeklyProgram, type AutoGenerateParams } from '@/lib/training-engine/generators/auto-strength-generator'
@@ -23,8 +23,18 @@ import { getAccessibleTeam, getAccessibleTeamWhere } from '@/lib/coach/team-acce
 import { buildCoachMessageAction, prepareCoachMessageDraftInputSchema } from '@/lib/ai/coach-message-actions'
 import { buildTeamCalendarBriefing, type TeamCalendarBriefingEvent } from '@/lib/team-calendar/briefing'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
+import { findTeamCalendarLocationConflicts, formatLocationConflictMessage } from '@/lib/team-calendar/location-conflicts'
+import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
+import { getAssignableTeamCoaches, isAssignableTeamCoach } from '@/lib/team-calendar/responsible-coach'
+import { strengthSessionAccessWhere } from '@/lib/strength/session-business-scope'
+import { getStrengthBusinessTag } from '@/lib/strength/session-business-tags'
+import {
+  agilityWorkoutAccessWhere,
+  cardioSessionAccessWhere,
+  hybridWorkoutAccessWhere,
+} from '@/lib/workouts/business-scope'
 import { getProgramSportSettings, normalizeProgramSport } from '@/lib/ai/program-generator/sport-normalization'
-import type { StrengthPhase } from '@prisma/client'
+import type { Prisma, StrengthPhase } from '@prisma/client'
 
 const CARDIO_TOOL_SPORTS = [
   'RUNNING',
@@ -44,6 +54,19 @@ const CARDIO_TOOL_SPORTS = [
   'TENNIS',
   'PADEL',
 ] as const
+
+const TEAM_WORKOUT_TYPES = ['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY'] as const
+const TEAM_EVENT_CONTENT_OWNERS_FOR_AI = ['coach', 'physical_trainer', 'physio', 'shared', 'self'] as const
+const TEAM_EVENT_CONTENT_STATUSES_FOR_AI = ['PLANNED', 'NEEDS_CONTENT', 'CONTENT_READY', 'ASSIGNED'] as const
+const VALID_STRENGTH_PHASES = [
+  'ANATOMICAL_ADAPTATION',
+  'MAXIMUM_STRENGTH',
+  'POWER',
+  'MAINTENANCE',
+  'TAPER',
+] as const
+
+type TeamWorkoutType = (typeof TEAM_WORKOUT_TYPES)[number]
 
 type CoachToolClient = {
   id: string
@@ -266,6 +289,332 @@ function parseCoachToolDateBoundary(value: string | undefined, fallback: Date, e
   }
 
   return parsed
+}
+
+function addCoachToolWeeks(date: Date, weeks: number): Date {
+  const next = new Date(date)
+  next.setDate(next.getDate() + weeks * 7)
+  return next
+}
+
+function getCoachToolDayRange(dateValue: string | undefined): { start: Date; end: Date } {
+  const parsed = parseCoachToolDateBoundary(dateValue, new Date())
+  const start = new Date(parsed)
+  start.setHours(0, 0, 0, 0)
+
+  const end = new Date(start)
+  end.setHours(23, 59, 59, 999)
+  return { start, end }
+}
+
+function parseCoachToolClockTime(value: string | undefined): { hours: number; minutes: number } | null {
+  if (!value) return null
+  const match = value.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
+  if (!match) return null
+  return {
+    hours: Number(match[1]),
+    minutes: Number(match[2]),
+  }
+}
+
+function buildCoachToolEventDate(dateValue: string, timeValue: string | undefined, allDay: boolean): Date {
+  const date = parseCoachToolDateBoundary(dateValue, new Date())
+  const next = new Date(date)
+  const clock = allDay ? null : parseCoachToolClockTime(timeValue)
+  next.setHours(clock?.hours ?? 0, clock?.minutes ?? 0, 0, 0)
+  return next
+}
+
+function sumStrengthSets(exercises: unknown[]): number {
+  return exercises.reduce<number>((total, exercise) => {
+    if (!exercise || typeof exercise !== 'object') return total
+    const sets = (exercise as { sets?: unknown }).sets
+    return total + (typeof sets === 'number' && Number.isFinite(sets) ? sets : 1)
+  }, 0)
+}
+
+async function resolveCoachToolBusinessId(
+  coachUserId: string,
+  businessSlug?: string
+): Promise<string | undefined | null> {
+  if (!businessSlug) return undefined
+  const membership = await prisma.businessMember.findFirst({
+    where: {
+      userId: coachUserId,
+      isActive: true,
+      business: {
+        slug: businessSlug,
+        isActive: true,
+      },
+    },
+    select: { businessId: true },
+  })
+  return membership?.businessId ?? null
+}
+
+function compactWorkoutDate(date: Date, locale: 'en' | 'sv') {
+  return date.toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
+function eventTypeForTeamWorkoutType(workoutType: TeamWorkoutType) {
+  return workoutType
+}
+
+function normalizeStrengthExercise(
+  raw: unknown,
+  exerciseLibrary: Array<{ id: string; name: string; nameSv: string | null }>
+) {
+  const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}
+  const rawName = String(value.exerciseName || value.name || value.nameSv || '').trim()
+  const rawId = typeof value.exerciseId === 'string' ? value.exerciseId : undefined
+  const match = rawId
+    ? exerciseLibrary.find((exercise) => exercise.id === rawId)
+    : exerciseLibrary.find((exercise) => {
+        const candidate = rawName.toLowerCase()
+        return exercise.name.toLowerCase() === candidate || exercise.nameSv?.toLowerCase() === candidate
+      })
+
+  const sets = typeof value.sets === 'number' && Number.isFinite(value.sets) ? value.sets : 3
+  const restSeconds = typeof value.restSeconds === 'number' && Number.isFinite(value.restSeconds)
+    ? value.restSeconds
+    : typeof value.rest === 'number' && Number.isFinite(value.rest)
+      ? value.rest
+      : undefined
+
+  return {
+    exerciseId: match?.id ?? rawId,
+    exerciseName: match?.name ?? rawName,
+    sets,
+    reps: typeof value.reps === 'string' || typeof value.reps === 'number' ? String(value.reps) : '6-8',
+    weight: typeof value.weight === 'string' || typeof value.weight === 'number' ? value.weight : undefined,
+    restSeconds,
+    notes: typeof value.notes === 'string' ? value.notes : undefined,
+  }
+}
+
+function normalizeStrengthSection(
+  raw: unknown,
+  exerciseLibrary: Array<{ id: string; name: string; nameSv: string | null }>
+) {
+  const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}
+  const exercisesRaw = Array.isArray(value.exercises) ? value.exercises : []
+  return {
+    notes: typeof value.notes === 'string' ? value.notes : undefined,
+    duration: typeof value.duration === 'number' && Number.isFinite(value.duration) ? value.duration : undefined,
+    exercises: exercisesRaw
+      .map((exercise) => normalizeStrengthExercise(exercise, exerciseLibrary))
+      .filter((exercise) => Boolean(exercise.exerciseName)),
+  }
+}
+
+function extractJsonObject(text: string): unknown {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  const candidate = fenced?.[1] ?? text
+  const firstBrace = candidate.indexOf('{')
+  const lastBrace = candidate.lastIndexOf('}')
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error('No JSON object found')
+  }
+  return JSON.parse(candidate.slice(firstBrace, lastBrace + 1))
+}
+
+async function getCoachToolLinkedWorkoutDetails(
+  coachUserId: string,
+  workoutType: string | null,
+  workoutId: string | null,
+  businessId?: string
+) {
+  if (!workoutType || !workoutId) return null
+
+  if (workoutType === 'STRENGTH') {
+    const session = await prisma.strengthSession.findFirst({
+      where: { id: workoutId, AND: [strengthSessionAccessWhere(coachUserId, businessId)] },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        phase: true,
+        estimatedDuration: true,
+        exercises: true,
+        warmupData: true,
+        prehabData: true,
+        coreData: true,
+        cooldownData: true,
+        totalSets: true,
+        totalExercises: true,
+        tags: true,
+      },
+    })
+    if (!session) return null
+    return {
+      type: 'STRENGTH',
+      ...session,
+      sections: {
+        warmup: session.warmupData,
+        main: { exercises: session.exercises },
+        prehab: session.prehabData,
+        core: session.coreData,
+        cooldown: session.cooldownData,
+      },
+    }
+  }
+
+  if (workoutType === 'CARDIO') {
+    const session = await prisma.cardioSession.findFirst({
+      where: { id: workoutId, AND: [cardioSessionAccessWhere(coachUserId, businessId)] },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        sport: true,
+        segments: true,
+        totalDuration: true,
+        totalDistance: true,
+        avgZone: true,
+        tags: true,
+      },
+    })
+    return session ? { type: 'CARDIO', ...session } : null
+  }
+
+  if (workoutType === 'HYBRID') {
+    const workout = await prisma.hybridWorkout.findFirst({
+      where: { id: workoutId, AND: [hybridWorkoutAccessWhere(coachUserId, businessId)] },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        format: true,
+        timeCap: true,
+        workTime: true,
+        restTime: true,
+        totalRounds: true,
+        totalMinutes: true,
+        repScheme: true,
+        warmupData: true,
+        strengthData: true,
+        metconData: true,
+        cooldownData: true,
+        tags: true,
+        movements: {
+          orderBy: { order: 'asc' },
+          select: {
+            order: true,
+            reps: true,
+            calories: true,
+            distance: true,
+            duration: true,
+            weightMale: true,
+            weightFemale: true,
+            notes: true,
+            exercise: { select: { id: true, name: true, nameSv: true } },
+          },
+        },
+      },
+    })
+    return workout ? { type: 'HYBRID', ...workout } : null
+  }
+
+  if (workoutType === 'AGILITY') {
+    const workout = await prisma.agilityWorkout.findFirst({
+      where: { id: workoutId, AND: [agilityWorkoutAccessWhere(coachUserId, businessId)] },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        format: true,
+        totalDuration: true,
+        restBetweenDrills: true,
+        developmentStage: true,
+        targetSports: true,
+        primaryFocus: true,
+        tags: true,
+        drills: {
+          orderBy: { order: 'asc' },
+          select: {
+            order: true,
+            sectionType: true,
+            sets: true,
+            reps: true,
+            duration: true,
+            restSeconds: true,
+            notes: true,
+            drill: {
+              select: {
+                id: true,
+                name: true,
+                nameSv: true,
+                category: true,
+                distanceMeters: true,
+                durationSeconds: true,
+                defaultReps: true,
+                defaultSets: true,
+                executionCues: true,
+              },
+            },
+          },
+        },
+      },
+    })
+    return workout ? { type: 'AGILITY', ...workout } : null
+  }
+
+  return null
+}
+
+async function getCoachToolLinkedWorkoutName(
+  coachUserId: string,
+  workoutType: TeamWorkoutType,
+  workoutId: string,
+  businessId?: string
+) {
+  const details = await getCoachToolLinkedWorkoutDetails(coachUserId, workoutType, workoutId, businessId)
+  return details && 'name' in details && typeof details.name === 'string' ? details.name : null
+}
+
+async function resolveResponsibleCoachIdFromAiInput({
+  coachUserId,
+  teamId,
+  businessSlug,
+  responsibleCoachId,
+  responsibleCoachName,
+  locale,
+}: {
+  coachUserId: string
+  teamId: string
+  businessSlug?: string
+  responsibleCoachId?: string | null
+  responsibleCoachName?: string | null
+  locale: 'en' | 'sv'
+}) {
+  if (responsibleCoachId !== undefined) return { value: responsibleCoachId || null }
+  const name = responsibleCoachName?.trim()
+  if (!name) return { value: null }
+  if (/^(ingen|none|no coach|eget ansvar|own responsibility|self)$/i.test(name)) {
+    return { value: null }
+  }
+
+  const coaches = await getAssignableTeamCoaches({ requestingUserId: coachUserId, teamId, businessSlug, locale })
+  const exact = coaches.filter((coach) => coach.name.toLowerCase() === name.toLowerCase())
+  const candidates = exact.length > 0
+    ? exact
+    : coaches.filter((coach) => coach.name.toLowerCase().includes(name.toLowerCase()))
+
+  if (candidates.length === 1) return { value: candidates[0].id }
+
+  return {
+    error: candidates.length > 1
+      ? `Jag hittade flera möjliga tränare för "${name}".`
+      : `Jag hittade ingen ansvarig tränare som matchar "${name}".`,
+    candidates: candidates.map((coach) => ({
+      id: coach.id,
+      name: coach.name,
+      roleLabel: coach.roleLabel,
+    })),
+  }
 }
 
 /**
@@ -1038,6 +1387,631 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             to,
           }, error)
           return { success: false, error: 'Kunde inte läsa lagkalendern just nu.' }
+        }
+      },
+    }),
+
+    getTeamPlannedWorkout: tool({
+      description: 'Läs en specifik planerad lagkalenderhändelse och dess kopplade studio-pass. Använd före du skapar ett kompletterande pass, t.ex. "kolla Piteås styrka på måndag". Returnerar eventet, kandidater om flera matchar och full linked workout-data för STRENGTH, CARDIO, HYBRID eller AGILITY när passet är kopplat.',
+      inputSchema: z.object({
+        teamId: z.string().optional().describe('Lagets id om känt'),
+        teamName: z.string().optional().describe('Lagets namn om id saknas'),
+        eventId: z.string().optional().describe('Kalenderhändelsens id om känt'),
+        date: z.string().optional().describe('Datum som ISO-datum, t.ex. 2026-05-25. Om eventId saknas bör datum anges.'),
+        workoutType: z.enum(TEAM_WORKOUT_TYPES).optional().describe('Filtrera på kopplad passtyp eller eventtyp'),
+        titleIncludes: z.string().optional().describe('Valfri textsökning i eventtitel om flera pass finns samma dag'),
+      }),
+      execute: async ({ teamId, teamName, eventId, date, workoutType, titleIncludes }) => {
+        try {
+          const businessId = await resolveCoachToolBusinessId(coachUserId, businessSlug)
+          if (businessId === null) {
+            return { success: false, error: 'Verksamheten kunde inte verifieras för den här coachen.' }
+          }
+
+          const { team, candidates } = await findAccessibleCoachTeam(coachUserId, {
+            teamId,
+            teamName,
+            businessSlug,
+          })
+
+          if (!team) {
+            return {
+              success: false,
+              needsClarification: candidates.length > 1,
+              error:
+                candidates.length > 1
+                  ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                  : 'Jag behöver veta vilket lag jag ska läsa kalendern för.',
+              candidates: candidates.map((candidate) => ({
+                id: candidate.id,
+                name: candidate.name,
+                sportType: candidate.sportType,
+              })),
+            }
+          }
+
+          const dayRange = getCoachToolDayRange(date)
+          const events = await prisma.teamEvent.findMany({
+            where: {
+              teamId: team.id,
+              ...(eventId ? { id: eventId } : { startDate: { gte: dayRange.start, lte: dayRange.end } }),
+              ...(workoutType ? { OR: [{ type: workoutType }, { linkedWorkoutType: workoutType }] } : {}),
+              ...(titleIncludes ? { title: { contains: titleIncludes, mode: 'insensitive' as const } } : {}),
+            },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              type: true,
+              location: true,
+              startDate: true,
+              endDate: true,
+              allDay: true,
+              contentStatus: true,
+              contentOwner: true,
+              practicePlan: true,
+              linkedWorkoutType: true,
+              linkedWorkoutId: true,
+              linkedWorkoutName: true,
+              assignedBroadcastId: true,
+              responsibleCoach: { select: { id: true, name: true, email: true } },
+            },
+            orderBy: { startDate: 'asc' },
+            take: 8,
+          })
+
+          if (events.length === 0) {
+            return {
+              success: true,
+              team,
+              events: [],
+              message: `Jag hittade inget planerat pass för ${team.name}${date ? ` ${date}` : ''}.`,
+            }
+          }
+
+          if (events.length > 1 && !eventId) {
+            return {
+              success: false,
+              needsClarification: true,
+              team,
+              error: `Jag hittade ${events.length} möjliga pass för ${team.name}. Välj vilket jag ska använda.`,
+              candidates: events.map((event) => ({
+                id: event.id,
+                name: `${event.title} · ${compactWorkoutDate(event.startDate, locale)}`,
+                sportType: event.linkedWorkoutType ?? event.type,
+              })),
+            }
+          }
+
+          const event = events[0]
+          const linkedWorkout = await getCoachToolLinkedWorkoutDetails(
+            coachUserId,
+            event.linkedWorkoutType,
+            event.linkedWorkoutId,
+            businessId
+          )
+
+          return {
+            success: true,
+            team,
+            event: {
+              ...event,
+              startDate: event.startDate.toISOString(),
+              endDate: event.endDate?.toISOString() ?? null,
+            },
+            linkedWorkout,
+            message: linkedWorkout
+              ? `Jag hittade "${event.title}" och läste det kopplade passet "${event.linkedWorkoutName ?? 'utan namn'}".`
+              : event.linkedWorkoutId
+                ? `Jag hittade "${event.title}", men kunde inte läsa det kopplade passet med nuvarande behörighet.`
+                : `Jag hittade "${event.title}", men eventet har inget kopplat studio-pass ännu.`,
+          }
+        } catch (error) {
+          logger.error('Error in getTeamPlannedWorkout tool', {
+            coachUserId,
+            businessSlug,
+            teamId,
+            teamName,
+            eventId,
+            date,
+            workoutType,
+          }, error)
+          return { success: false, error: 'Kunde inte läsa det planerade lagpasset just nu.' }
+        }
+      },
+    }),
+
+    createComplementaryStrengthSession: tool({
+      description: 'Skapa och spara ett nytt styrkepass som kompletterar ett befintligt styrkepass. Använd efter getTeamPlannedWorkout när coachen vill ha ett andra pass senare i veckan som stödjer eller balanserar det första. Verktyget läser källpasset, undviker onödig övningsdubbling och sparar resultatet i Strength Studio.',
+      inputSchema: z.object({
+        sourceSessionId: z.string().optional().describe('ID för befintligt StrengthSession om känt'),
+        sourceTeamEventId: z.string().optional().describe('ID för lagkalenderhändelse med kopplat styrkepass'),
+        teamId: z.string().optional().describe('Lagets id för kontext/behörighet om känt'),
+        teamName: z.string().optional().describe('Lagets namn om id saknas'),
+        targetDay: z.string().optional().describe('Planerad dag för det nya passet, t.ex. fredag eller 2026-05-29'),
+        focus: z.string().optional().describe('Önskad kompletterande riktning, t.ex. posterior chain, unilateral, prehab, power'),
+        estimatedDuration: z.number().int().min(15).max(120).optional().describe('Önskad längd i minuter. Standard följer källpasset eller 45 min.'),
+        equipmentAvailable: z.array(z.string()).optional().describe('Tillgänglig utrustning, t.ex. barbell, dumbbell, bands, bodyweight'),
+      }),
+      execute: async ({ sourceSessionId, sourceTeamEventId, teamId, teamName, targetDay, focus, estimatedDuration, equipmentAvailable }) => {
+        try {
+          const businessId = await resolveCoachToolBusinessId(coachUserId, businessSlug)
+          if (businessId === null) {
+            return { success: false, error: 'Verksamheten kunde inte verifieras för den här coachen.' }
+          }
+
+          let sourceEvent: {
+            id: string
+            title: string
+            teamId: string
+            linkedWorkoutId: string | null
+            linkedWorkoutType: string | null
+            startDate: Date
+            team: { id: string; name: string; sportType: string | null }
+          } | null = null
+
+          if (sourceTeamEventId) {
+            const event = await prisma.teamEvent.findFirst({
+              where: { id: sourceTeamEventId },
+              select: {
+                id: true,
+                title: true,
+                teamId: true,
+                linkedWorkoutId: true,
+                linkedWorkoutType: true,
+                startDate: true,
+                team: { select: { id: true, name: true, sportType: true } },
+              },
+            })
+            if (!event) return { success: false, error: 'Källhändelsen hittades inte.' }
+            const accessibleTeam = await getAccessibleTeam(coachUserId, event.teamId, businessSlug)
+            if (!accessibleTeam) return { success: false, error: 'Du har inte behörighet till lagets kalender.' }
+            if (event.linkedWorkoutType !== 'STRENGTH' || !event.linkedWorkoutId) {
+              return { success: false, error: 'Källhändelsen har inget kopplat styrkepass.' }
+            }
+            sourceEvent = event
+            sourceSessionId = event.linkedWorkoutId
+          }
+
+          let teamContext: CoachToolTeam | null = sourceEvent?.team ?? null
+          if (!teamContext && (teamId || teamName)) {
+            const resolved = await findAccessibleCoachTeam(coachUserId, { teamId, teamName, businessSlug })
+            if (!resolved.team) {
+              return {
+                success: false,
+                needsClarification: resolved.candidates.length > 1,
+                error: resolved.candidates.length > 1
+                  ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                  : 'Jag behöver veta vilket lag passet gäller.',
+                candidates: resolved.candidates.map((candidate) => ({
+                  id: candidate.id,
+                  name: candidate.name,
+                  sportType: candidate.sportType,
+                })),
+              }
+            }
+            teamContext = resolved.team
+          }
+
+          if (!sourceSessionId) {
+            return { success: false, error: 'Jag behöver ett befintligt styrkepass eller en kalenderhändelse att utgå från.' }
+          }
+
+          const sourceSession = await prisma.strengthSession.findFirst({
+            where: { id: sourceSessionId, AND: [strengthSessionAccessWhere(coachUserId, businessId)] },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              phase: true,
+              estimatedDuration: true,
+              exercises: true,
+              warmupData: true,
+              prehabData: true,
+              coreData: true,
+              cooldownData: true,
+              totalSets: true,
+              totalExercises: true,
+            },
+          })
+
+          if (!sourceSession) {
+            return { success: false, error: 'Källpasset hittades inte eller saknar behörighet.' }
+          }
+
+          const exerciseLibrary = await prisma.exercise.findMany({
+            where: { OR: [{ isPublic: true }, { coachId: coachUserId }] },
+            select: {
+              id: true,
+              name: true,
+              nameSv: true,
+              category: true,
+              biomechanicalPillar: true,
+              progressionLevel: true,
+              equipment: true,
+              targetBodyParts: true,
+            },
+            orderBy: { name: 'asc' },
+            take: 260,
+          })
+
+          const apiKeys = await getResolvedAiKeys(coachUserId)
+          const resolved = resolveModel(apiKeys, 'balanced')
+          if (!resolved) {
+            return { success: false, error: 'Inga AI-nycklar konfigurerade.' }
+          }
+
+          let aiModel: LanguageModel
+          if (resolved.provider === 'anthropic') {
+            const anthropic = createAnthropic({ apiKey: resolved.apiKey })
+            aiModel = anthropic(resolved.modelId)
+          } else if (resolved.provider === 'google') {
+            const google = createGoogleGenerativeAI({ apiKey: resolved.apiKey })
+            aiModel = google(resolved.modelId)
+          } else {
+            const openai = createOpenAI({ apiKey: resolved.apiKey })
+            aiModel = openai(resolved.modelId)
+          }
+
+          const prompt = `Create a complementary strength session for a hockey/team-sport context.
+
+Return ONLY valid JSON in this exact shape:
+{
+  "name": "string",
+  "description": "string",
+  "phase": "ANATOMICAL_ADAPTATION|MAXIMUM_STRENGTH|POWER|MAINTENANCE|TAPER",
+  "estimatedDuration": 45,
+  "rationale": "short explanation",
+  "sections": {
+    "warmup": {"duration": 8, "notes": "string", "exercises": [{"exerciseId": "optional", "exerciseName": "string", "sets": 2, "reps": "8", "restSeconds": 30, "notes": "string"}]},
+    "main": {"notes": "string", "exercises": [{"exerciseId": "optional", "exerciseName": "string", "sets": 3, "reps": "5", "restSeconds": 120, "notes": "string"}]},
+    "prehab": {"duration": 8, "notes": "string", "exercises": []},
+    "core": {"duration": 8, "notes": "string", "exercises": []},
+    "cooldown": {"duration": 5, "notes": "string", "exercises": []}
+  }
+}
+
+Rules:
+- Build a second session that supports the source session, not a duplicate.
+- Prefer different exact exercises where possible while keeping the same training goal.
+- For hockey teams, balance posterior chain, unilateral strength, trunk/anti-rotation, adductors/groin, hip stability, deceleration and shoulder robustness.
+- Keep volume realistic for team planning.
+- Use exerciseId from the library when a suitable match exists.
+- Language: Swedish names/descriptions unless the source is clearly English.
+
+Team context:
+${JSON.stringify(teamContext ?? null, null, 2)}
+
+Source calendar event:
+${JSON.stringify(sourceEvent ? { id: sourceEvent.id, title: sourceEvent.title, startDate: sourceEvent.startDate } : null, null, 2)}
+
+Target day/date:
+${targetDay || 'not specified'}
+
+Requested focus:
+${focus || 'Complement and support the source session'}
+
+Target duration:
+${estimatedDuration ?? sourceSession.estimatedDuration ?? 45} minutes
+
+Available equipment:
+${JSON.stringify(equipmentAvailable ?? ['barbell', 'dumbbell', 'bodyweight', 'bands', 'cable', 'machine'], null, 2)}
+
+Source session:
+${JSON.stringify(sourceSession, null, 2)}
+
+Exercise library:
+${JSON.stringify(exerciseLibrary, null, 2)}
+`
+
+          const result = await generateText({
+            model: aiModel,
+            system: 'You are an elite hockey strength and conditioning coach. Return only valid JSON.',
+            prompt,
+            maxOutputTokens: 5000,
+          })
+
+          const generated = extractJsonObject(result.text) as Record<string, unknown>
+          const sectionsValue = generated.sections && typeof generated.sections === 'object'
+            ? generated.sections as Record<string, unknown>
+            : {}
+          const sectionFromArray = (type: string) => Array.isArray(generated.sections)
+            ? (generated.sections as Array<Record<string, unknown>>).find((section) => String(section.type || '').toLowerCase() === type)
+            : undefined
+          const sectionValue = (key: string) => sectionsValue[key] ?? sectionFromArray(key)
+
+          const mainSection = normalizeStrengthSection(
+            sectionValue('main') ?? { exercises: generated.exercises },
+            exerciseLibrary
+          )
+          if (mainSection.exercises.length === 0) {
+            return { success: false, error: 'AI kunde inte skapa ett komplett huvudpass.' }
+          }
+
+          const warmupSection = normalizeStrengthSection(sectionValue('warmup'), exerciseLibrary)
+          const prehabSection = normalizeStrengthSection(sectionValue('prehab'), exerciseLibrary)
+          const coreSection = normalizeStrengthSection(sectionValue('core'), exerciseLibrary)
+          const cooldownSection = normalizeStrengthSection(sectionValue('cooldown'), exerciseLibrary)
+
+          const phaseCandidate = String(generated.phase || sourceSession.phase)
+          const phase = VALID_STRENGTH_PHASES.includes(phaseCandidate as typeof VALID_STRENGTH_PHASES[number])
+            ? phaseCandidate as StrengthPhase
+            : sourceSession.phase
+          const duration = typeof generated.estimatedDuration === 'number' && Number.isFinite(generated.estimatedDuration)
+            ? Math.round(generated.estimatedDuration)
+            : estimatedDuration ?? sourceSession.estimatedDuration ?? 45
+          const tags = businessId ? [getStrengthBusinessTag(businessId), 'ai-complementary'] : ['ai-complementary']
+
+          const saved = await prisma.strengthSession.create({
+            data: {
+              name: typeof generated.name === 'string' && generated.name.trim()
+                ? generated.name.trim()
+                : `Kompletterande pass - ${sourceSession.name}`,
+              description: typeof generated.description === 'string'
+                ? generated.description
+                : `Kompletterande styrkepass baserat på ${sourceSession.name}.`,
+              phase,
+              estimatedDuration: duration,
+              exercises: mainSection.exercises as Prisma.InputJsonValue,
+              warmupData: warmupSection.exercises.length || warmupSection.notes
+                ? { exercises: warmupSection.exercises, notes: warmupSection.notes, duration: warmupSection.duration } as Prisma.InputJsonValue
+                : undefined,
+              prehabData: prehabSection.exercises.length || prehabSection.notes
+                ? { exercises: prehabSection.exercises, notes: prehabSection.notes, duration: prehabSection.duration } as Prisma.InputJsonValue
+                : undefined,
+              coreData: coreSection.exercises.length || coreSection.notes
+                ? { exercises: coreSection.exercises, notes: coreSection.notes, duration: coreSection.duration } as Prisma.InputJsonValue
+                : undefined,
+              cooldownData: cooldownSection.exercises.length || cooldownSection.notes
+                ? { exercises: cooldownSection.exercises, notes: cooldownSection.notes, duration: cooldownSection.duration } as Prisma.InputJsonValue
+                : undefined,
+              totalSets: sumStrengthSets([
+                ...mainSection.exercises,
+                ...warmupSection.exercises,
+                ...prehabSection.exercises,
+                ...coreSection.exercises,
+                ...cooldownSection.exercises,
+              ]),
+              totalExercises: mainSection.exercises.length + warmupSection.exercises.length + prehabSection.exercises.length + coreSection.exercises.length + cooldownSection.exercises.length,
+              coachId: coachUserId,
+              tags,
+            },
+          })
+
+          return {
+            success: true,
+            sourceSessionId: sourceSession.id,
+            sourceTeamEventId: sourceEvent?.id ?? null,
+            savedSessionId: saved.id,
+            name: saved.name,
+            description: saved.description,
+            phase,
+            estimatedDuration: duration,
+            rationale: typeof generated.rationale === 'string' ? generated.rationale : null,
+            mainExercises: mainSection.exercises.map((exercise) => `${exercise.exerciseName} (${exercise.sets}x${exercise.reps})`),
+            message: `Jag skapade "${saved.name}" som ett kompletterande styrkepass i Strength Studio.`,
+          }
+        } catch (error) {
+          logger.error('Error in createComplementaryStrengthSession tool', {
+            coachUserId,
+            businessSlug,
+            sourceSessionId,
+            sourceTeamEventId,
+            teamId,
+            teamName,
+          }, error)
+          return { success: false, error: 'Kunde inte skapa ett kompletterande styrkepass just nu.' }
+        }
+      },
+    }),
+
+    planTeamWorkoutInCalendar: tool({
+      description: 'Planera ett befintligt studio-pass i lagkalendern och länka det till eventet. Stödjer STRENGTH, CARDIO, HYBRID och AGILITY, flera veckor, ansvarig tränare och contentOwner=self för "eget ansvar". Använd bara när coachen tydligt har bett dig planera/skapa kalenderhändelsen eller efter att du fått bekräftelse.',
+      inputSchema: z.object({
+        teamId: z.string().optional().describe('Lagets id om känt'),
+        teamName: z.string().optional().describe('Lagets namn om id saknas'),
+        workoutType: z.enum(TEAM_WORKOUT_TYPES).describe('Typ av studio-pass som ska länkas'),
+        workoutId: z.string().describe('ID för passet i rätt studio'),
+        workoutName: z.string().optional().describe('Passnamn om känt'),
+        title: z.string().optional().describe('Titel i lagkalendern. Standard är workoutName.'),
+        description: z.string().optional().describe('Plan/instruktioner i kalenderhändelsen'),
+        date: z.string().describe('Startdatum som ISO-datum, t.ex. 2026-05-29'),
+        startTime: z.string().optional().describe('Starttid HH:mm, t.ex. 17:00'),
+        endTime: z.string().optional().describe('Sluttid HH:mm, t.ex. 18:00'),
+        allDay: z.boolean().default(false),
+        location: z.string().optional(),
+        weeks: z.number().int().min(1).max(52).default(1).describe('Antal veckor/pass att skapa med veckointervall'),
+        responsibleCoachId: z.string().optional().nullable().describe('Ansvarig coach userId. Lämna tomt för eget ansvar/ingen ansvarig.'),
+        responsibleCoachName: z.string().optional().nullable().describe('Ansvarig coach namn om id saknas. Använd "eget ansvar" för ingen coach.'),
+        contentOwner: z.enum(TEAM_EVENT_CONTENT_OWNERS_FOR_AI).default('physical_trainer'),
+        contentStatus: z.enum(TEAM_EVENT_CONTENT_STATUSES_FOR_AI).default('CONTENT_READY'),
+      }),
+      execute: async ({ teamId, teamName, workoutType, workoutId, workoutName, title, description, date, startTime, endTime, allDay, location, weeks, responsibleCoachId, responsibleCoachName, contentOwner, contentStatus }) => {
+        try {
+          const businessId = await resolveCoachToolBusinessId(coachUserId, businessSlug)
+          if (businessId === null) {
+            return { success: false, error: 'Verksamheten kunde inte verifieras för den här coachen.' }
+          }
+
+          const { team, candidates } = await findAccessibleCoachTeam(coachUserId, {
+            teamId,
+            teamName,
+            businessSlug,
+          })
+
+          if (!team) {
+            return {
+              success: false,
+              needsClarification: candidates.length > 1,
+              error:
+                candidates.length > 1
+                  ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                  : 'Jag behöver veta vilket lag jag ska planera passet för.',
+              candidates: candidates.map((candidate) => ({
+                id: candidate.id,
+                name: candidate.name,
+                sportType: candidate.sportType,
+              })),
+            }
+          }
+
+          const eventType = eventTypeForTeamWorkoutType(workoutType)
+          const writableTeam = await getTeamCalendarWritableTeam(coachUserId, team.id, businessSlug, eventType, 'create')
+          if (!writableTeam) {
+            return { success: false, error: 'Din roll kan inte planera den här passtypen för laget.' }
+          }
+
+          const linkedWorkoutName = workoutName || await getCoachToolLinkedWorkoutName(coachUserId, workoutType, workoutId, businessId)
+          if (!linkedWorkoutName) {
+            return { success: false, error: 'Det kopplade passet hittades inte eller saknar behörighet.' }
+          }
+
+          const resolvedResponsibleCoach = await resolveResponsibleCoachIdFromAiInput({
+            coachUserId,
+            teamId: team.id,
+            businessSlug,
+            responsibleCoachId: contentOwner === 'self' ? null : responsibleCoachId,
+            responsibleCoachName: contentOwner === 'self' ? 'eget ansvar' : responsibleCoachName,
+            locale,
+          })
+          if ('error' in resolvedResponsibleCoach) {
+            return {
+              success: false,
+              needsClarification: Boolean(resolvedResponsibleCoach.candidates?.length),
+              error: resolvedResponsibleCoach.error,
+              candidates: resolvedResponsibleCoach.candidates,
+            }
+          }
+
+          const finalResponsibleCoachId = resolvedResponsibleCoach.value
+          const canUseResponsibleCoach = await isAssignableTeamCoach({
+            coachId: finalResponsibleCoachId,
+            requestingUserId: coachUserId,
+            teamId: team.id,
+            businessSlug,
+          })
+          if (!canUseResponsibleCoach) {
+            return { success: false, error: 'Vald tränare kan inte tilldelas det här laget.' }
+          }
+
+          const startDate = buildCoachToolEventDate(date, startTime, allDay)
+          const endDate = endTime && !allDay ? buildCoachToolEventDate(date, endTime, false) : null
+          if (endDate && endDate <= startDate) {
+            return { success: false, error: 'Sluttid måste vara efter starttid.' }
+          }
+
+          const recurrenceCount = weeks ?? 1
+          const proposedInstances = Array.from({ length: recurrenceCount }, (_, index) => ({
+            startDate: addCoachToolWeeks(startDate, index),
+            endDate: endDate ? addCoachToolWeeks(endDate, index) : null,
+          }))
+          const conflicts = (await Promise.all(proposedInstances.map((instance) => (
+            findTeamCalendarLocationConflicts({
+              teamId: team.id,
+              location,
+              startDate: instance.startDate,
+              endDate: instance.endDate,
+              allDay,
+            })
+          )))).flat()
+
+          if (conflicts.length > 0) {
+            return {
+              success: false,
+              code: 'LOCATION_CONFLICT',
+              error: formatLocationConflictMessage(conflicts, locale),
+              conflicts: conflicts.map((conflict) => ({
+                ...conflict,
+                startDate: conflict.startDate.toISOString(),
+                endDate: conflict.endDate?.toISOString() ?? null,
+              })),
+            }
+          }
+
+          const baseData = {
+            teamId: team.id,
+            createdById: coachUserId,
+            title: title || linkedWorkoutName,
+            description,
+            type: eventType,
+            location,
+            startDate,
+            endDate,
+            allDay,
+            isRecurring: recurrenceCount > 1,
+            recurrenceRule: recurrenceCount > 1 ? `FREQ=WEEKLY;INTERVAL=1;COUNT=${recurrenceCount}` : undefined,
+            contentStatus,
+            contentOwner,
+            linkedWorkoutType: workoutType,
+            linkedWorkoutId: workoutId,
+            linkedWorkoutName,
+            responsibleCoachId: finalResponsibleCoachId,
+          }
+
+          const events = await prisma.$transaction(async (tx) => {
+            const parent = await tx.teamEvent.create({
+              data: baseData,
+              include: {
+                responsibleCoach: { select: { id: true, name: true, email: true } },
+              },
+            })
+
+            if (recurrenceCount <= 1) return [parent]
+
+            const children = []
+            for (let index = 1; index < recurrenceCount; index += 1) {
+              const child = await tx.teamEvent.create({
+                data: {
+                  ...baseData,
+                  startDate: addCoachToolWeeks(startDate, index),
+                  endDate: endDate ? addCoachToolWeeks(endDate, index) : null,
+                  recurrenceParentId: parent.id,
+                },
+                include: {
+                  responsibleCoach: { select: { id: true, name: true, email: true } },
+                },
+              })
+              children.push(child)
+            }
+
+            return [parent, ...children]
+          })
+
+          return {
+            success: true,
+            team,
+            count: events.length,
+            event: {
+              id: events[0].id,
+              title: events[0].title,
+              startDate: events[0].startDate.toISOString(),
+              endDate: events[0].endDate?.toISOString() ?? null,
+              linkedWorkoutType: events[0].linkedWorkoutType,
+              linkedWorkoutId: events[0].linkedWorkoutId,
+              linkedWorkoutName: events[0].linkedWorkoutName,
+              responsibleCoach: events[0].responsibleCoach,
+            },
+            events: events.map((event) => ({
+              id: event.id,
+              title: event.title,
+              startDate: event.startDate.toISOString(),
+              endDate: event.endDate?.toISOString() ?? null,
+            })),
+            message: events.length > 1
+              ? `Jag planerade "${linkedWorkoutName}" för ${team.name} i ${events.length} veckor.`
+              : `Jag planerade "${linkedWorkoutName}" för ${team.name} i lagkalendern.`,
+          }
+        } catch (error) {
+          logger.error('Error in planTeamWorkoutInCalendar tool', {
+            coachUserId,
+            businessSlug,
+            teamId,
+            teamName,
+            workoutType,
+            workoutId,
+            date,
+          }, error)
+          return { success: false, error: 'Kunde inte planera passet i lagkalendern just nu.' }
         }
       },
     }),

@@ -179,6 +179,7 @@ function getFallbackActionMessage(toolName: string, output: ToolStatusOutput, lo
             ? `Done, I started program generation for ${output.athleteName}.`
             : 'Done, I started program generation.'
         case 'generateStrengthSession':
+        case 'createComplementaryStrengthSession':
         case 'createCardioSession':
         case 'createHybridWorkout':
         case 'createSportWorkout':
@@ -186,6 +187,10 @@ function getFallbackActionMessage(toolName: string, output: ToolStatusOutput, lo
           return output.name
             ? `Done, I saved "${output.name}".`
             : 'Done, I saved the action.'
+        case 'planTeamWorkoutInCalendar':
+          return output.message || 'Done, I planned the workout in the team calendar.'
+        case 'getTeamPlannedWorkout':
+          return output.message || 'I checked the planned team workout.'
         case 'prepareCoachMessageDraft':
           return 'I prepared a message. It will not be sent until you confirm it in the card below.'
         case 'suggestCoachNavigation':
@@ -233,6 +238,7 @@ function getFallbackActionMessage(toolName: string, output: ToolStatusOutput, lo
           ? `Klart, jag har startat programgenereringen för ${output.athleteName}.`
           : 'Klart, jag har startat programgenereringen.'
       case 'generateStrengthSession':
+      case 'createComplementaryStrengthSession':
       case 'createCardioSession':
       case 'createHybridWorkout':
       case 'createSportWorkout':
@@ -240,6 +246,10 @@ function getFallbackActionMessage(toolName: string, output: ToolStatusOutput, lo
         return output.name
           ? `Klart, jag har sparat "${output.name}".`
           : 'Klart, jag har sparat åtgärden.'
+      case 'planTeamWorkoutInCalendar':
+        return output.message || 'Klart, jag har planerat passet i lagkalendern.'
+      case 'getTeamPlannedWorkout':
+        return output.message || 'Jag har kontrollerat det planerade lagpasset.'
       case 'prepareCoachMessageDraft':
         return 'Jag har förberett ett meddelande. Det skickas först när du bekräftar i kortet nedan.'
       case 'suggestCoachNavigation':
