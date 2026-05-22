@@ -23,6 +23,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { SmartTestImportDialog } from '@/components/forms/SmartTestImportDialog'
 import type { TestImportResult } from '@/lib/validations/test-import-schema'
+import { cn } from '@/lib/utils'
 
 interface TestDataFormProps {
   testType: TestType
@@ -202,6 +203,8 @@ export function TestDataForm({
 
   const inclineUnit = watch('inclineUnit') || 'PERCENT'
   const inclineLabel = inclineUnit === 'DEGREES' ? t('Lutning (°)', 'Incline (°)') : t('Lutning (%)', 'Incline (%)')
+  const stageLabelClassName = 'text-xs text-foreground dark:text-slate-100'
+  const stageInputClassName = 'text-foreground placeholder:text-muted-foreground dark:border-slate-600 dark:bg-slate-950/40 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]'
 
   const watchedStages = watch('stages')
   const lactateWarnings = useMemo(
@@ -947,7 +950,7 @@ export function TestDataForm({
                 {testType === 'RUNNING' ? (
                   <>
                     <div className="space-y-1">
-                      <Label htmlFor={`stages.${index}.speed`} className="text-xs">
+                      <Label htmlFor={`stages.${index}.speed`} className={stageLabelClassName}>
                         {t('Hastighet (km/h)', 'Speed (km/h)')}
                       </Label>
                       <div className="flex gap-1">
@@ -955,14 +958,14 @@ export function TestDataForm({
                           id={`stages.${index}.speed`}
                           type="number"
                           step="0.1"
-                          className="flex-1"
+                          className={cn('flex-1', stageInputClassName)}
                           {...register(`stages.${index}.speed`, { valueAsNumber: true })}
                         />
                         <Button
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="shrink-0 h-10 w-10"
+                          className="h-10 w-10 shrink-0 dark:border-slate-600 dark:bg-slate-950/40 dark:text-slate-100 dark:hover:bg-slate-900"
                           onClick={() => void startStageVideoRecording(index)}
                           disabled={recordingStageIndex !== null || stageVideoStates[index]?.status === 'uploading' || stageVideoStates[index]?.status === 'analyzing'}
                           title={t('Filma löpteknik vid denna hastighet', 'Record running technique at this speed')}
@@ -1015,13 +1018,14 @@ export function TestDataForm({
                       )}
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor={`stages.${index}.incline`} className="text-xs">
+                      <Label htmlFor={`stages.${index}.incline`} className={stageLabelClassName}>
                         {inclineLabel}
                       </Label>
                       <Input
                         id={`stages.${index}.incline`}
                         type="number"
                         step="0.5"
+                        className={stageInputClassName}
                         {...register(`stages.${index}.incline`, { valueAsNumber: true })}
                       />
                     </div>
@@ -1029,53 +1033,57 @@ export function TestDataForm({
                 ) : testType === 'CYCLING' ? (
                   <>
                     <div className="space-y-1">
-                      <Label htmlFor={`stages.${index}.power`} className="text-xs">
+                      <Label htmlFor={`stages.${index}.power`} className={stageLabelClassName}>
                         {t('Effekt (watt)', 'Power (watts)')}
                       </Label>
                       <Input
                         id={`stages.${index}.power`}
                         type="number"
+                        className={stageInputClassName}
                         {...register(`stages.${index}.power`, { valueAsNumber: true })}
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor={`stages.${index}.cadence`} className="text-xs">
+                      <Label htmlFor={`stages.${index}.cadence`} className={stageLabelClassName}>
                         {t('Kadens (rpm)', 'Cadence (rpm)')}
                       </Label>
                       <Input
                         id={`stages.${index}.cadence`}
                         type="number"
+                        className={stageInputClassName}
                         {...register(`stages.${index}.cadence`, { valueAsNumber: true })}
                       />
                     </div>
                   </>
                 ) : (
                   <div className="space-y-1">
-                    <Label htmlFor={`stages.${index}.pace`} className="text-xs">
+                    <Label htmlFor={`stages.${index}.pace`} className={stageLabelClassName}>
                       {t('Tempo (min/km)', 'Pace (min/km)')}
                     </Label>
                     <Input
                       id={`stages.${index}.pace`}
                       type="number"
                       step="0.1"
+                      className={stageInputClassName}
                       {...register(`stages.${index}.pace`, { valueAsNumber: true })}
                     />
                   </div>
                 )}
 
                 <div className="space-y-1">
-                  <Label htmlFor={`stages.${index}.heartRate`} className="text-xs">
+                  <Label htmlFor={`stages.${index}.heartRate`} className={stageLabelClassName}>
                     {t('Puls (slag/min)', 'Heart rate (beats/min)')}
                   </Label>
                   <Input
                     id={`stages.${index}.heartRate`}
                     type="number"
+                    className={stageInputClassName}
                     {...register(`stages.${index}.heartRate`, { valueAsNumber: true })}
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor={`stages.${index}.lactate`} className="text-xs">
+                  <Label htmlFor={`stages.${index}.lactate`} className={stageLabelClassName}>
                     {t('Laktat (mmol/L)', 'Lactate (mmol/L)')}
                   </Label>
                   <div className="flex gap-1">
@@ -1083,7 +1091,7 @@ export function TestDataForm({
                       id={`stages.${index}.lactate`}
                       type="number"
                       step="0.1"
-                      className="flex-1"
+                      className={cn('flex-1', stageInputClassName)}
                       {...register(`stages.${index}.lactate`, { valueAsNumber: true })}
                     />
                     {testType !== 'RUNNING' && (
@@ -1104,7 +1112,7 @@ export function TestDataForm({
                           type="button"
                           variant="outline"
                           size="icon"
-                          className="shrink-0 h-10 w-10"
+                          className="h-10 w-10 shrink-0 dark:border-slate-600 dark:bg-slate-950/40 dark:text-slate-100 dark:hover:bg-slate-900"
                           onClick={() => fileInputRefs.current[index]?.click()}
                           disabled={ocrLoading !== null}
                           title={t('Fotografera laktatmätare', 'Photograph lactate meter')}
@@ -1121,7 +1129,7 @@ export function TestDataForm({
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor={`stages.${index}.vo2`} className="text-xs">
+                  <Label htmlFor={`stages.${index}.vo2`} className={stageLabelClassName}>
                     VO₂ (ml/kg/min) <span className="font-normal text-muted-foreground">{t('(valfritt)', '(optional)')}</span>
                   </Label>
                   <Input
@@ -1129,29 +1137,30 @@ export function TestDataForm({
                     type="number"
                     step="0.1"
                     placeholder={t('Valfritt', 'Optional')}
+                    className={stageInputClassName}
                     {...register(`stages.${index}.vo2`, { valueAsNumber: true })}
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <Label className="text-xs">{t('Tid (min:sek)', 'Time (min:sec)')}</Label>
+                  <Label className={stageLabelClassName}>{t('Tid (min:sek)', 'Time (min:sec)')}</Label>
                   <div className="flex items-center gap-1">
                     <Input
                       id={`stages.${index}.durationMinutes`}
                       type="number"
                       min="0"
                       max="60"
-                      className="w-16 text-center"
+                      className={cn('w-16 text-center', stageInputClassName)}
                       placeholder="min"
                       {...register(`stages.${index}.durationMinutes`, { valueAsNumber: true })}
                     />
-                    <span className="text-muted-foreground font-medium">:</span>
+                    <span className="font-medium text-muted-foreground dark:text-slate-300">:</span>
                     <Input
                       id={`stages.${index}.durationSeconds`}
                       type="number"
                       min="0"
                       max="59"
-                      className="w-16 text-center"
+                      className={cn('w-16 text-center', stageInputClassName)}
                       placeholder={t('sek', 'sec')}
                       {...register(`stages.${index}.durationSeconds`, { valueAsNumber: true })}
                     />
@@ -1161,9 +1170,9 @@ export function TestDataForm({
 
               {/* Metabol data (collapsible) */}
               {showMetabolicData && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-3 pt-3 border-t border-dashed">
+                <div className="mt-3 grid grid-cols-2 gap-3 border-t border-dashed pt-3 dark:border-slate-700 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
                   <div className="space-y-1">
-                    <Label htmlFor={`stages.${index}.rer`} className="text-xs">
+                    <Label htmlFor={`stages.${index}.rer`} className={stageLabelClassName}>
                       RER
                     </Label>
                     <Input
@@ -1171,11 +1180,12 @@ export function TestDataForm({
                       type="number"
                       step="0.01"
                       placeholder="0.85"
+                      className={stageInputClassName}
                       {...register(`stages.${index}.rer`, { valueAsNumber: true })}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`stages.${index}.ve`} className="text-xs">
+                    <Label htmlFor={`stages.${index}.ve`} className={stageLabelClassName}>
                       VE (L/min)
                     </Label>
                     <Input
@@ -1183,11 +1193,12 @@ export function TestDataForm({
                       type="number"
                       step="0.1"
                       placeholder=""
+                      className={stageInputClassName}
                       {...register(`stages.${index}.ve`, { valueAsNumber: true })}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`stages.${index}.vco2`} className="text-xs">
+                    <Label htmlFor={`stages.${index}.vco2`} className={stageLabelClassName}>
                       VCO₂ (ml/min)
                     </Label>
                     <Input
@@ -1195,11 +1206,12 @@ export function TestDataForm({
                       type="number"
                       step="1"
                       placeholder=""
+                      className={stageInputClassName}
                       {...register(`stages.${index}.vco2`, { valueAsNumber: true })}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`stages.${index}.fatPercent`} className="text-xs">
+                    <Label htmlFor={`stages.${index}.fatPercent`} className={stageLabelClassName}>
                       {t('Fett (%)', 'Fat (%)')}
                     </Label>
                     <Input
@@ -1207,11 +1219,12 @@ export function TestDataForm({
                       type="number"
                       step="0.1"
                       placeholder=""
+                      className={stageInputClassName}
                       {...register(`stages.${index}.fatPercent`, { valueAsNumber: true })}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`stages.${index}.choPercent`} className="text-xs">
+                    <Label htmlFor={`stages.${index}.choPercent`} className={stageLabelClassName}>
                       {t('Kolhydrat (%)', 'Carbohydrate (%)')}
                     </Label>
                     <Input
@@ -1219,11 +1232,12 @@ export function TestDataForm({
                       type="number"
                       step="0.1"
                       placeholder=""
+                      className={stageInputClassName}
                       {...register(`stages.${index}.choPercent`, { valueAsNumber: true })}
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`stages.${index}.respiratoryRate`} className="text-xs">
+                    <Label htmlFor={`stages.${index}.respiratoryRate`} className={stageLabelClassName}>
                       {t('Andningsfrekvens', 'Respiratory rate')}
                     </Label>
                     <Input
@@ -1231,6 +1245,7 @@ export function TestDataForm({
                       type="number"
                       step="0.1"
                       placeholder=""
+                      className={stageInputClassName}
                       {...register(`stages.${index}.respiratoryRate`, { valueAsNumber: true })}
                     />
                   </div>
