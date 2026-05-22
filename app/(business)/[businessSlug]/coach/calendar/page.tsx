@@ -103,6 +103,33 @@ export default async function BusinessCalendarPage({ params }: BusinessCalendarP
     take: 50,
   })
 
+  const assignedTeamEvents = await prisma.teamEvent.findMany({
+    where: {
+      responsibleCoachId: user.id,
+      teamId: { in: teams.map((team) => team.id) },
+      startDate: {
+        gte: startOfDay(now),
+        lte: endOfDay(twoWeeksFromNow),
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+      type: true,
+      startDate: true,
+      endDate: true,
+      location: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: { startDate: 'asc' },
+    take: 50,
+  })
+
   // Get today's workouts across all athletes
   const todaysWorkouts = await prisma.workout.findMany({
     where: {
@@ -183,6 +210,7 @@ export default async function BusinessCalendarPage({ params }: BusinessCalendarP
         <CoachCalendarClient
           athletes={athletes}
           upcomingEvents={upcomingEvents}
+          assignedTeamEvents={assignedTeamEvents}
           todaysWorkouts={formattedWorkouts}
           upcomingRaces={upcomingRaces}
           basePath={basePath}

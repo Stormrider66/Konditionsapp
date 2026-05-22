@@ -47,6 +47,8 @@ model TeamEvent {
   linkedWorkoutType String? // STRENGTH, CARDIO, HYBRID, AGILITY
   linkedWorkoutId   String?
   linkedWorkoutName String?
+  responsibleCoachId String?
+  responsibleCoach   User?   @relation("ResponsibleTeamEvents", fields: [responsibleCoachId], references: [id], onDelete: SetNull)
   assignedBroadcastId String?
   assignedAt          DateTime?
 
@@ -79,6 +81,7 @@ model TeamEvent {
   @@index([teamId, startDate])
   @@index([teamId, type])
   @@index([teamId, contentStatus])
+  @@index([responsibleCoachId])
   @@index([assignedBroadcastId])
   @@index([createdById])
 }

@@ -89,6 +89,19 @@ interface CalendarEventData {
   }
 }
 
+interface AssignedTeamEventData {
+  id: string
+  title: string
+  type: string
+  startDate: Date
+  endDate: Date | null
+  location: string | null
+  team: {
+    id: string
+    name: string
+  }
+}
+
 interface WorkoutData {
   id: string
   name: string
@@ -104,6 +117,7 @@ interface WorkoutData {
 interface CoachCalendarClientProps {
   athletes: Athlete[]
   upcomingEvents: CalendarEventData[]
+  assignedTeamEvents?: AssignedTeamEventData[]
   todaysWorkouts: WorkoutData[]
   upcomingRaces: CalendarEventData[]
   basePath?: string
@@ -135,6 +149,7 @@ function formatRelativeDate(date: Date, localeCode: 'sv' | 'en'): string {
 export function CoachCalendarClient({
   athletes,
   upcomingEvents,
+  assignedTeamEvents = [],
   todaysWorkouts,
   upcomingRaces,
   basePath = '',
@@ -182,6 +197,10 @@ export function CoachCalendarClient({
     }
     return filteredAthleteIds.includes(e.client.id)
   })
+
+  const filteredTeamEvents = selectedAthleteId === 'all'
+    ? assignedTeamEvents.filter(event => selectedTeamId === 'all' || event.team.id === selectedTeamId)
+    : []
 
   const filteredWorkouts = todaysWorkouts.filter(w => {
     if (selectedAthleteId !== 'all') {
@@ -305,7 +324,7 @@ export function CoachCalendarClient({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('stats.upcomingEvents')}</p>
-                <p className="text-2xl font-bold text-foreground">{filteredEvents.length}</p>
+                <p className="text-2xl font-bold text-foreground">{filteredEvents.length + filteredTeamEvents.length}</p>
               </div>
               <Calendar className="w-8 h-8 text-purple-500/50" />
             </div>
@@ -386,12 +405,38 @@ export function CoachCalendarClient({
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="p-0">
-            {filteredEvents.length === 0 ? (
+            {filteredEvents.length === 0 && filteredTeamEvents.length === 0 ? (
               <div className="p-6 text-center text-muted-foreground">
                 {t('events.empty')}
               </div>
             ) : (
               <div className="divide-y divide-border">
+                {filteredTeamEvents.slice(0, 10).map(event => (
+                  <Link
+                    key={`team-${event.id}`}
+                    href={`${basePath}/coach/teams/${event.team.id}/calendar`}
+                    className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/10 text-emerald-500">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {event.title}
+                        </p>
+                        <Badge variant="outline" className="text-xs border-border shrink-0">
+                          {localeCode === 'sv' ? 'Lagpass' : 'Team session'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {event.team.name} • {formatRelativeDate(new Date(event.startDate), localeCode)}
+                        {event.location ? ` • ${event.location}` : ''}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  </Link>
+                ))}
                 {filteredEvents.slice(0, 10).map(event => {
                   const config = EVENT_TYPE_CONFIG[event.type] || {
                     labelKey: 'events.unknown',

@@ -235,6 +235,7 @@ model User {
   modifiedCalendarEvents CalendarEvent[]       @relation("ModifiedCalendarEvents")
   calendarChanges        CalendarEventChange[] @relation("CalendarChanges")
   createdTeamEvents      TeamEvent[]           @relation("CreatedTeamEvents")
+  responsibleTeamEvents  TeamEvent[]           @relation("ResponsibleTeamEvents")
   teamCoachAssignments   TeamCoachAssignment[] @relation("TeamCoachAssignments")
   createdDrills          TeamDrill[]           @relation("CreatedDrills")
   conductedHockeyTests   HockeyPhysicalTest[]  @relation("CoachHockeyTests")

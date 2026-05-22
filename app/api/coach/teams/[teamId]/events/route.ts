@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma'
 import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import { findTeamCalendarLocationConflicts, formatLocationConflictMessage } from '@/lib/team-calendar/location-conflicts'
+import { isAssignableTeamCoach } from '@/lib/team-calendar/responsible-coach'
 import {
   TEAM_EVENT_CONTENT_OWNERS,
   TEAM_EVENT_CONTENT_STATUSES,
@@ -50,6 +51,7 @@ const createEventSchema = z.object({
   linkedWorkoutType: z.enum(['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY']).optional().nullable(),
   linkedWorkoutId: z.string().uuid().optional().nullable(),
   linkedWorkoutName: z.string().max(200).optional().nullable(),
+  responsibleCoachId: z.string().uuid().optional().nullable(),
   attendance: z.array(z.object({
     clientId: z.string().uuid(),
     status: z.enum(['ATTENDING', 'ABSENT', 'UNKNOWN']),
@@ -93,6 +95,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       },
       include: {
         createdBy: { select: { name: true } },
+        responsibleCoach: { select: { id: true, name: true, email: true } },
         intervalSession: { select: { id: true, name: true, status: true } },
       },
       orderBy: { startDate: 'asc' },
@@ -160,6 +163,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: t(locale, 'End time must be after start time', 'Sluttid måste vara efter starttid') }, { status: 400 })
     }
 
+    const canUseResponsibleCoach = await isAssignableTeamCoach({
+      coachId: parsed.data.responsibleCoachId,
+      requestingUserId: user.id,
+      teamId,
+      businessSlug: scope.businessSlug,
+    })
+
+    if (!canUseResponsibleCoach) {
+      return NextResponse.json({ error: t(locale, 'Selected coach cannot be assigned to this team', 'Vald tränare kan inte tilldelas det här laget') }, { status: 400 })
+    }
+
     const recurrenceCount = parsed.data.recurrenceCount ?? 1
     const recurrenceIntervalWeeks = parsed.data.recurrenceIntervalWeeks ?? 1
     const isRecurring = parsed.data.isRecurring || recurrenceCount > 1
@@ -220,6 +234,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       linkedWorkoutType: parsed.data.linkedWorkoutType,
       linkedWorkoutId: parsed.data.linkedWorkoutId,
       linkedWorkoutName: parsed.data.linkedWorkoutName,
+      responsibleCoachId: parsed.data.responsibleCoachId,
       attendance,
     }
 
@@ -228,6 +243,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         data: baseData,
         include: {
           createdBy: { select: { name: true } },
+          responsibleCoach: { select: { id: true, name: true, email: true } },
         },
       })
 
@@ -246,6 +262,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
           },
           include: {
             createdBy: { select: { name: true } },
+            responsibleCoach: { select: { id: true, name: true, email: true } },
           },
         })
         children.push(child)

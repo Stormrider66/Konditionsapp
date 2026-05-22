@@ -71,6 +71,12 @@ interface TeamEvent {
   linkedWorkoutType?: string | null
   linkedWorkoutId?: string | null
   linkedWorkoutName?: string | null
+  responsibleCoachId?: string | null
+  responsibleCoach?: {
+    id: string
+    name: string
+    email: string | null
+  } | null
   assignedBroadcastId?: string | null
   assignedAt?: string | null
   assignmentSummary?: {

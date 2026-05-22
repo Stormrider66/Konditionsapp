@@ -33,7 +33,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { MapPin, Plus, Repeat } from 'lucide-react'
+import { MapPin, Plus, Repeat, UserRound } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   icePracticeTemplate,
@@ -63,6 +63,13 @@ interface CalendarLocationOption {
   source: 'gym' | 'team'
   description: string | null
   isPrimary: boolean
+}
+
+interface CoachOption {
+  id: string
+  name: string
+  email: string | null
+  roleLabel: string
 }
 
 const CUSTOM_LOCATION_VALUE = '__custom__'
@@ -103,6 +110,8 @@ export function CreateEventDialog({
   const [allDay, setAllDay] = useState(false)
   const [contentOwner, setContentOwner] = useState<TeamEventContentOwner>(defaultContentOwner)
   const [contentStatus, setContentStatus] = useState<TeamEventContentStatus>(defaultContentStatus)
+  const [responsibleCoachId, setResponsibleCoachId] = useState('none')
+  const [coachOptions, setCoachOptions] = useState<CoachOption[]>([])
   const [practiceBlocks, setPracticeBlocks] = useState<PracticeBlock[]>([])
   const [repeatWeekly, setRepeatWeekly] = useState(false)
   const [repeatWeeks, setRepeatWeeks] = useState('4')
@@ -113,24 +122,34 @@ export function CreateEventDialog({
     if (!open) return
 
     let cancelled = false
-    const loadLocations = async () => {
+    const loadFormOptions = async () => {
       try {
         const params = new URLSearchParams()
         if (businessSlug) params.set('businessSlug', businessSlug)
-        const res = await fetch(`/api/coach/teams/${teamId}/locations${params.size ? `?${params}` : ''}`, {
-          headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
-        })
-        if (!res.ok) return
-        const data = await res.json()
+        const [locationRes, coachesRes] = await Promise.all([
+          fetch(`/api/coach/teams/${teamId}/locations${params.size ? `?${params}` : ''}`, {
+            headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+          }),
+          fetch(`/api/coach/teams/${teamId}/assignable-coaches${params.size ? `?${params}` : ''}`, {
+            headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+          }),
+        ])
+        const locationData = locationRes.ok ? await locationRes.json() : { locations: [] }
+        const coachesData = coachesRes.ok ? await coachesRes.json() : { coaches: [] }
+
         if (!cancelled) {
-          setLocationOptions(data.locations || [])
+          setLocationOptions(locationData.locations || [])
+          setCoachOptions(coachesData.coaches || [])
         }
       } catch {
-        if (!cancelled) setLocationOptions([])
+        if (!cancelled) {
+          setLocationOptions([])
+          setCoachOptions([])
+        }
       }
     }
 
-    void loadLocations()
+    void loadFormOptions()
     return () => {
       cancelled = true
     }
@@ -214,6 +233,7 @@ export function CreateEventDialog({
           allDay,
           contentStatus,
           contentOwner,
+          responsibleCoachId: responsibleCoachId === 'none' ? null : responsibleCoachId,
           practicePlan: isIcePractice ? practiceBlocks : undefined,
           recurrenceCount: repeatWeekly ? recurrenceCount : undefined,
           recurrenceIntervalWeeks: repeatWeekly ? 1 : undefined,
@@ -260,6 +280,7 @@ export function CreateEventDialog({
     setAllDay(false)
     setContentOwner(defaultContentOwner)
     setContentStatus(defaultContentStatus)
+    setResponsibleCoachId('none')
     setPracticeBlocks([])
     setRepeatWeekly(false)
     setRepeatWeeks('4')
@@ -277,6 +298,7 @@ export function CreateEventDialog({
       setSaveCustomLocation(false)
       setContentOwner(defaultContentOwner)
       setContentStatus(defaultContentStatus)
+      setResponsibleCoachId('none')
       setPracticeBlocks([])
       setRepeatWeekly(false)
       setRepeatWeeks('4')
@@ -355,6 +377,27 @@ export function CreateEventDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">{text(locale, 'Ansvarig tränare', 'Responsible coach')}</Label>
+            <Select value={responsibleCoachId} onValueChange={setResponsibleCoachId}>
+              <SelectTrigger>
+                <UserRound className="mr-2 h-4 w-4 text-muted-foreground" />
+                <SelectValue placeholder={text(locale, 'Välj tränare', 'Select coach')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{text(locale, 'Ingen ansvarig tränare', 'No responsible coach')}</SelectItem>
+                {coachOptions.map((coach) => (
+                  <SelectItem key={coach.id} value={coach.id}>
+                    {coach.name} · {coach.roleLabel}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-xs text-muted-foreground">
+              {text(locale, 'Visas i tränarens kalender som kommande händelse.', 'Shows in the coach calendar as an upcoming event.')}
             </div>
           </div>
 

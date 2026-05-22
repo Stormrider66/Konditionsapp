@@ -33,7 +33,7 @@ import {
   type TeamEventContentStatus,
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
-import { CheckCircle2, ClipboardList, Copy, Dumbbell, ExternalLink, HeartPulse, Plus, Printer, Route, Send, Trash2, TriangleAlert, Zap } from 'lucide-react'
+import { CheckCircle2, ClipboardList, Copy, Dumbbell, ExternalLink, HeartPulse, Plus, Printer, Route, Send, Trash2, TriangleAlert, UserRound, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { IceHockeyRink, type DrillStructure } from '@/components/coach/drills/IceHockeyRink'
@@ -64,6 +64,12 @@ interface EditableTeamEvent {
   linkedWorkoutType?: string | null
   linkedWorkoutId?: string | null
   linkedWorkoutName?: string | null
+  responsibleCoachId?: string | null
+  responsibleCoach?: {
+    id: string
+    name: string
+    email: string | null
+  } | null
   assignedBroadcastId?: string | null
   assignedAt?: string | null
   assignmentSummary?: {
@@ -341,6 +347,13 @@ interface WorkoutOption {
   description: string | null
 }
 
+interface CoachOption {
+  id: string
+  name: string
+  email: string | null
+  roleLabel: string
+}
+
 export function EditEventDialog({
   event,
   teamId,
@@ -364,6 +377,8 @@ export function EditEventDialog({
   const [contentOwner, setContentOwner] = useState<TeamEventContentOwner>('physical_trainer')
   const [linkedWorkoutId, setLinkedWorkoutId] = useState<string>('none')
   const [linkedWorkoutName, setLinkedWorkoutName] = useState<string | null>(null)
+  const [responsibleCoachId, setResponsibleCoachId] = useState<string>('none')
+  const [coachOptions, setCoachOptions] = useState<CoachOption[]>([])
   const [workoutOptions, setWorkoutOptions] = useState<WorkoutOption[]>([])
   const [practiceBlocks, setPracticeBlocks] = useState<PracticeBlock[]>([])
   const [savedDrills, setSavedDrills] = useState<SavedDrill[]>([])
@@ -429,9 +444,40 @@ export function EditEventDialog({
     )
     setLinkedWorkoutId(event.linkedWorkoutId ?? 'none')
     setLinkedWorkoutName(event.linkedWorkoutName ?? null)
+    setResponsibleCoachId(event.responsibleCoachId ?? 'none')
     setPracticeBlocks(Array.isArray(event.practicePlan) ? event.practicePlan.map(withPracticePlanningDefaults) : [])
     setApplyToWeeks('1')
   }, [event])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadCoaches = async () => {
+      if (!event) {
+        if (!cancelled) setCoachOptions([])
+        return
+      }
+
+      try {
+        const params = new URLSearchParams()
+        if (businessSlug) params.set('businessSlug', businessSlug)
+        const res = await fetch(`/api/coach/teams/${teamId}/assignable-coaches${params.size ? `?${params}` : ''}`, {
+          headers: businessSlug ? { 'x-business-slug': businessSlug } : {},
+        })
+        if (!res.ok) throw new Error('Failed')
+        const data = await res.json()
+        if (!cancelled) setCoachOptions(data.coaches || [])
+      } catch {
+        if (!cancelled) setCoachOptions([])
+      }
+    }
+
+    void loadCoaches()
+
+    return () => {
+      cancelled = true
+    }
+  }, [event, teamId, businessSlug])
 
   useEffect(() => {
     if (!event || !isPhysicalSession || !linkedWorkoutType) {
@@ -521,6 +567,7 @@ export function EditEventDialog({
           linkedWorkoutType: linkedWorkoutId === 'none' ? null : linkedWorkoutType,
           linkedWorkoutId: linkedWorkoutId === 'none' ? null : linkedWorkoutId,
           linkedWorkoutName: linkedWorkoutId === 'none' ? null : linkedWorkoutName,
+          responsibleCoachId: responsibleCoachId === 'none' ? null : responsibleCoachId,
           applyToWeeks: Math.max(1, Math.min(52, Number.parseInt(applyToWeeks, 10) || 1)),
         }),
       })
@@ -604,6 +651,7 @@ export function EditEventDialog({
           linkedWorkoutType: linkedWorkoutId === 'none' ? null : linkedWorkoutType,
           linkedWorkoutId: linkedWorkoutId === 'none' ? null : linkedWorkoutId,
           linkedWorkoutName: linkedWorkoutId === 'none' ? null : linkedWorkoutName,
+          responsibleCoachId: responsibleCoachId === 'none' ? null : responsibleCoachId,
         }),
       })
 
@@ -772,6 +820,31 @@ export function EditEventDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">{text(locale, 'Ansvarig tränare', 'Responsible coach')}</Label>
+                  <Select
+                    value={responsibleCoachId}
+                    disabled={!canEdit}
+                    onValueChange={setResponsibleCoachId}
+                  >
+                    <SelectTrigger>
+                      <UserRound className="mr-2 h-4 w-4 text-muted-foreground" />
+                      <SelectValue placeholder={text(locale, 'Välj tränare', 'Select coach')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{text(locale, 'Ingen ansvarig tränare', 'No responsible coach')}</SelectItem>
+                      {coachOptions.map((coach) => (
+                        <SelectItem key={coach.id} value={coach.id}>
+                          {coach.name} · {coach.roleLabel}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="text-xs text-muted-foreground">
+                    {text(locale, 'Visas i tränarens kalender som kommande händelse.', 'Shows in the coach calendar as an upcoming event.')}
                   </div>
                 </div>
 

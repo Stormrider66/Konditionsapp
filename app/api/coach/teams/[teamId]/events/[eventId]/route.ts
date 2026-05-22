@@ -13,6 +13,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import { findTeamCalendarLocationConflicts, formatLocationConflictMessage } from '@/lib/team-calendar/location-conflicts'
+import { isAssignableTeamCoach } from '@/lib/team-calendar/responsible-coach'
 import {
   TEAM_EVENT_CONTENT_OWNERS,
   TEAM_EVENT_CONTENT_STATUSES,
@@ -41,6 +42,7 @@ const updateEventSchema = z.object({
   linkedWorkoutType: z.enum(['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY']).optional().nullable(),
   linkedWorkoutId: z.string().uuid().optional().nullable(),
   linkedWorkoutName: z.string().max(200).optional().nullable(),
+  responsibleCoachId: z.string().uuid().optional().nullable(),
   applyToWeeks: z.number().int().min(1).max(52).optional(),
   attendance: z.array(z.object({
     clientId: z.string().uuid(),
@@ -70,6 +72,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       where: { id: eventId, teamId },
       include: {
         createdBy: { select: { name: true } },
+        responsibleCoach: { select: { id: true, name: true, email: true } },
         intervalSession: { select: { id: true, name: true, status: true } },
       },
     })
@@ -129,6 +132,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     if (parsed.data.linkedWorkoutType !== undefined) updateData.linkedWorkoutType = parsed.data.linkedWorkoutType
     if (parsed.data.linkedWorkoutId !== undefined) updateData.linkedWorkoutId = parsed.data.linkedWorkoutId
     if (parsed.data.linkedWorkoutName !== undefined) updateData.linkedWorkoutName = parsed.data.linkedWorkoutName
+    if (parsed.data.responsibleCoachId !== undefined) updateData.responsibleCoachId = parsed.data.responsibleCoachId
     if (parsed.data.attendance !== undefined) updateData.attendance = JSON.parse(JSON.stringify(parsed.data.attendance))
 
     const existingEvent = await prisma.teamEvent.findFirst({
@@ -148,6 +152,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         linkedWorkoutType: true,
         linkedWorkoutId: true,
         linkedWorkoutName: true,
+        responsibleCoachId: true,
         recurrenceParentId: true,
         attendance: true,
       },
@@ -175,6 +180,19 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       const contentTeam = await getTeamCalendarWritableTeam(user.id, teamId, scope.businessSlug, targetType, 'assignContent')
       if (!contentTeam) {
         return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      }
+    }
+
+    if (parsed.data.responsibleCoachId !== undefined) {
+      const canUseResponsibleCoach = await isAssignableTeamCoach({
+        coachId: parsed.data.responsibleCoachId,
+        requestingUserId: user.id,
+        teamId,
+        businessSlug: scope.businessSlug,
+      })
+
+      if (!canUseResponsibleCoach) {
+        return NextResponse.json({ error: 'Selected coach cannot be assigned to this team' }, { status: 400 })
       }
     }
 
@@ -227,6 +245,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       linkedWorkoutType: parsed.data.linkedWorkoutType !== undefined ? parsed.data.linkedWorkoutType : existingEvent.linkedWorkoutType,
       linkedWorkoutId: parsed.data.linkedWorkoutId !== undefined ? parsed.data.linkedWorkoutId : existingEvent.linkedWorkoutId,
       linkedWorkoutName: parsed.data.linkedWorkoutName !== undefined ? parsed.data.linkedWorkoutName : existingEvent.linkedWorkoutName,
+      responsibleCoachId: parsed.data.responsibleCoachId !== undefined ? parsed.data.responsibleCoachId : existingEvent.responsibleCoachId,
       attendance: parsed.data.attendance !== undefined
         ? JSON.parse(JSON.stringify(parsed.data.attendance))
         : existingEvent.attendance,
@@ -241,6 +260,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         },
         include: {
           createdBy: { select: { name: true } },
+          responsibleCoach: { select: { id: true, name: true, email: true } },
         },
       })
 
