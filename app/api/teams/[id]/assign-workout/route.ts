@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
+import { dbDateFromZonedCalendarDay } from '@/lib/team-calendar/date-time'
 import {
   strengthSessionAccessWhere,
 } from '@/lib/strength/session-business-scope'
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       locationName,
       responsibleCoachId,
     } = validation.data
-    const date = new Date(assignedDate)
+    const date = dbDateFromZonedCalendarDay(assignedDate)
 
     const accessibleTeam = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
     if (!accessibleTeam) {

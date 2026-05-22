@@ -4,6 +4,7 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { prisma } from '@/lib/prisma'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
+import { dbDateFromZonedCalendarDay } from '@/lib/team-calendar/date-time'
 import { strengthSessionAccessWhere } from '@/lib/strength/session-business-scope'
 import {
   agilityWorkoutAccessWhere,
@@ -146,8 +147,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'No team members to assign workout to' }, { status: 400 })
     }
 
-    const assignedDate = new Date(event.startDate)
-    assignedDate.setHours(0, 0, 0, 0)
+    const assignedDate = dbDateFromZonedCalendarDay(event.startDate)
     const notes = parsed.data.notes || event.description || null
     const startTime = event.allDay ? null : timeValue(event.startDate, locale)
     const endTime = event.allDay ? null : timeValue(event.endDate, locale)
