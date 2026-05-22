@@ -41,12 +41,14 @@ import {
   Users,
   Loader2,
   Plus,
+  CalendarPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CardioSessionData } from '@/types';
 import { CardioSessionDetailSheet } from './CardioSessionDetailSheet';
 import { CardioSessionAssignmentDialog } from './CardioSessionAssignmentDialog';
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
+import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 import { visibleWorkoutTags } from '@/lib/workouts/business-tags';
@@ -125,6 +127,7 @@ export function CardioSessionLibrary({
   const [isTeamAssignOpen, setIsTeamAssignOpen] = useState(false);
   const [teamAssignSessionId, setTeamAssignSessionId] = useState<string | undefined>();
   const [teamAssignSessionName, setTeamAssignSessionName] = useState<string | undefined>();
+  const [planSession, setPlanSession] = useState<CardioSessionData | null>(null);
 
   // Delete confirmation
   const [deleteSession, setDeleteSession] = useState<CardioSessionData | null>(null);
@@ -153,7 +156,7 @@ export function CardioSessionLibrary({
   }, [businessHeaders, search, sportFilter]);
 
   useEffect(() => {
-    fetchSessions();
+    void fetchSessions();
   }, [fetchSessions]);
 
   function handleOpenSheet(session: CardioSessionData) {
@@ -205,7 +208,7 @@ export function CardioSessionLibrary({
         toast.success('Pass borttaget', {
           description: `"${deleteSession.name}" har tagits bort.`,
         });
-        fetchSessions();
+        void fetchSessions();
       } else {
         toast.error('Kunde inte ta bort passet');
       }
@@ -347,6 +350,20 @@ export function CardioSessionLibrary({
                       )}
                     </div>
                   )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setPlanSession(session);
+                    }}
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
+                    Planera
+                  </Button>
                 </CardContent>
               </Card>
             );
@@ -373,7 +390,7 @@ export function CardioSessionLibrary({
         open={isAssignOpen}
         onOpenChange={setIsAssignOpen}
         onAssigned={() => {
-          fetchSessions();
+          void fetchSessions();
           setIsAssignOpen(false);
         }}
         businessId={businessId}
@@ -388,11 +405,23 @@ export function CardioSessionLibrary({
           open={isTeamAssignOpen}
           onOpenChange={setIsTeamAssignOpen}
           onAssigned={() => {
-            fetchSessions();
+            void fetchSessions();
             setIsTeamAssignOpen(false);
           }}
         />
       )}
+
+      <PlanTeamWorkoutDialog
+        key={planSession?.id ?? 'cardio-plan-dialog'}
+        open={Boolean(planSession)}
+        onOpenChange={(open) => {
+          if (!open) setPlanSession(null);
+        }}
+        workoutType="CARDIO"
+        workoutId={planSession?.id ?? null}
+        workoutName={planSession?.name ?? ''}
+        workoutDescription={planSession?.description ?? null}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteSession} onOpenChange={() => setDeleteSession(null)}>

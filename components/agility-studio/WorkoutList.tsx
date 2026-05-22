@@ -39,7 +39,8 @@ import {
   CalendarIcon,
   Printer,
   Zap,
-  ChevronDown
+  ChevronDown,
+  CalendarPlus
 } from 'lucide-react'
 import {
   Collapsible,
@@ -59,6 +60,7 @@ import { cn } from '@/lib/utils'
 import type { AgilityWorkout } from '@/types'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import { visibleWorkoutTags } from '@/lib/workouts/business-tags'
+import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog'
 
 interface Athlete {
   id: string
@@ -96,6 +98,7 @@ export function WorkoutList({
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedWorkout, setSelectedWorkout] = useState<AgilityWorkout | null>(null)
+  const [planningWorkout, setPlanningWorkout] = useState<AgilityWorkout | null>(null)
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([])
   const [assignDate, setAssignDate] = useState<Date | undefined>(new Date())
   const [assignNotes, setAssignNotes] = useState('')
@@ -292,6 +295,10 @@ export function WorkoutList({
                         <Users className="h-4 w-4 mr-2" />
                         {t('workout.assign')}
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setPlanningWorkout(workout)}>
+                        <CalendarPlus className="h-4 w-4 mr-2" />
+                        Planera i lagkalendern
+                      </DropdownMenuItem>
                       {onDuplicate && (
                         <DropdownMenuItem onClick={() => onDuplicate(workout)}>
                           <Copy className="h-4 w-4 mr-2" />
@@ -355,6 +362,16 @@ export function WorkoutList({
                     )}
                   </div>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setPlanningWorkout(workout)}
+                >
+                  <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
+                  Planera
+                </Button>
               </CardContent>
             </Card>
             )
@@ -522,6 +539,18 @@ export function WorkoutList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PlanTeamWorkoutDialog
+        key={planningWorkout?.id ?? 'agility-plan-dialog'}
+        open={Boolean(planningWorkout)}
+        onOpenChange={(open) => {
+          if (!open) setPlanningWorkout(null)
+        }}
+        workoutType="AGILITY"
+        workoutId={planningWorkout?.id ?? null}
+        workoutName={planningWorkout?.name ?? ''}
+        workoutDescription={planningWorkout?.description ?? null}
+      />
     </div>
   )
 }

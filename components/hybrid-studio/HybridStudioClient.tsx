@@ -46,6 +46,7 @@ import {
   Edit,
   MoreVertical,
   FileUp,
+  CalendarPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -73,6 +74,7 @@ import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog
 import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutDialog';
 import { toHybridBuilderInitialData } from '@/components/workouts/import/converters';
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner';
+import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog';
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 
@@ -158,6 +160,7 @@ const COPY: Record<AppLocale, {
   actions: string;
   edit: string;
   assign: string;
+  plan: string;
   remove: string;
 }> = {
   en: {
@@ -193,6 +196,7 @@ const COPY: Record<AppLocale, {
     actions: 'Actions',
     edit: 'Edit',
     assign: 'Assign',
+    plan: 'Plan',
     remove: 'Delete',
   },
   sv: {
@@ -228,6 +232,7 @@ const COPY: Record<AppLocale, {
     actions: 'Åtgärder',
     edit: 'Redigera',
     assign: 'Tilldela',
+    plan: 'Planera',
     remove: 'Ta bort',
   },
 };
@@ -281,6 +286,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isTeamAssignOpen, setIsTeamAssignOpen] = useState(false);
+  const [planWorkout, setPlanWorkout] = useState<HybridWorkout | null>(null);
   const teamCalendarLink = useTeamCalendarWorkoutLink('HYBRID');
 
   // Calendar assignment flow
@@ -574,6 +580,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             copy={copy}
             onView={handleOpenSheet}
             onEdit={handleEdit}
+            onPlan={setPlanWorkout}
             onDelete={setDeleteWorkout}
           />
         </TabsContent>
@@ -605,6 +612,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
                     copy={copy}
                     onView={handleOpenSheet}
                     onEdit={handleEdit}
+                    onPlan={setPlanWorkout}
                     onDelete={setDeleteWorkout}
                   />
                 </div>
@@ -640,6 +648,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
               copy={copy}
               onView={handleOpenSheet}
               onEdit={handleEdit}
+              onPlan={setPlanWorkout}
               onDelete={setDeleteWorkout}
             />
           )}
@@ -689,6 +698,19 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
           }}
         />
       )}
+
+      <PlanTeamWorkoutDialog
+        key={planWorkout?.id ?? 'hybrid-plan-dialog'}
+        open={Boolean(planWorkout)}
+        onOpenChange={(open) => {
+          if (!open) setPlanWorkout(null);
+        }}
+        workoutType="HYBRID"
+        workoutId={planWorkout?.id ?? null}
+        workoutName={planWorkout?.name ?? ''}
+        workoutDescription={planWorkout?.description ?? null}
+        onPlanned={() => void fetchWorkouts()}
+      />
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -827,6 +849,7 @@ interface WorkoutGridProps {
   copy: typeof COPY[AppLocale];
   onView?: (workout: HybridWorkout) => void;
   onEdit?: (workout: HybridWorkout) => void;
+  onPlan?: (workout: HybridWorkout) => void;
   onDelete?: (workout: HybridWorkout) => void;
 }
 
@@ -841,6 +864,7 @@ function WorkoutGrid({
   copy,
   onView,
   onEdit,
+  onPlan,
   onDelete,
 }: WorkoutGridProps) {
   if (loading) {
@@ -902,6 +926,21 @@ function WorkoutGrid({
                   </GlassCardDescription>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  {onPlan && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-slate-200 bg-white/75 text-slate-700 hover:bg-white hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onPlan(workout);
+                      }}
+                    >
+                      <CalendarPlus className="mr-1.5 h-3.5 w-3.5" />
+                      {copy.plan}
+                    </Button>
+                  )}
                   <Badge
                     className={`${scalingLabels[workout.scalingLevel]?.color || 'bg-gray-500'} text-white border-none`}
                   >

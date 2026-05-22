@@ -50,12 +50,14 @@ import {
   Zap,
   TrendingUp,
   Copy,
+  CalendarPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { StrengthSessionData } from '@/types';
 import { StrengthSessionDetailSheet } from './StrengthSessionDetailSheet';
 import { StrengthSessionAssignmentDialog } from './StrengthSessionAssignmentDialog';
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
+import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { countStrengthSessionExercises } from '@/lib/strength/session-sections';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
@@ -147,6 +149,7 @@ export function StrengthSessionLibrary({
   const [isTeamAssignOpen, setIsTeamAssignOpen] = useState(false);
   const [teamAssignSessionId, setTeamAssignSessionId] = useState<string | undefined>();
   const [teamAssignSessionName, setTeamAssignSessionName] = useState<string | undefined>();
+  const [planSession, setPlanSession] = useState<StrengthSessionData | null>(null);
 
   // Delete confirmation
   const [deleteSession, setDeleteSession] = useState<StrengthSessionData | null>(null);
@@ -175,7 +178,7 @@ export function StrengthSessionLibrary({
   }, [businessHeaders, search, phaseFilter]);
 
   useEffect(() => {
-    fetchSessions();
+    void fetchSessions();
   }, [fetchSessions]);
 
   // Fetch system templates
@@ -200,7 +203,7 @@ export function StrengthSessionLibrary({
 
   useEffect(() => {
     if (activeTab === 'templates') {
-      fetchTemplates();
+      void fetchTemplates();
     }
   }, [activeTab, fetchTemplates]);
 
@@ -283,7 +286,7 @@ export function StrengthSessionLibrary({
           description: `"${template.nameSv}" har lagts till i dina pass.`,
         });
         setActiveTab('sessions');
-        fetchSessions();
+        void fetchSessions();
       } else {
         throw new Error('Failed to create session');
       }
@@ -344,7 +347,7 @@ export function StrengthSessionLibrary({
         toast.success('Pass borttaget', {
           description: `"${deleteSession.name}" har tagits bort.`,
         });
-        fetchSessions();
+        void fetchSessions();
       } else {
         toast.error('Kunde inte ta bort passet');
       }
@@ -492,6 +495,20 @@ export function StrengthSessionLibrary({
                       )}
                     </div>
                   )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setPlanSession(session);
+                    }}
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
+                    Planera
+                  </Button>
                 </CardContent>
               </Card>
             );
@@ -651,7 +668,7 @@ export function StrengthSessionLibrary({
         open={isAssignOpen}
         onOpenChange={setIsAssignOpen}
         onAssigned={() => {
-          fetchSessions();
+          void fetchSessions();
           setIsAssignOpen(false);
         }}
         businessId={businessId}
@@ -666,11 +683,23 @@ export function StrengthSessionLibrary({
           open={isTeamAssignOpen}
           onOpenChange={setIsTeamAssignOpen}
           onAssigned={() => {
-            fetchSessions();
+            void fetchSessions();
             setIsTeamAssignOpen(false);
           }}
         />
       )}
+
+      <PlanTeamWorkoutDialog
+        key={planSession?.id ?? 'strength-plan-dialog'}
+        open={Boolean(planSession)}
+        onOpenChange={(open) => {
+          if (!open) setPlanSession(null);
+        }}
+        workoutType="STRENGTH"
+        workoutId={planSession?.id ?? null}
+        workoutName={planSession?.name ?? ''}
+        workoutDescription={planSession?.description ?? null}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteSession} onOpenChange={() => setDeleteSession(null)}>
