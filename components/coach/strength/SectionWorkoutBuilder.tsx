@@ -57,6 +57,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -86,6 +92,7 @@ import {
   Layers,
   Percent,
   ShieldCheck,
+  ArrowRightLeft,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
@@ -784,6 +791,34 @@ export function SectionWorkoutBuilder({
     }))
   }
 
+  const moveExerciseToSection = (
+    sourceSection: SectionType,
+    exerciseId: string,
+    targetSection: SectionType
+  ) => {
+    if (sourceSection === targetSection) return
+
+    setSections((prev) => {
+      const exercise = prev[sourceSection].exercises.find((e) => e.id === exerciseId)
+      if (!exercise) return prev
+
+      return {
+        ...prev,
+        [sourceSection]: {
+          ...prev[sourceSection],
+          exercises: prev[sourceSection].exercises.filter((e) => e.id !== exerciseId),
+        },
+        [targetSection]: {
+          ...prev[targetSection],
+          enabled: true,
+          exercises: [...prev[targetSection].exercises, exercise],
+        },
+      }
+    })
+
+    setExpandedSections((prev) => new Set([...prev, targetSection]))
+  }
+
   // Update exercise
   const updateExercise = (
     section: SectionType,
@@ -1282,6 +1317,9 @@ export function SectionWorkoutBuilder({
                                 sectionType={type}
                                 availableExercises={availableExercises}
                                 onRemove={() => removeExercise(type, exercise.id)}
+                                onMoveToSection={(targetSection) =>
+                                  moveExerciseToSection(type, exercise.id, targetSection)
+                                }
                                 onUpdate={(field, value) =>
                                   updateExercise(type, exercise.id, field, value)
                                 }
@@ -1316,6 +1354,7 @@ export function SectionWorkoutBuilder({
                   sectionType={activeSectionType}
                   availableExercises={availableExercises}
                   onRemove={() => {}}
+                  onMoveToSection={() => {}}
                   onUpdate={() => {}}
                   onAddFollowUp={() => {}}
                   onUpdateFollowUp={() => {}}
@@ -1603,6 +1642,7 @@ function SortableExerciseItem({
   sectionType,
   availableExercises,
   onRemove,
+  onMoveToSection,
   onUpdate,
   onAddFollowUp,
   onUpdateFollowUp,
@@ -1613,6 +1653,7 @@ function SortableExerciseItem({
   sectionType: SectionType
   availableExercises: Array<{ id: string; name: string; muscleGroup?: string; category?: string }>
   onRemove: () => void
+  onMoveToSection: (targetSection: SectionType) => void
   onUpdate: (field: keyof Exercise, value: any) => void
   onAddFollowUp: (followExerciseId: string) => void
   onUpdateFollowUp: (followUpId: string, field: keyof FollowUp, value: any) => void
@@ -1787,6 +1828,34 @@ function SortableExerciseItem({
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
+            {!isOverlay && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    title="Flytta till annan sektion"
+                  >
+                    <ArrowRightLeft className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {SECTION_ORDER.filter((type) => type !== sectionType).map((type) => {
+                    const TargetIcon = SECTION_DEFAULTS[type].icon
+                    return (
+                      <DropdownMenuItem
+                        key={type}
+                        onClick={() => onMoveToSection(type)}
+                      >
+                        <TargetIcon className={`h-4 w-4 mr-2 ${SECTION_DEFAULTS[type].color}`} />
+                        Flytta till {SECTION_DEFAULTS[type].label}
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button
               variant="ghost"
               size="sm"
