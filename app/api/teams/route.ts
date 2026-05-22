@@ -45,9 +45,28 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    const data = scope.businessSlug
+      ? Array.from(
+          teams.reduce((teamsByName, team) => {
+            const key = team.name.trim().toLocaleLowerCase('sv-SE')
+            const existing = teamsByName.get(key)
+
+            if (
+              !existing ||
+              team.members.length > existing.members.length ||
+              (team.members.length === existing.members.length && team.createdAt > existing.createdAt)
+            ) {
+              teamsByName.set(key, team)
+            }
+
+            return teamsByName
+          }, new Map<string, (typeof teams)[number]>()).values()
+        )
+      : teams
+
     return NextResponse.json({
       success: true,
-      data: teams,
+      data,
     })
   } catch (error) {
     logger.error('Error fetching teams', {}, error)

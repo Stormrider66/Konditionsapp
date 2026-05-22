@@ -370,12 +370,13 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     | undefined
 
   if (mode === 'TEAM') {
-    const teamCards = await prisma.team.findMany({
+    const rawTeamCards = await prisma.team.findMany({
       where: teamWhere,
       select: {
         id: true,
         name: true,
         sportType: true,
+        createdAt: true,
         members: {
           select: {
             id: true,
@@ -388,8 +389,23 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 12,
+      take: 50,
     })
+
+    const teamsByName = new Map<string, (typeof rawTeamCards)[number]>()
+    for (const team of rawTeamCards) {
+      const key = team.name.trim().toLocaleLowerCase(locale)
+      const existing = teamsByName.get(key)
+
+      if (
+        !existing ||
+        team.members.length > existing.members.length ||
+        (team.members.length === existing.members.length && team.createdAt > existing.createdAt)
+      ) {
+        teamsByName.set(key, team)
+      }
+    }
+    const teamCards = Array.from(teamsByName.values()).slice(0, 12)
 
     const teamIds = teamCards.map(team => team.id)
     const todayStart = startOfDay(now)
