@@ -872,6 +872,7 @@ export function WODGeneratorModal({
               variant="ghost"
               onClick={goBack}
               disabled={step === 'workoutType'}
+              className="text-slate-400 hover:bg-white/5 hover:text-slate-100 disabled:text-slate-500 disabled:opacity-80"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               {text(locale, 'Back', 'Tillbaka')}
