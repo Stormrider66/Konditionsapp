@@ -17,6 +17,16 @@ describe('buildRaceDayFuelingPlan', () => {
     expect(plan?.timing).toHaveLength(8)
   })
 
+  it('localizes race-day notes', () => {
+    const englishPlan = buildRaceDayFuelingPlan(75, 180, 'en')
+    const swedishPlan = buildRaceDayFuelingPlan(75, 180, 'sv')
+
+    expect(englishPlan?.notesSv).toContain('Always test the plan during long sessions before race day.')
+    expect(englishPlan?.notesSv).toContain('For races over three hours, also plan sodium/fluid separately based on heat and sweat loss.')
+    expect(swedishPlan?.notesSv).toContain('Testa alltid planen på långpass innan tävling.')
+    expect(swedishPlan?.notesSv).toContain('För lopp över tre timmar: planera även salt/vätska separat utifrån värme och svettförlust.')
+  })
+
   it('returns null without a carbohydrate target', () => {
     expect(buildRaceDayFuelingPlan(null, 180)).toBeNull()
   })

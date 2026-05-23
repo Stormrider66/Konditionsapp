@@ -18,7 +18,8 @@ const BOTTLE_MIX_CARBS_G = 40
 
 export function buildRaceDayFuelingPlan(
   carbsPerHour: number | null | undefined,
-  durationMinutes: number | null | undefined
+  durationMinutes: number | null | undefined,
+  locale: string = 'en'
 ): RaceDayFuelingPlan | null {
   if (carbsPerHour == null || carbsPerHour <= 0) return null
 
@@ -35,7 +36,7 @@ export function buildRaceDayFuelingPlan(
     gelEquivalentCount: totalCarbs ? Math.ceil(totalCarbs / GEL_CARBS_G) : null,
     bottleMixCount: totalCarbs ? Math.ceil(totalCarbs / BOTTLE_MIX_CARBS_G) : null,
     timing: buildTiming(normalizedDuration, intakeEvery20Min),
-    notesSv: buildNotes(roundedCarbsPerHour, normalizedDuration),
+    notesSv: buildNotes(roundedCarbsPerHour, normalizedDuration, locale),
   }
 }
 
@@ -54,18 +55,35 @@ function buildTiming(durationMinutes: number | null, intakeEvery20Min: number): 
   return points.slice(0, 12)
 }
 
-function buildNotes(carbsPerHour: number, durationMinutes: number | null): string[] {
+function buildNotes(carbsPerHour: number, durationMinutes: number | null, locale: string): string[] {
+  if (locale.startsWith('sv')) {
+    const notes = [
+      'Testa alltid planen på långpass innan tävling.',
+      'Drick efter törst och väder, men undvik att skölja ned stora kolhydratdoser utan vätska.',
+    ]
+
+    if (carbsPerHour > 60) {
+      notes.push('Vid över 60 g/timme bör produkterna innehålla flera kolhydrattyper, till exempel glukos/fruktos.')
+    }
+
+    if (durationMinutes != null && durationMinutes >= 180) {
+      notes.push('För lopp över tre timmar: planera även salt/vätska separat utifrån värme och svettförlust.')
+    }
+
+    return notes
+  }
+
   const notes = [
-    'Testa alltid planen på långpass innan tävling.',
-    'Drick efter törst och väder, men undvik att skölja ned stora kolhydratdoser utan vätska.',
+    'Always test the plan during long sessions before race day.',
+    'Drink according to thirst and weather, but avoid taking large carbohydrate doses without fluid.',
   ]
 
   if (carbsPerHour > 60) {
-    notes.push('Vid över 60 g/timme bör produkterna innehålla flera kolhydrattyper, till exempel glukos/fruktos.')
+    notes.push('Above 60 g/hour, products should include multiple carbohydrate types, such as glucose/fructose.')
   }
 
   if (durationMinutes != null && durationMinutes >= 180) {
-    notes.push('För lopp över tre timmar: planera även salt/vätska separat utifrån värme och svettförlust.')
+    notes.push('For races over three hours, also plan sodium/fluid separately based on heat and sweat loss.')
   }
 
   return notes

@@ -55,9 +55,10 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
         targetPaceMinPerKm: selectedStage.pace,
       },
       test.testStages,
-      { weightKg, currentGutToleranceCarbsPerHour }
+      { weightKg, currentGutToleranceCarbsPerHour },
+      locale
     )
-  }, [customDistanceKm, customDurationMinutes, gutTolerance, options, selectedDistanceIndex, selectedStageSequence, test.testStages, test.testType, usableStages, weightKg])
+  }, [customDistanceKm, customDurationMinutes, gutTolerance, locale, options, selectedDistanceIndex, selectedStageSequence, test.testStages, test.testType, usableStages, weightKg])
 
   if (!estimate || usableStages.length === 0) return null
 
@@ -73,7 +74,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
     targetPowerWatts: selectedStage?.power,
     targetPaceMinKm: selectedStage?.pace,
   })
-  const raceDayPlan = buildRaceDayFuelingPlan(estimate.recommendedCarbsPerHour, estimate.estimatedDurationMinutes)
+  const raceDayPlan = buildRaceDayFuelingPlan(estimate.recommendedCarbsPerHour, estimate.estimatedDurationMinutes, locale)
   const buildUpPlan = buildFuelingBuildUpPlan({
     raceTargetGPerHour: estimate.recommendedCarbsPerHour,
     currentGutToleranceGPerHour: parsePositiveNumber(gutTolerance),

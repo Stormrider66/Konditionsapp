@@ -41,6 +41,7 @@ export async function GET(
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const locale = getAppLocale(user.language)
 
     const { id } = await params
     const plan = await prisma.raceFuelingPlan.findUnique({
@@ -134,7 +135,7 @@ export async function GET(
           const dateB = b.workout.day.date?.getTime() ?? Number.MAX_SAFE_INTEGER
           return dateA - dateB
         }),
-        raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
+        raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes, locale),
       },
     })
   } catch (error) {
@@ -150,6 +151,7 @@ export async function PATCH(
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const locale = getAppLocale(user.language)
 
     const { id } = await params
     const existing = await prisma.raceFuelingPlan.findUnique({
@@ -218,7 +220,7 @@ export async function PATCH(
       success: true,
       plan: {
         ...plan,
-        raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
+        raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes, locale),
       },
     })
   } catch (error) {
@@ -228,4 +230,8 @@ export async function PATCH(
     logger.error('Error updating fueling plan', {}, error as Error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+function getAppLocale(language?: string | null): 'en' | 'sv' {
+  return language?.startsWith('sv') ? 'sv' : 'en'
 }

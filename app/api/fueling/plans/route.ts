@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const locale = getAppLocale(user.language)
 
     const resolvedClientId = await resolveClientId(request, user.id)
     if (!resolvedClientId) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
         const { workoutPrescriptions, ...planSummary } = plan
         return {
           ...planSummary,
-          raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes),
+          raceDayPlan: buildRaceDayFuelingPlan(plan.recommendedCarbsGPerHour, plan.durationMinutes, locale),
           fuelingProgress: buildFuelingProgressSummary({
             raceDate: plan.raceDate,
             recommendedCarbsGPerHour: plan.recommendedCarbsGPerHour,
@@ -113,6 +114,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const locale = getAppLocale(user.language)
 
     const body = fuelingPlanInputSchema.parse(await request.json())
     const clientId = body.clientId ?? (await resolveAthleteClientId())?.clientId
@@ -164,7 +166,8 @@ export async function POST(request: NextRequest) {
       {
         weightKg: client.weight,
         currentGutToleranceCarbsPerHour: body.currentGutToleranceCarbsPerHour,
-      }
+      },
+      locale
     )
     const recommendedScenario = estimate.scenarios.find((scenario) => scenario.key === 'RECOMMENDED')
 
@@ -176,7 +179,7 @@ export async function POST(request: NextRequest) {
         raceId: body.raceId ?? null,
         programId: body.programId ?? null,
         sport: body.sport,
-        name: body.name ?? defaultPlanName(body.sport, body.distanceKm),
+        name: body.name ?? defaultPlanName(body.sport, body.distanceKm, locale),
         distanceKm: body.distanceKm ?? null,
         durationMinutes: estimate.estimatedDurationMinutes ?? body.durationMinutes ?? null,
         targetSpeedKmh: body.targetSpeedKmh ?? null,
@@ -214,7 +217,12 @@ async function resolveClientId(request: NextRequest, userId: string): Promise<st
   return (await resolveAthleteClientId())?.clientId ?? null
 }
 
-function defaultPlanName(sport: SportType, distanceKm?: number | null): string {
-  const label = fuelingSportLabel(sport)
-  return distanceKm ? `Tävlingsenergi ${label} ${distanceKm} km` : `Tävlingsenergi ${label}`
+function defaultPlanName(sport: SportType, distanceKm?: number | null, locale: 'en' | 'sv' = 'en'): string {
+  const label = fuelingSportLabel(sport, locale)
+  const prefix = locale === 'sv' ? 'Tävlingsenergi' : 'Race fueling'
+  return distanceKm ? `${prefix} ${label} ${distanceKm} km` : `${prefix} ${label}`
+}
+
+function getAppLocale(language?: string | null): 'en' | 'sv' {
+  return language?.startsWith('sv') ? 'sv' : 'en'
 }

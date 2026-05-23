@@ -10,7 +10,11 @@ const DISTANCE_PRESETS_KM: Record<string, number> = {
   MARATHON: 42.195,
 }
 
-export function estimateSubstrateOxidationFromStage(stage: FuelingTestStage, weightKg?: number | null): SubstrateOxidationEstimate | null {
+export function estimateSubstrateOxidationFromStage(
+  stage: FuelingTestStage,
+  weightKg?: number | null,
+  locale: string = 'en'
+): SubstrateOxidationEstimate | null {
   if (stage.vco2 != null && stage.rer != null && stage.rer > 0) {
     const vco2LMin = normalizeGasLitersPerMinute(stage.vco2)
     const derivedVo2LMin = vco2LMin / stage.rer
@@ -24,9 +28,9 @@ export function estimateSubstrateOxidationFromStage(stage: FuelingTestStage, wei
       const fatGramsPerMinute = Math.max(0, (1.6946 * vo2LMin) - (1.7012 * vco2LMin))
       const isPhysiologicallyReliable = stage.rer >= 0.7 && stage.rer <= 1.0
       const warning = !isPhysiologicallyReliable
-        ? 'RER ligger utanför stabilt beräkningsområde.'
+        ? text(locale, 'RER ligger utanför stabilt beräkningsområde.', 'RER is outside the stable calculation range.')
         : measuredVo2LMin != null && vo2LMin === derivedVo2LMin
-          ? 'VO2 och VCO2/RER skiljer sig åt; VCO2/RER används för substratberäkningen.'
+          ? text(locale, 'VO2 och VCO2/RER skiljer sig åt; VCO2/RER används för substratberäkningen.', 'VO2 and VCO2/RER differ; VCO2/RER is used for substrate calculation.')
           : undefined
 
       return {
@@ -66,22 +70,23 @@ export function estimateSubstrateOxidationFromStage(stage: FuelingTestStage, wei
 export function estimateRaceFueling(
   goal: FuelingRaceGoal,
   stages: FuelingTestStage[],
-  athlete: FuelingAthleteProfile = {}
+  athlete: FuelingAthleteProfile = {},
+  locale: string = 'en'
 ): RaceFuelingEstimate {
   const sortedStages = [...stages].sort((a, b) => a.sequence - b.sequence)
   const estimatedDurationMinutes = estimateDurationMinutes(goal)
-  const target = getTargetIntensity(goal)
+  const target = getTargetIntensity(goal, locale)
   const assumptionsSv: string[] = []
   const warningsSv: string[] = []
 
   const stageEstimate = target.kind === 'duration'
-    ? interpolateOxidationAtIntensity(sortedStages, 0, target.kind, athlete.weightKg)
+      ? interpolateOxidationAtIntensity(sortedStages, 0, target.kind, athlete.weightKg, locale)
     : target.value != null
-      ? interpolateOxidationAtIntensity(sortedStages, target.value, target.kind, athlete.weightKg)
+      ? interpolateOxidationAtIntensity(sortedStages, target.value, target.kind, athlete.weightKg, locale)
       : null
 
   if (!stageEstimate && sortedStages.length > 0) {
-    warningsSv.push('Ingen exakt matchning mot testets intensitet hittades, så rekommendationen blir mer generell.')
+    warningsSv.push(text(locale, 'Ingen exakt matchning mot testets intensitet hittades, så rekommendationen blir mer generell.', 'No exact match was found for the test intensity, so the recommendation is more general.'))
   }
 
   if (stageEstimate?.oxidation.warning) {
@@ -102,9 +107,9 @@ export function estimateRaceFueling(
     ? Math.round(Math.max(30, gutTolerance != null ? Math.min(baseRecommended, gutTolerance + 15) : baseRecommended))
     : null
 
-  if (athlete.weightKg) assumptionsSv.push(`Kroppsvikt ${Math.round(athlete.weightKg)} kg används för att tolka VO2-data.`)
-  if (gutTolerance) assumptionsSv.push(`Nuvarande magtolerans antas vara cirka ${Math.round(gutTolerance)} g kolhydrater/timme.`)
-  if (demandPerHour != null) assumptionsSv.push('Intaget begränsas av praktisk absorption och magtolerans, inte av hela beräknade förbrukningen.')
+  if (athlete.weightKg) assumptionsSv.push(text(locale, `Kroppsvikt ${Math.round(athlete.weightKg)} kg används för att tolka VO2-data.`, `Body weight ${Math.round(athlete.weightKg)} kg is used to interpret VO2 data.`))
+  if (gutTolerance) assumptionsSv.push(text(locale, `Nuvarande magtolerans antas vara cirka ${Math.round(gutTolerance)} g kolhydrater/timme.`, `Current gut tolerance is assumed to be about ${Math.round(gutTolerance)} g carbohydrates/hour.`))
+  if (demandPerHour != null) assumptionsSv.push(text(locale, 'Intaget begränsas av praktisk absorption och magtolerans, inte av hela beräknade förbrukningen.', 'Intake is limited by practical absorption and gut tolerance, not the full calculated expenditure.'))
 
   const confidence = getConfidence(Boolean(stageEstimate), stageEstimate?.oxidation.isPhysiologicallyReliable ?? false, estimatedDurationMinutes)
 
@@ -117,7 +122,7 @@ export function estimateRaceFueling(
     carbohydrateDemandTotal: demandTotal,
     recommendedCarbsPerHour,
     confidence,
-    scenarios: buildFuelingScenarios(recommendedCarbsPerHour, estimatedDurationMinutes, gutTolerance),
+    scenarios: buildFuelingScenarios(recommendedCarbsPerHour, estimatedDurationMinutes, gutTolerance, locale),
     assumptionsSv,
     warningsSv,
     sourceStage: stageEstimate?.stage,
@@ -128,16 +133,17 @@ export function estimateRaceFueling(
 export function buildFuelingScenarios(
   recommendedCarbsPerHour: number | null,
   durationMinutes: number | null,
-  gutToleranceCarbsPerHour?: number | null
+  gutToleranceCarbsPerHour?: number | null,
+  locale: string = 'en'
 ): FuelingScenario[] {
   const recommended = recommendedCarbsPerHour ?? recommendationFromDuration(durationMinutes) ?? 60
   const conservative = Math.max(30, Math.min(60, recommended - 15))
   const ambitious = Math.min(120, Math.max(recommended + 15, recommended * 1.15))
 
   return [
-    scenario('CONSERVATIVE', 'Försiktig', conservative, durationMinutes, gutToleranceCarbsPerHour, 'Lägre risk för magbesvär. Passar om atleten inte har tränat intaget ännu.'),
-    scenario('RECOMMENDED', 'Rekommenderad', recommended, durationMinutes, gutToleranceCarbsPerHour, 'Bästa startpunkt utifrån testdata, tävlingstid och praktisk absorption.'),
-    scenario('AMBITIOUS', 'Ambitiös', ambitious, durationMinutes, gutToleranceCarbsPerHour, 'Endast om detta har tränats på långpass eller tävlingslika pass.'),
+    scenario('CONSERVATIVE', text(locale, 'Försiktig', 'Conservative'), conservative, durationMinutes, gutToleranceCarbsPerHour, text(locale, 'Lägre risk för magbesvär. Passar om atleten inte har tränat intaget ännu.', 'Lower risk of gut issues. Best if the athlete has not trained the intake yet.')),
+    scenario('RECOMMENDED', text(locale, 'Rekommenderad', 'Recommended'), recommended, durationMinutes, gutToleranceCarbsPerHour, text(locale, 'Bästa startpunkt utifrån testdata, tävlingstid och praktisk absorption.', 'Best starting point based on test data, race duration, and practical absorption.')),
+    scenario('AMBITIOUS', text(locale, 'Ambitiös', 'Ambitious'), ambitious, durationMinutes, gutToleranceCarbsPerHour, text(locale, 'Endast om detta har tränats på långpass eller tävlingslika pass.', 'Only use this if it has been trained during long or race-like sessions.')),
   ]
 }
 
@@ -166,12 +172,13 @@ function interpolateOxidationAtIntensity(
   stages: FuelingTestStage[],
   target: number,
   kind: 'speed' | 'power' | 'pace' | 'duration',
-  weightKg?: number | null
+  weightKg?: number | null,
+  locale: string = 'en'
 ): { stage: FuelingTestStage; oxidation: SubstrateOxidationEstimate } | null {
-  if (kind === 'duration') return nearestUsableStage(stages, weightKg)
+  if (kind === 'duration') return nearestUsableStage(stages, weightKg, locale)
 
   const intensityStages = stages
-    .map((stage) => ({ stage, value: getStageIntensity(stage, kind), oxidation: estimateSubstrateOxidationFromStage(stage, weightKg) }))
+    .map((stage) => ({ stage, value: getStageIntensity(stage, kind), oxidation: estimateSubstrateOxidationFromStage(stage, weightKg, locale) }))
     .filter((item): item is { stage: FuelingTestStage; value: number; oxidation: SubstrateOxidationEstimate } => item.value != null && item.oxidation != null)
     .sort((a, b) => a.value - b.value)
 
@@ -194,9 +201,9 @@ function interpolateOxidationAtIntensity(
   return null
 }
 
-function nearestUsableStage(stages: FuelingTestStage[], weightKg?: number | null) {
+function nearestUsableStage(stages: FuelingTestStage[], weightKg?: number | null, locale: string = 'en') {
   for (const stage of stages) {
-    const oxidation = estimateSubstrateOxidationFromStage(stage, weightKg)
+    const oxidation = estimateSubstrateOxidationFromStage(stage, weightKg, locale)
     if (oxidation?.isPhysiologicallyReliable) return { stage, oxidation }
   }
   return null
@@ -226,11 +233,11 @@ function estimateDurationMinutes(goal: FuelingRaceGoal): number | null {
   return null
 }
 
-function getTargetIntensity(goal: FuelingRaceGoal): { value: number | null; unit: string; kind: 'speed' | 'power' | 'pace' | 'duration' } {
+function getTargetIntensity(goal: FuelingRaceGoal, locale: string): { value: number | null; unit: string; kind: 'speed' | 'power' | 'pace' | 'duration' } {
   if (goal.targetSpeedKmh) return { value: goal.targetSpeedKmh, unit: 'km/h', kind: 'speed' }
   if (goal.targetPowerWatts) return { value: goal.targetPowerWatts, unit: 'W', kind: 'power' }
   if (goal.targetPaceMinPerKm) return { value: goal.targetPaceMinPerKm, unit: 'min/km', kind: 'pace' }
-  return { value: null, unit: 'tävlingstid', kind: 'duration' }
+  return { value: null, unit: text(locale, 'tävlingstid', 'race duration'), kind: 'duration' }
 }
 
 function getStageIntensity(stage: FuelingTestStage, kind: 'speed' | 'power' | 'pace'): number | null {
@@ -281,6 +288,10 @@ function normalizeGasLitersPerMinute(value: number): number {
 function normalizeVo2LitersPerMinute(value: number, weightKg?: number | null): number {
   if (value > 15 && weightKg) return (value * weightKg) / 1000
   return value > 100 ? value / 1000 : value
+}
+
+function text(locale: string, svText: string, enText: string): string {
+  return locale.startsWith('sv') ? svText : enText
 }
 
 function lerp(a: number, b: number, ratio: number): number {

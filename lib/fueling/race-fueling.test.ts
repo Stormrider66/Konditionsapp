@@ -46,6 +46,38 @@ describe('race fueling estimates', () => {
     expect(estimate.scenarios[1].totalCarbs).toBeGreaterThan(250)
   })
 
+  it('localizes scenarios, assumptions, and warnings', () => {
+    const englishEstimate = estimateRaceFueling(
+      {
+        sport: 'RUNNING',
+        distanceKm: 42.195,
+        targetSpeedKmh: 12,
+      },
+      metabolicStages,
+      { weightKg: 75, currentGutToleranceCarbsPerHour: 70 },
+      'en'
+    )
+    const swedishEstimate = estimateRaceFueling(
+      {
+        sport: 'RUNNING',
+        distanceKm: 42.195,
+        targetSpeedKmh: 12,
+      },
+      metabolicStages,
+      { weightKg: 75, currentGutToleranceCarbsPerHour: 70 },
+      'sv'
+    )
+
+    expect(englishEstimate.scenarios[1].labelSv).toBe('Recommended')
+    expect(englishEstimate.assumptionsSv).toContain('Body weight 75 kg is used to interpret VO2 data.')
+    expect(swedishEstimate.scenarios[1].labelSv).toBe('Rekommenderad')
+    expect(swedishEstimate.assumptionsSv).toContain('Kroppsvikt 75 kg används för att tolka VO2-data.')
+
+    const unreliableStage = { ...metabolicStages[0], rer: 1.08 }
+    expect(estimateSubstrateOxidationFromStage(unreliableStage, 75, 'en')?.warning).toBe('RER is outside the stable calculation range.')
+    expect(estimateSubstrateOxidationFromStage(unreliableStage, 75, 'sv')?.warning).toBe('RER ligger utanför stabilt beräkningsområde.')
+  })
+
   it('falls back to duration-based guidance when no metabolic match exists', () => {
     const estimate = estimateRaceFueling(
       {

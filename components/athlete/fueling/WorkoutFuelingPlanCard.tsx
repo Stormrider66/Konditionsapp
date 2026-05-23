@@ -73,7 +73,7 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
   const inferredDurationMinutes = targetTotal
     ? Math.round((targetTotal / targetHourly) * 60)
     : null
-  const executionPlan = buildRaceDayFuelingPlan(targetHourly, inferredDurationMinutes)
+  const executionPlan = buildRaceDayFuelingPlan(targetHourly, inferredDurationMinutes, locale)
   const planContext = formatFuelingPlanContext(prescription.plan, { includeName: true, locale })
 
   return (
