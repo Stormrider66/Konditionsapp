@@ -23,6 +23,7 @@ import { buildWODContext, getWODUsageStats } from '@/lib/ai/wod-context-builder'
 import { checkWODGuardrails } from '@/lib/ai/wod-guardrails'
 import { buildWODCandidatePrompt, buildWODPrompt, matchExerciseToLibrary } from '@/lib/ai/wod-prompts'
 import type {
+  WODAutoIntent,
   WODCandidateBlueprint,
   WODRequest,
   WODResponse,
@@ -46,6 +47,7 @@ import {
   pickBestWODCandidate,
   updateWODPreferenceProfileFromCompletion,
 } from '@/lib/ai/wod-learning'
+import { inferWODRhythmIntent } from '@/lib/ai/wod-rhythm'
 
 // Candidate generation + winner expansion can require two AI calls.
 export const maxDuration = 60
@@ -53,6 +55,7 @@ export const maxDuration = 60
 interface RequestBody extends WODRequest {
   modelId?: string
   intent?: string
+  autoIntent?: WODAutoIntent['source']
 }
 
 type AppLocale = 'en' | 'sv'
@@ -86,13 +89,9 @@ export async function POST(request: NextRequest) {
     // Get request body
     const body: RequestBody = await request.json()
     const {
-      mode = 'structured',
-      workoutType = 'strength',
-      duration = 45,
-      equipment = ['none'],
-      focusArea,
       modelId: requestedModelId,
       intent: requestedIntent,
+      autoIntent: requestedAutoIntent,
     } = body
 
     // Get client details for coach ID and subscription tier
@@ -118,6 +117,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const rhythmIntent = requestedAutoIntent === 'rhythm'
+      ? await inferWODRhythmIntent(clientId, context, locale)
+      : null
+    if (rhythmIntent) {
+      context.wodAutoIntent = rhythmIntent
+      logger.debug('WOD rhythm intent inferred', {
+        clientId,
+        workoutType: rhythmIntent.workoutType,
+        duration: rhythmIntent.duration,
+        confidence: rhythmIntent.confidence,
+      })
+    }
+
     // Run guardrails
     const guardrails = await checkWODGuardrails(context, subscriptionTier, locale)
 
@@ -137,11 +149,11 @@ export async function POST(request: NextRequest) {
     const usageStats = await getWODUsageStats(clientId, subscriptionTier)
 
     const wodRequest: WODRequest = {
-      mode: mode as WODMode,
-      workoutType: workoutType as WODRequest['workoutType'],
-      duration,
-      equipment,
-      focusArea,
+      mode: rhythmIntent?.mode ?? (body.mode || 'structured') as WODMode,
+      workoutType: rhythmIntent?.workoutType ?? body.workoutType ?? 'strength',
+      duration: rhythmIntent?.duration ?? body.duration ?? 45,
+      equipment: rhythmIntent?.equipment ?? body.equipment ?? ['none'],
+      focusArea: rhythmIntent?.focusArea ?? body.focusArea,
     }
 
     // Personal learning is primary; anonymous cohort hints are secondary.
@@ -389,7 +401,7 @@ export async function POST(request: NextRequest) {
       requestId: crypto.randomUUID(),
       athleteName: context.athleteName,
       primarySport: context.primarySport,
-      workoutType: workoutType as WODMetadata['workoutType'],
+      workoutType: wodRequest.workoutType as WODMetadata['workoutType'],
       readinessScore: context.readinessScore,
       adjustedIntensity: guardrails.adjustedIntensity,
       guardrailsApplied,
@@ -399,17 +411,18 @@ export async function POST(request: NextRequest) {
       generationTimeMs: Date.now() - startTime,
       candidateScore: selectedCandidateScore.score,
       promptVariantId: promptVariant?.id ?? null,
+      autoIntent: rhythmIntent,
     }
 
     // Save to database
     const savedWOD = await prisma.aIGeneratedWOD.create({
       data: {
         clientId,
-        mode: mode.toUpperCase() as 'STRUCTURED' | 'CASUAL' | 'FUN',
-        workoutType,
-        requestedDuration: duration,
-        equipment,
-        focusArea,
+        mode: wodRequest.mode.toUpperCase() as 'STRUCTURED' | 'CASUAL' | 'FUN',
+        workoutType: wodRequest.workoutType,
+        requestedDuration: wodRequest.duration ?? 45,
+        equipment: wodRequest.equipment ?? ['none'],
+        focusArea: wodRequest.focusArea,
         title: enhancedWorkout.title,
         subtitle: enhancedWorkout.subtitle,
         description: enhancedWorkout.description,
@@ -434,6 +447,7 @@ export async function POST(request: NextRequest) {
           allScores: candidateScores,
         }),
         promptVariantId: promptVariant?.id ?? null,
+        source: rhythmIntent ? 'quick_rhythm' : 'generator',
       },
     })
 

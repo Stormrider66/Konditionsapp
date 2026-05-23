@@ -51,6 +51,7 @@ export function buildWODPrompt(
   const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
   const outputLanguage = locale === 'sv' ? 'SWEDISH' : 'ENGLISH'
   const learningSection = formatLearningSection(context, locale)
+  const autoIntentSection = formatAutoIntentSection(context, locale)
   const candidateSection = formatSelectedCandidateSection(options?.selectedCandidate, locale)
   const promptVariantSection = formatPromptVariantAdjustment(options?.promptVariantAdjustment, locale)
 
@@ -94,6 +95,8 @@ ${excludedCategories.length > 0 ? `\n## EXKLUDERADE ÖVNINGSKATEGORIER\n${exclud
 ${buildEquipmentConstraintSection(explicitEquipment)}
 
 ${formatLocationEquipment(context.locationEquipment, explicitEquipment)}
+
+${autoIntentSection}
 
 ${learningSection}
 
@@ -140,6 +143,7 @@ function buildEnglishWODPrompt(
   const excludedCategories = getExcludedExerciseCategories(guardrails.excludedAreas)
   const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
   const learningSection = formatLearningSection(context, 'en')
+  const autoIntentSection = formatAutoIntentSection(context, 'en')
   const candidateSection = formatSelectedCandidateSection(options?.selectedCandidate, 'en')
   const promptVariantSection = formatPromptVariantAdjustment(options?.promptVariantAdjustment, 'en')
 
@@ -193,6 +197,8 @@ ${buildEquipmentConstraintSectionEn(explicitEquipment)}
 
 ${formatLocationEquipmentEn(context.locationEquipment, explicitEquipment)}
 
+${autoIntentSection}
+
 ${learningSection}
 
 ${candidateSection}
@@ -234,6 +240,7 @@ export function buildWODCandidatePrompt(
     ? generateGuardrailConstraints(guardrails, 'sv')
     : generateEnglishGuardrailConstraints(guardrails)
   const learningSection = formatLearningSection(context, locale)
+  const autoIntentSection = formatAutoIntentSection(context, locale)
   const promptVariantSection = formatPromptVariantAdjustment(promptVariantAdjustment, locale)
   const outputLanguage = locale === 'sv' ? 'SWEDISH' : 'ENGLISH'
 
@@ -269,6 +276,8 @@ ${constraintsSection}
 - focusArea: ${request.focusArea || 'full_body'}
 - adjustedIntensity: ${guardrails.adjustedIntensity}
 
+${autoIntentSection}
+
 ${learningSection}
 
 ${promptVariantSection}
@@ -303,6 +312,29 @@ IMPORTANT:
 - Use only requested equipment
 - Respect all safety limits and excluded areas
 - Make the candidates meaningfully different from each other`
+}
+
+function formatAutoIntentSection(
+  context: WODAthleteContext,
+  locale: 'en' | 'sv'
+): string {
+  const intent = context.wodAutoIntent
+  if (!intent) return ''
+  const heading = locale === 'sv' ? '## SNABBVAL FRÅN TRÄNINGSRYTM' : '## ONE-TAP RHYTHM INTENT'
+  const signals = intent.signals.length > 0
+    ? intent.signals.map((signal) => `- ${signal}`).join('\n')
+    : '- No strong pattern signals available'
+  const instruction = locale === 'sv'
+    ? 'Detta är ett snabbt automatiskt val baserat på atletens tidigare rytm. Följ intentionen om den inte krockar med säkerhetsreglerna.'
+    : 'This is a fast automatic choice based on the athlete rhythm. Follow the intent unless safety rules conflict.'
+
+  return `${heading}
+- source: ${intent.source}
+- confidence: ${Math.round(intent.confidence * 100)}%
+- reason: ${intent.reason}
+${signals}
+
+${instruction}`
 }
 
 function formatLearningSection(

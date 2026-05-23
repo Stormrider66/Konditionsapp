@@ -67,10 +67,12 @@ interface WODGeneratorModalProps {
 
 type Step = 'workoutType' | 'mode' | 'duration' | 'equipment' | 'generating'
 type AppLocale = 'en' | 'sv'
+type GenerationMode = 'manual' | 'rhythm'
 
 type GenerateWODRequestBody = WODRequest & {
   intent?: string
   locationId?: string | null
+  autoIntent?: 'rhythm'
 }
 
 function getAppLocale(locale: string): AppLocale {
@@ -334,6 +336,7 @@ export function WODGeneratorModal({
   const [duration, setDuration] = useState(45)
   const [selectedEquipment, setSelectedEquipment] = useState<WODEquipment[]>(['none'])
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generationMode, setGenerationMode] = useState<GenerationMode>('manual')
   const [error, setError] = useState<string | null>(null)
   const [aiAllowanceAction, setAiAllowanceAction] = useState<AiAllowanceAction | null>(null)
 
@@ -369,7 +372,7 @@ export function WODGeneratorModal({
     } finally {
       setLoadingLocations(false)
     }
-  }, [])
+  }, [setSelectedLocationId])
 
   // Fetch available locations when modal opens
   useEffect(() => {
@@ -396,7 +399,7 @@ export function WODGeneratorModal({
     } finally {
       setLoadingIntents(false)
     }
-  }, [])
+  }, [setSelectedIntent])
 
   // Fetch available intent tiers when modal opens
   useEffect(() => {
@@ -412,10 +415,19 @@ export function WODGeneratorModal({
       setError(null)
       setAiAllowanceAction(null)
       setIsGenerating(false)
+      setGenerationMode('manual')
       setShowIntentSelector(false)
     }
     onOpenChange(newOpen)
-  }, [onOpenChange])
+  }, [
+    onOpenChange,
+    setAiAllowanceAction,
+    setError,
+    setGenerationMode,
+    setIsGenerating,
+    setShowIntentSelector,
+    setStep,
+  ])
 
   const showAiAllowanceError = useCallback((allowanceError: AiAllowanceExhaustedError) => {
     setError(`${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`)
@@ -485,21 +497,29 @@ export function WODGeneratorModal({
   }
 
   // Generate WOD
-  const generateWOD = async () => {
+  const generateWOD = async (autoIntent?: GenerateWODRequestBody['autoIntent']) => {
     setStep('generating')
     setIsGenerating(true)
+    setGenerationMode(autoIntent === 'rhythm' ? 'rhythm' : 'manual')
     setError(null)
     setAiAllowanceAction(null)
 
     try {
-      const request: GenerateWODRequestBody = {
-        mode: selectedMode,
-        workoutType: selectedWorkoutType,
-        duration,
-        equipment: selectedEquipment,
-        intent: selectedIntent,
-        locationId: selectedLocationId,
-      }
+      const request: GenerateWODRequestBody = autoIntent === 'rhythm'
+        ? {
+            mode: 'structured',
+            autoIntent: 'rhythm',
+            intent: selectedIntent,
+            locationId: selectedLocationId,
+          }
+        : {
+            mode: selectedMode,
+            workoutType: selectedWorkoutType,
+            duration,
+            equipment: selectedEquipment,
+            intent: selectedIntent,
+            locationId: selectedLocationId,
+          }
 
       const response = await fetch('/api/ai/wod', {
         method: 'POST',
@@ -533,6 +553,7 @@ export function WODGeneratorModal({
       setStep('workoutType') // Go back to start
     } finally {
       setIsGenerating(false)
+      setGenerationMode('manual')
     }
   }
 
@@ -551,6 +572,7 @@ export function WODGeneratorModal({
   }
 
   const canProceed = step !== 'generating' && !isGenerating
+  const canGenerate = canProceed && (remainingWODs > 0 || isUnlimited)
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -585,6 +607,24 @@ export function WODGeneratorModal({
         {/* Step: Workout Type Selection */}
         {step === 'workoutType' && (
           <div className="space-y-4">
+            <Button
+              type="button"
+              onClick={() => void generateWOD('rhythm')}
+              disabled={!canGenerate}
+              className="h-auto w-full justify-between rounded-lg border border-orange-400/40 bg-orange-500/15 px-4 py-3 text-left text-orange-100 hover:bg-orange-500/25"
+            >
+              <span className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/20">
+                  <Zap className="h-5 w-5 text-orange-300" />
+                </span>
+                <span className="flex flex-col">
+                  <span className="font-semibold">{text(locale, 'Quick workout', 'Snabbt pass')}</span>
+                  <span className="text-xs text-orange-100/70">{text(locale, 'Based on your rhythm', 'Baserat på din rytm')}</span>
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+
             <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-1.5">
               {text(locale, 'What type of training do you want to do?', 'Vilken typ av träning vill du göra?')} <InfoTooltip conceptKey="wodFormats" />
             </p>
@@ -856,7 +896,9 @@ export function WODGeneratorModal({
             <div className="text-center">
               <h3 className="font-semibold">{text(locale, 'Creating your session...', 'Skapar ditt pass...')}</h3>
               <p className="text-sm text-muted-foreground">
-                {text(locale, 'AI is analyzing your profile and creating a tailored session', 'AI analyserar din profil och skapar ett perfekt anpassat pass')}
+                {generationMode === 'rhythm'
+                  ? text(locale, 'AI is matching today to your training rhythm', 'AI matchar dagen mot din träningsrytm')
+                  : text(locale, 'AI is analyzing your profile and creating a tailored session', 'AI analyserar din profil och skapar ett perfekt anpassat pass')}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
                 {text(locale, 'Using', 'Använder')} {INTENT_LABELS[selectedIntent]?.[locale].label || INTENT_LABELS.balanced[locale].label}

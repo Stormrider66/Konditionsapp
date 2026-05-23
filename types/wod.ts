@@ -54,6 +54,20 @@ export interface WODRequest {
   focusArea?: WODFocusArea
 }
 
+export type WODAutoIntentSource = 'rhythm'
+
+export interface WODAutoIntent {
+  source: WODAutoIntentSource
+  confidence: number
+  workoutType: WODWorkoutType
+  mode: WODMode
+  duration: number
+  equipment: WODEquipment[]
+  focusArea?: WODFocusArea
+  reason: string
+  signals: string[]
+}
+
 // ============================================
 // WORKOUT STRUCTURE TYPES
 // ============================================
@@ -143,6 +157,7 @@ export interface WODMetadata {
   // Self-learning
   candidateScore?: number
   promptVariantId?: string | null
+  autoIntent?: WODAutoIntent | null
 }
 
 export interface WODResponse {
@@ -213,6 +228,7 @@ export interface WODAthleteContext {
   // Learned self-coaching context
   wodPreferenceProfile?: WODPreferenceProfile | null
   globalLearningHints?: string[]
+  wodAutoIntent?: WODAutoIntent | null
 
   // Training restrictions (physio system)
   trainingRestrictions?: {
