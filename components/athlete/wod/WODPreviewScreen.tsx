@@ -171,6 +171,7 @@ export function WODPreviewScreen({
       onStart={onStart}
       onRegenerate={onRegenerate}
       onClose={onClose}
+      defaultExpandedSections="all"
     />
   )
 }

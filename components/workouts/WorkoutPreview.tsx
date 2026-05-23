@@ -85,6 +85,8 @@ export interface WorkoutPreviewProps {
   audioSlot?: ReactNode
   /** Disable section auto-expansion on mount. */
   defaultCollapsed?: boolean
+  /** Override which sections open initially. */
+  defaultExpandedSections?: WorkoutSection[] | 'all'
 }
 
 export function WorkoutPreview({
@@ -98,16 +100,23 @@ export function WorkoutPreview({
   heroSlot,
   audioSlot,
   defaultCollapsed = false,
+  defaultExpandedSections,
 }: WorkoutPreviewProps) {
   const t = useTranslations('components.workoutPreview')
   const { workout, sections, exercises, progress, readiness, assignment } = data
 
   const firstSection = sections[0]?.type
   const [expanded, setExpanded] = useState<Set<WorkoutSection>>(
-    () =>
-      defaultCollapsed || !firstSection
-        ? new Set()
-        : new Set([firstSection, ...(sections[1] ? [sections[1].type] : [])]),
+    () => {
+      if (defaultCollapsed || !firstSection) return new Set()
+      if (defaultExpandedSections === 'all') {
+        return new Set(sections.map((section) => section.type))
+      }
+      if (Array.isArray(defaultExpandedSections)) {
+        return new Set(defaultExpandedSections)
+      }
+      return new Set([firstSection, ...(sections[1] ? [sections[1].type] : [])])
+    },
   )
 
   const exercisesBySection = useMemo(() => {
@@ -138,7 +147,7 @@ export function WorkoutPreview({
     exercises.find((e) => e.imageUrls?.[0])?.imageUrls?.[0]
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background text-foreground">
+    <div className="fixed inset-0 z-50 flex min-h-0 flex-col bg-background text-foreground">
       <Header
         workoutName={workout.name}
         kindLabel={kindLabel}
@@ -152,7 +161,7 @@ export function WorkoutPreview({
         heroImage={heroImage}
       />
 
-      <div className="flex-1 overflow-y-auto pb-28">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-36 sm:pb-32">
         <div className="mx-auto w-full max-w-3xl space-y-4 px-4 pt-5 sm:px-6">
           <ReadinessBanner readiness={readiness} />
 
@@ -286,6 +295,7 @@ function Header({
     <header className="relative sticky top-0 z-10 overflow-hidden border-b border-border/60 bg-background/95 backdrop-blur">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         {heroImage && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={heroImage}
             alt=""
