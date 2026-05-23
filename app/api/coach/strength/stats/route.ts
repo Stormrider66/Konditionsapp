@@ -4,6 +4,15 @@ import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { startOfWeek, endOfWeek, startOfMonth, subMonths } from 'date-fns'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
+const BUSINESS_EXERCISE_ROLES = [
+  'OWNER',
+  'ADMIN',
+  'COACH',
+  'PHYSICAL_TRAINER',
+  'ASSISTANT_COACH',
+  'PHYSIO',
+]
+
 export async function GET() {
   try {
     const user = await requireAuth()
@@ -22,7 +31,21 @@ export async function GET() {
     if (user.role === 'ADMIN') {
       // Admin sees all
     } else if (hasCoachAccess) {
-      exerciseAccessWhere.OR = [{ isPublic: true }, { coachId: userId }]
+      const memberships = await prisma.businessMember.findMany({
+        where: {
+          userId,
+          isActive: true,
+          role: { in: BUSINESS_EXERCISE_ROLES },
+          business: { isActive: true },
+        },
+        select: { businessId: true },
+      })
+      const businessIds = memberships.map((membership) => membership.businessId)
+      exerciseAccessWhere.OR = [
+        { isPublic: true },
+        { coachId: userId },
+        ...(businessIds.length > 0 ? [{ businessId: { in: businessIds } }] : []),
+      ]
     } else {
       exerciseAccessWhere.OR = [{ isPublic: true }]
     }

@@ -374,6 +374,7 @@ model WorkoutSegment {
 model Exercise {
   id          String      @id @default(uuid())
   coachId     String? // NULL = system exercise, else custom
+  businessId  String? // NULL = private/system, else shared within business
   name        String // "Back Squat", "Box Jump", "Plank"
   category    WorkoutType // STRENGTH, PLYOMETRIC, CORE
   muscleGroup String? // "Legs", "Core", "Upper Body"
@@ -422,6 +423,7 @@ model Exercise {
   primaryImageIndex Int?  @default(0) // Index of primary image for thumbnails
 
   coach               User?                 @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  business            Business?             @relation(fields: [businessId], references: [id], onDelete: SetNull)
   segments            WorkoutSegment[]
   progressionTracking ProgressionTracking[]
   oneRepMaxHistory    OneRepMaxHistory[]
@@ -470,6 +472,7 @@ model Exercise {
   nameAliases ExerciseNameAlias[]
 
   @@index([coachId])
+  @@index([businessId])
   @@index([category])
   @@index([name])
   @@index([isPublic])

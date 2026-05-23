@@ -599,7 +599,9 @@ export function SectionWorkoutBuilder({
       const trimmedSearch = search.trim()
       if (trimmedSearch) params.set('search', trimmedSearch)
 
-      const res = await fetch(`/api/exercises?${params.toString()}`)
+      const res = await fetch(`/api/exercises?${params.toString()}`, {
+        headers: businessHeaders,
+      })
       if (res.ok) {
         const data = await res.json()
         const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
@@ -608,7 +610,7 @@ export function SectionWorkoutBuilder({
     } catch (e) {
       console.error('Failed to fetch exercises', e)
     }
-  }, [mapLibraryExercise])
+  }, [businessHeaders, mapLibraryExercise])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(

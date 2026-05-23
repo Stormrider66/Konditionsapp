@@ -4,6 +4,15 @@ import {
   canAccessPhysioPlatform,
 } from '@/lib/user-capabilities'
 
+const BUSINESS_EXERCISE_ROLES = [
+  'OWNER',
+  'ADMIN',
+  'COACH',
+  'PHYSICAL_TRAINER',
+  'ASSISTANT_COACH',
+  'PHYSIO',
+]
+
 /**
  * Check if current user can access a training program.
  *  - Coaches see programs they created
@@ -177,7 +186,7 @@ export async function canAccessExercise(
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      athleteAccount: { include: { client: { select: { userId: true } } } },
+      athleteAccount: { include: { client: { select: { userId: true, businessId: true } } } },
     },
   })
 
@@ -186,19 +195,34 @@ export async function canAccessExercise(
 
   const exercise = await prisma.exercise.findUnique({
     where: { id: exerciseId },
-    select: { isPublic: true, coachId: true },
+    select: { isPublic: true, coachId: true, businessId: true },
   })
 
   if (!exercise) return false
   if (exercise.isPublic) return true
 
   if (await canAccessCoachPlatform(userId)) {
-    return exercise.coachId === userId
+    if (exercise.coachId === userId) return true
+    if (!exercise.businessId) return false
+
+    const membership = await prisma.businessMember.findFirst({
+      where: {
+        userId,
+        businessId: exercise.businessId,
+        isActive: true,
+        role: { in: BUSINESS_EXERCISE_ROLES },
+      },
+      select: { id: true },
+    })
+
+    return Boolean(membership)
   }
 
   if (user.role === 'ATHLETE') {
     const coachId = user.athleteAccount?.client.userId
-    return Boolean(coachId && exercise.coachId === coachId)
+    if (coachId && exercise.coachId === coachId) return true
+    const businessId = user.athleteAccount?.client.businessId
+    return Boolean(businessId && exercise.businessId === businessId)
   }
 
   return false

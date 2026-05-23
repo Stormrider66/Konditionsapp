@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
-import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, resolveAthleteClientId } from '@/lib/auth-utils'
 import { Prisma, WorkoutType, BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+
+const BUSINESS_EXERCISE_ROLES = [
+  'OWNER',
+  'ADMIN',
+  'COACH',
+  'PHYSICAL_TRAINER',
+  'ASSISTANT_COACH',
+  'PHYSIO',
+]
+
+type ExerciseVisibility = 'PRIVATE' | 'BUSINESS'
 
 // Allowed sort fields to prevent injection
 const ALLOWED_SORT_FIELDS = [
@@ -24,6 +35,41 @@ type AllowedSortField = typeof ALLOWED_SORT_FIELDS[number]
 
 function isValidSortField(field: string): field is AllowedSortField {
   return ALLOWED_SORT_FIELDS.includes(field as AllowedSortField)
+}
+
+async function getActiveBusinessIdsForUser(userId: string): Promise<string[]> {
+  const memberships = await prisma.businessMember.findMany({
+    where: {
+      userId,
+      isActive: true,
+      role: { in: BUSINESS_EXERCISE_ROLES },
+      business: { isActive: true },
+    },
+    select: { businessId: true },
+  })
+
+  return (memberships ?? []).map((membership) => membership.businessId)
+}
+
+async function resolveRequestedExerciseBusinessId(userId: string, request: NextRequest): Promise<string | null> {
+  const scope = getRequestedBusinessScope(request)
+  if (!scope.businessId && !scope.businessSlug) return null
+
+  const membership = await prisma.businessMember.findFirst({
+    where: {
+      userId,
+      isActive: true,
+      role: { in: BUSINESS_EXERCISE_ROLES },
+      ...(scope.businessId ? { businessId: scope.businessId } : {}),
+      business: {
+        isActive: true,
+        ...(scope.businessSlug ? { slug: scope.businessSlug } : {}),
+      },
+    },
+    select: { businessId: true },
+  })
+
+  return membership?.businessId ?? null
 }
 
 export async function GET(request: NextRequest) {
@@ -59,18 +105,29 @@ export async function GET(request: NextRequest) {
     if (user.role === 'ADMIN') {
       // no additional restrictions
     } else if (hasCoachAccess) {
-      accessWhere.OR = [{ isPublic: true }, { coachId: user.id }]
+      const businessIds = await getActiveBusinessIdsForUser(user.id)
+      accessWhere.OR = [
+        { isPublic: true },
+        { coachId: user.id },
+        ...(businessIds.length > 0 ? [{ businessId: { in: businessIds } }] : []),
+      ]
     } else if (user.role === 'ATHLETE') {
       const resolved = await resolveAthleteClientId()
       let coachId: string | undefined
+      let businessId: string | null | undefined
       if (resolved) {
         const client = await prisma.client.findUnique({
           where: { id: resolved.clientId },
-          select: { userId: true },
+          select: { userId: true, businessId: true },
         })
         coachId = client?.userId
+        businessId = client?.businessId
       }
-      accessWhere.OR = coachId ? [{ isPublic: true }, { coachId }] : [{ isPublic: true }]
+      accessWhere.OR = [
+        { isPublic: true },
+        ...(coachId ? [{ coachId }] : []),
+        ...(businessId ? [{ businessId }] : []),
+      ]
     } else {
       accessWhere.OR = [{ isPublic: true }]
     }
@@ -197,11 +254,23 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Coaches can only create private exercises for themselves.
-        // Admins may create system/public exercises.
+        const visibility: ExerciseVisibility = body.visibility === 'BUSINESS' ? 'BUSINESS' : 'PRIVATE'
+        const requestedBusinessId = visibility === 'BUSINESS'
+          ? await resolveRequestedExerciseBusinessId(user.id, request)
+          : null
+
+        if (visibility === 'BUSINESS' && !requestedBusinessId) {
+          return NextResponse.json(
+            { error: 'Business visibility requires an active business membership' },
+            { status: 403 }
+          )
+        }
+
+        // Coaches can only create private/business exercises. Admins may create system/public exercises.
         const isPublic = user.role === 'ADMIN' ? Boolean(body.isPublic) : false
         const coachId =
           isPublic ? null : (user.role === 'ADMIN' && typeof body.coachId === 'string' ? body.coachId : user.id)
+        const businessId = isPublic ? null : requestedBusinessId
 
         const exercise = await prisma.exercise.create({
             data: {
@@ -221,6 +290,7 @@ export async function POST(request: NextRequest) {
                 contactsPerRep: body.contactsPerRep,
                 isPublic,
                 coachId,
+                businessId,
             }
         })
         

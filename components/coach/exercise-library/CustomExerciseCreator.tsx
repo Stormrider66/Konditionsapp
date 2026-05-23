@@ -27,6 +27,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,8 +51,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Save, X, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { getBusinessScopeHeaders, getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 
 interface CustomExerciseCreatorProps {
   open: boolean
@@ -73,6 +76,7 @@ interface ExerciseFormData {
   difficulty: string
   videoUrl: string
   imageUrl: string
+  visibility: 'PRIVATE' | 'BUSINESS'
   plyometricIntensity: PlyometricIntensity | ''
   contactsPerRep: number | null
 }
@@ -83,6 +87,9 @@ export function CustomExerciseCreator({
   onSuccess,
 }: CustomExerciseCreatorProps) {
   const { toast } = useToast()
+  const pathname = usePathname()
+  const businessSlug = getBusinessSlugFromPathname(pathname)
+  const businessHeaders = getBusinessScopeHeaders(pathname)
   const [isSaving, setIsSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
@@ -101,6 +108,7 @@ export function CustomExerciseCreator({
     difficulty: '',
     videoUrl: '',
     imageUrl: '',
+    visibility: 'PRIVATE',
     plyometricIntensity: '',
     contactsPerRep: null,
   })
@@ -168,7 +176,7 @@ export function CustomExerciseCreator({
 
       const response = await fetch('/api/exercises', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
         body: JSON.stringify({
           name: formData.name,
           nameSv,
@@ -183,6 +191,7 @@ export function CustomExerciseCreator({
           difficulty: formData.difficulty || 'Intermediate',
           videoUrl: formData.videoUrl || null,
           imageUrl: formData.imageUrl || null,
+          visibility: formData.visibility,
           plyometricIntensity: formData.plyometricIntensity || null,
           contactsPerRep: formData.contactsPerRep || null,
         }),
@@ -197,7 +206,9 @@ export function CustomExerciseCreator({
 
       toast({
         title: 'Exercise created',
-        description: `${exercise.name} has been added to your custom library`,
+        description: `${exercise.name} has been added to ${
+          formData.visibility === 'BUSINESS' ? 'your business library' : 'your custom library'
+        }`,
       })
 
       onSuccess(exercise.id, exercise)
@@ -229,6 +240,7 @@ export function CustomExerciseCreator({
       difficulty: '',
       videoUrl: '',
       imageUrl: '',
+      visibility: 'PRIVATE',
       plyometricIntensity: '',
       contactsPerRep: null,
     })
@@ -279,6 +291,9 @@ export function CustomExerciseCreator({
               )}
               {formData.difficulty && <Badge variant="outline">{formData.difficulty}</Badge>}
               {formData.equipment && <Badge variant="outline">{formData.equipment}</Badge>}
+              <Badge variant="outline">
+                {formData.visibility === 'BUSINESS' ? 'Business library' : 'Only me'}
+              </Badge>
             </div>
 
             {/* Muscle Group */}
@@ -363,7 +378,7 @@ export function CustomExerciseCreator({
           <DialogHeader>
             <DialogTitle>Create Custom Exercise</DialogTitle>
             <DialogDescription>
-              Add a new exercise to your personal library
+              Add a new exercise to your personal or business library
             </DialogDescription>
           </DialogHeader>
 
@@ -417,6 +432,37 @@ export function CustomExerciseCreator({
                     onChange={(e) => handleChange('muscleGroup', e.target.value)}
                     placeholder="e.g., Gluteus, Hamstrings, Core"
                   />
+                </div>
+
+                {/* Visibility */}
+                <div>
+                  <Label>Visibility</Label>
+                  <RadioGroup
+                    value={formData.visibility}
+                    onValueChange={(value) => handleChange('visibility', value)}
+                    className="mt-2 grid gap-3 sm:grid-cols-2"
+                  >
+                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-muted/50">
+                      <RadioGroupItem value="PRIVATE" className="mt-1" />
+                      <span>
+                        <span className="block text-sm font-medium">Only me</span>
+                        <span className="block text-xs text-muted-foreground">
+                          Visible only in your coach account.
+                        </span>
+                      </span>
+                    </label>
+                    {businessSlug && (
+                      <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-muted/50">
+                        <RadioGroupItem value="BUSINESS" className="mt-1" />
+                        <span>
+                          <span className="block text-sm font-medium">Business</span>
+                          <span className="block text-xs text-muted-foreground">
+                            Visible for coaches and staff in this business.
+                          </span>
+                        </span>
+                      </label>
+                    )}
+                  </RadioGroup>
                 </div>
               </CardContent>
             </Card>

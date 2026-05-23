@@ -26,7 +26,8 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 import { Exercise, BiomechanicalPillar, ProgressionLevel } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,6 +71,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { useLocale } from '@/i18n/client'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 interface ExerciseLibraryBrowserProps {
   onSelectExercise?: (exercise: Exercise) => void
@@ -84,6 +86,8 @@ export function ExerciseLibraryBrowser({
 }: ExerciseLibraryBrowserProps) {
   const { toast } = useToast()
   const locale = useLocale()
+  const pathname = usePathname()
+  const businessHeaders = useMemo(() => getBusinessScopeHeaders(pathname), [pathname])
   const exerciseDisplayName = useCallback(
     (exercise: Exercise) => locale === 'sv'
       ? exercise.nameSv || exercise.name
@@ -146,7 +150,9 @@ export function ExerciseLibraryBrowser({
       params.append('limit', pageSize.toString())
       params.append('offset', ((currentPage - 1) * pageSize).toString())
 
-      const response = await fetch(`/api/exercises?${params.toString()}`)
+      const response = await fetch(`/api/exercises?${params.toString()}`, {
+        headers: businessHeaders,
+      })
       if (!response.ok) throw new Error('Failed to fetch exercises')
 
       const data = await response.json()
@@ -163,6 +169,7 @@ export function ExerciseLibraryBrowser({
       setIsLoading(false)
     }
   }, [
+    businessHeaders,
     searchTerm,
     selectedPillar,
     selectedLevel,
@@ -315,6 +322,18 @@ export function ExerciseLibraryBrowser({
     return pillar ? colors[pillar] : 'bg-gray-100 text-gray-800'
   }
 
+  const getVisibilityLabel = (exercise: Exercise) => {
+    if (exercise.isPublic) return 'System'
+    if (exercise.businessId) return 'Business'
+    return 'Only me'
+  }
+
+  const getVisibilityBadgeClass = (exercise: Exercise) => {
+    if (exercise.isPublic) return 'border-blue-200 bg-blue-50 text-blue-700'
+    if (exercise.businessId) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    return 'border-slate-200 bg-slate-50 text-slate-700'
+  }
+
   // Render exercise card (grid view)
   const renderExerciseCard = (exercise: Exercise) => {
     const isFavorite = favorites.has(exercise.id)
@@ -377,6 +396,9 @@ export function ExerciseLibraryBrowser({
         </CardHeader>
         <CardContent className="pb-4 pt-0">
           <div className="flex flex-wrap gap-1 mb-2">
+            <Badge variant="outline" className={`text-xs ${getVisibilityBadgeClass(exercise)}`}>
+              {getVisibilityLabel(exercise)}
+            </Badge>
             {exercise.biomechanicalPillar && (
               <Badge className={`text-xs ${getPillarColor(exercise.biomechanicalPillar)}`}>
                 {exercise.biomechanicalPillar.replace(/_/g, ' ')}
@@ -499,6 +521,9 @@ export function ExerciseLibraryBrowser({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5 mt-1 sm:mt-0 sm:flex-1">
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 leading-5 ${getVisibilityBadgeClass(exercise)}`}>
+                    {getVisibilityLabel(exercise)}
+                  </Badge>
                   {exercise.biomechanicalPillar && (
                     <Badge className={`text-[10px] px-1.5 py-0 leading-5 ${getPillarColor(exercise.biomechanicalPillar)}`}>
                       {exercise.biomechanicalPillar.replace(/_/g, ' ')}

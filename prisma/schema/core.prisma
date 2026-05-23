@@ -777,6 +777,7 @@ model Business {
 
   members              BusinessMember[]
   clients              Client[]
+  businessExercises    Exercise[]
   aiCanvases           AICanvas[] @relation("BusinessAICanvases")
   testers              Tester[]
   locations            Location[]

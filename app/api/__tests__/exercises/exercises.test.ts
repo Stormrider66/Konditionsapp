@@ -7,8 +7,17 @@ const mockGetCurrentUser = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/auth-utils', () => ({
   getCurrentUser: mockGetCurrentUser,
+  getRequestedBusinessScope: (request: NextRequest) => ({
+    businessSlug: request.headers.get('x-business-slug') || undefined,
+    businessId: request.headers.get('x-business-id') || undefined,
+  }),
   requireCoach: vi.fn(),
   requireAthlete: vi.fn(),
+  resolveAthleteClientId: vi.fn(),
+}))
+
+vi.mock('@/lib/user-capabilities', () => ({
+  canAccessCoachPlatform: vi.fn(() => Promise.resolve(true)),
 }))
 
 // Mock Prisma
@@ -17,6 +26,10 @@ const mockPrisma = vi.hoisted(() => ({
     findMany: vi.fn(),
     count: vi.fn(),
     create: vi.fn(),
+  },
+  businessMember: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
   },
   $transaction: vi.fn(),
 }))
@@ -81,11 +94,11 @@ function createGetRequest(params: Record<string, string> = {}): NextRequest {
   return new NextRequest(url)
 }
 
-function createPostRequest(body: object): NextRequest {
+function createPostRequest(body: object, headers: Record<string, string> = {}): NextRequest {
   return new NextRequest('http://localhost/api/exercises', {
     method: 'POST',
     body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   })
 }
 
@@ -93,6 +106,8 @@ describe('GET /api/exercises', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetCurrentUser.mockResolvedValue({ id: 'test-user', role: 'COACH' })
+    mockPrisma.businessMember.findMany.mockResolvedValue([])
+    mockPrisma.businessMember.findFirst.mockResolvedValue(null)
     mockPrisma.$transaction.mockResolvedValue([sampleExercises, sampleExercises.length])
   })
 
@@ -209,6 +224,47 @@ describe('GET /api/exercises', () => {
   })
 
   describe('Filtering', () => {
+    it('includes business-scoped exercises for active business coaches', async () => {
+      mockPrisma.businessMember.findMany.mockResolvedValue([{ businessId: 'business-1' }])
+
+      const request = createGetRequest()
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      expect(mockPrisma.exercise.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              OR: expect.arrayContaining([
+                { isPublic: true },
+                { coachId: 'test-user' },
+                { businessId: { in: ['business-1'] } },
+              ]),
+            }),
+          ]),
+        }),
+      }))
+    })
+
+    it('keeps legacy private exercises owner-scoped when coach has no business library', async () => {
+      const request = createGetRequest()
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      expect(mockPrisma.exercise.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              OR: expect.arrayContaining([
+                { isPublic: true },
+                { coachId: 'test-user' },
+              ]),
+            }),
+          ]),
+        }),
+      }))
+    })
+
     it('filters by category', async () => {
       mockPrisma.$transaction.mockResolvedValue([
         sampleExercises.filter(e => e.category === 'STRENGTH'),
@@ -272,6 +328,8 @@ describe('POST /api/exercises', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetCurrentUser.mockResolvedValue({ id: 'test-user', role: 'COACH' })
+    mockPrisma.businessMember.findMany.mockResolvedValue([])
+    mockPrisma.businessMember.findFirst.mockResolvedValue(null)
   })
 
   describe('Authentication', () => {
@@ -384,6 +442,9 @@ describe('POST /api/exercises', () => {
           name: 'Full Exercise',
           nameSv: 'Full Övning',
           plyometricIntensity: 'MEDIUM',
+          isPublic: false,
+          coachId: 'test-user',
+          businessId: null,
         }),
       })
     })
@@ -412,6 +473,91 @@ describe('POST /api/exercises', () => {
           nameEn: 'Only Name',
         }),
       })
+    })
+
+    it('creates a private coach exercise by default', async () => {
+      mockPrisma.exercise.create.mockResolvedValue({
+        id: 'private-ex',
+        name: 'Private Exercise',
+        category: 'STRENGTH',
+        biomechanicalPillar: 'POSTERIOR_CHAIN',
+        isPublic: false,
+        coachId: 'test-user',
+        businessId: null,
+      })
+
+      const request = createPostRequest({
+        name: 'Private Exercise',
+        category: 'STRENGTH',
+        biomechanicalPillar: 'POSTERIOR_CHAIN',
+      })
+
+      const response = await POST(request)
+
+      expect(response.status).toBe(201)
+      expect(mockPrisma.exercise.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          isPublic: false,
+          coachId: 'test-user',
+          businessId: null,
+        }),
+      })
+    })
+
+    it('creates a business-scoped exercise when requested from a business route', async () => {
+      mockPrisma.businessMember.findFirst.mockResolvedValue({ businessId: 'business-1' })
+      mockPrisma.exercise.create.mockResolvedValue({
+        id: 'business-ex',
+        name: 'Business Exercise',
+        category: 'STRENGTH',
+        biomechanicalPillar: 'POSTERIOR_CHAIN',
+        isPublic: false,
+        coachId: 'test-user',
+        businessId: 'business-1',
+      })
+
+      const request = createPostRequest(
+        {
+          name: 'Business Exercise',
+          category: 'STRENGTH',
+          biomechanicalPillar: 'POSTERIOR_CHAIN',
+          visibility: 'BUSINESS',
+        },
+        { 'x-business-slug': 'star-by-thomson' },
+      )
+
+      const response = await POST(request)
+
+      expect(response.status).toBe(201)
+      expect(mockPrisma.businessMember.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'test-user',
+          business: expect.objectContaining({ slug: 'star-by-thomson' }),
+        }),
+      }))
+      expect(mockPrisma.exercise.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          isPublic: false,
+          coachId: 'test-user',
+          businessId: 'business-1',
+        }),
+      })
+    })
+
+    it('rejects business visibility without active business membership', async () => {
+      mockPrisma.businessMember.findFirst.mockResolvedValue(null)
+
+      const request = createPostRequest({
+        name: 'Business Exercise',
+        category: 'STRENGTH',
+        biomechanicalPillar: 'POSTERIOR_CHAIN',
+        visibility: 'BUSINESS',
+      })
+
+      const response = await POST(request)
+
+      expect(response.status).toBe(403)
+      expect(mockPrisma.exercise.create).not.toHaveBeenCalled()
     })
   })
 })

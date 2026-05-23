@@ -47,12 +47,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           OR: [
             { isPublic: true },
             { coachId: { in: coachUserIds } },
+            { businessId },
           ],
         },
       }),
       prisma.exercise.count({
         where: {
-          coachId: { in: coachUserIds },
+          OR: [
+            { coachId: { in: coachUserIds } },
+            { businessId },
+          ],
           createdAt: { gte: weekStart, lte: weekEnd },
         },
       }),

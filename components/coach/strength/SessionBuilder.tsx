@@ -130,7 +130,9 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
   useEffect(() => {
     async function fetchExercises() {
       try {
-        const res = await fetch('/api/exercises?limit=500')
+        const res = await fetch('/api/exercises?limit=500', {
+          headers: businessHeaders,
+        })
         if (res.ok) {
           const data = await res.json()
           // Handle both array (legacy/direct) and object with exercises property
@@ -159,7 +161,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
       }
     }
     fetchExercises()
-  }, [])
+  }, [businessHeaders])
 
   // Fetch locations
   useEffect(() => {
