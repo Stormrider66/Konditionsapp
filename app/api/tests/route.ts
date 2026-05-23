@@ -5,10 +5,11 @@ import { prisma } from "@/lib/prisma"
 import { createTestApiSchema, type CreateTestApiData } from '@/lib/validations/schemas'
 import { detectLactateDecreases } from '@/lib/lactate/data-quality'
 import { createClient } from '@/lib/supabase/server'
-import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
+import { canAccessClient, getCurrentUser, getRequestedBusinessScope } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { generateVisualReport } from '@/lib/ai/visual-reports'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { getBusinessMembership } from '@/lib/coach/team-access'
 
 // GET /api/tests - Hämta alla tester för inloggad användare (med optional clientId filter)
 export async function GET(request: NextRequest) {
@@ -32,6 +33,8 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('clientId')
     const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '100') || 100), 200)
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
+    const scope = getRequestedBusinessScope(request)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
     if (clientId) {
       const hasClientAccess = await canAccessClient(user.id, clientId)
@@ -44,11 +47,28 @@ export async function GET(request: NextRequest) {
           { status: 403 }
         )
       }
+
+      if (membership) {
+        const scopedClient = await prisma.client.findFirst({
+          where: { id: clientId, businessId: membership.businessId },
+          select: { id: true },
+        })
+        if (!scopedClient) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Unauthorized',
+            },
+            { status: 403 }
+          )
+        }
+      }
     }
 
     const where = {
       userId: user.id,
       ...(clientId ? { clientId } : {}),
+      ...(membership ? { client: { businessId: membership.businessId } } : {}),
     }
 
     const [tests, total] = await Promise.all([
@@ -125,6 +145,8 @@ export async function POST(request: NextRequest) {
 
     const data: CreateTestApiData = validation.data
     const locale = user.language === 'sv' ? 'sv' : 'en'
+    const scope = getRequestedBusinessScope(request)
+    const membership = await getBusinessMembership(user.id, scope.businessSlug)
     const lactateDrops = detectLactateDecreases(data.stages)
     const warnings = lactateDrops.map((drop) => ({
       type: 'LACTATE_DROP',
@@ -162,7 +184,8 @@ export async function POST(request: NextRequest) {
     }
 
     const hasClientAccess = await canAccessClient(user.id, data.clientId)
-    if (!hasClientAccess) {
+    const hasScopedClientAccess = !membership || client.businessId === membership.businessId
+    if (!hasClientAccess || !hasScopedClientAccess) {
       return NextResponse.json(
         {
           success: false,
@@ -177,7 +200,9 @@ export async function POST(request: NextRequest) {
       prisma.tester.findUnique({ where: { userId: user.id }, select: { id: true, name: true } }),
       prisma.location.findFirst({
         where: {
-          business: { members: { some: { userId: user.id } } },
+          ...(membership
+            ? { businessId: membership.businessId }
+            : { business: { members: { some: { userId: user.id } } } }),
           isPrimary: true,
           isActive: true,
         },

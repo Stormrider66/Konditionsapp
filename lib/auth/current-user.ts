@@ -110,10 +110,36 @@ export function getRequestedBusinessScope(
   const businessId = request.headers.get('x-business-id')?.trim()
   const businessSlug =
     request.headers.get('x-business-slug')?.trim() ||
-    request.nextUrl?.searchParams.get('businessSlug')?.trim()
+    request.nextUrl?.searchParams.get('businessSlug')?.trim() ||
+    getBusinessSlugFromReferer(request.headers.get('referer'))
   return {
     ...(businessId ? { businessId } : {}),
     ...(businessSlug ? { businessSlug } : {}),
+  }
+}
+
+const RESERVED_SCOPE_SEGMENTS = new Set([
+  'admin',
+  'api',
+  'athlete',
+  'coach',
+  'login',
+  'physio',
+  'pricing',
+  'register',
+  'signup',
+])
+
+function getBusinessSlugFromReferer(referer: string | null): string | undefined {
+  if (!referer) return undefined
+
+  try {
+    const { pathname } = new URL(referer)
+    const [firstSegment] = pathname.split('/').filter(Boolean)
+    if (!firstSegment || RESERVED_SCOPE_SEGMENTS.has(firstSegment)) return undefined
+    return firstSegment
+  } catch {
+    return undefined
   }
 }
 

@@ -94,10 +94,14 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
 
   useEffect(() => {
     const controller = new AbortController()
+    const businessScopeHeaders = businessSlug ? { 'x-business-slug': businessSlug } : undefined
 
     const fetchClients = async () => {
       try {
-        const response = await fetch('/api/clients', { signal: controller.signal })
+        const response = await fetch('/api/clients', {
+          signal: controller.signal,
+          headers: businessScopeHeaders,
+        })
         const data = await response.json()
 
         if (data.success && data.data.length > 0) {
@@ -139,7 +143,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
     void fetchUserRole()
 
     return () => controller.abort()
-  }, [initialClientId, toast, t])
+  }, [businessSlug, initialClientId, toast, t])
 
   const selectedClient = clients.find((c) => c.id === selectedClientId)
   const isHockeyClient = (client: TestPageClient | undefined) => {
@@ -204,6 +208,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
         },
         body: JSON.stringify({
           ...data,
