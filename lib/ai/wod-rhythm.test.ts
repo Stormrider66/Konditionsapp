@@ -4,6 +4,7 @@ import type { WODAthleteContext } from '@/types/wod'
 const mockWorkoutLogFindMany = vi.hoisted(() => vi.fn())
 const mockAdHocFindMany = vi.hoisted(() => vi.fn())
 const mockWodFindMany = vi.hoisted(() => vi.fn())
+const mockIntegrationTokenFindUnique = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -15,6 +16,9 @@ vi.mock('@/lib/prisma', () => ({
     },
     aIGeneratedWOD: {
       findMany: mockWodFindMany,
+    },
+    integrationToken: {
+      findUnique: mockIntegrationTokenFindUnique,
     },
   },
 }))
@@ -44,6 +48,7 @@ describe('WOD rhythm inference', () => {
     mockWorkoutLogFindMany.mockResolvedValue([])
     mockAdHocFindMany.mockResolvedValue([])
     mockWodFindMany.mockResolvedValue([])
+    mockIntegrationTokenFindUnique.mockResolvedValue(null)
   })
 
   it('prefers the athlete same-weekday training rhythm', async () => {
@@ -101,5 +106,31 @@ describe('WOD rhythm inference', () => {
     expect(intent.mode).toBe('casual')
     expect(intent.focusArea).toBe('recovery')
     expect(intent.duration).toBeLessThanOrEqual(35)
+  })
+
+  it('does not use Garmin-linked ad-hoc workouts for cloud rhythm inference', async () => {
+    mockIntegrationTokenFindUnique.mockResolvedValue({ syncEnabled: true })
+    mockAdHocFindMany.mockResolvedValue([
+      {
+        workoutDate: new Date('2026-05-18T08:00:00Z'),
+        parsedType: 'STRENGTH',
+        parsedStructure: {
+          type: 'STRENGTH',
+          duration: 60,
+          intensity: 'MODERATE',
+        },
+        garminActivityId: 'garmin-1',
+      },
+    ])
+
+    const intent = await inferWODRhythmIntent(
+      'client-1',
+      baseContext,
+      'en',
+      new Date('2026-05-25T10:00:00Z')
+    )
+
+    expect(intent.workoutType).toBe('cardio')
+    expect(intent.signals).toContain('Limited history, using profile and safe defaults')
   })
 })

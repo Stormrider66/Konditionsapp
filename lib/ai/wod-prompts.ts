@@ -52,6 +52,7 @@ export function buildWODPrompt(
   const outputLanguage = locale === 'sv' ? 'SWEDISH' : 'ENGLISH'
   const learningSection = formatLearningSection(context, locale)
   const autoIntentSection = formatAutoIntentSection(context, locale)
+  const dataPolicySection = formatDataPolicySection(context, locale)
   const candidateSection = formatSelectedCandidateSection(options?.selectedCandidate, locale)
   const promptVariantSection = formatPromptVariantAdjustment(options?.promptVariantAdjustment, locale)
 
@@ -68,17 +69,19 @@ ${workoutTypePrompt}
 - **Namn**: ${context.athleteName}
 - **Sport**: ${translateSport(context.primarySport)}
 - **Erfarenhet**: ${translateExperience(context.experienceLevel)}
-- **Beredskapspoäng**: ${context.readinessScore !== null ? `${context.readinessScore.toFixed(1)}/10` : 'Ej tillgänglig'}
+- **Beredskapspoäng**: ${formatReadinessScore(context, locale)}
 
 ${sportContext}
 
 ## TRÄNINGSKONTEXT
-- **Veckobelastning (TSS)**: ${context.weeklyTSS}
-- **ACWR-zon**: ${context.acwrZone}
+- **Veckobelastning (TSS)**: ${formatWeeklyLoad(context, locale)}
+- **ACWR-zon**: ${formatACWRZone(context, locale)}
 - **Nuvarande mål**: ${context.currentGoal || 'Ej angivet'}
 
 ## SENASTE TRÄNING (4 dagar)
 ${formatRecentWorkouts(context.recentWorkouts, locale)}
+
+${dataPolicySection}
 
 ## BEGRÄNSNINGAR OCH JUSTERINGAR
 ${constraintsSection}
@@ -144,6 +147,7 @@ function buildEnglishWODPrompt(
   const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
   const learningSection = formatLearningSection(context, 'en')
   const autoIntentSection = formatAutoIntentSection(context, 'en')
+  const dataPolicySection = formatDataPolicySection(context, 'en')
   const candidateSection = formatSelectedCandidateSection(options?.selectedCandidate, 'en')
   const promptVariantSection = formatPromptVariantAdjustment(options?.promptVariantAdjustment, 'en')
 
@@ -169,17 +173,19 @@ ${workoutTypePrompt}
 - **Name**: ${context.athleteName}
 - **Sport**: ${translateSportEn(context.primarySport)}
 - **Experience**: ${translateExperienceEn(context.experienceLevel)}
-- **Readiness score**: ${context.readinessScore !== null ? `${context.readinessScore.toFixed(1)}/10` : 'Not available'}
+- **Readiness score**: ${formatReadinessScore(context, 'en')}
 
 ${sportContext}
 
 ## TRAINING CONTEXT
-- **Weekly load (TSS)**: ${context.weeklyTSS}
-- **ACWR zone**: ${context.acwrZone}
+- **Weekly load (TSS)**: ${formatWeeklyLoad(context, 'en')}
+- **ACWR zone**: ${formatACWRZone(context, 'en')}
 - **Current goal**: ${context.currentGoal || 'Not specified'}
 
 ## RECENT TRAINING (4 days)
 ${formatRecentWorkoutsEn(context.recentWorkouts)}
+
+${dataPolicySection}
 
 ## LIMITATIONS AND ADJUSTMENTS
 ${constraintsSection}
@@ -241,6 +247,7 @@ export function buildWODCandidatePrompt(
     : generateEnglishGuardrailConstraints(guardrails)
   const learningSection = formatLearningSection(context, locale)
   const autoIntentSection = formatAutoIntentSection(context, locale)
+  const dataPolicySection = formatDataPolicySection(context, locale)
   const promptVariantSection = formatPromptVariantAdjustment(promptVariantAdjustment, locale)
   const outputLanguage = locale === 'sv' ? 'SWEDISH' : 'ENGLISH'
 
@@ -257,13 +264,15 @@ Use ${outputLanguage} for title, summary, rationale, and section labels. Enum va
 - Name: ${context.athleteName}
 - Sport: ${locale === 'sv' ? translateSport(context.primarySport) : translateSportEn(context.primarySport)}
 - Experience: ${locale === 'sv' ? translateExperience(context.experienceLevel) : translateExperienceEn(context.experienceLevel)}
-- Readiness: ${context.readinessScore !== null ? `${context.readinessScore.toFixed(1)}/10` : 'not available'}
-- Weekly load: ${context.weeklyTSS} TSS
-- ACWR zone: ${context.acwrZone}
+- Readiness: ${formatReadinessScore(context, locale)}
+- Weekly load: ${formatWeeklyLoad(context, locale)}
+- ACWR zone: ${formatACWRZone(context, locale)}
 - Goal: ${context.currentGoal || 'not specified'}
 
 ## RECENT TRAINING
 ${locale === 'sv' ? formatRecentWorkouts(context.recentWorkouts, locale) : formatRecentWorkoutsEn(context.recentWorkouts)}
+
+${dataPolicySection}
 
 ## LIMITS
 ${constraintsSection}
@@ -335,6 +344,51 @@ function formatAutoIntentSection(
 ${signals}
 
 ${instruction}`
+}
+
+function formatDataPolicySection(
+  context: WODAthleteContext,
+  locale: 'en' | 'sv'
+): string {
+  const policy = context.dataPolicy
+  if (!policy || policy.mode === 'standard') return ''
+  const heading = locale === 'sv' ? '## DATAPOLICY FÖR AI' : '## AI DATA POLICY'
+  const withheld = policy.withheldSignals.length > 0
+    ? policy.withheldSignals.join(', ')
+    : locale === 'sv' ? 'inga' : 'none'
+  const instruction = locale === 'sv'
+    ? 'Garmin-ursprungsdata är inte tillåten i moln-AI. Använd endast de icke-Garmin-signaler som visas i prompten och försök inte återskapa saknade Garminvärden.'
+    : 'Garmin-origin data is not allowed in cloud AI. Use only the non-Garmin signals shown in this prompt and do not infer missing Garmin values.'
+
+  return `${heading}
+- mode: ${policy.mode}
+- withheldSignals: ${withheld}
+- notice: ${policy.notice}
+
+${instruction}`
+}
+
+function formatReadinessScore(context: WODAthleteContext, locale: 'en' | 'sv'): string {
+  if (context.dataPolicy?.withheldSignals.includes('readiness')) {
+    return locale === 'sv' ? 'Ej tillgänglig (Garmin-data undanhållen)' : 'Not available (Garmin data withheld)'
+  }
+  return context.readinessScore !== null
+    ? `${context.readinessScore.toFixed(1)}/10`
+    : locale === 'sv' ? 'Ej tillgänglig' : 'Not available'
+}
+
+function formatWeeklyLoad(context: WODAthleteContext, locale: 'en' | 'sv'): string {
+  if (context.dataPolicy?.withheldSignals.includes('training_load')) {
+    return locale === 'sv' ? 'Ej tillgänglig (Garmin-data undanhållen)' : 'Not available (Garmin data withheld)'
+  }
+  return `${context.weeklyTSS} TSS`
+}
+
+function formatACWRZone(context: WODAthleteContext, locale: 'en' | 'sv'): string {
+  if (context.dataPolicy?.withheldSignals.includes('training_load')) {
+    return locale === 'sv' ? 'Ej tillgänglig (Garmin-data undanhållen)' : 'Not available (Garmin data withheld)'
+  }
+  return context.acwrZone
 }
 
 function formatLearningSection(

@@ -158,6 +158,9 @@ export interface WODMetadata {
   candidateScore?: number
   promptVariantId?: string | null
   autoIntent?: WODAutoIntent | null
+
+  // Data policy
+  dataPolicy?: WODDataPolicy
 }
 
 export interface WODResponse {
@@ -184,6 +187,9 @@ export interface WODAthleteContext {
   // Training load
   weeklyTSS: number
   acwrZone: 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
+
+  // Third-party data handling for AI prompts
+  dataPolicy?: WODDataPolicy
 
   // Injuries
   activeInjuries: {
@@ -239,6 +245,14 @@ export interface WODAthleteContext {
     volumeReduction: number
     promptConstraints: string
   }
+}
+
+export interface WODDataPolicy {
+  mode: 'standard' | 'garmin_redacted'
+  garminConnected: boolean
+  cloudAiGarminDataAllowed: boolean
+  withheldSignals: Array<'readiness' | 'training_load' | 'recent_garmin_workouts'>
+  notice: string
 }
 
 export interface WODGuardrailResult {

@@ -12,6 +12,7 @@ import { WOD_USAGE_LIMITS } from '@/types/wod'
 import { getRestrictionsForWOD } from '@/lib/training-restrictions'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import type { WODDataPolicy } from '@/types/wod'
 
 type AppLocale = 'en' | 'sv'
 
@@ -147,6 +148,7 @@ async function getLocationEquipment(clientId: string): Promise<WODAthleteContext
 export async function buildWODContext(clientId: string, locale: AppLocale = 'en'): Promise<WODAthleteContext | null> {
   const now = new Date()
   const fourDaysAgo = subDays(now, 4)
+  const sevenDaysAgo = subDays(now, 7)
 
   // Parallel fetch all context data
   const [
@@ -159,6 +161,7 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
     recentAdHocWorkouts,
     recentCompletedWODs,
     weeklyTrainingLoad,
+    integrationTokens,
     locationEquipment,
     trainingRestrictions,
   ] = await Promise.all([
@@ -169,6 +172,7 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
         id: true,
         name: true,
         aiInstructions: true,
+        preferredRecoverySource: true,
       },
     }),
 
@@ -213,6 +217,7 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
         readinessScore: true,
         wellnessScore: true,
         date: true,
+        factorScores: true,
       },
     }),
 
@@ -277,6 +282,7 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
         workoutName: true,
         parsedType: true,
         parsedStructure: true,
+        garminActivityId: true,
       },
       orderBy: { workoutDate: 'desc' },
       take: 10,
@@ -302,17 +308,29 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
     prisma.trainingLoad.findMany({
       where: {
         clientId,
-        date: { gte: subDays(now, 7) },
+        date: { gte: sevenDaysAgo },
       },
       select: {
         dailyLoad: true,
       },
     }),
 
-    // 8. Location equipment (enterprise feature)
+    // 8. Connected integrations for AI data-source policy
+    prisma.integrationToken.findMany({
+      where: {
+        clientId,
+        type: { in: ['GARMIN', 'OURA'] },
+        syncEnabled: true,
+      },
+      select: {
+        type: true,
+      },
+    }),
+
+    // 9. Location equipment (enterprise feature)
     getLocationEquipment(clientId),
 
-    // 9. Active training restrictions (physio system)
+    // 10. Active training restrictions (physio system)
     getRestrictionsForWOD(clientId, locale),
   ])
 
@@ -335,11 +353,24 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
     },
   })
 
-  // Calculate weekly TSS
-  const weeklyTSS = weeklyTrainingLoad.reduce((sum, load) => sum + (load.dailyLoad || 0), 0)
+  const recoverySource = resolveWODRecoverySource(
+    client.preferredRecoverySource,
+    integrationTokens.map((token) => token.type)
+  )
+  const dataPolicy = buildWODDataPolicy({
+    garminConnected: integrationTokens.some((token) => token.type === 'GARMIN'),
+    recoverySource,
+  })
+  const redactReadiness = dataPolicy.withheldSignals.includes('readiness')
+  const redactTrainingLoad = dataPolicy.withheldSignals.includes('training_load')
+
+  // Calculate weekly TSS. If Garmin is connected, the aggregate load may include
+  // Garmin-derived activity imports, so cloud-AI context receives a redacted value.
+  const rawWeeklyTSS = weeklyTrainingLoad.reduce((sum, load) => sum + (load.dailyLoad || 0), 0)
+  const weeklyTSS = redactTrainingLoad ? 0 : rawWeeklyTSS
 
   // Determine ACWR zone (simplified - uses weekly TSS thresholds)
-  const acwrZone = calculateACWRZone(weeklyTSS)
+  const acwrZone = redactTrainingLoad ? 'OPTIMAL' : calculateACWRZone(weeklyTSS)
 
   // Extract equipment from sport settings
   const availableEquipment = extractEquipment(sportProfile)
@@ -359,21 +390,23 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
       .filter((g): g is string => !!g),
   }))
 
-  const recentAdHocItems = recentAdHocWorkouts.map((workout) => {
-    const parsed = workout.parsedStructure as ParsedWorkout | null
-    const distanceKm = getParsedWorkoutDistanceKm(parsed)
-    return {
-      source: 'adhoc' as const,
-      name: parsed?.name || workout.workoutName || undefined,
-      type: parsed?.type || workout.parsedType || 'OTHER',
-      date: workout.workoutDate,
-      intensity: parsed?.intensity || 'MODERATE',
-      muscleGroups: [
-        ...(parsed?.strengthExercises?.map((exercise) => exercise.exerciseName).slice(0, 2) || []),
-        ...(distanceKm ? [`${distanceKm.toFixed(1)} km`] : []),
-      ],
-    }
-  })
+  const recentAdHocItems = recentAdHocWorkouts
+    .filter((workout) => !dataPolicy.garminConnected || !workout.garminActivityId)
+    .map((workout) => {
+      const parsed = workout.parsedStructure as ParsedWorkout | null
+      const distanceKm = getParsedWorkoutDistanceKm(parsed)
+      return {
+        source: 'adhoc' as const,
+        name: parsed?.name || workout.workoutName || undefined,
+        type: parsed?.type || workout.parsedType || 'OTHER',
+        date: workout.workoutDate,
+        intensity: parsed?.intensity || 'MODERATE',
+        muscleGroups: [
+          ...(parsed?.strengthExercises?.map((exercise) => exercise.exerciseName).slice(0, 2) || []),
+          ...(distanceKm ? [`${distanceKm.toFixed(1)} km`] : []),
+        ],
+      }
+    })
 
   const recentWODItems = recentCompletedWODs
     .filter((wod) => wod.completedAt)
@@ -404,7 +437,7 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
     experienceLevel,
 
     // Readiness
-    readinessScore: latestMetrics?.readinessScore ?? null,
+    readinessScore: redactReadiness ? null : latestMetrics?.readinessScore ?? null,
     fatigueLevel: latestCheckIn?.fatigue ?? null,
     sorenessLevel: latestCheckIn?.soreness ?? null,
     sleepQuality: latestCheckIn?.sleepQuality ?? null,
@@ -412,6 +445,7 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
     // Training load
     weeklyTSS,
     acwrZone,
+    dataPolicy,
 
     // Injuries
     activeInjuries: injuries,
@@ -525,6 +559,52 @@ function calculateACWRZone(weeklyTSS: number): WODAthleteContext['acwrZone'] {
   if (weeklyTSS < 800) return 'CAUTION'
   if (weeklyTSS < 1000) return 'DANGER'
   return 'CRITICAL'
+}
+
+function resolveWODRecoverySource(
+  preferredRecoverySource: string | null | undefined,
+  connectedTypes: string[]
+): 'GARMIN' | 'OURA' | null {
+  const connected = new Set(connectedTypes)
+  const preferred = preferredRecoverySource || 'AUTO'
+
+  if (preferred !== 'AUTO' && connected.has(preferred)) {
+    return preferred as 'GARMIN' | 'OURA'
+  }
+  if (connected.has('OURA')) return 'OURA'
+  if (connected.has('GARMIN')) return 'GARMIN'
+  return null
+}
+
+function buildWODDataPolicy(input: {
+  garminConnected: boolean
+  recoverySource: 'GARMIN' | 'OURA' | null
+}): WODDataPolicy {
+  if (!input.garminConnected) {
+    return {
+      mode: 'standard',
+      garminConnected: false,
+      cloudAiGarminDataAllowed: false,
+      withheldSignals: [],
+      notice: 'Standard WOD context. No Garmin connection detected.',
+    }
+  }
+
+  const withheldSignals: WODDataPolicy['withheldSignals'] = [
+    'training_load',
+    'recent_garmin_workouts',
+  ]
+  if (input.recoverySource === 'GARMIN') {
+    withheldSignals.push('readiness')
+  }
+
+  return {
+    mode: 'garmin_redacted',
+    garminConnected: true,
+    cloudAiGarminDataAllowed: false,
+    withheldSignals,
+    notice: 'Garmin-connected athlete: Garmin-origin signals are withheld from cloud AI prompts.',
+  }
 }
 
 /**

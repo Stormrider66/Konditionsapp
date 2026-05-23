@@ -30,7 +30,7 @@ export async function inferWODRhythmIntent(
   now: Date = new Date()
 ): Promise<WODAutoIntent> {
   const since = subDays(now, LOOKBACK_DAYS)
-  const [programLogs, adHocWorkouts, generatedWods] = await Promise.all([
+  const [programLogs, adHocWorkouts, generatedWods, garminToken] = await Promise.all([
     prisma.workoutLog.findMany({
       where: {
         workout: {
@@ -67,6 +67,7 @@ export async function inferWODRhythmIntent(
         workoutDate: true,
         parsedType: true,
         parsedStructure: true,
+        garminActivityId: true,
       },
       orderBy: { workoutDate: 'desc' },
       take: 80,
@@ -87,7 +88,19 @@ export async function inferWODRhythmIntent(
       orderBy: { completedAt: 'desc' },
       take: 80,
     }),
+    prisma.integrationToken.findUnique({
+      where: {
+        clientId_type: {
+          clientId,
+          type: 'GARMIN',
+        },
+      },
+      select: {
+        syncEnabled: true,
+      },
+    }),
   ])
+  const garminConnected = garminToken?.syncEnabled === true
 
   const samples: RhythmSample[] = [
     ...programLogs
@@ -99,16 +112,18 @@ export async function inferWODRhythmIntent(
         intensity: log.workout.intensity,
         source: 'program' as const,
       })),
-    ...adHocWorkouts.map((workout) => {
-      const parsed = workout.parsedStructure as ParsedWorkout | null
-      return {
-        date: workout.workoutDate,
-        workoutType: mapAnyWorkoutType(parsed?.type || workout.parsedType),
-        duration: parsed?.duration ?? null,
-        intensity: parsed?.intensity ?? null,
-        source: 'adhoc' as const,
-      }
-    }),
+    ...adHocWorkouts
+      .filter((workout) => !garminConnected || !workout.garminActivityId)
+      .map((workout) => {
+        const parsed = workout.parsedStructure as ParsedWorkout | null
+        return {
+          date: workout.workoutDate,
+          workoutType: mapAnyWorkoutType(parsed?.type || workout.parsedType),
+          duration: parsed?.duration ?? null,
+          intensity: parsed?.intensity ?? null,
+          source: 'adhoc' as const,
+        }
+      }),
     ...generatedWods
       .filter((wod) => wod.completedAt)
       .map((wod) => ({

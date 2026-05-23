@@ -412,6 +412,7 @@ export async function POST(request: NextRequest) {
       candidateScore: selectedCandidateScore.score,
       promptVariantId: promptVariant?.id ?? null,
       autoIntent: rhythmIntent,
+      dataPolicy: context.dataPolicy,
     }
 
     // Save to database
