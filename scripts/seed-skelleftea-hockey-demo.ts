@@ -26,26 +26,48 @@ function asSettingsObject(settings: unknown): Record<string, unknown> {
 }
 
 type TeamName = 'A-team' | 'J20' | 'J18'
+type RosterAthlete = {
+  name: string
+  position: 'G' | 'D' | 'C' | 'W'
+  jersey: number
+  birthYear: number
+  height: number
+  weight: number
+}
 
-const roster: Record<TeamName, Array<{ name: string; position: string; jersey: number; birthYear: number }>> = {
+const legacyDemoAthleteNote = 'Skelleftea hockey demo athlete. Safe to overwrite by rerunning seed:skelleftea-hockey-demo.'
+const seededRosterAthleteNote = 'Skelleftea AIK 2026 roster seed. Safe to overwrite by rerunning seed:skelleftea-hockey-demo.'
+
+const roster: Record<TeamName, RosterAthlete[]> = {
   'A-team': [
-    { name: 'Pilot Forward A1', position: 'C', jersey: 11, birthYear: 2002 },
-    { name: 'Pilot Forward A2', position: 'W', jersey: 18, birthYear: 2001 },
-    { name: 'Pilot Defender A1', position: 'D', jersey: 44, birthYear: 2000 },
-    { name: 'Pilot Goalie A1', position: 'G', jersey: 31, birthYear: 1999 },
+    { name: 'Viktor Grahn', position: 'D', jersey: 3, birthYear: 1998, height: 183, weight: 83 },
+    { name: 'Rasmus Bergqvist', position: 'D', jersey: 4, birthYear: 2005, height: 187, weight: 82 },
+    { name: 'Måns Forsfjäll', position: 'D', jersey: 6, birthYear: 2002, height: 182, weight: 81 },
+    { name: 'Frans Haara', position: 'D', jersey: 7, birthYear: 2004, height: 186, weight: 87 },
+    { name: 'Oliver Okuliar', position: 'W', jersey: 8, birthYear: 2000, height: 187, weight: 86 },
+    { name: 'Victor Stjernborg', position: 'C', jersey: 9, birthYear: 2003, height: 180, weight: 86 },
+    { name: 'Valter Lindberg', position: 'C', jersey: 12, birthYear: 2006, height: 178, weight: 78 },
+    { name: 'Andreas Johnsson', position: 'W', jersey: 14, birthYear: 1994, height: 178, weight: 82 },
+    { name: 'Pär Lindholm', position: 'C', jersey: 17, birthYear: 1991, height: 190, weight: 90 },
+    { name: 'Jonathan Johnson', position: 'C', jersey: 22, birthYear: 1993, height: 183, weight: 83 },
+    { name: 'Oscar Lindberg', position: 'C', jersey: 24, birthYear: 1991, height: 185, weight: 89 },
+    { name: 'Pontus Johansson', position: 'D', jersey: 25, birthYear: 2001, height: 185, weight: 84 },
+    { name: 'Andro Kaderli', position: 'W', jersey: 28, birthYear: 2005, height: 183, weight: 89 },
+    { name: 'Mikkel Aagaard', position: 'W', jersey: 29, birthYear: 1995, height: 184, weight: 81 },
+    { name: 'Jani Lampinen', position: 'G', jersey: 31, birthYear: 2003, height: 188, weight: 80 },
+    { name: 'Linus Söderström', position: 'G', jersey: 32, birthYear: 1996, height: 194, weight: 90 },
+    { name: 'Zeb Forsfjäll', position: 'C', jersey: 33, birthYear: 2005, height: 176, weight: 82 },
+    { name: 'Strauss Mann', position: 'G', jersey: 38, birthYear: 1998, height: 183, weight: 79 },
+    { name: 'Arvid Lundberg', position: 'D', jersey: 52, birthYear: 1994, height: 185, weight: 87 },
+    { name: 'Emil Djuse', position: 'D', jersey: 57, birthYear: 1993, height: 181, weight: 84 },
+    { name: 'Jonathan Pudas', position: 'D', jersey: 64, birthYear: 1993, height: 179, weight: 79 },
+    { name: 'Jonathan Davidsson', position: 'W', jersey: 71, birthYear: 1997, height: 182, weight: 84 },
+    { name: 'Oskar Vuollet', position: 'C', jersey: 72, birthYear: 2004, height: 183, weight: 86 },
+    { name: 'Viggo Nordlund', position: 'W', jersey: 73, birthYear: 2006, height: 176, weight: 76 },
+    { name: 'Rickard Hugg', position: 'W', jersey: 96, birthYear: 1999, height: 179, weight: 86 },
   ],
-  J20: [
-    { name: 'Pilot Forward J20-1', position: 'C', jersey: 21, birthYear: 2006 },
-    { name: 'Pilot Forward J20-2', position: 'W', jersey: 27, birthYear: 2006 },
-    { name: 'Pilot Defender J20-1', position: 'D', jersey: 55, birthYear: 2005 },
-    { name: 'Pilot Goalie J20-1', position: 'G', jersey: 35, birthYear: 2005 },
-  ],
-  J18: [
-    { name: 'Pilot Forward J18-1', position: 'C', jersey: 16, birthYear: 2008 },
-    { name: 'Pilot Forward J18-2', position: 'W', jersey: 24, birthYear: 2008 },
-    { name: 'Pilot Defender J18-1', position: 'D', jersey: 47, birthYear: 2007 },
-    { name: 'Pilot Goalie J18-1', position: 'G', jersey: 30, birthYear: 2007 },
-  ],
+  J20: [],
+  J18: [],
 }
 
 const seasonDates = [
@@ -87,20 +109,20 @@ function positionAdjustment(position: string) {
   return { sprint: -0.04, endurance: 0.2, strength: -0.02, jump: 2 }
 }
 
-function athleteSeed(teamName: TeamName, position: string, athleteIndex: number, seasonIndex: number) {
+function athleteSeed(teamName: TeamName, athlete: RosterAthlete, athleteIndex: number, seasonIndex: number) {
   const base = levelBase(teamName)
-  const positionAdj = positionAdjustment(position)
+  const positionAdj = positionAdjustment(athlete.position)
   const progress = seasonIndex * 0.045
   const athleteOffset = athleteIndex * 0.012
   const sprint30 = round(4.72 - base * 0.22 - progress + positionAdj.sprint + athleteOffset, 2)
   const sprint20 = round(sprint30 * 0.72, 2)
   const sprint10 = round(sprint30 * 0.42, 2)
   const first40 = round(6.05 - base * 0.23 - progress + positionAdj.sprint + athleteOffset, 2)
-  const fatigue = 0.05 + athleteIndex * 0.025 + (position === 'G' ? 0.05 : 0) - seasonIndex * 0.006
+  const fatigue = 0.05 + athleteIndex * 0.025 + (athlete.position === 'G' ? 0.05 : 0) - seasonIndex * 0.006
   const endurance7x40 = Array.from({ length: 7 }, (_, index) => round(first40 + index * fatigue, 2))
   const repeated = buildRepeatedSprintProfile(endurance7x40)
   const vo2Max = round(51 + base * 6 + progress * 34 + positionAdj.endurance - athleteIndex * 0.4, 1)
-  const bodyMass = position === 'G' ? 88 : position === 'D' ? 86 : 82
+  const bodyMass = athlete.weight
 
   return {
     bodyMass,
@@ -131,7 +153,7 @@ function athleteSeed(teamName: TeamName, position: string, athleteIndex: number,
     lt2HeartRate: Math.round(174 + base * 5 + seasonIndex),
     lt2Lactate: round(3.4 + athleteIndex * 0.12, 1),
     maxLactate: round(8.6 + base * 1.1 + athleteIndex * 0.2, 1),
-    maxHeartRate: Math.round(190 + athleteIndex - (position === 'G' ? 2 : 0)),
+    maxHeartRate: Math.round(190 + athleteIndex - (athlete.position === 'G' ? 2 : 0)),
     rampTimeSeconds: Math.round(690 + base * 95 + seasonIndex * 32 + positionAdj.endurance * 10),
     muscleLabMaxima: {
       protocolLabel: 'Quarter-depth loaded jump squat power profile',
@@ -154,19 +176,40 @@ async function findOwner() {
     throw new Error(`No Trainomics user found for ${email}.`)
   }
 
+  const existingOrganization = await prisma.organization.findUnique({
+    where: { id: `${businessSlug}-org` },
+    select: { user: true },
+  })
+  if (existingOrganization?.user) return existingOrganization.user
+
   const existingBusiness = await prisma.business.findUnique({
     where: { slug: businessSlug },
     select: {
       members: {
-        where: { isActive: true },
-        orderBy: [{ role: 'asc' }, { acceptedAt: 'asc' }],
+        where: { isActive: true, role: 'OWNER' },
+        orderBy: [{ acceptedAt: 'asc' }],
         take: 1,
         select: { user: true },
       },
     },
   })
 
-  const owner = existingBusiness?.members[0]?.user
+  let owner = existingBusiness?.members[0]?.user
+  if (owner) return owner
+
+  const fallbackBusiness = await prisma.business.findUnique({
+    where: { slug: businessSlug },
+    select: {
+      members: {
+        where: { isActive: true },
+        orderBy: [{ acceptedAt: 'asc' }],
+        take: 1,
+        select: { user: true },
+      },
+    },
+  })
+
+  owner = fallbackBusiness?.members[0]?.user
   if (owner) return owner
   throw new Error('Set SKELLEFTEA_OWNER_EMAIL the first time you seed the Skelleftea demo workspace.')
 }
@@ -178,6 +221,263 @@ async function upsertByFindFirst<T>(
 ) {
   const existing = await find()
   return existing ? update(existing) : create()
+}
+
+async function deleteStaleSeededAthletes(businessId: string) {
+  const currentRosterNames = Object.values(roster).flat().map((athlete) => athlete.name)
+  const staleSeededAthletes = await prisma.client.findMany({
+    where: {
+      businessId,
+      OR: [
+        { notes: legacyDemoAthleteNote },
+        { notes: seededRosterAthleteNote },
+        { name: { startsWith: 'Pilot ' } },
+      ],
+      ...(currentRosterNames.length > 0 ? { NOT: { name: { in: currentRosterNames } } } : {}),
+    },
+    select: { id: true },
+  })
+
+  if (staleSeededAthletes.length === 0) return 0
+
+  await prisma.client.deleteMany({
+    where: { id: { in: staleSeededAthletes.map((athlete) => athlete.id) } },
+  })
+
+  return staleSeededAthletes.length
+}
+
+async function deleteEmptySeededTeams(organizationId: string) {
+  const seededTeams = await prisma.team.findMany({
+    where: {
+      organizationId,
+      name: { in: Object.keys(roster) },
+      OR: [
+        { description: { contains: 'pilot group' } },
+        { description: { contains: 'demo group' } },
+        { description: { contains: 'roster group' } },
+      ],
+    },
+    select: {
+      id: true,
+      _count: {
+        select: {
+          members: true,
+          hockeyPhysicalTests: true,
+          events: true,
+          plans: true,
+          workoutBroadcasts: true,
+          liveHRSessions: true,
+          intervalSessions: true,
+          coachAssignments: true,
+          communityPosts: true,
+          drills: true,
+          notes: true,
+          customTestResults: true,
+          physioAssignments: true,
+        },
+      },
+    },
+  })
+
+  const emptyTeamIds = seededTeams
+    .filter((team) => Object.values(team._count).every((count) => count === 0))
+    .map((team) => team.id)
+
+  if (emptyTeamIds.length === 0) return 0
+
+  await prisma.team.deleteMany({
+    where: { id: { in: emptyTeamIds } },
+  })
+
+  return emptyTeamIds.length
+}
+
+async function deleteLegacyNoDataPilotTeams(organizationId: string) {
+  const legacyTeams = await prisma.team.findMany({
+    where: {
+      organizationId,
+      name: { in: Object.keys(roster) },
+      OR: [
+        { description: { contains: 'pilot group' } },
+        { description: { contains: 'demo group' } },
+      ],
+    },
+    select: {
+      id: true,
+      members: {
+        select: {
+          id: true,
+          name: true,
+          notes: true,
+          athleteProfile: { select: { id: true } },
+          athleteAccount: { select: { id: true } },
+          sportProfile: { select: { id: true } },
+          _count: {
+            select: {
+              tests: true,
+              hockeyPhysicalTests: true,
+              trainingPrograms: true,
+              athletePlans: true,
+              dailyMetrics: true,
+              trainingLoads: true,
+              injuryAssessments: true,
+              strengthSessions: true,
+              cardioSessionAssignments: true,
+              strengthSessionAssignments: true,
+              hybridWorkoutAssignments: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          members: true,
+          hockeyPhysicalTests: true,
+          events: true,
+          plans: true,
+          workoutBroadcasts: true,
+          liveHRSessions: true,
+          intervalSessions: true,
+          coachAssignments: true,
+          communityPosts: true,
+          drills: true,
+          notes: true,
+          customTestResults: true,
+          physioAssignments: true,
+        },
+      },
+    },
+  })
+
+  const deletableTeamIds: string[] = []
+  const deletableClientIds: string[] = []
+
+  for (const team of legacyTeams) {
+    const hasNoTeamData = Object.entries(team._count).every(([key, count]) => {
+      if (key === 'members') return true
+      return count === 0
+    })
+    if (!hasNoTeamData) continue
+
+    const safeMembers = team.members.filter((member) => {
+      const isKnownSeededMember =
+        member.name.startsWith('Pilot ') ||
+        member.notes === legacyDemoAthleteNote ||
+        member.notes === seededRosterAthleteNote
+      const hasNoMemberData =
+        Object.values(member._count).every((count) => count === 0) &&
+        !member.athleteProfile &&
+        !member.athleteAccount &&
+        !member.sportProfile
+
+      return isKnownSeededMember || hasNoMemberData
+    })
+
+    if (safeMembers.length !== team.members.length) continue
+
+    deletableTeamIds.push(team.id)
+    deletableClientIds.push(...safeMembers.map((member) => member.id))
+  }
+
+  if (deletableTeamIds.length === 0) return { teams: 0, athletes: 0 }
+
+  if (deletableClientIds.length > 0) {
+    await prisma.client.deleteMany({
+      where: { id: { in: deletableClientIds } },
+    })
+  }
+  await prisma.team.deleteMany({
+    where: { id: { in: deletableTeamIds } },
+  })
+
+  return { teams: deletableTeamIds.length, athletes: deletableClientIds.length }
+}
+
+async function deleteDuplicateSeededRosterTeams(organizationId: string, ownerId: string) {
+  const teamNamesWithRoster = Object.entries(roster)
+    .filter(([, athletes]) => athletes.length > 0)
+    .map(([teamName]) => teamName)
+
+  const seededTeams = await prisma.team.findMany({
+    where: {
+      organizationId,
+      name: { in: teamNamesWithRoster },
+      description: { contains: 'roster group' },
+    },
+    orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+    select: {
+      id: true,
+      name: true,
+      userId: true,
+      createdAt: true,
+      members: { select: { notes: true } },
+      _count: {
+        select: {
+          members: true,
+          events: true,
+          plans: true,
+          workoutBroadcasts: true,
+          liveHRSessions: true,
+          intervalSessions: true,
+          coachAssignments: true,
+          communityPosts: true,
+          drills: true,
+          notes: true,
+          customTestResults: true,
+          physioAssignments: true,
+        },
+      },
+    },
+  })
+
+  const teamsByName = seededTeams.reduce((groups, team) => {
+    const teams = groups.get(team.name) ?? []
+    teams.push(team)
+    groups.set(team.name, teams)
+    return groups
+  }, new Map<string, typeof seededTeams>())
+
+  const duplicateTeamIds: string[] = []
+  for (const teams of teamsByName.values()) {
+    if (teams.length <= 1) continue
+
+    const [canonical] = [...teams].sort((a, b) => {
+      if (a.userId === ownerId && b.userId !== ownerId) return -1
+      if (a.userId !== ownerId && b.userId === ownerId) return 1
+      if (a._count.members !== b._count.members) return b._count.members - a._count.members
+      return b.createdAt.getTime() - a.createdAt.getTime()
+    })
+
+    for (const team of teams) {
+      const isDuplicate = team.id !== canonical.id
+      const hasOnlySeededRosterMembers =
+        team.members.length > 0 &&
+        team.members.every((member) => member.notes === seededRosterAthleteNote)
+      const hasNoManualTeamData = Object.entries(team._count).every(([key, count]) => {
+        if (key === 'members') return true
+        return count === 0
+      })
+
+      if (isDuplicate && hasOnlySeededRosterMembers && hasNoManualTeamData) {
+        duplicateTeamIds.push(team.id)
+      }
+    }
+  }
+
+  if (duplicateTeamIds.length === 0) return { teams: 0, athletes: 0 }
+
+  const deletedAthletes = await prisma.client.deleteMany({
+    where: {
+      teamId: { in: duplicateTeamIds },
+      notes: seededRosterAthleteNote,
+    },
+  })
+  await prisma.team.deleteMany({
+    where: { id: { in: duplicateTeamIds } },
+  })
+
+  return { teams: duplicateTeamIds.length, athletes: deletedAthletes.count }
 }
 
 async function main() {
@@ -247,14 +547,20 @@ async function main() {
       userId: owner.id,
       name: businessName,
       sportType: 'TEAM_ICE_HOCKEY',
-      description: 'Demo workspace with longitudinal hockey testing data.',
+      description: 'Roster workspace with longitudinal hockey testing data.',
     },
   })
 
   let athletes = 0
   let hockeyTests = 0
+  const removedStaleAthletes = await deleteStaleSeededAthletes(business.id)
+  const removedLegacyPilot = await deleteLegacyNoDataPilotTeams(organization.id)
+  let removedEmptyTeams = await deleteEmptySeededTeams(organization.id)
 
   for (const teamName of Object.keys(roster) as TeamName[]) {
+    const teamRoster = roster[teamName]
+    if (teamRoster.length === 0) continue
+
     const team = await upsertByFindFirst(
       () => prisma.team.findFirst({ where: { userId: owner.id, organizationId: organization.id, name: teamName } }),
       () => prisma.team.create({
@@ -263,16 +569,16 @@ async function main() {
           organizationId: organization.id,
           name: teamName,
           sportType: 'TEAM_ICE_HOCKEY',
-          description: `${businessName} ${teamName} demo group`,
+          description: `${businessName} ${teamName} roster group`,
         },
       }),
       (existing) => prisma.team.update({
         where: { id: existing.id },
-        data: { sportType: 'TEAM_ICE_HOCKEY', description: `${businessName} ${teamName} demo group` },
+        data: { sportType: 'TEAM_ICE_HOCKEY', description: `${businessName} ${teamName} roster group` },
       }),
     )
 
-    for (const [athleteIndex, athlete] of roster[teamName].entries()) {
+    for (const [athleteIndex, athlete] of teamRoster.entries()) {
       const email = `demo.${businessSlug}.${teamName.toLowerCase().replace(/[^a-z0-9]/g, '')}.${athlete.jersey}@trainomics.test`
       const client = await upsertByFindFirst(
         () => prisma.client.findFirst({ where: { userId: owner.id, teamId: team.id, name: athlete.name } }),
@@ -285,11 +591,11 @@ async function main() {
             email,
             gender: Gender.MALE,
             birthDate: new Date(`${athlete.birthYear}-07-01T00:00:00.000Z`),
-            height: athlete.position === 'G' ? 188 : athlete.position === 'D' ? 184 : 181,
-            weight: athlete.position === 'G' ? 88 : athlete.position === 'D' ? 86 : 82,
+            height: athlete.height,
+            weight: athlete.weight,
             position: athlete.position,
             jerseyNumber: athlete.jersey,
-            notes: 'Skelleftea hockey demo athlete. Safe to overwrite by rerunning seed:skelleftea-hockey-demo.',
+            notes: seededRosterAthleteNote,
             manualVo2max: null,
             manualMaxHR: null,
           },
@@ -300,15 +606,17 @@ async function main() {
             businessId: business.id,
             teamId: team.id,
             email,
+            height: athlete.height,
+            weight: athlete.weight,
             position: athlete.position,
             jerseyNumber: athlete.jersey,
-            notes: 'Skelleftea hockey demo athlete. Safe to overwrite by rerunning seed:skelleftea-hockey-demo.',
+            notes: seededRosterAthleteNote,
           },
         }),
       )
       athletes += 1
 
-      const latest = athleteSeed(teamName, athlete.position, athleteIndex, seasonDates.length - 1)
+      const latest = athleteSeed(teamName, athlete, athleteIndex, seasonDates.length - 1)
       await prisma.athleteProfile.upsert({
         where: { clientId: client.id },
         update: {
@@ -331,7 +639,7 @@ async function main() {
       })
 
       for (const [seasonIndex, testDate] of seasonDates.entries()) {
-        const seed = athleteSeed(teamName, athlete.position, athleteIndex, seasonIndex)
+        const seed = athleteSeed(teamName, athlete, athleteIndex, seasonIndex)
         const labDate = new Date(testDate)
         labDate.setUTCHours(8, 30, 0, 0)
         const omitAerobicInHockeyTest = seasonIndex === seasonDates.length - 1 && athleteIndex % 2 === 0
@@ -459,8 +767,19 @@ async function main() {
     }
   }
 
-  console.log(`Seeded ${athletes} demo athletes and ${hockeyTests} hockey tests for /${business.slug}.`)
-  console.log('Half of latest demo hockey tests intentionally omit aerobic lab fields, so linked-source badges can be verified.')
+  const removedDuplicateRoster = await deleteDuplicateSeededRosterTeams(organization.id, owner.id)
+  removedEmptyTeams += await deleteEmptySeededTeams(organization.id)
+
+  console.log(`Removed ${removedStaleAthletes} stale seeded athletes from /${business.slug}.`)
+  console.log(
+    `Removed ${removedLegacyPilot.athletes} legacy no-data pilot athletes across ${removedLegacyPilot.teams} teams from /${business.slug}.`,
+  )
+  console.log(
+    `Removed ${removedDuplicateRoster.athletes} duplicate seeded roster athletes across ${removedDuplicateRoster.teams} teams from /${business.slug}.`,
+  )
+  console.log(`Removed ${removedEmptyTeams} empty seeded teams from /${business.slug}.`)
+  console.log(`Seeded ${athletes} roster athletes and ${hockeyTests} hockey tests for /${business.slug}.`)
+  console.log('Half of latest seeded hockey tests intentionally omit aerobic lab fields, so linked-source badges can be verified.')
 }
 
 main()
