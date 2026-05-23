@@ -227,6 +227,7 @@ Team
 TeamCoachAssignment
 TeamDrill
 TeamEvent
+TeamNote
 TeamPlan
 TeamPlanBlock
 TeamWorkoutBroadcast

@@ -130,7 +130,7 @@ describe('Tenant boundary - access routes', () => {
 
   it('POST /api/agility-workouts/[id]/assign denies when athleteIds include foreign athlete', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: 'COACH' } as any)
-    vi.mocked(prisma.agilityWorkout.findUnique).mockResolvedValue({
+    vi.mocked(prisma.agilityWorkout.findFirst).mockResolvedValue({
       id: 'workout-1',
       name: 'Agility Test',
       coachId: 'coach-a',

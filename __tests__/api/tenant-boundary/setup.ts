@@ -257,7 +257,7 @@ vi.mock('@/lib/prisma', () => ({
     aIPrediction: { findMany: vi.fn(), count: vi.fn(), create: vi.fn() },
     hybridWorkoutResult: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
     hybridWorkout: { findUnique: vi.fn(), findFirst: vi.fn() },
-    agilityWorkout: { findUnique: vi.fn() },
+    agilityWorkout: { findFirst: vi.fn(), findUnique: vi.fn() },
     location: { findUnique: vi.fn() },
     calendarEvent: { create: vi.fn() },
     agilityWorkoutAssignment: { upsert: vi.fn() },
