@@ -256,6 +256,8 @@ VBTSession
 VideoAnalysis
 VisualReport
 VoiceWorkoutSession
+WODGlobalLearningAggregate
+WODPreferenceProfile
 WeeklyReport
 WeeklyTrainingSummary
 Workout
