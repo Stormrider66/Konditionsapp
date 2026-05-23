@@ -14,12 +14,13 @@ import { useTranslations } from '@/i18n/client'
 interface QuickActionsGridProps {
   sessionHref: string
   sessionLabel: string
+  showInjuryReport?: boolean
 }
 
 const TILE_BASE =
   'dark:bg-slate-800/50 dark:hover:bg-slate-700/60 bg-white hover:bg-slate-50 rounded-xl p-4 ring-1 ring-black/5 dark:ring-white/5 hover:ring-black/10 dark:hover:ring-white/10 transition-all cursor-pointer flex flex-col items-center gap-2'
 
-export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGridProps) {
+export function QuickActionsGrid({ sessionHref, sessionLabel, showInjuryReport = true }: QuickActionsGridProps) {
   const basePath = useBasePath()
   const t = useTranslations('components.quickActionsGrid')
 
@@ -86,13 +87,14 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('videoAnalysis')}</span>
         </Link>
 
-        {/* Injury report */}
-        <Link href={`${basePath}/athlete/injury-report`} className={TILE_BASE}>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-red-500/10">
-            <ShieldAlert className="h-5 w-5 text-red-500" />
-          </div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Rapportera skada</span>
-        </Link>
+        {showInjuryReport && (
+          <Link href={`${basePath}/athlete/injury-report`} className={TILE_BASE}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-red-500/10">
+              <ShieldAlert className="h-5 w-5 text-red-500" />
+            </div>
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Rapportera skada</span>
+          </Link>
+        )}
       </div>
 
       {/* Workout input method selector */}

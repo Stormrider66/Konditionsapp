@@ -66,6 +66,38 @@ export async function getAssignedPhysioUserIdsForClient(clientId: string): Promi
   return Array.from(new Set(assignments.map((assignment) => assignment.physioUserId)))
 }
 
+export async function getTeamPhysioUserIdsForClient(clientId: string): Promise<string[]> {
+  const scope = await getClientMedicalScope(clientId)
+  if (!scope?.teamId) return []
+
+  const now = new Date()
+  const assignments = await prisma.physioAssignment.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { teamId: scope.teamId },
+        ...(scope.team?.organizationId ? [{ organizationId: scope.team.organizationId }] : []),
+      ],
+      AND: [
+        {
+          OR: [
+            { endDate: null },
+            { endDate: { gte: now } },
+          ],
+        },
+      ],
+    },
+    select: { physioUserId: true },
+  })
+
+  return Array.from(new Set(assignments.map((assignment) => assignment.physioUserId)))
+}
+
+export async function canClientReportInjuryToTeamPhysio(clientId: string): Promise<boolean> {
+  const teamPhysioIds = await getTeamPhysioUserIdsForClient(clientId)
+  return teamPhysioIds.length > 0
+}
+
 export async function getMedicalNotificationRecipientIdsForClient(
   clientId: string,
   excludeUserIds: string[] = []

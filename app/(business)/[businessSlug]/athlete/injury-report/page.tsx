@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
+import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recipients'
 import { InjuryReportForm } from '@/components/athlete/injury/InjuryReportForm'
 
 interface PageProps {
@@ -27,6 +28,11 @@ export default async function BusinessAthleteInjuryReportPage({ params }: PagePr
 
   if (!athlete) {
     redirect(`/${businessSlug}/athlete/onboarding`)
+  }
+
+  const canReportToTeamPhysio = await canClientReportInjuryToTeamPhysio(athlete.id)
+  if (!canReportToTeamPhysio) {
+    redirect(`/${businessSlug}/athlete/dashboard`)
   }
 
   return (

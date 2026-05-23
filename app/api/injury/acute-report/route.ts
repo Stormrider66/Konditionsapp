@@ -7,9 +7,11 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 import {
+  canClientReportInjuryToTeamPhysio,
   getAssignedPhysioUserIdsForClient,
   getMedicalNotificationRecipientIdsForClient,
 } from '@/lib/medical/care-team-recipients'
+import { sendAcuteInjuryExternalAlerts } from '@/lib/notifications/medical-external-alerts'
 
 // Validation schema for creating an acute injury report
 const createAcuteInjuryReportSchema = z.object({
@@ -201,6 +203,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (user.role === 'ATHLETE') {
+      const canReportToTeamPhysio = await canClientReportInjuryToTeamPhysio(validatedData.clientId)
+      if (!canReportToTeamPhysio) {
+        return NextResponse.json(
+          { error: 'Injury reports are only available when your team has an assigned physio.' },
+          { status: 403 }
+        )
+      }
+    }
+
     const report = await prisma.acuteInjuryReport.create({
       data: {
         reporterId: user.id,
@@ -296,6 +308,13 @@ export async function POST(request: NextRequest) {
           },
         })
       }
+
+      await sendAcuteInjuryExternalAlerts({
+        reportId: report.id,
+        clientId: validatedData.clientId,
+        reporterId: user.id,
+        urgency: validatedData.urgency,
+      })
     } catch (notifyError) {
       logger.error('Failed to send acute injury notifications', { reportId: report.id }, notifyError)
       // Don't block report creation if notification fails

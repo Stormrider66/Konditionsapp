@@ -72,6 +72,7 @@ import {
   mapWODToDashboard,
   mapAdHocWorkoutToDashboard,
 } from '@/types/dashboard-items'
+import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recipients'
 
 export default async function AthleteDashboardPage() {
   const { user, clientId, isCoachInAthleteMode } = await requireAthleteOrCoachInAthleteMode()
@@ -107,6 +108,7 @@ export default async function AthleteDashboardPage() {
   const primarySport = activeSportCookie && availableSports.includes(activeSportCookie)
     ? activeSportCookie
     : sportProfile?.primarySport
+  const showInjuryReport = await canClientReportInjuryToTeamPhysio(client.id)
 
   const now = new Date()
 
@@ -128,6 +130,7 @@ export default async function AthleteDashboardPage() {
           <QuickActionsGrid
             sessionHref={`${basePath}/athlete/nutrition`}
             sessionLabel={t('quickActions.nutritionStats')}
+            showInjuryReport={showInjuryReport}
           />
           <AICreditStatusCard basePath={basePath} compact />
         </div>
@@ -658,6 +661,7 @@ export default async function AthleteDashboardPage() {
                   : '/athlete/browse-workouts'
           }
           sessionLabel={firstActionableItem ? t('quickActions.startSession') : t('quickActions.findSession')}
+          showInjuryReport={showInjuryReport}
         />
         <AICreditStatusCard basePath={basePath} compact />
       </div>

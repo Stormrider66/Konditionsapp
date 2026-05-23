@@ -74,6 +74,7 @@ import {
 } from '@/types/dashboard-items'
 import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
 import { resolveAthleteWidgets, visibleKeys } from '@/lib/dashboard/resolve-widgets'
+import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recipients'
 
 interface BusinessAthleteDashboardProps {
   params: Promise<{ businessSlug: string }>
@@ -118,6 +119,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const primarySport = activeSportCookie && availableSports.includes(activeSportCookie)
     ? activeSportCookie
     : sportProfile?.primarySport
+  const showInjuryReport = await canClientReportInjuryToTeamPhysio(client.id)
 
   const now = new Date()
 
@@ -157,6 +159,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           <QuickActionsGrid
             sessionHref={`${basePath}/athlete/nutrition`}
             sessionLabel={t('quickActions.nutritionStats')}
+            showInjuryReport={showInjuryReport}
           />
           <AICreditStatusCard basePath={basePath} compact />
         </div>
@@ -772,6 +775,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
                 : `${basePath}/athlete/browse-workouts`
           }
           sessionLabel={firstActionableItem ? t('quickActions.startSession') : t('quickActions.findSession')}
+          showInjuryReport={showInjuryReport}
         />
         <AICreditStatusCard basePath={basePath} compact />
       </div>
