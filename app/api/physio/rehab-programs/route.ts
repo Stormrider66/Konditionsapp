@@ -1,7 +1,7 @@
 // app/api/physio/rehab-programs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requirePhysio, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
+import { requirePhysio, canAccessAthleteAsPhysio, getPhysioAthletes } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { createRehabProgramThread } from '@/lib/notifications/care-team'
 import { logger } from '@/lib/logger'
@@ -39,9 +39,14 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
+    const accessibleAthleteIds = await getPhysioAthletes(user.id)
+    if (accessibleAthleteIds.length === 0) {
+      return NextResponse.json({ programs: [], total: 0, limit, offset })
+    }
+
     // Build where clause
     const where: Record<string, unknown> = {
-      physioUserId: user.id,
+      clientId: { in: accessibleAthleteIds },
     }
 
     if (clientId) {

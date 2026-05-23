@@ -1,11 +1,15 @@
 // app/api/injury/acute-report/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio, resolveAthleteClientId } from '@/lib/auth-utils'
+import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio, resolveAthleteClientId, getPhysioAthletes } from '@/lib/auth-utils'
 import { sendCareTeamNotification } from '@/lib/notifications/care-team'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
+import {
+  getAssignedPhysioUserIdsForClient,
+  getMedicalNotificationRecipientIdsForClient,
+} from '@/lib/medical/care-team-recipients'
 
 // Validation schema for creating an acute injury report
 const createAcuteInjuryReportSchema = z.object({
@@ -61,11 +65,11 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
 
     if (hasPhysioAccess) {
-      // For physios, they can see reports they've been notified about or can access
-      // For now, show reports they reported or where they have access to the client
+      const assignedAthleteIds = await getPhysioAthletes(user.id)
       where.OR = [
         { reporterId: user.id },
         { physioNotified: true },
+        ...(assignedAthleteIds.length > 0 ? [{ clientId: { in: assignedAthleteIds } }] : []),
       ]
     } else if (hasCoachAccess) {
       // Coaches see reports for their clients
@@ -87,7 +91,9 @@ export async function GET(request: NextRequest) {
 
     if (clientId) {
       // Verify access to this client
-      const hasAccess = await canAccessClient(user.id, clientId)
+      const hasAccess = user.role === 'ADMIN' ||
+        (hasPhysioAccess && await canAccessAthleteAsPhysio(user.id, clientId)) ||
+        (hasCoachAccess && await canAccessClient(user.id, clientId))
       if (!hasAccess) {
         return NextResponse.json(
           { error: 'You do not have access to this athlete' },
@@ -247,12 +253,9 @@ export async function POST(request: NextRequest) {
         where: { id: validatedData.clientId },
         select: {
           userId: true,
-          physioAssignments: {
-            where: { isActive: true },
-            select: { physioUserId: true },
-          },
         },
       })
+      const assignedPhysioIds = await getAssignedPhysioUserIdsForClient(validatedData.clientId)
 
       const priority = validatedData.urgency === 'EMERGENCY' || validatedData.urgency === 'URGENT'
         ? 'URGENT' as const
@@ -260,21 +263,10 @@ export async function POST(request: NextRequest) {
         ? 'HIGH' as const
         : 'NORMAL' as const
 
-      const notifyRecipients: string[] = []
-
-      // Notify coach if reporter is not the coach
-      if (client?.userId && client.userId !== user.id) {
-        notifyRecipients.push(client.userId)
-      }
-
-      // Notify assigned physios
-      if (client?.physioAssignments) {
-        for (const assignment of client.physioAssignments) {
-          if (assignment.physioUserId !== user.id) {
-            notifyRecipients.push(assignment.physioUserId)
-          }
-        }
-      }
+      const notifyRecipients = await getMedicalNotificationRecipientIdsForClient(
+        validatedData.clientId,
+        [user.id]
+      )
 
       for (const recipientId of notifyRecipients) {
         await sendCareTeamNotification({
@@ -289,6 +281,18 @@ export async function POST(request: NextRequest) {
             mechanism: validatedData.mechanism,
             urgency: validatedData.urgency,
             severity: validatedData.initialSeverity,
+          },
+        })
+      }
+
+      if (assignedPhysioIds.length > 0 || client?.userId) {
+        await prisma.acuteInjuryReport.update({
+          where: { id: report.id },
+          data: {
+            physioNotified: assignedPhysioIds.length > 0,
+            physioNotifiedAt: assignedPhysioIds.length > 0 ? new Date() : undefined,
+            coachNotified: Boolean(client?.userId),
+            coachNotifiedAt: client?.userId ? new Date() : undefined,
           },
         })
       }

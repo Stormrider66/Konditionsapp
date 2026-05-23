@@ -1,6 +1,7 @@
 import { BackgroundJobStatus, type Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { getAssignedPhysioUserIdsForClient } from '@/lib/medical/care-team-recipients'
 import {
   assessHRV,
   assessRHR,
@@ -621,13 +622,8 @@ async function processDailyMetricsSideEffects(input: DailyMetricsSideEffectsInpu
         athleteName = athlete?.name
       }
 
-      const physioAssignment = await prisma.physioAssignment.findFirst({
-        where: {
-          clientId,
-          isActive: true,
-        },
-      })
-      if (physioAssignment) {
+      const assignedPhysioIds = await getAssignedPhysioUserIdsForClient(clientId)
+      if (assignedPhysioIds.length > 0) {
         await prisma.aINotification.create({
           data: {
             clientId,
@@ -639,6 +635,7 @@ async function processDailyMetricsSideEffects(input: DailyMetricsSideEffectsInpu
               requestType: 'ATHLETE_INITIATED',
               athleteName: athleteName || 'Atlet',
               reason: physioContactReason,
+              assignedPhysioIds,
               checkInDate: new Date(date).toISOString(),
               rehabPainDuring,
               rehabPainAfter,

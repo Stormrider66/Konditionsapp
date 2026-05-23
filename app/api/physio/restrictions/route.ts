@@ -1,7 +1,7 @@
 // app/api/physio/restrictions/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requirePhysio, canAccessAthleteAsPhysio, canCreateRestrictions, getCurrentUser } from '@/lib/auth-utils'
+import { requirePhysio, canAccessAthleteAsPhysio, canCreateRestrictions, getCurrentUser, getPhysioAthletes } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { notifyCoachOfRestriction } from '@/lib/notifications/care-team'
 import { logger } from '@/lib/logger'
@@ -50,9 +50,14 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
+    const accessibleAthleteIds = await getPhysioAthletes(user.id)
+    if (accessibleAthleteIds.length === 0) {
+      return NextResponse.json({ restrictions: [], total: 0, limit, offset })
+    }
+
     // Build where clause
     const where: Record<string, unknown> = {
-      createdById: user.id,
+      clientId: { in: accessibleAthleteIds },
     }
 
     if (clientId) {

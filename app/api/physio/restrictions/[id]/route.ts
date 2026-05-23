@@ -144,6 +144,8 @@ export async function PATCH(
       where: { id },
       data: {
         ...validatedData,
+        clearedAt: validatedData.isActive === false ? new Date() : validatedData.isActive === true ? null : undefined,
+        clearedById: validatedData.isActive === false ? user.id : validatedData.isActive === true ? null : undefined,
         endDate: validatedData.endDate
           ? new Date(validatedData.endDate)
           : validatedData.endDate === null

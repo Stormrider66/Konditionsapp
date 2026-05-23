@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   Clock,
   Pencil,
+  ShieldAlert,
 } from 'lucide-react'
 import { TeamDashboardClient } from '@/components/coach/teams/TeamDashboardClient'
 import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
@@ -589,6 +590,12 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/${businessSlug}/coach/teams/${teamId}/medical`}>
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              Medical
+            </Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href={`/${businessSlug}/coach/teams/${teamId}/calendar`}>
               <Calendar className="mr-2 h-4 w-4" />

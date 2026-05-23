@@ -13,9 +13,10 @@ import {
     Calendar,
     TrendingUp,
     MessageSquare,
-    FileText,
     ChevronRight,
     Plus,
+    CheckCircle2,
+    Loader2,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -64,26 +65,51 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
     const t = useTranslations('components.physioAthleteDetail')
     const [athlete, setAthlete] = useState<AthleteDetail | null>(null)
     const [loading, setLoading] = useState(true)
+    const [clearingInjuryId, setClearingInjuryId] = useState<string | null>(null)
+
+    const fetchAthlete = async () => {
+        try {
+            const res = await fetch(`/api/physio/athletes/${athleteId}`)
+            if (res.ok) {
+                const data = await res.json()
+                setAthlete(data)
+            } else if (res.status === 403 || res.status === 404) {
+                router.push(`${basePath}/athletes`)
+            }
+        } catch (error) {
+            console.error('Error fetching athlete:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     useEffect(() => {
-        const fetchAthlete = async () => {
-            try {
-                const res = await fetch(`/api/physio/athletes/${athleteId}`)
-                if (res.ok) {
-                    const data = await res.json()
-                    setAthlete(data)
-                } else if (res.status === 403 || res.status === 404) {
-                    router.push(`${basePath}/athletes`)
-                }
-            } catch (error) {
-                console.error('Error fetching athlete:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
         fetchAthlete()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [athleteId, basePath, router])
+
+    const clearInjury = async (injuryId: string) => {
+        setClearingInjuryId(injuryId)
+        try {
+            const res = await fetch(`/api/physio/injuries/${injuryId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: 'RESOLVED',
+                    resolved: true,
+                    clearRestrictions: true,
+                }),
+            })
+
+            if (res.ok) {
+                await fetchAthlete()
+            }
+        } catch (error) {
+            console.error('Error clearing injury:', error)
+        } finally {
+            setClearingInjuryId(null)
+        }
+    }
 
     const severityColors: Record<string, string> = {
         MILD: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -373,9 +399,25 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                         </div>
                                                         <span className="text-sm text-slate-400">{injury.painLevel}/10</span>
                                                     </div>
-                                                    <p className="text-xs text-slate-500 mt-2">
-                                                        {t('labels.assessed')}: {new Date(injury.date).toLocaleDateString()}
-                                                    </p>
+                                                    <div className="mt-3 flex items-center justify-between gap-3">
+                                                        <p className="text-xs text-slate-500">
+                                                            {t('labels.assessed')}: {new Date(injury.date).toLocaleDateString()}
+                                                        </p>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="border-emerald-500/30 text-emerald-400 hover:text-emerald-300"
+                                                            disabled={clearingInjuryId === injury.id}
+                                                            onClick={() => clearInjury(injury.id)}
+                                                        >
+                                                            {clearingInjuryId === injury.id ? (
+                                                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                                            ) : (
+                                                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                            )}
+                                                            Klarmarkera
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -405,8 +447,9 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                     ) : (
                                         <div className="space-y-3">
                                             {athlete.trainingRestrictions.map((restriction: any) => (
-                                                <div
+                                                <Link
                                                     key={restriction.id}
+                                                    href={`${basePath}/restrictions/${restriction.id}`}
                                                     className="p-4 rounded-lg bg-slate-800/50 border border-white/5"
                                                 >
                                                     <div className="flex items-start justify-between mb-2">
@@ -433,7 +476,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                                                             <span>{t('labels.until')}: {new Date(restriction.endDate).toLocaleDateString()}</span>
                                                         )}
                                                     </div>
-                                                </div>
+                                                </Link>
                                             ))}
                                         </div>
                                     )}

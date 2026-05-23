@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Plus, Utensils, Zap, Video } from 'lucide-react'
+import { Plus, ShieldAlert, Utensils, Zap, Video } from 'lucide-react'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { InputMethodSelector } from '@/components/athlete/adhoc/InputMethodSelector'
 import { MealInputMethodSelector, type MealInputMethod } from '@/components/athlete/nutrition/MealInputMethodSelector'
@@ -84,6 +84,14 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
             <Video className="h-5 w-5 text-purple-500" />
           </div>
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('videoAnalysis')}</span>
+        </Link>
+
+        {/* Injury report */}
+        <Link href={`${basePath}/athlete/injury-report`} className={TILE_BASE}>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-red-500/10">
+            <ShieldAlert className="h-5 w-5 text-red-500" />
+          </div>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Rapportera skada</span>
         </Link>
       </div>
 

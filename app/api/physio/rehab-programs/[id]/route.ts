@@ -1,7 +1,7 @@
 // app/api/physio/rehab-programs/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requirePhysio, getCurrentUser, canAccessClient } from '@/lib/auth-utils'
+import { requirePhysio, getCurrentUser, canAccessClient, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const updateProgramSchema = z.object({
@@ -149,7 +149,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Rehab program not found' }, { status: 404 })
     }
 
-    if (existingProgram.physioUserId !== user.id) {
+    const hasAccess = existingProgram.physioUserId === user.id ||
+      await canAccessAthleteAsPhysio(user.id, existingProgram.clientId)
+
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
