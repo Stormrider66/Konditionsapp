@@ -49,7 +49,7 @@ const HOCKEY_SPORT = 'TEAM_ICE_HOCKEY'
 
 const TEST_CATEGORIES = [
   { value: 'lactate', labelSv: 'Laktattest', labelEn: 'Lactate test', icon: Droplet, available: true },
-  { value: 'body-composition', labelSv: 'Kroppssammansättning', labelEn: 'Body composition', icon: Scale, available: true },
+  { value: 'body-composition', labelSv: 'Bioimpedans', labelEn: 'Body composition', icon: Scale, available: true },
   { value: 'power', labelSv: 'Krafttest', labelEn: 'Power test', icon: Zap, available: true },
   { value: 'speed', labelSv: 'Hastighet', labelEn: 'Speed', icon: Timer, available: true },
   { value: 'agility', labelSv: 'Agility', labelEn: 'Agility', icon: Shuffle, available: true },
