@@ -13802,7 +13802,7 @@
       },
       "actions": {
         "createDailyWorkout": "Create Daily Workout",
-        "remaining": "{count} left",
+        "remaining": "{count} today",
         "viewCalendar": "View calendar"
       },
       "nextWorkout": "Next workout",
@@ -15960,6 +15960,25 @@
         "hard": "Hard"
       },
       "estimatedLoad": "Estimated training load",
+      "learning": {
+        "title": "Help today's workout learn",
+        "difficultyFit": "Difficulty fit",
+        "enjoyment": "How much did you like it?",
+        "structureFit": "Structure fit",
+        "tooEasy": "Too easy",
+        "tooHard": "Too hard",
+        "notForMe": "Not for me",
+        "lovedIt": "Loved it",
+        "messy": "Messy",
+        "clear": "Clear",
+        "repeatIntent": "I would repeat this style",
+        "yes": "Yes",
+        "no": "No",
+        "painLabel": "Pain or discomfort",
+        "painPlaceholder": "Optional: knee, back, shoulder...",
+        "noteLabel": "Anything to remember",
+        "notePlaceholder": "Optional: what should change next time?"
+      },
       "actions": {
         "cancel": "Cancel",
         "saving": "Saving...",

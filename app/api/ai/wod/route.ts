@@ -6,12 +6,14 @@
  * Features:
  * - Readiness-aware intensity adjustment
  * - Injury-aware exercise exclusion
- * - Usage limit enforcement by subscription tier
+ * - Free-tier daily usage limit enforcement
+ * - Self-learning candidate selection
  * - Three modes: Structured, Casual, Fun
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText, type LanguageModel } from 'ai'
+import { Prisma } from '@prisma/client'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
@@ -19,8 +21,9 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { buildWODContext, getWODUsageStats } from '@/lib/ai/wod-context-builder'
 import { checkWODGuardrails } from '@/lib/ai/wod-guardrails'
-import { buildWODPrompt, matchExerciseToLibrary } from '@/lib/ai/wod-prompts'
+import { buildWODCandidatePrompt, buildWODPrompt, matchExerciseToLibrary } from '@/lib/ai/wod-prompts'
 import type {
+  WODCandidateBlueprint,
   WODRequest,
   WODResponse,
   WODWorkout,
@@ -35,9 +38,17 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { logAiUsage, withAiContext, type AiProviderTag } from '@/lib/ai/usage-logger'
+import {
+  buildCandidateScoringSnapshot,
+  buildPreferenceSnapshot,
+  getWODLearningContext,
+  normalizeWODFeedback,
+  pickBestWODCandidate,
+  updateWODPreferenceProfileFromCompletion,
+} from '@/lib/ai/wod-learning'
 
-// Allow up to 30 seconds for AI generation
-export const maxDuration = 30
+// Candidate generation + winner expansion can require two AI calls.
+export const maxDuration = 60
 
 interface RequestBody extends WODRequest {
   modelId?: string
@@ -125,7 +136,6 @@ export async function POST(request: NextRequest) {
     // Get usage stats for response
     const usageStats = await getWODUsageStats(clientId, subscriptionTier)
 
-    // Build prompt
     const wodRequest: WODRequest = {
       mode: mode as WODMode,
       workoutType: workoutType as WODRequest['workoutType'],
@@ -134,7 +144,10 @@ export async function POST(request: NextRequest) {
       focusArea,
     }
 
-    const prompt = buildWODPrompt(context, wodRequest, guardrails, locale)
+    // Personal learning is primary; anonymous cohort hints are secondary.
+    const learning = await getWODLearningContext(clientId, context, wodRequest)
+    context.wodPreferenceProfile = learning.profile
+    context.globalLearningHints = learning.globalHints
 
     // Get API keys - try athlete's coach's keys first, then system keys
     const coachId = clientRecord?.userId
@@ -259,7 +272,46 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate workout
+    const promptVariant = await getActiveWODStrategyVariant()
+    const promptVariantAdjustment = promptVariant?.promptTemplate ?? null
+
+    // Stage 1: generate compact candidates, then score locally.
+    const candidatePrompt = buildWODCandidatePrompt(
+      context,
+      wodRequest,
+      guardrails,
+      locale,
+      promptVariantAdjustment,
+    )
+    const { text: candidateText, usage: candidateUsage } = await withAiContext(
+      { userId: user.id, clientId, category: 'wod_generation' },
+      () => generateText({
+        model,
+        prompt: candidatePrompt,
+        maxOutputTokens: 2200,
+      }),
+    )
+
+    const candidates = parseCandidatesFromResponse(candidateText, wodRequest, guardrails.adjustedIntensity)
+    const { candidate: selectedCandidate, score: selectedCandidateScore, scores: candidateScores } =
+      pickBestWODCandidate(candidates, {
+        request: wodRequest,
+        guardrails,
+        profile: learning.profile,
+        globalHints: learning.globalHints,
+      })
+
+    logger.debug('WOD candidate selected', {
+      candidateId: selectedCandidate.id,
+      score: selectedCandidateScore.score,
+      vetoedCandidates: candidateScores.filter(score => score.vetoed).length,
+    })
+
+    // Stage 2: expand only the winning candidate into full WOD JSON.
+    const prompt = buildWODPrompt(context, wodRequest, guardrails, locale, {
+      selectedCandidate,
+      promptVariantAdjustment,
+    })
     const { text: responseText, usage } = await withAiContext(
       { userId: user.id, clientId, category: 'wod_generation' },
       () => generateText({
@@ -272,6 +324,15 @@ export async function POST(request: NextRequest) {
     if (modelIsAutoInstrumented) {
       // Intent-based calls use createModelInstance, which is already instrumented.
     } else {
+      logAiUsage({
+        userId: user.id,
+        clientId,
+        category: 'wod_generation',
+        provider: providerTag,
+        model: modelName,
+        inputTokens: candidateUsage?.inputTokens ?? 0,
+        outputTokens: candidateUsage?.outputTokens ?? 0,
+      })
       logAiUsage({
         userId: user.id,
         clientId,
@@ -333,9 +394,11 @@ export async function POST(request: NextRequest) {
       adjustedIntensity: guardrails.adjustedIntensity,
       guardrailsApplied,
       remainingWODs: usageStats.isUnlimited ? -1 : usageStats.remaining - 1,
-      weeklyLimit: usageStats.weeklyLimit,
+      dailyLimit: usageStats.dailyLimit,
       estimatedDuration: totalDuration,
       generationTimeMs: Date.now() - startTime,
+      candidateScore: selectedCandidateScore.score,
+      promptVariantId: promptVariant?.id ?? null,
     }
 
     // Save to database
@@ -356,9 +419,21 @@ export async function POST(request: NextRequest) {
         intensityAdjusted: guardrails.adjustedIntensity,
         guardrailsApplied: guardrailsApplied.map(g => g.type),
         primarySport: context.primarySport,
-        tokensUsed: (usage?.inputTokens || 0) + (usage?.outputTokens || 0),
+        tokensUsed:
+          (candidateUsage?.inputTokens || 0) +
+          (candidateUsage?.outputTokens || 0) +
+          (usage?.inputTokens || 0) +
+          (usage?.outputTokens || 0),
         generationTimeMs: Date.now() - startTime,
         modelUsed: modelName,
+        preferenceSnapshot: buildPreferenceSnapshot(learning),
+        candidateScores: buildCandidateScoringSnapshot({
+          learning,
+          chosen: selectedCandidate,
+          chosenScore: selectedCandidateScore,
+          allScores: candidateScores,
+        }),
+        promptVariantId: promptVariant?.id ?? null,
       },
     })
 
@@ -504,6 +579,165 @@ function parseWorkoutFromResponse(response: string): WODWorkout | null {
   }
 }
 
+function parseCandidatesFromResponse(
+  response: string,
+  request: WODRequest,
+  adjustedIntensity: WODMetadata['adjustedIntensity']
+): WODCandidateBlueprint[] {
+  const fallback = buildFallbackCandidates(request, adjustedIntensity)
+  try {
+    let jsonStr = response
+    const jsonBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (jsonBlockMatch?.[1]) {
+      jsonStr = jsonBlockMatch[1].trim()
+    } else if (!jsonStr.trim().startsWith('{')) {
+      const start = response.indexOf('{')
+      const end = response.lastIndexOf('}')
+      if (start !== -1 && end !== -1 && end > start) {
+        jsonStr = response.slice(start, end + 1)
+      }
+    }
+
+    const parsed = JSON.parse(jsonStr)
+    const candidates: unknown[] = Array.isArray(parsed?.candidates) ? parsed.candidates : []
+    const normalized = candidates
+      .map((candidate: unknown, index: number) => normalizeCandidate(candidate, index, request, adjustedIntensity))
+      .filter((candidate): candidate is WODCandidateBlueprint => !!candidate)
+      .slice(0, 3)
+
+    if (normalized.length === 3) return normalized
+    logger.warn('WOD candidate parse: expected 3 candidates, using fallback', {
+      parsedCount: normalized.length,
+    })
+    return fallback
+  } catch (error) {
+    logger.warn('WOD candidate parse failed, using fallback candidates', {}, error)
+    return fallback
+  }
+}
+
+function normalizeCandidate(
+  candidate: unknown,
+  index: number,
+  request: WODRequest,
+  adjustedIntensity: WODMetadata['adjustedIntensity']
+): WODCandidateBlueprint | null {
+  if (!candidate || typeof candidate !== 'object') return null
+  const record = candidate as Record<string, unknown>
+  const workoutType = normalizeWorkoutType(record.workoutType) || request.workoutType || 'strength'
+  const mode = normalizeMode(record.mode) || request.mode
+  const duration = typeof record.duration === 'number' ? record.duration : request.duration || 45
+  const equipment = Array.isArray(record.equipment)
+    ? record.equipment.filter((item): item is string => typeof item === 'string') as WODCandidateBlueprint['equipment']
+    : request.equipment || ['none']
+
+  return {
+    id: typeof record.id === 'string' ? record.id : `candidate-${index + 1}`,
+    title: typeof record.title === 'string' ? record.title : `Candidate ${index + 1}`,
+    summary: typeof record.summary === 'string' ? record.summary : 'Personalized daily workout option',
+    format: typeof record.format === 'string' ? record.format : 'Structured blocks',
+    workoutType,
+    mode,
+    duration,
+    intensity: normalizeIntensity(record.intensity) || adjustedIntensity,
+    equipment,
+    focusArea: typeof record.focusArea === 'string' ? record.focusArea as WODCandidateBlueprint['focusArea'] : request.focusArea,
+    sections: Array.isArray(record.sections)
+      ? record.sections.filter((item): item is string => typeof item === 'string')
+      : ['Warm-up', 'Main', 'Cooldown'],
+    keyExercises: Array.isArray(record.keyExercises)
+      ? record.keyExercises.filter((item): item is string => typeof item === 'string')
+      : [],
+    rationale: typeof record.rationale === 'string' ? record.rationale : 'Balanced fit for today',
+  }
+}
+
+function buildFallbackCandidates(
+  request: WODRequest,
+  adjustedIntensity: WODMetadata['adjustedIntensity']
+): WODCandidateBlueprint[] {
+  const workoutType = request.workoutType || 'strength'
+  const mode = request.mode || 'structured'
+  const duration = request.duration || 45
+  const equipment = request.equipment || ['none']
+  return [
+    {
+      id: 'candidate-1',
+      title: 'Structured Fit',
+      summary: 'A clear block-based workout matched to today.',
+      format: 'Structured blocks',
+      workoutType,
+      mode,
+      duration,
+      intensity: adjustedIntensity,
+      equipment,
+      focusArea: request.focusArea,
+      sections: ['Warm-up', 'Main block', 'Cooldown'],
+      keyExercises: [],
+      rationale: 'Safe default when candidate parsing is unavailable.',
+    },
+    {
+      id: 'candidate-2',
+      title: 'Compact Circuit',
+      summary: 'A tighter circuit-style option using the same constraints.',
+      format: 'Circuit',
+      workoutType,
+      mode,
+      duration,
+      intensity: adjustedIntensity,
+      equipment,
+      focusArea: request.focusArea,
+      sections: ['Warm-up', 'Circuit', 'Cooldown'],
+      keyExercises: [],
+      rationale: 'Adds variety while staying within the same safety limits.',
+    },
+    {
+      id: 'candidate-3',
+      title: 'Controlled Quality',
+      summary: 'A quality-first version with more controlled pacing.',
+      format: 'Intervals',
+      workoutType,
+      mode,
+      duration,
+      intensity: adjustedIntensity,
+      equipment,
+      focusArea: request.focusArea,
+      sections: ['Warm-up', 'Quality work', 'Cooldown'],
+      keyExercises: [],
+      rationale: 'Prioritizes readiness fit and recovery response.',
+    },
+  ]
+}
+
+function normalizeWorkoutType(value: unknown): WODRequest['workoutType'] | null {
+  return value === 'strength' || value === 'cardio' || value === 'mixed' || value === 'core' ? value : null
+}
+
+function normalizeMode(value: unknown): WODMode | null {
+  return value === 'structured' || value === 'casual' || value === 'fun' ? value : null
+}
+
+function normalizeIntensity(value: unknown): WODMetadata['adjustedIntensity'] | null {
+  return value === 'recovery' || value === 'easy' || value === 'moderate' || value === 'threshold' ? value : null
+}
+
+async function getActiveWODStrategyVariant(): Promise<{
+  id: string
+  promptTemplate: string | null
+} | null> {
+  return prisma.aIModelVersion.findFirst({
+    where: {
+      modelType: 'wod_generation_strategy',
+      status: 'ACTIVE',
+    },
+    orderBy: { versionNumber: 'desc' },
+    select: {
+      id: true,
+      promptTemplate: true,
+    },
+  })
+}
+
 /**
  * Enhance workout with exercise library data (images, IDs)
  */
@@ -633,6 +867,11 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json()
     const { wodId, status, sessionRPE, exerciseLogs, actualDuration } = body
+    const feedback = normalizeWODFeedback(body.feedback)
+
+    if (body.feedback && !feedback) {
+      return NextResponse.json({ error: 'Invalid WOD feedback' }, { status: 400 })
+    }
 
     // Get WOD for training load calculation
     const existingWOD = await prisma.aIGeneratedWOD.findFirst({
@@ -660,6 +899,7 @@ export async function PATCH(request: NextRequest) {
           sessionRPE,
           exerciseLogs,
           actualDuration,
+          ...(feedback && { athleteFeedback: feedback as unknown as Prisma.InputJsonValue }),
         }),
       },
     })
@@ -670,6 +910,22 @@ export async function PATCH(request: NextRequest) {
 
     // Calculate and save training load when WOD is completed
     if (status === 'COMPLETED') {
+      if (feedback) {
+        await updateWODPreferenceProfileFromCompletion({
+          clientId,
+          wodId,
+          workout: existingWOD.workoutJson as unknown as WODWorkout,
+          mode: String(existingWOD.mode),
+          workoutType: existingWOD.workoutType,
+          requestedDuration: existingWOD.requestedDuration,
+          equipment: existingWOD.equipment,
+          sessionRPE,
+          actualDuration,
+          exerciseLogs,
+          feedback,
+        })
+      }
+
       try {
         const duration = actualDuration || existingWOD.requestedDuration || 45
         const rpe = sessionRPE || 6 // Default moderate RPE if not provided

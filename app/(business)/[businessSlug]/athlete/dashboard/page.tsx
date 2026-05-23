@@ -75,6 +75,7 @@ import {
 import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
 import { resolveAthleteWidgets, visibleKeys } from '@/lib/dashboard/resolve-widgets'
 import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recipients'
+import { getWODUsageStats } from '@/lib/ai/wod-context-builder'
 
 interface BusinessAthleteDashboardProps {
   params: Promise<{ businessSlug: string }>
@@ -98,6 +99,9 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     where: { id: clientId },
     include: {
       sportProfile: true,
+      athleteSubscription: {
+        select: { tier: true },
+      },
     },
   })
 
@@ -710,6 +714,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   // Get next item for rest day card
   const nextItem: DashboardItem | null = upcomingItems.length > 0 ? upcomingItems[0] : null
   const restDayMode = currentProgram || currentAthletePlan ? 'rest-day' : 'open-day'
+  const wodUsageStats = await getWODUsageStats(clientId, client.athleteSubscription?.tier || 'FREE')
 
   // Calculate WOD stats
   const startOfWeek = startOfDay(addDays(now, -now.getDay() + 1)) // Monday
@@ -798,6 +803,8 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
             mode={restDayMode}
             sportType={primarySport}
             recentActivity={recentActivitySummary}
+            wodRemainingCount={wodUsageStats.remaining}
+            wodIsUnlimited={wodUsageStats.isUnlimited}
           />
         )}
 

@@ -6,7 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { subDays, startOfWeek, endOfWeek } from 'date-fns'
+import { endOfDay, startOfDay, subDays } from 'date-fns'
 import type { WODAthleteContext, WODEquipment, WODUsageStats } from '@/types/wod'
 import { WOD_USAGE_LIMITS } from '@/types/wod'
 import { getRestrictionsForWOD } from '@/lib/training-restrictions'
@@ -447,38 +447,36 @@ export async function getWODUsageStats(
   subscriptionTier: string
 ): Promise<WODUsageStats> {
   const now = new Date()
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // Monday
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
+  const dayStart = startOfDay(now)
+  const dayEnd = endOfDay(now)
+  const tierKey = subscriptionTier.toUpperCase() as keyof typeof WOD_USAGE_LIMITS
+  const dailyLimit = WOD_USAGE_LIMITS[tierKey] ?? WOD_USAGE_LIMITS.FREE
+  const isUnlimited = dailyLimit === -1
 
-  // Count WODs generated this week
-  const weeklyCount = await prisma.aIGeneratedWOD.count({
+  // Count WODs generated today. Paid tiers are unlimited, but the count is
+  // still useful for diagnostics and future UX.
+  const dailyCount = await prisma.aIGeneratedWOD.count({
     where: {
       clientId,
       createdAt: {
-        gte: weekStart,
-        lte: weekEnd,
+        gte: dayStart,
+        lte: dayEnd,
       },
     },
   })
 
-  // Get limit for tier
-  const tierKey = subscriptionTier.toUpperCase() as keyof typeof WOD_USAGE_LIMITS
-  const weeklyLimit = WOD_USAGE_LIMITS[tierKey] ?? WOD_USAGE_LIMITS.FREE
-  const isUnlimited = weeklyLimit === -1
+  const remaining = isUnlimited ? -1 : Math.max(0, dailyLimit - dailyCount)
 
-  // Calculate remaining
-  const remaining = isUnlimited ? Infinity : Math.max(0, weeklyLimit - weeklyCount)
-
-  // Next reset is next Monday
-  const resetDate = new Date(weekEnd)
-  resetDate.setDate(resetDate.getDate() + 1)
+  const resetDate = new Date(dayEnd)
+  resetDate.setMilliseconds(resetDate.getMilliseconds() + 1)
 
   return {
-    weeklyCount,
-    weeklyLimit: isUnlimited ? -1 : weeklyLimit,
-    remaining: isUnlimited ? -1 : remaining,
+    dailyCount,
+    dailyLimit: isUnlimited ? -1 : dailyLimit,
+    remaining,
     isUnlimited,
     resetDate,
+    period: isUnlimited ? 'unlimited' : 'day',
   }
 }
 
@@ -501,8 +499,8 @@ export async function canGenerateWOD(
       allowed: false,
       reason: wodText(
         locale,
-        `You have used all ${stats.weeklyLimit} of your WOD sessions this week. Upgrade for more!`,
-        `Du har använt alla dina ${stats.weeklyLimit} WOD-pass denna vecka. Uppgradera för fler!`
+        `You have used all ${stats.dailyLimit} of your free WOD sessions today. Try again tomorrow or upgrade for more.`,
+        `Du har använt alla dina ${stats.dailyLimit} kostnadsfria WOD-pass idag. Försök igen imorgon eller uppgradera för fler.`
       ),
       remaining: 0,
     }

@@ -14,6 +14,7 @@ import type {
   WODEquipment,
   WODFocusArea,
   AdjustedIntensity,
+  WODCandidateBlueprint,
 } from '@/types/wod'
 import { WOD_LABELS } from '@/types/wod'
 import { generateGuardrailConstraints, getExcludedExerciseCategories } from './wod-guardrails'
@@ -30,11 +31,15 @@ export function buildWODPrompt(
   context: WODAthleteContext,
   request: WODRequest,
   guardrails: WODGuardrailResult,
-  locale: 'en' | 'sv' = 'en'
+  locale: 'en' | 'sv' = 'en',
+  options?: {
+    selectedCandidate?: WODCandidateBlueprint
+    promptVariantAdjustment?: string | null
+  }
 ): string {
   const workoutType = request.workoutType || 'strength'
   if (locale !== 'sv') {
-    return buildEnglishWODPrompt(context, request, guardrails, workoutType)
+    return buildEnglishWODPrompt(context, request, guardrails, workoutType, options)
   }
 
   const modePrompt = getModePrompt(request.mode)
@@ -45,6 +50,9 @@ export function buildWODPrompt(
   const jsonTemplate = getJsonTemplate(workoutType)
   const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
   const outputLanguage = locale === 'sv' ? 'SWEDISH' : 'ENGLISH'
+  const learningSection = formatLearningSection(context, locale)
+  const candidateSection = formatSelectedCandidateSection(options?.selectedCandidate, locale)
+  const promptVariantSection = formatPromptVariantAdjustment(options?.promptVariantAdjustment, locale)
 
   return `${SYSTEM_CONTEXT}
 
@@ -87,6 +95,12 @@ ${buildEquipmentConstraintSection(explicitEquipment)}
 
 ${formatLocationEquipment(context.locationEquipment, explicitEquipment)}
 
+${learningSection}
+
+${candidateSection}
+
+${promptVariantSection}
+
 ${context.aiInstructions ? `## SPECIFIKA INSTRUKTIONER FÖR DENNA ATLET\n${context.aiInstructions}\n` : ''}
 ## OUTPUT FORMAT
 
@@ -113,7 +127,11 @@ function buildEnglishWODPrompt(
   context: WODAthleteContext,
   request: WODRequest,
   guardrails: WODGuardrailResult,
-  workoutType: WODWorkoutType
+  workoutType: WODWorkoutType,
+  options?: {
+    selectedCandidate?: WODCandidateBlueprint
+    promptVariantAdjustment?: string | null
+  }
 ): string {
   const modePrompt = getEnglishModePrompt(request.mode)
   const workoutTypePrompt = getEnglishWorkoutTypePrompt(workoutType)
@@ -121,6 +139,9 @@ function buildEnglishWODPrompt(
   const constraintsSection = generateEnglishGuardrailConstraints(guardrails)
   const excludedCategories = getExcludedExerciseCategories(guardrails.excludedAreas)
   const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
+  const learningSection = formatLearningSection(context, 'en')
+  const candidateSection = formatSelectedCandidateSection(options?.selectedCandidate, 'en')
+  const promptVariantSection = formatPromptVariantAdjustment(options?.promptVariantAdjustment, 'en')
 
   return `${buildConstitutionPreamble('wod')}You are an experienced personal trainer and physiologist who creates individualized workouts.
 
@@ -172,6 +193,12 @@ ${buildEquipmentConstraintSectionEn(explicitEquipment)}
 
 ${formatLocationEquipmentEn(context.locationEquipment, explicitEquipment)}
 
+${learningSection}
+
+${candidateSection}
+
+${promptVariantSection}
+
 ${context.aiInstructions ? `## SPECIFIC INSTRUCTIONS FOR THIS ATHLETE\n${context.aiInstructions}\n` : ''}
 ## OUTPUT FORMAT
 
@@ -192,6 +219,146 @@ IMPORTANT:
 - NEVER use "threshold" for strength workouts; threshold is a cardio concept
 - For strength workouts, use terms like "Power", "Strength", "Explosive", "Functional", etc.
 - Include instructions for EVERY exercise`
+}
+
+export function buildWODCandidatePrompt(
+  context: WODAthleteContext,
+  request: WODRequest,
+  guardrails: WODGuardrailResult,
+  locale: 'en' | 'sv' = 'en',
+  promptVariantAdjustment?: string | null
+): string {
+  const workoutType = request.workoutType || 'strength'
+  const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
+  const constraintsSection = locale === 'sv'
+    ? generateGuardrailConstraints(guardrails, 'sv')
+    : generateEnglishGuardrailConstraints(guardrails)
+  const learningSection = formatLearningSection(context, locale)
+  const promptVariantSection = formatPromptVariantAdjustment(promptVariantAdjustment, locale)
+  const outputLanguage = locale === 'sv' ? 'SWEDISH' : 'ENGLISH'
+
+  return `${locale === 'sv' ? SYSTEM_CONTEXT : `${buildConstitutionPreamble('wod')}You are an experienced personal trainer and physiologist.`}
+
+## TASK
+Create exactly 3 compact candidate blueprints for today's workout. Do not write the full workout yet.
+The app will score these candidates for safety, athlete preference fit, readiness fit, equipment fit, and variety, then expand only the winner.
+
+## OUTPUT LANGUAGE
+Use ${outputLanguage} for title, summary, rationale, and section labels. Enum values must stay in English exactly as specified.
+
+## ATHLETE
+- Name: ${context.athleteName}
+- Sport: ${locale === 'sv' ? translateSport(context.primarySport) : translateSportEn(context.primarySport)}
+- Experience: ${locale === 'sv' ? translateExperience(context.experienceLevel) : translateExperienceEn(context.experienceLevel)}
+- Readiness: ${context.readinessScore !== null ? `${context.readinessScore.toFixed(1)}/10` : 'not available'}
+- Weekly load: ${context.weeklyTSS} TSS
+- ACWR zone: ${context.acwrZone}
+- Goal: ${context.currentGoal || 'not specified'}
+
+## RECENT TRAINING
+${locale === 'sv' ? formatRecentWorkouts(context.recentWorkouts, locale) : formatRecentWorkoutsEn(context.recentWorkouts)}
+
+## LIMITS
+${constraintsSection}
+
+## REQUEST
+- workoutType: ${workoutType}
+- mode: ${request.mode}
+- duration: ${request.duration || 45}
+- equipment: ${explicitEquipment.join(', ')}
+- focusArea: ${request.focusArea || 'full_body'}
+- adjustedIntensity: ${guardrails.adjustedIntensity}
+
+${learningSection}
+
+${promptVariantSection}
+
+## OUTPUT FORMAT
+Respond only with JSON:
+\`\`\`json
+{
+  "candidates": [
+    {
+      "id": "candidate-1",
+      "title": "Short candidate title",
+      "summary": "One-sentence description",
+      "format": "Structured blocks | EMOM | AMRAP | Intervals | Circuit | For Time | Tabata",
+      "workoutType": "${workoutType}",
+      "mode": "${request.mode}",
+      "duration": ${request.duration || 45},
+      "intensity": "${guardrails.adjustedIntensity}",
+      "equipment": ${JSON.stringify(explicitEquipment)},
+      "focusArea": "${request.focusArea || 'full_body'}",
+      "sections": ["Warm-up 8 min", "Main 30 min", "Cooldown 7 min"],
+      "keyExercises": ["Exercise 1", "Exercise 2", "Exercise 3"],
+      "rationale": "Why this is a good fit today"
+    }
+  ]
+}
+\`\`\`
+
+IMPORTANT:
+- Return exactly 3 candidates with ids candidate-1, candidate-2, candidate-3
+- Each candidate must fit the requested duration
+- Use only requested equipment
+- Respect all safety limits and excluded areas
+- Make the candidates meaningfully different from each other`
+}
+
+function formatLearningSection(
+  context: WODAthleteContext,
+  locale: 'en' | 'sv'
+): string {
+  const lines: string[] = []
+  if (context.wodPreferenceProfile?.promptSummary) {
+    lines.push(
+      locale === 'sv'
+        ? `Personlig inlärning: ${context.wodPreferenceProfile.promptSummary}`
+        : `Personal learning: ${context.wodPreferenceProfile.promptSummary}`
+    )
+  }
+  for (const hint of context.globalLearningHints || []) {
+    lines.push(
+      locale === 'sv'
+        ? `Anonymt kohortmönster: ${hint}`
+        : `Anonymous cohort pattern: ${hint}`
+    )
+  }
+
+  if (lines.length === 0) return ''
+
+  return `${locale === 'sv' ? '## INLÄRDA PREFERENSER' : '## LEARNED PREFERENCES'}
+${lines.join('\n')}
+
+Use personal learning before anonymous cohort patterns. Never override safety limits.`
+}
+
+function formatSelectedCandidateSection(
+  candidate: WODCandidateBlueprint | undefined,
+  locale: 'en' | 'sv'
+): string {
+  if (!candidate) return ''
+  const heading = locale === 'sv' ? '## VINNANDE KANDIDAT ATT EXPANDERA' : '## WINNING CANDIDATE TO EXPAND'
+  return `${heading}
+- id: ${candidate.id}
+- title: ${candidate.title}
+- summary: ${candidate.summary}
+- format: ${candidate.format}
+- intensity: ${candidate.intensity}
+- sections: ${candidate.sections.join(' | ')}
+- key exercises: ${candidate.keyExercises.join(', ')}
+- rationale: ${candidate.rationale}
+
+Expand this selected blueprint into the final full workout JSON. Keep the core idea, structure, duration, and safety profile intact.`
+}
+
+function formatPromptVariantAdjustment(
+  adjustment: string | null | undefined,
+  locale: 'en' | 'sv'
+): string {
+  if (!adjustment) return ''
+  return `${locale === 'sv' ? '## AKTIV WOD-STRATEGIVARIANT' : '## ACTIVE WOD STRATEGY VARIANT'}
+${adjustment}`
 }
 
 function getEnglishModePrompt(mode: WODMode): string {

@@ -14162,7 +14162,7 @@
       },
       "actions": {
         "createDailyWorkout": "Skapa Dagens Pass",
-        "remaining": "{count} kvar",
+        "remaining": "{count} idag",
         "viewCalendar": "Visa kalender"
       },
       "nextWorkout": "Nästa pass",
@@ -16320,6 +16320,25 @@
         "hard": "Tungt"
       },
       "estimatedLoad": "Beräknad träningsbelastning",
+      "learning": {
+        "title": "Hjälp dagens pass att lära sig",
+        "difficultyFit": "Svårighetsgrad",
+        "enjoyment": "Hur mycket gillade du passet?",
+        "structureFit": "Struktur",
+        "tooEasy": "För lätt",
+        "tooHard": "För tungt",
+        "notForMe": "Inte för mig",
+        "lovedIt": "Grymt",
+        "messy": "Rörigt",
+        "clear": "Tydligt",
+        "repeatIntent": "Jag skulle köra den här stilen igen",
+        "yes": "Ja",
+        "no": "Nej",
+        "painLabel": "Smärta eller obehag",
+        "painPlaceholder": "Valfritt: knä, rygg, axel...",
+        "noteLabel": "Något att komma ihåg",
+        "notePlaceholder": "Valfritt: vad ska ändras nästa gång?"
+      },
       "actions": {
         "cancel": "Avbryt",
         "saving": "Sparar...",

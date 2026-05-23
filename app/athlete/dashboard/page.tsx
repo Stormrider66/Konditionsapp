@@ -55,6 +55,7 @@ import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChar
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
+import { getWODUsageStats } from '@/lib/ai/wod-context-builder'
 import { getTranslations } from '@/i18n/server'
 import {
   DashboardItem,
@@ -87,6 +88,9 @@ export default async function AthleteDashboardPage() {
     where: { id: clientId },
     include: {
       sportProfile: true,
+      athleteSubscription: {
+        select: { tier: true },
+      },
     },
   })
 
@@ -593,6 +597,7 @@ export default async function AthleteDashboardPage() {
   // Get next item for rest day card
   const nextItem: DashboardItem | null = upcomingItems.length > 0 ? upcomingItems[0] : null
   const restDayMode = currentProgram ? 'rest-day' : 'open-day'
+  const wodUsageStats = await getWODUsageStats(clientId, client.athleteSubscription?.tier || 'FREE')
 
   // Calculate WOD stats
   const startOfWeek = startOfDay(addDays(now, -now.getDay() + 1)) // Monday
@@ -684,6 +689,8 @@ export default async function AthleteDashboardPage() {
             sportType={primarySport}
             basePath={basePath}
             recentActivity={recentActivitySummary}
+            wodRemainingCount={wodUsageStats.remaining}
+            wodIsUnlimited={wodUsageStats.isUnlimited}
           />
         )}
 

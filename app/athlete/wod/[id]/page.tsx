@@ -24,8 +24,6 @@ import {
   Target,
   Clock,
   Loader2,
-  Play,
-  Pause,
   SkipForward,
   RotateCcw,
 } from 'lucide-react'
@@ -34,7 +32,7 @@ import { WODCompletionModal } from '@/components/athlete/wod/WODCompletionModal'
 import { cn } from '@/lib/utils'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
-import type { WODWorkout, WODSection, WODExercise, WODSectionType } from '@/types/wod'
+import type { WODFeedbackInput, WODWorkout, WODExercise, WODSectionType } from '@/types/wod'
 import { useLocale, useTranslations } from '@/i18n/client'
 
 interface PageProps {
@@ -85,7 +83,8 @@ export default function WODExecutionPage({ params }: PageProps) {
 
   // Completion modal state
   const [showCompletionModal, setShowCompletionModal] = useState(false)
-  const startTimeRef = useRef<number>(Date.now())
+  const [completionDuration, setCompletionDuration] = useState<number | null>(null)
+  const startTimeRef = useRef<number | null>(null)
 
   // Flatten exercises for navigation
   const flattenedExercises: FlattenedExercise[] = workout?.sections.flatMap((section, sectionIdx) =>
@@ -143,8 +142,8 @@ export default function WODExecutionPage({ params }: PageProps) {
       }
     }
 
-    fetchWOD()
-  }, [id])
+    void fetchWOD()
+  }, [id, t])
 
   // Rest timer effect
   useEffect(() => {
@@ -214,11 +213,12 @@ export default function WODExecutionPage({ params }: PageProps) {
 
   // Show completion modal instead of completing directly
   const handleComplete = () => {
+    setCompletionDuration(getActualDuration())
     setShowCompletionModal(true)
   }
 
   // Actually complete the WOD with RPE and duration data
-  const handleFinalComplete = async (data: { sessionRPE: number; actualDuration: number }) => {
+  const handleFinalComplete = async (data: { sessionRPE: number; actualDuration: number; feedback: WODFeedbackInput }) => {
     if (wodId) {
       try {
         // Build exercise logs from completed exercises
@@ -239,6 +239,7 @@ export default function WODExecutionPage({ params }: PageProps) {
             sessionRPE: data.sessionRPE,
             actualDuration: data.actualDuration,
             exerciseLogs,
+            feedback: data.feedback,
           }),
         })
         emitWorkoutLogged()
@@ -251,11 +252,13 @@ export default function WODExecutionPage({ params }: PageProps) {
 
   // Cancel completion modal
   const handleCancelCompletion = () => {
+    setCompletionDuration(null)
     setShowCompletionModal(false)
   }
 
   // Calculate actual duration in minutes
   const getActualDuration = () => {
+    if (!startTimeRef.current) return Math.max(1, estimatedDuration || 1)
     const elapsedMs = Date.now() - startTimeRef.current
     return Math.max(1, Math.round(elapsedMs / 60000)) // Minimum 1 minute
   }
@@ -347,7 +350,7 @@ export default function WODExecutionPage({ params }: PageProps) {
         title={workout.title}
         totalExercises={totalExercises}
         estimatedDuration={estimatedDuration}
-        actualDuration={getActualDuration()}
+        actualDuration={completionDuration ?? Math.max(1, estimatedDuration || 1)}
         onComplete={handleFinalComplete}
         onCancel={handleCancelCompletion}
       />

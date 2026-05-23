@@ -59,6 +59,7 @@ vi.mock('@/lib/ai/wod-guardrails', () => ({
 }))
 
 vi.mock('@/lib/ai/wod-prompts', () => ({
+  buildWODCandidatePrompt: vi.fn(() => 'candidate prompt'),
   buildWODPrompt: vi.fn(() => 'prompt'),
   matchExerciseToLibrary: vi.fn(),
 }))

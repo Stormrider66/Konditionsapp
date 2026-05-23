@@ -264,11 +264,17 @@ model AIGeneratedWOD {
   actualDuration Int? // Actual time taken (minutes)
   sessionRPE     Int? // 1-10 perceived effort
   exerciseLogs   Json? // Per-exercise completion data
+  athleteFeedback Json? // Post-WOD learning feedback from athlete
 
   // Usage & metrics
   tokensUsed       Int?
   generationTimeMs Int?
   modelUsed        String? // e.g., "claude-sonnet-4-6"
+
+  // Self-learning metadata
+  preferenceSnapshot Json? // Personal/global learning context used at generation time
+  candidateScores    Json? // Generated candidates, scores, and chosen winner
+  promptVariantId    String? // Active WOD generation strategy variant
 
   // Source tracking
   source             String? // "generator" | "chat" | "cron"
@@ -281,6 +287,58 @@ model AIGeneratedWOD {
   @@index([status])
   @@index([createdAt])
   @@index([mode])
+  @@index([promptVariantId])
+}
+
+/// Learned Dagens pass preferences for one self-coached athlete.
+model WODPreferenceProfile {
+  id       String @id @default(uuid())
+  clientId String @unique
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  preferredDuration      Int?
+  intensityTolerance     Float?
+  preferredFormats       String[] @default([])
+  exerciseLikes          String[] @default([])
+  exerciseDislikes       String[] @default([])
+  modeAffinity           Json?
+  workoutTypeAffinity    Json?
+  equipmentAffinity      Json?
+  structurePreference    Json?
+  noveltyPreference      Float?
+  painAvoidanceSignals   Json?
+  promptSummary          String? @db.Text
+
+  confidence            Float @default(0)
+  sampleSize            Int   @default(0)
+  feedbackCount         Int   @default(0)
+  lastUpdatedFromWODId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([updatedAt])
+}
+
+/// Anonymous cohort-level lessons for WOD generation. Never stores raw free text.
+model WODGlobalLearningAggregate {
+  id              String @id @default(uuid())
+  cohortKey       String @unique
+  sport           String
+  experienceLevel String?
+  workoutType     String?
+  sampleSize      Int    @default(0)
+  minCohortSize   Int    @default(10)
+  lessons         Json?
+  promptSummary   String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sport])
+  @@index([workoutType])
+  @@index([sampleSize])
 }
 
 /// Video analysis results (technique analysis using Gemini)

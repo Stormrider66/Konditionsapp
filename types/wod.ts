@@ -133,11 +133,16 @@ export interface WODMetadata {
 
   // Usage tracking
   remainingWODs: number
-  weeklyLimit: number
+  dailyLimit: number
+  weeklyLimit?: number
 
   // Timing
   estimatedDuration: number
   generationTimeMs?: number
+
+  // Self-learning
+  candidateScore?: number
+  promptVariantId?: string | null
 }
 
 export interface WODResponse {
@@ -205,6 +210,10 @@ export interface WODAthleteContext {
   // AI-specific coaching instructions for this athlete
   aiInstructions?: string | null
 
+  // Learned self-coaching context
+  wodPreferenceProfile?: WODPreferenceProfile | null
+  globalLearningHints?: string[]
+
   // Training restrictions (physio system)
   trainingRestrictions?: {
     hasRestrictions: boolean
@@ -237,27 +246,101 @@ export interface WODGuardrailResult {
 // ============================================
 
 export interface WODUsageLimits {
-  FREE: number       // 3/week
-  BASIC: number      // 5/week
-  STANDARD: number   // 10/week
+  FREE: number       // 3/day
+  BASIC: number      // Unlimited (-1)
+  STANDARD: number   // Unlimited (-1)
   PRO: number        // Unlimited (-1)
   ENTERPRISE: number // Unlimited (-1)
 }
 
 export const WOD_USAGE_LIMITS: WODUsageLimits = {
   FREE: 3,
-  BASIC: 5,
-  STANDARD: 10,
+  BASIC: -1,
+  STANDARD: -1,
   PRO: -1,        // Unlimited
   ENTERPRISE: -1, // Unlimited
 }
 
 export interface WODUsageStats {
-  weeklyCount: number
-  weeklyLimit: number
+  dailyCount: number
+  dailyLimit: number
   remaining: number
   isUnlimited: boolean
-  resetDate: Date  // Next Monday
+  resetDate: Date  // Next local midnight
+  period: 'day' | 'unlimited'
+}
+
+// ============================================
+// SELF-LEARNING TYPES
+// ============================================
+
+export type WODFeedbackScale = 1 | 2 | 3 | 4 | 5
+
+export interface WODFeedbackInput {
+  difficultyFit: WODFeedbackScale
+  enjoyment: WODFeedbackScale
+  structureFit: WODFeedbackScale
+  repeatIntent: boolean
+  painOrDiscomfort?: string | null
+  note?: string | null
+}
+
+export interface WODPreferenceProfile {
+  id?: string
+  clientId: string
+  preferredDuration?: number | null
+  intensityTolerance?: number | null
+  preferredFormats: string[]
+  exerciseLikes: string[]
+  exerciseDislikes: string[]
+  modeAffinity: Record<string, number>
+  workoutTypeAffinity: Record<string, number>
+  equipmentAffinity: Record<string, number>
+  structurePreference: Record<string, number | string | boolean>
+  noveltyPreference?: number | null
+  painAvoidanceSignals: Record<string, unknown>
+  promptSummary?: string | null
+  confidence: number
+  sampleSize: number
+  feedbackCount: number
+}
+
+export interface WODLearningContext {
+  profile: WODPreferenceProfile | null
+  globalHints: string[]
+  promptSummary: string | null
+}
+
+export interface WODCandidateBlueprint {
+  id: string
+  title: string
+  summary: string
+  format: string
+  workoutType: WODWorkoutType
+  mode: WODMode
+  duration: number
+  intensity: AdjustedIntensity
+  equipment: WODEquipment[]
+  focusArea?: WODFocusArea
+  sections: string[]
+  keyExercises: string[]
+  rationale: string
+}
+
+export interface WODCandidateScore {
+  candidateId: string
+  score: number
+  vetoed: boolean
+  reasons: string[]
+  breakdown: {
+    safety: number
+    preferenceFit: number
+    readinessFit: number
+    goalFit: number
+    durationFit: number
+    equipmentFit: number
+    variety: number
+  }
 }
 
 // ============================================
@@ -386,6 +469,6 @@ export const WOD_LABELS = {
   },
 
   // Status labels
-  remaining: (n: number) => `${n} pass kvar denna vecka`,
+  remaining: (n: number) => `${n} pass kvar idag`,
   unlimited: 'Obegränsat',
 } as const

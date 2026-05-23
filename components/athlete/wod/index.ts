@@ -7,3 +7,4 @@
 export { WODGeneratorModal } from './WODGeneratorModal'
 export { WODPreviewScreen } from './WODPreviewScreen'
 export { WODHistorySummary } from './WODHistorySummary'
+export { WODPreferenceProfileCard } from './WODPreferenceProfileCard'

@@ -535,6 +535,7 @@ model Client {
   videoAnalyses    VideoAnalysis[]   @relation("AthleteVideoAnalyses")
   bodyCompositions BodyComposition[] @relation("ClientBodyComposition")
   aiGeneratedWODs  AIGeneratedWOD[]  @relation("ClientWODs")
+  wodPreferenceProfile WODPreferenceProfile?
 
   // Gemini 3 Pro features
   audioJournals      AudioJournal[]

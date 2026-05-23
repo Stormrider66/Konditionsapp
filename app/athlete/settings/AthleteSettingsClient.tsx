@@ -19,6 +19,7 @@ import { MacroSplitEditor } from '@/components/athlete/settings/MacroSplitEditor
 import { LocationSettings } from '@/components/athlete/settings/LocationSettings'
 import { AIContextSettings } from '@/components/athlete/settings/AIContextSettings'
 import { AICreditStatusCard } from '@/components/athlete/ai/AICreditStatusCard'
+import { WODPreferenceProfileCard } from '@/components/athlete/wod'
 import { ProfileSettings } from '@/components/settings/ProfileSettings'
 import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
 import type { SportProfile } from '@prisma/client'
@@ -215,6 +216,7 @@ export function AthleteSettingsClient({
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.aiProfile')}</h3>
           </div>
           <AIContextSettings clientId={clientId} variant="glass" />
+          <WODPreferenceProfileCard />
         </div>
 
         {/* Theme Settings */}

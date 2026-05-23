@@ -7,7 +7,7 @@
  * Steps: Mode Selection → Duration → Equipment → Generating → Preview
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
@@ -342,60 +342,68 @@ export function WODGeneratorModal({
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
   const [hasLocations, setHasLocations] = useState(false)
   const [loadingLocations, setLoadingLocations] = useState(false)
+  const hasLoadedLocationsRef = useRef(false)
 
   // Intent tier selection state
   const [availableIntents, setAvailableIntents] = useState<ModelIntent[]>([])
   const [selectedIntent, setSelectedIntent] = useState<ModelIntent>('balanced')
   const [showIntentSelector, setShowIntentSelector] = useState(false)
   const [loadingIntents, setLoadingIntents] = useState(false)
+  const hasLoadedIntentsRef = useRef(false)
+
+  const loadPreferredLocations = useCallback(async () => {
+    hasLoadedLocationsRef.current = true
+    setLoadingLocations(true)
+    try {
+      const res = await fetch('/api/athlete/settings/preferred-location')
+      const data = await res.json()
+      if (data.success && data.hasLocations) {
+        setLocations(data.availableLocations)
+        setHasLocations(true)
+        if (data.preferredLocation) {
+          setSelectedLocationId(data.preferredLocation.id)
+        }
+      }
+    } catch {
+      // No locations available - that's fine
+    } finally {
+      setLoadingLocations(false)
+    }
+  }, [])
 
   // Fetch available locations when modal opens
   useEffect(() => {
-    if (open && !hasLocations && !loadingLocations) {
-      setLoadingLocations(true)
-      fetch('/api/athlete/settings/preferred-location')
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.hasLocations) {
-            setLocations(data.availableLocations)
-            setHasLocations(true)
-            if (data.preferredLocation) {
-              setSelectedLocationId(data.preferredLocation.id)
-            }
-          }
-        })
-        .catch(() => {
-          // No locations available - that's fine
-        })
-        .finally(() => {
-          setLoadingLocations(false)
-        })
+    if (open && !hasLoadedLocationsRef.current && !loadingLocations) {
+      void loadPreferredLocations()
     }
-  }, [open, hasLocations, loadingLocations])
+  }, [open, loadingLocations, loadPreferredLocations])
+
+  const loadAvailableIntents = useCallback(async () => {
+    hasLoadedIntentsRef.current = true
+    setLoadingIntents(true)
+    try {
+      const res = await fetch('/api/ai/models')
+      const data = await res.json()
+      if (data.success && data.mode === 'intent' && data.tiers) {
+        const intents = data.tiers.map((tier: { intent: ModelIntent }) => tier.intent)
+        setAvailableIntents(intents)
+        if (data.defaultIntent) {
+          setSelectedIntent(data.defaultIntent)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch AI tiers:', err)
+    } finally {
+      setLoadingIntents(false)
+    }
+  }, [])
 
   // Fetch available intent tiers when modal opens
   useEffect(() => {
-    if (open && availableIntents.length === 0) {
-      setLoadingIntents(true)
-      fetch('/api/ai/models')
-        .then(res => res.json())
-        .then(data => {
-          if (data.success && data.mode === 'intent' && data.tiers) {
-            const intents = data.tiers.map((t: { intent: ModelIntent }) => t.intent)
-            setAvailableIntents(intents)
-            if (data.defaultIntent) {
-              setSelectedIntent(data.defaultIntent)
-            }
-          }
-        })
-        .catch(err => {
-          console.error('Failed to fetch AI tiers:', err)
-        })
-        .finally(() => {
-          setLoadingIntents(false)
-        })
+    if (open && !hasLoadedIntentsRef.current && availableIntents.length === 0) {
+      void loadAvailableIntents()
     }
-  }, [open, availableIntents.length])
+  }, [open, availableIntents.length, loadAvailableIntents])
 
   // Reset state when modal closes
   const handleOpenChange = useCallback((newOpen: boolean) => {
@@ -417,10 +425,10 @@ export function WODGeneratorModal({
     })
   }, [])
 
-  // Reset equipment when workout type changes
-  useEffect(() => {
+  const selectWorkoutType = useCallback((type: WODWorkoutType) => {
+    setSelectedWorkoutType(type)
     setSelectedEquipment(['none'])
-  }, [selectedWorkoutType])
+  }, [])
 
   // Auto-populate equipment when location is selected
   useEffect(() => {
@@ -457,7 +465,7 @@ export function WODGeneratorModal({
         // Failed to fetch - keep current selection
       }
     }
-    fetchLocationEquipment()
+    void fetchLocationEquipment()
   }, [selectedLocationId, selectedWorkoutType])
 
   // Toggle equipment selection
@@ -533,7 +541,7 @@ export function WODGeneratorModal({
     if (step === 'workoutType') setStep('mode')
     else if (step === 'mode') setStep('duration')
     else if (step === 'duration') setStep('equipment')
-    else if (step === 'equipment') generateWOD()
+    else if (step === 'equipment') void generateWOD()
   }
 
   const goBack = () => {
@@ -542,7 +550,7 @@ export function WODGeneratorModal({
     else if (step === 'equipment') setStep('duration')
   }
 
-  const canProceed = step !== 'generating'
+  const canProceed = step !== 'generating' && !isGenerating
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -558,7 +566,7 @@ export function WODGeneratorModal({
         {!isUnlimited && (
           <div className="flex justify-center">
             <Badge variant="secondary" className="text-xs">
-              {text(locale, `${remainingWODs} workouts left this week`, `${remainingWODs} pass kvar denna vecka`)}
+              {text(locale, `${remainingWODs} free workouts left today`, `${remainingWODs} kostnadsfria pass kvar idag`)}
             </Badge>
           </div>
         )}
@@ -591,7 +599,7 @@ export function WODGeneratorModal({
                 return (
                   <button
                     key={type}
-                    onClick={() => setSelectedWorkoutType(type)}
+                    onClick={() => selectWorkoutType(type)}
                     className={cn(
                       'relative p-4 rounded-xl border-2 transition-all text-left',
                       'bg-gradient-to-br',
@@ -776,6 +784,11 @@ export function WODGeneratorModal({
             </div>
 
             {/* AI Quality Tier Selector */}
+            {loadingIntents && (
+              <div className="pt-2 border-t text-xs text-muted-foreground">
+                {text(locale, 'Loading AI quality options...', 'Laddar AI-kvalitet...')}
+              </div>
+            )}
             {availableIntents.length > 1 && (
               <div className="pt-2 border-t">
                 <button

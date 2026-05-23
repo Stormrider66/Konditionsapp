@@ -16,16 +16,18 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Slider } from '@/components/ui/slider'
-import { CheckCircle2, Clock, Flame, Loader2 } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { CheckCircle2, Clock, Flame, Loader2, Repeat2, Smile, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
+import type { WODFeedbackInput } from '@/types/wod'
 
 interface WODCompletionModalProps {
   title: string
   totalExercises: number
   estimatedDuration: number // minutes, from WOD
   actualDuration: number // minutes, calculated from startTime
-  onComplete: (data: { sessionRPE: number; actualDuration: number }) => Promise<void>
+  onComplete: (data: { sessionRPE: number; actualDuration: number; feedback: WODFeedbackInput }) => Promise<void>
   onCancel: () => void
 }
 
@@ -40,6 +42,12 @@ export function WODCompletionModal({
   const t = useTranslations('components.wodCompletionModal')
   const [sessionRPE, setSessionRPE] = useState(6) // Default to moderate
   const [adjustedDuration, setAdjustedDuration] = useState(actualDuration)
+  const [difficultyFit, setDifficultyFit] = useState(3)
+  const [enjoyment, setEnjoyment] = useState(3)
+  const [structureFit, setStructureFit] = useState(3)
+  const [repeatIntent, setRepeatIntent] = useState(true)
+  const [painOrDiscomfort, setPainOrDiscomfort] = useState('')
+  const [note, setNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const rpeLabels: Record<number, { label: string; color: string; description: string }> = {
@@ -62,6 +70,14 @@ export function WODCompletionModal({
       await onComplete({
         sessionRPE,
         actualDuration: adjustedDuration,
+        feedback: {
+          difficultyFit: difficultyFit as WODFeedbackInput['difficultyFit'],
+          enjoyment: enjoyment as WODFeedbackInput['enjoyment'],
+          structureFit: structureFit as WODFeedbackInput['structureFit'],
+          repeatIntent,
+          painOrDiscomfort: painOrDiscomfort.trim() || null,
+          note: note.trim() || null,
+        },
       })
     } finally {
       setIsSubmitting(false)
@@ -73,7 +89,7 @@ export function WODCompletionModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4">
-      <GlassCard className="max-w-md w-full">
+      <GlassCard className="max-w-lg w-full max-h-[92vh] overflow-y-auto">
         <GlassCardContent className="p-6">
           {/* Header */}
           <div className="text-center mb-6">
@@ -160,6 +176,73 @@ export function WODCompletionModal({
             </div>
           </div>
 
+          {/* Learning feedback */}
+          <div className="mb-6 space-y-5 rounded-lg border bg-muted/30 p-4">
+            <div className="flex items-center gap-2">
+              <Smile className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">{t('learning.title')}</h3>
+            </div>
+
+            <FeedbackSlider
+              label={t('learning.difficultyFit')}
+              value={difficultyFit}
+              onChange={setDifficultyFit}
+              lowLabel={t('learning.tooEasy')}
+              highLabel={t('learning.tooHard')}
+            />
+            <FeedbackSlider
+              label={t('learning.enjoyment')}
+              value={enjoyment}
+              onChange={setEnjoyment}
+              lowLabel={t('learning.notForMe')}
+              highLabel={t('learning.lovedIt')}
+            />
+            <FeedbackSlider
+              label={t('learning.structureFit')}
+              value={structureFit}
+              onChange={setStructureFit}
+              lowLabel={t('learning.messy')}
+              highLabel={t('learning.clear')}
+            />
+
+            <button
+              type="button"
+              onClick={() => setRepeatIntent((value) => !value)}
+              className={cn(
+                'flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors',
+                repeatIntent
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                  : 'border-border bg-background text-muted-foreground'
+              )}
+            >
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <Repeat2 className="h-4 w-4" />
+                {t('learning.repeatIntent')}
+              </span>
+              <span className="text-sm">{repeatIntent ? t('learning.yes') : t('learning.no')}</span>
+            </button>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('learning.painLabel')}</label>
+              <Textarea
+                value={painOrDiscomfort}
+                onChange={(event) => setPainOrDiscomfort(event.target.value)}
+                placeholder={t('learning.painPlaceholder')}
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('learning.noteLabel')}</label>
+              <Textarea
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder={t('learning.notePlaceholder')}
+                rows={2}
+              />
+            </div>
+          </div>
+
           {/* Actions */}
           <div className="flex gap-3">
             <Button
@@ -190,6 +273,43 @@ export function WODCompletionModal({
           </div>
         </GlassCardContent>
       </GlassCard>
+    </div>
+  )
+}
+
+function FeedbackSlider({
+  label,
+  value,
+  onChange,
+  lowLabel,
+  highLabel,
+}: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+  lowLabel: string
+  highLabel: string
+}) {
+  return (
+    <div>
+      <label className="mb-2 flex items-center justify-between gap-3 text-sm font-medium">
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+          {label}
+        </span>
+        <span className="text-muted-foreground">{value}/5</span>
+      </label>
+      <Slider
+        value={[value]}
+        onValueChange={([next]) => onChange(next)}
+        min={1}
+        max={5}
+        step={1}
+      />
+      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+        <span>{lowLabel}</span>
+        <span>{highLabel}</span>
+      </div>
     </div>
   )
 }
