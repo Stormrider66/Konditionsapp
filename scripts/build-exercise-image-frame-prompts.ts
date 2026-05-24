@@ -594,10 +594,194 @@ const BATCH_03: BatchExercise[] = [
   },
 ]
 
+const BATCH_04: BatchExercise[] = [
+  {
+    name: 'Front Squat',
+    displayName: 'Front Squat',
+    subject: 'woman',
+    category: 'knee-dominance',
+    slug: 'front-squat',
+    primaryImage: '/images/knee-dominance/front-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, erector spinae, abdominal stabilizers',
+    avoid: 'back squat bar position, crossed-arm front rack, Smith machine, elbows dropped, rounded upper back, heels lifting, knees collapsing inward, cropped plates',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'standing tall at the top of a front squat with barbell held in front rack across the shoulders, elbows high, feet shoulder-width, knees and hips extended, torso upright and braced',
+      },
+    ],
+  },
+  {
+    name: 'Goblet Squat',
+    displayName: 'Goblet Squat',
+    subject: 'man',
+    category: 'knee-dominance',
+    slug: 'goblet-squat',
+    primaryImage: '/images/knee-dominance/goblet-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, hamstrings, abdominal stabilizers',
+    avoid: 'barbell squat, dumbbells at sides, kettlebell swing, elbows flaring outward, rounded back, cropped kettlebell or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'standing tall at the top of a goblet squat holding one kettlebell vertically at chest height with both hands, feet shoulder-width, knees and hips extended, trunk braced',
+      },
+    ],
+  },
+  {
+    name: 'Handstand Push-Up',
+    displayName: 'Handstand Push-Up',
+    subject: 'woman',
+    category: 'upper-body',
+    slug: 'handstand-push-up',
+    primaryImage: '/images/upper-body/handstand-push-up-1.png',
+    targetFrames: 2,
+    muscles: 'deltoids, triceps brachii, upper trapezius, serratus anterior, abdominal stabilizers',
+    avoid: 'freestanding handstand walk, pike push-up, kipping arch, collapsed neck, feet far off wall, cropped hands or feet, poster-like diagram',
+    frames: [
+      {
+        index: 2,
+        role: 'locked-out top frame',
+        scene: 'strict wall-supported handstand push-up top position with arms straight, hands under shoulders, feet lightly touching the wall, ribs down, body tight and vertical',
+      },
+    ],
+  },
+  {
+    name: 'Höftbrygga',
+    displayName: 'Glute Bridge',
+    subject: 'man',
+    category: 'posterior-chain',
+    slug: 'hoftbrygga',
+    primaryImage: '/images/posterior-chain/hoftbrygga-1.png',
+    targetFrames: 2,
+    muscles: 'gluteus maximus, hamstrings, adductor magnus, erector spinae, abdominal stabilizers',
+    avoid: 'single-leg bridge, barbell hip thrust, bench support, overarched lumbar spine, feet too far forward, cropped head or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'bottom setup frame',
+        scene: 'floor glute bridge bottom setup position lying on the back with knees bent, feet flat under the knees, hips resting just above the floor, arms relaxed on the floor',
+      },
+    ],
+  },
+  {
+    name: 'Inverterad rodd',
+    displayName: 'Inverted Row',
+    subject: 'woman',
+    category: 'upper-body',
+    slug: 'inverterad-rodd',
+    primaryImage: '/images/upper-body/inverterad-rodd-1.png',
+    targetFrames: 2,
+    muscles: 'latissimus dorsi, rhomboids, middle trapezius, posterior deltoid, biceps brachii, abdominal stabilizers',
+    avoid: 'pull-up, seated cable row, TRX straps, bent hips, sagging body, cropped hands or bar supports',
+    frames: [
+      {
+        index: 2,
+        role: 'arm-extended bottom frame',
+        scene: 'bottom position of an inverted row under a low straight bar, hands gripping shoulder-width, arms straight, body in one line from shoulders to heels, heels on the floor',
+      },
+    ],
+  },
+  {
+    name: 'Kbox Bilateral Squat',
+    displayName: 'Kbox Bilateral Squat',
+    subject: 'man',
+    category: 'knee-dominance',
+    slug: 'kbox-bilateral-squat',
+    primaryImage: '/images/knee-dominance/kbox-bilateral-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, hamstrings, abdominal stabilizers',
+    avoid: 'normal bodyweight squat with no flywheel, cable machine, barbell, belt floating without platform, knees collapsing inward, cropped platform or handle',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'standing top position of a bilateral flywheel squat on a compact Kbox-style platform, feet shoulder-width, knees and hips extended, torso braced, holding the handle attached to the flywheel strap or belt',
+      },
+    ],
+  },
+  {
+    name: 'Kbox Unilateral Squat',
+    displayName: 'Kbox Unilateral Squat',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'kbox-unilateral-squat',
+    primaryImage: '/images/unilateral/kbox-unilateral-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, adductor magnus, hamstrings, abdominal stabilizers',
+    avoid: 'bilateral squat, pistol squat with no flywheel, cable machine, barbell, knee collapse, cropped working foot or platform',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'standing top position of a single-leg flywheel squat on a compact Kbox-style platform, working foot planted, opposite foot lightly touching behind for balance, torso braced, holding the flywheel handle',
+      },
+    ],
+  },
+  {
+    name: 'Kickstand Romanian Deadlift',
+    displayName: 'Kickstand Romanian Deadlift',
+    subject: 'man',
+    category: 'posterior-chain',
+    slug: 'kickstand-romanian-deadlift',
+    primaryImage: '/images/posterior-chain/kickstand-romanian-deadlift-1.png',
+    targetFrames: 2,
+    muscles: 'hamstrings, gluteus maximus, gluteus medius, erector spinae, abdominal stabilizers',
+    avoid: 'conventional two-leg deadlift, single-leg airplane pose, barbell if dumbbells are clearer, rounded back, rear foot carrying full weight, cropped dumbbells or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'standing top position of a kickstand Romanian deadlift with most weight on the front leg, rear toes lightly touching behind, two dumbbells held at the sides, hips extended, spine neutral',
+      },
+    ],
+  },
+  {
+    name: 'Landmine Lateral Squat',
+    displayName: 'Landmine Lateral Squat',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'landmine-lateral-squat',
+    primaryImage: '/images/unilateral/landmine-lateral-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, adductor magnus, hamstrings, abdominal stabilizers',
+    avoid: 'normal side lunge with no landmine, overhead barbell, cable machine, knee collapse, torso folded completely forward, cropped bar end or extended foot',
+    frames: [
+      {
+        index: 2,
+        role: 'standing wide start frame',
+        scene: 'standing start position for a landmine lateral squat with feet wide, knees nearly extended, loaded landmine bar end held at chest height, torso tall, landmine anchor and bar angle visible',
+      },
+    ],
+  },
+  {
+    name: 'Landmine Skate Squat',
+    displayName: 'Landmine Skate Squat',
+    subject: 'man',
+    category: 'unilateral',
+    slug: 'landmine-skate-squat',
+    primaryImage: '/images/unilateral/landmine-skate-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, hamstrings, adductor magnus, abdominal stabilizers',
+    avoid: 'lateral squat, side lunge, bilateral squat, Bulgarian split squat with bench, pistol squat with the free leg forward, barbell across back, knee collapse, cropped rear knee or landmine anchor',
+    frames: [
+      {
+        index: 2,
+        role: 'standing reset frame',
+        scene: 'standing reset position for a landmine-assisted skate squat with working foot planted, opposite leg hovering slightly behind, hands holding landmine bar end at chest height, torso braced, bar angled from a floor anchor',
+      },
+    ],
+  },
+]
+
 const BATCHES: Record<string, BatchExercise[]> = {
   '01': BATCH_01,
   '02': BATCH_02,
   '03': BATCH_03,
+  '04': BATCH_04,
 }
 
 function promptFor(exercise: BatchExercise, frame: BatchExercise['frames'][number]): string {
