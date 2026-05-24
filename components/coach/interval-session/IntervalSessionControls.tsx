@@ -179,9 +179,14 @@ export function IntervalSessionControls({
     }
   }
 
-  const intervalLabel = protocol?.intervalCount
-    ? `Intervall ${currentInterval} / ${protocol.intervalCount}`
-    : `Intervall ${currentInterval}`
+  const currentStep = protocol?.steps?.[currentInterval - 1]
+  const intervalLabel = currentStep
+    ? protocol?.intervalCount
+      ? `${currentStep.label} · ${currentInterval}/${protocol.intervalCount}`
+      : currentStep.label
+    : protocol?.intervalCount
+      ? `Intervall ${currentInterval} / ${protocol.intervalCount}`
+      : `Intervall ${currentInterval}`
 
   const isGroupResting = restMode === 'GROUP' && groupRestRemaining !== null && groupRestRemaining > 0
   const restProgress = isGroupResting && protocol?.restDurationSeconds

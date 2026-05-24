@@ -47,6 +47,7 @@ import {
   Trophy,
   Sparkles,
   MessageSquareText,
+  Timer,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -507,6 +508,7 @@ export function TeamCalendarView({
   const [queueStatusFilter, setQueueStatusFilter] = useState<'open' | TeamEventContentStatus>('open')
   const [calendarPermissions, setCalendarPermissions] = useState<TeamCalendarPermissions | null>(null)
   const [assigningEventId, setAssigningEventId] = useState<string | null>(null)
+  const [launchingEventId, setLaunchingEventId] = useState<string | null>(null)
 
   const weekDates = getWeekDates(weekBase)
   const monthDates = getMonthDates(weekBase)
@@ -534,6 +536,15 @@ export function TeamCalendarView({
   const isPhysicalTrainerCalendar = calendarPermissions?.role === 'PHYSICAL_TRAINER'
   const canCreateType = (type: TeamEventType) => creatableTypes.includes(type)
   const canAssignContentType = (type: string) => assignableContentTypes.includes(type as TeamEventType)
+  const canLaunchIntervalSession = (event: TeamEvent) => (
+    isStaffPlanningView &&
+    (
+      Boolean(event.intervalSession) ||
+      event.type === 'INTERVAL_SESSION' ||
+      (event.linkedWorkoutType === 'CARDIO' && Boolean(event.linkedWorkoutId)) ||
+      (event.linkedWorkoutType === 'HYBRID' && Boolean(event.linkedWorkoutId))
+    )
+  )
   const contentQueue = events
     .filter(eventNeedsContent)
     .filter((event) => queueOwnerFilter === 'all' || event.contentOwner === queueOwnerFilter)
@@ -757,6 +768,38 @@ export function TeamCalendarView({
       toast.error(text(locale, 'Kunde inte tilldela passet', 'Could not assign the workout'))
     } finally {
       setAssigningEventId(null)
+    }
+  }
+
+  const handleLaunchIntervalSession = async (event: TeamEvent) => {
+    if (event.intervalSession?.id) {
+      window.location.assign(`${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${event.intervalSession.id}`)
+      return
+    }
+
+    setLaunchingEventId(event.id)
+    try {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/teams/${teamId}/events/${event.id}/launch-interval-session${params.size ? `?${params}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.sessionId) throw new Error(data.error || 'Failed')
+
+      toast.success(data.created
+        ? text(locale, 'Intervallsession skapad', 'Interval session created')
+        : text(locale, 'Intervallsession öppnas', 'Opening interval session'))
+      window.location.assign(`${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${data.sessionId}`)
+    } catch {
+      toast.error(text(locale, 'Kunde inte starta intervallsessionen', 'Could not launch the interval session'))
+    } finally {
+      setLaunchingEventId(null)
     }
   }
 
@@ -1184,6 +1227,23 @@ export function TeamCalendarView({
                         <Send className="mr-1 h-3 w-3" />
                         {isAssigning ? text(locale, 'Tilldelar...', 'Assigning...') : text(locale, 'Tilldela laget', 'Assign to team')}
                       </Button>
+                      {canLaunchIntervalSession(event) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs border-orange-300 text-orange-800 hover:bg-orange-50"
+                          disabled={Boolean(launchingEventId)}
+                          onClick={() => void handleLaunchIntervalSession(event)}
+                        >
+                          <Timer className="mr-1 h-3 w-3" />
+                          {launchingEventId === event.id
+                            ? text(locale, 'Startar...', 'Launching...')
+                            : event.intervalSession
+                              ? text(locale, 'Öppna live', 'Open live')
+                              : text(locale, 'Starta live', 'Launch live')}
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="outline"
@@ -1430,6 +1490,25 @@ export function TeamCalendarView({
                         </div>
                       )}
                     </div>
+                    {canLaunchIntervalSession(event) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 shrink-0 px-2 text-xs border-orange-300 text-orange-800 hover:bg-orange-50"
+                        disabled={Boolean(launchingEventId)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void handleLaunchIntervalSession(event)
+                        }}
+                      >
+                        <Timer className="mr-1 h-3 w-3" />
+                        {launchingEventId === event.id
+                          ? text(locale, 'Startar...', 'Launching...')
+                          : event.intervalSession
+                            ? text(locale, 'Öppna live', 'Open live')
+                            : text(locale, 'Starta live', 'Launch live')}
+                      </Button>
+                    )}
                     {canCreateType(event.type as TeamEventType) && (
                       <Button
                         variant="ghost"
@@ -1696,6 +1775,21 @@ export function TeamCalendarView({
                                 </div>
                               )}
                             </div>
+                            {canLaunchIntervalSession(event) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 shrink-0 px-2 text-xs border-orange-300 text-orange-800 hover:bg-orange-50"
+                                disabled={Boolean(launchingEventId)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  void handleLaunchIntervalSession(event)
+                                }}
+                              >
+                                <Timer className="mr-1 h-3 w-3" />
+                                {event.intervalSession ? text(locale, 'Live', 'Live') : text(locale, 'Starta', 'Launch')}
+                              </Button>
+                            )}
                             {canCreateType(event.type as TeamEventType) && (
                               <Button
                                 variant="ghost"

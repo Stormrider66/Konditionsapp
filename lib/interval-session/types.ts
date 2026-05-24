@@ -28,6 +28,23 @@ export interface IntervalProtocol {
   targetDurationSeconds?: number
   restDurationSeconds?: number
   description?: string
+  steps?: IntervalProtocolStep[]
+  source?: {
+    type: 'TEAM_EVENT' | 'CARDIO' | 'HYBRID' | 'MANUAL'
+    id?: string
+    workoutType?: string
+    workoutId?: string
+  }
+}
+
+export interface IntervalProtocolStep {
+  label: string
+  type?: string
+  distanceMeters?: number
+  calories?: number
+  targetDurationSeconds?: number
+  restDurationSeconds?: number
+  notes?: string
 }
 
 // Session update input

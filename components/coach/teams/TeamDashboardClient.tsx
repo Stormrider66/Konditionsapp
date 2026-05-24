@@ -59,7 +59,7 @@ export function TeamDashboardClient({ teamId, basePath }: TeamDashboardClientPro
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push(`${basePath}/coach/interval-sessions?teamId=${teamId}`)}>
           <Timer className="mr-2 h-4 w-4" />
-          Intervallsession
+          Starta intervallsession
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
