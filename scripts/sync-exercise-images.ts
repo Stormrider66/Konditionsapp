@@ -10,6 +10,27 @@ const prisma = new PrismaClient()
 
 // Directory containing exercise images
 const IMAGES_DIR = path.join(process.cwd(), 'public', 'images')
+const args = process.argv.slice(2)
+const dryRun = args.includes('--dry-run')
+const onlyExercises = parseCommaArg('--only=')
+const maxImages = parsePositiveIntArg('--max-images=')
+
+function parseCommaArg(prefix: string): string[] {
+  const arg = args.find(value => value.startsWith(prefix))
+  if (!arg) return []
+  return arg
+    .slice(prefix.length)
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean)
+}
+
+function parsePositiveIntArg(prefix: string): number | null {
+  const arg = args.find(value => value.startsWith(prefix))
+  if (!arg) return null
+  const parsed = Number.parseInt(arg.slice(prefix.length), 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
 
 // Helper: Convert Swedish characters to ASCII for file matching
 function normalizeForFile(name: string): string {
@@ -134,6 +155,7 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'Assault Bike (Kalorier)': ['assault-bike-calories'],
   'Muscle-Up (Stång)': ['muscle-up-bar'],
   'Muscle-Up (Ringar)': ['muscle-up-ring'],
+  'Pull-Up': ['pull-up'],
   'Handstående Armhävning': ['handstand-push-up'],
   'Strict Handstand Push-Up': ['strict-handstand-push-up'],
   'Handstand Walk': ['handstand-walk'],
@@ -356,10 +378,32 @@ async function main() {
 
   // Get all exercises from database
   const exercises = await prisma.exercise.findMany({
-    where: { coachId: null, businessId: null, isPublic: true }, // Global public system exercises only
+    where: {
+      coachId: null,
+      businessId: null,
+      isPublic: true,
+      ...(onlyExercises.length > 0
+        ? {
+            OR: onlyExercises.flatMap(name => [
+              { name },
+              { nameSv: name },
+              { nameEn: name },
+            ]),
+          }
+        : {}),
+    }, // Global public system exercises only
     orderBy: { name: 'asc' }
   })
   console.log(`🏋️  Found ${exercises.length} global public system exercises in database\n`)
+  if (onlyExercises.length > 0) {
+    console.log(`🎯 Limited to: ${onlyExercises.join(', ')}\n`)
+  }
+  if (dryRun) {
+    console.log('🔎 Dry run: no database updates will be written\n')
+  }
+  if (maxImages) {
+    console.log(`🧩 Limiting matched image lists to ${maxImages} image${maxImages > 1 ? 's' : ''}\n`)
+  }
 
   let updated = 0
   let skipped = 0
@@ -368,7 +412,7 @@ async function main() {
   const usedImageNames = new Set<string>()
 
   for (const exercise of exercises) {
-    const images = findImagesForExercise(exercise, allImages)
+    const images = findImagesForExercise(exercise, allImages).slice(0, maxImages ?? undefined)
     const currentImagesRaw = coerceStringArray(exercise.imageUrls)
 
     // Bug 2 fix: unused-image detection must include images from *all* exercises,
@@ -389,14 +433,16 @@ async function main() {
     const needsUpdate = !isSameStringArray(currentSorted, desiredSorted)
 
     if (needsUpdate) {
-      await prisma.exercise.update({
-        where: { id: exercise.id },
-        data: {
-          imageUrls: desiredSorted,
-          primaryImageIndex: 0
-        }
-      })
-      console.log(`✅ Updated: ${exercise.name} (${images.length} image${images.length > 1 ? 's' : ''})`)
+      if (!dryRun) {
+        await prisma.exercise.update({
+          where: { id: exercise.id },
+          data: {
+            imageUrls: desiredSorted,
+            primaryImageIndex: 0
+          }
+        })
+      }
+      console.log(`${dryRun ? '🔎 Would update' : '✅ Updated'}: ${exercise.name} (${images.length} image${images.length > 1 ? 's' : ''})`)
       updated++
     } else {
       skipped++
@@ -406,7 +452,7 @@ async function main() {
   console.log('\n' + '=' .repeat(60))
   console.log('📊 Sync Summary')
   console.log('=' .repeat(60))
-  console.log(`✅ Updated: ${updated} exercises`)
+  console.log(`${dryRun ? '🔎 Would update' : '✅ Updated'}: ${updated} exercises`)
   console.log(`⏭️  Skipped: ${skipped} exercises (already up-to-date)`)
   console.log(`❌ No image: ${noImage} exercises`)
 
@@ -420,7 +466,7 @@ async function main() {
 
   // Show unused images (based on all exercises with images, not just updated ones)
   const unusedImages = allImages.filter(img => !usedImageNames.has(img.name))
-  if (unusedImages.length > 0) {
+  if (unusedImages.length > 0 && onlyExercises.length === 0) {
     console.log(`\n📷 ${unusedImages.length} unused images in public/images/:`)
     const uniqueUnused = [...new Set(unusedImages.map(img => img.name))].sort()
     uniqueUnused.slice(0, 10).forEach(name => console.log(`   - ${name}`))
