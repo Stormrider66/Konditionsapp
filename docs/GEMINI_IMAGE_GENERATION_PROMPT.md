@@ -1,5 +1,7 @@
 # Exercise Image Generation Guide for Gemini 3 Pro
 
+> Superseded for new work: use `docs/exercise-image-standard-v2.md` as the current mobile-first image standard. This older guide is kept as historical context for the January 2026 image batch.
+
 ## Progress Status
 
 | Status | Count | Percentage |

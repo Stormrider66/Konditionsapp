@@ -7,6 +7,8 @@ import { logger } from '@/lib/logger'
 import { estimateImageCostUsd, logAiUsage } from '@/lib/ai/usage-logger'
 
 const EXERCISE_IMAGES_BUCKET = 'exercise-images'
+const EXERCISE_IMAGE_STANDARD_VERSION = 'v2-mobile-studio'
+type ExerciseSubject = 'woman' | 'man'
 
 export interface GenerateExerciseOptions {
   exerciseNameSv: string
@@ -23,17 +25,39 @@ export interface GeneratedExerciseResult {
   isNew: boolean
 }
 
+function selectExerciseSubject(name: string): ExerciseSubject {
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const hash = Array.from(normalized).reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    0
+  )
+  return hash % 2 === 0 ? 'woman' : 'man'
+}
+
 /**
- * Builds the exact prompt as defined in GEMINI_IMAGE_GENERATION_PROMPT.md
+ * Builds the prompt defined in docs/exercise-image-standard-v2.md.
  */
 function buildExercisePrompt(name: string, muscles: string[], phase?: string): string {
-  const muscleText = muscles.join(', ').toUpperCase()
-  const phaseText = phase ? ` This is the ${phase} phase of the movement.` : ''
-  
-  return `Athletic person performing ${name} exercise.${phaseText} 
-Highlight ${muscleText} with orange/red glow. 
-Dark moody background (#1a1a2e gradient). 9:16 vertical aspect ratio. 
-Modern anatomical illustration style. Latin muscle labels only. No text or title.`
+  const muscleText = muscles
+    .map((muscle) => muscle.trim())
+    .filter(Boolean)
+    .join(', ')
+    .toUpperCase() || 'PRIMARY ACTIVE MUSCLES'
+  const subject = selectExerciseSubject(name)
+  const phaseText = phase
+    ? `Frame role: ${phase} frame of a movement sequence. Keep camera angle, lighting, clothing style, subject proportions, and background consistent with the other frames.`
+    : 'Frame role: single hero frame.'
+
+  return [
+    `Create one premium ${EXERCISE_IMAGE_STANDARD_VERSION} exercise demonstration image for ${name}.`,
+    `Subject: realistic athletic adult ${subject} performing ${name} with clean coached technique.`,
+    phaseText,
+    `Highlight these active muscles with a broad translucent orange-red anatomical overlay: ${muscleText}. The glow should cover muscle bellies and recruitment zones, not thin nerve-like strands.`,
+    'Background and mood: dark charcoal-blue sports-science gym or studio, dramatic side lighting, subtle floor contact shadow, premium fitness app quality, no clutter.',
+    'Composition: square 1:1 image, mobile-first, centered subject, full movement and necessary equipment visible, safe padding around hands, feet, equipment, and labels.',
+    'Anatomy labels: optional small uppercase Latin anatomy labels with thin leader lines are allowed for highlighted muscles only.',
+    'Strict constraints: no exercise-name text, no title, no app UI, no numbers, no captions, no logos, no watermark, no poster frame, no split screen, no duplicate athlete, no extra limbs, no warped equipment, no impossible joint angles, no cropped important anatomy.',
+  ].join(' ')
 }
 
 /**

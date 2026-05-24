@@ -26,6 +26,7 @@ type PilotExercise = {
   nameEn: string
   nameSv: string
   category: string
+  subject: 'woman' | 'man'
   muscles: string[]
   scene: string
   avoid?: string
@@ -34,99 +35,109 @@ type PilotExercise = {
 const MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2'
 const SIZE = '1024x1024'
 const QUALITY = 'high'
-const STYLE_REFERENCE = path.resolve('public/images/foot-ankle/bike-calories-1.png')
+const STYLE_REFERENCE = path.resolve('public/images/knee-dominance/split-squat-1.png')
 const OUTPUT_ROOT = path.resolve('tmp/exercise-image-v2-pilot')
 
 const PILOT_EXERCISES: PilotExercise[] = [
-  {
-    slug: 'bar-facing-burpee',
-    nameEn: 'Bar Facing Burpee',
-    nameSv: 'Bar Facing Burpee',
-    category: 'posterior-chain',
-    muscles: ['pectoralis major', 'triceps brachii', 'rectus abdominis', 'quadriceps', 'gluteus maximus'],
-    scene: 'athlete in the bottom push-up phase of a bar-facing burpee, chest close to the floor, hands planted, feet extended behind, entire body on one side of the barbell. The barbell lies horizontally on the floor directly in front of the head and hands, clearly separated from the body, ready for the athlete to jump over after standing up',
-    avoid: 'no body parts crossing over the bar, no hands on one side and feet on the other side, no flying pose, no extra barbells, no distorted hands, no impossible plank angle',
-  },
-  {
-    slug: 'childs-pose',
-    nameEn: "Child's Pose",
-    nameSv: 'Barnets position',
-    category: 'mobility',
-    muscles: ['latissimus dorsi', 'erector spinae', 'gluteus maximus'],
-    scene: 'athlete performing child pose on the floor, knees bent, hips resting toward heels, arms extended forward, forehead close to the mat, calm mobility posture',
-    avoid: 'no yoga studio props, no kneeling prayer pose, no extra limbs',
-  },
-  {
-    slug: 'leg-press',
-    nameEn: 'Leg Press',
-    nameSv: 'Benpress',
-    category: 'knee-dominance',
-    muscles: ['quadriceps', 'gluteus maximus', 'hamstrings'],
-    scene: 'athlete seated in a 45-degree leg press machine, feet shoulder-width on the sled platform, knees bent about 90 degrees, hands holding side handles, machine shown clearly and realistically',
-    avoid: 'no floating platform, no missing machine rails, no impossible knee position',
-  },
-  {
-    slug: 'leg-swings',
-    nameEn: 'Leg Swings',
-    nameSv: 'Bensving',
-    category: 'posterior-chain',
-    muscles: ['hip flexors', 'hamstrings', 'gluteus maximus'],
-    scene: 'athlete standing upright beside a simple support, one hand lightly touching the support, one leg swinging forward in a controlled mobility drill, torso tall, clear side view',
-    avoid: 'no split leap, no dance pose, no blurred duplicate legs',
-  },
-  {
-    slug: 'bent-over-row',
-    nameEn: 'Bent Over Row',
-    nameSv: 'Böjd rodd',
-    category: 'upper-body',
-    muscles: ['latissimus dorsi', 'rhomboids', 'trapezius', 'biceps brachii'],
-    scene: 'athlete performing a bent-over barbell row, torso hinged about 45 degrees, neutral spine, barbell pulled toward lower ribs, elbows driving back, feet planted',
-    avoid: 'no deadlift lockout, no rounded back, no mismatched barbell plates',
-  },
-  {
-    slug: 'bicycle-crunches',
-    nameEn: 'Bicycle Crunches',
-    nameSv: 'Cykelcrunches',
-    category: 'core',
-    muscles: ['rectus abdominis', 'external obliques', 'iliopsoas'],
-    scene: 'athlete lying on the floor performing bicycle crunches, one knee drawn toward opposite elbow, other leg extended, shoulder blades lifted, clear core rotation',
-    avoid: 'no actual bicycle, no poster or framed picture, no folded torso anatomy',
-  },
-  {
-    slug: 'bike-calories',
-    nameEn: 'Bike Calories',
-    nameSv: 'Cykel (Kalorier)',
-    category: 'foot-ankle',
-    muscles: ['quadriceps femoris', 'gluteus maximus', 'hamstrings', 'gastrocnemius', 'soleus'],
-    scene: 'athlete riding an indoor stationary bike, side view, hands on handlebars, one knee flexed and one leg extending through the pedal stroke, bike geometry realistic',
-    avoid: 'no outdoor road bike, no extra pedals, no unreadable dashboard text',
-  },
   {
     slug: 'back-squat',
     nameEn: 'Back Squat',
     nameSv: 'Knäböj',
     category: 'knee-dominance',
-    muscles: ['quadriceps', 'gluteus maximus', 'erector spinae', 'hamstrings'],
-    scene: 'athlete performing a back squat in the bottom position, barbell resting on upper back, thighs at or just below parallel, knees tracking over toes, torso braced',
-    avoid: 'no front squat, no smith machine, no collapsed knees, no warped barbell',
+    subject: 'woman',
+    muscles: ['quadriceps femoris', 'gluteus maximus', 'hamstrings', 'erector spinae'],
+    scene: 'athlete performing a back squat in the bottom position, barbell resting on the upper back, thighs at or just below parallel, knees tracking over toes, torso braced, feet planted shoulder-width',
+    avoid: 'no front squat, no smith machine, no collapsed knees, no warped barbell, no plates cropped off',
   },
   {
     slug: 'deadlift',
     nameEn: 'Deadlift',
     nameSv: 'Marklyft',
     category: 'posterior-chain',
-    muscles: ['erector spinae', 'gluteus maximus', 'hamstrings', 'latissimus dorsi', 'trapezius'],
-    scene: 'athlete performing a conventional barbell deadlift just below knee height, neutral spine, bar close to legs, hips and knees extending together, strong hinge position',
-    avoid: 'no sumo stance, no rounded spine, no extra barbell sleeves',
+    subject: 'man',
+    muscles: ['gluteus maximus', 'hamstrings', 'erector spinae', 'latissimus dorsi', 'trapezius'],
+    scene: 'athlete performing a conventional barbell deadlift just below knee height, neutral spine, bar close to the legs, hips and knees extending together, strong hinge position',
+    avoid: 'no sumo stance, no rounded spine, no extra barbell sleeves, no floating plates',
+  },
+  {
+    slug: 'bench-press',
+    nameEn: 'Bench Press',
+    nameSv: 'Bänkpress',
+    category: 'upper-body',
+    subject: 'man',
+    muscles: ['pectoralis major', 'triceps brachii', 'anterior deltoid'],
+    scene: 'athlete lying on a flat bench performing a barbell bench press at the chest-touch position, feet planted, shoulder blades retracted, wrists stacked over elbows, barbell level and realistic',
+    avoid: 'no poster frame, no tilted bench, no warped barbell, no floating hands, no missing rack supports',
+  },
+  {
+    slug: 'split-squat',
+    nameEn: 'Split Squat',
+    nameSv: 'Split Squat',
+    category: 'knee-dominance',
+    subject: 'woman',
+    muscles: ['gluteus maximus', 'quadriceps femoris', 'adductor magnus', 'rectus abdominis'],
+    scene: 'athlete performing a split squat in the bottom position, front knee bent about 90 degrees, back knee hovering just above the floor, torso upright, hands clasped in front of chest',
+    avoid: 'no lunge walk, no back knee touching hard, no twisted hips, no cropped feet',
+  },
+  {
+    slug: 'leg-press',
+    nameEn: 'Leg Press',
+    nameSv: 'Benpress',
+    category: 'knee-dominance',
+    subject: 'woman',
+    muscles: ['quadriceps femoris', 'gluteus maximus', 'hamstrings', 'adductor magnus'],
+    scene: 'athlete seated in a 45-degree leg press machine, feet shoulder-width on the sled platform, knees bent about 90 degrees, hands holding side handles, machine rails and sled shown clearly and realistically',
+    avoid: 'no floating platform, no missing machine rails, no impossible knee position, no cropped sled',
+  },
+  {
+    slug: 'pull-up',
+    nameEn: 'Pull-Up',
+    nameSv: 'Chins',
+    category: 'upper-body',
+    subject: 'man',
+    muscles: ['latissimus dorsi', 'biceps brachii', 'lower trapezius', 'rhomboids'],
+    scene: 'athlete performing a strict pull-up near the top position, chin just above the bar, shoulders depressed, elbows driving down, legs controlled and slightly crossed, viewed from behind at a slight angle',
+    avoid: 'no white poster frame, no kipping swing, no bent bar, no missing hands, no cropped head',
   },
   {
     slug: 'push-up',
     nameEn: 'Push-Up',
     nameSv: 'Armhävning',
     category: 'upper-body',
+    subject: 'woman',
     muscles: ['pectoralis major', 'triceps brachii', 'anterior deltoid', 'rectus abdominis'],
     scene: 'athlete performing a push-up near the bottom position, hands under shoulders, elbows bent about 45 degrees, body straight from shoulders to ankles, floor visible',
     avoid: 'no bench press, no kneeling variation, no sagging hips',
+  },
+  {
+    slug: 'hip-thrust-med-skivstang',
+    nameEn: 'Barbell Hip Thrust',
+    nameSv: 'Hip Thrust med skivstång',
+    category: 'posterior-chain',
+    subject: 'woman',
+    muscles: ['gluteus maximus', 'hamstrings', 'rectus abdominis'],
+    scene: 'athlete performing a barbell hip thrust at lockout, upper back supported by a bench, knees bent, feet planted, hips fully extended, barbell across the hips with pad',
+    avoid: 'no poster frame, no white background, no floating bench, no hyperextended lower back, no cropped plates',
+  },
+  {
+    slug: 'single-under',
+    nameEn: 'Single Under',
+    nameSv: 'Single Under',
+    category: 'unilateral',
+    subject: 'man',
+    muscles: ['gastrocnemius', 'soleus', 'tibialis anterior'],
+    scene: 'athlete performing a single-under jump rope movement, small vertical jump with rope passing under the feet, elbows close to sides, wrists turning the handles, realistic rope arc',
+    avoid: 'no double rope, no huge tuck jump, no floating handles, no tangled rope',
+  },
+  {
+    slug: 'kettlebell-swing',
+    nameEn: 'Kettlebell Swing',
+    nameSv: 'Kettlebell Swing',
+    category: 'posterior-chain',
+    subject: 'man',
+    muscles: ['gluteus maximus', 'hamstrings', 'erector spinae', 'latissimus dorsi'],
+    scene: 'athlete performing a kettlebell swing at the hip-snap phase, hips extended powerfully, kettlebell floating around chest height, arms straight, spine neutral, feet planted',
+    avoid: 'no squat front raise, no bent arms, no overhead snatch, no warped kettlebell, no rounded back',
   },
 ]
 
@@ -140,12 +151,13 @@ function parseLimit() {
 function buildPrompt(exercise: PilotExercise) {
   return [
     `Create a premium exercise demonstration image for ${exercise.nameEn} (${exercise.nameSv}).`,
-    `Use the provided reference image only as the visual style target: dark sports-science studio, realistic athletic woman, clean equipment, dramatic side lighting, subtle anatomical muscle glow, polished professional fitness-app quality.`,
+    `Use the provided reference image only as the visual style target: dark sports-science studio, realistic athletic ${exercise.subject}, clean equipment, dramatic side lighting, orange-red anatomical muscle glow, polished professional fitness-app quality.`,
     `Exercise scene: ${exercise.scene}.`,
     `Highlight these active muscles as broad glowing muscle groups with a translucent orange-red anatomical overlay: ${exercise.muscles.join(', ')}. The glow should cover the muscle bellies and recruitment zones, not thin nerve-like strands.`,
     `Composition: square 1:1 image, full body or full movement visible, centered subject, consistent safe padding, no important anatomy or equipment cropped, clear readable pose at mobile thumbnail size.`,
-    `Style: realistic anatomical sports illustration, same mood and quality as the reference bike image, dark charcoal-blue background, no clutter, no logos, no brand marks.`,
-    `Strict constraints: no text, no labels, no captions, no numbers, no watermark, no UI, no poster frame, no split screen, no duplicate athlete, no extra limbs, no anatomical impossibilities, no glowing nerve pathways, no skeleton lines, no thin fiber-only highlights.`,
+    `Style: realistic anatomical sports illustration, same mood and quality as the reference image, dark charcoal-blue background, no clutter, no logos, no brand marks.`,
+    `Anatomy labels: optional small uppercase Latin anatomy labels with thin leader lines are allowed for highlighted muscles only.`,
+    `Strict constraints: no exercise-name text, no title, no app UI, no numbers, no captions, no watermark, no poster frame, no split screen, no duplicate athlete, no extra limbs, no anatomical impossibilities, no glowing nerve pathways, no skeleton lines, no thin fiber-only highlights.`,
     exercise.avoid ? `Avoid: ${exercise.avoid}.` : '',
   ].filter(Boolean).join(' ')
 }
@@ -188,9 +200,9 @@ async function main() {
   for (const exercise of PILOT_EXERCISES.slice(0, limit)) {
     const started = Date.now()
     const prompt = buildPrompt(exercise)
-    const referenceFile = await toFile(styleReference, 'bike-calories-style-reference.png', { type: 'image/png' })
+    const referenceFile = await toFile(styleReference, 'exercise-image-v2-style-reference.png', { type: 'image/png' })
 
-    console.log(`Generating ${exercise.nameSv} (${exercise.nameEn})...`)
+    console.log(`Generating ${exercise.nameSv} (${exercise.nameEn}) [${exercise.subject}]...`)
     const response = await client.images.edit({
       model: MODEL,
       image: referenceFile,
@@ -213,6 +225,7 @@ async function main() {
       nameEn: exercise.nameEn,
       nameSv: exercise.nameSv,
       category: exercise.category,
+      subject: exercise.subject,
       muscles: exercise.muscles,
       file: fileName,
       model: MODEL,
