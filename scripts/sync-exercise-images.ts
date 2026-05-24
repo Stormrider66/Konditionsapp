@@ -100,6 +100,8 @@ function getAllImages(): { path: string; name: string; category: string }[] {
 // Explicit mapping for exercises with non-standard file names
 const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   // Swedish name -> file name patterns
+  '90-90 Hip Bridge': ['90-90-hip-bridge'],
+  '90-90 höftbrygga': ['90-90-hip-bridge'],
   'Höftbrygga': ['hoftbrygga'],
   'Enbensbrygga': ['enbensbrygga'],
   'Hip Thrust med skivstång': ['hip-thrust-med-skivstang'],
@@ -121,7 +123,7 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'Bred hopp (max)': ['bred-hopp-max'],
   'Bulgarisk utfallsböj': ['bulgarisk-utfallsboj'],
   'Utfallssteg': ['utfallssteg', 'lunge'],
-  'Bakåtlunges': ['bakatlunges', 'reverse-lunge', 'lunge'],
+  'Bakåtlunges': ['bakatlunges'],
   'Step-Ups (låg)': ['step-up'],
   'Step-Ups (hög)': ['step-ups-hog'],
   'Step-Ups med knädrive': ['step-ups-med-knadrive'],
