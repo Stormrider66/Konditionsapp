@@ -55,6 +55,7 @@ import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import { useLocale } from 'next-intl'
 import { PoseAnalyzer, PoseFrame } from './PoseAnalyzer'
+import type { SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power'
 import { SkiingTechniqueDashboard } from './SkiingTechniqueDashboard'
 import { HyroxStationDashboard } from './HyroxStationDashboard'
 import {
@@ -383,6 +384,7 @@ export function VideoAnalysisCard({
       interpretation?: string
       overallAssessment?: string
       score?: number
+      powerEstimate?: SquatJumpPowerEstimate | null
       technicalFeedback?: Array<{
         area: string
         observation: string
@@ -400,6 +402,7 @@ export function VideoAnalysisCard({
         exercises?: string[]
       }>
     } | null
+    powerEstimate?: SquatJumpPowerEstimate | null
   } | null>(null)
 
   const [isLoadingPoseData, setIsLoadingPoseData] = useState(false)
@@ -460,6 +463,7 @@ export function VideoAnalysisCard({
         frames: data.frames,
         metadata: data.metadata,
         aiPoseAnalysis: data.aiPoseAnalysis || null,
+        powerEstimate: data.powerEstimate || data.metadata?.powerEstimate || data.aiPoseAnalysis?.powerEstimate || null,
       })
       setShowExtendedPoseData(true)
     } catch (error) {
@@ -618,6 +622,7 @@ export function VideoAnalysisCard({
     frames: PoseFrame[]
     angles: { name: string; angle: number; status: string }[]
     summary: string
+    powerEstimate?: SquatJumpPowerEstimate | null
   }) => {
     setIsSavingPose(true)
 
@@ -633,6 +638,7 @@ export function VideoAnalysisCard({
           summary: data.summary,
           // Include the Gemini AI pose analysis if available (from ref to avoid stale closure)
           aiPoseAnalysis: currentAiPoseAnalysis,
+          powerEstimate: data.powerEstimate ?? null,
         }),
       })
 
@@ -655,6 +661,7 @@ export function VideoAnalysisCard({
         frames: data.frames,
         metadata: result.analysis?.landmarksData?.metadata,
         aiPoseAnalysis: result.aiPoseAnalysis || currentAiPoseAnalysis || null,
+        powerEstimate: result.powerEstimate || data.powerEstimate || null,
       })
 
       onAnalysisComplete()
@@ -1259,6 +1266,37 @@ export function VideoAnalysisCard({
                       <p className="text-sm text-purple-700">
                         {extendedPoseData.aiPoseAnalysis.overallAssessment || extendedPoseData.aiPoseAnalysis.interpretation}
                       </p>
+                    </div>
+                  )}
+
+                  {extendedPoseData.powerEstimate?.status === 'ready' && extendedPoseData.powerEstimate.metrics && (
+                    <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <h4 className="font-medium text-orange-800 mb-2 flex items-center gap-2">
+                        <Zap className="h-4 w-4" />
+                        {t(locale, 'Squat jump power estimate', 'Squat jump-effekt')}
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+                        <div>
+                          <span className="text-orange-700">{t(locale, 'Jump height', 'Hopphöjd')}</span>
+                          <p className="font-mono font-semibold">{extendedPoseData.powerEstimate.metrics.jumpHeightCm} cm</p>
+                        </div>
+                        <div>
+                          <span className="text-orange-700">{t(locale, 'Flight time', 'Flygtid')}</span>
+                          <p className="font-mono font-semibold">{extendedPoseData.powerEstimate.metrics.flightTimeMs} ms</p>
+                        </div>
+                        <div>
+                          <span className="text-orange-700">{t(locale, 'Takeoff', 'Takeoff')}</span>
+                          <p className="font-mono font-semibold">{extendedPoseData.powerEstimate.metrics.takeoffVelocityMps} m/s</p>
+                        </div>
+                        <div>
+                          <span className="text-orange-700">{t(locale, 'Peak proxy', 'Peak proxy')}</span>
+                          <p className="font-mono font-semibold">
+                            {extendedPoseData.powerEstimate.metrics.estimatedPeakPowerW
+                              ? `${extendedPoseData.powerEstimate.metrics.estimatedPeakPowerW} W`
+                              : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
 

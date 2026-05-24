@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Card,
   CardContent,
@@ -29,6 +31,9 @@ import {
   Eye,
   Pencil,
   MousePointer,
+  Gauge,
+  Ruler,
+  Weight,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -57,6 +62,11 @@ import {
   calculateJointAngles,
   type JointAngle,
 } from './pose-analyzer/calculate-joint-angles'
+import {
+  estimateSquatJumpPower,
+  type SquatJumpPowerEstimate,
+  type SquatJumpPowerWarningCode,
+} from '@/lib/video-analysis/squat-jump-power'
 import { useLocale } from '@/i18n/client'
 
 export type { PoseLandmark, PoseFrame }
@@ -73,6 +83,90 @@ type AppLocale = 'en' | 'sv'
 
 function text(locale: AppLocale, sv: string, en: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function parsePositiveDecimal(value: string): number | null {
+  const normalized = value.replace(',', '.').trim()
+  if (!normalized) return null
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function getPowerWarningText(locale: AppLocale, code: SquatJumpPowerWarningCode): string {
+  const messages: Record<SquatJumpPowerWarningCode, { sv: string; en: string }> = {
+    no_frames: {
+      sv: 'Kör poseanalysen först.',
+      en: 'Run pose analysis first.',
+    },
+    no_airborne_phase: {
+      sv: 'Ingen tydlig flygfas hittades.',
+      en: 'No clear airborne phase was detected.',
+    },
+    short_airborne_phase: {
+      sv: 'Flygfasen är kort; en frame kan påverka resultatet.',
+      en: 'The airborne phase is short; one frame can shift the result.',
+    },
+    body_mass_missing: {
+      sv: 'Kroppsvikt behövs för watt och W/kg.',
+      en: 'Body mass is needed for watts and W/kg.',
+    },
+    height_missing: {
+      sv: 'Längd förbättrar uppskattningen av frånskjutet.',
+      en: 'Height improves the push-off estimate.',
+    },
+    non_sagittal_view: {
+      sv: 'Sidovy ger säkrast effektuppskattning.',
+      en: 'Side view gives the most reliable power estimate.',
+    },
+    low_frame_rate: {
+      sv: '30 fps räcker för trend, men inte labbprecision.',
+      en: '30 fps is useful for trends, not lab precision.',
+    },
+    low_visibility: {
+      sv: 'Fötterna syns inte tillräckligt genom klippet.',
+      en: 'The feet are not visible enough through the clip.',
+    },
+    multiple_jumps: {
+      sv: 'Flera hopp hittades; längsta flygfasen används.',
+      en: 'Multiple jumps were detected; the longest flight is used.',
+    },
+    missing_concentric_phase: {
+      sv: 'Bottenläge till takeoff var svårt att isolera.',
+      en: 'Bottom-to-takeoff was hard to isolate.',
+    },
+    peak_power_proxy: {
+      sv: 'Peak power är en videobaserad proxy.',
+      en: 'Peak power is a video-based proxy.',
+    },
+    loaded_jump_proxy: {
+      sv: 'Lastad uppskattning antar att vikten rör sig med kroppen.',
+      en: 'Loaded estimates assume the load moves with the athlete.',
+    },
+  }
+
+  const message = messages[code]
+  return locale === 'sv' ? message.sv : message.en
+}
+
+function getConfidenceLabel(locale: AppLocale, confidence: SquatJumpPowerEstimate['confidence']): string {
+  if (confidence === 'high') return text(locale, 'Hög tillförlitlighet', 'High confidence')
+  if (confidence === 'moderate') return text(locale, 'Måttlig tillförlitlighet', 'Moderate confidence')
+  return text(locale, 'Låg tillförlitlighet', 'Low confidence')
+}
+
+function formatPowerSummary(locale: AppLocale, estimate: SquatJumpPowerEstimate | null): string | null {
+  if (!estimate || estimate.status !== 'ready' || !estimate.metrics) return null
+
+  const metrics = estimate.metrics
+  const power = metrics.estimatedPeakPowerW
+    ? text(locale, ` Peak power proxy ${metrics.estimatedPeakPowerW} W.`, ` Peak power proxy ${metrics.estimatedPeakPowerW} W.`)
+    : ''
+
+  return text(
+    locale,
+    `Squat jump-estimat: hopphöjd ${metrics.jumpHeightCm} cm, flygtid ${metrics.flightTimeMs} ms, takeoff ${metrics.takeoffVelocityMps} m/s.${power}`,
+    `Squat jump estimate: jump height ${metrics.jumpHeightCm} cm, flight time ${metrics.flightTimeMs} ms, takeoff ${metrics.takeoffVelocityMps} m/s.${power}`
+  )
 }
 
 // AI Analysis data from Gemini
@@ -103,6 +197,7 @@ interface PoseAnalyzerProps {
     frames: PoseFrame[]
     angles: JointAngle[]
     summary: string
+    powerEstimate?: SquatJumpPowerEstimate | null
   }) => void
   /** Called when secondary AI pose analysis (Gemini) completes */
   onAIPoseAnalysis?: (data: Record<string, unknown>) => void
@@ -163,12 +258,31 @@ export function PoseAnalyzer({
     }>
     overallAssessment: string
     score?: number
+    powerEstimate?: SquatJumpPowerEstimate | null
   } | null>(null)
   const poseRef = useRef<any>(null)
   const framesRef = useRef<PoseFrame[]>([])
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [videoReady, setVideoReady] = useState(false)
   const [videoError, setVideoError] = useState(false)
+  const [bodyMassKgInput, setBodyMassKgInput] = useState('')
+  const [externalLoadKgInput, setExternalLoadKgInput] = useState('')
+  const [athleteHeightCmInput, setAthleteHeightCmInput] = useState('')
+
+  const bodyMassKg = useMemo(() => parsePositiveDecimal(bodyMassKgInput), [bodyMassKgInput])
+  const externalLoadKg = useMemo(() => parsePositiveDecimal(externalLoadKgInput) ?? 0, [externalLoadKgInput])
+  const athleteHeightCm = useMemo(() => parsePositiveDecimal(athleteHeightCmInput), [athleteHeightCmInput])
+  const squatJumpPowerEstimate = useMemo(() => {
+    if (videoType !== 'STRENGTH' || frames.length === 0) return null
+
+    return estimateSquatJumpPower({
+      frames,
+      bodyMassKg,
+      externalLoadKg,
+      athleteHeightCm,
+      cameraAngle: detectedCameraAngle,
+    })
+  }, [athleteHeightCm, bodyMassKg, detectedCameraAngle, externalLoadKg, frames, videoType])
 
   useEffect(() => {
     localeRef.current = locale
@@ -450,12 +564,13 @@ export function PoseAnalyzer({
     if (frames.length > 0 && onAnalysisComplete) {
       const goodCount = currentAngles.filter(a => a.status === 'good').length
       const editNote = hasEdits ? text(locale, ' (med manuella korrigeringar)', ' (with manual corrections)') : ''
+      const powerSummary = formatPowerSummary(locale, squatJumpPowerEstimate)
       const summary = text(
         locale,
-        `Analyserade ${frames.length} frames. ${goodCount}/${currentAngles.length} ledvinklar inom optimalt intervall.${editNote}`,
-        `Analyzed ${frames.length} frames. ${goodCount}/${currentAngles.length} joint angles within the optimal range.${editNote}`
+        `Analyserade ${frames.length} frames. ${goodCount}/${currentAngles.length} ledvinklar inom optimalt intervall.${editNote}${powerSummary ? ` ${powerSummary}` : ''}`,
+        `Analyzed ${frames.length} frames. ${goodCount}/${currentAngles.length} joint angles within the optimal range.${editNote}${powerSummary ? ` ${powerSummary}` : ''}`
       )
-      onAnalysisComplete({ frames, angles: currentAngles, summary })
+      onAnalysisComplete({ frames, angles: currentAngles, summary, powerEstimate: squatJumpPowerEstimate })
     } else if (frames.length === 0) {
       toast({
         title: text(locale, 'Ingen data att spara', 'No data to save'),
@@ -505,6 +620,7 @@ export function PoseAnalyzer({
           frames,
           frameCount: frames.length,
           cameraAngle: detectedCameraAngle, // Send detected camera viewing angle
+          powerEstimate: squatJumpPowerEstimate,
         }),
       })
 
@@ -516,11 +632,16 @@ export function PoseAnalyzer({
         throw new Error(data.error || text(locale, 'AI-analysen misslyckades', 'AI analysis failed'))
       }
 
-      setAiPoseAnalysis(data.analysis)
+      const analysisWithPowerEstimate = {
+        ...data.analysis,
+        powerEstimate: data.analysis?.powerEstimate ?? squatJumpPowerEstimate,
+      }
+
+      setAiPoseAnalysis(analysisWithPowerEstimate)
 
       // Notify parent about the AI analysis for page context
       if (onAIPoseAnalysis) {
-        onAIPoseAnalysis(data.analysis)
+        onAIPoseAnalysis(analysisWithPowerEstimate)
       }
 
       toast({
@@ -1123,6 +1244,107 @@ export function PoseAnalyzer({
                 <span>{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} />
+            </div>
+          )}
+
+          {videoType === 'STRENGTH' && (
+            <div className="rounded-lg border bg-slate-50 p-3">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Gauge className="h-4 w-4 text-orange-600" />
+                  {text(locale, 'Squat jump / jump squat-effekt', 'Squat jump / jump squat power')}
+                </div>
+                {squatJumpPowerEstimate && (
+                  <Badge variant="outline">
+                    {getConfidenceLabel(locale, squatJumpPowerEstimate.confidence)}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label htmlFor="pose-body-mass" className="flex items-center gap-1 text-xs">
+                    <Weight className="h-3 w-3" />
+                    {text(locale, 'Kroppsvikt', 'Body mass')}
+                  </Label>
+                  <Input
+                    id="pose-body-mass"
+                    inputMode="decimal"
+                    value={bodyMassKgInput}
+                    onChange={(event) => setBodyMassKgInput(event.target.value)}
+                    placeholder="kg"
+                    className="h-9 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="pose-external-load" className="flex items-center gap-1 text-xs">
+                    <Weight className="h-3 w-3" />
+                    {text(locale, 'Extern last', 'External load')}
+                  </Label>
+                  <Input
+                    id="pose-external-load"
+                    inputMode="decimal"
+                    value={externalLoadKgInput}
+                    onChange={(event) => setExternalLoadKgInput(event.target.value)}
+                    placeholder="kg"
+                    className="h-9 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="pose-athlete-height" className="flex items-center gap-1 text-xs">
+                    <Ruler className="h-3 w-3" />
+                    {text(locale, 'Längd', 'Height')}
+                  </Label>
+                  <Input
+                    id="pose-athlete-height"
+                    inputMode="decimal"
+                    value={athleteHeightCmInput}
+                    onChange={(event) => setAthleteHeightCmInput(event.target.value)}
+                    placeholder="cm"
+                    className="h-9 bg-white"
+                  />
+                </div>
+              </div>
+
+              {squatJumpPowerEstimate?.status === 'ready' && squatJumpPowerEstimate.metrics && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-md border bg-white p-2">
+                    <div className="text-xs text-muted-foreground">{text(locale, 'Hopphöjd', 'Jump height')}</div>
+                    <div className="font-mono text-lg font-semibold">{squatJumpPowerEstimate.metrics.jumpHeightCm} cm</div>
+                  </div>
+                  <div className="rounded-md border bg-white p-2">
+                    <div className="text-xs text-muted-foreground">{text(locale, 'Flygtid', 'Flight time')}</div>
+                    <div className="font-mono text-lg font-semibold">{squatJumpPowerEstimate.metrics.flightTimeMs} ms</div>
+                  </div>
+                  <div className="rounded-md border bg-white p-2">
+                    <div className="text-xs text-muted-foreground">{text(locale, 'Takeoff', 'Takeoff')}</div>
+                    <div className="font-mono text-lg font-semibold">{squatJumpPowerEstimate.metrics.takeoffVelocityMps} m/s</div>
+                  </div>
+                  <div className="rounded-md border bg-white p-2">
+                    <div className="text-xs text-muted-foreground">{text(locale, 'Peak proxy', 'Peak proxy')}</div>
+                    <div className="font-mono text-lg font-semibold">
+                      {squatJumpPowerEstimate.metrics.estimatedPeakPowerW
+                        ? `${squatJumpPowerEstimate.metrics.estimatedPeakPowerW} W`
+                        : text(locale, 'Ange kg', 'Add kg')}
+                    </div>
+                    {squatJumpPowerEstimate.metrics.relativePeakPowerWPerKg && (
+                      <div className="text-xs text-muted-foreground">
+                        {squatJumpPowerEstimate.metrics.relativePeakPowerWPerKg} W/kg
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {squatJumpPowerEstimate && squatJumpPowerEstimate.warnings.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {squatJumpPowerEstimate.warnings.slice(0, 4).map((warning) => (
+                    <Badge key={warning.code} variant="secondary" className="text-xs">
+                      {getPowerWarningText(locale, warning.code)}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

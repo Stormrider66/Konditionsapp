@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useLocale } from 'next-intl'
-import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Clock, Eye, Target, Lightbulb, TrendingUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Clock, Eye, Target, Lightbulb, TrendingUp, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import type { SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power'
 
 export interface AIPoseAnalysis {
   interpretation?: string
@@ -27,6 +28,7 @@ export interface AIPoseAnalysis {
   }>
   overallAssessment?: string
   score?: number
+  powerEstimate?: SquatJumpPowerEstimate | null
 }
 
 interface VideoAnalysisDetailCardProps {
@@ -204,6 +206,37 @@ export function VideoAnalysisDetailCard({ analysis }: VideoAnalysisDetailCardPro
                 {t(locale, 'Tolkning', 'Interpretation')}
               </h4>
               <p className="text-sm text-muted-foreground">{poseAnalysis.interpretation}</p>
+            </div>
+          )}
+
+          {poseAnalysis?.powerEstimate?.status === 'ready' && poseAnalysis.powerEstimate.metrics && (
+            <div className="p-4 bg-background rounded-lg border">
+              <h4 className="font-semibold flex items-center gap-2 mb-3">
+                <Zap className="h-4 w-4 text-orange-600" />
+                {t(locale, 'Squat jump-effekt', 'Squat jump power')}
+              </h4>
+              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                <div>
+                  <p className="text-muted-foreground">{t(locale, 'Hopphöjd', 'Jump height')}</p>
+                  <p className="font-mono font-semibold">{poseAnalysis.powerEstimate.metrics.jumpHeightCm} cm</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">{t(locale, 'Flygtid', 'Flight time')}</p>
+                  <p className="font-mono font-semibold">{poseAnalysis.powerEstimate.metrics.flightTimeMs} ms</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">{t(locale, 'Takeoff', 'Takeoff')}</p>
+                  <p className="font-mono font-semibold">{poseAnalysis.powerEstimate.metrics.takeoffVelocityMps} m/s</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">{t(locale, 'Peak proxy', 'Peak proxy')}</p>
+                  <p className="font-mono font-semibold">
+                    {poseAnalysis.powerEstimate.metrics.estimatedPeakPowerW
+                      ? `${poseAnalysis.powerEstimate.metrics.estimatedPeakPowerW} W`
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

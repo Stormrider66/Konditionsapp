@@ -11,6 +11,7 @@ import {
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import type { SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power'
 
 export const maxDuration = 120
 
@@ -54,6 +55,7 @@ interface AnalyzePoseDataRequest {
   frames: PoseFrame[]
   frameCount: number
   cameraAngle?: 'SAGITTAL' | 'FRONTAL' | 'UNKNOWN' // Detected camera viewing angle
+  powerEstimate?: SquatJumpPowerEstimate | null
 }
 
 export async function POST(request: NextRequest) {
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const body: AnalyzePoseDataRequest = await request.json()
-    const { clientId, videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle } = body
+    const { clientId, videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle, powerEstimate } = body
 
     if (clientId) {
       const hasAccess = await canAccessClient(user.id, clientId)
@@ -186,6 +188,7 @@ export async function POST(request: NextRequest) {
       hasRangeData,
       angleRanges,
       cameraAngle: cameraAngle || 'UNKNOWN',
+      powerEstimate: powerEstimate || null,
     })
 
     logger.debug('Pose data analysis: sending to Gemini', {
@@ -221,6 +224,7 @@ export async function POST(request: NextRequest) {
         recommendations: analysis.recommendations,
         overallAssessment: analysis.overallAssessment,
         score: analysis.score ?? score,
+        ...(powerEstimate ? { powerEstimate } : {}),
       },
       model: modelId,
     })
@@ -302,10 +306,11 @@ interface PromptParams {
   hasRangeData?: boolean
   angleRanges?: AngleRange[]
   cameraAngle?: 'SAGITTAL' | 'FRONTAL' | 'UNKNOWN'
+  powerEstimate?: SquatJumpPowerEstimate | null
 }
 
 function buildAnalysisPrompt(params: PromptParams): string {
-  const { locale, exerciseContext, videoType, angleSummary, frameCount, sampleFrames, hasRangeData, angleRanges, cameraAngle } = params
+  const { locale, exerciseContext, videoType, angleSummary, frameCount, sampleFrames, hasRangeData, angleRanges, cameraAngle, powerEstimate } = params
 
   // Build asymmetry analysis for running gait
   let asymmetryNote = ''
@@ -347,6 +352,8 @@ function buildAnalysisPrompt(params: PromptParams): string {
       ? `\n\n**OBS**: Data nedan är från en enskild bildruta. För mer tillförlitlig analys behövs min/max-intervall över hela videon.`
       : `\n\n**NOTE**: The data below comes from a single frame. For a more reliable analysis, min/max ranges across the full video are needed.`
 
+  const powerEstimateSummary = formatPowerEstimateForPrompt(powerEstimate, locale)
+
   if (locale === 'en') {
     return `You are an expert in biomechanical analysis and movement technique. Analyze the following data from a MediaPipe skeleton-tracking analysis.
 
@@ -362,6 +369,7 @@ ${asymmetryNote}
 
 ## Sampled frame positions (key positions)
 ${sampleFrames}
+${powerEstimateSummary}
 
 ---
 
@@ -452,7 +460,7 @@ ${videoType === 'RUNNING_GAIT' && cameraAngle === 'FRONTAL' ? `
 1. Correct form, control, stability, and progression opportunities
 2. ${hasRangeData ? 'Compare MIN/MAX intervals between right and left sides to assess symmetry' : 'Asymmetries between right and left sides'}
 3. Potential injury risks based on movement patterns
-4. Practical, achievable improvement suggestions with specific exercises
+4. ${powerEstimateSummary ? 'Interpret the provided jump power estimate as approximate video-derived data; do not recalculate watts.' : 'Practical, achievable improvement suggestions with specific exercises'}
 `}
 
 Respond ONLY with the JSON object and no other text.`
@@ -472,6 +480,7 @@ ${asymmetryNote}
 
 ## Samplade frame-positioner (nyckelpositioner)
 ${sampleFrames}
+${powerEstimateSummary}
 
 ---
 
@@ -562,10 +571,56 @@ ${videoType === 'RUNNING_GAIT' && cameraAngle === 'FRONTAL' ? `
 1. Korrekt form, kontroll, stabilitet, progressionsmöjligheter
 2. ${hasRangeData ? 'Jämför MIN/MAX-intervallen mellan höger och vänster sida för att bedöma symmetri' : 'Asymmetrier mellan höger/vänster sida'}
 3. Potentiella skaderisker baserat på rörelsemönster
-4. Praktiska, genomförbara förbättringsförslag med specifika övningar
+4. ${powerEstimateSummary ? 'Tolka den bifogade effektuppskattningen som ungefärlig videodata; räkna inte om watt.' : 'Praktiska, genomförbara förbättringsförslag med specifika övningar'}
 `}
 
 Svara ENDAST med JSON-objektet, ingen annan text.`
+}
+
+function formatPowerEstimateForPrompt(estimate: SquatJumpPowerEstimate | null | undefined, locale: AppLocale): string {
+  if (!estimate) return ''
+
+  if (estimate.status !== 'ready' || !estimate.metrics) {
+    const warningText = estimate.warnings.map((item) => item.message).join('; ')
+    return locale === 'sv'
+      ? `\n\n## Squat jump / jump squat-effekt\nIngen tillförlitlig effektuppskattning kunde beräknas. Varningar: ${warningText || 'saknas'}.`
+      : `\n\n## Squat jump / jump squat power\nNo reliable power estimate could be calculated. Warnings: ${warningText || 'none'}.`
+  }
+
+  const metrics = estimate.metrics
+  const lines = [
+    locale === 'sv' ? '## Squat jump / jump squat-effekt' : '## Squat jump / jump squat power',
+    locale === 'sv'
+      ? `- Metod: videobaserad flygtid + COM-proxy (${estimate.confidence}, ${estimate.confidenceScore}/100)`
+      : `- Method: video-derived flight time + COM proxy (${estimate.confidence}, ${estimate.confidenceScore}/100)`,
+    locale === 'sv'
+      ? `- Rörelse: ${estimate.movement === 'LOADED_JUMP_SQUAT' ? 'lastad jump squat' : 'squat jump'}`
+      : `- Movement: ${estimate.movement === 'LOADED_JUMP_SQUAT' ? 'loaded jump squat' : 'squat jump'}`,
+    locale === 'sv'
+      ? `- Hopphöjd: ${metrics.jumpHeightCm} cm; flygtid: ${metrics.flightTimeMs} ms; takeoff: ${metrics.takeoffVelocityMps} m/s`
+      : `- Jump height: ${metrics.jumpHeightCm} cm; flight time: ${metrics.flightTimeMs} ms; takeoff: ${metrics.takeoffVelocityMps} m/s`,
+  ]
+
+  if (metrics.estimatedPeakPowerW) {
+    lines.push(locale === 'sv'
+      ? `- Peak power proxy: ${metrics.estimatedPeakPowerW} W${metrics.relativePeakPowerWPerKg ? ` (${metrics.relativePeakPowerWPerKg} W/kg)` : ''}`
+      : `- Peak power proxy: ${metrics.estimatedPeakPowerW} W${metrics.relativePeakPowerWPerKg ? ` (${metrics.relativePeakPowerWPerKg} W/kg)` : ''}`)
+  }
+
+  if (metrics.concentricDurationMs) {
+    lines.push(locale === 'sv'
+      ? `- Koncentrisk fas: ${metrics.concentricDurationMs} ms${metrics.concentricDisplacementCm ? `, ca ${metrics.concentricDisplacementCm} cm` : ''}`
+      : `- Concentric phase: ${metrics.concentricDurationMs} ms${metrics.concentricDisplacementCm ? `, approx ${metrics.concentricDisplacementCm} cm` : ''}`)
+  }
+
+  const warningText = estimate.warnings.map((item) => item.message).join('; ')
+  if (warningText) {
+    lines.push(locale === 'sv'
+      ? `- Tolkningsvarningar: ${warningText}`
+      : `- Interpretation warnings: ${warningText}`)
+  }
+
+  return `\n\n${lines.join('\n')}`
 }
 
 interface GeminiAnalysis {

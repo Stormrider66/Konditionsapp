@@ -18,8 +18,8 @@ import {
   fromBase64,
   getCompressionStats,
   type PoseFrame,
-  type TOONData,
 } from '@/lib/video-analysis/skeletal-compression';
+import type { SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power';
 
 const landmarkSchema = z.object({
   x: z.number(),
@@ -54,12 +54,14 @@ const aiPoseAnalysisSchema = z.object({
   })),
   overallAssessment: z.string(),
   score: z.number().optional(),
+  powerEstimate: z.any().nullable().optional(),
 }).optional();
 
 const updateSchema = z.object({
   frames: z.array(frameSchema),
   summary: z.string().optional(),
   aiPoseAnalysis: aiPoseAnalysisSchema.nullable(), // Allow null when no AI analysis was run
+  powerEstimate: z.any().nullable().optional(),
 });
 
 export const maxDuration = 60
@@ -99,7 +101,10 @@ export async function PATCH(
       })
     }
 
-    const { frames, summary, aiPoseAnalysis } = updateSchema.parse(body);
+    const { frames, summary, aiPoseAnalysis, powerEstimate } = updateSchema.parse(body) as z.infer<typeof updateSchema> & {
+      powerEstimate?: SquatJumpPowerEstimate | null
+      aiPoseAnalysis?: (z.infer<typeof aiPoseAnalysisSchema> & { powerEstimate?: SquatJumpPowerEstimate | null }) | null
+    };
 
     if (frames.length > MAX_FRAMES) {
       return NextResponse.json({ error: `Too many frames (max ${MAX_FRAMES})` }, { status: 413 })
@@ -149,6 +154,7 @@ export async function PATCH(
       metadata: {
         analyzedAt: new Date().toISOString(),
         model: 'mediapipe-blazepose-1.0',
+        ...(powerEstimate ? { powerEstimate } : {}),
       },
     };
 
@@ -189,6 +195,14 @@ export async function PATCH(
           ),
           '',
         ] : []),
+        ...(powerEstimate?.status === 'ready' && powerEstimate.metrics ? [
+          'Squat jump power estimate:',
+          `Jump height: ${powerEstimate.metrics.jumpHeightCm} cm`,
+          `Flight time: ${powerEstimate.metrics.flightTimeMs} ms`,
+          `Takeoff velocity: ${powerEstimate.metrics.takeoffVelocityMps} m/s`,
+          ...(powerEstimate.metrics.estimatedPeakPowerW ? [`Peak power proxy: ${powerEstimate.metrics.estimatedPeakPowerW} W`] : []),
+          '',
+        ] : []),
         'Sammanfattning:',
         aiPoseAnalysis.overallAssessment,
       ].join('\n');
@@ -211,7 +225,10 @@ export async function PATCH(
 
     // Store structured AI pose analysis in dedicated column
     if (aiPoseAnalysis) {
-      updateData.aiPoseAnalysis = aiPoseAnalysis;
+      updateData.aiPoseAnalysis = {
+        ...aiPoseAnalysis,
+        ...(powerEstimate ? { powerEstimate } : {}),
+      };
     }
 
     const updated = await prisma.videoAnalysis.update({
@@ -227,8 +244,9 @@ export async function PATCH(
       success: true,
       analysis: updated,
       frameCount: frames.length,
+      ...(powerEstimate ? { powerEstimate } : {}),
       // Also return aiPoseAnalysis explicitly for immediate use
-      ...(aiPoseAnalysis ? { aiPoseAnalysis } : {}),
+      ...(aiPoseAnalysis ? { aiPoseAnalysis: { ...aiPoseAnalysis, ...(powerEstimate ? { powerEstimate } : {}) } } : {}),
     });
   } catch (error) {
     logger.error('Save landmarks error', {}, error)
@@ -295,6 +313,7 @@ export async function GET(
       metadata: {
         analyzedAt: string;
         model: string;
+        powerEstimate?: SquatJumpPowerEstimate | null;
       };
       // Legacy: some rows may have aiPoseAnalysis embedded in landmarksData (backward compat)
       aiPoseAnalysis?: object;
@@ -306,6 +325,8 @@ export async function GET(
       Array<{ aiPoseAnalysis: unknown | null }>
     >`SELECT "aiPoseAnalysis" FROM "VideoAnalysis" WHERE "id" = ${id} LIMIT 1`;
     const aiPoseAnalysis = poseRows?.[0]?.aiPoseAnalysis ?? data.aiPoseAnalysis ?? null;
+    const structuredPoseAnalysis = aiPoseAnalysis as { powerEstimate?: SquatJumpPowerEstimate | null } | null;
+    const powerEstimate = data.metadata?.powerEstimate ?? structuredPoseAnalysis?.powerEstimate ?? null;
 
     let frames: PoseFrame[];
 
@@ -322,6 +343,7 @@ export async function GET(
         frames,
         compressionStats: data.compressionStats,
         metadata: data.metadata,
+        ...(powerEstimate ? { powerEstimate } : {}),
         ...(aiPoseAnalysis ? { aiPoseAnalysis } : {}),
       });
     } else if (data.frames) {
@@ -343,6 +365,7 @@ export async function GET(
         frameCount: data.frameCount,
         frames,
         metadata: data.metadata,
+        ...(powerEstimate ? { powerEstimate } : {}),
         ...(aiPoseAnalysis ? { aiPoseAnalysis } : {}),
       });
     }
