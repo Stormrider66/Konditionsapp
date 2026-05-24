@@ -356,10 +356,10 @@ async function main() {
 
   // Get all exercises from database
   const exercises = await prisma.exercise.findMany({
-    where: { coachId: null }, // System exercises only
+    where: { coachId: null, businessId: null, isPublic: true }, // Global public system exercises only
     orderBy: { name: 'asc' }
   })
-  console.log(`🏋️  Found ${exercises.length} system exercises in database\n`)
+  console.log(`🏋️  Found ${exercises.length} global public system exercises in database\n`)
 
   let updated = 0
   let skipped = 0
