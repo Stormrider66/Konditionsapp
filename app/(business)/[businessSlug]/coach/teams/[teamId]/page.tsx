@@ -41,6 +41,7 @@ import { TeamNotesCard, type TeamNoteSummary, type TeamNoteTag } from '@/compone
 import { AssignmentStatus } from '@prisma/client'
 import { getLocale, getTranslations } from '@/i18n/server'
 import { getSportLabelKey } from '@/lib/sports/catalog'
+import { syncTeamWorkoutBroadcastRosters } from '@/lib/team-calendar/assignment-roster-sync'
 
 interface TeamPageProps {
   params: Promise<{
@@ -110,6 +111,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           birthDate: true,
           height: true,
           weight: true,
+          businessId: true,
           jerseyNumber: true,
           position: true,
           photoUrl: true,
@@ -158,11 +160,20 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     take: 10,
   })
 
+  await syncTeamWorkoutBroadcastRosters(
+    broadcasts.map((broadcast) => broadcast.id),
+    { businessId: membership.businessId, assignedBy: user.id }
+  )
+
   const hockeyTestCount = await prisma.hockeyPhysicalTest.count({
     where: { teamId },
   })
 
   const memberIds = team.members.map((member) => member.id)
+  const activeWorkoutMembers = team.members.filter((member) => (
+    Boolean(member.athleteAccount) && member.businessId === membership.businessId
+  ))
+  const activeWorkoutMemberIds = activeWorkoutMembers.map((member) => member.id)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
@@ -385,6 +396,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         completedCount = await prisma.strengthSessionAssignment.count({
           where: {
             teamBroadcastId: broadcast.id,
+            athleteId: { in: activeWorkoutMemberIds },
             status: 'COMPLETED',
           },
         })
@@ -392,6 +404,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         completedCount = await prisma.cardioSessionAssignment.count({
           where: {
             teamBroadcastId: broadcast.id,
+            athleteId: { in: activeWorkoutMemberIds },
             status: 'COMPLETED',
           },
         })
@@ -399,6 +412,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         completedCount = await prisma.hybridWorkoutAssignment.count({
           where: {
             teamBroadcastId: broadcast.id,
+            athleteId: { in: activeWorkoutMemberIds },
             status: 'COMPLETED',
           },
         })
@@ -421,11 +435,11 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         assignedDate: broadcast.assignedDate,
         workoutName,
         workoutType,
-        totalAssigned: broadcast.totalAssigned,
+        totalAssigned: activeWorkoutMembers.length,
         totalCompleted: completedCount,
         completionRate:
-          broadcast.totalAssigned > 0
-            ? Math.round((completedCount / broadcast.totalAssigned) * 100)
+          activeWorkoutMembers.length > 0
+            ? Math.round((completedCount / activeWorkoutMembers.length) * 100)
             : 0,
       }
     })
@@ -433,7 +447,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
 
   // Calculate member stats
   const memberStats = await Promise.all(
-    team.members.map(async (member) => {
+    activeWorkoutMembers.map(async (member) => {
       const strengthAssigned = await prisma.strengthSessionAssignment.count({
         where: {
           athleteId: member.id,

@@ -152,7 +152,7 @@ async function getBroadcastAssignmentStats(
     })
     return {
       athleteIds: new Set(assignments.map((assignment) => assignment.athleteId)),
-      totalCompleted: assignments.filter((assignment) => assignment.status === 'COMPLETED').length,
+      completedAthleteIds: new Set(assignments.filter((assignment) => assignment.status === 'COMPLETED').map((assignment) => assignment.athleteId)),
     }
   }
   if (type === 'CARDIO') {
@@ -162,7 +162,7 @@ async function getBroadcastAssignmentStats(
     })
     return {
       athleteIds: new Set(assignments.map((assignment) => assignment.athleteId)),
-      totalCompleted: assignments.filter((assignment) => assignment.status === 'COMPLETED').length,
+      completedAthleteIds: new Set(assignments.filter((assignment) => assignment.status === 'COMPLETED').map((assignment) => assignment.athleteId)),
     }
   }
   if (type === 'HYBRID') {
@@ -172,7 +172,7 @@ async function getBroadcastAssignmentStats(
     })
     return {
       athleteIds: new Set(assignments.map((assignment) => assignment.athleteId)),
-      totalCompleted: assignments.filter((assignment) => assignment.status === 'COMPLETED').length,
+      completedAthleteIds: new Set(assignments.filter((assignment) => assignment.status === 'COMPLETED').map((assignment) => assignment.athleteId)),
     }
   }
 
@@ -182,7 +182,7 @@ async function getBroadcastAssignmentStats(
   })
   return {
     athleteIds: new Set(assignments.map((assignment) => assignment.athleteId)),
-    totalCompleted: assignments.filter((assignment) => assignment.status === 'COMPLETED').length,
+    completedAthleteIds: new Set(assignments.filter((assignment) => assignment.status === 'COMPLETED').map((assignment) => assignment.athleteId)),
   }
 }
 
@@ -395,18 +395,19 @@ export async function POST(req: NextRequest, context: RouteContext) {
       where: { id: teamId },
       include: {
         members: {
-          select: { id: true, name: true, businessId: true },
+          select: { id: true, name: true, businessId: true, athleteAccount: { select: { id: true } } },
         },
       },
     })
 
     const eligibleMembers = teamWithMembers?.members.filter((member) => (
-      businessScope.businessId ? member.businessId === businessScope.businessId : true
+      Boolean(member.athleteAccount) && (businessScope.businessId ? member.businessId === businessScope.businessId : true)
     )) ?? []
 
     if (!teamWithMembers || eligibleMembers.length === 0) {
       return NextResponse.json({ error: 'No team members to assign workout to' }, { status: 400 })
     }
+    const eligibleAthleteIds = new Set(eligibleMembers.map((member) => member.id))
 
     const assignedDate = dbDateFromZonedCalendarDay(event.startDate)
     const notes = parsed.data.notes || event.description || null
@@ -478,15 +479,22 @@ export async function POST(req: NextRequest, context: RouteContext) {
       })
 
       const stats = await getBroadcastAssignmentStats(tx, assignmentEvent.linkedWorkoutType, broadcast.id)
-      if (!event.assignedBroadcastId && stats.athleteIds.size === 0) {
+      const activeAssignedAthleteIds = new Set(
+        Array.from(stats.athleteIds).filter((athleteId) => eligibleAthleteIds.has(athleteId))
+      )
+      const activeCompletedCount = Array.from(stats.completedAthleteIds)
+        .filter((athleteId) => eligibleAthleteIds.has(athleteId))
+        .length
+
+      if (!event.assignedBroadcastId && activeAssignedAthleteIds.size === 0) {
         throw new Error('NO_ASSIGNMENTS_CREATED')
       }
 
       const updatedBroadcast = await tx.teamWorkoutBroadcast.update({
         where: { id: broadcast.id },
         data: {
-          totalAssigned: stats.athleteIds.size,
-          totalCompleted: stats.totalCompleted,
+          totalAssigned: eligibleMembers.length,
+          totalCompleted: activeCompletedCount,
         },
       })
 
@@ -501,7 +509,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
             },
           })
 
-      const newlyAssignedAthleteIds = Array.from(stats.athleteIds)
+      const newlyAssignedAthleteIds = Array.from(activeAssignedAthleteIds)
         .filter((athleteId) => !beforeAthleteIds.has(athleteId))
 
       return {

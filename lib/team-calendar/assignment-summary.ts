@@ -36,21 +36,6 @@ export interface TeamCalendarAssignmentAthlete {
   notes: string | null
 }
 
-type CompletedGroup = {
-  teamBroadcastId: string | null
-  _count: { _all: number }
-}
-
-function addCompletedCounts(
-  counts: Map<string, number>,
-  groups: CompletedGroup[]
-) {
-  groups.forEach((group) => {
-    if (!group.teamBroadcastId) return
-    counts.set(group.teamBroadcastId, (counts.get(group.teamBroadcastId) ?? 0) + group._count._all)
-  })
-}
-
 export async function getTeamCalendarAssignmentSummaries(
   broadcastIds: Array<string | null | undefined>,
   options: { businessId?: string | null } = {}
@@ -60,10 +45,6 @@ export async function getTeamCalendarAssignmentSummaries(
 
   const [
     broadcasts,
-    strengthCompleted,
-    cardioCompleted,
-    hybridCompleted,
-    agilityCompleted,
     strengthAssignments,
     cardioAssignments,
     hybridAssignments,
@@ -82,7 +63,10 @@ export async function getTeamCalendarAssignmentSummaries(
         team: {
           select: {
             members: {
-              ...(options.businessId ? { where: { businessId: options.businessId } } : {}),
+              where: {
+                ...(options.businessId ? { businessId: options.businessId } : {}),
+                athleteAccount: { isNot: null },
+              },
               select: {
                 id: true,
                 name: true,
@@ -94,26 +78,6 @@ export async function getTeamCalendarAssignmentSummaries(
           },
         },
       },
-    }),
-    prisma.strengthSessionAssignment.groupBy({
-      by: ['teamBroadcastId'],
-      where: { teamBroadcastId: { in: ids }, status: 'COMPLETED' },
-      _count: { _all: true },
-    }),
-    prisma.cardioSessionAssignment.groupBy({
-      by: ['teamBroadcastId'],
-      where: { teamBroadcastId: { in: ids }, status: 'COMPLETED' },
-      _count: { _all: true },
-    }),
-    prisma.hybridWorkoutAssignment.groupBy({
-      by: ['teamBroadcastId'],
-      where: { teamBroadcastId: { in: ids }, status: 'COMPLETED' },
-      _count: { _all: true },
-    }),
-    prisma.agilityWorkoutAssignment.groupBy({
-      by: ['teamBroadcastId'],
-      where: { teamBroadcastId: { in: ids }, status: 'COMPLETED' },
-      _count: { _all: true },
     }),
     prisma.strengthSessionAssignment.findMany({
       where: { teamBroadcastId: { in: ids } },
@@ -194,12 +158,6 @@ export async function getTeamCalendarAssignmentSummaries(
     },
   })
 
-  const completedCounts = new Map<string, number>()
-  addCompletedCounts(completedCounts, strengthCompleted)
-  addCompletedCounts(completedCounts, cardioCompleted)
-  addCompletedCounts(completedCounts, hybridCompleted)
-  addCompletedCounts(completedCounts, agilityCompleted)
-
   const athletesByBroadcast = new Map<string, TeamCalendarAssignmentAthlete[]>()
   const cardioLogsByAssignment = new Map(cardioLogs.map((log) => [log.assignmentId, log]))
   const hybridResultsById = new Map(hybridResults.map((result) => [result.id, result]))
@@ -279,7 +237,9 @@ export async function getTeamCalendarAssignmentSummaries(
 
   return new Map(
     broadcasts.map((broadcast) => {
-      const athletes = athletesByBroadcast.get(broadcast.id) ?? []
+      const activeAthleteIds = new Set(broadcast.team.members.map((member) => member.id))
+      const athletes = (athletesByBroadcast.get(broadcast.id) ?? [])
+        .filter((athlete) => activeAthleteIds.has(athlete.athleteId))
       const assignedAthleteIds = new Set(athletes.map((athlete) => athlete.athleteId))
       const missingAthletes = broadcast.team.members
         .filter((member) => !assignedAthleteIds.has(member.id))
@@ -289,8 +249,8 @@ export async function getTeamCalendarAssignmentSummaries(
           jerseyNumber: member.jerseyNumber,
           position: member.position,
         }))
-      const totalCompleted = completedCounts.get(broadcast.id) ?? 0
-      const totalAssigned = athletes.length
+      const totalAssigned = broadcast.team.members.length
+      const totalCompleted = athletes.filter((athlete) => athlete.status === 'COMPLETED').length
       const completionRate = totalAssigned > 0
         ? Math.round((totalCompleted / totalAssigned) * 100)
         : 0

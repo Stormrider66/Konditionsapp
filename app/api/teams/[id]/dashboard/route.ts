@@ -16,6 +16,7 @@ import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { performance } from 'node:perf_hooks'
 import { getVerifiedLoadTestBypassEmail, isVerifiedLoadTestBypassRequest } from '@/lib/load-test-bypass'
 import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
+import { syncTeamWorkoutBroadcastRosters } from '@/lib/team-calendar/assignment-roster-sync'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -32,6 +33,8 @@ type TeamDashboardMember = {
   id: string
   name: string
   email: string | null
+  businessId: string | null
+  athleteAccount: { id: string } | null
 }
 
 type TeamDashboardMemberStat = {
@@ -90,7 +93,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       try {
         const json = await withTimeout(inFlight, TEAM_DASHBOARD_MAX_COMPUTE_MS)
         return jsonResponse(json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'inflight' }))
-      } catch (error) {
+      } catch (_error) {
         // If we have anything stale, serve it rather than piling up timeouts.
         const fallback = await teamDashboardCache.get(cacheKey)
         if (fallback && fallback.staleUntil > Date.now()) {
@@ -109,7 +112,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     try {
       const json = await withTimeout(loadPromise, TEAM_DASHBOARD_MAX_COMPUTE_MS)
       return jsonResponse(json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'miss' }))
-    } catch (error) {
+    } catch (_error) {
       const fallback = await teamDashboardCache.get(cacheKey)
       if (fallback && fallback.staleUntil > Date.now()) {
         return jsonResponse(fallback.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
@@ -164,6 +167,7 @@ function parseTeamDashboardOptions(request: NextRequest): TeamDashboardOptions {
 
 function buildTeamDashboardCacheKey(options: TeamDashboardOptions) {
   return [
+    'roster-sync-v2',
     options.businessSlug ? `biz:${options.businessSlug}` : 'biz:none',
     options.includeMemberStats ? 'ms1' : 'ms0',
     options.includeRecentBroadcasts ? 'rb1' : 'rb0',
@@ -174,64 +178,53 @@ function buildTeamDashboardCacheKey(options: TeamDashboardOptions) {
 async function buildTeamDashboardPayload(dbUserId: string, teamId: string, options: TeamDashboardOptions) {
   const accessibleTeamWhere = await getAccessibleTeamWhere(dbUserId, options.businessSlug)
 
-  const team = options.includeMemberStats
-    ? await prisma.team.findFirst({
-        where: {
-          id: teamId,
-          AND: [accessibleTeamWhere],
-        },
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      AND: [accessibleTeamWhere],
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      sportType: true,
+      members: {
         select: {
           id: true,
           name: true,
-          description: true,
-          sportType: true,
-          members: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          organization: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          _count: {
-            select: {
-              members: true,
-            },
-          },
+          email: true,
+          businessId: true,
+          athleteAccount: { select: { id: true } },
         },
-      })
-    : await prisma.team.findFirst({
-        where: {
-          id: teamId,
-          AND: [accessibleTeamWhere],
-        },
+      },
+      organization: {
         select: {
           id: true,
           name: true,
-          description: true,
-          sportType: true,
-          organization: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          _count: {
-            select: {
-              members: true,
-            },
-          },
         },
-      })
+      },
+      _count: {
+        select: {
+          members: true,
+        },
+      },
+    },
+  })
 
   if (!team) {
     throw new Error('TEAM_NOT_FOUND')
   }
+  const businessMembership = options.businessSlug
+    ? await prisma.businessMember.findFirst({
+        where: {
+          userId: dbUserId,
+          isActive: true,
+          business: { slug: options.businessSlug, isActive: true },
+        },
+        select: { businessId: true },
+      })
+    : null
+  const businessId = businessMembership?.businessId ?? null
 
   // Get recent broadcasts (last N days)
   const thirtyDaysAgo = new Date()
@@ -266,17 +259,23 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
   const broadcastIds = broadcasts.map((b) => b.id)
   const members: TeamDashboardMember[] =
     'members' in team ? (team.members as TeamDashboardMember[]) : []
-  const memberIds = members.map((m) => m.id)
+  const activeMembers = members.filter((member) => (
+    Boolean(member.athleteAccount) && (businessId ? member.businessId === businessId : true)
+  ))
+  const memberIds = activeMembers.map((m) => m.id)
+
+  await syncTeamWorkoutBroadcastRosters(broadcastIds, { businessId, assignedBy: dbUserId })
 
   // Aggregate completion counts in bulk to avoid N+1 count queries.
   const [strengthCompletedByBroadcast, cardioCompletedByBroadcast, hybridCompletedByBroadcast] =
-    broadcastIds.length === 0
+    broadcastIds.length === 0 || memberIds.length === 0
       ? [[], [], []]
       : await Promise.all([
           prisma.strengthSessionAssignment.groupBy({
             by: ['teamBroadcastId'],
             where: {
               teamBroadcastId: { in: broadcastIds },
+              athleteId: { in: memberIds },
               status: 'COMPLETED',
             },
             _count: { teamBroadcastId: true },
@@ -285,6 +284,7 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
             by: ['teamBroadcastId'],
             where: {
               teamBroadcastId: { in: broadcastIds },
+              athleteId: { in: memberIds },
               status: 'COMPLETED',
             },
             _count: { teamBroadcastId: true },
@@ -293,6 +293,7 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
             by: ['teamBroadcastId'],
             where: {
               teamBroadcastId: { in: broadcastIds },
+              athleteId: { in: memberIds },
               status: 'COMPLETED',
             },
             _count: { teamBroadcastId: true },
@@ -333,11 +334,11 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
       assignedDate: broadcast.assignedDate,
       workoutName,
       workoutType,
-      totalAssigned: broadcast.totalAssigned,
+      totalAssigned: activeMembers.length,
       totalCompleted: completedCount,
       completionRate:
-        broadcast.totalAssigned > 0
-          ? Math.round((completedCount / broadcast.totalAssigned) * 100)
+        activeMembers.length > 0
+          ? Math.round((completedCount / activeMembers.length) * 100)
           : 0,
     }
   })
@@ -433,28 +434,28 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
 
   // Calculate per-member stats (last 30 days)
   const memberStats: TeamDashboardMemberStat[] = options.includeMemberStats
-    ? members.map((member) => {
-    const strengthAssigned = strengthAssignedMap.get(member.id) || 0
-    const strengthCompleted = strengthCompletedMap.get(member.id) || 0
-    const cardioAssigned = cardioAssignedMap.get(member.id) || 0
-    const cardioCompleted = cardioCompletedMap.get(member.id) || 0
-    const hybridAssigned = hybridAssignedMap.get(member.id) || 0
-    const hybridCompleted = hybridCompletedMap.get(member.id) || 0
-    const totalAssigned = strengthAssigned + cardioAssigned + hybridAssigned
-    const totalCompleted = strengthCompleted + cardioCompleted + hybridCompleted
+    ? activeMembers.map((member) => {
+        const strengthAssigned = strengthAssignedMap.get(member.id) || 0
+        const strengthCompleted = strengthCompletedMap.get(member.id) || 0
+        const cardioAssigned = cardioAssignedMap.get(member.id) || 0
+        const cardioCompleted = cardioCompletedMap.get(member.id) || 0
+        const hybridAssigned = hybridAssignedMap.get(member.id) || 0
+        const hybridCompleted = hybridCompletedMap.get(member.id) || 0
+        const totalAssigned = strengthAssigned + cardioAssigned + hybridAssigned
+        const totalCompleted = strengthCompleted + cardioCompleted + hybridCompleted
 
-    return {
-      athleteId: member.id,
-      name: member.name,
-      email: member.email,
-      assignedCount: totalAssigned,
-      completedCount: totalCompleted,
-      completionRate:
-        totalAssigned > 0
-          ? Math.round((totalCompleted / totalAssigned) * 100)
-          : 0,
-    }
-    })
+        return {
+          athleteId: member.id,
+          name: member.name,
+          email: member.email,
+          assignedCount: totalAssigned,
+          completedCount: totalCompleted,
+          completionRate:
+            totalAssigned > 0
+              ? Math.round((totalCompleted / totalAssigned) * 100)
+              : 0,
+        }
+      })
     : []
 
   // Sort members by completion rate (highest first)

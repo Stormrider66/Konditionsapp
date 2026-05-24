@@ -11,6 +11,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { syncTeamWorkoutBroadcastRosters } from '@/lib/team-calendar/assignment-roster-sync'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import { findTeamCalendarLocationConflicts, formatLocationConflictMessage } from '@/lib/team-calendar/location-conflicts'
 import { isAssignableTeamCoach } from '@/lib/team-calendar/responsible-coach'
@@ -86,6 +87,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
+
+    await syncTeamWorkoutBroadcastRosters(
+      [event.assignedBroadcastId],
+      { businessId: businessScope.businessId, assignedBy: user.id }
+    )
 
     const assignmentSummaries = await getTeamCalendarAssignmentSummaries(
       [event.assignedBroadcastId],
@@ -331,6 +337,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
       return updated
     })
+
+    await syncTeamWorkoutBroadcastRosters(
+      [event.assignedBroadcastId],
+      { businessId: businessScope.businessId, assignedBy: user.id }
+    )
 
     const assignmentSummaries = await getTeamCalendarAssignmentSummaries(
       [event.assignedBroadcastId],

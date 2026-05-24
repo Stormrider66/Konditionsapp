@@ -11,6 +11,7 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
+import { syncTeamWorkoutBroadcastRosters } from '@/lib/team-calendar/assignment-roster-sync'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import { findTeamCalendarLocationConflicts, formatLocationConflictMessage } from '@/lib/team-calendar/location-conflicts'
 import { isAssignableTeamCoach } from '@/lib/team-calendar/responsible-coach'
@@ -106,6 +107,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
       },
       orderBy: { startDate: 'asc' },
     })
+
+    await syncTeamWorkoutBroadcastRosters(
+      events.map((event) => event.assignedBroadcastId),
+      { businessId: businessScope.businessId, assignedBy: user.id }
+    )
 
     const assignmentSummaries = await getTeamCalendarAssignmentSummaries(
       events.map((event) => event.assignedBroadcastId),
