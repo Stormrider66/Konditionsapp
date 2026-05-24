@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estimateSquatJumpPower } from '../squat-jump-power'
+import { estimateMeanPowerFromJumpHeight, estimateSquatJumpPower } from '../squat-jump-power'
 import type { PoseFrame, PoseLandmark } from '@/components/coach/video-analysis/pose-analyzer/utils'
 
 function makeLandmarks(centerY: number, footY: number): PoseLandmark[] {
@@ -57,7 +57,7 @@ describe('estimateSquatJumpPower', () => {
     expect(estimate.metrics?.flightTimeMs).toBeGreaterThan(380)
     expect(estimate.metrics?.jumpHeightCm).toBeGreaterThan(18)
     expect(estimate.metrics?.takeoffVelocityMps).toBeGreaterThan(1.8)
-    expect(estimate.metrics?.estimatedPeakPowerW).toBeGreaterThan(1000)
+    expect(estimate.metrics?.estimatedMeanPowerW).toBeGreaterThan(1000)
     expect(estimate.metrics?.relativePeakPowerWPerKg).toBeGreaterThan(10)
     expect(estimate.phase.repetitionsDetected).toBe(1)
   })
@@ -70,8 +70,13 @@ describe('estimateSquatJumpPower', () => {
 
     expect(estimate.status).toBe('ready')
     expect(estimate.metrics?.jumpHeightCm).toBeGreaterThan(18)
-    expect(estimate.metrics?.estimatedPeakPowerW).toBeNull()
+    expect(estimate.metrics?.estimatedMeanPowerW).toBeNull()
     expect(estimate.warnings.map((item) => item.code)).toContain('body_mass_missing')
+  })
+
+  it('keeps mean power in a realistic range for a 77 kg, 15 cm jump', () => {
+    expect(Math.round(estimateMeanPowerFromJumpHeight(15.3, 77))).toBe(702)
+    expect(Math.round(estimateMeanPowerFromJumpHeight(15.8, 77))).toBe(713)
   })
 
   it('refuses power metrics when no airborne phase is visible', () => {

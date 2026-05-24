@@ -32,7 +32,7 @@ export type SquatJumpPowerWarningCode =
   | 'low_visibility'
   | 'multiple_jumps'
   | 'missing_concentric_phase'
-  | 'peak_power_proxy'
+  | 'mean_power_regression'
   | 'loaded_jump_proxy'
 
 export interface SquatJumpPowerWarning {
@@ -50,6 +50,7 @@ export interface SquatJumpPowerMetrics {
   estimatedMeanPowerW: number | null
   estimatedPeakPowerW: number | null
   relativePeakPowerWPerKg: number | null
+  powerMethod: 'sayers_mean_power' | null
   bodyMassKg: number | null
   externalLoadKg: number
   systemMassKg: number | null
@@ -217,10 +218,6 @@ export function estimateSquatJumpPower(input: SquatJumpPowerInput): SquatJumpPow
     ? Math.max(0, takeoffTime - bottomSample.timestamp)
     : null
 
-  if (!bottomSample || !concentricDurationSeconds || concentricDurationSeconds < 0.05) {
-    warnings.push(warning('missing_concentric_phase'))
-  }
-
   const scaleMetersPerNormalizedUnit = athleteHeightCm
     ? estimateMetersPerNormalizedUnit(samples, athleteHeightCm / 100)
     : null
@@ -232,23 +229,17 @@ export function estimateSquatJumpPower(input: SquatJumpPowerInput): SquatJumpPow
   const jumpHeightMeters = GRAVITY * flightTimeSeconds ** 2 / 8
   const takeoffVelocityMps = GRAVITY * flightTimeSeconds / 2
   const systemMassKg = bodyMassKg ? bodyMassKg + externalLoadKg : null
-  const kineticEnergyJ = systemMassKg ? 0.5 * systemMassKg * takeoffVelocityMps ** 2 : null
-  const displacementEnergyJ = systemMassKg && concentricDisplacementMeters !== null
-    ? systemMassKg * GRAVITY * concentricDisplacementMeters
-    : 0
-  const totalEnergyJ = kineticEnergyJ !== null ? kineticEnergyJ + displacementEnergyJ : null
-  const estimatedMeanPowerW = totalEnergyJ !== null && concentricDurationSeconds && concentricDurationSeconds >= 0.05
-    ? totalEnergyJ / concentricDurationSeconds
+  const jumpHeightCm = jumpHeightMeters * 100
+  const estimatedMeanPowerW = systemMassKg
+    ? estimateMeanPowerFromJumpHeight(jumpHeightCm, systemMassKg)
     : null
-  const estimatedPeakPowerW = estimatedMeanPowerW !== null
-    ? estimatedMeanPowerW * 2.2
-    : null
+  const estimatedPeakPowerW = null
 
-  if (estimatedPeakPowerW !== null) warnings.push(warning('peak_power_proxy'))
+  if (estimatedMeanPowerW !== null) warnings.push(warning('mean_power_regression'))
 
   const metrics: SquatJumpPowerMetrics = {
     flightTimeMs: round(flightTimeSeconds * 1000, 0),
-    jumpHeightCm: round(jumpHeightMeters * 100, 1),
+    jumpHeightCm: round(jumpHeightCm, 1),
     takeoffVelocityMps: round(takeoffVelocityMps, 2),
     concentricDurationMs: concentricDurationSeconds && concentricDurationSeconds >= 0.05
       ? round(concentricDurationSeconds * 1000, 0)
@@ -260,10 +251,11 @@ export function estimateSquatJumpPower(input: SquatJumpPowerInput): SquatJumpPow
       ? round(concentricDisplacementMeters / concentricDurationSeconds, 2)
       : null,
     estimatedMeanPowerW: estimatedMeanPowerW !== null ? round(estimatedMeanPowerW, 0) : null,
-    estimatedPeakPowerW: estimatedPeakPowerW !== null ? round(estimatedPeakPowerW, 0) : null,
-    relativePeakPowerWPerKg: estimatedPeakPowerW !== null && bodyMassKg
-      ? round(estimatedPeakPowerW / bodyMassKg, 1)
+    estimatedPeakPowerW,
+    relativePeakPowerWPerKg: estimatedMeanPowerW !== null && bodyMassKg
+      ? round(estimatedMeanPowerW / bodyMassKg, 1)
       : null,
+    powerMethod: estimatedMeanPowerW !== null ? 'sayers_mean_power' : null,
     bodyMassKg,
     externalLoadKg,
     systemMassKg,
@@ -547,7 +539,6 @@ function calculateConfidenceScore(params: {
   if (params.airborneFrameCount > 0 && params.airborneFrameCount < 5) score -= 12
   if (params.footVisibilityRatio < 0.75) score -= 14
   if (params.warnings.some((item) => item.code === 'no_airborne_phase')) score -= 28
-  if (params.warnings.some((item) => item.code === 'missing_concentric_phase')) score -= 10
   return Math.max(10, Math.min(95, Math.round(score)))
 }
 
@@ -569,7 +560,7 @@ function warning(code: SquatJumpPowerWarningCode): SquatJumpPowerWarning {
     low_visibility: 'Foot landmarks were not visible through enough of the clip.',
     multiple_jumps: 'Multiple jumps were detected; the estimate uses the longest airborne phase.',
     missing_concentric_phase: 'The bottom-to-takeoff phase was hard to isolate from the clip.',
-    peak_power_proxy: 'Peak power is a video-based proxy derived from mean propulsive power.',
+    mean_power_regression: 'Power uses a jump-height and mass regression, so compare trends rather than lab-grade watts.',
     loaded_jump_proxy: 'Loaded jump squat estimates assume the external load moves with the athlete.',
   }
 
@@ -590,6 +581,10 @@ function percentile(values: number[], percentileValue: number): number | null {
 function normalizePositiveNumber(value: number | null | undefined): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return null
   return value
+}
+
+export function estimateMeanPowerFromJumpHeight(jumpHeightCm: number, systemMassKg: number): number {
+  return Math.max(0, 21.2 * jumpHeightCm + 23 * systemMassKg - 1393)
 }
 
 function isVisibleLandmark(landmark: PoseLandmark | undefined): landmark is PoseLandmark {

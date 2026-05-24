@@ -229,10 +229,10 @@ export function VideoAnalysisDetailCard({ analysis }: VideoAnalysisDetailCardPro
                   <p className="font-mono font-semibold">{poseAnalysis.powerEstimate.metrics.takeoffVelocityMps} m/s</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">{t(locale, 'Peak proxy', 'Peak proxy')}</p>
+                  <p className="text-muted-foreground">{t(locale, 'Medeleffekt', 'Mean power')}</p>
                   <p className="font-mono font-semibold">
-                    {poseAnalysis.powerEstimate.metrics.estimatedPeakPowerW
-                      ? `${poseAnalysis.powerEstimate.metrics.estimatedPeakPowerW} W`
+                    {poseAnalysis.powerEstimate.metrics.estimatedMeanPowerW
+                      ? `${poseAnalysis.powerEstimate.metrics.estimatedMeanPowerW} W`
                       : 'N/A'}
                   </p>
                 </div>

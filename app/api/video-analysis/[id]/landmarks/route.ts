@@ -200,7 +200,7 @@ export async function PATCH(
           `Jump height: ${powerEstimate.metrics.jumpHeightCm} cm`,
           `Flight time: ${powerEstimate.metrics.flightTimeMs} ms`,
           `Takeoff velocity: ${powerEstimate.metrics.takeoffVelocityMps} m/s`,
-          ...(powerEstimate.metrics.estimatedPeakPowerW ? [`Peak power proxy: ${powerEstimate.metrics.estimatedPeakPowerW} W`] : []),
+          ...(powerEstimate.metrics.estimatedMeanPowerW ? [`Estimated mean power: ${powerEstimate.metrics.estimatedMeanPowerW} W`] : []),
           '',
         ] : []),
         'Sammanfattning:',

@@ -134,9 +134,9 @@ function getPowerWarningText(locale: AppLocale, code: SquatJumpPowerWarningCode)
       sv: 'Bottenläge till takeoff var svårt att isolera.',
       en: 'Bottom-to-takeoff was hard to isolate.',
     },
-    peak_power_proxy: {
-      sv: 'Peak power är en videobaserad proxy.',
-      en: 'Peak power is a video-based proxy.',
+    mean_power_regression: {
+      sv: 'Effekt beräknas från hopphöjd och vikt.',
+      en: 'Power uses jump height and mass.',
     },
     loaded_jump_proxy: {
       sv: 'Lastad uppskattning antar att vikten rör sig med kroppen.',
@@ -158,8 +158,8 @@ function formatPowerSummary(locale: AppLocale, estimate: SquatJumpPowerEstimate 
   if (!estimate || estimate.status !== 'ready' || !estimate.metrics) return null
 
   const metrics = estimate.metrics
-  const power = metrics.estimatedPeakPowerW
-    ? text(locale, ` Peak power proxy ${metrics.estimatedPeakPowerW} W.`, ` Peak power proxy ${metrics.estimatedPeakPowerW} W.`)
+  const power = metrics.estimatedMeanPowerW
+    ? text(locale, ` Uppskattad medeleffekt ${metrics.estimatedMeanPowerW} W.`, ` Estimated mean power ${metrics.estimatedMeanPowerW} W.`)
     : ''
 
   return text(
@@ -1321,10 +1321,10 @@ export function PoseAnalyzer({
                     <div className="font-mono text-lg font-semibold">{squatJumpPowerEstimate.metrics.takeoffVelocityMps} m/s</div>
                   </div>
                   <div className="rounded-md border bg-white p-2">
-                    <div className="text-xs text-muted-foreground">{text(locale, 'Peak proxy', 'Peak proxy')}</div>
+                    <div className="text-xs text-muted-foreground">{text(locale, 'Medeleffekt', 'Mean power')}</div>
                     <div className="font-mono text-lg font-semibold">
-                      {squatJumpPowerEstimate.metrics.estimatedPeakPowerW
-                        ? `${squatJumpPowerEstimate.metrics.estimatedPeakPowerW} W`
+                      {squatJumpPowerEstimate.metrics.estimatedMeanPowerW
+                        ? `${squatJumpPowerEstimate.metrics.estimatedMeanPowerW} W`
                         : text(locale, 'Ange kg', 'Add kg')}
                     </div>
                     {squatJumpPowerEstimate.metrics.relativePeakPowerWPerKg && (

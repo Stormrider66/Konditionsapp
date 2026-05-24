@@ -601,10 +601,10 @@ function formatPowerEstimateForPrompt(estimate: SquatJumpPowerEstimate | null | 
       : `- Jump height: ${metrics.jumpHeightCm} cm; flight time: ${metrics.flightTimeMs} ms; takeoff: ${metrics.takeoffVelocityMps} m/s`,
   ]
 
-  if (metrics.estimatedPeakPowerW) {
+  if (metrics.estimatedMeanPowerW) {
     lines.push(locale === 'sv'
-      ? `- Peak power proxy: ${metrics.estimatedPeakPowerW} W${metrics.relativePeakPowerWPerKg ? ` (${metrics.relativePeakPowerWPerKg} W/kg)` : ''}`
-      : `- Peak power proxy: ${metrics.estimatedPeakPowerW} W${metrics.relativePeakPowerWPerKg ? ` (${metrics.relativePeakPowerWPerKg} W/kg)` : ''}`)
+      ? `- Uppskattad medeleffekt: ${metrics.estimatedMeanPowerW} W${metrics.relativePeakPowerWPerKg ? ` (${metrics.relativePeakPowerWPerKg} W/kg)` : ''}`
+      : `- Estimated mean power: ${metrics.estimatedMeanPowerW} W${metrics.relativePeakPowerWPerKg ? ` (${metrics.relativePeakPowerWPerKg} W/kg)` : ''}`)
   }
 
   if (metrics.concentricDurationMs) {
