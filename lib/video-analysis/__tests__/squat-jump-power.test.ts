@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { estimateMeanPowerFromJumpHeight, estimateSquatJumpPower } from '../squat-jump-power'
+import {
+  buildSquatJumpPowerCurve,
+  estimateMeanPowerFromJumpHeight,
+  estimateSquatJumpPower,
+} from '../squat-jump-power'
 import type { PoseFrame, PoseLandmark } from '@/components/coach/video-analysis/pose-analyzer/utils'
 
 function makeLandmarks(centerY: number, footY: number): PoseLandmark[] {
@@ -58,7 +62,7 @@ describe('estimateSquatJumpPower', () => {
     expect(estimate.metrics?.jumpHeightCm).toBeGreaterThan(18)
     expect(estimate.metrics?.takeoffVelocityMps).toBeGreaterThan(1.8)
     expect(estimate.metrics?.estimatedMeanPowerW).toBeGreaterThan(1000)
-    expect(estimate.metrics?.relativePeakPowerWPerKg).toBeGreaterThan(10)
+    expect(estimate.metrics?.relativeMeanPowerWPerKg).toBeGreaterThan(10)
     expect(estimate.phase.repetitionsDetected).toBe(1)
   })
 
@@ -77,6 +81,22 @@ describe('estimateSquatJumpPower', () => {
   it('keeps mean power in a realistic range for a 77 kg, 15 cm jump', () => {
     expect(Math.round(estimateMeanPowerFromJumpHeight(15.3, 77))).toBe(702)
     expect(Math.round(estimateMeanPowerFromJumpHeight(15.8, 77))).toBe(713)
+  })
+
+  it('builds a sorted loaded jump power curve with W/kg', () => {
+    const curve = buildSquatJumpPowerCurve([
+      { externalLoadKg: 20, jumpHeightCm: 12 },
+      { externalLoadKg: 0, jumpHeightCm: 16 },
+      { externalLoadKg: null, jumpHeightCm: 20 },
+    ], 77)
+
+    expect(curve).toHaveLength(2)
+    expect(curve[0]).toMatchObject({
+      externalLoadKg: 0,
+      jumpHeightCm: 16,
+    })
+    expect(curve[0].relativePowerWPerKg).toBeGreaterThan(9)
+    expect(curve[1].estimatedMeanPowerW).toBeGreaterThan(curve[0].estimatedMeanPowerW)
   })
 
   it('refuses power metrics when no airborne phase is visible', () => {

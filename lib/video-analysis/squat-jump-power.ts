@@ -49,10 +49,19 @@ export interface SquatJumpPowerMetrics {
   meanConcentricVelocityMps: number | null
   estimatedMeanPowerW: number | null
   estimatedPeakPowerW: number | null
+  relativeMeanPowerWPerKg: number | null
   relativePeakPowerWPerKg: number | null
   powerMethod: 'sayers_mean_power' | null
   bodyMassKg: number | null
   externalLoadKg: number
+  systemMassKg: number | null
+}
+
+export interface SquatJumpPowerCurvePoint {
+  externalLoadKg: number
+  jumpHeightCm: number
+  estimatedMeanPowerW: number
+  relativePowerWPerKg: number | null
   systemMassKg: number | null
 }
 
@@ -82,6 +91,7 @@ export interface SquatJumpPowerEstimate {
     footVisibilityRatio: number
     footLiftThreshold: number | null
   }
+  powerCurve?: SquatJumpPowerCurvePoint[]
   warnings: SquatJumpPowerWarning[]
 }
 
@@ -234,6 +244,9 @@ export function estimateSquatJumpPower(input: SquatJumpPowerInput): SquatJumpPow
     ? estimateMeanPowerFromJumpHeight(jumpHeightCm, systemMassKg)
     : null
   const estimatedPeakPowerW = null
+  const relativeMeanPowerWPerKg = estimatedMeanPowerW !== null && bodyMassKg
+    ? round(estimatedMeanPowerW / bodyMassKg, 1)
+    : null
 
   if (estimatedMeanPowerW !== null) warnings.push(warning('mean_power_regression'))
 
@@ -252,9 +265,8 @@ export function estimateSquatJumpPower(input: SquatJumpPowerInput): SquatJumpPow
       : null,
     estimatedMeanPowerW: estimatedMeanPowerW !== null ? round(estimatedMeanPowerW, 0) : null,
     estimatedPeakPowerW,
-    relativePeakPowerWPerKg: estimatedMeanPowerW !== null && bodyMassKg
-      ? round(estimatedMeanPowerW / bodyMassKg, 1)
-      : null,
+    relativeMeanPowerWPerKg,
+    relativePeakPowerWPerKg: relativeMeanPowerWPerKg,
     powerMethod: estimatedMeanPowerW !== null ? 'sayers_mean_power' : null,
     bodyMassKg,
     externalLoadKg,
@@ -585,6 +597,31 @@ function normalizePositiveNumber(value: number | null | undefined): number | nul
 
 export function estimateMeanPowerFromJumpHeight(jumpHeightCm: number, systemMassKg: number): number {
   return Math.max(0, 21.2 * jumpHeightCm + 23 * systemMassKg - 1393)
+}
+
+export function buildSquatJumpPowerCurve(
+  points: Array<{ externalLoadKg: number | null; jumpHeightCm: number | null }>,
+  bodyMassKg: number | null
+): SquatJumpPowerCurvePoint[] {
+  if (!bodyMassKg) return []
+
+  return points
+    .filter((point) => point.externalLoadKg !== null && point.jumpHeightCm !== null)
+    .map((point) => {
+      const externalLoadKg = Math.max(0, point.externalLoadKg as number)
+      const jumpHeightCm = point.jumpHeightCm as number
+      const systemMassKg = bodyMassKg + externalLoadKg
+      const estimatedMeanPowerW = round(estimateMeanPowerFromJumpHeight(jumpHeightCm, systemMassKg), 0)
+
+      return {
+        externalLoadKg,
+        jumpHeightCm: round(jumpHeightCm, 1),
+        estimatedMeanPowerW,
+        relativePowerWPerKg: round(estimatedMeanPowerW / bodyMassKg, 1),
+        systemMassKg,
+      }
+    })
+    .sort((a, b) => a.externalLoadKg - b.externalLoadKg)
 }
 
 function isVisibleLandmark(landmark: PoseLandmark | undefined): landmark is PoseLandmark {

@@ -97,7 +97,7 @@ interface VideoAnalysis {
   issuesDetected: Issue[] | null
   recommendations: Recommendation[] | null
   createdAt: string
-  athlete: { id: string; name: string } | null
+  athlete: { id: string; name: string; height?: number | null; weight?: number | null } | null
   exercise: { id: string; name: string; nameSv: string | null } | null
   skiingTechniqueAnalysis?: Record<string, unknown> | null
   hyroxStationAnalysis?: Record<string, unknown> | null
@@ -1275,7 +1275,7 @@ export function VideoAnalysisCard({
                         <Zap className="h-4 w-4" />
                         {t(locale, 'Squat jump power estimate', 'Squat jump-effekt')}
                       </h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-5">
                         <div>
                           <span className="text-orange-700">{t(locale, 'Jump height', 'Hopphöjd')}</span>
                           <p className="font-mono font-semibold">{extendedPoseData.powerEstimate.metrics.jumpHeightCm} cm</p>
@@ -1296,7 +1296,39 @@ export function VideoAnalysisCard({
                               : 'N/A'}
                           </p>
                         </div>
+                        <div>
+                          <span className="text-orange-700">W/kg</span>
+                          <p className="font-mono font-semibold">
+                            {extendedPoseData.powerEstimate.metrics.relativeMeanPowerWPerKg
+                              ?? extendedPoseData.powerEstimate.metrics.relativePeakPowerWPerKg
+                              ?? 'N/A'}
+                          </p>
+                        </div>
                       </div>
+                      {extendedPoseData.powerEstimate.powerCurve?.length ? (
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="w-full min-w-[420px] text-sm">
+                            <thead className="text-left text-xs text-orange-700">
+                              <tr>
+                                <th className="py-1 pr-2 font-medium">{t(locale, 'Load', 'Last')}</th>
+                                <th className="py-1 pr-2 font-medium">{t(locale, 'Jump height', 'Hopphöjd')}</th>
+                                <th className="py-1 pr-2 font-medium">{t(locale, 'Mean power', 'Medeleffekt')}</th>
+                                <th className="py-1 font-medium">W/kg</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {extendedPoseData.powerEstimate.powerCurve.map((point, index) => (
+                                <tr key={`${point.externalLoadKg}-${point.jumpHeightCm}-${index}`} className="border-t border-orange-100">
+                                  <td className="py-1 pr-2 font-mono">{point.externalLoadKg} kg</td>
+                                  <td className="py-1 pr-2 font-mono">{point.jumpHeightCm} cm</td>
+                                  <td className="py-1 pr-2 font-mono">{point.estimatedMeanPowerW} W</td>
+                                  <td className="py-1 font-mono">{point.relativePowerWPerKg ?? '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : null}
                     </div>
                   )}
 
@@ -1396,6 +1428,8 @@ export function VideoAnalysisCard({
           <PoseAnalyzer
             videoUrl={analysis.videoUrl}
             clientId={analysis.athlete?.id}
+            defaultBodyMassKg={analysis.athlete?.weight ?? null}
+            defaultAthleteHeightCm={analysis.athlete?.height ?? null}
             videoType={analysis.videoType as 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'}
             exerciseName={analysis.exercise?.name}
             exerciseNameSv={analysis.exercise?.nameSv || undefined}

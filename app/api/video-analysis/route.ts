@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
       },
       include: {
-        athlete: { select: { id: true, name: true } },
+        athlete: { select: { id: true, name: true, height: true, weight: true } },
         exercise: { select: { id: true, name: true, nameSv: true } },
       },
     });
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
         ...(videoType && { videoType }),
       },
       include: {
-        athlete: { select: { id: true, name: true } },
+        athlete: { select: { id: true, name: true, height: true, weight: true } },
         exercise: { select: { id: true, name: true, nameSv: true } },
         skiingTechniqueAnalysis: true,
         hyroxStationAnalysis: true,

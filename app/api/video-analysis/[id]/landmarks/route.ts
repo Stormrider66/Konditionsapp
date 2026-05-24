@@ -19,7 +19,7 @@ import {
   getCompressionStats,
   type PoseFrame,
 } from '@/lib/video-analysis/skeletal-compression';
-import type { SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power';
+import type { SquatJumpPowerCurvePoint, SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power';
 
 const landmarkSchema = z.object({
   x: z.number(),
@@ -169,6 +169,9 @@ export async function PATCH(
 
     if (aiPoseAnalysis) {
       // Format the AI pose analysis as structured text
+      const relativePowerWPerKg = powerEstimate?.metrics
+        ? powerEstimate.metrics.relativeMeanPowerWPerKg ?? powerEstimate.metrics.relativePeakPowerWPerKg
+        : null
       const aiPoseText = [
         '\n\n--- Gemini AI Pose Analysis ---',
         `Score: ${aiPoseAnalysis.score || 'N/A'}/100`,
@@ -200,7 +203,13 @@ export async function PATCH(
           `Jump height: ${powerEstimate.metrics.jumpHeightCm} cm`,
           `Flight time: ${powerEstimate.metrics.flightTimeMs} ms`,
           `Takeoff velocity: ${powerEstimate.metrics.takeoffVelocityMps} m/s`,
-          ...(powerEstimate.metrics.estimatedMeanPowerW ? [`Estimated mean power: ${powerEstimate.metrics.estimatedMeanPowerW} W`] : []),
+          ...(powerEstimate.metrics.estimatedMeanPowerW ? [`Estimated mean power: ${powerEstimate.metrics.estimatedMeanPowerW} W${relativePowerWPerKg ? ` (${relativePowerWPerKg} W/kg)` : ''}`] : []),
+          ...(powerEstimate.powerCurve?.length ? [
+            'Loaded series:',
+            ...powerEstimate.powerCurve.slice(0, 8).map((point: SquatJumpPowerCurvePoint) =>
+              `${point.externalLoadKg} kg: ${point.jumpHeightCm} cm, ${point.estimatedMeanPowerW} W${point.relativePowerWPerKg ? `, ${point.relativePowerWPerKg} W/kg` : ''}`
+            ),
+          ] : []),
           '',
         ] : []),
         'Sammanfattning:',
@@ -235,7 +244,7 @@ export async function PATCH(
       where: { id },
       data: updateData,
       include: {
-        athlete: { select: { id: true, name: true } },
+        athlete: { select: { id: true, name: true, height: true, weight: true } },
         exercise: { select: { id: true, name: true, nameSv: true } },
       },
     });

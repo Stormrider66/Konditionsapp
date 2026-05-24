@@ -602,15 +602,25 @@ function formatPowerEstimateForPrompt(estimate: SquatJumpPowerEstimate | null | 
   ]
 
   if (metrics.estimatedMeanPowerW) {
+    const relativePowerWPerKg = metrics.relativeMeanPowerWPerKg ?? metrics.relativePeakPowerWPerKg
     lines.push(locale === 'sv'
-      ? `- Uppskattad medeleffekt: ${metrics.estimatedMeanPowerW} W${metrics.relativePeakPowerWPerKg ? ` (${metrics.relativePeakPowerWPerKg} W/kg)` : ''}`
-      : `- Estimated mean power: ${metrics.estimatedMeanPowerW} W${metrics.relativePeakPowerWPerKg ? ` (${metrics.relativePeakPowerWPerKg} W/kg)` : ''}`)
+      ? `- Uppskattad medeleffekt: ${metrics.estimatedMeanPowerW} W${relativePowerWPerKg ? ` (${relativePowerWPerKg} W/kg)` : ''}`
+      : `- Estimated mean power: ${metrics.estimatedMeanPowerW} W${relativePowerWPerKg ? ` (${relativePowerWPerKg} W/kg)` : ''}`)
   }
 
   if (metrics.concentricDurationMs) {
     lines.push(locale === 'sv'
       ? `- Koncentrisk fas: ${metrics.concentricDurationMs} ms${metrics.concentricDisplacementCm ? `, ca ${metrics.concentricDisplacementCm} cm` : ''}`
       : `- Concentric phase: ${metrics.concentricDurationMs} ms${metrics.concentricDisplacementCm ? `, approx ${metrics.concentricDisplacementCm} cm` : ''}`)
+  }
+
+  if (estimate.powerCurve?.length) {
+    lines.push(locale === 'sv' ? '- Laststege:' : '- Loaded series:')
+    for (const point of estimate.powerCurve.slice(0, 8)) {
+      lines.push(locale === 'sv'
+        ? `  - ${point.externalLoadKg} kg: ${point.jumpHeightCm} cm, ${point.estimatedMeanPowerW} W${point.relativePowerWPerKg ? `, ${point.relativePowerWPerKg} W/kg` : ''}`
+        : `  - ${point.externalLoadKg} kg: ${point.jumpHeightCm} cm, ${point.estimatedMeanPowerW} W${point.relativePowerWPerKg ? `, ${point.relativePowerWPerKg} W/kg` : ''}`)
+    }
   }
 
   const warningText = estimate.warnings.map((item) => item.message).join('; ')

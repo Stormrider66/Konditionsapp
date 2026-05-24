@@ -34,6 +34,9 @@ import {
   Gauge,
   Ruler,
   Weight,
+  Plus,
+  X,
+  LineChart,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -63,7 +66,9 @@ import {
   type JointAngle,
 } from './pose-analyzer/calculate-joint-angles'
 import {
+  buildSquatJumpPowerCurve,
   estimateSquatJumpPower,
+  type SquatJumpPowerCurvePoint,
   type SquatJumpPowerEstimate,
   type SquatJumpPowerWarningCode,
 } from '@/lib/video-analysis/squat-jump-power'
@@ -85,11 +90,22 @@ function text(locale: AppLocale, sv: string, en: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function formatNumberInput(value: number | null | undefined): string {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? String(value) : ''
+}
+
 function parsePositiveDecimal(value: string): number | null {
   const normalized = value.replace(',', '.').trim()
   if (!normalized) return null
   const parsed = Number(normalized)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function parseNonNegativeDecimal(value: string): number | null {
+  const normalized = value.replace(',', '.').trim()
+  if (!normalized) return null
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
 }
 
 function getPowerWarningText(locale: AppLocale, code: SquatJumpPowerWarningCode): string {
@@ -169,6 +185,57 @@ function formatPowerSummary(locale: AppLocale, estimate: SquatJumpPowerEstimate 
   )
 }
 
+function PowerCurveMiniChart({
+  points,
+  locale,
+}: {
+  points: SquatJumpPowerCurvePoint[]
+  locale: AppLocale
+}) {
+  if (points.length === 0) return null
+
+  const minLoad = Math.min(...points.map((point) => point.externalLoadKg))
+  const maxLoad = Math.max(...points.map((point) => point.externalLoadKg))
+  const minPower = Math.min(...points.map((point) => point.estimatedMeanPowerW))
+  const maxPower = Math.max(...points.map((point) => point.estimatedMeanPowerW))
+  const loadRange = Math.max(1, maxLoad - minLoad)
+  const powerRange = Math.max(1, maxPower - minPower)
+  const coords = points.map((point) => {
+    const x = 28 + ((point.externalLoadKg - minLoad) / loadRange) * 224
+    const y = 92 - ((point.estimatedMeanPowerW - minPower) / powerRange) * 64
+    return { x, y, point }
+  })
+
+  return (
+    <div className="rounded-md border bg-white p-2">
+      <div className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        <LineChart className="h-3 w-3" />
+        {text(locale, 'Effektkurva', 'Power curve')}
+      </div>
+      <svg viewBox="0 0 280 112" className="h-28 w-full" role="img" aria-label={text(locale, 'Effektkurva för laststege', 'Loaded power curve')}>
+        <line x1="28" y1="92" x2="260" y2="92" stroke="#e5e7eb" strokeWidth="1" />
+        <line x1="28" y1="20" x2="28" y2="92" stroke="#e5e7eb" strokeWidth="1" />
+        <polyline
+          points={coords.map(({ x, y }) => `${x},${y}`).join(' ')}
+          fill="none"
+          stroke="#ea580c"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {coords.map(({ x, y, point }, index) => (
+          <g key={`${point.externalLoadKg}-${point.jumpHeightCm}-${index}`}>
+            <circle cx={x} cy={y} r="4" fill="#ea580c" />
+          </g>
+        ))}
+        <text x="28" y="108" fontSize="10" fill="#64748b">{minLoad} kg</text>
+        <text x="224" y="108" fontSize="10" fill="#64748b">{maxLoad} kg</text>
+        <text x="34" y="18" fontSize="10" fill="#64748b">{maxPower} W</text>
+      </svg>
+    </div>
+  )
+}
+
 // AI Analysis data from Gemini
 interface AIAnalysisData {
   formScore: number | null
@@ -189,6 +256,8 @@ interface AIAnalysisData {
 interface PoseAnalyzerProps {
   videoUrl: string
   clientId?: string
+  defaultBodyMassKg?: number | null
+  defaultAthleteHeightCm?: number | null
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   exerciseName?: string
   exerciseNameSv?: string
@@ -207,9 +276,17 @@ interface PoseAnalyzerProps {
   poseSavedAt?: string | null
 }
 
+interface PowerCurveRow {
+  id: string
+  externalLoadKg: string
+  jumpHeightCm: string
+}
+
 export function PoseAnalyzer({
   videoUrl,
   clientId,
+  defaultBodyMassKg,
+  defaultAthleteHeightCm,
   videoType,
   exerciseName,
   exerciseNameSv,
@@ -265,14 +342,31 @@ export function PoseAnalyzer({
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [videoReady, setVideoReady] = useState(false)
   const [videoError, setVideoError] = useState(false)
-  const [bodyMassKgInput, setBodyMassKgInput] = useState('')
+  const [bodyMassKgInput, setBodyMassKgInput] = useState<string | null>(null)
   const [externalLoadKgInput, setExternalLoadKgInput] = useState('')
-  const [athleteHeightCmInput, setAthleteHeightCmInput] = useState('')
+  const [athleteHeightCmInput, setAthleteHeightCmInput] = useState<string | null>(null)
+  const [powerCurveRows, setPowerCurveRows] = useState<PowerCurveRow[]>([])
 
-  const bodyMassKg = useMemo(() => parsePositiveDecimal(bodyMassKgInput), [bodyMassKgInput])
+  const displayedBodyMassKgInput = bodyMassKgInput ?? formatNumberInput(defaultBodyMassKg)
+  const displayedAthleteHeightCmInput = athleteHeightCmInput ?? formatNumberInput(defaultAthleteHeightCm)
+  const bodyMassKg = useMemo(() => parsePositiveDecimal(displayedBodyMassKgInput), [displayedBodyMassKgInput])
   const externalLoadKg = useMemo(() => parsePositiveDecimal(externalLoadKgInput) ?? 0, [externalLoadKgInput])
-  const athleteHeightCm = useMemo(() => parsePositiveDecimal(athleteHeightCmInput), [athleteHeightCmInput])
-  const squatJumpPowerEstimate = useMemo(() => {
+  const athleteHeightCm = useMemo(() => parsePositiveDecimal(displayedAthleteHeightCmInput), [displayedAthleteHeightCmInput])
+  const powerCurve = useMemo(() => buildSquatJumpPowerCurve(
+    powerCurveRows.map((row) => ({
+      externalLoadKg: parseNonNegativeDecimal(row.externalLoadKg),
+      jumpHeightCm: parsePositiveDecimal(row.jumpHeightCm),
+    })),
+    bodyMassKg
+  ), [bodyMassKg, powerCurveRows])
+  const powerCurveRowsWithMetrics = useMemo(() => powerCurveRows.map((row) => ({
+    row,
+    point: buildSquatJumpPowerCurve([{
+      externalLoadKg: parseNonNegativeDecimal(row.externalLoadKg),
+      jumpHeightCm: parsePositiveDecimal(row.jumpHeightCm),
+    }], bodyMassKg)[0] ?? null,
+  })), [bodyMassKg, powerCurveRows])
+  const rawSquatJumpPowerEstimate = useMemo(() => {
     if (videoType !== 'STRENGTH' || frames.length === 0) return null
 
     return estimateSquatJumpPower({
@@ -283,6 +377,16 @@ export function PoseAnalyzer({
       cameraAngle: detectedCameraAngle,
     })
   }, [athleteHeightCm, bodyMassKg, detectedCameraAngle, externalLoadKg, frames, videoType])
+  const squatJumpPowerEstimate = useMemo(() => {
+    if (!rawSquatJumpPowerEstimate) return null
+    return {
+      ...rawSquatJumpPowerEstimate,
+      ...(powerCurve.length > 0 ? { powerCurve } : {}),
+    }
+  }, [powerCurve, rawSquatJumpPowerEstimate])
+  const squatJumpRelativePowerWPerKg = squatJumpPowerEstimate?.metrics
+    ? squatJumpPowerEstimate.metrics.relativeMeanPowerWPerKg ?? squatJumpPowerEstimate.metrics.relativePeakPowerWPerKg
+    : null
 
   useEffect(() => {
     localeRef.current = locale
@@ -1109,6 +1213,28 @@ export function PoseAnalyzer({
     }
   }, [draggingLandmark])
 
+  const addPowerCurveRow = useCallback(() => {
+    const currentJumpHeight = squatJumpPowerEstimate?.metrics?.jumpHeightCm
+    setPowerCurveRows((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${prev.length}`,
+        externalLoadKg: externalLoadKgInput || '0',
+        jumpHeightCm: currentJumpHeight ? String(currentJumpHeight) : '',
+      },
+    ])
+  }, [externalLoadKgInput, squatJumpPowerEstimate?.metrics?.jumpHeightCm])
+
+  const updatePowerCurveRow = useCallback((id: string, field: 'externalLoadKg' | 'jumpHeightCm', value: string) => {
+    setPowerCurveRows((prev) => prev.map((row) => (
+      row.id === id ? { ...row, [field]: value } : row
+    )))
+  }, [])
+
+  const removePowerCurveRow = useCallback((id: string) => {
+    setPowerCurveRows((prev) => prev.filter((row) => row.id !== id))
+  }, [])
+
   const getStatusColor = (status: 'good' | 'warning' | 'critical') => {
     switch (status) {
       case 'good': return 'bg-green-100 text-green-800'
@@ -1260,6 +1386,13 @@ export function PoseAnalyzer({
                   </Badge>
                 )}
               </div>
+              <p className="mb-3 text-xs text-muted-foreground">
+                {text(
+                  locale,
+                  'De flesta mobilklipp hamnar runt 30 fps. 60 fps ger säkrare takeoff/landning och bättre repeterbarhet.',
+                  'Most phone clips are around 30 fps. 60 fps gives cleaner takeoff/landing timing and better repeatability.'
+                )}
+              </p>
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1">
@@ -1270,11 +1403,14 @@ export function PoseAnalyzer({
                   <Input
                     id="pose-body-mass"
                     inputMode="decimal"
-                    value={bodyMassKgInput}
+                    value={displayedBodyMassKgInput}
                     onChange={(event) => setBodyMassKgInput(event.target.value)}
                     placeholder="kg"
                     className="h-9 bg-white"
                   />
+                  {defaultBodyMassKg && (
+                    <p className="text-[11px] text-muted-foreground">{text(locale, 'Hämtad från atletprofilen', 'Loaded from athlete profile')}</p>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="pose-external-load" className="flex items-center gap-1 text-xs">
@@ -1298,16 +1434,19 @@ export function PoseAnalyzer({
                   <Input
                     id="pose-athlete-height"
                     inputMode="decimal"
-                    value={athleteHeightCmInput}
+                    value={displayedAthleteHeightCmInput}
                     onChange={(event) => setAthleteHeightCmInput(event.target.value)}
                     placeholder="cm"
                     className="h-9 bg-white"
                   />
+                  {defaultAthleteHeightCm && (
+                    <p className="text-[11px] text-muted-foreground">{text(locale, 'Hämtad från atletprofilen', 'Loaded from athlete profile')}</p>
+                  )}
                 </div>
               </div>
 
               {squatJumpPowerEstimate?.status === 'ready' && squatJumpPowerEstimate.metrics && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   <div className="rounded-md border bg-white p-2">
                     <div className="text-xs text-muted-foreground">{text(locale, 'Hopphöjd', 'Jump height')}</div>
                     <div className="font-mono text-lg font-semibold">{squatJumpPowerEstimate.metrics.jumpHeightCm} cm</div>
@@ -1327,14 +1466,100 @@ export function PoseAnalyzer({
                         ? `${squatJumpPowerEstimate.metrics.estimatedMeanPowerW} W`
                         : text(locale, 'Ange kg', 'Add kg')}
                     </div>
-                    {squatJumpPowerEstimate.metrics.relativePeakPowerWPerKg && (
-                      <div className="text-xs text-muted-foreground">
-                        {squatJumpPowerEstimate.metrics.relativePeakPowerWPerKg} W/kg
-                      </div>
-                    )}
+                  </div>
+                  <div className="rounded-md border bg-white p-2">
+                    <div className="text-xs text-muted-foreground">W/kg</div>
+                    <div className="font-mono text-lg font-semibold">
+                      {squatJumpRelativePowerWPerKg ?? text(locale, 'Ange kg', 'Add kg')}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{text(locale, 'mot kroppsvikt', 'body-mass relative')}</div>
                   </div>
                 </div>
               )}
+
+              <div className="mt-3 rounded-md border bg-white p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <LineChart className="h-4 w-4 text-orange-600" />
+                      {text(locale, 'Laststege', 'Loaded series')}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {text(locale, 'Lägg in flera hopp med olika last för att se effektkurvan.', 'Add jumps at different loads to see the power curve.')}
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addPowerCurveRow} className="gap-1">
+                    <Plus className="h-3 w-3" />
+                    {text(locale, 'Lägg till punkt', 'Add point')}
+                  </Button>
+                </div>
+
+                {powerCurveRows.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[560px] text-sm">
+                        <thead className="text-left text-xs text-muted-foreground">
+                          <tr>
+                            <th className="py-1 pr-2 font-medium">{text(locale, 'Last', 'Load')}</th>
+                            <th className="py-1 pr-2 font-medium">{text(locale, 'Hopphöjd', 'Jump height')}</th>
+                            <th className="py-1 pr-2 font-medium">{text(locale, 'Medeleffekt', 'Mean power')}</th>
+                            <th className="py-1 pr-2 font-medium">W/kg</th>
+                            <th className="py-1 font-medium" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {powerCurveRowsWithMetrics.map(({ row, point }) => {
+                            return (
+                              <tr key={row.id} className="border-t">
+                                <td className="py-2 pr-2">
+                                  <Input
+                                    inputMode="decimal"
+                                    value={row.externalLoadKg}
+                                    onChange={(event) => updatePowerCurveRow(row.id, 'externalLoadKg', event.target.value)}
+                                    placeholder="kg"
+                                    className="h-8"
+                                  />
+                                </td>
+                                <td className="py-2 pr-2">
+                                  <Input
+                                    inputMode="decimal"
+                                    value={row.jumpHeightCm}
+                                    onChange={(event) => updatePowerCurveRow(row.id, 'jumpHeightCm', event.target.value)}
+                                    placeholder="cm"
+                                    className="h-8"
+                                  />
+                                </td>
+                                <td className="py-2 pr-2 font-mono">
+                                  {point ? `${point.estimatedMeanPowerW} W` : '-'}
+                                </td>
+                                <td className="py-2 pr-2 font-mono">
+                                  {point?.relativePowerWPerKg ? point.relativePowerWPerKg : '-'}
+                                </td>
+                                <td className="py-2 text-right">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removePowerCurveRow(row.id)}
+                                    title={text(locale, 'Ta bort punkt', 'Remove point')}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <PowerCurveMiniChart points={powerCurve} locale={locale} />
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {text(locale, 'När ett hopp är analyserat kan du lägga till aktuell punkt och bygga vidare med fler laster.', 'After a jump is analyzed, add the current point and keep building with more loads.')}
+                  </p>
+                )}
+              </div>
 
               {squatJumpPowerEstimate && squatJumpPowerEstimate.warnings.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1">

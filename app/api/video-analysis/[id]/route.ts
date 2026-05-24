@@ -37,7 +37,7 @@ export async function GET(
     const analysis = await prisma.videoAnalysis.findFirst({
       where: { id, coachId: user.id },
       include: {
-        athlete: { select: { id: true, name: true } },
+        athlete: { select: { id: true, name: true, height: true, weight: true } },
         exercise: {
           select: {
             id: true,

@@ -49,7 +49,7 @@ interface VideoAnalysis {
   issuesDetected: Issue[] | null
   recommendations: Recommendation[] | null
   createdAt: string
-  athlete: { id: string; name: string } | null
+  athlete: { id: string; name: string; height?: number | null; weight?: number | null } | null
   exercise: { id: string; name: string; nameSv: string | null } | null
   poseDataSummary?: {
     hasPoseData: boolean

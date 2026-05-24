@@ -215,7 +215,7 @@ export function VideoAnalysisDetailCard({ analysis }: VideoAnalysisDetailCardPro
                 <Zap className="h-4 w-4 text-orange-600" />
                 {t(locale, 'Squat jump-effekt', 'Squat jump power')}
               </h4>
-              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-5">
                 <div>
                   <p className="text-muted-foreground">{t(locale, 'Hopphöjd', 'Jump height')}</p>
                   <p className="font-mono font-semibold">{poseAnalysis.powerEstimate.metrics.jumpHeightCm} cm</p>
@@ -236,7 +236,39 @@ export function VideoAnalysisDetailCard({ analysis }: VideoAnalysisDetailCardPro
                       : 'N/A'}
                   </p>
                 </div>
+                <div>
+                  <p className="text-muted-foreground">W/kg</p>
+                  <p className="font-mono font-semibold">
+                    {poseAnalysis.powerEstimate.metrics.relativeMeanPowerWPerKg
+                      ?? poseAnalysis.powerEstimate.metrics.relativePeakPowerWPerKg
+                      ?? 'N/A'}
+                  </p>
+                </div>
               </div>
+              {poseAnalysis.powerEstimate.powerCurve?.length ? (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-sm">
+                    <thead className="text-left text-xs text-muted-foreground">
+                      <tr>
+                        <th className="py-1 pr-2 font-medium">{t(locale, 'Last', 'Load')}</th>
+                        <th className="py-1 pr-2 font-medium">{t(locale, 'Hopphöjd', 'Jump height')}</th>
+                        <th className="py-1 pr-2 font-medium">{t(locale, 'Medeleffekt', 'Mean power')}</th>
+                        <th className="py-1 font-medium">W/kg</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {poseAnalysis.powerEstimate.powerCurve.map((point, index) => (
+                        <tr key={`${point.externalLoadKg}-${point.jumpHeightCm}-${index}`} className="border-t">
+                          <td className="py-1 pr-2 font-mono">{point.externalLoadKg} kg</td>
+                          <td className="py-1 pr-2 font-mono">{point.jumpHeightCm} cm</td>
+                          <td className="py-1 pr-2 font-mono">{point.estimatedMeanPowerW} W</td>
+                          <td className="py-1 font-mono">{point.relativePowerWPerKg ?? '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
             </div>
           )}
 
