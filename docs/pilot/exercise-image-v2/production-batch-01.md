@@ -8,6 +8,7 @@ Scope:
 - No coach-created, business-specific, or personal exercises.
 - Hero frame only for now, so the mobile experience does not mix approved v2 images with older sequence frames.
 - Target frame counts still follow `docs/exercise-image-rollout-strategy.md`; additional frames will be generated in later passes.
+- Remaining frame prompts are generated in `docs/pilot/exercise-image-v2/frame-prompts/batch-01.md`.
 
 | Exercise | Production image | Target frames |
 | --- | --- | ---: |
@@ -27,4 +28,11 @@ Database sync used:
 ```bash
 set -a; source .env.local; set +a
 npx tsx --tsconfig tsconfig.scripts.json scripts/sync-exercise-images.ts --max-images=1 --only='Knäböj,Marklyft,Bänkpress,Split Squat,Benpress,Pull-Up,Push-Up,Hip Thrust med skivstång,Single Under,Kettlebell Swing'
+```
+
+Prompt manifest generation:
+
+```bash
+set -a; source .env.local; set +a
+npx tsx --tsconfig tsconfig.scripts.json scripts/build-exercise-image-frame-prompts.ts --write
 ```
