@@ -62,12 +62,12 @@ interface NutritionRecommendationsProps {
 }
 
 const getActivityLevels = (locale: AppLocale): { value: ActivityLevel; label: string; description: string }[] => [
-  { value: 'SEDENTARY', label: copy(locale, 'Sedentary', 'Stillasittande'), description: copy(locale, 'Little or no training', 'Lite eller ingen träning') },
-  { value: 'LIGHT', label: copy(locale, 'Lightly active', 'Lätt aktiv'), description: copy(locale, 'Training 1-3 days/week', 'Träning 1-3 dagar/vecka') },
-  { value: 'MODERATE', label: copy(locale, 'Moderately active', 'Måttligt aktiv'), description: copy(locale, 'Training 3-5 days/week', 'Träning 3-5 dagar/vecka') },
-  { value: 'ACTIVE', label: copy(locale, 'Very active', 'Mycket aktiv'), description: copy(locale, 'Hard training 6-7 days/week', 'Hård träning 6-7 dagar/vecka') },
-  { value: 'VERY_ACTIVE', label: copy(locale, 'Extremely active', 'Extremt aktiv'), description: copy(locale, 'Very hard training, physical job', 'Mycket hård träning, fysiskt jobb') },
-  { value: 'ATHLETE', label: copy(locale, 'Elite athlete', 'Elitidrottare'), description: copy(locale, '2 sessions/day, elite training', '2 pass/dag, elitträning') },
+  { value: 'SEDENTARY', label: copy(locale, 'Health focused', 'Hälsofokus'), description: copy(locale, 'Training is occasional or low priority', 'Träning sker ibland eller har låg prioritet') },
+  { value: 'LIGHT', label: copy(locale, 'Recreational', 'Motionär'), description: copy(locale, '1-2 relaxed sessions/week', '1-2 lugna pass/vecka') },
+  { value: 'MODERATE', label: copy(locale, 'Active athlete', 'Aktiv idrottare'), description: copy(locale, '3-4 purposeful sessions/week', '3-4 målinriktade pass/vecka') },
+  { value: 'ACTIVE', label: copy(locale, 'Performance', 'Prestationsinriktad'), description: copy(locale, '5-6 structured sessions/week', '5-6 strukturerade pass/vecka') },
+  { value: 'VERY_ACTIVE', label: copy(locale, 'High performance', 'Hög prestation'), description: copy(locale, 'Daily structured training', 'Daglig strukturerad träning') },
+  { value: 'ATHLETE', label: copy(locale, 'Elite', 'Elit'), description: copy(locale, 'Daily or double-session training', 'Daglig träning eller dubbla pass') },
 ]
 
 const getCaloricGoals = (locale: AppLocale): { value: CaloricGoal; label: string; description: string }[] => [
@@ -81,12 +81,12 @@ const getCaloricGoals = (locale: AppLocale): { value: CaloricGoal; label: string
 ]
 
 const getMacroProfiles = (locale: AppLocale): { value: MacroProfile; label: string; description: string }[] => [
-  { value: 'BALANCED', label: copy(locale, 'Balanced', 'Balanserad'), description: copy(locale, '25% protein, 45% carbs, 30% fat', '25% protein, 45% kolhydrater, 30% fett') },
-  { value: 'HIGH_PROTEIN', label: copy(locale, 'High protein', 'Högt protein'), description: copy(locale, '35% protein, 40% carbs, 25% fat', '35% protein, 40% kolhydrater, 25% fett') },
-  { value: 'LOW_CARB', label: copy(locale, 'Low carb', 'Låg kolhydrat'), description: copy(locale, '30% protein, 30% carbs, 40% fat', '30% protein, 30% kolhydrater, 40% fett') },
-  { value: 'ENDURANCE', label: copy(locale, 'Endurance', 'Uthållighet'), description: copy(locale, '20% protein, 55% carbs, 25% fat', '20% protein, 55% kolhydrater, 25% fett') },
-  { value: 'STRENGTH', label: copy(locale, 'Strength', 'Styrka'), description: copy(locale, '30% protein, 45% carbs, 25% fat', '30% protein, 45% kolhydrater, 25% fett') },
-  { value: 'KETO', label: 'Keto', description: copy(locale, '25% protein, 5% carbs, 70% fat', '25% protein, 5% kolhydrater, 70% fett') },
+  { value: 'BALANCED', label: copy(locale, 'Balanced', 'Balanserad'), description: copy(locale, 'Moderate carbs, protein, and fat', 'Måttligt med kolhydrater, protein och fett') },
+  { value: 'HIGH_PROTEIN', label: copy(locale, 'High protein', 'Högt protein'), description: copy(locale, 'Extra protein within safe per-kg ranges', 'Extra protein inom säkra g/kg-nivåer') },
+  { value: 'LOW_CARB', label: copy(locale, 'Low carb', 'Låg kolhydrat'), description: copy(locale, 'Lower carbohydrate baseline', 'Lägre kolhydratbas') },
+  { value: 'ENDURANCE', label: copy(locale, 'Endurance', 'Uthållighet'), description: copy(locale, 'Higher carbohydrates only when training load supports it', 'Högre kolhydrater bara när träningsbelastningen motiverar det') },
+  { value: 'STRENGTH', label: copy(locale, 'Strength', 'Styrka'), description: copy(locale, 'More protein for strength training', 'Mer protein för styrketräning') },
+  { value: 'KETO', label: 'Keto', description: copy(locale, 'Very low carbohydrate baseline', 'Mycket låg kolhydratbas') },
 ]
 
 export function NutritionRecommendations({

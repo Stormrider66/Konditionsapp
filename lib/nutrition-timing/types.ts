@@ -6,6 +6,7 @@
  */
 
 import type { WorkoutType, WorkoutIntensity } from '@prisma/client'
+import type { CarbLoadCategory } from '@/lib/nutrition/macro-guardrails'
 
 // ==========================================
 // DIETARY PREFERENCES TYPES
@@ -205,6 +206,11 @@ export interface DailyMacroTargets {
   carbsG: number
   fatG: number
   hydrationMl: number
+  proteinGPerKg: number
+  carbsGPerKg: number
+  carbLoadCategory: CarbLoadCategory
+  highCarbReason?: string
+  macroWarnings: string[]
   // Breakdown so the UI can show "baseline + lifestyle + workout"
   baselineKcal: number
   baselineProteinG: number

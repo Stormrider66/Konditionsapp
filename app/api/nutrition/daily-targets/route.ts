@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       include: {
         athleteAccount: { select: { userId: true } },
         nutritionGoal: true,
-        sportProfile: { select: { lifestyleActivity: true } },
+        sportProfile: { select: { lifestyleActivity: true, primarySport: true } },
       },
     })
     if (!client?.athleteAccount?.userId) {
@@ -81,11 +81,19 @@ export async function GET(request: NextRequest) {
     const weightKg = client.weight ?? 70
     const nutritionGoal: Pick<
       NutritionGoalInput,
-      'goalType' | 'macroProfile' | 'customProteinPercent' | 'customCarbsPercent' | 'customFatPercent'
+      | 'goalType'
+      | 'macroProfile'
+      | 'activityLevel'
+      | 'customProteinPerKg'
+      | 'customProteinPercent'
+      | 'customCarbsPercent'
+      | 'customFatPercent'
     > | undefined = client.nutritionGoal
       ? {
           goalType: client.nutritionGoal.goalType as NutritionGoalInput['goalType'],
           macroProfile: client.nutritionGoal.macroProfile as NutritionGoalInput['macroProfile'],
+          activityLevel: client.nutritionGoal.activityLevel as NutritionGoalInput['activityLevel'],
+          customProteinPerKg: client.nutritionGoal.customProteinPerKg ?? undefined,
           customProteinPercent: client.nutritionGoal.customProteinPercent ?? undefined,
           customCarbsPercent: client.nutritionGoal.customCarbsPercent ?? undefined,
           customFatPercent: client.nutritionGoal.customFatPercent ?? undefined,
@@ -260,7 +268,13 @@ export async function GET(request: NextRequest) {
         workoutsForDay,
         nutritionGoal,
         bmrKcal,
-        client.sportProfile?.lifestyleActivity
+        client.sportProfile?.lifestyleActivity,
+        {
+          birthDate: client.birthDate,
+          gender: client.gender,
+          primarySport: client.sportProfile?.primarySport,
+          currentDate: dayStart,
+        }
       )
       return {
         date: key,
@@ -268,6 +282,11 @@ export async function GET(request: NextRequest) {
         proteinG: daily.proteinG,
         carbsG: daily.carbsG,
         fatG: daily.fatG,
+        proteinGPerKg: daily.proteinGPerKg,
+        carbsGPerKg: daily.carbsGPerKg,
+        carbLoadCategory: daily.carbLoadCategory,
+        highCarbReason: daily.highCarbReason,
+        macroWarnings: daily.macroWarnings,
         baselineKcal: daily.baselineKcal,
         workoutAdjustmentKcal: daily.workoutAdjustmentKcal,
         workoutEnergyKcal: daily.workoutEnergyKcal,

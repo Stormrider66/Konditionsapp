@@ -265,6 +265,8 @@ export async function GET(request: NextRequest) {
         id: client.id,
         weightKg: client.weight || 70, // Default if not set
         heightCm: client.height || 175,
+        gender: client.gender,
+        birthDate: client.birthDate,
       },
       preferences: client.dietaryPreferences
         ? {
@@ -308,6 +310,7 @@ export async function GET(request: NextRequest) {
               | 'VERY_ACTIVE'
               | 'ATHLETE'
               | undefined,
+            customProteinPerKg: client.nutritionGoal.customProteinPerKg ?? undefined,
             customProteinPercent: client.nutritionGoal.customProteinPercent ?? undefined,
             customCarbsPercent: client.nutritionGoal.customCarbsPercent ?? undefined,
             customFatPercent: client.nutritionGoal.customFatPercent ?? undefined,

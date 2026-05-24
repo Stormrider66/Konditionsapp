@@ -8109,7 +8109,7 @@
           "goal": "Vad är ditt mål?",
           "macroProfile": "Makroprofil",
           "dietStyle": "Koststil",
-          "activityLevel": "Aktivitetsnivå"
+          "activityLevel": "Träningsambition"
         },
         "labels": {
           "targetWeight": "Målvikt (kg)",
@@ -8146,27 +8146,27 @@
         "macroProfiles": {
           "balanced": {
             "label": "Balanserad",
-            "description": "40% kolhydrater, 30% protein, 30% fett"
+            "description": "Måttligt med kolhydrater, protein och fett"
           },
           "highProtein": {
             "label": "Hög protein",
-            "description": "35% kolhydrater, 40% protein, 25% fett"
+            "description": "Högre protein inom säkra g/kg-nivåer"
           },
           "lowCarb": {
             "label": "Lågkolhydrat",
-            "description": "20% kolhydrater, 35% protein, 45% fett"
+            "description": "Lägre kolhydratbas"
           },
           "keto": {
             "label": "Keto",
-            "description": "5% kolhydrater, 25% protein, 70% fett"
+            "description": "Mycket låg kolhydratbas"
           },
           "endurance": {
             "label": "Uthållighet",
-            "description": "55% kolhydrater, 20% protein, 25% fett"
+            "description": "Mer kolhydrater när träningsbelastningen motiverar det"
           },
           "strength": {
             "label": "Styrka",
-            "description": "40% kolhydrater, 35% protein, 25% fett"
+            "description": "Mer protein för styrketräning"
           }
         },
         "dietaryStyles": {
@@ -8178,24 +8178,24 @@
         },
         "activityLevels": {
           "sedentary": {
-            "label": "Stillasittande",
-            "description": "Lite eller ingen träning"
+            "label": "Hälsofokus",
+            "description": "Träning sker ibland eller har låg prioritet"
           },
           "lightlyActive": {
-            "label": "Lätt aktiv",
-            "description": "1-2 pass/vecka"
+            "label": "Motionär",
+            "description": "1-2 lugna pass/vecka"
           },
           "active": {
-            "label": "Aktiv",
-            "description": "3-4 pass/vecka"
+            "label": "Aktiv idrottare",
+            "description": "3-4 målinriktade pass/vecka"
           },
           "veryActive": {
-            "label": "Mycket aktiv",
-            "description": "5-6 pass/vecka"
+            "label": "Prestationsinriktad",
+            "description": "5-6 strukturerade pass/vecka"
           },
           "athlete": {
-            "label": "Idrottare",
-            "description": "Daglig träning"
+            "label": "Elit",
+            "description": "Daglig träning eller dubbla pass"
           }
         },
         "commonAllergies": {
@@ -12666,19 +12666,19 @@
       "macroProfiles": {
         "balanced": {
           "label": "Balanserad",
-          "description": "40% kolhydrater, 30% protein, 30% fett"
+          "description": "Måttligt med kolhydrater, protein och fett"
         },
         "highProtein": {
           "label": "Hög protein",
-          "description": "Extra protein för muskeluppbyggnad"
+          "description": "Extra protein inom säkra g/kg-nivåer"
         },
         "lowCarb": {
           "label": "Lägre kolhydrater",
-          "description": "För fettanpassad träning"
+          "description": "Lägre kolhydratbas"
         },
         "endurance": {
           "label": "Uthållighet",
-          "description": "Högre kolhydrater för långdistans"
+          "description": "Högre kolhydrater bara när träningsbelastningen motiverar det"
         },
         "strength": {
           "label": "Styrka",
@@ -12714,8 +12714,34 @@
       },
       "macroProfile": {
         "title": "Makroprofil",
-        "description": "Välj fördelning av kolhydrater, protein och fett",
+        "description": "Välj hur appen ska vikta de säkrade makromålen",
         "placeholder": "Välj makroprofil"
+      },
+      "trainingAmbition": {
+        "title": "Träningsambition",
+        "description": "Används för säkra protein- och kolhydratgränser. Vardagsrörelse styrs separat under livsstilsaktivitet.",
+        "levels": {
+          "sedentary": {
+            "label": "Hälsofokus",
+            "description": "Träning sker ibland eller har låg prioritet"
+          },
+          "lightlyActive": {
+            "label": "Motionär",
+            "description": "1-2 lugna pass/vecka"
+          },
+          "active": {
+            "label": "Aktiv idrottare",
+            "description": "3-4 målinriktade pass/vecka"
+          },
+          "veryActive": {
+            "label": "Prestationsinriktad",
+            "description": "5-6 strukturerade pass/vecka"
+          },
+          "athlete": {
+            "label": "Elit",
+            "description": "Daglig träning eller dubbla pass"
+          }
+        }
       },
       "bmr": {
         "title": "Basalmetabolism (BMR)",

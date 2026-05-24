@@ -5,6 +5,15 @@
  * Based on scientific formulas: Mifflin-St Jeor, Harris-Benedict, and sport-specific adjustments.
  */
 
+import {
+  applyCarbGuardrails,
+  getFatPerKg,
+  getProteinTarget,
+  getRestCarbsPerKg,
+  normalizeNutritionActivityLevel,
+  type NutritionGoalType,
+} from '@/lib/nutrition/macro-guardrails';
+
 // Activity level multipliers for TDEE calculation
 export const ACTIVITY_MULTIPLIERS = {
   SEDENTARY: 1.2,        // Little or no exercise
@@ -64,7 +73,7 @@ export const PROTEIN_REQUIREMENTS = {
   MUSCLE_GAIN: { min: 1.6, max: 2.2 },
   ENDURANCE_ATHLETE: { min: 1.2, max: 1.4 },
   STRENGTH_ATHLETE: { min: 1.6, max: 2.0 },
-  ELITE_ATHLETE: { min: 1.8, max: 2.4 },
+  ELITE_ATHLETE: { min: 1.8, max: 2.2 },
 } as const;
 
 export interface BMRInput {
@@ -83,6 +92,8 @@ export interface MacroInput {
   goal: CaloricGoal;
   profile: MacroProfile;
   weightKg: number;
+  activityLevel?: ActivityLevel;
+  ageYears?: number;
   customProteinPerKg?: number; // Override for specific protein needs
   customProteinPercent?: number; // Custom percentage (0-100)
   customCarbsPercent?: number;   // Custom percentage (0-100)
@@ -199,76 +210,154 @@ export function calculateTDEEWithTraining(
 /**
  * Calculate macro distribution based on goals
  */
-export function calculateMacros(input: MacroInput): NutritionPlan['macros'] {
-  const { tdee, goal, profile, weightKg, customProteinPerKg, customProteinPercent, customCarbsPercent, customFatPercent } = input;
+function mapCaloricGoalToNutritionGoal(goal: CaloricGoal): NutritionGoalType {
+  if (goal.includes('LOSS')) return 'WEIGHT_LOSS';
+  if (goal.includes('GAIN')) return 'WEIGHT_GAIN';
+  return 'MAINTAIN';
+}
+
+function calculateMacrosInternal(input: MacroInput): { macros: NutritionPlan['macros']; warnings: string[] } {
+  const {
+    tdee,
+    goal,
+    profile,
+    weightKg,
+    activityLevel,
+    ageYears,
+    customProteinPerKg,
+    customProteinPercent,
+    customCarbsPercent,
+    customFatPercent,
+  } = input;
 
   const targetCalories = tdee + CALORIC_ADJUSTMENTS[goal];
+  const nutritionGoalType = mapCaloricGoalToNutritionGoal(goal);
+  const nutritionActivityLevel = normalizeNutritionActivityLevel(activityLevel);
+  const warnings: string[] = [];
 
   // Priority 1: Custom percentages (all three must be provided)
   if (customProteinPercent != null && customCarbsPercent != null && customFatPercent != null) {
-    const proteinGrams = Math.round((targetCalories * customProteinPercent / 100) / 4);
-    const carbGrams = Math.round((targetCalories * customCarbsPercent / 100) / 4);
-    const fatGrams = Math.round((targetCalories * customFatPercent / 100) / 9);
+    const requestedProteinGrams = Math.round((targetCalories * customProteinPercent / 100) / 4);
+    const proteinTarget = getProteinTarget({
+      weightKg,
+      goalType: nutritionGoalType,
+      macroProfile: profile,
+      activityLevel: nutritionActivityLevel,
+      customProteinPerKg: requestedProteinGrams / weightKg,
+    });
+    const proteinGrams = proteinTarget.grams;
+    if (requestedProteinGrams > proteinGrams) {
+      warnings.push(`Custom protein percentage adjusted to ${proteinGrams}g (${proteinTarget.gramsPerKg} g/kg).`);
+    }
+    warnings.push(...proteinTarget.warnings);
+
+    const requestedCarbGrams = Math.round((targetCalories * customCarbsPercent / 100) / 4);
+    const carbTarget = applyCarbGuardrails({
+      carbsG: requestedCarbGrams,
+      weightKg,
+      activityLevel: nutritionActivityLevel,
+      macroProfile: profile,
+      ageYears,
+    });
+    const carbGrams = carbTarget.grams;
+    if (requestedCarbGrams > carbGrams) {
+      warnings.push(`Custom carbohydrate percentage adjusted to ${carbGrams}g (${carbTarget.gramsPerKg} g/kg).`);
+    }
+    warnings.push(...carbTarget.warnings);
+
+    const remainingCalories = Math.max(0, targetCalories - proteinGrams * 4 - carbGrams * 4);
+    const fatGrams = Math.max(Math.round(weightKg * 0.6), Math.round(remainingCalories / 9));
+    const adjustedCalories = proteinGrams * 4 + carbGrams * 4 + fatGrams * 9;
 
     return {
-      protein: {
-        grams: proteinGrams,
-        calories: proteinGrams * 4,
-        percentage: Math.round(customProteinPercent),
+      macros: {
+        protein: {
+          grams: proteinGrams,
+          calories: proteinGrams * 4,
+          percentage: Math.round((proteinGrams * 4 / adjustedCalories) * 100),
+        },
+        carbs: {
+          grams: carbGrams,
+          calories: carbGrams * 4,
+          percentage: Math.round((carbGrams * 4 / adjustedCalories) * 100),
+        },
+        fat: {
+          grams: fatGrams,
+          calories: fatGrams * 9,
+          percentage: Math.round((fatGrams * 9 / adjustedCalories) * 100),
+        },
       },
-      carbs: {
-        grams: carbGrams,
-        calories: carbGrams * 4,
-        percentage: Math.round(customCarbsPercent),
-      },
-      fat: {
-        grams: fatGrams,
-        calories: fatGrams * 9,
-        percentage: Math.round(customFatPercent),
-      },
+      warnings: Array.from(new Set(warnings)),
     };
   }
 
-  const ratios = MACRO_PROFILES[profile];
+  const proteinTarget = getProteinTarget({
+    weightKg,
+    goalType: nutritionGoalType,
+    macroProfile: profile,
+    activityLevel: nutritionActivityLevel,
+    customProteinPerKg,
+  });
+  warnings.push(...proteinTarget.warnings);
 
-  // Priority 2: Custom per-kg protein value
-  let proteinGrams: number;
-  if (customProteinPerKg) {
-    proteinGrams = Math.round(weightKg * customProteinPerKg);
-  } else {
-    proteinGrams = Math.round((targetCalories * ratios.protein) / 4);
+  const proteinGrams = proteinTarget.grams;
+  const baselineCarbsPerKg = getRestCarbsPerKg({
+    activityLevel: nutritionActivityLevel,
+    goalType: nutritionGoalType,
+    macroProfile: profile,
+  });
+  let carbGrams = Math.round(weightKg * baselineCarbsPerKg);
+
+  // Use remaining calories to raise carbs when the energy target requires it,
+  // then cap by athlete ambition instead of letting percentages run away.
+  const fatFloorGrams = Math.round(weightKg * getFatPerKg({ goalType: nutritionGoalType, macroProfile: profile }));
+  const remainingAfterProteinAndFat = targetCalories - proteinGrams * 4 - fatFloorGrams * 9;
+  if (remainingAfterProteinAndFat > carbGrams * 4) {
+    carbGrams = Math.round(remainingAfterProteinAndFat / 4);
   }
 
+  const carbTarget = applyCarbGuardrails({
+    carbsG: carbGrams,
+    weightKg,
+    activityLevel: nutritionActivityLevel,
+    macroProfile: profile,
+    ageYears,
+  });
+  warnings.push(...carbTarget.warnings);
+  carbGrams = carbTarget.grams;
+
+  const remainingCalories = Math.max(0, targetCalories - proteinGrams * 4 - carbGrams * 4);
+  const fatGrams = Math.max(fatFloorGrams, Math.round(remainingCalories / 9));
+
   const proteinCalories = proteinGrams * 4;
-  const proteinPercentage = Math.round((proteinCalories / targetCalories) * 100);
-
-  // Distribute remaining calories between carbs and fat
-  const remainingCalories = targetCalories - proteinCalories;
-  const carbRatio = ratios.carbs / (ratios.carbs + ratios.fat);
-
-  const carbCalories = Math.round(remainingCalories * carbRatio);
-  const fatCalories = remainingCalories - carbCalories;
-
-  const carbGrams = Math.round(carbCalories / 4);
-  const fatGrams = Math.round(fatCalories / 9);
+  const carbCalories = carbGrams * 4;
+  const fatCalories = fatGrams * 9;
+  const totalMacroCalories = proteinCalories + carbCalories + fatCalories;
 
   return {
-    protein: {
-      grams: proteinGrams,
-      calories: proteinCalories,
-      percentage: proteinPercentage,
+    macros: {
+      protein: {
+        grams: proteinGrams,
+        calories: proteinCalories,
+        percentage: Math.round((proteinCalories / totalMacroCalories) * 100),
+      },
+      carbs: {
+        grams: carbGrams,
+        calories: carbCalories,
+        percentage: Math.round((carbCalories / totalMacroCalories) * 100),
+      },
+      fat: {
+        grams: fatGrams,
+        calories: fatCalories,
+        percentage: Math.round((fatCalories / totalMacroCalories) * 100),
+      },
     },
-    carbs: {
-      grams: carbGrams,
-      calories: carbCalories,
-      percentage: Math.round((carbCalories / targetCalories) * 100),
-    },
-    fat: {
-      grams: fatGrams,
-      calories: fatCalories,
-      percentage: Math.round((fatCalories / targetCalories) * 100),
-    },
+    warnings: Array.from(new Set(warnings)),
   };
+}
+
+export function calculateMacros(input: MacroInput): NutritionPlan['macros'] {
+  return calculateMacrosInternal(input).macros;
 }
 
 /**
@@ -285,16 +374,19 @@ export function generateNutritionPlan(
   const tdee = calculateTDEE(basicInput);
   const targetCalories = tdee + CALORIC_ADJUSTMENTS[goal];
 
-  const macros = calculateMacros({
+  const macroResult = calculateMacrosInternal({
     tdee,
     goal,
     profile,
     weightKg: basicInput.weightKg,
+    activityLevel: basicInput.activityLevel,
+    ageYears: basicInput.ageYears,
     customProteinPerKg,
   });
+  const macros = macroResult.macros;
 
   const recommendations: string[] = [];
-  const warnings: string[] = [];
+  const warnings: string[] = [...macroResult.warnings];
 
   // Safety checks
   const minCalories = basicInput.gender === 'MALE' ? 1500 : 1200;
@@ -332,7 +424,7 @@ export function generateNutritionPlan(
 
   // Profile-specific recommendations
   if (profile === 'ENDURANCE') {
-    recommendations.push(locale === 'sv' ? 'Ladda med kolhydrater (7-10g/kg) innan långa pass eller tävling.' : 'Carbohydrate-load (7-10g/kg) before long sessions or races.');
+    recommendations.push(locale === 'sv' ? 'Högre kolhydratmål används bara vid långa pass, dubbla pass eller tävlingsförberedelse.' : 'Higher carbohydrate targets are reserved for long sessions, double days, or race preparation.');
     recommendations.push(locale === 'sv' ? 'Under pass >60 min: 30-60g kolhydrater per timme.' : 'During sessions over 60 minutes: 30-60g carbohydrates per hour.');
   }
 

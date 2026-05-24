@@ -37,7 +37,7 @@ import { Switch } from '@/components/ui/switch'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useToast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
-import { Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Flame } from 'lucide-react'
+import { Activity, Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Flame } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 
 const goalSchema = z.object({
@@ -93,13 +93,13 @@ const MACRO_PROFILES = [
   { value: 'STRENGTH', labelKey: 'macroProfiles.strength.label', descriptionKey: 'macroProfiles.strength.description' },
 ]
 
-// NOTE: the previous "Aktivitetsnivå" picker (SEDENTARY → ATHLETE) was
-// removed from this form because it overlapped visually with the new
-// "Livsstil & vardagsaktivitet" selector that drives the daily dashboard
-// targets. The DB column NutritionGoal.activityLevel still exists (read by
-// the AI nutrition plan generator); existing values are preserved. New
-// athletes get the schema default until we migrate that path to read
-// SportProfile.lifestyleActivity.
+const TRAINING_AMBITION_LEVELS = [
+  { value: 'SEDENTARY', labelKey: 'trainingAmbition.levels.sedentary.label', descriptionKey: 'trainingAmbition.levels.sedentary.description' },
+  { value: 'LIGHTLY_ACTIVE', labelKey: 'trainingAmbition.levels.lightlyActive.label', descriptionKey: 'trainingAmbition.levels.lightlyActive.description' },
+  { value: 'ACTIVE', labelKey: 'trainingAmbition.levels.active.label', descriptionKey: 'trainingAmbition.levels.active.description' },
+  { value: 'VERY_ACTIVE', labelKey: 'trainingAmbition.levels.veryActive.label', descriptionKey: 'trainingAmbition.levels.veryActive.description' },
+  { value: 'ATHLETE', labelKey: 'trainingAmbition.levels.athlete.label', descriptionKey: 'trainingAmbition.levels.athlete.description' },
+] as const
 
 interface NutritionGoalFormProps {
   initialData?: GoalFormData | null
@@ -354,6 +354,55 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Training ambition */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-4 w-4 text-emerald-500" />
+              {t('trainingAmbition.title')}
+            </CardTitle>
+            <CardDescription>{t('trainingAmbition.description')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="activityLevel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value || 'ACTIVE'}
+                      className="space-y-2"
+                    >
+                      {TRAINING_AMBITION_LEVELS.map((level) => (
+                        <FormItem key={level.value}>
+                          <FormControl>
+                            <label
+                              className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                                (field.value || 'ACTIVE') === level.value
+                                  ? 'border-emerald-500 bg-emerald-50'
+                                  : 'border-slate-200 hover:border-slate-300'
+                              }`}
+                            >
+                              <RadioGroupItem value={level.value} className="mt-0.5" />
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{t(level.labelKey)}</div>
+                                <p className="text-xs text-slate-500 mt-0.5">{t(level.descriptionKey)}</p>
+                              </div>
+                            </label>
+                          </FormControl>
+                        </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

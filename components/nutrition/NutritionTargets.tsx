@@ -10,7 +10,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Progress } from '@/components/ui/progress'
-import { Flame, Beef, Wheat, Droplets, CircleDot } from 'lucide-react'
+import { AlertTriangle, Flame, Beef, Wheat, Droplets, CircleDot } from 'lucide-react'
 import type { DailyMacroTargets } from '@/lib/nutrition-timing'
 import { useLocale, useTranslations } from '@/i18n/client'
 
@@ -111,6 +111,7 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
   const isGlass = variant === 'glass'
   const workoutEnergyKcal = targets.workoutEnergyKcal ?? targets.workoutAdjustmentKcal
   const fuelingAdjustmentKcal = targets.fuelingAdjustmentKcal ?? 0
+  const macroWarnings = targets.macroWarnings ?? []
 
   // Calculate macro percentages (for visualization)
   const totalMacroCalories = targets.carbsG * 4 + targets.proteinG * 4 + targets.fatG * 9
@@ -417,6 +418,20 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
               {targets.fatG}
               <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
             </p>
+          </div>
+        </div>
+      )}
+
+      {(targets.highCarbReason || macroWarnings.length > 0) && (
+        <div className={`rounded-lg border p-3 text-xs ${isGlass ? 'border-amber-500/20 bg-amber-950/20 text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+          <div className="flex items-start gap-2">
+            <AlertTriangle className={`mt-0.5 h-4 w-4 flex-shrink-0 ${isGlass ? 'text-amber-300' : 'text-amber-600'}`} />
+            <div className="space-y-1">
+              {targets.highCarbReason && <p>{targets.highCarbReason}</p>}
+              {macroWarnings.slice(0, 2).map((warning) => (
+                <p key={warning}>{warning}</p>
+              ))}
+            </div>
           </div>
         </div>
       )}

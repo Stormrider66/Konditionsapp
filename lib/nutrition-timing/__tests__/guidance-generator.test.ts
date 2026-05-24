@@ -77,7 +77,7 @@ describe('generateDailyGuidance', () => {
     const t = guidance.targets
 
     expect(t.workoutEnergyKcal).toBe(522)
-    expect(t.workoutAdjustmentKcal).toBeGreaterThan(t.workoutEnergyKcal)
+    expect(t.workoutAdjustmentKcal).toBeGreaterThan(0)
     expect(t.fuelingAdjustmentKcal).toBe(t.workoutAdjustmentKcal - t.workoutEnergyKcal)
   })
 
@@ -169,22 +169,21 @@ describe('generateDailyGuidance', () => {
   })
 
   describe('macro profile baseline', () => {
-    it('uses the selected balanced 40/30/30 split for rest-day baseline targets', () => {
+    it('uses bodyweight-based balanced rest-day targets instead of percentage-first protein', () => {
       const t = calculateDailyTargets(
         70,
         [],
         {
           goalType: 'MAINTAIN',
           macroProfile: 'BALANCED',
+          activityLevel: 'ACTIVE',
         },
         1600
       )
 
-      const macroCalories = t.carbsG * 4 + t.proteinG * 4 + t.fatG * 9
-      expect(Math.round((t.carbsG * 4 / macroCalories) * 100)).toBe(40)
-      expect(Math.round((t.proteinG * 4 / macroCalories) * 100)).toBe(30)
-      expect(Math.round((t.fatG * 9 / macroCalories) * 100)).toBe(30)
-      expect(t.proteinG).toBeGreaterThan(150)
+      expect(t.proteinGPerKg).toBe(1.6)
+      expect(t.proteinG).toBe(112)
+      expect(t.carbsGPerKg).toBe(3.2)
       expect(t.carbsG).toBeLessThan(230)
       expect(t.baselineKcal + t.lifestyleAdjustmentKcal + t.workoutAdjustmentKcal).toBe(t.caloriesKcal)
     })
@@ -202,6 +201,82 @@ describe('generateDailyGuidance', () => {
       expect(training.baselineProteinG).toBe(rest.baselineProteinG)
       expect(training.workoutAdjustmentCarbsG).toBeGreaterThan(training.workoutAdjustmentProteinG)
       expect(training.carbsG).toBeGreaterThan(rest.carbsG)
+    })
+  })
+
+  describe('conservative macro guardrails', () => {
+    it('keeps a 57 kg regular active athlete in a reasonable normal-day range', () => {
+      const t = calculateDailyTargets(
+        57,
+        [createWorkout({ intensity: 'MODERATE', duration: 60 })],
+        { goalType: 'MAINTAIN', macroProfile: 'BALANCED', activityLevel: 'ACTIVE' },
+        1300
+      )
+
+      expect(t.proteinG).toBeGreaterThanOrEqual(85)
+      expect(t.proteinG).toBeLessThanOrEqual(110)
+      expect(t.carbsGPerKg).toBeLessThanOrEqual(6.5)
+      expect(t.highCarbReason).toBeUndefined()
+    })
+
+    it('does not reproduce Cornelia-style high targets without an elite/double/very-long trigger', () => {
+      const t = calculateDailyTargets(
+        57,
+        [createWorkout({ intensity: 'MODERATE', duration: 60 })],
+        { goalType: 'MAINTAIN', macroProfile: 'ENDURANCE', activityLevel: 'ACTIVE' }
+      )
+
+      expect(t.carbsG).toBeLessThan(422)
+      expect(t.proteinG).toBeLessThan(174)
+      expect(t.carbsGPerKg).toBeLessThanOrEqual(6.5)
+    })
+
+    it('allows but caps a hard 90 minute threshold day below very-high carbohydrate range', () => {
+      const t = calculateDailyTargets(
+        57,
+        [createWorkout({ intensity: 'THRESHOLD', duration: 90 })],
+        { goalType: 'MAINTAIN', macroProfile: 'ENDURANCE', activityLevel: 'ACTIVE' }
+      )
+
+      expect(t.carbLoadCategory).toBe('HIGH')
+      expect(t.carbsGPerKg).toBeLessThan(8)
+      if (t.carbsGPerKg > 6.5) {
+        expect(t.highCarbReason).toBeTruthy()
+      }
+    })
+
+    it('allows high-carb metadata for elite double-session days', () => {
+      const t = calculateDailyTargets(
+        57,
+        [
+          createWorkout({ id: 'w-1', intensity: 'THRESHOLD', duration: 90 }),
+          createWorkout({ id: 'w-2', intensity: 'MODERATE', duration: 75 }),
+        ],
+        { goalType: 'MAINTAIN', macroProfile: 'ENDURANCE', activityLevel: 'ATHLETE' }
+      )
+
+      expect(t.carbLoadCategory).toBe('VERY_HIGH')
+      expect(t.carbsGPerKg).toBeGreaterThan(6.5)
+      expect(t.highCarbReason).toBeTruthy()
+    })
+
+    it('caps excessive custom macro percentages and returns warnings', () => {
+      const t = calculateDailyTargets(
+        57,
+        [],
+        {
+          goalType: 'MAINTAIN',
+          macroProfile: 'CUSTOM',
+          activityLevel: 'ACTIVE',
+          customProteinPercent: 70,
+          customCarbsPercent: 20,
+          customFatPercent: 10,
+        }
+      )
+
+      expect(t.proteinGPerKg).toBeLessThanOrEqual(2.2)
+      expect(t.macroWarnings.length).toBeGreaterThan(0)
+      expect(t.macroWarnings.join(' ')).toContain('Custom protein percentage adjusted')
     })
   })
 })

@@ -6939,7 +6939,7 @@
           "goal": "What is your goal?",
           "macroProfile": "Macro profile",
           "dietStyle": "Diet style",
-          "activityLevel": "Activity level"
+          "activityLevel": "Training ambition"
         },
         "labels": {
           "targetWeight": "Target weight (kg)",
@@ -6976,27 +6976,27 @@
         "macroProfiles": {
           "balanced": {
             "label": "Balanced",
-            "description": "40% carbs, 30% protein, 30% fat"
+            "description": "Moderate carbs, protein, and fat"
           },
           "highProtein": {
             "label": "High protein",
-            "description": "35% carbs, 40% protein, 25% fat"
+            "description": "Higher protein within safe per-kg ranges"
           },
           "lowCarb": {
             "label": "Low carb",
-            "description": "20% carbs, 35% protein, 45% fat"
+            "description": "Lower carbohydrate baseline"
           },
           "keto": {
             "label": "Keto",
-            "description": "5% carbs, 25% protein, 70% fat"
+            "description": "Very low carbohydrate baseline"
           },
           "endurance": {
             "label": "Endurance",
-            "description": "55% carbs, 20% protein, 25% fat"
+            "description": "More carbohydrate when training load supports it"
           },
           "strength": {
             "label": "Strength",
-            "description": "40% carbs, 35% protein, 25% fat"
+            "description": "More protein for strength training"
           }
         },
         "dietaryStyles": {
@@ -7008,24 +7008,24 @@
         },
         "activityLevels": {
           "sedentary": {
-            "label": "Sedentary",
-            "description": "Little or no regular training"
+            "label": "Health focused",
+            "description": "Training is occasional or low priority"
           },
           "lightlyActive": {
-            "label": "Lightly active",
-            "description": "1-2 sessions/week"
+            "label": "Recreational",
+            "description": "1-2 relaxed sessions/week"
           },
           "active": {
-            "label": "Active",
-            "description": "3-4 sessions/week"
+            "label": "Active athlete",
+            "description": "3-4 purposeful sessions/week"
           },
           "veryActive": {
-            "label": "Very active",
-            "description": "5-6 sessions/week"
+            "label": "Performance",
+            "description": "5-6 structured sessions/week"
           },
           "athlete": {
-            "label": "Athlete",
-            "description": "Daily training"
+            "label": "Elite",
+            "description": "Daily or double-session training"
           }
         },
         "commonAllergies": {
@@ -12306,19 +12306,19 @@
       "macroProfiles": {
         "balanced": {
           "label": "Balanced",
-          "description": "40% carbohydrates, 30% protein, 30% fat"
+          "description": "Moderate carbs, protein, and fat"
         },
         "highProtein": {
           "label": "High protein",
-          "description": "Extra protein for muscle building"
+          "description": "Extra protein within safe per-kg ranges"
         },
         "lowCarb": {
           "label": "Lower carbohydrate",
-          "description": "For fat-adapted training"
+          "description": "Lower carbohydrate baseline"
         },
         "endurance": {
           "label": "Endurance",
-          "description": "Higher carbohydrates for long distance"
+          "description": "Higher carbohydrates only when training load supports it"
         },
         "strength": {
           "label": "Strength",
@@ -12354,8 +12354,34 @@
       },
       "macroProfile": {
         "title": "Macro profile",
-        "description": "Choose the distribution of carbohydrates, protein, and fat",
+        "description": "Choose how the app should bias the guardrailed macro targets",
         "placeholder": "Choose macro profile"
+      },
+      "trainingAmbition": {
+        "title": "Training ambition",
+        "description": "Used for carbohydrate and protein guardrails. Everyday movement is set separately under lifestyle activity.",
+        "levels": {
+          "sedentary": {
+            "label": "Health focused",
+            "description": "Training is occasional or low priority"
+          },
+          "lightlyActive": {
+            "label": "Recreational",
+            "description": "1-2 relaxed sessions/week"
+          },
+          "active": {
+            "label": "Active athlete",
+            "description": "3-4 purposeful sessions/week"
+          },
+          "veryActive": {
+            "label": "Performance",
+            "description": "5-6 structured sessions/week"
+          },
+          "athlete": {
+            "label": "Elite",
+            "description": "Daily or double-session training"
+          }
+        }
       },
       "bmr": {
         "title": "Basal metabolic rate (BMR)",

@@ -11,43 +11,41 @@
  * Uses the "Fuel for the Work Required" framework from ISSN/ACSM/IOC.
  */
 
-import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
 import type { WorkoutIntensity } from '@prisma/client'
 import type {
   WorkoutContext,
   DailyNutritionGuidance,
   DailyMacroTargets,
   LifestyleActivity,
-  MacroProfile,
   NutritionGoalInput,
   NutritionGuidance,
   NutritionTip,
   GuidanceGeneratorInput,
-  FoodSuggestion,
   NutritionGoalType,
 } from '../types'
 import {
-  DAILY_CARB_TARGETS,
-  REST_DAY_TARGETS,
-  PRE_WORKOUT_TIMING,
-  POST_WORKOUT_TIMING,
   CALORIES_PER_HOUR_BY_INTENSITY,
-  calculateDailyCarbs,
   calculatePreWorkoutCarbs,
   calculatePostWorkoutNutrition,
   calculateDuringWorkoutFueling,
   getIntensityLabelSv,
 } from '../constants/timing-rules'
 import {
+  applyCarbGuardrails,
+  getCarbFloorPerKg,
+  getFatPerKg,
+  getProteinTarget,
+  getRestCarbsPerKg,
+  normalizeNutritionActivityLevel,
+  roundPerKg,
+  type CarbLoadCategory,
+  type NutritionActivityLevel,
+} from '@/lib/nutrition/macro-guardrails'
+import {
   getPreWorkoutCarbs,
   getPostWorkoutProtein,
   getDuringWorkoutFuel,
-  getMixedMeals,
-  filterByPreferences,
-  ALL_FOODS,
 } from '../constants/food-suggestions'
-import { generatePostCheckInTip, generateDuringWorkoutTip } from './tip-generator'
 
 // ==========================================
 // MAIN GUIDANCE GENERATOR
@@ -85,7 +83,13 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     todaysWorkouts,
     goal ?? goalType,
     bodyComposition?.bmrKcal,
-    sportProfile?.lifestyleActivity
+    sportProfile?.lifestyleActivity,
+    {
+      birthDate: client.birthDate,
+      currentDate: currentTime,
+      gender: client.gender,
+      primarySport: sportProfile?.primarySport,
+    }
   )
 
   // Generate workout-specific guidance
@@ -165,18 +169,42 @@ function estimateWorkoutKcal(workout: WorkoutContext, weightKg: number): number 
   return Math.round(kcalPerHour * (durationMinutes / 60) * (weightKg / 75))
 }
 
-/**
- * Kcal-to-macro split for a workout's adjustment (ratios must sum to 1.0).
- * Strength leans toward protein (repair); long endurance leans toward carbs (glycogen).
- */
-function workoutMacroSplit(workout: WorkoutContext): { carbs: number; protein: number; fat: number } {
+const ENDURANCE_WORKOUT_TYPES = new Set<string>([
+  'RUNNING',
+  'CYCLING',
+  'SKIING',
+  'SWIMMING',
+  'TRIATHLON',
+  'HYROX',
+  'ERGOMETER',
+])
+
+const INTENSITY_ORDER: Record<WorkoutIntensity, number> = {
+  RECOVERY: 0,
+  EASY: 1,
+  MODERATE: 2,
+  THRESHOLD: 3,
+  INTERVAL: 4,
+  MAX: 5,
+}
+
+function isEnduranceWorkout(workout: WorkoutContext): boolean {
+  return ENDURANCE_WORKOUT_TYPES.has(String(workout.type))
+}
+
+function isHardIntensity(intensity: WorkoutIntensity): boolean {
+  return intensity === 'THRESHOLD' || intensity === 'INTERVAL' || intensity === 'MAX'
+}
+
+function workoutCarbShare(workout: WorkoutContext): number {
   const durationMinutes = workout.duration || 60
   const isStrength = workout.type === 'STRENGTH'
-  const isLongEndurance = !isStrength && durationMinutes >= 90
+  const isLongEndurance = isEnduranceWorkout(workout) && durationMinutes >= 90
 
-  if (isStrength) return { carbs: 0.50, protein: 0.30, fat: 0.20 }
-  if (isLongEndurance) return { carbs: 0.70, protein: 0.15, fat: 0.15 }
-  return { carbs: 0.60, protein: 0.20, fat: 0.20 }
+  if (isStrength) return 0.42
+  if (isLongEndurance) return 0.68
+  if (isHardIntensity(workout.intensity)) return 0.62
+  return 0.55
 }
 
 /**
@@ -195,23 +223,33 @@ export const NEAT_FACTORS: Record<LifestyleActivity, number> = {
 
 type DailyTargetGoalInput = Pick<
   NutritionGoalInput,
-  'goalType' | 'macroProfile' | 'customProteinPercent' | 'customCarbsPercent' | 'customFatPercent'
+  | 'goalType'
+  | 'macroProfile'
+  | 'activityLevel'
+  | 'customProteinPerKg'
+  | 'customProteinPercent'
+  | 'customCarbsPercent'
+  | 'customFatPercent'
 >
 
-const MACRO_PROFILE_RATIOS: Record<Exclude<MacroProfile, 'CUSTOM'>, { carbs: number; protein: number; fat: number }> = {
-  BALANCED: { carbs: 0.40, protein: 0.30, fat: 0.30 },
-  HIGH_PROTEIN: { carbs: 0.35, protein: 0.40, fat: 0.25 },
-  LOW_CARB: { carbs: 0.20, protein: 0.35, fat: 0.45 },
-  ENDURANCE: { carbs: 0.55, protein: 0.20, fat: 0.25 },
-  STRENGTH: { carbs: 0.40, protein: 0.35, fat: 0.25 },
-  KETO: { carbs: 0.05, protein: 0.25, fat: 0.70 },
+interface DailyTargetOptions {
+  ageYears?: number | null
+  birthDate?: Date | string | null
+  currentDate?: Date
+  gender?: 'MALE' | 'FEMALE' | null
+  primarySport?: string | null
+  carbLoadTrigger?: boolean
 }
 
-function getGoalType(goal?: DailyTargetGoalInput | string): string | undefined {
-  return typeof goal === 'string' ? goal : goal?.goalType
+function getGoalType(goal?: DailyTargetGoalInput | string): NutritionGoalType | undefined {
+  if (typeof goal !== 'string') return goal?.goalType
+  if (goal === 'WEIGHT_LOSS' || goal === 'WEIGHT_GAIN' || goal === 'MAINTAIN' || goal === 'BODY_RECOMP') {
+    return goal
+  }
+  return undefined
 }
 
-function getMacroRatios(goal?: DailyTargetGoalInput | string): { carbs: number; protein: number; fat: number } | null {
+function getCustomMacroRatios(goal?: DailyTargetGoalInput | string): { carbs: number; protein: number; fat: number } | null {
   if (!goal || typeof goal === 'string') return null
 
   if (
@@ -230,11 +268,23 @@ function getMacroRatios(goal?: DailyTargetGoalInput | string): { carbs: number; 
     }
   }
 
-  if (goal.macroProfile && goal.macroProfile !== 'CUSTOM') {
-    return MACRO_PROFILE_RATIOS[goal.macroProfile] ?? null
-  }
-
   return null
+}
+
+function calculateAgeYears(options?: DailyTargetOptions): number | undefined {
+  if (options?.ageYears != null) return options.ageYears
+  if (!options?.birthDate) return undefined
+
+  const birthDate = options.birthDate instanceof Date ? options.birthDate : new Date(options.birthDate)
+  if (Number.isNaN(birthDate.getTime())) return undefined
+
+  const currentDate = options.currentDate ?? new Date()
+  let age = currentDate.getFullYear() - birthDate.getFullYear()
+  const monthDiff = currentDate.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate())) {
+    age -= 1
+  }
+  return age
 }
 
 function distributeCaloriesByMacros(caloriesKcal: number, ratios: { carbs: number; protein: number; fat: number }) {
@@ -245,43 +295,179 @@ function distributeCaloriesByMacros(caloriesKcal: number, ratios: { carbs: numbe
   }
 }
 
+function classifyDailyCarbLoad(
+  workouts: WorkoutContext[],
+  workoutEnergyKcal: number,
+  activityLevel: NutritionActivityLevel,
+  carbLoadTrigger: boolean
+): {
+  category: CarbLoadCategory
+  hasHighCarbTrigger: boolean
+  hasVeryHighCarbTrigger: boolean
+  hasCarbLoadTrigger: boolean
+  highCarbReason?: string
+} {
+  if (carbLoadTrigger) {
+    return {
+      category: 'CARB_LOAD',
+      hasHighCarbTrigger: true,
+      hasVeryHighCarbTrigger: true,
+      hasCarbLoadTrigger: true,
+      highCarbReason: 'High-carb target because race preparation/carb-loading is active.',
+    }
+  }
+
+  if (workouts.length === 0) {
+    return {
+      category: 'REST',
+      hasHighCarbTrigger: false,
+      hasVeryHighCarbTrigger: false,
+      hasCarbLoadTrigger: false,
+    }
+  }
+
+  const totalDuration = workouts.reduce((sum, w) => sum + (w.duration || 60), 0)
+  const enduranceDuration = workouts
+    .filter(isEnduranceWorkout)
+    .reduce((sum, w) => sum + (w.duration || 60), 0)
+  const hardDuration = workouts
+    .filter((w) => isHardIntensity(w.intensity))
+    .reduce((sum, w) => sum + (w.duration || 60), 0)
+  const hardEnduranceDuration = workouts
+    .filter((w) => isEnduranceWorkout(w) && isHardIntensity(w.intensity))
+    .reduce((sum, w) => sum + (w.duration || 60), 0)
+  const highestIntensity = workouts.reduce(
+    (highest, workout) => Math.max(highest, INTENSITY_ORDER[workout.intensity] ?? 0),
+    0
+  )
+
+  const isDoubleDay = workouts.length >= 2
+  const hasLongEndurance = enduranceDuration >= 120
+  const hasHardEndurance = hardEnduranceDuration >= 90
+  const hasHighEnergy = workoutEnergyKcal >= 900
+  const hasVeryHighEnergy = workoutEnergyKcal >= 1500
+  const hasVeryLongTraining = enduranceDuration >= 180 || totalDuration >= 240
+  const performanceProfile = activityLevel === 'VERY_ACTIVE' || activityLevel === 'ATHLETE'
+
+  const hasHighCarbTrigger =
+    hasHardEndurance ||
+    hasLongEndurance ||
+    isDoubleDay ||
+    hasHighEnergy ||
+    (performanceProfile && hardDuration >= 60)
+
+  const hasVeryHighCarbTrigger =
+    isDoubleDay ||
+    hasVeryLongTraining ||
+    hasVeryHighEnergy ||
+    (activityLevel === 'ATHLETE' && (hasHardEndurance || hasLongEndurance))
+
+  let category: CarbLoadCategory = 'NORMAL'
+  if (highestIntensity <= INTENSITY_ORDER.EASY && totalDuration < 60) {
+    category = 'LIGHT'
+  } else if (hasVeryHighCarbTrigger) {
+    category = 'VERY_HIGH'
+  } else if (hasHighCarbTrigger) {
+    category = 'HIGH'
+  } else if (highestIntensity >= INTENSITY_ORDER.THRESHOLD || totalDuration >= 75) {
+    category = 'HARD'
+  }
+
+  let highCarbReason: string | undefined
+  if (isDoubleDay) {
+    highCarbReason = 'High-carb target because today has multiple training sessions.'
+  } else if (hasVeryLongTraining) {
+    highCarbReason = 'High-carb target because today includes very long endurance training.'
+  } else if (hasHardEndurance || hasLongEndurance) {
+    highCarbReason = 'High-carb target because today includes a long or hard endurance session.'
+  } else if (hasHighEnergy) {
+    highCarbReason = 'High-carb target because estimated workout energy demand is high.'
+  } else if (performanceProfile && hardDuration >= 60) {
+    highCarbReason = 'High-carb target because training ambition and intensity are high today.'
+  }
+
+  return {
+    category,
+    hasHighCarbTrigger,
+    hasVeryHighCarbTrigger,
+    hasCarbLoadTrigger: false,
+    highCarbReason,
+  }
+}
+
+function getWorkoutProteinBumpPerKg(workouts: WorkoutContext[]): number {
+  if (workouts.length === 0) return 0
+
+  let bump = 0
+  if (workouts.some((w) => w.type === 'STRENGTH')) bump += 0.1
+  if (workouts.some((w) => isHardIntensity(w.intensity)) || workouts.some((w) => (w.duration || 60) >= 90)) bump += 0.05
+  if (workouts.length >= 2) bump += 0.05
+
+  return Math.min(0.25, bump)
+}
+
 export function calculateDailyTargets(
   weightKg: number,
   workouts: WorkoutContext[],
   goal?: DailyTargetGoalInput | string,
   bmrKcal?: number,
-  lifestyleActivity: LifestyleActivity = 'SEDENTARY'
+  lifestyleActivity: LifestyleActivity = 'SEDENTARY',
+  options?: DailyTargetOptions
 ): DailyMacroTargets {
+  const nutritionGoal = typeof goal === 'string' ? undefined : goal
+  const goalType = getGoalType(goal) ?? 'MAINTAIN'
+  const macroProfile = nutritionGoal?.macroProfile ?? 'BALANCED'
+  const activityLevel = normalizeNutritionActivityLevel(nutritionGoal?.activityLevel)
+  const ageYears = calculateAgeYears(options)
+  const macroWarnings: string[] = []
+
   // 1. Baseline (rest-day) targets — always the starting point.
-  const carbTarget = REST_DAY_TARGETS.carbsPerKg
-  const proteinTarget = REST_DAY_TARGETS.proteinPerKg
-  const fatTarget = REST_DAY_TARGETS.fatPerKg
+  const baseProtein = getProteinTarget({
+    weightKg,
+    goalType,
+    macroProfile,
+    activityLevel,
+    customProteinPerKg: nutritionGoal?.customProteinPerKg,
+  })
+  let baselineProteinG = baseProtein.grams
+  macroWarnings.push(...baseProtein.warnings)
 
-  let baselineCarbsG = weightKg * ((carbTarget.min + carbTarget.max) / 2)
-  let baselineProteinG = weightKg * ((proteinTarget.min + proteinTarget.max) / 2)
-  let baselineFatG = weightKg * ((fatTarget.min + fatTarget.max) / 2)
-
-  // Goal-based adjustment applies to baseline only; workout-driven needs are
-  // defended (deficit on rest, maintenance-or-above on training).
-  const goalType = getGoalType(goal)
-  if (goalType === 'WEIGHT_LOSS') {
-    baselineCarbsG *= 0.85
-    baselineFatG *= 0.85
-  } else if (goalType === 'WEIGHT_GAIN') {
-    baselineCarbsG *= 1.10
-    baselineFatG *= 1.10
-  } else if (goalType === 'BODY_RECOMP') {
-    baselineProteinG *= 1.15
-    baselineFatG *= 0.90
-  }
+  let baselineCarbsG = weightKg * getRestCarbsPerKg({ goalType, macroProfile, activityLevel })
+  let baselineFatG = weightKg * getFatPerKg({ goalType, macroProfile })
 
   let baselineKcalRaw = baselineCarbsG * 4 + baselineProteinG * 4 + baselineFatG * 9
-  const macroRatios = getMacroRatios(goal)
+  const macroRatios = getCustomMacroRatios(goal)
   if (macroRatios) {
     const baselineMacros = distributeCaloriesByMacros(baselineKcalRaw, macroRatios)
-    baselineCarbsG = Math.round(baselineMacros.carbsG)
-    baselineProteinG = Math.round(baselineMacros.proteinG)
-    baselineFatG = Math.round(baselineMacros.fatG)
+    const requestedProteinPerKg = baselineMacros.proteinG / weightKg
+    const cappedProtein = getProteinTarget({
+      weightKg,
+      goalType,
+      macroProfile,
+      activityLevel,
+      customProteinPerKg: requestedProteinPerKg,
+    })
+    if (Math.round(baselineMacros.proteinG) > cappedProtein.grams) {
+      macroWarnings.push(`Custom protein percentage adjusted to ${cappedProtein.grams} g to stay within safe athlete ranges.`)
+    }
+    macroWarnings.push(...cappedProtein.warnings)
+    baselineProteinG = cappedProtein.grams
+
+    const cappedCarbs = applyCarbGuardrails({
+      carbsG: baselineMacros.carbsG,
+      weightKg,
+      activityLevel,
+      macroProfile,
+      ageYears,
+    })
+    if (Math.round(baselineMacros.carbsG) > cappedCarbs.grams) {
+      macroWarnings.push(`Custom carbohydrate percentage adjusted to ${cappedCarbs.grams} g to stay within safe athlete ranges.`)
+    }
+    macroWarnings.push(...cappedCarbs.warnings)
+    baselineCarbsG = cappedCarbs.grams
+
+    const remainingKcal = baselineKcalRaw - baselineProteinG * 4 - baselineCarbsG * 4
+    baselineFatG = Math.max(weightKg * 0.6, Math.round(remainingKcal / 9))
     baselineKcalRaw = baselineCarbsG * 4 + baselineProteinG * 4 + baselineFatG * 9
   }
 
@@ -301,52 +487,63 @@ export function calculateDailyTargets(
   const effectiveBaselineProteinG = baselineProteinG + lifestyleProteinG
   const effectiveBaselineFatG = baselineFatG + lifestyleFatG
 
-  // 2. Workout adjustment — each workout contributes a kcal bonus, split across macros.
+  // 2. Workout adjustment — each workout contributes mostly carbohydrate and
+  // fat. Protein is bodyweight-goal based and only gets a small training bump.
   let workoutEnergyKcalRaw = 0
   let adjCarbsG = 0
-  let adjProteinG = 0
   let adjFatG = 0
 
   for (const workout of workouts) {
     const workoutKcal = estimateWorkoutKcal(workout, weightKg)
     workoutEnergyKcalRaw += workoutKcal
-    const split = workoutMacroSplit(workout)
-    adjCarbsG += (workoutKcal * split.carbs) / 4
-    adjProteinG += (workoutKcal * split.protein) / 4
-    adjFatG += (workoutKcal * split.fat) / 9
+    const carbShare = workoutCarbShare(workout)
+    adjCarbsG += (workoutKcal * carbShare) / 4
+    adjFatG += (workoutKcal * (1 - carbShare)) / 9
   }
 
-  // Carb floor on training days: ensure athletes hit the IOC minimum for their load.
-  // Use the existing load-category logic as a sanity floor.
+  const load = classifyDailyCarbLoad(
+    workouts,
+    workoutEnergyKcalRaw,
+    activityLevel,
+    options?.carbLoadTrigger ?? false
+  )
+
   if (workouts.length > 0) {
-    const highestIntensityWorkout = workouts.reduce((prev, curr) => {
-      const intensityOrder: Record<WorkoutIntensity, number> = {
-        RECOVERY: 0,
-        EASY: 1,
-        MODERATE: 2,
-        THRESHOLD: 3,
-        INTERVAL: 4,
-        MAX: 5,
-      }
-      return intensityOrder[curr.intensity] > intensityOrder[prev.intensity] ? curr : prev
-    }, workouts[0])
-    const totalDuration = workouts.reduce((sum, w) => sum + (w.duration || 60), 0)
-    const { carbsG: loadCarbFloor } = calculateDailyCarbs(
-      weightKg,
-      highestIntensityWorkout.intensity,
-      totalDuration,
-      workouts.length >= 2
-    )
+    const floorCarbsG = weightKg * getCarbFloorPerKg(load.category)
     const totalCarbs = effectiveBaselineCarbsG + adjCarbsG
-    if (totalCarbs < loadCarbFloor) {
-      adjCarbsG = loadCarbFloor - effectiveBaselineCarbsG
+    if (totalCarbs < floorCarbsG) {
+      adjCarbsG = floorCarbsG - effectiveBaselineCarbsG
     }
   }
 
-  // 3. Combine.
+  const proteinTarget = getProteinTarget({
+    weightKg,
+    goalType,
+    macroProfile,
+    activityLevel,
+    customProteinPerKg: nutritionGoal?.customProteinPerKg,
+    workoutProteinBumpPerKg: getWorkoutProteinBumpPerKg(workouts),
+  })
+  macroWarnings.push(...proteinTarget.warnings)
+
+  const proteinG = proteinTarget.grams
   let carbsG = Math.round(effectiveBaselineCarbsG + adjCarbsG)
-  const proteinG = Math.round(effectiveBaselineProteinG + adjProteinG)
   const fatG = Math.round(effectiveBaselineFatG + adjFatG)
+
+  const guardedCarbs = applyCarbGuardrails({
+    carbsG,
+    weightKg,
+    activityLevel,
+    macroProfile,
+    ageYears,
+    hasHighCarbTrigger: load.hasHighCarbTrigger,
+    hasVeryHighCarbTrigger: load.hasVeryHighCarbTrigger,
+    hasCarbLoadTrigger: load.hasCarbLoadTrigger,
+    reason: load.highCarbReason,
+  })
+  carbsG = guardedCarbs.grams
+  macroWarnings.push(...guardedCarbs.warnings)
+
   let caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
 
   // 4. TDEE sanity cap (unchanged in spirit): for extreme cases, clip carbs first.
@@ -359,21 +556,26 @@ export function calculateDailyTargets(
     if (caloriesKcal > maxCalories) {
       const excessKcal = caloriesKcal - maxCalories
       const carbReductionG = Math.floor(excessKcal / 4)
-      const minCarbsG = Math.round(weightKg * 3)
+      const minCarbsG = Math.round(weightKg * Math.min(getCarbFloorPerKg(load.category), 3))
       carbsG = Math.max(carbsG - carbReductionG, minCarbsG)
       caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
-      adjCarbsG = carbsG - effectiveBaselineCarbsG
+      macroWarnings.push(`Calorie sanity cap reduced carbohydrate target to ${carbsG} g.`)
     }
   }
+
+  adjCarbsG = carbsG - effectiveBaselineCarbsG
+  const adjProteinG = proteinG - effectiveBaselineProteinG
+  adjFatG = fatG - effectiveBaselineFatG
 
   // Reconcile workout adjustment AFTER carb floor + TDEE cap so the displayed
   // breakdown sums to the total: baseline + lifestyle + workout === total.
   // The carb floor / TDEE cap absorb their effect into the workout line
   // (it's the line that scales with training load).
   const adjKcalReconciled = caloriesKcal - Math.round(baselineKcalRaw) - Math.round(lifestyleKcalRaw)
-  const workoutAdjustmentKcal = Math.max(0, adjKcalReconciled)
+  const workoutAdjustmentKcal = workouts.length > 0 ? Math.max(0, adjKcalReconciled) : 0
   const workoutEnergyKcal = Math.round(workoutEnergyKcalRaw)
   const fuelingAdjustmentKcal = workoutAdjustmentKcal - workoutEnergyKcal
+  const finalCarbsPerKg = roundPerKg(carbsG / weightKg)
 
   // 5. Hydration: rest-day baseline + 500ml per hour of training.
   const baseHydration = weightKg * 28
@@ -386,6 +588,11 @@ export function calculateDailyTargets(
     carbsG,
     fatG,
     hydrationMl,
+    proteinGPerKg: roundPerKg(proteinG / weightKg),
+    carbsGPerKg: finalCarbsPerKg,
+    carbLoadCategory: load.category,
+    highCarbReason: finalCarbsPerKg > 6.5 ? guardedCarbs.highCarbReason : undefined,
+    macroWarnings: Array.from(new Set(macroWarnings)),
     baselineKcal: Math.round(baselineKcalRaw),
     baselineProteinG: Math.round(baselineProteinG),
     baselineCarbsG: Math.round(baselineCarbsG),
@@ -624,11 +831,6 @@ function generateMealStructure(
   isRestDay: boolean,
   goalType?: NutritionGoalType
 ): DailyNutritionGuidance['mealSuggestions'] {
-  // Get appropriate foods
-  const carbFoods = getPreWorkoutCarbs(preferences, goalType)
-  const proteinFoods = getPostWorkoutProtein(preferences, goalType)
-  const mixedMeals = getMixedMeals('pre', preferences, goalType)
-
   // Simple structure suggestions
   if (isRestDay) {
     if (goalType === 'WEIGHT_LOSS') {
