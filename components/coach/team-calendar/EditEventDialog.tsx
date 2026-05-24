@@ -76,6 +76,14 @@ interface EditableTeamEvent {
     totalAssigned: number
     totalCompleted: number
     completionRate: number
+    totalTeamMembers?: number
+    missingAssignmentCount?: number
+    missingAthletes?: Array<{
+      athleteId: string
+      athleteName: string
+      jerseyNumber: number | null
+      position: string | null
+    }>
     athletes: Array<{
       assignmentId: string
       athleteId: string
@@ -397,6 +405,9 @@ export function EditEventDialog({
   const canAssignPersistedWorkout = Boolean(canAssignContent && event?.linkedWorkoutId && event?.linkedWorkoutType && !event.assignedBroadcastId)
   const isAssigned = Boolean(event?.assignedBroadcastId)
   const assignmentSummary = event?.assignmentSummary
+  const missingAssignmentCount = assignmentSummary?.missingAssignmentCount ?? 0
+  const canAppendAssignedWorkout = Boolean(canAssignContent && event?.linkedWorkoutId && event?.linkedWorkoutType && event.assignedBroadcastId && missingAssignmentCount > 0)
+  const canRunTeamAssignment = canAssignPersistedWorkout || canAppendAssignedWorkout
   const workflowKey = physicalWorkflowKey({ contentStatus, linkedWorkoutId, isAssigned })
   const workflowCopy = physicalWorkflowCopy({
     key: workflowKey,
@@ -668,7 +679,7 @@ export function EditEventDialog({
   }
 
   const handleAssignToTeam = async () => {
-    if (!event || !canAssignPersistedWorkout) return
+    if (!event || !canRunTeamAssignment) return
 
     setAssigning(true)
     try {
@@ -685,7 +696,14 @@ export function EditEventDialog({
 
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
-      toast.success(text(locale, `Tilldelat till ${data.assignmentCount ?? 'laget'} spelare`, `Assigned to ${data.assignmentCount ?? 'the team'} players`))
+      const assignmentCount = Number(data.assignmentCount ?? 0)
+      if (assignmentCount === 0) {
+        toast.info(text(locale, 'Inga nya spelare behövde tilldelas', 'No new players needed assignment'))
+      } else if (event.assignedBroadcastId) {
+        toast.success(text(locale, `Tilldelat till ${assignmentCount} nya spelare`, `Assigned to ${assignmentCount} new players`))
+      } else {
+        toast.success(text(locale, `Tilldelat till ${assignmentCount} spelare`, `Assigned to ${assignmentCount} players`))
+      }
       onOpenChange(false)
       onUpdated()
     } catch {
@@ -928,6 +946,34 @@ export function EditEventDialog({
                       {event?.assignedAt && (
                         <div className="text-xs text-muted-foreground">
                           {text(locale, 'Tilldelat', 'Assigned')} {new Date(event.assignedAt).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                      )}
+                      {canAppendAssignedWorkout && (
+                        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-amber-950">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <div className="text-xs font-medium">
+                                {text(locale, `${missingAssignmentCount} nya spelare saknar passet`, `${missingAssignmentCount} new players are missing this workout`)}
+                              </div>
+                              {assignmentSummary?.missingAthletes?.length ? (
+                                <div className="mt-0.5 truncate text-xs opacity-80">
+                                  {assignmentSummary.missingAthletes.slice(0, 4).map((athlete) => athlete.athleteName).join(', ')}
+                                  {assignmentSummary.missingAthletes.length > 4 ? ` +${assignmentSummary.missingAthletes.length - 4}` : ''}
+                                </div>
+                              ) : null}
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0 border-amber-300 bg-white text-amber-950 hover:bg-amber-100"
+                              onClick={handleAssignToTeam}
+                              disabled={assigning}
+                            >
+                              <Send className="mr-1.5 h-3.5 w-3.5" />
+                              {assigning ? text(locale, 'Tilldelar...', 'Assigning...') : text(locale, 'Tilldela nya', 'Assign new')}
+                            </Button>
+                          </div>
                         </div>
                       )}
                       {assignmentSummary?.athletes?.length ? (

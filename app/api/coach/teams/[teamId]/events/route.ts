@@ -20,6 +20,7 @@ import {
   TEAM_EVENT_TYPES,
 } from '@/lib/team-calendar/event-types'
 import { getTeamCalendarPermissionProfile, getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
+import { resolveWorkoutBusinessScope } from '@/lib/workouts/business-scope'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -69,6 +70,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
+    const businessScope = await resolveWorkoutBusinessScope(user.id, req)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     // Verify staff can access this team in the requested business.
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
@@ -102,7 +108,8 @@ export async function GET(req: NextRequest, context: RouteContext) {
     })
 
     const assignmentSummaries = await getTeamCalendarAssignmentSummaries(
-      events.map((event) => event.assignedBroadcastId)
+      events.map((event) => event.assignedBroadcastId),
+      { businessId: businessScope.businessId }
     )
 
     return NextResponse.json({

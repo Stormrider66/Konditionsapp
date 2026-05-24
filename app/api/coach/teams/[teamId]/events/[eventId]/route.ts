@@ -20,6 +20,7 @@ import {
   TEAM_EVENT_TYPES,
 } from '@/lib/team-calendar/event-types'
 import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
+import { resolveWorkoutBusinessScope } from '@/lib/workouts/business-scope'
 import { z } from 'zod'
 
 interface RouteContext {
@@ -61,6 +62,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const user = await requireCoach()
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
+    const businessScope = await resolveWorkoutBusinessScope(user.id, req)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
@@ -81,7 +87,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    const assignmentSummaries = await getTeamCalendarAssignmentSummaries([event.assignedBroadcastId])
+    const assignmentSummaries = await getTeamCalendarAssignmentSummaries(
+      [event.assignedBroadcastId],
+      { businessId: businessScope.businessId }
+    )
 
     return NextResponse.json({
       event: {
@@ -107,6 +116,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
+    const businessScope = await resolveWorkoutBusinessScope(user.id, req)
+
+    if (!businessScope) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+    }
 
     const body = await req.json()
     const parsed = updateEventSchema.safeParse(body)
@@ -318,7 +332,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       return updated
     })
 
-    const assignmentSummaries = await getTeamCalendarAssignmentSummaries([event.assignedBroadcastId])
+    const assignmentSummaries = await getTeamCalendarAssignmentSummaries(
+      [event.assignedBroadcastId],
+      { businessId: businessScope.businessId }
+    )
 
     return NextResponse.json({
       event: {

@@ -5,11 +5,21 @@ export interface TeamCalendarAssignmentSummary {
   totalAssigned: number
   totalCompleted: number
   completionRate: number
+  totalTeamMembers: number
+  missingAssignmentCount: number
+  missingAthletes: TeamCalendarMissingAssignmentAthlete[]
   assignedDate: Date
   startTime: string | null
   endTime: string | null
   locationName: string | null
   athletes: TeamCalendarAssignmentAthlete[]
+}
+
+export interface TeamCalendarMissingAssignmentAthlete {
+  athleteId: string
+  athleteName: string
+  jerseyNumber: number | null
+  position: string | null
 }
 
 export interface TeamCalendarAssignmentAthlete {
@@ -42,7 +52,8 @@ function addCompletedCounts(
 }
 
 export async function getTeamCalendarAssignmentSummaries(
-  broadcastIds: Array<string | null | undefined>
+  broadcastIds: Array<string | null | undefined>,
+  options: { businessId?: string | null } = {}
 ): Promise<Map<string, TeamCalendarAssignmentSummary>> {
   const ids = Array.from(new Set(broadcastIds.filter(Boolean) as string[]))
   if (ids.length === 0) return new Map()
@@ -68,6 +79,20 @@ export async function getTeamCalendarAssignmentSummaries(
         locationName: true,
         totalAssigned: true,
         totalCompleted: true,
+        team: {
+          select: {
+            members: {
+              ...(options.businessId ? { where: { businessId: options.businessId } } : {}),
+              select: {
+                id: true,
+                name: true,
+                jerseyNumber: true,
+                position: true,
+              },
+              orderBy: [{ name: 'asc' }],
+            },
+          },
+        },
       },
     }),
     prisma.strengthSessionAssignment.groupBy({
@@ -254,24 +279,37 @@ export async function getTeamCalendarAssignmentSummaries(
 
   return new Map(
     broadcasts.map((broadcast) => {
-      const countedCompleted = completedCounts.get(broadcast.id)
-      const totalCompleted = countedCompleted ?? broadcast.totalCompleted
-      const completionRate = broadcast.totalAssigned > 0
-        ? Math.round((totalCompleted / broadcast.totalAssigned) * 100)
+      const athletes = athletesByBroadcast.get(broadcast.id) ?? []
+      const assignedAthleteIds = new Set(athletes.map((athlete) => athlete.athleteId))
+      const missingAthletes = broadcast.team.members
+        .filter((member) => !assignedAthleteIds.has(member.id))
+        .map((member) => ({
+          athleteId: member.id,
+          athleteName: member.name,
+          jerseyNumber: member.jerseyNumber,
+          position: member.position,
+        }))
+      const totalCompleted = completedCounts.get(broadcast.id) ?? 0
+      const totalAssigned = athletes.length
+      const completionRate = totalAssigned > 0
+        ? Math.round((totalCompleted / totalAssigned) * 100)
         : 0
 
       return [
         broadcast.id,
         {
           id: broadcast.id,
-          totalAssigned: broadcast.totalAssigned,
+          totalAssigned,
           totalCompleted,
           completionRate,
+          totalTeamMembers: broadcast.team.members.length,
+          missingAssignmentCount: missingAthletes.length,
+          missingAthletes,
           assignedDate: broadcast.assignedDate,
           startTime: broadcast.startTime,
           endTime: broadcast.endTime,
           locationName: broadcast.locationName,
-          athletes: athletesByBroadcast.get(broadcast.id) ?? [],
+          athletes,
         },
       ]
     })

@@ -83,6 +83,14 @@ interface TeamEvent {
     totalAssigned: number
     totalCompleted: number
     completionRate: number
+    totalTeamMembers?: number
+    missingAssignmentCount?: number
+    missingAthletes?: Array<{
+      athleteId: string
+      athleteName: string
+      jerseyNumber: number | null
+      position: string | null
+    }>
     athletes: Array<{
       assignmentId: string
       athleteId: string
@@ -255,7 +263,10 @@ function builderLinkForEvent(event: TeamEvent, teamId: string, businessSlug?: st
 
 function assignmentProgressLabel(event: TeamEvent, locale: TeamCalendarLocale): string | null {
   if (!event.assignmentSummary) return null
-  return `${event.assignmentSummary.totalCompleted}/${event.assignmentSummary.totalAssigned} ${text(locale, 'klara', 'completed')}`
+  const base = `${event.assignmentSummary.totalCompleted}/${event.assignmentSummary.totalAssigned} ${text(locale, 'klara', 'completed')}`
+  const missingCount = event.assignmentSummary.missingAssignmentCount ?? 0
+  if (missingCount === 0) return base
+  return `${base} · ${missingCount} ${text(locale, 'saknar', 'missing')}`
 }
 
 function hasPracticePlan(event: TeamEvent): boolean {
