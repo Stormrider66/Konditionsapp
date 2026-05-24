@@ -411,9 +411,193 @@ const BATCH_02: BatchExercise[] = [
   },
 ]
 
+const BATCH_03: BatchExercise[] = [
+  {
+    name: 'DB Push Press',
+    displayName: 'Dumbbell Push Press',
+    subject: 'woman',
+    category: 'upper-body',
+    slug: 'db-push-press',
+    primaryImage: '/images/upper-body/db-push-press-1.png',
+    targetFrames: 2,
+    muscles: 'deltoids, triceps brachii, quadriceps femoris, gluteus maximus, abdominal stabilizers',
+    avoid: 'barbell instead of dumbbells, split jerk stance, deep squat, dumbbells drifting far forward, extreme back arch, cropped dumbbells or hands',
+    frames: [
+      {
+        index: 2,
+        role: 'dip-and-drive start frame',
+        scene: 'dumbbell push press start position with two dumbbells at shoulder height, elbows slightly forward, small controlled knee dip, torso vertical and braced, feet hip-width',
+      },
+    ],
+  },
+  {
+    name: 'DB Row',
+    displayName: 'Dumbbell Row',
+    subject: 'man',
+    category: 'upper-body',
+    slug: 'db-row',
+    primaryImage: '/images/upper-body/db-row-1.png',
+    targetFrames: 2,
+    muscles: 'latissimus dorsi, rhomboids, middle trapezius, posterior deltoid, biceps brachii, erector spinae',
+    avoid: 'barbell row, upright row, rounded back, shrugging shoulder, both dumbbells at once, cropped dumbbell or bench',
+    frames: [
+      {
+        index: 2,
+        role: 'arm-extended bottom frame',
+        scene: 'one-arm dumbbell row bottom position with one knee and one hand supported on a flat bench, opposite foot planted, torso neutral, rowing arm hanging straight with dumbbell below shoulder',
+      },
+    ],
+  },
+  {
+    name: 'DB Squat',
+    displayName: 'Dumbbell Squat',
+    subject: 'woman',
+    category: 'knee-dominance',
+    slug: 'db-squat',
+    primaryImage: '/images/knee-dominance/db-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, hamstrings, abdominal stabilizers',
+    avoid: 'barbell, kettlebell goblet hold, knees collapsing inward, heels lifting, rounded back, cropped dumbbells or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'standing tall at the top of a dumbbell squat with two dumbbells held at the sides, feet shoulder-width, knees and hips extended, trunk braced',
+      },
+    ],
+  },
+  {
+    name: 'DB Strict Press',
+    displayName: 'Dumbbell Strict Press',
+    subject: 'man',
+    category: 'upper-body',
+    slug: 'db-strict-press',
+    primaryImage: '/images/upper-body/db-strict-press-1.png',
+    targetFrames: 2,
+    muscles: 'deltoids, triceps brachii, upper trapezius, serratus anterior, abdominal stabilizers',
+    avoid: 'push press leg drive, bent knees, split jerk stance, excessive back arch, barbell instead of dumbbells, cropped hands or dumbbells',
+    frames: [
+      {
+        index: 2,
+        role: 'shoulder-rack start frame',
+        scene: 'strict dumbbell press start position with two dumbbells held at shoulder height, knees straight, feet hip-width, ribs down, torso tall and braced',
+      },
+    ],
+  },
+  {
+    name: 'Devil Press',
+    displayName: 'Devil Press',
+    subject: 'woman',
+    category: 'upper-body',
+    slug: 'devil-press',
+    primaryImage: '/images/upper-body/devil-press-1.png',
+    targetFrames: 2,
+    muscles: 'deltoids, triceps brachii, gluteus maximus, hamstrings, quadriceps femoris, abdominal stabilizers',
+    avoid: 'barbell, kettlebell, one dumbbell only, deep squat catch, arched low back, cropped dumbbells or hands',
+    frames: [
+      {
+        index: 2,
+        role: 'overhead finish frame',
+        scene: 'powerful devil press finish position with two dumbbells overhead after the burpee-to-swing movement, feet shoulder-width, hips and knees extended, torso braced, dumbbells controlled above the head',
+      },
+    ],
+  },
+  {
+    name: 'Enbenig benpress',
+    displayName: 'Single-Leg Press',
+    subject: 'man',
+    category: 'unilateral',
+    slug: 'enbenig-benpress',
+    primaryImage: '/images/unilateral/enbenig-benpress-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, hamstrings, adductor magnus, soleus',
+    avoid: 'two-leg press, knees caving inward, locked knee, foot leaving platform, unrealistic machine geometry, cropped platform or working foot',
+    frames: [
+      {
+        index: 2,
+        role: 'pressed position frame',
+        scene: 'single-leg press with the working leg pressing the platform away, knee almost extended but not locked, foot flat on platform, back supported on pad, opposite leg relaxed off the platform',
+      },
+    ],
+  },
+  {
+    name: 'Enbenig rumänsk marklyft',
+    displayName: 'Single-Leg Romanian Deadlift',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'enbenig-rumansk-marklyft',
+    primaryImage: '/images/unilateral/enbenig-rumansk-marklyft-1.png',
+    targetFrames: 2,
+    muscles: 'hamstrings, gluteus maximus, gluteus medius, erector spinae, abdominal stabilizers',
+    avoid: 'two-leg deadlift, rounded spine, open hips, rear leg too high like a split, knee collapsed inward, cropped extended foot or dumbbells',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'single-leg Romanian deadlift standing top position with one foot planted, opposite foot lightly hovering or just behind, two dumbbells held at the sides, hips square, torso tall and balanced',
+      },
+    ],
+  },
+  {
+    name: 'Enbenig tåhävning',
+    displayName: 'Single-Leg Calf Raise',
+    subject: 'man',
+    category: 'foot-ankle',
+    slug: 'enbenig-tahavning',
+    primaryImage: '/images/foot-ankle/enbenig-tahavning-1.png',
+    targetFrames: 2,
+    muscles: 'gastrocnemius, soleus, tibialis anterior, intrinsic foot muscles, abdominal stabilizers',
+    avoid: 'two-leg calf raise, seated calf raise, jumping, holding heavy dumbbells, cropped working foot or step',
+    frames: [
+      {
+        index: 2,
+        role: 'bottom stretch frame',
+        scene: 'single-leg calf raise bottom position on a low step with the working heel lowered below the step edge, opposite leg held off the step, torso tall, one hand lightly touching a support for balance',
+      },
+    ],
+  },
+  {
+    name: 'Enbensbrygga',
+    displayName: 'Single-Leg Glute Bridge',
+    subject: 'woman',
+    category: 'posterior-chain',
+    slug: 'enbensbrygga',
+    primaryImage: '/images/posterior-chain/enbensbrygga-1.png',
+    targetFrames: 2,
+    muscles: 'gluteus maximus, hamstrings, adductor magnus, abdominal stabilizers, erector spinae',
+    avoid: 'two-leg bridge, barbell hip thrust, bench support, sagging hips, overarched lumbar spine, cropped lifted foot or head',
+    frames: [
+      {
+        index: 2,
+        role: 'bottom setup frame',
+        scene: 'single-leg glute bridge bottom setup position lying on the floor, one foot planted under the knee, opposite leg extended upward or slightly forward, hips lowered under control, arms relaxed on the floor',
+      },
+    ],
+  },
+  {
+    name: 'Flywheel Lateral Squat',
+    displayName: 'Flywheel Lateral Squat',
+    subject: 'man',
+    category: 'unilateral',
+    slug: 'flywheel-lateral-squat',
+    primaryImage: '/images/unilateral/flywheel-lateral-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, adductor magnus, hamstrings, abdominal stabilizers',
+    avoid: 'regular bodyweight lateral lunge with no flywheel, cable machine, barbell, knee collapse, torso folded completely forward, cropped platform or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'standing start frame',
+        scene: 'flywheel lateral squat standing start position with feet wide, knees nearly extended, torso braced, holding a flywheel handle connected to a low compact platform between the feet',
+      },
+    ],
+  },
+]
+
 const BATCHES: Record<string, BatchExercise[]> = {
   '01': BATCH_01,
   '02': BATCH_02,
+  '03': BATCH_03,
 }
 
 function promptFor(exercise: BatchExercise, frame: BatchExercise['frames'][number]): string {
