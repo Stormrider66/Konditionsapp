@@ -228,6 +228,194 @@ const BATCH_01: BatchExercise[] = [
   },
 ]
 
+const BATCH_02: BatchExercise[] = [
+  {
+    name: '90-90 Hip Bridge',
+    displayName: '90-90 Hip Bridge',
+    subject: 'woman',
+    category: 'posterior-chain',
+    slug: '90-90-hip-bridge',
+    primaryImage: '/images/posterior-chain/90-90-hip-bridge-1.png',
+    targetFrames: 2,
+    muscles: 'gluteus maximus, hamstrings, adductor magnus, abdominal stabilizers',
+    avoid: 'feet sliding off bench, overarched lumbar spine, neck strain, hips sagging, cropped bench or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'bottom setup frame',
+        scene: 'bottom setup position for a 90-90 hip bridge with shoulders on the floor, heels on a low bench, knees bent near 90 degrees, hips lowered under control, arms relaxed on the floor',
+      },
+    ],
+  },
+  {
+    name: 'Air Squat',
+    displayName: 'Air Squat',
+    subject: 'man',
+    category: 'knee-dominance',
+    slug: 'air-squat',
+    primaryImage: '/images/knee-dominance/air-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, hamstrings, abdominal stabilizers',
+    avoid: 'knees collapsing inward, heels lifting, rounded back, excessive forward lean, cropped feet or hands',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'standing tall at the top of an air squat with feet shoulder-width, arms reaching forward for balance, knees and hips extended, trunk braced',
+      },
+    ],
+  },
+  {
+    name: 'Armhävningar',
+    displayName: 'Push-ups',
+    subject: 'woman',
+    category: 'upper-body',
+    slug: 'armhavningar',
+    primaryImage: '/images/upper-body/armhavningar-1.png',
+    targetFrames: 2,
+    muscles: 'pectoralis major, triceps brachii, anterior deltoid, rectus abdominis, serratus anterior',
+    avoid: 'knees on floor, sagging hips, piked hips, elbows flared straight sideways, cropped hands or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'top plank frame',
+        scene: 'push-up top position with arms straight, hands under shoulders, body in one line from head to heels, core braced, feet together',
+      },
+    ],
+  },
+  {
+    name: 'Axelpress',
+    displayName: 'Overhead Press',
+    subject: 'man',
+    category: 'upper-body',
+    slug: 'axelpress',
+    primaryImage: '/images/upper-body/axelpress-1.png',
+    targetFrames: 2,
+    muscles: 'deltoids, triceps brachii, upper trapezius, serratus anterior, abdominal stabilizers',
+    avoid: 'push press dip, split jerk stance, excessive back arch, bar drifting forward, cropped barbell plates',
+    frames: [
+      {
+        index: 2,
+        role: 'shoulder-rack start frame',
+        scene: 'strict barbell overhead press start position with barbell resting at upper chest and shoulders, elbows slightly forward, wrists stacked, body tall and braced',
+      },
+    ],
+  },
+  {
+    name: 'Bakåtlunges',
+    displayName: 'Reverse Lunges',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'bakatlunges',
+    primaryImage: '/images/unilateral/bakatlunges-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, hamstrings, adductor magnus, soleus, abdominal stabilizers',
+    avoid: 'front knee collapsing inward, rear knee crashing into floor, torso folded forward, jump lunge, cropped rear foot',
+    frames: [
+      {
+        index: 2,
+        role: 'standing reset frame',
+        scene: 'standing reset position for a reverse lunge with feet hip-width under the hips, torso tall, hands clasped for balance, ready to step backward',
+      },
+    ],
+  },
+  {
+    name: 'Bent Over Row',
+    displayName: 'Bent Over Row',
+    subject: 'man',
+    category: 'upper-body',
+    slug: 'bent-over-row',
+    primaryImage: '/images/upper-body/bent-over-row-1.png',
+    targetFrames: 2,
+    muscles: 'latissimus dorsi, rhomboids, middle trapezius, posterior deltoid, biceps brachii, erector spinae',
+    avoid: 'upright row, rounded back, shrugging shoulders, bar too far from legs, cropped barbell plates',
+    frames: [
+      {
+        index: 2,
+        role: 'arms-extended bottom frame',
+        scene: 'barbell bent over row bottom position with hips hinged, neutral spine, bar hanging below shoulders, arms extended, shins nearly vertical',
+      },
+    ],
+  },
+  {
+    name: 'Bulgarisk utfallsböj',
+    displayName: 'Bulgarian Split Squat',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'bulgarisk-utfallsboj',
+    primaryImage: '/images/unilateral/bulgarisk-utfallsboj-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, hamstrings, adductor magnus, soleus, abdominal stabilizers',
+    avoid: 'front knee collapsing inward, rear foot floating away from bench, torso folded forward, bench too high, cropped front foot',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'Bulgarian split squat top position with front foot planted, rear foot supported on bench, knees nearly extended, torso tall, hands clasped for balance',
+      },
+    ],
+  },
+  {
+    name: 'Curtsy Lunges',
+    displayName: 'Curtsy Lunges',
+    subject: 'man',
+    category: 'unilateral',
+    slug: 'curtsy-lunges',
+    primaryImage: '/images/unilateral/curtsy-lunges-1.png',
+    targetFrames: 2,
+    muscles: 'gluteus maximus, gluteus medius, quadriceps femoris, adductor magnus, abdominal stabilizers',
+    avoid: 'twisted knee, excessive side bend, rear foot too far away, jump lunge, cropped feet',
+    frames: [
+      {
+        index: 2,
+        role: 'standing start frame',
+        scene: 'standing start position for a curtsy lunge with feet hip-width, torso tall, hands clasped, one leg ready to step diagonally behind the other',
+      },
+    ],
+  },
+  {
+    name: 'Cyclist Squat',
+    displayName: 'Cyclist Squat',
+    subject: 'woman',
+    category: 'knee-dominance',
+    slug: 'cyclist-squat',
+    primaryImage: '/images/knee-dominance/cyclist-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, vastus medialis, gluteus maximus, adductor magnus, abdominal stabilizers',
+    avoid: 'feet too wide, heels off wedge, knees collapsing inward, torso folded forward, cropped wedge or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'standing top frame',
+        scene: 'standing top position for a cyclist squat with heels elevated on a small wedge, feet close together, knees and hips extended, torso tall, hands clasped',
+      },
+    ],
+  },
+  {
+    name: 'DB Deadlift',
+    displayName: 'Dumbbell Deadlift',
+    subject: 'man',
+    category: 'posterior-chain',
+    slug: 'db-deadlift',
+    primaryImage: '/images/posterior-chain/db-deadlift-1.png',
+    targetFrames: 2,
+    muscles: 'gluteus maximus, hamstrings, erector spinae, latissimus dorsi, quadriceps, abdominal stabilizers',
+    avoid: 'rounded spine, dumbbells drifting far forward, squat-only posture, shrugging at lockout, cropped dumbbells or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'lockout finish frame',
+        scene: 'standing tall at the top of a dumbbell deadlift with dumbbells held at the sides of the thighs, hips fully extended, shoulders set, neutral spine',
+      },
+    ],
+  },
+]
+
+const BATCHES: Record<string, BatchExercise[]> = {
+  '01': BATCH_01,
+  '02': BATCH_02,
+}
+
 function promptFor(exercise: BatchExercise, frame: BatchExercise['frames'][number]): string {
   return [
     `Create one premium mobile exercise demonstration image for ${exercise.displayName}.`,
@@ -250,8 +438,22 @@ function promptFor(exercise: BatchExercise, frame: BatchExercise['frames'][numbe
   ].join('\n')
 }
 
-function buildRows() {
-  return BATCH_01.flatMap(exercise =>
+function selectedBatchNumber(): string {
+  const arg = process.argv.find(value => value.startsWith('--batch='))
+  return arg?.slice('--batch='.length).padStart(2, '0') ?? '01'
+}
+
+function selectedBatch(): BatchExercise[] {
+  const batchNumber = selectedBatchNumber()
+  const batch = BATCHES[batchNumber]
+  if (!batch) {
+    throw new Error(`Unknown batch "${batchNumber}". Available batches: ${Object.keys(BATCHES).join(', ')}`)
+  }
+  return batch
+}
+
+function buildRows(batch: BatchExercise[]) {
+  return batch.flatMap(exercise =>
     exercise.frames.map(frame => ({
       exercise: exercise.name,
       displayName: exercise.displayName,
@@ -269,11 +471,11 @@ function buildRows() {
   )
 }
 
-function toMarkdown(rows: ReturnType<typeof buildRows>) {
+function toMarkdown(rows: ReturnType<typeof buildRows>, batchNumber: string) {
   const lines = [
-    '# Batch 01 Sequence Frame Prompts',
+    `# Batch ${batchNumber} Sequence Frame Prompts`,
     '',
-    'These prompts generate the remaining sequence frames for production batch 01. They are for Codex built-in image generation unless an explicit API pipeline is chosen later.',
+    `These prompts generate the remaining sequence frames for production batch ${batchNumber}. They are for Codex built-in image generation unless an explicit API pipeline is chosen later.`,
     '',
     '| Exercise | Frame | Output | Subject | Role |',
     '| --- | ---: | --- | --- | --- |',
@@ -295,13 +497,13 @@ function toMarkdown(rows: ReturnType<typeof buildRows>) {
   return lines.join('\n')
 }
 
-async function verifyBatchScope() {
+async function verifyBatchScope(batch: BatchExercise[]) {
   const rows = await prisma.exercise.findMany({
     where: {
       coachId: null,
       businessId: null,
       isPublic: true,
-      OR: BATCH_01.flatMap(exercise => [
+      OR: batch.flatMap(exercise => [
         { name: exercise.name },
         { nameSv: exercise.name },
         { nameEn: exercise.name },
@@ -310,25 +512,27 @@ async function verifyBatchScope() {
     select: { name: true },
   })
 
-  if (rows.length !== BATCH_01.length) {
-    throw new Error(`Expected ${BATCH_01.length} global public exercises, found ${rows.length}`)
+  if (rows.length !== batch.length) {
+    throw new Error(`Expected ${batch.length} global public exercises, found ${rows.length}`)
   }
 }
 
 async function main() {
   const shouldWrite = process.argv.includes('--write')
-  const rows = buildRows()
+  const batchNumber = selectedBatchNumber()
+  const batch = selectedBatch()
+  const rows = buildRows(batch)
 
-  await verifyBatchScope()
+  await verifyBatchScope(batch)
 
   if (!shouldWrite) {
-    console.log(toMarkdown(rows))
+    console.log(toMarkdown(rows, batchNumber))
     return
   }
 
   await mkdir(OUTPUT_DIR, { recursive: true })
-  await writeFile(path.join(OUTPUT_DIR, 'batch-01.json'), `${JSON.stringify(rows, null, 2)}\n`)
-  await writeFile(path.join(OUTPUT_DIR, 'batch-01.md'), toMarkdown(rows))
+  await writeFile(path.join(OUTPUT_DIR, `batch-${batchNumber}.json`), `${JSON.stringify(rows, null, 2)}\n`)
+  await writeFile(path.join(OUTPUT_DIR, `batch-${batchNumber}.md`), toMarkdown(rows, batchNumber))
   console.log(`Wrote ${rows.length} frame prompts to ${OUTPUT_DIR}`)
 }
 
