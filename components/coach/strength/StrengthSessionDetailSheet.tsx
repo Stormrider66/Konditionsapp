@@ -321,7 +321,7 @@ export function StrengthSessionDetailSheet({
   const exportExercises = displaySections.flatMap((section) =>
     section.exercises.map((exercise) => ({
       id: exercise.exerciseId,
-      name: `${section.label} - ${exercise.exerciseName}`,
+      name: exercise.exerciseName,
       sets: getExerciseSets(exercise),
       reps: String(exercise.reps ?? exercise.duration ?? exercise.durationSeconds ?? ''),
       weight: formatExportWeight(exercise),

@@ -81,6 +81,19 @@ function getDateLocale(locale: ExportLocale): string {
   return locale === 'sv' ? 'sv-SE' : 'en-US'
 }
 
+const PRINT_SECTION_PREFIX_PATTERN =
+  /^(?:(?:uppvärmning|uppvärming|huvudpass|core|prehab|nedvarvning|warm[-\s]?up|main session|cool[-\s]?down)|(?:stabilitet|stabilitets|stability)\s*(?:\/\s*prehab)?)\s*(?:-|–|—|:)\s*/i
+
+export function getStrengthPrintableExerciseName(name: string): string {
+  let cleanedName = name.trim()
+
+  while (PRINT_SECTION_PREFIX_PATTERN.test(cleanedName)) {
+    cleanedName = cleanedName.replace(PRINT_SECTION_PREFIX_PATTERN, '').trim()
+  }
+
+  return cleanedName || name
+}
+
 /**
  * Generate Excel workbook for a strength session
  */
@@ -234,6 +247,8 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
   // Table rows
   pdf.setFont('helvetica', 'normal')
   data.exercises.forEach((ex, idx) => {
+    const exerciseName = getStrengthPrintableExerciseName(ex.name)
+
     // Check if we need a new page
     if (y > 270) {
       pdf.addPage()
@@ -241,7 +256,7 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
     }
 
     pdf.text(`${idx + 1}`, margin + 2, y)
-    pdf.text(ex.name.substring(0, 30), margin + 12, y)
+    pdf.text(exerciseName.substring(0, 30), margin + 12, y)
     pdf.text(`${ex.sets}`, margin + 80, y)
     pdf.text(ex.reps, margin + 95, y)
     pdf.text(ex.weight || '-', margin + 115, y)
