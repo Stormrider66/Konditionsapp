@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils';
-import { startOfDay, endOfDay, format, parseISO, isWithinInterval } from 'date-fns';
+import { startOfDay, endOfDay, format, isWithinInterval } from 'date-fns';
 import { logError } from '@/lib/logger-console';
 import { fetchAndParseICalUrl } from '@/lib/calendar/ical-parser';
 import { getCoachScopedIds } from '@/lib/coach/scoping';
@@ -22,6 +22,7 @@ export interface TodaysAppointment {
   locationName: string | null;
   athletes: { id: string; name: string }[];
   teamName: string | null;
+  responsibleCoach: { id: string; name: string } | null;
   assignedDate: Date;
   status: string;
   // External calendar fields
@@ -49,10 +50,6 @@ export async function GET(request: NextRequest) {
     const coachIds = membership
       ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
       : [user.id];
-    const athleteWhere = {
-      userId: { in: coachIds },
-      ...(membership ? { businessId: membership.businessId } : {}),
-    };
 
     // Support date parameter for viewing other days
     const { searchParams } = new URL(request.url);
@@ -61,6 +58,43 @@ export async function GET(request: NextRequest) {
 
     const dayStart = startOfDay(targetDate);
     const dayEnd = endOfDay(targetDate);
+    const businessAthleteWhere = membership
+      ? { businessId: membership.businessId }
+      : { userId: { in: coachIds } };
+    const ownedAthleteWhere = {
+      ...businessAthleteWhere,
+      userId: { in: coachIds },
+    };
+
+    const responsibleTeamEvents = await prisma.teamEvent.findMany({
+      where: {
+        responsibleCoachId: { in: coachIds },
+        assignedBroadcastId: { not: null },
+        startDate: {
+          gte: dayStart,
+          lte: dayEnd,
+        },
+        ...(membership
+          ? { team: { members: { some: { businessId: membership.businessId } } } }
+          : {}),
+      },
+      select: {
+        assignedBroadcastId: true,
+        responsibleCoach: { select: { id: true, name: true } },
+      },
+    });
+    const responsibleBroadcastIds = responsibleTeamEvents
+      .map((event) => event.assignedBroadcastId)
+      .filter(Boolean) as string[];
+    const responsibleCoachByBroadcastId = new Map<string, { id: string; name: string }>();
+    for (const event of responsibleTeamEvents) {
+      if (event.assignedBroadcastId && event.responsibleCoach) {
+        responsibleCoachByBroadcastId.set(event.assignedBroadcastId, event.responsibleCoach);
+      }
+    }
+    const responsibleBroadcastAccess = responsibleBroadcastIds.length > 0
+      ? [{ athlete: businessAthleteWhere, teamBroadcastId: { in: responsibleBroadcastIds } }]
+      : [];
 
     // Fetch all four types of assignments with scheduling info for today
     const [strengthAssignments, cardioAssignments, agilityAssignments, hybridAssignments] = await Promise.all([
@@ -71,10 +105,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
-          athlete: athleteWhere,
           OR: [
-            { session: { coachId: { in: coachIds } } },
-            { responsibleCoachId: { in: coachIds } },
+            { athlete: ownedAthleteWhere, session: { coachId: { in: coachIds } } },
+            { athlete: businessAthleteWhere, responsibleCoachId: { in: coachIds } },
+            ...responsibleBroadcastAccess,
           ],
         },
         include: {
@@ -91,6 +125,9 @@ export async function GET(request: NextRequest) {
             select: {
               team: { select: { name: true } },
             },
+          },
+          responsibleCoach: {
+            select: { id: true, name: true },
           },
         },
         orderBy: { startTime: 'asc' },
@@ -103,10 +140,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
-          athlete: athleteWhere,
           OR: [
-            { session: { coachId: { in: coachIds } } },
-            { responsibleCoachId: { in: coachIds } },
+            { athlete: ownedAthleteWhere, session: { coachId: { in: coachIds } } },
+            { athlete: businessAthleteWhere, responsibleCoachId: { in: coachIds } },
+            ...responsibleBroadcastAccess,
           ],
         },
         include: {
@@ -124,6 +161,9 @@ export async function GET(request: NextRequest) {
               team: { select: { name: true } },
             },
           },
+          responsibleCoach: {
+            select: { id: true, name: true },
+          },
         },
         orderBy: { startTime: 'asc' },
       }),
@@ -135,10 +175,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
-          athlete: athleteWhere,
           OR: [
-            { workout: { coachId: { in: coachIds } } },
-            { responsibleCoachId: { in: coachIds } },
+            { athlete: ownedAthleteWhere, workout: { coachId: { in: coachIds } } },
+            { athlete: businessAthleteWhere, responsibleCoachId: { in: coachIds } },
+            ...responsibleBroadcastAccess,
           ],
         },
         include: {
@@ -155,6 +195,9 @@ export async function GET(request: NextRequest) {
             select: {
               team: { select: { name: true } },
             },
+          },
+          responsibleCoach: {
+            select: { id: true, name: true },
           },
         },
         orderBy: { startTime: 'asc' },
@@ -167,10 +210,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
-          athlete: athleteWhere,
           OR: [
-            { workout: { coachId: { in: coachIds } } },
-            { responsibleCoachId: { in: coachIds } },
+            { athlete: ownedAthleteWhere, workout: { coachId: { in: coachIds } } },
+            { athlete: businessAthleteWhere, responsibleCoachId: { in: coachIds } },
+            ...responsibleBroadcastAccess,
           ],
         },
         include: {
@@ -188,6 +231,9 @@ export async function GET(request: NextRequest) {
               team: { select: { name: true } },
             },
           },
+          responsibleCoach: {
+            select: { id: true, name: true },
+          },
         },
         orderBy: { startTime: 'asc' },
       }),
@@ -195,14 +241,23 @@ export async function GET(request: NextRequest) {
 
     // Group assignments by session/workout and time to combine athletes
     const groupedAppointments = new Map<string, TodaysAppointment>();
+    const resolveResponsibleCoach = (assignment: {
+      teamBroadcastId: string | null;
+      responsibleCoach: { id: string; name: string } | null;
+    }) => assignment.responsibleCoach
+      ?? (assignment.teamBroadcastId ? responsibleCoachByBroadcastId.get(assignment.teamBroadcastId) ?? null : null);
 
     // Process strength assignments
     for (const assignment of strengthAssignments) {
-      const key = `strength-${assignment.sessionId}-${assignment.startTime}`;
+      const key = assignment.teamBroadcastId
+        ? `strength-broadcast-${assignment.teamBroadcastId}`
+        : `strength-${assignment.sessionId}-${assignment.startTime}-${assignment.responsibleCoachId ?? 'none'}`;
       const existing = groupedAppointments.get(key);
+      const responsibleCoach = resolveResponsibleCoach(assignment);
 
       if (existing) {
         existing.athletes.push(assignment.athlete);
+        if (!existing.responsibleCoach && responsibleCoach) existing.responsibleCoach = responsibleCoach;
       } else {
         groupedAppointments.set(key, {
           id: assignment.id,
@@ -214,6 +269,7 @@ export async function GET(request: NextRequest) {
           locationName: assignment.locationName,
           athletes: [assignment.athlete],
           teamName: assignment.teamBroadcast?.team?.name || null,
+          responsibleCoach,
           assignedDate: assignment.assignedDate,
           status: assignment.status,
         });
@@ -222,11 +278,15 @@ export async function GET(request: NextRequest) {
 
     // Process cardio assignments
     for (const assignment of cardioAssignments) {
-      const key = `cardio-${assignment.sessionId}-${assignment.startTime}`;
+      const key = assignment.teamBroadcastId
+        ? `cardio-broadcast-${assignment.teamBroadcastId}`
+        : `cardio-${assignment.sessionId}-${assignment.startTime}-${assignment.responsibleCoachId ?? 'none'}`;
       const existing = groupedAppointments.get(key);
+      const responsibleCoach = resolveResponsibleCoach(assignment);
 
       if (existing) {
         existing.athletes.push(assignment.athlete);
+        if (!existing.responsibleCoach && responsibleCoach) existing.responsibleCoach = responsibleCoach;
       } else {
         groupedAppointments.set(key, {
           id: assignment.id,
@@ -238,6 +298,7 @@ export async function GET(request: NextRequest) {
           locationName: assignment.locationName,
           athletes: [assignment.athlete],
           teamName: assignment.teamBroadcast?.team?.name || null,
+          responsibleCoach,
           assignedDate: assignment.assignedDate,
           status: assignment.status,
         });
@@ -246,11 +307,15 @@ export async function GET(request: NextRequest) {
 
     // Process agility assignments
     for (const assignment of agilityAssignments) {
-      const key = `agility-${assignment.workoutId}-${assignment.startTime}`;
+      const key = assignment.teamBroadcastId
+        ? `agility-broadcast-${assignment.teamBroadcastId}`
+        : `agility-${assignment.workoutId}-${assignment.startTime}-${assignment.responsibleCoachId ?? 'none'}`;
       const existing = groupedAppointments.get(key);
+      const responsibleCoach = resolveResponsibleCoach(assignment);
 
       if (existing) {
         existing.athletes.push(assignment.athlete);
+        if (!existing.responsibleCoach && responsibleCoach) existing.responsibleCoach = responsibleCoach;
       } else {
         groupedAppointments.set(key, {
           id: assignment.id,
@@ -262,6 +327,7 @@ export async function GET(request: NextRequest) {
           locationName: assignment.locationName,
           athletes: [assignment.athlete],
           teamName: assignment.teamBroadcast?.team?.name || null,
+          responsibleCoach,
           assignedDate: assignment.assignedDate,
           status: assignment.status,
         });
@@ -270,11 +336,15 @@ export async function GET(request: NextRequest) {
 
     // Process hybrid assignments
     for (const assignment of hybridAssignments) {
-      const key = `hybrid-${assignment.workoutId}-${assignment.startTime}`;
+      const key = assignment.teamBroadcastId
+        ? `hybrid-broadcast-${assignment.teamBroadcastId}`
+        : `hybrid-${assignment.workoutId}-${assignment.startTime}-${assignment.responsibleCoachId ?? 'none'}`;
       const existing = groupedAppointments.get(key);
+      const responsibleCoach = resolveResponsibleCoach(assignment);
 
       if (existing) {
         existing.athletes.push(assignment.athlete);
+        if (!existing.responsibleCoach && responsibleCoach) existing.responsibleCoach = responsibleCoach;
       } else {
         groupedAppointments.set(key, {
           id: assignment.id,
@@ -286,6 +356,7 @@ export async function GET(request: NextRequest) {
           locationName: assignment.locationName,
           athletes: [assignment.athlete],
           teamName: assignment.teamBroadcast?.team?.name || null,
+          responsibleCoach,
           assignedDate: assignment.assignedDate,
           status: assignment.status,
         });
@@ -352,6 +423,7 @@ export async function GET(request: NextRequest) {
                   locationName: event.location || null,
                   athletes: [],
                   teamName: null,
+                  responsibleCoach: null,
                   assignedDate: eventStart,
                   status: 'SCHEDULED',
                   source: connection.provider,

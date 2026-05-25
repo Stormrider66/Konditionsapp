@@ -14845,6 +14845,7 @@
         "bookTest": "Book test",
         "viewCalendar": "View calendar"
       },
+      "responsibleCoach": "Trainer: {name}",
       "athletes": "{count} athletes"
     },
     "gymClientListCard": {

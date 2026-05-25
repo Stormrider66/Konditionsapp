@@ -18,6 +18,7 @@ import {
   Loader2,
   Users,
   User,
+  UserCheck,
   MapPin,
   Dumbbell,
   Heart,
@@ -43,6 +44,7 @@ interface TimelineAppointment {
   locationName: string | null
   athletes: { id: string; name: string }[]
   teamName: string | null
+  responsibleCoach: { id: string; name: string } | null
   status: string
   source?: string
   description?: string
@@ -271,6 +273,12 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             {locationDisplay}
+                          </span>
+                        )}
+                        {appointment.responsibleCoach && (
+                          <span className="flex items-center gap-1">
+                            <UserCheck className="h-3 w-3" />
+                            {t('responsibleCoach', { name: appointment.responsibleCoach.name })}
                           </span>
                         )}
                         <span className="flex items-center gap-1">

@@ -1,5 +1,9 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import {
+  getResponsibleCoachIdForBroadcast,
+  syncBroadcastAssignmentResponsibility,
+} from '@/lib/team-calendar/assignment-responsibility'
 
 type TeamCalendarWorkoutType = 'STRENGTH' | 'CARDIO' | 'HYBRID' | 'AGILITY'
 
@@ -42,10 +46,12 @@ function assignmentBaseData({
   broadcast,
   athleteId,
   assignedBy,
+  responsibleCoachId,
 }: {
   broadcast: SyncableBroadcast
   athleteId: string
   assignedBy: string
+  responsibleCoachId?: string | null
 }) {
   return {
     athleteId,
@@ -57,6 +63,7 @@ function assignmentBaseData({
     locationId: broadcast.locationId,
     locationName: broadcast.locationName,
     scheduledBy: broadcast.startTime ? assignedBy : null,
+    ...(responsibleCoachId !== undefined ? { responsibleCoachId } : {}),
     teamBroadcastId: broadcast.id,
   }
 }
@@ -64,9 +71,11 @@ function assignmentBaseData({
 function assignmentAttachData({
   broadcast,
   assignedBy,
+  responsibleCoachId,
 }: {
   broadcast: SyncableBroadcast
   assignedBy: string
+  responsibleCoachId?: string | null
 }) {
   return {
     ...(broadcast.notes ? { notes: broadcast.notes } : {}),
@@ -75,6 +84,7 @@ function assignmentAttachData({
     locationId: broadcast.locationId,
     locationName: broadcast.locationName,
     scheduledBy: broadcast.startTime ? assignedBy : null,
+    ...(responsibleCoachId !== undefined ? { responsibleCoachId } : {}),
     teamBroadcastId: broadcast.id,
   }
 }
@@ -115,16 +125,18 @@ async function attachExistingUnbroadcastAssignments({
   workout,
   athleteIds,
   assignedBy,
+  responsibleCoachId,
 }: {
   tx: Prisma.TransactionClient
   broadcast: SyncableBroadcast
   workout: { type: TeamCalendarWorkoutType; id: string }
   athleteIds: string[]
   assignedBy: string
+  responsibleCoachId?: string | null
 }) {
   if (athleteIds.length === 0) return
 
-  const data = assignmentAttachData({ broadcast, assignedBy })
+  const data = assignmentAttachData({ broadcast, assignedBy, responsibleCoachId })
 
   if (workout.type === 'STRENGTH') {
     await tx.strengthSessionAssignment.updateMany({
@@ -182,12 +194,14 @@ async function createMissingAssignments({
   workout,
   athleteIds,
   assignedBy,
+  responsibleCoachId,
 }: {
   tx: Prisma.TransactionClient
   broadcast: SyncableBroadcast
   workout: { type: TeamCalendarWorkoutType; id: string }
   athleteIds: string[]
   assignedBy: string
+  responsibleCoachId?: string | null
 }) {
   if (athleteIds.length === 0) return
 
@@ -195,7 +209,7 @@ async function createMissingAssignments({
     await tx.strengthSessionAssignment.createMany({
       data: athleteIds.map((athleteId) => ({
         sessionId: workout.id,
-        ...assignmentBaseData({ broadcast, athleteId, assignedBy }),
+        ...assignmentBaseData({ broadcast, athleteId, assignedBy, responsibleCoachId }),
         status: 'PENDING',
       })),
       skipDuplicates: true,
@@ -207,7 +221,7 @@ async function createMissingAssignments({
     await tx.cardioSessionAssignment.createMany({
       data: athleteIds.map((athleteId) => ({
         sessionId: workout.id,
-        ...assignmentBaseData({ broadcast, athleteId, assignedBy }),
+        ...assignmentBaseData({ broadcast, athleteId, assignedBy, responsibleCoachId }),
         status: 'PENDING',
       })),
       skipDuplicates: true,
@@ -219,7 +233,7 @@ async function createMissingAssignments({
     await tx.hybridWorkoutAssignment.createMany({
       data: athleteIds.map((athleteId) => ({
         workoutId: workout.id,
-        ...assignmentBaseData({ broadcast, athleteId, assignedBy }),
+        ...assignmentBaseData({ broadcast, athleteId, assignedBy, responsibleCoachId }),
         status: 'PENDING',
       })),
       skipDuplicates: true,
@@ -230,7 +244,7 @@ async function createMissingAssignments({
   await tx.agilityWorkoutAssignment.createMany({
     data: athleteIds.map((athleteId) => ({
       workoutId: workout.id,
-      ...assignmentBaseData({ broadcast, athleteId, assignedBy }),
+      ...assignmentBaseData({ broadcast, athleteId, assignedBy, responsibleCoachId }),
       status: 'ASSIGNED',
     })),
     skipDuplicates: true,
@@ -274,6 +288,7 @@ export async function syncTeamWorkoutBroadcastRoster(
     if (!workout) return null
 
     const assignedBy = options.assignedBy ?? broadcast.coachId
+    const responsibleCoachId = await getResponsibleCoachIdForBroadcast(tx, broadcast.id)
     const activeAthleteIds = broadcast.team.members.map((member) => member.id)
     const activeAthleteIdSet = new Set(activeAthleteIds)
     const existingAssignments = await getBroadcastAssignments(tx, workout.type, broadcast.id)
@@ -286,6 +301,7 @@ export async function syncTeamWorkoutBroadcastRoster(
       workout,
       athleteIds: missingAthleteIds,
       assignedBy,
+      responsibleCoachId,
     })
 
     await createMissingAssignments({
@@ -294,7 +310,16 @@ export async function syncTeamWorkoutBroadcastRoster(
       workout,
       athleteIds: missingAthleteIds,
       assignedBy,
+      responsibleCoachId,
     })
+
+    if (responsibleCoachId !== undefined) {
+      await syncBroadcastAssignmentResponsibility({
+        tx,
+        broadcastId: broadcast.id,
+        responsibleCoachId,
+      })
+    }
 
     const updatedAssignments = await getBroadcastAssignments(tx, workout.type, broadcast.id)
     const activeAssignments = updatedAssignments.filter((assignment) => activeAthleteIdSet.has(assignment.athleteId))

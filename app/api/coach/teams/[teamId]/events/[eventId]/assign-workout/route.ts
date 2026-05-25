@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
 import { dbDateFromZonedCalendarDay } from '@/lib/team-calendar/date-time'
+import { syncBroadcastAssignmentResponsibility } from '@/lib/team-calendar/assignment-responsibility'
 import { strengthSessionAccessWhere } from '@/lib/strength/session-business-scope'
 import {
   agilityWorkoutAccessWhere,
@@ -31,6 +32,7 @@ interface AssignmentEvent {
   linkedWorkoutType: TeamCalendarWorkoutType
   linkedWorkoutId: string
   location: string | null
+  responsibleCoachId: string | null
 }
 
 const assignFromEventSchema = z.object({
@@ -77,6 +79,7 @@ function assignmentCreateData({
     endTime,
     locationName: event.location || null,
     scheduledBy: startTime ? assignedBy : null,
+    responsibleCoachId: event.responsibleCoachId,
     teamBroadcastId: broadcastId,
   }
 }
@@ -102,6 +105,7 @@ function assignmentAttachData({
     endTime,
     locationName: event.location || null,
     scheduledBy: startTime ? assignedBy : null,
+    responsibleCoachId: event.responsibleCoachId,
     teamBroadcastId: broadcastId,
   }
 }
@@ -330,6 +334,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
         linkedWorkoutType: true,
         linkedWorkoutId: true,
         linkedWorkoutName: true,
+        responsibleCoachId: true,
         assignedBroadcastId: true,
         type: true,
       },
@@ -417,6 +422,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       linkedWorkoutType: event.linkedWorkoutType,
       linkedWorkoutId: event.linkedWorkoutId,
       location: event.location,
+      responsibleCoachId: event.responsibleCoachId,
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -476,6 +482,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
         notes,
         startTime,
         endTime,
+      })
+
+      await syncBroadcastAssignmentResponsibility({
+        tx,
+        broadcastId: broadcast.id,
+        responsibleCoachId: assignmentEvent.responsibleCoachId,
       })
 
       const stats = await getBroadcastAssignmentStats(tx, assignmentEvent.linkedWorkoutType, broadcast.id)

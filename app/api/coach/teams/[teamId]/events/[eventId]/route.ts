@@ -12,6 +12,7 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { syncTeamWorkoutBroadcastRosters } from '@/lib/team-calendar/assignment-roster-sync'
+import { syncBroadcastAssignmentResponsibility } from '@/lib/team-calendar/assignment-responsibility'
 import { getTeamCalendarAssignmentSummaries } from '@/lib/team-calendar/assignment-summary'
 import { findTeamCalendarLocationConflicts, formatLocationConflictMessage } from '@/lib/team-calendar/location-conflicts'
 import { isAssignableTeamCoach } from '@/lib/team-calendar/responsible-coach'
@@ -173,6 +174,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         linkedWorkoutId: true,
         linkedWorkoutName: true,
         responsibleCoachId: true,
+        assignedBroadcastId: true,
         recurrenceParentId: true,
         attendance: true,
       },
@@ -283,6 +285,17 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
           responsibleCoach: { select: { id: true, name: true, email: true } },
         },
       })
+
+      if (
+        parsed.data.responsibleCoachId !== undefined &&
+        existingEvent.assignedBroadcastId
+      ) {
+        await syncBroadcastAssignmentResponsibility({
+          tx,
+          broadcastId: existingEvent.assignedBroadcastId,
+          responsibleCoachId: parsed.data.responsibleCoachId,
+        })
+      }
 
       if (applyToWeeks <= 1) return updated
 
