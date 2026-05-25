@@ -3708,7 +3708,8 @@
           "empty": "Inga lagpass har tilldelats ännu.",
           "workout": "Pass",
           "date": "Datum",
-          "completed": "Genomfört"
+          "completed": "Genomfört",
+          "openWorkout": "Öppna eller redigera {name}"
         },
         "playerStats": {
           "title": "Spelarstatistik",

@@ -3708,7 +3708,8 @@
           "empty": "No team workouts have been assigned yet.",
           "workout": "Workout",
           "date": "Date",
-          "completed": "Completed"
+          "completed": "Completed",
+          "openWorkout": "Open or edit {name}"
         },
         "playerStats": {
           "title": "Player statistics",

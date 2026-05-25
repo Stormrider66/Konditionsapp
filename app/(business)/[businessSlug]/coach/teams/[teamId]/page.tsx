@@ -174,6 +174,24 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     Boolean(member.athleteAccount) && member.businessId === membership.businessId
   ))
   const activeWorkoutMemberIds = activeWorkoutMembers.map((member) => member.id)
+  type WorkoutBroadcastLinkSource = {
+    strengthSessionId: string | null
+    cardioSessionId: string | null
+    hybridWorkoutId: string | null
+  }
+  const getWorkoutHref = (broadcast: WorkoutBroadcastLinkSource) => {
+    if (broadcast.strengthSessionId) {
+      return `/${businessSlug}/coach/strength?editSessionId=${encodeURIComponent(broadcast.strengthSessionId)}`
+    }
+    if (broadcast.cardioSessionId) {
+      return `/${businessSlug}/coach/cardio?editSessionId=${encodeURIComponent(broadcast.cardioSessionId)}`
+    }
+    if (broadcast.hybridWorkoutId) {
+      return `/${businessSlug}/coach/hybrid-studio?editWorkoutId=${encodeURIComponent(broadcast.hybridWorkoutId)}`
+    }
+
+    return `/${businessSlug}/coach/teams/${teamId}/calendar`
+  }
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
@@ -441,8 +459,12 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           activeWorkoutMembers.length > 0
             ? Math.round((completedCount / activeWorkoutMembers.length) * 100)
             : 0,
+        workoutHref: getWorkoutHref(broadcast),
       }
     })
+  )
+  const recentBroadcastsForDisplay = [...recentBroadcasts].sort(
+    (a, b) => a.assignedDate.getTime() - b.assignedDate.getTime()
   )
 
   // Calculate member stats
@@ -805,14 +827,20 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentBroadcasts.map((broadcast) => (
+                  {recentBroadcastsForDisplay.map((broadcast) => (
                     <TableRow key={broadcast.id}>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <Link
+                          href={broadcast.workoutHref}
+                          aria-label={t('recentWorkouts.openWorkout', { name: broadcast.workoutName })}
+                          className="group/workout inline-flex max-w-full min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
                           {getWorkoutTypeIcon(broadcast.workoutType)}
-                          <span className="font-medium dark:text-slate-200">{broadcast.workoutName}</span>
+                          <span className="min-w-0 truncate font-medium dark:text-slate-200 group-hover/workout:text-primary group-hover/workout:underline group-focus-visible/workout:text-primary group-focus-visible/workout:underline underline-offset-4">
+                            {broadcast.workoutName}
+                          </span>
                           {getWorkoutTypeBadge(broadcast.workoutType)}
-                        </div>
+                        </Link>
                       </TableCell>
                       <TableCell className="dark:text-slate-300">
                         {new Date(broadcast.assignedDate).toLocaleDateString(dateLocale)}
