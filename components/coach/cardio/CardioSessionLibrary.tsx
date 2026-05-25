@@ -52,6 +52,12 @@ import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeam
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 import { visibleWorkoutTags } from '@/lib/workouts/business-tags';
+import {
+  useTeamNameLookup,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearBadges,
+  WorkoutTeamYearFilters,
+} from '@/components/workouts/WorkoutLibraryMetadataFields';
 
 interface CardioSessionLibraryProps {
   onNewSession?: () => void;
@@ -113,6 +119,10 @@ export function CardioSessionLibrary({
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sportFilter, setSportFilter] = useState<string>('all');
+  const [teamFilter, setTeamFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>('all');
+  const { teams } = useWorkoutLibraryTeams(businessHeaders);
+  const teamNames = useTeamNameLookup(teams);
 
   // Sheet state
   const [sheetSession, setSheetSession] = useState<CardioSessionData | null>(null);
@@ -139,6 +149,8 @@ export function CardioSessionLibrary({
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (sportFilter && sportFilter !== 'all') params.set('sport', sportFilter);
+      if (teamFilter && teamFilter !== 'all') params.set('teamId', teamFilter);
+      if (yearFilter && yearFilter !== 'all') params.set('trainingYear', yearFilter);
       params.set('limit', '50');
 
       const response = await fetch(`/api/cardio-sessions?${params}`, {
@@ -153,7 +165,7 @@ export function CardioSessionLibrary({
     } finally {
       setLoading(false);
     }
-  }, [businessHeaders, search, sportFilter]);
+  }, [businessHeaders, search, sportFilter, teamFilter, yearFilter]);
 
   useEffect(() => {
     void fetchSessions();
@@ -249,6 +261,13 @@ export function CardioSessionLibrary({
             <SelectItem value="GENERAL_FITNESS">Allmän Kondition</SelectItem>
           </SelectContent>
         </Select>
+        <WorkoutTeamYearFilters
+          teams={teams}
+          teamFilter={teamFilter}
+          yearFilter={yearFilter}
+          onTeamFilterChange={setTeamFilter}
+          onYearFilterChange={setYearFilter}
+        />
         {onNewSession && (
           <Button onClick={onNewSession}>
             <Plus className="h-4 w-4 mr-2" />
@@ -267,11 +286,11 @@ export function CardioSessionLibrary({
           <Activity className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
           <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Inga pass ännu</h3>
           <p className="text-sm mb-4" style={{ color: theme.colors.textMuted }}>
-            {search || sportFilter !== 'all'
+            {search || sportFilter !== 'all' || teamFilter !== 'all' || yearFilter !== 'all'
               ? 'Inga pass matchar din sökning.'
               : 'Skapa ditt första konditionspass för att komma igång.'}
           </p>
-          {onNewSession && !search && sportFilter === 'all' && (
+          {onNewSession && !search && sportFilter === 'all' && teamFilter === 'all' && yearFilter === 'all' && (
             <Button onClick={onNewSession}>
               <Plus className="h-4 w-4 mr-2" />
               Skapa Pass
@@ -284,6 +303,7 @@ export function CardioSessionLibrary({
             const sportInfo = sportLabels[session.sport] || { label: session.sport, icon: '🏃' };
             const segments = session.segments || [];
             const visibleTags = visibleWorkoutTags(session.tags);
+            const teamName = session.teamId ? teamNames.get(session.teamId) ?? 'Lag' : null;
 
             return (
               <Card
@@ -350,6 +370,11 @@ export function CardioSessionLibrary({
                       )}
                     </div>
                   )}
+                  <WorkoutTeamYearBadges
+                    teamName={teamName}
+                    trainingYear={session.trainingYear}
+                    className="mt-3 flex flex-wrap gap-1"
+                  />
 
                   <Button
                     type="button"

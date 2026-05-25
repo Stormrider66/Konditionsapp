@@ -46,6 +46,11 @@ import type {
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 import { HOCKEY_AGILITY_PRESETS, type HockeyAgilityPreset } from '@/lib/hockey/hockey-builder-presets'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import {
+  getDefaultTrainingYear,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearFields,
+} from '@/components/workouts/WorkoutLibraryMetadataFields'
 
 interface AgilityWorkoutBuilderProps {
   drills: AgilityDrill[]
@@ -118,6 +123,7 @@ export function AgilityWorkoutBuilder({
     ...(getBusinessScopeHeaders(pathname) ?? {}),
     ...(businessId ? { 'x-business-id': businessId } : {}),
   }), [businessId, pathname])
+  const { teams } = useWorkoutLibraryTeams(businessHeaders)
   const [step, setStep] = useState<number>(initialStep)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -175,6 +181,8 @@ export function AgilityWorkoutBuilder({
   // Step 4: Review
   const [name, setName] = useState(initialWorkout?.name || '')
   const [description, setDescription] = useState(initialWorkout?.description || '')
+  const [teamId, setTeamId] = useState<string | null>(initialWorkout?.teamId ?? null)
+  const [trainingYear, setTrainingYear] = useState<number | null>(initialWorkout?.trainingYear ?? getDefaultTrainingYear())
   const [isTemplate, setIsTemplate] = useState(initialWorkout?.isTemplate || false)
   const [primaryFocus, setPrimaryFocus] = useState(initialWorkout?.primaryFocus ?? undefined)
   const [tags, setTags] = useState<string[]>(initialWorkout?.tags ?? [])
@@ -294,6 +302,8 @@ export function AgilityWorkoutBuilder({
           name,
           description: description || undefined,
           format,
+          teamId,
+          trainingYear,
           totalDuration,
           restBetweenDrills,
           developmentStage,
@@ -726,6 +736,14 @@ export function AgilityWorkoutBuilder({
                   rows={3}
                 />
               </div>
+
+              <WorkoutTeamYearFields
+                teams={teams}
+                teamId={teamId}
+                trainingYear={trainingYear}
+                onTeamIdChange={setTeamId}
+                onTrainingYearChange={setTrainingYear}
+              />
 
               <div className="flex items-center space-x-2">
                 <Checkbox

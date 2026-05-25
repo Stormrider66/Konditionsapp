@@ -62,6 +62,12 @@ import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { countStrengthSessionExercises } from '@/lib/strength/session-sections';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 import { visibleStrengthSessionTags } from '@/lib/strength/session-business-tags';
+import {
+  useTeamNameLookup,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearBadges,
+  WorkoutTeamYearFilters,
+} from '@/components/workouts/WorkoutLibraryMetadataFields';
 
 interface SystemTemplate {
   id: string;
@@ -133,8 +139,12 @@ export function StrengthSessionLibrary({
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [phaseFilter, setPhaseFilter] = useState<string>('all');
+  const [teamFilter, setTeamFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [copyingTemplate, setCopyingTemplate] = useState<string | null>(null);
+  const { teams } = useWorkoutLibraryTeams(businessHeaders);
+  const teamNames = useTeamNameLookup(teams);
 
   // Sheet state
   const [sheetSession, setSheetSession] = useState<StrengthSessionData | null>(null);
@@ -161,6 +171,8 @@ export function StrengthSessionLibrary({
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (phaseFilter && phaseFilter !== 'all') params.set('phase', phaseFilter);
+      if (teamFilter && teamFilter !== 'all') params.set('teamId', teamFilter);
+      if (yearFilter && yearFilter !== 'all') params.set('trainingYear', yearFilter);
       params.set('limit', '50');
 
       const response = await fetch(`/api/strength-sessions?${params}`, {
@@ -175,7 +187,7 @@ export function StrengthSessionLibrary({
     } finally {
       setLoading(false);
     }
-  }, [businessHeaders, search, phaseFilter]);
+  }, [businessHeaders, search, phaseFilter, teamFilter, yearFilter]);
 
   useEffect(() => {
     void fetchSessions();
@@ -408,6 +420,13 @@ export function StrengthSessionLibrary({
                 <SelectItem value="TAPER">Taper</SelectItem>
               </SelectContent>
             </Select>
+            <WorkoutTeamYearFilters
+              teams={teams}
+              teamFilter={teamFilter}
+              yearFilter={yearFilter}
+              onTeamFilterChange={setTeamFilter}
+              onYearFilterChange={setYearFilter}
+            />
           </div>
 
           {/* Sessions Grid */}
@@ -420,11 +439,11 @@ export function StrengthSessionLibrary({
           <Dumbbell className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
           <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Inga pass ännu</h3>
           <p className="text-sm mb-4" style={{ color: theme.colors.textMuted }}>
-            {search || phaseFilter !== 'all'
+            {search || phaseFilter !== 'all' || teamFilter !== 'all' || yearFilter !== 'all'
               ? 'Inga pass matchar din sökning.'
               : 'Skapa ditt första styrkepass för att komma igång.'}
           </p>
-          {onNewSession && !search && phaseFilter === 'all' && (
+          {onNewSession && !search && phaseFilter === 'all' && teamFilter === 'all' && yearFilter === 'all' && (
             <Button onClick={onNewSession}>
               <Plus className="h-4 w-4 mr-2" />
               Skapa Pass
@@ -437,6 +456,7 @@ export function StrengthSessionLibrary({
             const phaseInfo = phaseLabels[session.phase] || { label: session.phase, color: 'bg-gray-500' };
             const exerciseCount = countStrengthSessionExercises(session);
             const visibleTags = visibleStrengthSessionTags(session.tags);
+            const teamName = session.teamId ? teamNames.get(session.teamId) ?? 'Lag' : null;
 
             return (
               <Card
@@ -495,6 +515,11 @@ export function StrengthSessionLibrary({
                       )}
                     </div>
                   )}
+                  <WorkoutTeamYearBadges
+                    teamName={teamName}
+                    trainingYear={session.trainingYear}
+                    className="mt-3 flex flex-wrap gap-1"
+                  />
 
                   <Button
                     type="button"

@@ -12,6 +12,10 @@ import {
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope'
 import { normalizeWorkoutTags } from '@/lib/workouts/business-tags'
+import {
+  buildWorkoutLibraryMetadataData,
+  WorkoutLibraryMetadataError,
+} from '@/lib/workouts/library-metadata'
 
 const workoutDrillSchema = z.object({
   id: z.string().uuid().optional(),
@@ -36,6 +40,8 @@ const updateWorkoutSchema = z.object({
   primaryFocus: z.nativeEnum(AgilityDrillCategory).optional().nullable(),
   isTemplate: z.boolean().optional(),
   isPublic: z.boolean().optional(),
+  teamId: z.string().uuid().nullable().optional(),
+  trainingYear: z.number().int().min(2000).max(2100).nullable().optional(),
   tags: z.array(z.string()).optional(),
   drills: z.array(workoutDrillSchema).optional()
 })
@@ -163,6 +169,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const body = await request.json()
     const validatedData = updateWorkoutSchema.parse(body)
+    const metadataData = await buildWorkoutLibraryMetadataData(user.id, request, body)
 
     const { drills, tags, ...workoutData } = validatedData
 
@@ -173,6 +180,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         where: { id },
         data: {
           ...workoutData,
+          ...metadataData,
           ...(tags !== undefined
             ? { tags: normalizeWorkoutTags(tags, businessScope.businessId, existingWorkout.tags) }
             : {}),
@@ -218,6 +226,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(workout)
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation error', details: error.errors },

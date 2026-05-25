@@ -119,8 +119,13 @@ model AgilityWorkout {
   // Ownership
   coachId    String
   coach      User    @relation("CoachAgilityWorkouts", fields: [coachId], references: [id], onDelete: Cascade)
+  teamId     String?
+  team       Team?   @relation("TeamAgilityWorkouts", fields: [teamId], references: [id], onDelete: SetNull)
   isTemplate Boolean @default(false) // Reusable template
   isPublic   Boolean @default(false)
+
+  // Library metadata for fast filtering across seasons and teams
+  trainingYear Int?
 
   // Tags for filtering
   tags String[] @default([])
@@ -139,6 +144,9 @@ model AgilityWorkout {
   updatedAt DateTime @updatedAt
 
   @@index([coachId])
+  @@index([teamId])
+  @@index([trainingYear])
+  @@index([teamId, trainingYear])
   @@index([format])
   @@index([developmentStage])
   @@index([isTemplate])

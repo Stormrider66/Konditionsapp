@@ -3,7 +3,7 @@
 // components/agility-studio/AgilityStudioClient.tsx
 // Main client component for Agility Studio
 
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -34,6 +34,12 @@ import { ImportWorkoutDialog } from '@/components/workouts/import/ImportWorkoutD
 import { toAgilityWorkoutBundle } from '@/components/workouts/import/converters'
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import {
+  useTeamNameLookup,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearFilters,
+} from '@/components/workouts/WorkoutLibraryMetadataFields'
 
 interface Athlete {
   id: string
@@ -65,6 +71,8 @@ export default function AgilityStudioClient({
   const [activeTab, setActiveTab] = useState('drills')
   const [searchQuery, setSearchQuery] = useState('')
   const [developmentStage, setDevelopmentStage] = useState<DevelopmentStage | 'all'>('all')
+  const [teamFilter, setTeamFilter] = useState<string>('all')
+  const [yearFilter, setYearFilter] = useState<string>('all')
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(
     searchParams.get('fromCalendar') === 'true'
   )
@@ -93,6 +101,45 @@ export default function AgilityStudioClient({
     if (match && match[1] !== 'coach') return match[1]
     return undefined
   }, [pathname])
+  const businessHeaders = useMemo(() => ({
+    ...(getBusinessScopeHeaders(pathname) ?? {}),
+    ...(businessId ? { 'x-business-id': businessId } : {}),
+  }), [businessId, pathname])
+  const { teams } = useWorkoutLibraryTeams(businessHeaders)
+  const teamNames = useTeamNameLookup(teams)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function fetchWorkouts() {
+      try {
+        const params = new URLSearchParams()
+        if (searchQuery) params.set('search', searchQuery)
+        if (developmentStage !== 'all') params.set('developmentStage', developmentStage)
+        if (teamFilter !== 'all') params.set('teamId', teamFilter)
+        if (yearFilter !== 'all') params.set('trainingYear', yearFilter)
+        params.set('limit', '100')
+
+        const response = await fetch(`/api/agility-workouts?${params}`, {
+          headers: businessHeaders,
+          signal: controller.signal,
+        })
+
+        if (!response.ok) return
+
+        const data = await response.json()
+        setWorkouts(data.data || [])
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error('Failed to fetch agility workouts:', error)
+        }
+      }
+    }
+
+    void fetchWorkouts()
+
+    return () => controller.abort()
+  }, [businessHeaders, developmentStage, searchQuery, teamFilter, yearFilter])
 
   const handleWorkoutCreated = async (newWorkout: AgilityWorkout) => {
     setWorkouts(prev => [newWorkout, ...prev])
@@ -182,6 +229,14 @@ export default function AgilityStudioClient({
             ))}
           </SelectContent>
         </Select>
+        <WorkoutTeamYearFilters
+          teams={teams}
+          teamFilter={teamFilter}
+          yearFilter={yearFilter}
+          onTeamFilterChange={setTeamFilter}
+          onYearFilterChange={setYearFilter}
+          className="flex flex-col gap-3 sm:flex-row"
+        />
       </div>
 
       {/* Tabs */}
@@ -244,6 +299,7 @@ export default function AgilityStudioClient({
             searchQuery={searchQuery}
             onDelete={handleWorkoutDeleted}
             businessId={businessId}
+            teamNames={teamNames}
           />
         </TabsContent>
 

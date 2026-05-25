@@ -11,6 +11,11 @@ import {
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope'
 import { normalizeWorkoutTags } from '@/lib/workouts/business-tags'
+import {
+  buildWorkoutLibraryMetadataData,
+  normalizeWorkoutTrainingYear,
+  WorkoutLibraryMetadataError,
+} from '@/lib/workouts/library-metadata'
 
 const workoutDrillSchema = z.object({
   drillId: z.string().uuid(),
@@ -34,6 +39,8 @@ const createWorkoutSchema = z.object({
   primaryFocus: z.nativeEnum(AgilityDrillCategory).optional(),
   isTemplate: z.boolean().optional().default(false),
   isPublic: z.boolean().optional().default(false),
+  teamId: z.string().uuid().nullable().optional(),
+  trainingYear: z.number().int().min(2000).max(2100).nullable().optional(),
   tags: z.array(z.string()).optional().default([]),
   drills: z.array(workoutDrillSchema).min(1)
 })
@@ -57,6 +64,8 @@ export async function GET(request: NextRequest) {
     const format = searchParams.get('format') as AgilityWorkoutFormat | null
     const developmentStage = searchParams.get('developmentStage') as DevelopmentStage | null
     const sport = searchParams.get('sport') as SportType | null
+    const teamId = searchParams.get('teamId')
+    const trainingYear = normalizeWorkoutTrainingYear(searchParams.get('trainingYear') ?? undefined)
     const coachId = searchParams.get('coachId')
     const templatesOnly = searchParams.get('templatesOnly') === 'true'
     const search = searchParams.get('search')
@@ -75,6 +84,14 @@ export async function GET(request: NextRequest) {
 
     if (sport) {
       andFilters.push({ targetSports: { has: sport } })
+    }
+
+    if (teamId && teamId !== 'all') {
+      andFilters.push({ teamId })
+    }
+
+    if (typeof trainingYear === 'number') {
+      andFilters.push({ trainingYear })
     }
 
     if (coachId) {
@@ -136,6 +153,9 @@ export async function GET(request: NextRequest) {
       pagination: { total, limit, offset, hasMore: offset + workouts.length < total },
     })
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
     console.error('Error fetching agility workouts:', error)
     return NextResponse.json(
       { error: 'Failed to fetch agility workouts' },
@@ -171,6 +191,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = createWorkoutSchema.parse(body)
+    const metadataData = await buildWorkoutLibraryMetadataData(user.id, request, body, {
+      defaultTrainingYear: true,
+    })
 
     const { drills, ...workoutData } = validatedData
 
@@ -191,6 +214,7 @@ export async function POST(request: NextRequest) {
     const workout = await prisma.agilityWorkout.create({
       data: {
         ...workoutData,
+        ...metadataData,
         tags: normalizeWorkoutTags(workoutData.tags, businessScope.businessId),
         coachId: user.id,
         drills: {
@@ -218,6 +242,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(workout, { status: 201 })
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation error', details: error.errors },

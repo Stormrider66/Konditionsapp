@@ -429,6 +429,12 @@ model Team {
   // Team drills
   drills TeamDrill[]
 
+  // Workout library metadata links
+  cardioSessions   CardioSession[]   @relation("TeamCardioSessions")
+  strengthSessions StrengthSession[] @relation("TeamStrengthSessions")
+  agilityWorkouts  AgilityWorkout[]  @relation("TeamAgilityWorkouts")
+  hybridWorkouts   HybridWorkout[]   @relation("TeamHybridWorkouts")
+
   // Shared staff notes
   notes TeamNote[]
 

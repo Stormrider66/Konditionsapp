@@ -15,6 +15,11 @@ import {
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope';
 import { normalizeWorkoutTags } from '@/lib/workouts/business-tags';
+import {
+  buildWorkoutLibraryMetadataData,
+  normalizeWorkoutTrainingYear,
+  WorkoutLibraryMetadataError,
+} from '@/lib/workouts/library-metadata';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,6 +33,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') as HybridFormat | null;
     const scalingLevel = searchParams.get('scalingLevel') as ScalingLevel | null;
+    const teamId = searchParams.get('teamId');
+    const trainingYear = normalizeWorkoutTrainingYear(searchParams.get('trainingYear') ?? undefined);
     const benchmarkOnly = searchParams.get('benchmarkOnly') === 'true';
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
@@ -44,6 +51,14 @@ export async function GET(request: NextRequest) {
 
     if (scalingLevel) {
       andFilters.push({ scalingLevel });
+    }
+
+    if (teamId && teamId !== 'all') {
+      andFilters.push({ teamId });
+    }
+
+    if (typeof trainingYear === 'number') {
+      andFilters.push({ trainingYear });
     }
 
     if (benchmarkOnly) {
@@ -104,6 +119,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return handleApiError(error, 'GET /api/hybrid-workouts');
   }
 }
@@ -144,12 +162,17 @@ export async function POST(request: NextRequest) {
         notes?: string;
       }>;
       tags?: string[];
+      teamId?: string | null;
+      trainingYear?: number | null;
       isPublic?: boolean;
       warmupData?: unknown;
       strengthData?: unknown;
       metconData?: unknown;
       cooldownData?: unknown;
     }>(request);
+    const metadataData = await buildWorkoutLibraryMetadataData(user.id, request, body, {
+      defaultTrainingYear: true,
+    });
 
     // Validate required fields
     validateRequired(body, ['name', 'format']);
@@ -189,6 +212,7 @@ export async function POST(request: NextRequest) {
         scalingLevel: scalingLevel || 'RX',
         coachId: user.id,
         isPublic: isPublic || false,
+        ...metadataData,
         tags: normalizeWorkoutTags(tags, businessScope.businessId),
         // Section data
         warmupData: warmupData ?? undefined,
@@ -226,6 +250,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(workout, { status: 201 });
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return handleApiError(error, 'POST /api/hybrid-workouts');
   }
 }

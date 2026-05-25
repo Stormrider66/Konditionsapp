@@ -15,6 +15,11 @@ import {
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope';
 import { normalizeWorkoutTags } from '@/lib/workouts/business-tags';
+import {
+  buildWorkoutLibraryMetadataData,
+  normalizeWorkoutTrainingYear,
+  WorkoutLibraryMetadataError,
+} from '@/lib/workouts/library-metadata';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,6 +32,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const sport = searchParams.get('sport') as SportType | null;
+    const teamId = searchParams.get('teamId');
+    const trainingYear = normalizeWorkoutTrainingYear(searchParams.get('trainingYear') ?? undefined);
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -38,6 +45,14 @@ export async function GET(request: NextRequest) {
 
     if (sport) {
       andFilters.push({ sport });
+    }
+
+    if (teamId && teamId !== 'all') {
+      andFilters.push({ teamId });
+    }
+
+    if (typeof trainingYear === 'number') {
+      andFilters.push({ trainingYear });
     }
 
     if (search) {
@@ -76,6 +91,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     logger.error('Error fetching cardio sessions', {}, error);
     return NextResponse.json(
       { error: 'Failed to fetch cardio sessions' },
@@ -102,6 +120,9 @@ export async function POST(request: NextRequest) {
       tags,
       isPublic,
     } = body;
+    const metadataData = await buildWorkoutLibraryMetadataData(user.id, request, body, {
+      defaultTrainingYear: true,
+    });
 
     // Validate required fields
     if (!name) {
@@ -162,6 +183,7 @@ export async function POST(request: NextRequest) {
         avgZone,
         coachId: user.id,
         isPublic: isPublic || false,
+        ...metadataData,
         tags: normalizeWorkoutTags(tags, businessScope.businessId),
       },
       include: {
@@ -173,6 +195,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(session, { status: 201 });
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     logger.error('Error creating cardio session', {}, error);
     return NextResponse.json(
       { error: 'Failed to create cardio session' },

@@ -77,6 +77,12 @@ import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calenda
 import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog';
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
+import {
+  useTeamNameLookup,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearBadges,
+  WorkoutTeamYearFilters,
+} from '@/components/workouts/WorkoutLibraryMetadataFields';
 
 interface HybridMovement {
   id: string;
@@ -110,6 +116,8 @@ interface HybridWorkout {
   scalingLevel: string;
   isBenchmark: boolean;
   benchmarkSource?: string;
+  teamId?: string | null;
+  trainingYear?: number | null;
   tags: string[];
   movements: HybridMovement[];
   // Section data
@@ -268,6 +276,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [formatFilter, setFormatFilter] = useState<string>('all');
+  const [teamFilter, setTeamFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>('all');
   const [benchmarkOnly] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(
     searchParams.get('fromCalendar') === 'true'
@@ -307,6 +317,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     ...(getBusinessScopeHeaders(pathname) ?? {}),
     ...(businessId ? { 'x-business-id': businessId } : {}),
   }), [businessId, pathname]);
+  const { teams } = useWorkoutLibraryTeams(businessHeaders);
+  const teamNames = useTeamNameLookup(teams);
 
   useEffect(() => {
     if (!editWorkoutId || appliedEditWorkoutIdRef.current === editWorkoutId) return;
@@ -402,6 +414,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (formatFilter && formatFilter !== 'all') params.set('format', formatFilter);
+      if (teamFilter && teamFilter !== 'all') params.set('teamId', teamFilter);
+      if (yearFilter && yearFilter !== 'all') params.set('trainingYear', yearFilter);
       if (benchmarkOnly) params.set('benchmarkOnly', 'true');
       params.set('limit', '50');
 
@@ -417,7 +431,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     } finally {
       setLoading(false);
     }
-  }, [benchmarkOnly, businessHeaders, formatFilter, search]);
+  }, [benchmarkOnly, businessHeaders, formatFilter, search, teamFilter, yearFilter]);
 
   useEffect(() => {
     void fetchWorkouts();
@@ -552,6 +566,14 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             ))}
           </SelectContent>
         </Select>
+        <WorkoutTeamYearFilters
+          teams={teams}
+          teamFilter={teamFilter}
+          yearFilter={yearFilter}
+          onTeamFilterChange={setTeamFilter}
+          onYearFilterChange={setYearFilter}
+          className="flex flex-col gap-3 md:flex-row"
+        />
       </div>
 
       {/* Tabs */}
@@ -582,6 +604,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             onEdit={handleEdit}
             onPlan={setPlanWorkout}
             onDelete={setDeleteWorkout}
+            teamNames={teamNames}
           />
         </TabsContent>
 
@@ -614,6 +637,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
                     onEdit={handleEdit}
                     onPlan={setPlanWorkout}
                     onDelete={setDeleteWorkout}
+                    teamNames={teamNames}
                   />
                 </div>
               );
@@ -650,6 +674,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
               onEdit={handleEdit}
               onPlan={setPlanWorkout}
               onDelete={setDeleteWorkout}
+              teamNames={teamNames}
             />
           )}
         </TabsContent>
@@ -735,6 +760,8 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
                 totalMinutes: selectedWorkout.totalMinutes,
                 repScheme: selectedWorkout.repScheme,
                 scalingLevel: selectedWorkout.scalingLevel,
+                teamId: selectedWorkout.teamId,
+                trainingYear: selectedWorkout.trainingYear,
                 tags: selectedWorkout.tags,
                 metconData: selectedWorkout.metconData,
                 movements: selectedWorkout.movements?.map((m) => ({
@@ -851,6 +878,7 @@ interface WorkoutGridProps {
   onEdit?: (workout: HybridWorkout) => void;
   onPlan?: (workout: HybridWorkout) => void;
   onDelete?: (workout: HybridWorkout) => void;
+  teamNames: Map<string, string>;
 }
 
 function WorkoutGrid({
@@ -866,6 +894,7 @@ function WorkoutGrid({
   onEdit,
   onPlan,
   onDelete,
+  teamNames,
 }: WorkoutGridProps) {
   if (loading) {
     return (
@@ -903,6 +932,7 @@ function WorkoutGrid({
       {workouts.map((workout) => {
         const glowColor =
           workout.scalingLevel === 'RX' ? 'emerald' : workout.scalingLevel === 'SCALED' ? 'amber' : 'blue';
+        const teamName = workout.teamId ? teamNames.get(workout.teamId) ?? 'Lag' : null;
 
         return (
           <GlassCard
@@ -998,6 +1028,11 @@ function WorkoutGrid({
               <div className="mt-2 text-xs font-semibold text-blue-400">
                 {getMovementSummary(workout.movements)}
               </div>
+              <WorkoutTeamYearBadges
+                teamName={teamName}
+                trainingYear={workout.trainingYear}
+                className="mt-3 flex flex-wrap gap-1"
+              />
               {workout._count?.results > 0 && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground font-mono">
                   <Target className="h-3 w-3 text-emerald-500" />

@@ -25,7 +25,12 @@ model CardioSession {
   // Ownership
   coachId  String
   coach    User    @relation("CoachCardioSessions", fields: [coachId], references: [id], onDelete: Cascade)
+  teamId   String?
+  team     Team?   @relation("TeamCardioSessions", fields: [teamId], references: [id], onDelete: SetNull)
   isPublic Boolean @default(false)
+
+  // Library metadata for fast filtering across seasons and teams
+  trainingYear Int?
 
   // Tags for filtering
   tags String[] @default([])
@@ -46,6 +51,9 @@ model CardioSession {
   updatedAt DateTime @updatedAt
 
   @@index([coachId])
+  @@index([teamId])
+  @@index([trainingYear])
+  @@index([teamId, trainingYear])
   @@index([sport])
   @@index([isPublic])
 }

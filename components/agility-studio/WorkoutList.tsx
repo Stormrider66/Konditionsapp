@@ -61,6 +61,7 @@ import type { AgilityWorkout } from '@/types'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import { visibleWorkoutTags } from '@/lib/workouts/business-tags'
 import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog'
+import { WorkoutTeamYearBadges } from '@/components/workouts/WorkoutLibraryMetadataFields'
 
 interface Athlete {
   id: string
@@ -77,6 +78,7 @@ interface WorkoutListProps {
   onDelete: (workoutId: string) => void
   onDuplicate?: (workout: AgilityWorkout) => void
   businessId?: string
+  teamNames: Map<string, string>
 }
 
 export function WorkoutList({
@@ -87,6 +89,7 @@ export function WorkoutList({
   onDelete,
   onDuplicate,
   businessId,
+  teamNames,
 }: WorkoutListProps) {
   const t = useTranslations('agilityStudio')
   const tCommon = useTranslations('common')
@@ -269,6 +272,7 @@ export function WorkoutList({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredWorkouts.map(workout => {
             const visibleTags = visibleWorkoutTags(workout.tags)
+            const teamName = workout.teamId ? teamNames.get(workout.teamId) ?? 'Lag' : null
 
             return (
             <Card key={workout.id}>
@@ -362,6 +366,11 @@ export function WorkoutList({
                     )}
                   </div>
                 )}
+                <WorkoutTeamYearBadges
+                  teamName={teamName}
+                  trainingYear={workout.trainingYear}
+                  className="mt-3 flex flex-wrap gap-1"
+                />
                 <Button
                   type="button"
                   variant="outline"

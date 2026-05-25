@@ -17,6 +17,10 @@ import {
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope';
 import { normalizeWorkoutTags } from '@/lib/workouts/business-tags';
+import {
+  buildWorkoutLibraryMetadataData,
+  WorkoutLibraryMetadataError,
+} from '@/lib/workouts/library-metadata';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -158,6 +162,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       metconData,
       cooldownData,
     } = body;
+    const metadataData = await buildWorkoutLibraryMetadataData(user.id, request, body);
 
     // Update workout - delete and recreate movements
     const workout = await prisma.$transaction(async (tx) => {
@@ -181,6 +186,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           repScheme,
           scalingLevel: scalingLevel as ScalingLevel,
           isPublic,
+          ...metadataData,
           tags: normalizeWorkoutTags(tags, businessScope.businessId, existing.tags),
           // Section data
           warmupData: warmupData ?? undefined,
@@ -239,6 +245,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(workout);
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     logError('Error updating hybrid workout:', error);
     return NextResponse.json(
       { error: 'Failed to update hybrid workout' },

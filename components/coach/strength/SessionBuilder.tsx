@@ -41,6 +41,11 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { StrengthSessionData } from '@/types'
 import { useTranslations } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import {
+  getDefaultTrainingYear,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearFields,
+} from '@/components/workouts/WorkoutLibraryMetadataFields'
 
 // Types
 type Exercise = {
@@ -86,6 +91,8 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
   const [sessionName, setSessionName] = useState(tSessionBuilder('defaults.sessionName'))
   const [description, setDescription] = useState('')
   const [phase, setPhase] = useState('Base')
+  const [teamId, setTeamId] = useState<string | null>(initialData?.teamId ?? null)
+  const [trainingYear, setTrainingYear] = useState<number | null>(initialData?.trainingYear ?? getDefaultTrainingYear())
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [availableExercises, setAvailableExercises] = useState<any[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -100,6 +107,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
   const [locations, setLocations] = useState<{ id: string; name: string; city: string | null }[]>([])
   const [selectedLocationId, setSelectedLocationId] = useState<string>('ALL')
   const [locationEquipmentNames, setLocationEquipmentNames] = useState<string[]>([])
+  const { teams } = useWorkoutLibraryTeams(businessHeaders ?? undefined)
 
   // Load initial data when editing
   useEffect(() => {
@@ -107,6 +115,8 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
       setSessionName(initialData.name)
       setDescription(initialData.description || '')
       setPhase(PHASE_REVERSE_MAP[initialData.phase] || 'Base')
+      setTeamId(initialData.teamId ?? null)
+      setTrainingYear(initialData.trainingYear ?? null)
       setExercises(
         initialData.exercises.map((e) => ({
           id: e.exerciseId || Math.random().toString(36).substr(2, 9),
@@ -344,6 +354,8 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
         name: sessionName,
         description: description || undefined,
         phase: PHASE_MAP[phase] || 'ANATOMICAL_ADAPTATION',
+        teamId,
+        trainingYear,
         exercises: exerciseData,
       }
 
@@ -409,6 +421,13 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
                     rows={2}
                   />
                 </div>
+                <WorkoutTeamYearFields
+                  teams={teams}
+                  teamId={teamId}
+                  trainingYear={trainingYear}
+                  onTeamIdChange={setTeamId}
+                  onTrainingYearChange={setTrainingYear}
+                />
               </div>
               <div className="space-y-2 w-[150px]">
                 <Label className="flex items-center gap-1.5">

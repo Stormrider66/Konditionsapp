@@ -45,6 +45,11 @@ import { PatternBlockDialog, type GeneratedPatternStep } from './PatternBlockDia
 import { HOCKEY_CARDIO_PRESETS, type HockeyCardioPreset } from '@/lib/hockey/hockey-builder-presets'
 import { useLocale } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import {
+  getDefaultTrainingYear,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearFields,
+} from '@/components/workouts/WorkoutLibraryMetadataFields'
 
 // Types
 type CardioFlatSegment = {
@@ -271,6 +276,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
   const [sessionName, setSessionName] = useState(text(locale, 'Nytt Konditionspass', 'New Cardio Session'))
   const [description, setDescription] = useState('')
   const [sport, setSport] = useState('RUNNING')
+  const [teamId, setTeamId] = useState<string | null>(initialData?.teamId ?? null)
+  const [trainingYear, setTrainingYear] = useState<number | null>(initialData?.trainingYear ?? getDefaultTrainingYear())
   const [segments, setSegments] = useState<CardioSegment[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [sessionDate, setSessionDate] = useState<Date | null>(null)
@@ -279,6 +286,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
   const [userZones, setUserZones] = useState<any>(null)
   const [patternDialogOpen, setPatternDialogOpen] = useState(false)
   const [availableExercises, setAvailableExercises] = useState<LibraryExercise[]>([])
+  const { teams } = useWorkoutLibraryTeams(businessHeaders)
 
   // Load initial data when editing
   useEffect(() => {
@@ -286,6 +294,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
       setSessionName(initialData.name)
       setDescription(initialData.description || '')
       setSport(initialData.sport || 'RUNNING')
+      setTeamId(initialData.teamId ?? null)
+      setTrainingYear(initialData.trainingYear ?? null)
       setSegments(
         initialData.segments.map((s: any) => {
           if (s.type === 'CORE' || s.type === 'PREHAB' || s.type === 'PLYOMETRIC') {
@@ -350,6 +360,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
       setSessionName('Nytt Konditionspass')
       setDescription('')
       setSport('RUNNING')
+      setTeamId(null)
+      setTrainingYear(getDefaultTrainingYear())
       setSegments([])
     }
   }, [initialData])
@@ -514,6 +526,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
         name: sessionName,
         description: description || undefined,
         sport,
+        teamId,
+        trainingYear,
         segments: segmentData,
       }
 
@@ -954,6 +968,13 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                     rows={2}
                   />
                 </div>
+                <WorkoutTeamYearFields
+                  teams={teams}
+                  teamId={teamId}
+                  trainingYear={trainingYear}
+                  onTeamIdChange={setTeamId}
+                  onTrainingYearChange={setTrainingYear}
+                />
               </div>
               <div className="space-y-2 w-[150px]">
                 <Label>Sport</Label>

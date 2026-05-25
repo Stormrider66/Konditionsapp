@@ -74,6 +74,11 @@ import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButt
 import { HOCKEY_HYBRID_PRESETS, type HockeyHybridPreset } from '@/lib/hockey/hockey-builder-presets';
 import { useLocale } from '@/i18n/client';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
+import {
+  getDefaultTrainingYear,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearFields,
+} from '@/components/workouts/WorkoutLibraryMetadataFields';
 
 interface Exercise {
   id: string;
@@ -131,6 +136,8 @@ export interface HybridWorkoutBuilderInitialData {
   totalMinutes?: number;
   repScheme?: string;
   scalingLevel?: string;
+  teamId?: string | null;
+  trainingYear?: number | null;
   movements?: WorkoutMovement[];
   tags?: string[];
   // Section data
@@ -773,10 +780,13 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData, businessId
   const [restTime, setRestTime] = useState<number | undefined>(initialData?.restTime);
   const [repScheme, setRepScheme] = useState(initialData?.repScheme || '');
   const [scalingLevel, setScalingLevel] = useState(initialData?.scalingLevel || 'RX');
+  const [teamId, setTeamId] = useState<string | null>(initialData?.teamId ?? null);
+  const [trainingYear, setTrainingYear] = useState<number | null>(initialData?.trainingYear ?? getDefaultTrainingYear());
   const [metconBlocks, setMetconBlocks] = useState<MetconBlock[]>(() =>
     buildInitialMetconBlocks(initialData)
   );
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
+  const { teams } = useWorkoutLibraryTeams(businessHeaders);
 
   // Section data
   const [warmupData, setWarmupData] = useState<HybridSectionData | undefined>(initialData?.warmupData);
@@ -1089,6 +1099,8 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData, businessId
         restTime: format === 'EMOM' ? 0 : restTime,
         repScheme,
         scalingLevel,
+        teamId,
+        trainingYear,
         tags,
         movements: flatMovements.map((m, index) => ({
           exerciseId: m.exerciseId,
@@ -1310,6 +1322,14 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData, businessId
               rows={3}
             />
           </div>
+
+          <WorkoutTeamYearFields
+            teams={teams}
+            teamId={teamId}
+            trainingYear={trainingYear}
+            onTeamIdChange={setTeamId}
+            onTrainingYearChange={setTrainingYear}
+          />
 
           {/* Format-specific fields */}
           {format === 'AMRAP' && (

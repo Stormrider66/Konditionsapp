@@ -1474,6 +1474,8 @@ export interface HybridWorkoutWithSections {
   scalingLevel: ScalingLevel
   isBenchmark: boolean
   benchmarkSource?: string
+  teamId?: string | null
+  trainingYear?: number | null
   tags: string[]
   coachId?: string
   isPublic: boolean
@@ -1616,6 +1618,8 @@ export interface StrengthSessionData {
   totalExercises?: number
   estimatedDuration?: number
   volumeLoad?: number
+  teamId?: string | null
+  trainingYear?: number | null
   tags?: string[]
   coachId?: string
   isPublic?: boolean
@@ -1679,6 +1683,8 @@ export interface CardioSessionData {
   totalDuration?: number // seconds
   totalDistance?: number // meters
   avgZone?: number
+  teamId?: string | null
+  trainingYear?: number | null
   tags: string[]
   coachId: string
   isPublic: boolean
@@ -2081,6 +2087,8 @@ export interface AgilityWorkout {
   targetSports: SportType[]
   primaryFocus?: AgilityDrillCategory | null
   coachId: string
+  teamId?: string | null
+  trainingYear?: number | null
   isTemplate: boolean
   isPublic: boolean
   tags: string[]

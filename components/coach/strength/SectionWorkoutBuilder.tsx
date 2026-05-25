@@ -103,6 +103,11 @@ import {
 } from '@/lib/strength/exercise-library-filters'
 import { useLocale } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import {
+  getDefaultTrainingYear,
+  useWorkoutLibraryTeams,
+  WorkoutTeamYearFields,
+} from '@/components/workouts/WorkoutLibraryMetadataFields'
 
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
@@ -281,6 +286,8 @@ interface SectionWorkoutBuilderProps {
     name: string
     description?: string
     phase: string
+    teamId?: string | null
+    trainingYear?: number | null
     exercises: Array<{
       exerciseId: string
       exerciseName: string
@@ -378,7 +385,10 @@ export function SectionWorkoutBuilder({
   const [sessionName, setSessionName] = useState(text(locale, 'Nytt Styrkepass', 'New Strength Session'))
   const [description, setDescription] = useState('')
   const [phase, setPhase] = useState('Base')
+  const [teamId, setTeamId] = useState<string | null>(initialData?.teamId ?? null)
+  const [trainingYear, setTrainingYear] = useState<number | null>(initialData?.trainingYear ?? getDefaultTrainingYear())
   const [saving, setSaving] = useState(false)
+  const { teams } = useWorkoutLibraryTeams(businessHeaders ?? undefined)
 
   // Section states
   const [sections, setSections] = useState<Record<SectionType, SectionConfig>>({
@@ -445,6 +455,8 @@ export function SectionWorkoutBuilder({
     if (initialData) {
       setSessionName(initialData.name)
       setDescription(initialData.description || '')
+      setTeamId(initialData.teamId ?? null)
+      setTrainingYear(initialData.trainingYear ?? null)
 
       // Map phase
       const phaseKey = Object.entries(PHASE_MAP).find(
@@ -1107,6 +1119,8 @@ export function SectionWorkoutBuilder({
         name: sessionName,
         description: description || undefined,
         phase: PHASE_MAP[phase] || 'ANATOMICAL_ADAPTATION',
+        teamId,
+        trainingYear,
         exercises: mainExercises,
         warmupData: warmupData ?? null,
         prehabData: prehabData ?? null,
@@ -1189,6 +1203,13 @@ export function SectionWorkoutBuilder({
                     rows={2}
                   />
                 </div>
+                <WorkoutTeamYearFields
+                  teams={teams}
+                  teamId={teamId}
+                  trainingYear={trainingYear}
+                  onTeamIdChange={setTeamId}
+                  onTrainingYearChange={setTrainingYear}
+                />
               </div>
               <div className="space-y-2 w-[150px]">
                 <Label>Fas</Label>

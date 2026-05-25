@@ -22,6 +22,10 @@ import {
   strengthSessionAccessWhere,
 } from '@/lib/strength/session-business-scope';
 import { normalizeStrengthSessionTags } from '@/lib/strength/session-business-tags';
+import {
+  buildWorkoutLibraryMetadataData,
+  WorkoutLibraryMetadataError,
+} from '@/lib/workouts/library-metadata';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -120,6 +124,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       tags,
       isPublic,
     } = body;
+    const metadataData = await buildWorkoutLibraryMetadataData(user.id, request, body);
 
     const nextExercises = exercises ?? existing.exercises ?? [];
     const sectionInput = {
@@ -153,6 +158,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         totalExercises,
         volumeLoad: volumeLoad > 0 ? volumeLoad : null,
         isPublic,
+        ...metadataData,
         tags: normalizeStrengthSessionTags(tags, businessScope.businessId, existing.tags),
       },
       include: {
@@ -164,6 +170,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(session);
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

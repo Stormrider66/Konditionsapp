@@ -20,6 +20,11 @@ import {
   strengthSessionAccessWhere,
 } from '@/lib/strength/session-business-scope';
 import { normalizeStrengthSessionTags } from '@/lib/strength/session-business-tags';
+import {
+  buildWorkoutLibraryMetadataData,
+  normalizeWorkoutTrainingYear,
+  WorkoutLibraryMetadataError,
+} from '@/lib/workouts/library-metadata';
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,6 +37,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const phase = searchParams.get('phase') as StrengthPhase | null;
+    const teamId = searchParams.get('teamId');
+    const trainingYear = normalizeWorkoutTrainingYear(searchParams.get('trainingYear') ?? undefined);
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -43,6 +50,14 @@ export async function GET(request: NextRequest) {
 
     if (phase) {
       andFilters.push({ phase });
+    }
+
+    if (teamId && teamId !== 'all') {
+      andFilters.push({ teamId });
+    }
+
+    if (typeof trainingYear === 'number') {
+      andFilters.push({ trainingYear });
     }
 
     if (search) {
@@ -81,6 +96,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -117,6 +135,9 @@ export async function POST(request: NextRequest) {
       tags,
       isPublic,
     } = body;
+    const metadataData = await buildWorkoutLibraryMetadataData(user.id, request, body, {
+      defaultTrainingYear: true,
+    });
 
     // Validate required fields
     if (!name) {
@@ -154,6 +175,7 @@ export async function POST(request: NextRequest) {
         volumeLoad: volumeLoad > 0 ? volumeLoad : null,
         coachId: user.id,
         isPublic: isPublic || false,
+        ...metadataData,
         tags: normalizeStrengthSessionTags(tags, businessScope.businessId),
       },
       include: {
@@ -165,6 +187,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(session, { status: 201 });
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

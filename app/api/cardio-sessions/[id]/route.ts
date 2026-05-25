@@ -16,6 +16,10 @@ import {
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope';
 import { normalizeWorkoutTags } from '@/lib/workouts/business-tags';
+import {
+  buildWorkoutLibraryMetadataData,
+  WorkoutLibraryMetadataError,
+} from '@/lib/workouts/library-metadata';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -107,6 +111,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       tags,
       isPublic,
     } = body;
+    const metadataData = await buildWorkoutLibraryMetadataData(user.id, request, body);
 
     // Calculate totals from segments (handles REPEAT_GROUP)
     const segmentList = segments || [];
@@ -159,6 +164,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         totalDistance: totalDistance > 0 ? totalDistance : null,
         avgZone,
         isPublic,
+        ...metadataData,
         tags: normalizeWorkoutTags(tags, businessScope.businessId, existing.tags),
       },
       include: {
@@ -170,6 +176,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(session);
   } catch (error) {
+    if (error instanceof WorkoutLibraryMetadataError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     logError('Error updating cardio session:', error);
     return NextResponse.json(
       { error: 'Failed to update cardio session' },
