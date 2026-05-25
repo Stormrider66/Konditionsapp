@@ -960,12 +960,160 @@ const BATCH_05: BatchExercise[] = [
   },
 ]
 
+const BATCH_06: BatchExercise[] = [
+  {
+    name: 'Romanian Deadlift',
+    displayName: 'Romanian Deadlift',
+    subject: 'woman',
+    category: 'posterior-chain',
+    slug: 'romanian-deadlift',
+    primaryImage: '/images/posterior-chain/romanian-deadlift-1.png',
+    targetFrames: 2,
+    muscles: 'hamstrings, gluteus maximus, erector spinae, latissimus dorsi, adductor magnus, abdominal stabilizers',
+    avoid: 'conventional deadlift from the floor, sumo stance, rounded back, squatty knee bend, bar drifting away from legs, shrugging shoulders, cropped plates',
+    frames: [
+      {
+        index: 2,
+        role: 'standing lockout frame',
+        scene: 'top lockout position of a Romanian deadlift with barbell held against the upper thighs, hips and knees extended, torso tall, shoulders packed, neutral spine, feet hip-width, full bar and plates visible',
+      },
+    ],
+  },
+  {
+    name: 'Rowing (HYROX)',
+    displayName: 'Rowing (HYROX)',
+    subject: 'man',
+    category: 'upper-body',
+    slug: 'rowing-hyrox',
+    primaryImage: '/images/upper-body/rowing-hyrox-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, hamstrings, latissimus dorsi, rhomboids, biceps brachii, abdominal stabilizers',
+    avoid: 'water rowing boat, cable row machine, upright seated row, rounded back, shoulders shrugged, loose chain, cropped rower rail or handle',
+    frames: [
+      {
+        index: 2,
+        role: 'catch start frame',
+        scene: 'catch position on a rowing ergometer with knees bent, shins near vertical, arms straight, torso slightly leaned forward from the hips, shoulders relaxed, handle close to the flywheel, rower rail and footplates visible',
+      },
+    ],
+  },
+  {
+    name: 'Sandbag Lunges (HYROX)',
+    displayName: 'Sandbag Lunges (HYROX)',
+    subject: 'man',
+    category: 'knee-dominance',
+    slug: 'sandbag-lunges-hyrox',
+    primaryImage: '/images/knee-dominance/sandbag-lunges-hyrox-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, hamstrings, soleus, abdominal stabilizers, upper trapezius',
+    avoid: 'barbell back rack, dumbbells, sandbag held in front bear-hug style, kneeling rest position, torso collapsed, knee cave, cropped rear foot or sandbag',
+    frames: [
+      {
+        index: 2,
+        role: 'standing reset frame',
+        scene: 'standing reset position for sandbag walking lunges with sandbag carried across the upper back and shoulders, feet hip-width, torso upright, core braced, hands stabilizing the sandbag, both feet fully visible',
+      },
+    ],
+  },
+  {
+    name: 'Skater Squats',
+    displayName: 'Skater Squats',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'skater-squats',
+    primaryImage: '/images/unilateral/skater-squats-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, hamstrings, adductor magnus, abdominal stabilizers',
+    avoid: 'regular lunge, forward lunge, reverse lunge, rear foot touching floor, rear foot on bench, pistol squat with front leg extended, curtsy lunge, Bulgarian split squat, knee collapse, rounded back',
+    frames: [
+      {
+        index: 2,
+        role: 'standing single-leg top frame',
+        scene: 'top position of an unassisted skater squat with one foot planted under the hip, working leg straight and stable, opposite leg bent and hovering behind the body, arms reaching forward for balance, torso braced',
+      },
+    ],
+  },
+  {
+    name: 'Step-Up',
+    displayName: 'Step-Up',
+    subject: 'man',
+    category: 'knee-dominance',
+    slug: 'step-up',
+    primaryImage: '/images/knee-dominance/step-up-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, hamstrings, adductor magnus, soleus, abdominal stabilizers',
+    avoid: 'high box step-up, jumping box step, knee drive finish, dumbbells, barbell, unstable foot placement, knee collapse, cropped box or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'low-box start frame',
+        scene: 'start position for a low-box step-up with one foot fully planted on a low box, opposite foot on the floor behind, torso tall, arms relaxed for balance, box and both feet fully visible',
+      },
+    ],
+  },
+  {
+    name: 'Step-Ups (hög)',
+    displayName: 'Step-Ups (hög)',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'step-ups-hog',
+    primaryImage: '/images/unilateral/step-ups-hog-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, hamstrings, adductor magnus, soleus, abdominal stabilizers',
+    avoid: 'low box step-up, box jump, knee drive finish, barbell, overly tall box above hip height, knee collapse, cropped dumbbells or box',
+    frames: [
+      {
+        index: 2,
+        role: 'high-box top frame',
+        scene: 'top finish position of a high-box step-up with dumbbells held at the sides, one foot planted on the high box, working hip and knee extended, trailing foot hovering behind, torso tall, full box and dumbbells visible',
+      },
+    ],
+  },
+  {
+    name: 'Step-Ups med knädrive',
+    displayName: 'Step-Ups med knädrive',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'step-ups-med-knadrive',
+    primaryImage: '/images/unilateral/step-ups-med-knadrive-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, hip flexors, hamstrings, soleus, abdominal stabilizers',
+    avoid: 'regular low step-up with trailing foot down, box jump, high-knee run with no box, dumbbells, barbell, leaning back, knee collapse, cropped raised knee or box',
+    frames: [
+      {
+        index: 2,
+        role: 'knee-drive start frame',
+        scene: 'start position for a step-up with knee drive with one foot planted on a box, opposite foot on the floor behind, torso tall, arms in natural running balance, box and both feet fully visible',
+      },
+    ],
+  },
+  {
+    name: 'Strict Handstand Push-Up',
+    displayName: 'Strict Handstand Push-Up',
+    subject: 'man',
+    category: 'upper-body',
+    slug: 'strict-handstand-push-up',
+    primaryImage: '/images/upper-body/strict-handstand-push-up-1.png',
+    targetFrames: 2,
+    muscles: 'deltoids, triceps brachii, upper trapezius, serratus anterior, pectoralis major, abdominal stabilizers',
+    avoid: 'kipping handstand push-up, freestanding handstand, pike push-up, collapsed neck, elbows flared straight sideways, banana-back arch, cropped hands or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'strict lockout frame',
+        scene: 'top lockout position of a strict handstand push-up against a wall with arms straight, hands shoulder-width on the floor, body vertical and tight, heels lightly touching the wall, full inverted body visible',
+      },
+    ],
+  },
+]
+
 const BATCHES: Record<string, BatchExercise[]> = {
   '01': BATCH_01,
   '02': BATCH_02,
   '03': BATCH_03,
   '04': BATCH_04,
   '05': BATCH_05,
+  '06': BATCH_06,
 }
 
 function promptFor(exercise: BatchExercise, frame: BatchExercise['frames'][number]): string {
