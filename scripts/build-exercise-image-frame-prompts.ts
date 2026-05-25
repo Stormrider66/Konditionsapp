@@ -777,11 +777,195 @@ const BATCH_04: BatchExercise[] = [
   },
 ]
 
+const BATCH_05: BatchExercise[] = [
+  {
+    name: 'Lateral Lunges',
+    displayName: 'Lateral Lunges',
+    subject: 'woman',
+    category: 'unilateral',
+    slug: 'lateral-lunges',
+    primaryImage: '/images/unilateral/lateral-lunges-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, adductor magnus, hamstrings, abdominal stabilizers',
+    avoid: 'landmine barbell, forward lunge, curtsy lunge, deep Cossack stretch, knee collapse, torso folded completely forward, cropped extended foot',
+    frames: [
+      {
+        index: 2,
+        role: 'standing wide start frame',
+        scene: 'standing start position for lateral lunges with feet wide, knees nearly extended, torso tall, hips square, hands clasped for balance, both feet flat and fully visible',
+      },
+    ],
+  },
+  {
+    name: 'Lunge',
+    displayName: 'Lunge',
+    subject: 'man',
+    category: 'knee-dominance',
+    slug: 'lunge',
+    primaryImage: '/images/knee-dominance/lunge-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, hamstrings, soleus, abdominal stabilizers',
+    avoid: 'split squat fixed stance, reverse lunge step-back, jumping lunge, barbell, dumbbells, front knee collapse, cropped rear foot',
+    frames: [
+      {
+        index: 2,
+        role: 'standing reset frame',
+        scene: 'standing reset position for a forward lunge with feet hip-width under the hips, torso upright, hands relaxed for balance, ready to step forward',
+      },
+    ],
+  },
+  {
+    name: 'Overhead Lunge',
+    displayName: 'Overhead Lunge',
+    subject: 'woman',
+    category: 'knee-dominance',
+    slug: 'overhead-lunge',
+    primaryImage: '/images/knee-dominance/overhead-lunge-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, deltoids, triceps brachii, abdominal stabilizers',
+    avoid: 'barbell on back, dumbbells at sides, overhead squat, split jerk, elbows bent, bar drifting forward, cropped bar ends or rear foot',
+    frames: [
+      {
+        index: 2,
+        role: 'standing overhead reset frame',
+        scene: 'standing reset position for an overhead lunge with feet hip-width, light barbell locked out overhead, arms straight, shoulders active, torso tall and braced',
+      },
+    ],
+  },
+  {
+    name: 'Overhead Squat',
+    displayName: 'Overhead Squat',
+    subject: 'man',
+    category: 'knee-dominance',
+    slug: 'overhead-squat',
+    primaryImage: '/images/knee-dominance/overhead-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, adductor magnus, deltoids, upper trapezius, abdominal stabilizers',
+    avoid: 'front squat, back squat, snatch catch with unstable feet, bar too far forward, elbows bent, heels lifting, cropped barbell',
+    frames: [
+      {
+        index: 2,
+        role: 'standing overhead top frame',
+        scene: 'standing tall at the top of an overhead squat with barbell locked out overhead in a wide grip, arms straight, feet shoulder-width, knees and hips extended, torso braced',
+      },
+    ],
+  },
+  {
+    name: 'Pendlay Row',
+    displayName: 'Pendlay Row',
+    subject: 'woman',
+    category: 'upper-body',
+    slug: 'pendlay-row',
+    primaryImage: '/images/upper-body/pendlay-row-1.png',
+    targetFrames: 2,
+    muscles: 'latissimus dorsi, rhomboids, middle trapezius, posterior deltoid, biceps brachii, erector spinae',
+    avoid: 'upright row, deadlift lockout, cable row, rounded back, shrugging shoulders, bar far from torso, cropped plates',
+    frames: [
+      {
+        index: 2,
+        role: 'bar-on-floor start frame',
+        scene: 'Pendlay row start position with torso hinged near parallel to the floor, neutral spine, arms straight, barbell resting on the floor below the shoulders, shins nearly vertical',
+      },
+    ],
+  },
+  {
+    name: 'Pike Push-Up',
+    displayName: 'Pike Push-Up',
+    subject: 'man',
+    category: 'upper-body',
+    slug: 'pike-push-up',
+    primaryImage: '/images/upper-body/pike-push-up-1.png',
+    targetFrames: 2,
+    muscles: 'deltoids, triceps brachii, upper trapezius, serratus anterior, abdominal stabilizers',
+    avoid: 'handstand push-up against wall, regular push-up, knees on floor, collapsed neck, elbows flared straight sideways, cropped hands or feet',
+    frames: [
+      {
+        index: 2,
+        role: 'top pike frame',
+        scene: 'top position of a pike push-up with hips high, legs straight, arms straight, hands shoulder-width on the floor, head between the upper arms',
+      },
+    ],
+  },
+  {
+    name: 'Pistol Squat',
+    displayName: 'Pistol Squat',
+    subject: 'woman',
+    category: 'knee-dominance',
+    slug: 'pistol-squat',
+    primaryImage: '/images/knee-dominance/pistol-squat-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, hamstrings, adductor magnus, abdominal stabilizers',
+    avoid: 'two-leg squat, box pistol, assisted ring pistol, heel lifted, knee collapse, rounded back, cropped extended foot',
+    frames: [
+      {
+        index: 2,
+        role: 'standing single-leg top frame',
+        scene: 'standing top position of a pistol squat with one foot planted, opposite leg extended forward and hovering, arms reaching forward for balance, torso braced',
+      },
+    ],
+  },
+  {
+    name: 'Pistol Squat Progression',
+    displayName: 'Pistol Squat Progression',
+    subject: 'man',
+    category: 'unilateral',
+    slug: 'pistol-squat-progression',
+    primaryImage: '/images/unilateral/pistol-squat-progression-1.png',
+    targetFrames: 2,
+    muscles: 'quadriceps femoris, gluteus maximus, gluteus medius, hamstrings, adductor magnus, abdominal stabilizers',
+    avoid: 'full unassisted pistol with no box, two-leg box squat, Bulgarian split squat, TRX straps, knee collapse, cropped box or extended foot',
+    frames: [
+      {
+        index: 2,
+        role: 'standing assisted top frame',
+        scene: 'standing top position for a box-assisted pistol squat progression with one foot planted in front of a low box, opposite leg extended forward and hovering, arms reaching forward for balance',
+      },
+    ],
+  },
+  {
+    name: 'Push Press',
+    displayName: 'Push Press',
+    subject: 'woman',
+    category: 'upper-body',
+    slug: 'push-press',
+    primaryImage: '/images/upper-body/push-press-1.png',
+    targetFrames: 2,
+    muscles: 'deltoids, triceps brachii, quadriceps femoris, gluteus maximus, abdominal stabilizers',
+    avoid: 'strict press with no leg drive, split jerk stance, push jerk catch, deep squat, excessive back arch, cropped barbell',
+    frames: [
+      {
+        index: 2,
+        role: 'dip-and-drive start frame',
+        scene: 'push press start position with barbell resting at the shoulders in front rack, elbows slightly forward, small controlled knee dip, torso vertical and braced, feet hip-width',
+      },
+    ],
+  },
+  {
+    name: 'Ring Row',
+    displayName: 'Ring Row',
+    subject: 'man',
+    category: 'upper-body',
+    slug: 'ring-row',
+    primaryImage: '/images/upper-body/ring-row-1.png',
+    targetFrames: 2,
+    muscles: 'latissimus dorsi, rhomboids, middle trapezius, posterior deltoid, biceps brachii, abdominal stabilizers',
+    avoid: 'barbell inverted row, pull-up, ring dip, TRX handles, bent hips, sagging body, cropped rings or straps',
+    frames: [
+      {
+        index: 2,
+        role: 'arm-extended bottom frame',
+        scene: 'bottom position of a ring row with arms straight, hands holding gymnastic rings, body straight from shoulders to heels, heels on floor, rings suspended from visible straps',
+      },
+    ],
+  },
+]
+
 const BATCHES: Record<string, BatchExercise[]> = {
   '01': BATCH_01,
   '02': BATCH_02,
   '03': BATCH_03,
   '04': BATCH_04,
+  '05': BATCH_05,
 }
 
 function promptFor(exercise: BatchExercise, frame: BatchExercise['frames'][number]): string {
