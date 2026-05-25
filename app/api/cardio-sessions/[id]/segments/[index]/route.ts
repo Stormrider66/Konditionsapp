@@ -3,32 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import type { CardioSegmentType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
-
-interface CardioSegmentData {
-  id: string
-  type: string
-  duration?: number
-  distance?: number
-  pace?: string
-  zone?: number
-  notes?: string
-}
-
-/**
- * Parse pace string to seconds per km
- */
-function parsePaceToSeconds(pace: string | undefined): number | undefined {
-  if (!pace) return undefined
-  const parts = pace.split(':')
-  if (parts.length === 2) {
-    const minutes = parseInt(parts[0])
-    const seconds = parseInt(parts[1])
-    if (!isNaN(minutes) && !isNaN(seconds)) {
-      return minutes * 60 + seconds
-    }
-  }
-  return undefined
-}
+import { buildCardioFocusModeSegments, type AppLocale } from '@/lib/cardio/focus-mode-segments'
 
 /**
  * PUT /api/cardio-sessions/[id]/segments/[index]
@@ -57,6 +32,7 @@ export async function PUT(
       )
     }
     const { clientId } = resolved
+    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
 
     const body = await request.json()
 
@@ -92,21 +68,24 @@ export async function PUT(
       )
     }
 
-    // Get segment data from session
-    const segments = (assignment.session.segments as unknown as CardioSegmentData[]) || []
-    if (segmentIndex >= segments.length) {
+    const focusModeSegments = buildCardioFocusModeSegments({
+      segments: assignment.session.segments,
+      locale,
+    })
+    if (segmentIndex >= focusModeSegments.length) {
       return NextResponse.json(
         { success: false, error: 'Segment index out of range' },
         { status: 400 }
       )
     }
 
-    const segment = segments[segmentIndex]
-    const segmentType = (segment.type?.toUpperCase() || 'STEADY') as CardioSegmentType
+    const segment = focusModeSegments[segmentIndex]
+    const segmentType = segment.type as CardioSegmentType
 
     // Find or get active session log
     let sessionLog = await prisma.cardioSessionLog.findFirst({
       where: {
+        assignmentId: assignment.id,
         sessionId: assignment.sessionId,
         athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
@@ -138,11 +117,10 @@ export async function PUT(
     const segmentLogData = {
       segmentIndex,
       segmentType,
-      // Planned values (convert distance from meters to km)
-      plannedDuration: segment.duration,
-      plannedDistance: segment.distance ? segment.distance / 1000 : undefined,
-      plannedPace: parsePaceToSeconds(segment.pace),
-      plannedZone: segment.zone,
+      plannedDuration: segment.plannedDuration,
+      plannedDistance: segment.plannedDistance,
+      plannedPace: segment.plannedPace,
+      plannedZone: segment.plannedZone,
       // Actual values
       actualDuration: actualDuration ?? undefined,
       actualDistance: actualDistance ?? undefined,
@@ -179,8 +157,8 @@ export async function PUT(
       where: { cardioSessionLogId: sessionLog.id },
     })
 
-    const allComplete = segments.length > 0 &&
-      allSegmentLogs.filter(l => l.completed || l.skipped).length >= segments.length
+    const allComplete = focusModeSegments.length > 0 &&
+      allSegmentLogs.filter(l => l.completed || l.skipped).length >= focusModeSegments.length
 
     return NextResponse.json({
       success: true,
@@ -188,7 +166,7 @@ export async function PUT(
         segmentLog,
         allComplete,
         completedCount: allSegmentLogs.filter(l => l.completed || l.skipped).length,
-        totalSegments: segments.length,
+        totalSegments: focusModeSegments.length,
       },
     })
   } catch (error) {
@@ -227,6 +205,7 @@ export async function GET(
       )
     }
     const { clientId } = resolved
+    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
 
     // Get assignment with session
     const assignment = await prisma.cardioSessionAssignment.findUnique({
@@ -249,20 +228,23 @@ export async function GET(
       )
     }
 
-    // Get segment data from session
-    const segments = (assignment.session.segments as unknown as CardioSegmentData[]) || []
-    if (segmentIndex >= segments.length) {
+    const focusModeSegments = buildCardioFocusModeSegments({
+      segments: assignment.session.segments,
+      locale,
+    })
+    if (segmentIndex >= focusModeSegments.length) {
       return NextResponse.json(
         { success: false, error: 'Segment index out of range' },
         { status: 400 }
       )
     }
 
-    const segment = segments[segmentIndex]
+    const segment = focusModeSegments[segmentIndex]
 
     // Check for existing log
     const sessionLog = await prisma.cardioSessionLog.findFirst({
       where: {
+        assignmentId: assignment.id,
         sessionId: assignment.sessionId,
         athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },

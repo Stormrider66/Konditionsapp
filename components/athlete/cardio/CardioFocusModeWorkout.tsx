@@ -76,6 +76,7 @@ interface CardioFocusModeWorkoutProps {
   sport: string
   segments: FocusModeSegment[]
   initialSegmentIndex?: number
+  autoStartFirstTimedSegment?: boolean
   onClose: () => void
   onComplete: (data: { sessionRPE: number; notes?: string }) => void
   onSegmentComplete: (
@@ -115,6 +116,7 @@ export function CardioFocusModeWorkout({
   sport: _sport,
   segments: initialSegments,
   initialSegmentIndex = 0,
+  autoStartFirstTimedSegment = false,
   onClose,
   onComplete,
   onSegmentComplete,
@@ -424,6 +426,7 @@ export function CardioFocusModeWorkout({
       <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-4">
         {viewState === 'timer' && currentSegment.plannedDuration ? (
           <IntervalTimer
+            key={currentSegment.id}
             duration={currentSegment.plannedDuration}
             segmentType={currentSegment.type}
             segmentNumber={currentIndex + 1}
@@ -434,7 +437,7 @@ export function CardioFocusModeWorkout({
             notes={currentSegment.notes}
             onComplete={handleTimerComplete}
             onSkip={handleTimerSkip}
-            autoStart={false}
+            autoStart={autoStartFirstTimedSegment && currentIndex === initialSegmentIndex}
             voiceSpeak={voice.speak}
             disableVoiceCues={liveCoachActive}
             forcePaused={forcePaused}
@@ -466,6 +469,7 @@ export function CardioFocusModeWorkout({
           </div>
         ) : (
           <SegmentLoggingForm
+            key={currentSegment.id}
             segmentIndex={currentIndex}
             segmentType={currentSegment.type}
             typeName={currentSegment.typeName}

@@ -67,6 +67,7 @@ interface CardioFocusApiResponse {
     } | null
     segments: CardioFocusApiSegment[]
     progress: {
+      currentSegmentIndex: number
       totalSegments: number
       completedSegments: number
       totalPlannedDuration: number
@@ -233,11 +234,16 @@ export function CardioWorkoutPreview({
 
   async function handleStart() {
     if (!apiData) return
+    startedAtRef.current = Date.now()
     if (!apiData.sessionLog) {
       try {
-        await fetch(`/api/cardio-sessions/${assignmentId}/focus-mode`, { method: 'POST' })
-      } catch {
-        /* noop — focus mode tolerates missing session log */
+        const res = await fetch(`/api/cardio-sessions/${assignmentId}/focus-mode`, { method: 'POST' })
+        if (!res.ok) throw new Error(t('errors.loadFailed'))
+        const json = await res.json()
+        setApiData((prev) => prev ? { ...prev, sessionLog: json.data ?? prev.sessionLog } : prev)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t('errors.loadFailed'))
+        return
       }
     }
     setShowFocusMode(true)
@@ -246,10 +252,19 @@ export function CardioWorkoutPreview({
   async function handleComplete(payload: CompleteSessionPayload) {
     setIsCompleting(true)
     try {
+      const durationSeconds =
+        payload.duration != null
+          ? Math.max(1, Math.round(payload.duration * 60))
+          : apiData?.progress.totalPlannedDuration ||
+            Math.max(
+              60,
+              Math.round((Date.now() - (startedAtRef.current ?? Date.now())) / 1000),
+            )
       const completionPayload = {
         status: 'COMPLETED',
         sessionRPE: payload.rpe,
         notes: payload.notes,
+        actualDuration: durationSeconds,
       }
       let res = await fetch(`/api/cardio-sessions/${assignmentId}/focus-mode`, {
         method: 'PUT',
@@ -321,21 +336,28 @@ export function CardioWorkoutPreview({
           skipped: s.skipped,
           logId: s.logId,
         }))}
+        initialSegmentIndex={Math.min(
+          apiData.progress.currentSegmentIndex ?? 0,
+          Math.max(apiData.segments.length - 1, 0),
+        )}
+        autoStartFirstTimedSegment
         onClose={() => {
           setShowFocusMode(false)
           void refresh()
         }}
-        onComplete={async () => {
-          setShowFocusMode(false)
-          onCompleted?.()
-          onClose()
+        onComplete={async (payload) => {
+          await handleComplete({
+            rpe: payload.sessionRPE,
+            notes: payload.notes,
+          })
         }}
         onSegmentComplete={async (segmentIndex, segData) => {
-          await fetch(`/api/cardio-sessions/${assignmentId}/segments/${segmentIndex}`, {
+          const res = await fetch(`/api/cardio-sessions/${assignmentId}/segments/${segmentIndex}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(segData),
           })
+          if (!res.ok) throw new Error('Failed to log cardio segment')
         }}
       />
     )

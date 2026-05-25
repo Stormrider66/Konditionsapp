@@ -1,136 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-import type { CardioSegmentType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
+import { buildCardioFocusModeSegments } from '@/lib/cardio/focus-mode-segments'
 
 type AppLocale = 'en' | 'sv'
-
-interface CardioSegmentData {
-  id: string
-  type: string
-  duration?: number  // seconds
-  distance?: number  // meters
-  calories?: number  // kcal
-  pace?: string      // e.g., "5:30" per km
-  zone?: number      // 1-5
-  notes?: string
-  exercises?: Array<{
-    name?: string
-    sets?: number
-    reps?: string
-    notes?: string
-  }>
-  // Flat segment repeat fields
-  repeats?: number
-  restDuration?: number // seconds
-  // Repeat group fields
-  steps?: CardioChildStepData[]
-  restBetweenRounds?: number // seconds
-}
-
-interface CardioChildStepData {
-  id: string
-  type: string
-  duration?: number
-  distance?: number
-  calories?: number
-  pace?: string
-  zone?: number
-  notes?: string
-  targetType?: string
-  targetValue?: string
-}
-
-interface FocusModeSegment {
-  id: string
-  index: number
-  type: CardioSegmentType
-  typeName: string
-  // Planned values
-  plannedDuration?: number
-  plannedDistance?: number  // km
-  plannedPace?: number      // sec/km
-  plannedZone?: number
-  notes?: string
-  // Actual values (if logged)
-  actualDuration?: number
-  actualDistance?: number
-  actualPace?: number
-  actualAvgHR?: number
-  actualMaxHR?: number
-  // Status
-  completed: boolean
-  skipped: boolean
-  logId?: string
-}
-
-const SEGMENT_TYPE_NAMES: Record<AppLocale, Record<string, string>> = {
-  en: {
-    WARMUP: 'Warm-up',
-    COOLDOWN: 'Cool-down',
-    INTERVAL: 'Interval',
-    STEADY: 'Steady',
-    RECOVERY: 'Recovery',
-    REST: 'Rest',
-    HILL: 'Hill',
-    DRILLS: 'Drills',
-    CORE: 'Core',
-    PREHAB: 'Stability / Prehab',
-    PLYOMETRIC: 'Plyometrics',
-  },
-  sv: {
-    WARMUP: 'Uppvärmning',
-    COOLDOWN: 'Nedvarvning',
-    INTERVAL: 'Intervall',
-    STEADY: 'Jämn',
-    RECOVERY: 'Återhämtning',
-    REST: 'Vila',
-    HILL: 'Backe',
-    DRILLS: 'Övningar',
-    CORE: 'Core',
-    PREHAB: 'Stabilitet / Prehab',
-    PLYOMETRIC: 'Plyometri',
-  },
-}
-
-/**
- * Parse pace string to seconds per km
- * Handles both formats:
- * - MM:SS format: "5:30" -> 330, "4:15" -> 255
- * - Numeric string: "330" -> 330 (already in seconds)
- */
-function parsePaceToSeconds(pace: string | undefined): number | undefined {
-  if (!pace) return undefined
-
-  // Check if it's MM:SS format (contains colon)
-  if (pace.includes(':')) {
-    const parts = pace.split(':')
-    if (parts.length === 2) {
-      const minutes = parseInt(parts[0])
-      const seconds = parseInt(parts[1])
-      if (!isNaN(minutes) && !isNaN(seconds)) {
-        return minutes * 60 + seconds
-      }
-    }
-  } else {
-    // Try parsing as numeric string (already in seconds)
-    const numericPace = parseInt(pace)
-    if (!isNaN(numericPace) && numericPace > 0) {
-      return numericPace
-    }
-  }
-  return undefined
-}
-
-function segmentTypeName(type: string, fallback: string | undefined, locale: AppLocale): string {
-  return SEGMENT_TYPE_NAMES[locale][type] || fallback || type
-}
-
-function t(locale: AppLocale, en: string, sv: string): string {
-  return locale === 'sv' ? sv : en
-}
 
 /**
  * GET /api/cardio-sessions/[id]/focus-mode
@@ -183,6 +58,7 @@ export async function GET(
     // Check for existing in-progress session log
     const existingLog = await prisma.cardioSessionLog.findFirst({
       where: {
+        assignmentId: assignment.id,
         sessionId: session.id,
         athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
@@ -195,167 +71,11 @@ export async function GET(
       orderBy: { startedAt: 'desc' },
     })
 
-    // Parse segments from JSON
-    const segments = (session.segments as unknown as CardioSegmentData[]) || []
-
-    // Build segment log map if we have existing logs
-    const segmentLogMap = new Map(
-      (existingLog?.segmentLogs || []).map(log => [log.segmentIndex, log])
-    )
-
-    // Build focus mode segments array — flatten repeat groups and single-step repeats
-    const focusModeSegments: FocusModeSegment[] = []
-    let globalIndex = 0
-
-    for (const seg of segments) {
-      // REPEAT_GROUP: flatten multi-step repeat blocks into individual steps
-      if (seg.type === 'REPEAT_GROUP' && seg.steps && seg.steps.length > 0) {
-        const repeats = seg.repeats || 1
-        for (let rep = 0; rep < repeats; rep++) {
-          for (const step of seg.steps) {
-            const log = segmentLogMap.get(globalIndex)
-            const segmentType = (step.type?.toUpperCase() || 'INTERVAL') as CardioSegmentType
-            const calLabel = step.calories ? `${step.calories} cal` : ''
-            const targetLabel = step.targetType && step.targetType !== 'none' && step.targetValue
-              ? `${step.targetValue} ${step.targetType === 'power' ? 'W' : step.targetType === 'cadence' ? 'rpm' : ''}`
-              : ''
-            const noteParts = [
-              t(locale, `Round ${rep + 1}/${repeats}`, `Runda ${rep + 1}/${repeats}`),
-              step.notes,
-              calLabel,
-              targetLabel,
-            ].filter(Boolean)
-
-            focusModeSegments.push({
-              id: `${seg.id}-r${rep}-${step.id}`,
-              index: globalIndex,
-              type: segmentType,
-              typeName: segmentTypeName(segmentType, step.type, locale),
-              plannedDuration: step.duration,
-              plannedDistance: step.distance ? step.distance / 1000 : undefined,
-              plannedPace: parsePaceToSeconds(step.pace),
-              plannedZone: step.zone,
-              notes: noteParts.join(' — '),
-              actualDuration: log?.actualDuration ?? undefined,
-              actualDistance: log?.actualDistance ?? undefined,
-              actualPace: log?.actualPace ?? undefined,
-              actualAvgHR: log?.actualAvgHR ?? undefined,
-              actualMaxHR: log?.actualMaxHR ?? undefined,
-              completed: log?.completed ?? false,
-              skipped: log?.skipped ?? false,
-              logId: log?.id,
-            })
-            globalIndex++
-          }
-          // Rest between rounds (except after last round)
-          if (seg.restBetweenRounds && seg.restBetweenRounds > 0 && rep < repeats - 1) {
-            const log = segmentLogMap.get(globalIndex)
-            focusModeSegments.push({
-              id: `${seg.id}-r${rep}-rest`,
-              index: globalIndex,
-              type: 'RECOVERY' as CardioSegmentType,
-              typeName: t(locale, 'Rest between rounds', 'Vila mellan rundor'),
-              plannedDuration: seg.restBetweenRounds,
-              notes: t(locale, `Round ${rep + 1}/${repeats} complete`, `Runda ${rep + 1}/${repeats} klar`),
-              actualDuration: log?.actualDuration ?? undefined,
-              actualDistance: log?.actualDistance ?? undefined,
-              actualPace: log?.actualPace ?? undefined,
-              actualAvgHR: log?.actualAvgHR ?? undefined,
-              actualMaxHR: log?.actualMaxHR ?? undefined,
-              completed: log?.completed ?? false,
-              skipped: log?.skipped ?? false,
-              logId: log?.id,
-            })
-            globalIndex++
-          }
-        }
-        continue
-      }
-
-      // Single-step repeat (e.g. 10x200m with 60s rest): expand to individual reps
-      if (seg.repeats && seg.repeats > 1) {
-        for (let rep = 0; rep < seg.repeats; rep++) {
-          // Work step
-          const log = segmentLogMap.get(globalIndex)
-          const segmentType = (seg.type?.toUpperCase() || 'INTERVAL') as CardioSegmentType
-          const calLabel = seg.calories ? `${seg.calories} cal` : ''
-          const noteParts = [`${rep + 1}/${seg.repeats}`, seg.notes, calLabel].filter(Boolean)
-
-          focusModeSegments.push({
-            id: `${seg.id}-rep${rep}`,
-            index: globalIndex,
-            type: segmentType,
-            typeName: segmentTypeName(segmentType, seg.type, locale),
-            plannedDuration: seg.duration,
-            plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
-            plannedPace: parsePaceToSeconds(seg.pace),
-            plannedZone: seg.zone,
-            notes: noteParts.join(' — '),
-            actualDuration: log?.actualDuration ?? undefined,
-            actualDistance: log?.actualDistance ?? undefined,
-            actualPace: log?.actualPace ?? undefined,
-            actualAvgHR: log?.actualAvgHR ?? undefined,
-            actualMaxHR: log?.actualMaxHR ?? undefined,
-            completed: log?.completed ?? false,
-            skipped: log?.skipped ?? false,
-            logId: log?.id,
-          })
-          globalIndex++
-
-          // Rest between reps (except after last)
-          if (seg.restDuration && seg.restDuration > 0 && rep < seg.repeats - 1) {
-            const restLog = segmentLogMap.get(globalIndex)
-            focusModeSegments.push({
-              id: `${seg.id}-rest${rep}`,
-              index: globalIndex,
-              type: 'RECOVERY' as CardioSegmentType,
-              typeName: segmentTypeName('REST', 'REST', locale),
-              plannedDuration: seg.restDuration,
-              completed: restLog?.completed ?? false,
-              skipped: restLog?.skipped ?? false,
-              logId: restLog?.id,
-            })
-            globalIndex++
-          }
-        }
-        continue
-      }
-
-      // Simple flat segment (no repeats)
-      const log = segmentLogMap.get(globalIndex)
-      const segmentType = (seg.type?.toUpperCase() || 'STEADY') as CardioSegmentType
-      const calLabel = seg.calories ? `${seg.calories} cal` : ''
-      const exerciseLabel = seg.exercises?.length
-        ? seg.exercises.map((exercise) => [
-          exercise.name,
-          exercise.sets ? `${exercise.sets} set` : undefined,
-          exercise.reps,
-          exercise.notes,
-        ].filter(Boolean).join(' • ')).join(' — ')
-        : ''
-      const noteParts = [seg.notes, exerciseLabel, calLabel].filter(Boolean)
-
-      focusModeSegments.push({
-        id: seg.id || `segment-${globalIndex}`,
-        index: globalIndex,
-        type: segmentType,
-        typeName: segmentTypeName(segmentType, seg.type, locale),
-        plannedDuration: seg.duration,
-        plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
-        plannedPace: parsePaceToSeconds(seg.pace),
-        plannedZone: seg.zone,
-        notes: noteParts.join(' — ') || seg.notes,
-        actualDuration: log?.actualDuration ?? undefined,
-        actualDistance: log?.actualDistance ?? undefined,
-        actualPace: log?.actualPace ?? undefined,
-        actualAvgHR: log?.actualAvgHR ?? undefined,
-        actualMaxHR: log?.actualMaxHR ?? undefined,
-        completed: log?.completed ?? false,
-        skipped: log?.skipped ?? false,
-        logId: log?.id,
-      })
-      globalIndex++
-    }
+    const focusModeSegments = buildCardioFocusModeSegments({
+      segments: session.segments,
+      segmentLogs: existingLog?.segmentLogs || [],
+      locale,
+    })
 
     // Calculate progress
     const totalSegments = focusModeSegments.length
@@ -404,6 +124,7 @@ export async function GET(
           totalDuration: session.totalDuration,
           totalDistance: session.totalDistance,
           avgZone: session.avgZone,
+          segments: session.segments,
         },
         sessionLog: existingLog ? {
           id: existingLog.id,
@@ -476,6 +197,7 @@ export async function POST(
     // Check for existing in-progress log
     const existingLog = await prisma.cardioSessionLog.findFirst({
       where: {
+        assignmentId: assignment.id,
         sessionId: assignment.sessionId,
         athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
@@ -590,6 +312,7 @@ export async function PUT(
     // Find the session log
     const sessionLog = await prisma.cardioSessionLog.findFirst({
       where: {
+        assignmentId: assignment.id,
         sessionId: assignment.sessionId,
         athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
