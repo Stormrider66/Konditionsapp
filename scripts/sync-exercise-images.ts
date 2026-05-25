@@ -239,6 +239,7 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'Bird Dog': ['bird-dog'],
   'Pallof Press': ['pallof-press'],
   'Pallof Press (band)': ['pallof-press-band'],
+  'Rotational Medicine Ball Throw': ['rotational-medicine-ball-throw'],
   'Suitcase Carry': ['suitcase-carry'],
   'Mountain Climbers': ['mountain-climber'],
   'Bicycle Crunches': ['bicycle-crunches'],
