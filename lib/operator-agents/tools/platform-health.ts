@@ -79,12 +79,26 @@ export async function getAgentErrorRate(): Promise<OperatorToolResult> {
     const since1h = new Date(Date.now() - 60 * 60 * 1000)
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-    const [total1h, failed1h, total24h, failed24h] = await Promise.all([
-      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since1h } } }),
-      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since1h }, status: 'FAILED' } }),
-      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since24h } } }),
-      prisma.operatorAgentRun.count({ where: { createdAt: { gte: since24h }, status: 'FAILED' } }),
-    ])
+    const [counts] = await prisma.$queryRaw<Array<{
+      total1h: bigint | number | null
+      failed1h: bigint | number | null
+      total24h: bigint | number | null
+      failed24h: bigint | number | null
+    }>>`
+      SELECT
+        COUNT(*) FILTER (WHERE "createdAt" >= ${since1h})::int AS "total1h",
+        COUNT(*) FILTER (WHERE "createdAt" >= ${since1h} AND "status" = 'FAILED')::int AS "failed1h",
+        COUNT(*)::int AS "total24h",
+        COUNT(*) FILTER (WHERE "status" = 'FAILED')::int AS "failed24h"
+      FROM "OperatorAgentRun"
+      WHERE "createdAt" >= ${since24h}
+    `
+
+    const toNumber = (value: bigint | number | null | undefined) => Number(value ?? 0)
+    const total1h = toNumber(counts?.total1h)
+    const failed1h = toNumber(counts?.failed1h)
+    const total24h = toNumber(counts?.total24h)
+    const failed24h = toNumber(counts?.failed24h)
 
     const errorRate1h = total1h > 0 ? failed1h / total1h : 0
     const errorRate24h = total24h > 0 ? failed24h / total24h : 0

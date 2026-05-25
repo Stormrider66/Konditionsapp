@@ -1,6 +1,7 @@
 // lib/prisma.ts
 import { PrismaClient, type Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
+import { buildPrismaDatasourceUrl } from '@/lib/prisma-datasource-url'
 
 const SLOW_QUERY_MS = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 500)
 
@@ -9,7 +10,9 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
+  const datasourceUrl = buildPrismaDatasourceUrl()
   const client = new PrismaClient({
+    ...(datasourceUrl ? { datasources: { db: { url: datasourceUrl } } } : {}),
     log: [
       { emit: 'event', level: 'query' },
       { emit: 'event', level: 'warn' },

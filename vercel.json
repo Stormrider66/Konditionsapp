@@ -108,51 +108,51 @@
 
     {
       "path": "/api/cron/operator/platform-health",
-      "schedule": "*/15 * * * *"
+      "schedule": "7,22,37,52 * * * *"
     },
     {
       "path": "/api/cron/operator/support",
-      "schedule": "*/30 * * * *"
+      "schedule": "13,43 * * * *"
     },
     {
       "path": "/api/cron/operator/cost-guardian",
-      "schedule": "0 * * * *"
+      "schedule": "11 * * * *"
     },
     {
       "path": "/api/cron/operator/churn-predictor",
-      "schedule": "0 6 * * *"
+      "schedule": "17 6 * * *"
     },
     {
       "path": "/api/cron/operator/daily-brief",
-      "schedule": "0 7 * * *"
+      "schedule": "23 7 * * *"
     },
     {
       "path": "/api/cron/operator/onboarding",
-      "schedule": "0 9 * * *"
+      "schedule": "29 9 * * *"
     },
     {
       "path": "/api/cron/operator/data-quality",
-      "schedule": "0 4 * * *"
+      "schedule": "37 4 * * *"
     },
     {
       "path": "/api/cron/operator/compliance",
-      "schedule": "0 5 * * *"
+      "schedule": "41 5 * * *"
     },
     {
       "path": "/api/cron/operator/business-intel",
-      "schedule": "0 8 * * 1"
+      "schedule": "19 8 * * 1"
     },
     {
       "path": "/api/cron/operator/feature-curator",
-      "schedule": "0 2 * * 0"
+      "schedule": "31 2 * * 0"
     },
     {
       "path": "/api/cron/operator/marketing",
-      "schedule": "0 15 * * 5"
+      "schedule": "17 15 * * 5"
     },
     {
       "path": "/api/cron/operator/competitor-intel",
-      "schedule": "0 10 * * 5"
+      "schedule": "47 10 * * 5"
     },
     {
       "path": "/api/cron/operator/job-worker",
@@ -160,7 +160,7 @@
     },
     {
       "path": "/api/cron/operator/fx-refresh",
-      "schedule": "0 3 * * 1"
+      "schedule": "13 3 * * 1"
     }
   ]
 }

@@ -61,18 +61,18 @@ export const OPERATOR_MODEL_INTENT: Record<OperatorAgentType, ModelIntent> = {
  * Can be overridden per-environment.
  */
 export const OPERATOR_SCHEDULES: Record<OperatorAgentType, string> = {
-  SUPPORT: '*/30 * * * *',              // Every 30 min
-  CHURN_PREDICTOR: '0 6 * * *',         // Daily 6am UTC
-  FEATURE_CURATOR: '0 2 * * 0',         // Weekly Sunday 2am
-  PLATFORM_HEALTH: '*/15 * * * *',      // Every 15 min
-  COST_GUARDIAN: '0 * * * *',           // Hourly
-  FOUNDERS_BRIEF: '0 7 * * *',          // Daily 7am UTC
-  ONBOARDING_ACTIVATION: '0 9 * * *',   // Daily 9am UTC
-  BUSINESS_INTELLIGENCE: '0 8 * * 1',   // Weekly Monday 8am
-  MARKETING_CONTENT: '0 15 * * 5',      // Weekly Friday 3pm
-  DATA_QUALITY: '0 4 * * *',            // Daily 4am
-  COMPLIANCE_SECURITY: '0 5 * * *',     // Daily 5am
-  COMPETITOR_INTEL: '0 10 * * 5',       // Weekly Friday 10am
+  SUPPORT: '13,43 * * * *',             // Every 30 min, staggered
+  CHURN_PREDICTOR: '17 6 * * *',        // Daily 6:17am UTC
+  FEATURE_CURATOR: '31 2 * * 0',        // Weekly Sunday 2:31am
+  PLATFORM_HEALTH: '7,22,37,52 * * * *', // Every 15 min, staggered
+  COST_GUARDIAN: '11 * * * *',          // Hourly, staggered
+  FOUNDERS_BRIEF: '23 7 * * *',         // Daily 7:23am UTC
+  ONBOARDING_ACTIVATION: '29 9 * * *',  // Daily 9:29am UTC
+  BUSINESS_INTELLIGENCE: '19 8 * * 1',  // Weekly Monday 8:19am
+  MARKETING_CONTENT: '17 15 * * 5',     // Weekly Friday 3:17pm
+  DATA_QUALITY: '37 4 * * *',           // Daily 4:37am
+  COMPLIANCE_SECURITY: '41 5 * * *',    // Daily 5:41am
+  COMPETITOR_INTEL: '47 10 * * 5',      // Weekly Friday 10:47am
 }
 
 // ============================================================================
