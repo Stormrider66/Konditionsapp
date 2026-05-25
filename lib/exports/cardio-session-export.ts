@@ -180,6 +180,41 @@ function formatDistanceKmValue(kilometers: number | undefined): string {
   return kilometers < 1 ? kilometers.toFixed(2) : formatNumber(kilometers)
 }
 
+function secondsToMinutes(seconds: number | undefined): number | undefined {
+  if (!seconds || seconds <= 0) return undefined
+  return roundedValue(seconds / 60)
+}
+
+function metersToKilometers(meters: number | undefined): number | undefined {
+  if (!meters || meters <= 0) return undefined
+  return Math.round((meters / 1000) * 1000) / 1000
+}
+
+function looksLikeStoredUnits(segments: CardioSegment[]): boolean {
+  return segments.some((segment) => {
+    const duration = numericValue(segment.duration)
+    const distance = numericValue(segment.distance)
+    const restDuration = numericValue(segment.restDuration)
+
+    return Boolean(
+      (duration && duration > 240)
+      || (restDuration && restDuration > 90)
+      || (distance && distance >= 250)
+    )
+  })
+}
+
+export function normalizeCardioExportSegments(segments: CardioSegment[]): CardioSegment[] {
+  if (!looksLikeStoredUnits(segments)) return segments
+
+  return segments.map((segment) => ({
+    ...segment,
+    duration: secondsToMinutes(numericValue(segment.duration)),
+    distance: metersToKilometers(numericValue(segment.distance)),
+    restDuration: secondsToMinutes(numericValue(segment.restDuration)),
+  }))
+}
+
 function getRepeatCount(segment: CardioSegment): number {
   const repeats = numericValue(segment.repeats)
   return repeats && repeats > 1 ? Math.floor(repeats) : 1
@@ -225,9 +260,10 @@ export function getCardioExportTotals(segments: CardioSegment[]): {
   totalDistance: number
   avgZone: number
 } {
-  const totalDuration = segments.reduce((acc, segment) => acc + getSegmentTotalDuration(segment), 0)
-  const totalDistance = segments.reduce((acc, segment) => acc + getSegmentTotalDistance(segment), 0)
-  const zones = segments.map(getZoneValue).filter((zone): zone is number => Number.isFinite(zone))
+  const exportSegments = normalizeCardioExportSegments(segments)
+  const totalDuration = exportSegments.reduce((acc, segment) => acc + getSegmentTotalDuration(segment), 0)
+  const totalDistance = exportSegments.reduce((acc, segment) => acc + getSegmentTotalDistance(segment), 0)
+  const zones = exportSegments.map(getZoneValue).filter((zone): zone is number => Number.isFinite(zone))
   const avgZone = zones.length > 0
     ? Math.round(zones.reduce((acc, zone) => acc + zone, 0) / zones.length)
     : 0
@@ -242,11 +278,12 @@ export async function generateCardioSessionExcel(data: CardioSessionData): Promi
   const locale = getExportLocale(data)
   const labels = CARDIO_LABELS[locale]
   const dateLocale = getDateLocale(locale)
+  const segments = normalizeCardioExportSegments(data.segments)
   const workbook = new ExcelJS.Workbook()
   workbook.creator = data.organization || 'Trainomics'
   workbook.created = new Date()
 
-  const { totalDuration, totalDistance, avgZone } = getCardioExportTotals(data.segments)
+  const { totalDuration, totalDistance, avgZone } = getCardioExportTotals(segments)
 
   // Info Sheet
   const infoData: (string | number)[][] = [
@@ -262,7 +299,7 @@ export async function generateCardioSessionExcel(data: CardioSessionData): Promi
     [labels.summary],
     [labels.totalTime, formatDurationLabel(totalDuration)],
     [labels.totalDistance, formatDistanceLabel(totalDistance)],
-    [labels.segmentCount, data.segments.length],
+    [labels.segmentCount, segments.length],
     [labels.averageZone, avgZone ? `Z${avgZone}` : '-'],
   ]
 
@@ -277,7 +314,7 @@ export async function generateCardioSessionExcel(data: CardioSessionData): Promi
     ['#', labels.type, `${labels.time} (min)`, `${labels.distance} (km)`, labels.pace, labels.heartRate, labels.zone, labels.repeats, labels.rest, labels.notes],
   ]
 
-  data.segments.forEach((seg, idx) => {
+  segments.forEach((seg, idx) => {
     segmentData.push([
       idx + 1,
       getSegmentLabel(seg, locale),
@@ -324,6 +361,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   const locale = getExportLocale(data)
   const labels = CARDIO_LABELS[locale]
   const dateLocale = getDateLocale(locale)
+  const segments = normalizeCardioExportSegments(data.segments)
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -334,7 +372,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   const margin = 15
   let y = 20
 
-  const { totalDuration, totalDistance, avgZone } = getCardioExportTotals(data.segments)
+  const { totalDuration, totalDistance, avgZone } = getCardioExportTotals(segments)
 
   // Header
   pdf.setFontSize(20)
@@ -380,7 +418,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   pdf.text(`${labels.totalTime}: ${formatDurationLabel(totalDuration)}`, margin + 5, summaryY)
   pdf.text(`${labels.totalDistance}: ${formatDistanceLabel(totalDistance)}`, margin + 50, summaryY)
   pdf.text(`${labels.averageZone}: ${avgZone ? `Z${avgZone}` : '-'}`, margin + 100, summaryY)
-  pdf.text(`Segment: ${data.segments.length}`, margin + 140, summaryY)
+  pdf.text(`Segment: ${segments.length}`, margin + 140, summaryY)
 
   y += 20
 
@@ -408,7 +446,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
 
   // Table rows
   pdf.setFont('helvetica', 'normal')
-  data.segments.forEach((seg, idx) => {
+  segments.forEach((seg, idx) => {
     // Check if we need a new page
     if (y > 270) {
       pdf.addPage()
@@ -454,7 +492,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
     let xPos = margin
     const timelineTotal = totalDuration > 0 ? totalDuration : totalDistance
 
-    data.segments.forEach((seg) => {
+    segments.forEach((seg) => {
       if (timelineTotal <= 0) return
 
       const timelineValue = totalDuration > 0 ? getSegmentTotalDuration(seg) : getSegmentTotalDistance(seg)
