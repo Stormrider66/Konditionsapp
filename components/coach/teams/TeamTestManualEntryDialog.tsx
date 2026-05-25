@@ -98,8 +98,11 @@ export function TeamTestManualEntryDialog({
       setIsLoading(true)
       setExerciseLoadError(null)
       try {
+        const teamQuery = businessSlug ? `?businessSlug=${encodeURIComponent(businessSlug)}` : ''
         const [teamRes, exRes] = await Promise.all([
-          fetch(`/api/teams/${teamId}/analysis-summary`),
+          fetch(`/api/teams/${teamId}/analysis-summary${teamQuery}`, {
+            headers: businessSlug ? { 'x-business-slug': businessSlug } : undefined,
+          }),
           fetch(`/api/teams/${teamId}/hockey-test-package${businessSlug ? `?businessSlug=${encodeURIComponent(businessSlug)}` : ''}`),
         ])
         if (teamRes.ok) {

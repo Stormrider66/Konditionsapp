@@ -70,6 +70,7 @@ interface BulkPRImportDialogProps {
   onOpenChange: (open: boolean) => void
   teamId: string
   teamName: string
+  businessSlug?: string
   onImported?: () => void
 }
 
@@ -187,6 +188,7 @@ export function BulkPRImportDialog({
   onOpenChange,
   teamId,
   teamName,
+  businessSlug,
   onImported,
 }: BulkPRImportDialogProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
@@ -207,8 +209,11 @@ export function BulkPRImportDialog({
     async function load() {
       setIsLoading(true)
       try {
+        const teamQuery = businessSlug ? `?businessSlug=${encodeURIComponent(businessSlug)}` : ''
         const [teamRes, exRes] = await Promise.all([
-          fetch(`/api/teams/${teamId}/analysis-summary`),
+          fetch(`/api/teams/${teamId}/analysis-summary${teamQuery}`, {
+            headers: businessSlug ? { 'x-business-slug': businessSlug } : undefined,
+          }),
           fetch('/api/exercises?limit=500'),
         ])
         if (teamRes.ok) {
@@ -243,7 +248,7 @@ export function BulkPRImportDialog({
     return () => {
       cancelled = true
     }
-  }, [open, teamId])
+  }, [businessSlug, open, teamId])
 
   const rows = useMemo(
     () => parseRows(paste, members, exercises, locale),

@@ -1844,6 +1844,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         onOpenChange={setImportOpen}
         teamId={teamId}
         teamName={teamName}
+        businessSlug={businessSlug ?? undefined}
         onImported={() => {
           setImportOpen(false)
           void fetchSessions()

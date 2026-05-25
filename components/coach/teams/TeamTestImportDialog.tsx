@@ -27,7 +27,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -46,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Check, X, AlertCircle, Upload } from 'lucide-react'
+import { Loader2, Check, AlertCircle, Upload } from 'lucide-react'
 import { parseWideFormat, type ParsedWideFormat } from '@/lib/strength/parse-wide-format'
 import { PR_UNITS, PR_UNIT_LABELS, type PrUnit } from '@/lib/strength/units'
 import { useLocale } from '@/i18n/client'
@@ -74,6 +73,7 @@ interface TeamTestImportDialogProps {
   onOpenChange: (open: boolean) => void
   teamId: string
   teamName: string
+  businessSlug?: string
   onImported?: () => void
 }
 
@@ -142,6 +142,7 @@ export function TeamTestImportDialog({
   onOpenChange,
   teamId,
   teamName,
+  businessSlug,
   onImported,
 }: TeamTestImportDialogProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
@@ -166,8 +167,11 @@ export function TeamTestImportDialog({
     async function load() {
       setIsLoading(true)
       try {
+        const teamQuery = businessSlug ? `?businessSlug=${encodeURIComponent(businessSlug)}` : ''
         const [teamRes, exRes] = await Promise.all([
-          fetch(`/api/teams/${teamId}/analysis-summary`),
+          fetch(`/api/teams/${teamId}/analysis-summary${teamQuery}`, {
+            headers: businessSlug ? { 'x-business-slug': businessSlug } : undefined,
+          }),
           fetch('/api/exercises?limit=500'),
         ])
         if (teamRes.ok) {
@@ -199,19 +203,18 @@ export function TeamTestImportDialog({
         if (!cancelled) setIsLoading(false)
       }
     }
-    load()
+    void load()
     return () => {
       cancelled = true
     }
-  }, [open, teamId])
+  }, [businessSlug, open, teamId])
 
-  // Reset all overrides whenever the paste changes — old indices are
-  // invalid against a re-parsed grid.
-  useEffect(() => {
+  const updatePaste = (value: string) => {
+    setPaste(value)
     setHeaderOverrides({})
     setNameOverrides({})
     setUnitOverrides({})
-  }, [paste])
+  }
 
   const parsed: ParsedWideFormat = useMemo(() => parseWideFormat(paste), [paste])
 
@@ -306,7 +309,7 @@ export function TeamTestImportDialog({
           `Saved ${body.created} new PRs${updatedSuffix} from the test session.`,
         )
       )
-      setPaste('')
+      updatePaste('')
       onImported?.()
     } catch (e) {
       setServerError(e instanceof Error ? e.message : text(locale, 'Kunde inte spara', 'Could not save'))
@@ -339,7 +342,7 @@ export function TeamTestImportDialog({
               <Textarea
                 id="test-paste"
                 value={paste}
-                onChange={(e) => setPaste(e.target.value)}
+                onChange={(e) => updatePaste(e.target.value)}
                 placeholder={text(locale, PLACEHOLDER_SV, PLACEHOLDER_EN)}
                 rows={8}
                 className="font-mono text-xs"

@@ -52,7 +52,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
         {t('description')}
       </p>
 
-      <TeamAnalysisClient teamId={teamId} basePath={basePath} />
+      <TeamAnalysisClient teamId={teamId} basePath={basePath} businessSlug={businessSlug} />
     </div>
   )
 }

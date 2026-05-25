@@ -10,8 +10,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import {
   buildHockeyNormGap,
   findHockeyNormReference,
@@ -182,16 +183,21 @@ const STALE_ACTIVITY_DAYS = 5
 const CLOSE_TO_TARGET_RATIO = 0.05
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireCoach()
     const locale = getUserLocale(user.language)
     const { id: teamId } = await params
+    const scope = getRequestedBusinessScope(request)
+    const accessibleTeamWhere = await getAccessibleTeamWhere(user.id, scope.businessSlug)
 
     const team = await prisma.team.findFirst({
-      where: { id: teamId, userId: user.id },
+      where: {
+        id: teamId,
+        AND: [accessibleTeamWhere],
+      },
       select: {
         id: true,
         name: true,

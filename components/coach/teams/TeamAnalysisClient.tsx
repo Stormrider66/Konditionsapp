@@ -207,6 +207,7 @@ interface TeamAnalysisData {
 interface TeamAnalysisClientProps {
   teamId: string
   basePath: string
+  businessSlug?: string
 }
 
 const ZONE_META: Record<
@@ -229,7 +230,7 @@ const SCORE_ICONS: Record<string, ElementType> = {
   loadAvailability: Gauge,
 }
 
-export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps) {
+export function TeamAnalysisClient({ teamId, basePath, businessSlug }: TeamAnalysisClientProps) {
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [data, setData] = useState<TeamAnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -243,7 +244,10 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
       setIsLoading(true)
       setError(null)
       try {
-        const res = await fetch(`/api/teams/${teamId}/analysis-summary`)
+        const query = businessSlug ? `?businessSlug=${encodeURIComponent(businessSlug)}` : ''
+        const res = await fetch(`/api/teams/${teamId}/analysis-summary${query}`, {
+          headers: businessSlug ? { 'x-business-slug': businessSlug } : undefined,
+        })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const body = await res.json()
         if (!cancelled && body.success) setData(body.data)
@@ -257,7 +261,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
     return () => {
       cancelled = true
     }
-  }, [locale, teamId, refreshKey])
+  }, [businessSlug, locale, teamId, refreshKey])
 
   const flatMetrics = useMemo(() => (
     data?.metricGroups.flatMap((group) => group.metrics) ?? []
@@ -376,6 +380,7 @@ export function TeamAnalysisClient({ teamId, basePath }: TeamAnalysisClientProps
         onOpenChange={setBulkOpen}
         teamId={teamId}
         teamName={data.teamName}
+        businessSlug={businessSlug}
         onImported={() => setRefreshKey((key) => key + 1)}
       />
     </div>
