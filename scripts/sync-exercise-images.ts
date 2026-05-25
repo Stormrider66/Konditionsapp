@@ -12,6 +12,7 @@ const prisma = new PrismaClient()
 const IMAGES_DIR = path.join(process.cwd(), 'public', 'images')
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
+const mainExercisesOnly = args.includes('--main-exercises-only')
 const onlyExercises = parseCommaArg('--only=')
 const maxImages = parsePositiveIntArg('--max-images=')
 
@@ -178,6 +179,7 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'DB Strict Press': ['db-strict-press'],
   'DB Clean': ['db-clean'],
   'DB Deadlift': ['db-deadlift'],
+  'DB Snatch': ['db-snatch'],
   'DB Thruster': ['db-thruster'],
   'DB Box Step-Over': ['db-box-step-over'],
   'KB Clean': ['kb-clean'],
@@ -392,6 +394,12 @@ async function main() {
       coachId: null,
       businessId: null,
       isPublic: true,
+      ...(mainExercisesOnly
+        ? {
+            biomechanicalPillar: { not: null },
+            category: { not: 'WARMUP' as const },
+          }
+        : {}),
       ...(onlyExercises.length > 0
         ? {
             OR: onlyExercises.flatMap(name => [
@@ -405,6 +413,9 @@ async function main() {
     orderBy: { name: 'asc' }
   })
   console.log(`🏋️  Found ${exercises.length} global public system exercises in database\n`)
+  if (mainExercisesOnly) {
+    console.log('🏁 Scope narrowed to non-warmup main exercises with a biomechanical pillar\n')
+  }
   if (onlyExercises.length > 0) {
     console.log(`🎯 Limited to: ${onlyExercises.join(', ')}\n`)
   }
