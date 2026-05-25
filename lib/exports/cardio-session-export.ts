@@ -12,11 +12,11 @@ type ExportLocale = 'en' | 'sv'
 export type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
 export interface CardioSegment {
-  id: string
-  type: SegmentType
+  id?: string
+  type: SegmentType | string
   duration?: number // minutes
   distance?: number // km
-  zone: string
+  zone?: string | number
   pace?: string // "5:30/km"
   heartRate?: string // "145-155 bpm"
   notes?: string
@@ -27,7 +27,7 @@ export interface CardioSegment {
 
 export interface CardioSessionData {
   sessionName: string
-  intensity: string
+  intensity?: string
   segments: CardioSegment[]
   athleteName?: string
   coachName?: string
@@ -145,6 +145,96 @@ function getDateLocale(locale: ExportLocale): string {
   return locale === 'sv' ? 'sv-SE' : 'en-US'
 }
 
+function numericValue(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return undefined
+}
+
+function roundedValue(value: number, decimals = 1): number {
+  const multiplier = 10 ** decimals
+  return Math.round(value * multiplier) / multiplier
+}
+
+function formatNumber(value: number, decimals = 1): string {
+  const rounded = roundedValue(value, decimals)
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(decimals)
+}
+
+function formatDurationLabel(minutes: number | undefined): string {
+  if (!minutes || minutes <= 0) return '-'
+  return `${formatNumber(minutes)} min`
+}
+
+function formatDistanceLabel(kilometers: number | undefined): string {
+  if (!kilometers || kilometers <= 0) return '-'
+  if (kilometers < 1) return `${Math.round(kilometers * 1000)} m`
+  return `${formatNumber(kilometers)} km`
+}
+
+function formatDistanceKmValue(kilometers: number | undefined): string {
+  if (!kilometers || kilometers <= 0) return '-'
+  return kilometers < 1 ? kilometers.toFixed(2) : formatNumber(kilometers)
+}
+
+function getRepeatCount(segment: CardioSegment): number {
+  const repeats = numericValue(segment.repeats)
+  return repeats && repeats > 1 ? Math.floor(repeats) : 1
+}
+
+function getSegmentTotalDuration(segment: CardioSegment): number {
+  const repeats = getRepeatCount(segment)
+  const duration = numericValue(segment.duration) || 0
+  const restDuration = numericValue(segment.restDuration) || 0
+  return duration * repeats + restDuration * Math.max(repeats - 1, 0)
+}
+
+function getSegmentTotalDistance(segment: CardioSegment): number {
+  return (numericValue(segment.distance) || 0) * getRepeatCount(segment)
+}
+
+function getZoneValue(segment: CardioSegment): number | undefined {
+  const zone = segment.zone
+  if (typeof zone === 'number' && Number.isFinite(zone)) return zone
+  if (typeof zone === 'string') {
+    const match = zone.match(/\d+/)
+    if (match) return Number(match[0])
+  }
+  return undefined
+}
+
+function getZoneLabel(segment: CardioSegment): string {
+  const zone = getZoneValue(segment)
+  return zone ? `Z${zone}` : '-'
+}
+
+function getSegmentLabel(segment: CardioSegment, locale: ExportLocale): string {
+  return SEGMENT_LABELS[locale][segment.type as SegmentType] || segment.type || '-'
+}
+
+function formatIntensity(data: CardioSessionData, locale: ExportLocale): string {
+  if (!data.intensity) return '-'
+  return INTENSITY_LABELS[locale][data.intensity] || data.intensity
+}
+
+export function getCardioExportTotals(segments: CardioSegment[]): {
+  totalDuration: number
+  totalDistance: number
+  avgZone: number
+} {
+  const totalDuration = segments.reduce((acc, segment) => acc + getSegmentTotalDuration(segment), 0)
+  const totalDistance = segments.reduce((acc, segment) => acc + getSegmentTotalDistance(segment), 0)
+  const zones = segments.map(getZoneValue).filter((zone): zone is number => Number.isFinite(zone))
+  const avgZone = zones.length > 0
+    ? Math.round(zones.reduce((acc, zone) => acc + zone, 0) / zones.length)
+    : 0
+
+  return { totalDuration, totalDistance, avgZone }
+}
+
 /**
  * Generate Excel workbook for a cardio session
  */
@@ -156,29 +246,24 @@ export async function generateCardioSessionExcel(data: CardioSessionData): Promi
   workbook.creator = data.organization || 'Trainomics'
   workbook.created = new Date()
 
-  // Calculate totals
-  const totalDuration = data.segments.reduce((acc, s) => acc + (s.duration || 0), 0)
-  const totalDistance = data.segments.reduce((acc, s) => acc + (s.distance || 0), 0)
-  const avgZone = data.segments.length > 0
-    ? Math.round(data.segments.reduce((acc, s) => acc + parseInt(s.zone || '0'), 0) / data.segments.length)
-    : 0
+  const { totalDuration, totalDistance, avgZone } = getCardioExportTotals(data.segments)
 
   // Info Sheet
   const infoData: (string | number)[][] = [
     [labels.title],
     [''],
     [labels.session, data.sessionName],
-    [labels.intensity, INTENSITY_LABELS[locale][data.intensity] || data.intensity],
+    [labels.intensity, formatIntensity(data, locale)],
     [labels.date, data.date ? data.date.toLocaleDateString(dateLocale) : new Date().toLocaleDateString(dateLocale)],
     [''],
     [labels.athlete, data.athleteName || ''],
     [labels.coach, data.coachName || ''],
     [''],
     [labels.summary],
-    [labels.totalTime, `${totalDuration} min`],
-    [labels.totalDistance, `${totalDistance.toFixed(1)} km`],
+    [labels.totalTime, formatDurationLabel(totalDuration)],
+    [labels.totalDistance, formatDistanceLabel(totalDistance)],
     [labels.segmentCount, data.segments.length],
-    [labels.averageZone, `Z${avgZone}`],
+    [labels.averageZone, avgZone ? `Z${avgZone}` : '-'],
   ]
 
   const infoSheet = workbook.addWorksheet('Info')
@@ -195,14 +280,14 @@ export async function generateCardioSessionExcel(data: CardioSessionData): Promi
   data.segments.forEach((seg, idx) => {
     segmentData.push([
       idx + 1,
-      SEGMENT_LABELS[locale][seg.type] || seg.type,
-      seg.duration || '-',
-      seg.distance ? seg.distance.toFixed(2) : '-',
+      getSegmentLabel(seg, locale),
+      seg.duration ? formatNumber(seg.duration) : '-',
+      formatDistanceKmValue(seg.distance),
       seg.pace || '-',
       seg.heartRate || '-',
-      `Z${seg.zone}`,
+      getZoneLabel(seg),
       seg.repeats || '-',
-      seg.restDuration ? `${seg.restDuration} min` : '-',
+      formatDurationLabel(seg.restDuration),
       seg.notes || '',
     ])
   })
@@ -249,12 +334,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   const margin = 15
   let y = 20
 
-  // Calculate totals
-  const totalDuration = data.segments.reduce((acc, s) => acc + (s.duration || 0), 0)
-  const totalDistance = data.segments.reduce((acc, s) => acc + (s.distance || 0), 0)
-  const avgZone = data.segments.length > 0
-    ? Math.round(data.segments.reduce((acc, s) => acc + parseInt(s.zone || '0'), 0) / data.segments.length)
-    : 0
+  const { totalDuration, totalDistance, avgZone } = getCardioExportTotals(data.segments)
 
   // Header
   pdf.setFontSize(20)
@@ -269,7 +349,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
 
   pdf.setFontSize(10)
   pdf.setTextColor(100, 100, 100)
-  pdf.text(`${labels.intensity}: ${INTENSITY_LABELS[locale][data.intensity] || data.intensity}`, margin, y)
+  pdf.text(`${labels.intensity}: ${formatIntensity(data, locale)}`, margin, y)
   y += 5
   pdf.text(`${labels.date}: ${data.date ? data.date.toLocaleDateString(dateLocale) : new Date().toLocaleDateString(dateLocale)}`, margin, y)
   y += 5
@@ -297,9 +377,9 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
   const summaryY = y
-  pdf.text(`${labels.totalTime}: ${totalDuration} min`, margin + 5, summaryY)
-  pdf.text(`${labels.totalDistance}: ${totalDistance.toFixed(1)} km`, margin + 50, summaryY)
-  pdf.text(`${labels.averageZone}: Z${avgZone}`, margin + 100, summaryY)
+  pdf.text(`${labels.totalTime}: ${formatDurationLabel(totalDuration)}`, margin + 5, summaryY)
+  pdf.text(`${labels.totalDistance}: ${formatDistanceLabel(totalDistance)}`, margin + 50, summaryY)
+  pdf.text(`${labels.averageZone}: ${avgZone ? `Z${avgZone}` : '-'}`, margin + 100, summaryY)
   pdf.text(`Segment: ${data.segments.length}`, margin + 140, summaryY)
 
   y += 20
@@ -343,20 +423,21 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
       '4': [255, 200, 150], // Orange
       '5': [255, 150, 150], // Red
     }
-    const zoneColor = zoneColors[seg.zone] || [255, 255, 255]
+    const zone = getZoneValue(seg)
+    const zoneColor = zone ? zoneColors[String(zone)] || [255, 255, 255] : [255, 255, 255]
     pdf.setFillColor(zoneColor[0], zoneColor[1], zoneColor[2])
     pdf.rect(margin, y - 3, pageWidth - 2 * margin, 6, 'F')
 
     pdf.setTextColor(0, 0, 0)
     pdf.text(`${idx + 1}`, margin + 2, y)
-    pdf.text((SEGMENT_LABELS[locale][seg.type] || seg.type).substring(0, 12), margin + 10, y)
-    pdf.text(seg.duration ? `${seg.duration}m` : '-', margin + 40, y)
-    pdf.text(seg.distance ? `${seg.distance.toFixed(1)}` : '-', margin + 55, y)
+    pdf.text(getSegmentLabel(seg, locale).substring(0, 12), margin + 10, y)
+    pdf.text(formatDurationLabel(seg.duration), margin + 40, y)
+    pdf.text(formatDistanceLabel(seg.distance), margin + 55, y)
     pdf.text(seg.pace || '-', margin + 72, y)
     pdf.text(seg.heartRate || '-', margin + 92, y)
-    pdf.text(`Z${seg.zone}`, margin + 115, y)
+    pdf.text(getZoneLabel(seg), margin + 115, y)
     pdf.text(seg.repeats ? `${seg.repeats}x` : '-', margin + 130, y)
-    pdf.text(seg.restDuration ? `${seg.restDuration}m` : '-', margin + 145, y)
+    pdf.text(formatDurationLabel(seg.restDuration), margin + 145, y)
     pdf.text((seg.notes || '').substring(0, 8), margin + 162, y)
     y += 7
   })
@@ -371,11 +452,16 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
 
     const timelineWidth = pageWidth - 2 * margin
     let xPos = margin
+    const timelineTotal = totalDuration > 0 ? totalDuration : totalDistance
 
     data.segments.forEach((seg) => {
-      if (!seg.duration) return
+      if (timelineTotal <= 0) return
 
-      const segWidth = (seg.duration / totalDuration) * timelineWidth
+      const timelineValue = totalDuration > 0 ? getSegmentTotalDuration(seg) : getSegmentTotalDistance(seg)
+      if (timelineValue <= 0) return
+
+      const segWidth = (timelineValue / timelineTotal) * timelineWidth
+      const zone = getZoneValue(seg)
       const zoneColors: Record<string, [number, number, number]> = {
         '1': [100, 180, 100],
         '2': [80, 160, 80],
@@ -383,17 +469,21 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
         '4': [230, 130, 50],
         '5': [200, 80, 80],
       }
-      const color = zoneColors[seg.zone] || [150, 150, 150]
+      const color = zone ? zoneColors[String(zone)] || [150, 150, 150] : [150, 150, 150]
 
       pdf.setFillColor(color[0], color[1], color[2])
-      pdf.rect(xPos, y, segWidth - 1, 15, 'F')
+      pdf.rect(xPos, y, Math.max(segWidth - 1, 0.5), 15, 'F')
 
       // Add label if segment is wide enough
       if (segWidth > 15) {
         pdf.setTextColor(255, 255, 255)
         pdf.setFontSize(7)
-        pdf.text(`Z${seg.zone}`, xPos + 2, y + 6)
-        pdf.text(`${seg.duration}m`, xPos + 2, y + 11)
+        pdf.text(getZoneLabel(seg), xPos + 2, y + 6)
+        pdf.text(
+          totalDuration > 0 ? formatDurationLabel(timelineValue) : formatDistanceLabel(timelineValue),
+          xPos + 2,
+          y + 11
+        )
       }
 
       xPos += segWidth

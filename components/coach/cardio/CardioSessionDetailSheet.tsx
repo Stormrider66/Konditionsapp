@@ -232,6 +232,71 @@ function formatDistance(meters?: number): string {
   return `${meters} m`;
 }
 
+type SavedCardioExportSegment = Omit<CardioSegment, 'type'> & {
+  type?: string;
+  heartRate?: string;
+  repeats?: number;
+  restDuration?: number;
+  restBetweenRounds?: number;
+  steps?: SavedCardioExportSegment[];
+};
+
+function secondsToExportMinutes(seconds?: number): number | undefined {
+  if (!seconds || seconds <= 0) return undefined;
+  return Math.round((seconds / 60) * 10) / 10;
+}
+
+function metersToExportKilometers(meters?: number): number | undefined {
+  if (!meters || meters <= 0) return undefined;
+  return Math.round((meters / 1000) * 100) / 100;
+}
+
+function normalizeZone(zone?: number | string): string | undefined {
+  if (typeof zone === 'number' && Number.isFinite(zone)) return String(zone);
+  if (typeof zone === 'string') {
+    const match = zone.match(/\d+/);
+    return match?.[0];
+  }
+  return undefined;
+}
+
+function getExportSegments(segments: CardioSegment[]) {
+  return segments.flatMap((segment, index) => {
+    const savedSegment = segment as SavedCardioExportSegment;
+
+    if (savedSegment.type === 'REPEAT_GROUP' && Array.isArray(savedSegment.steps)) {
+      const groupRepeats = savedSegment.repeats && savedSegment.repeats > 1 ? savedSegment.repeats : undefined;
+      const groupRest = secondsToExportMinutes(savedSegment.restBetweenRounds);
+
+      return savedSegment.steps.map((step, stepIndex) => ({
+        id: step.id || `${savedSegment.id || index}-${stepIndex}`,
+        type: step.type || 'INTERVAL',
+        duration: secondsToExportMinutes(step.duration),
+        distance: metersToExportKilometers(step.distance),
+        pace: step.pace,
+        zone: normalizeZone(step.zone),
+        heartRate: step.heartRate,
+        notes: step.notes,
+        repeats: groupRepeats,
+        restDuration: secondsToExportMinutes(step.restDuration) || (stepIndex === 0 ? groupRest : undefined),
+      }));
+    }
+
+    return [{
+      id: savedSegment.id || String(index),
+      type: savedSegment.type || 'STEADY',
+      duration: secondsToExportMinutes(savedSegment.duration),
+      distance: metersToExportKilometers(savedSegment.distance),
+      pace: savedSegment.pace,
+      zone: normalizeZone(savedSegment.zone),
+      heartRate: savedSegment.heartRate,
+      notes: savedSegment.notes,
+      repeats: savedSegment.repeats && savedSegment.repeats > 1 ? savedSegment.repeats : undefined,
+      restDuration: secondsToExportMinutes(savedSegment.restDuration),
+    }];
+  });
+}
+
 export function CardioSessionDetailSheet({
   session,
   open,
@@ -298,17 +363,9 @@ export function CardioSessionDetailSheet({
     sessionName: session.name,
     sport: sportLabel,
     date: new Date(),
-    segments: segments.map((s: CardioSegment, i: number) => ({
-      order: i + 1,
-      type: t.segmentTypes[s.type as keyof typeof t.segmentTypes] || s.type,
-      duration: s.duration,
-      distance: s.distance,
-      pace: s.pace,
-      zone: s.zone,
-      notes: s.notes,
-    })),
-    totalDuration: session.totalDuration,
-    totalDistance: session.totalDistance,
+    segments: getExportSegments(segments),
+    totalDuration: secondsToExportMinutes(session.totalDuration),
+    totalDistance: metersToExportKilometers(session.totalDistance),
     avgZone: session.avgZone,
   };
 
