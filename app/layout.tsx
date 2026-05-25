@@ -13,6 +13,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Trainomics",
   description: "Professional physiological test report generator",
+  icons: [{ url: "/api/branding/favicon/trainomics", sizes: "32x32" }],
 };
 
 export default async function RootLayout({

@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { resolveBusinessBranding } from '@/lib/branding/resolve-branding'
 import { PLATFORM_NAME } from '@/lib/branding/types'
+import { getBusinessFaviconUrl } from '@/lib/branding/favicon'
 import { DynamicFontLoader } from '@/components/branding/DynamicFontLoader'
 
 interface BusinessLayoutProps {
@@ -24,16 +25,14 @@ export async function generateMetadata({
     ? branding.pageTitle
     : PLATFORM_NAME
 
-  const icons = branding?.faviconUrl
-    ? [{ url: branding.faviconUrl, sizes: '32x32' }]
-    : undefined
+  const iconUrl = branding?.faviconUrl ?? getBusinessFaviconUrl(businessSlug)
 
   return {
     title: {
       default: title,
       template: `%s | ${title}`,
     },
-    ...(icons ? { icons } : {}),
+    icons: [{ url: iconUrl, sizes: '32x32' }],
   }
 }
 
