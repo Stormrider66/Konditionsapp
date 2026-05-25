@@ -39,6 +39,14 @@ function t(locale: AppLocale | undefined, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+const VALID_FEELINGS = new Set(['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED'])
+
+function normalizeFeeling(value: unknown): ParsedWorkout['feeling'] | undefined {
+  return typeof value === 'string' && VALID_FEELINGS.has(value)
+    ? (value as ParsedWorkout['feeling'])
+    : undefined
+}
+
 // ============================================
 // MAIN PARSER FUNCTIONS
 // ============================================
@@ -329,7 +337,7 @@ function validateParsedWorkout(data: unknown, locale: AppLocale = 'en'): ParsedW
     movements: Array.isArray(workout.movements) ? workout.movements : undefined,
     perceivedEffort:
       typeof workout.perceivedEffort === 'number' ? workout.perceivedEffort : undefined,
-    feeling: workout.feeling as ParsedWorkout['feeling'],
+    feeling: normalizeFeeling(workout.feeling),
     notes: typeof workout.notes === 'string' ? workout.notes : undefined,
     rawInterpretation:
       typeof workout.rawInterpretation === 'string'

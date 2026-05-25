@@ -25,9 +25,17 @@ const confirmWorkoutSchema = z.object({
   parsedStructure: z.record(z.unknown()).optional(),
   // Additional subjective data
   perceivedEffort: z.number().min(1).max(10).optional(),
-  feeling: z.enum(['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED']).optional(),
+  feeling: z.enum(['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED']).nullable().optional(),
   notes: z.string().optional(),
 })
+
+const VALID_FEELINGS = new Set(['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED'])
+
+function normalizeFeeling(value: unknown): ParsedWorkout['feeling'] | undefined {
+  return typeof value === 'string' && VALID_FEELINGS.has(value)
+    ? (value as ParsedWorkout['feeling'])
+    : undefined
+}
 
 // ============================================
 // POST - Confirm Ad-Hoc Workout
@@ -115,8 +123,11 @@ export async function POST(
     if (data.perceivedEffort !== undefined) {
       finalStructure.perceivedEffort = data.perceivedEffort
     }
-    if (data.feeling !== undefined) {
-      finalStructure.feeling = data.feeling
+    const feeling = normalizeFeeling(data.feeling)
+    if (feeling) {
+      finalStructure.feeling = feeling
+    } else {
+      delete finalStructure.feeling
     }
     if (data.notes !== undefined) {
       finalStructure.notes = data.notes
@@ -137,7 +148,7 @@ export async function POST(
     }
 
     // Calculate training load
-    const trainingLoad = calculateTrainingLoad(finalStructure, adHocWorkout.workoutDate)
+    const trainingLoad = calculateTrainingLoad(finalStructure)
 
     // Create TrainingLoad entry in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -236,10 +247,7 @@ interface TrainingLoadResult {
   trimp?: number
 }
 
-function calculateTrainingLoad(
-  workout: ParsedWorkout,
-  workoutDate: Date
-): TrainingLoadResult {
+function calculateTrainingLoad(workout: ParsedWorkout): TrainingLoadResult {
   const duration = workout.duration || 30 // Default 30 minutes if not specified
   const rpe = workout.perceivedEffort || 6 // Default RPE 6 if not specified
 

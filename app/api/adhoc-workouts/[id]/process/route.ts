@@ -43,6 +43,14 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+const VALID_FEELINGS = new Set(['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED'])
+
+function normalizeFeeling(value: unknown): ParsedWorkout['feeling'] | undefined {
+  return typeof value === 'string' && VALID_FEELINGS.has(value)
+    ? (value as ParsedWorkout['feeling'])
+    : undefined
+}
+
 // ============================================
 // POST - Process Ad-Hoc Workout
 // ============================================
@@ -526,7 +534,7 @@ function validateParsedWorkout(data: unknown, locale: AppLocale): ParsedWorkout 
     movements: Array.isArray(workout.movements) ? workout.movements : undefined,
     perceivedEffort:
       typeof workout.perceivedEffort === 'number' ? workout.perceivedEffort : undefined,
-    feeling: workout.feeling as ParsedWorkout['feeling'],
+    feeling: normalizeFeeling(workout.feeling),
     notes: typeof workout.notes === 'string' ? workout.notes : undefined,
     estimatedCalories:
       typeof workout.estimatedCalories === 'number' ? workout.estimatedCalories : undefined,

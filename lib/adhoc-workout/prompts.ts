@@ -14,6 +14,7 @@ function outputLanguageInstruction(locale: AppLocale): string {
   return `OUTPUT LANGUAGE:
 - Write all user-facing JSON string values in ${language}: name, notes, rawInterpretation, warnings, segment notes, and exercise notes.
 - Keep exerciseId values, enum values, units, and source measurements unchanged.
+- Include "feeling" only when the input explicitly says how the athlete felt; otherwise omit that key.
 - Exercise library names may contain Swedish aliases; use them only for matching unless ${language} output naturally requires them.`
 }
 
@@ -141,7 +142,7 @@ const JSON_OUTPUT_TEMPLATE: Record<AppLocale, string> = {
   ],
 
   "perceivedEffort": 7,
-  "feeling": "GOOD" | "GREAT" | "OKAY" | "TIRED" | "EXHAUSTED" | null,
+  "feeling": "GOOD" | "GREAT" | "OKAY" | "TIRED" | "EXHAUSTED",
   "notes": "Extracted notes from input",
 
   "rawInterpretation": "Short explanation of what was interpreted",
@@ -209,7 +210,7 @@ const JSON_OUTPUT_TEMPLATE: Record<AppLocale, string> = {
   ],
 
   "perceivedEffort": 7,
-  "feeling": "GOOD" | "GREAT" | "OKAY" | "TIRED" | "EXHAUSTED" | null,
+  "feeling": "GOOD" | "GREAT" | "OKAY" | "TIRED" | "EXHAUSTED",
   "notes": "Extraherade anteckningar från input",
 
   "rawInterpretation": "Kort förklaring av vad som tolkades",

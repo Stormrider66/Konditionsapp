@@ -40,12 +40,16 @@ interface WorkoutReviewProps {
   onConfirm: (data: {
     parsedStructure?: ParsedWorkout
     perceivedEffort?: number
-    feeling?: 'GREAT' | 'GOOD' | 'OKAY' | 'TIRED' | 'EXHAUSTED'
+    feeling?: FeelingValue
     notes?: string
   }) => Promise<void>
   onCancel: () => void
   isSubmitting: boolean
 }
+
+type FeelingValue = 'GREAT' | 'GOOD' | 'OKAY' | 'TIRED' | 'EXHAUSTED'
+
+const FEELING_VALUES: readonly FeelingValue[] = ['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED']
 
 const FEELING_OPTIONS = [
   { value: 'GREAT', labelKey: 'great', emoji: '🔥' },
@@ -53,7 +57,11 @@ const FEELING_OPTIONS = [
   { value: 'OKAY', labelKey: 'okay', emoji: '😐' },
   { value: 'TIRED', labelKey: 'tired', emoji: '😓' },
   { value: 'EXHAUSTED', labelKey: 'exhausted', emoji: '😫' },
-]
+] satisfies Array<{ value: FeelingValue; labelKey: string; emoji: string }>
+
+function getValidFeeling(value: unknown): FeelingValue | undefined {
+  return FEELING_VALUES.includes(value as FeelingValue) ? (value as FeelingValue) : undefined
+}
 
 const TYPE_LABELS: Record<string, { labelKey: string; color: string }> = {
   CARDIO: { labelKey: 'cardio', color: 'bg-blue-500' },
@@ -88,8 +96,8 @@ export function WorkoutReview({
     return distanceKm !== null ? distanceKm.toString() : ''
   })
   const [rpe, setRpe] = useState(parsedWorkout.perceivedEffort || 6)
-  const [feeling, setFeeling] = useState<typeof FEELING_OPTIONS[0]['value'] | undefined>(
-    parsedWorkout.feeling
+  const [feeling, setFeeling] = useState<FeelingValue | undefined>(() =>
+    getValidFeeling(parsedWorkout.feeling)
   )
   const [notes, setNotes] = useState(parsedWorkout.notes || '')
 
@@ -97,21 +105,40 @@ export function WorkoutReview({
   const confidencePercent = Math.round((parsedWorkout.confidence || 0) * 100)
 
   const handleConfirm = async () => {
+    const selectedFeeling = getValidFeeling(feeling)
     const updatedWorkout: ParsedWorkout = {
       ...parsedWorkout,
       duration: duration ? parseInt(duration) : parsedWorkout.duration,
       distance: distance ? Math.round(parseFloat(distance) * 1000) : parsedWorkout.distance,
       perceivedEffort: rpe,
-      feeling: feeling as ParsedWorkout['feeling'],
       notes,
     }
 
-    await onConfirm({
-      parsedStructure: editMode ? updatedWorkout : undefined,
+    if (selectedFeeling) {
+      updatedWorkout.feeling = selectedFeeling
+    } else {
+      delete updatedWorkout.feeling
+    }
+
+    const payload: {
+      parsedStructure?: ParsedWorkout
+      perceivedEffort: number
+      feeling?: FeelingValue
+      notes: string
+    } = {
       perceivedEffort: rpe,
-      feeling: feeling as 'GREAT' | 'GOOD' | 'OKAY' | 'TIRED' | 'EXHAUSTED',
       notes,
-    })
+    }
+
+    if (editMode) {
+      payload.parsedStructure = updatedWorkout
+    }
+
+    if (selectedFeeling) {
+      payload.feeling = selectedFeeling
+    }
+
+    await onConfirm(payload)
   }
 
   return (
@@ -273,6 +300,7 @@ export function WorkoutReview({
 
         {/* AI interpretation */}
         <Button
+          type="button"
           variant="ghost"
           className="w-full justify-between"
           onClick={() => setShowDetails(!showDetails)}
@@ -296,7 +324,7 @@ export function WorkoutReview({
         {/* Edit mode toggle */}
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">{t('edit.title')}</span>
-          <Button variant="ghost" size="sm" onClick={() => setEditMode(!editMode)}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setEditMode(!editMode)}>
             <Edit2 className="h-4 w-4 mr-1" />
             {editMode ? t('actions.hide') : t('actions.show')}
           </Button>
@@ -355,6 +383,7 @@ export function WorkoutReview({
             <div className="flex flex-wrap gap-2">
               {FEELING_OPTIONS.map((option) => (
                 <Button
+                  type="button"
                   key={option.value}
                   variant={feeling === option.value ? 'default' : 'outline'}
                   size="sm"
@@ -381,10 +410,10 @@ export function WorkoutReview({
       </CardContent>
 
       <CardFooter className="flex gap-3">
-        <Button variant="outline" className="flex-1" onClick={onCancel} disabled={isSubmitting}>
+        <Button type="button" variant="outline" className="flex-1" onClick={onCancel} disabled={isSubmitting}>
           {t('actions.cancel')}
         </Button>
-        <Button className="flex-1" onClick={handleConfirm} disabled={isSubmitting}>
+        <Button type="button" className="flex-1" onClick={handleConfirm} disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
