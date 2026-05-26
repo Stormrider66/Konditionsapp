@@ -205,11 +205,11 @@ function detectExerciseKind(template: LibraryExercise): ExerciseKind {
   return 'strength'
 }
 
-const INTENSITY_LABELS: Record<CardioIntensity, string> = {
-  EASY: 'Lätt',
-  MODERATE: 'Måttligt',
-  HARD: 'Hårt',
-  INTERVAL: 'Intervall',
+const INTENSITY_LABELS: Record<CardioIntensity, Record<AppLocale, string>> = {
+  EASY: { sv: 'Lätt', en: 'Easy' },
+  MODERATE: { sv: 'Måttligt', en: 'Moderate' },
+  HARD: { sv: 'Hårt', en: 'Hard' },
+  INTERVAL: { sv: 'Intervall', en: 'Interval' },
 }
 
 // Common Prilepin / Westside zone landmarks. Saves typing the same
@@ -278,6 +278,48 @@ const SECTION_DEFAULTS: Record<SectionType, Omit<SectionConfig, 'exercises' | 'e
     bgColor: 'bg-green-50 border-green-200',
     defaultRest: 30,
   },
+}
+
+const SECTION_LABELS: Record<SectionType, Record<AppLocale, string>> = {
+  WARMUP: { sv: 'Uppvärmning', en: 'Warm-up' },
+  MAIN: { sv: 'Huvudpass', en: 'Main work' },
+  PREHAB: { sv: 'Stabilitet / Prehab', en: 'Stability / Prehab' },
+  CORE: { sv: 'Core', en: 'Core' },
+  COOLDOWN: { sv: 'Nedvarvning', en: 'Cooldown' },
+}
+
+const PHASE_LABELS: Record<string, Record<AppLocale, string>> = {
+  Base: { sv: 'Anatom. Anpassning', en: 'Anatomical adaptation' },
+  Strength: { sv: 'Maxstyrka', en: 'Max strength' },
+  Power: { sv: 'Power', en: 'Power' },
+  Maintenance: { sv: 'Underhåll', en: 'Maintenance' },
+  Taper: { sv: 'Taper', en: 'Taper' },
+}
+
+const CATEGORY_LABELS: Record<string, Record<AppLocale, string>> = {
+  ALL: { sv: 'Alla kategorier', en: 'All categories' },
+  WARMUP: { sv: 'Uppvärmning', en: 'Warm-up' },
+  STRENGTH: { sv: 'Styrka', en: 'Strength' },
+  PLYOMETRIC: { sv: 'Plyometri', en: 'Plyometrics' },
+  [PREHAB_STABILITY_FILTER]: { sv: 'Stabilitet / Prehab', en: 'Stability / Prehab' },
+  CORE: { sv: 'Core', en: 'Core' },
+  RECOVERY: { sv: 'Återhämtning', en: 'Recovery' },
+}
+
+function sectionLabel(type: SectionType, locale: AppLocale): string {
+  return SECTION_LABELS[type][locale]
+}
+
+function phaseLabel(value: string, locale: AppLocale): string {
+  return PHASE_LABELS[value]?.[locale] ?? value
+}
+
+function categoryLabel(value: string, locale: AppLocale): string {
+  return CATEGORY_LABELS[value]?.[locale] ?? value
+}
+
+function intensityLabel(value: CardioIntensity, locale: AppLocale): string {
+  return INTENSITY_LABELS[value][locale]
 }
 
 interface SectionWorkoutBuilderProps {
@@ -1186,20 +1228,20 @@ export function SectionWorkoutBuilder({
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1 space-y-4">
                 <div className="space-y-2">
-                  <Label>Passnamn</Label>
+                  <Label>{text(locale, 'Passnamn', 'Session name')}</Label>
                   <Input
                     value={sessionName}
                     onChange={(e) => setSessionName(e.target.value)}
                     className="text-lg font-semibold"
-                    placeholder="Ge passet ett namn..."
+                    placeholder={text(locale, 'Ge passet ett namn...', 'Name this session...')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Beskrivning (valfritt)</Label>
+                  <Label>{text(locale, 'Beskrivning (valfritt)', 'Description (optional)')}</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Beskriv passets syfte..."
+                    placeholder={text(locale, 'Beskriv passets syfte...', "Describe the session's purpose...")}
                     rows={2}
                   />
                 </div>
@@ -1212,27 +1254,27 @@ export function SectionWorkoutBuilder({
                 />
               </div>
               <div className="space-y-2 w-[150px]">
-                <Label>Fas</Label>
+                <Label>{text(locale, 'Fas', 'Phase')}</Label>
                 <Select value={phase} onValueChange={setPhase}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Base">Anatom. Anpassning</SelectItem>
-                    <SelectItem value="Strength">Maxstyrka</SelectItem>
-                    <SelectItem value="Power">Power</SelectItem>
-                    <SelectItem value="Maintenance">Underhåll</SelectItem>
-                    <SelectItem value="Taper">Taper</SelectItem>
+                    {Object.keys(PHASE_LABELS).map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {phaseLabel(value, locale)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             {onCancel && (
               <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Redigerar: {initialData?.name}</span>
+                <span>{text(locale, 'Redigerar', 'Editing')}: {initialData?.name}</span>
                 <Button variant="ghost" size="sm" onClick={onCancel} className="ml-auto">
                   <X className="h-4 w-4 mr-1" />
-                  Avbryt
+                  {text(locale, 'Avbryt', 'Cancel')}
                 </Button>
               </div>
             )}
@@ -1257,7 +1299,7 @@ export function SectionWorkoutBuilder({
                       disabled={isMain}
                     />
                     <Icon className={`h-4 w-4 ${config.color}`} />
-                    <span className="text-sm font-medium">{config.label}</span>
+                    <span className="text-sm font-medium">{sectionLabel(type, locale)}</span>
                     {section.exercises.length > 0 && (
                       <Badge variant="secondary" className="text-xs">
                         {section.exercises.length}
@@ -1298,9 +1340,9 @@ export function SectionWorkoutBuilder({
                             <ChevronRight className={`h-4 w-4 ${config.color}`} />
                           )}
                           <Icon className={`h-5 w-5 ${config.color}`} />
-                          <CardTitle className="text-base">{config.label}</CardTitle>
+                          <CardTitle className="text-base">{sectionLabel(type, locale)}</CardTitle>
                           <Badge variant="outline" className="text-xs">
-                            {section.exercises.length} övningar
+                            {section.exercises.length} {text(locale, 'övningar', 'exercises')}
                           </Badge>
                         </div>
                         <Button
@@ -1312,7 +1354,7 @@ export function SectionWorkoutBuilder({
                           }}
                         >
                           <Plus className="h-4 w-4 mr-1" />
-                          Lägg till
+                          {text(locale, 'Lägg till', 'Add')}
                         </Button>
                       </div>
                     </CardHeader>
@@ -1324,7 +1366,7 @@ export function SectionWorkoutBuilder({
                         <div className="py-8 text-center text-muted-foreground">
                           <Icon className="h-8 w-8 mx-auto mb-2 opacity-50" />
                           <p className="text-sm">
-                            Lägg till övningar från biblioteket
+                            {text(locale, 'Lägg till övningar från biblioteket', 'Add exercises from the library')}
                           </p>
                         </div>
                       ) : (
@@ -1355,6 +1397,7 @@ export function SectionWorkoutBuilder({
                                 onRemoveFollowUp={(followUpId) =>
                                   removeFollowUp(type, exercise.id, followUpId)
                                 }
+                                locale={locale}
                               />
                             ))}
                           </div>
@@ -1382,6 +1425,7 @@ export function SectionWorkoutBuilder({
                   onAddFollowUp={() => {}}
                   onUpdateFollowUp={() => {}}
                   onRemoveFollowUp={() => {}}
+                  locale={locale}
                   isOverlay
                 />
               </div>
@@ -1396,7 +1440,7 @@ export function SectionWorkoutBuilder({
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Övningsbibliotek</CardTitle>
+              <CardTitle className="text-sm font-medium">{text(locale, 'Övningsbibliotek', 'Exercise library')}</CardTitle>
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -1405,10 +1449,10 @@ export function SectionWorkoutBuilder({
                   onClick={() => setShowExerciseCreator(true)}
                 >
                   <Plus className="h-3 w-3 mr-1" />
-                  Ny övning
+                  {text(locale, 'Ny övning', 'New exercise')}
                 </Button>
                 <Badge variant="outline" className="text-xs">
-                  → {SECTION_DEFAULTS[targetSection].label}
+                  → {sectionLabel(targetSection, locale)}
                 </Badge>
               </div>
             </div>
@@ -1417,7 +1461,7 @@ export function SectionWorkoutBuilder({
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Sök övningar..."
+                placeholder={text(locale, 'Sök övningar...', 'Search exercises...')}
                 className="pl-8 h-9 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -1427,16 +1471,14 @@ export function SectionWorkoutBuilder({
             <div className="grid grid-cols-2 gap-2">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Kategori" />
+                  <SelectValue placeholder={text(locale, 'Kategori', 'Category')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">Alla kategorier</SelectItem>
-                  <SelectItem value="WARMUP">Uppvärmning</SelectItem>
-                  <SelectItem value="STRENGTH">Styrka</SelectItem>
-                  <SelectItem value="PLYOMETRIC">Plyometri</SelectItem>
-                  <SelectItem value={PREHAB_STABILITY_FILTER}>Stabilitet / Prehab</SelectItem>
-                  <SelectItem value="CORE">Core</SelectItem>
-                  <SelectItem value="RECOVERY">Återhämtning</SelectItem>
+                  {Object.keys(CATEGORY_LABELS).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {categoryLabel(value, locale)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -1445,14 +1487,14 @@ export function SectionWorkoutBuilder({
                 onValueChange={(v) => setTargetSection(v as SectionType)}
               >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Sektion" />
+                  <SelectValue placeholder={text(locale, 'Sektion', 'Section')} />
                 </SelectTrigger>
                 <SelectContent>
                   {SECTION_ORDER
                     .filter((t) => sections[t].enabled)
                     .map((t) => (
                       <SelectItem key={t} value={t}>
-                        {SECTION_DEFAULTS[t].label}
+                        {sectionLabel(t, locale)}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -1466,7 +1508,7 @@ export function SectionWorkoutBuilder({
                 className="h-7 text-xs flex-1"
                 onClick={() => setBrowseMode('all')}
               >
-                Alla
+                {text(locale, 'Alla', 'All')}
               </Button>
               <Button
                 variant={browseMode === 'favorites' ? 'default' : 'ghost'}
@@ -1475,7 +1517,7 @@ export function SectionWorkoutBuilder({
                 onClick={() => setBrowseMode('favorites')}
               >
                 <Star className="h-3 w-3 mr-1" />
-                Favoriter
+                {text(locale, 'Favoriter', 'Favorites')}
               </Button>
               <Button
                 variant={browseMode === 'most-used' ? 'default' : 'ghost'}
@@ -1484,7 +1526,7 @@ export function SectionWorkoutBuilder({
                 onClick={() => setBrowseMode('most-used')}
               >
                 <TrendingUp className="h-3 w-3 mr-1" />
-                Mest använda
+                {text(locale, 'Mest använda', 'Most used')}
               </Button>
             </div>
 
@@ -1520,8 +1562,8 @@ export function SectionWorkoutBuilder({
                         e.stopPropagation()
                         toggleFavorite(ex.id)
                       }}
-                      aria-label={isFavorite ? 'Ta bort favorit' : 'Markera som favorit'}
-                      title={isFavorite ? 'Ta bort favorit' : 'Markera som favorit'}
+                      aria-label={isFavorite ? text(locale, 'Ta bort favorit', 'Remove favorite') : text(locale, 'Markera som favorit', 'Mark as favorite')}
+                      title={isFavorite ? text(locale, 'Ta bort favorit', 'Remove favorite') : text(locale, 'Markera som favorit', 'Mark as favorite')}
                       className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-yellow-500 hover:bg-muted/50 transition-colors shrink-0"
                     >
                       <Star
@@ -1535,7 +1577,7 @@ export function SectionWorkoutBuilder({
               })}
               {filteredExercises.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Inga övningar hittades
+                  {text(locale, 'Inga övningar hittades', 'No exercises found')}
                 </p>
               )}
             </div>
@@ -1545,19 +1587,19 @@ export function SectionWorkoutBuilder({
         {/* Summary */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Sammanfattning</CardTitle>
+            <CardTitle className="text-sm font-medium">{text(locale, 'Sammanfattning', 'Summary')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Övningar:</span>
+              <span className="text-muted-foreground">{text(locale, 'Övningar', 'Exercises')}:</span>
               <span className="font-medium">{totalExercises}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Totala set:</span>
+              <span className="text-muted-foreground">{text(locale, 'Totala set', 'Total sets')}:</span>
               <span className="font-medium">{totalSets}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Uppskattad tid:</span>
+              <span className="text-muted-foreground">{text(locale, 'Uppskattad tid', 'Estimated time')}:</span>
               <span className="font-medium">{Math.round(estimatedDuration)} min</span>
             </div>
 
@@ -1566,12 +1608,12 @@ export function SectionWorkoutBuilder({
                 {sections.WARMUP.enabled && (
                   <Badge className="bg-yellow-100 text-yellow-800 text-xs">
                     <Flame className="h-3 w-3 mr-1" />
-                    Uppvärmning
+                    {sectionLabel('WARMUP', locale)}
                   </Badge>
                 )}
                 <Badge className="bg-blue-100 text-blue-800 text-xs">
                   <Dumbbell className="h-3 w-3 mr-1" />
-                  Huvudpass
+                  {sectionLabel('MAIN', locale)}
                 </Badge>
                 {sections.PREHAB.enabled && (
                   <Badge className="bg-teal-100 text-teal-800 text-xs">
@@ -1588,7 +1630,7 @@ export function SectionWorkoutBuilder({
                 {sections.COOLDOWN.enabled && (
                   <Badge className="bg-green-100 text-green-800 text-xs">
                     <Sparkles className="h-3 w-3 mr-1" />
-                    Nedvarvning
+                    {sectionLabel('COOLDOWN', locale)}
                   </Badge>
                 )}
               </div>
@@ -1602,19 +1644,19 @@ export function SectionWorkoutBuilder({
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sparar...
+                  {text(locale, 'Sparar...', 'Saving...')}
                 </>
               ) : initialData?.id ? (
-                'Uppdatera pass'
+                text(locale, 'Uppdatera pass', 'Update session')
               ) : (
-                'Spara pass'
+                text(locale, 'Spara pass', 'Save session')
               )}
             </Button>
             {initialData?.id && (
               <PrintWorkoutButton
                 kind="strength"
                 workoutId={initialData.id}
-                label="Skriv ut pass"
+                label={text(locale, 'Skriv ut pass', 'Print session')}
                 className="w-full"
               />
             )}
@@ -1670,6 +1712,7 @@ function SortableExerciseItem({
   onAddFollowUp,
   onUpdateFollowUp,
   onRemoveFollowUp,
+  locale,
   isOverlay = false,
 }: {
   exercise: Exercise
@@ -1681,6 +1724,7 @@ function SortableExerciseItem({
   onAddFollowUp: (followExerciseId: string) => void
   onUpdateFollowUp: (followUpId: string, field: keyof FollowUp, value: any) => void
   onRemoveFollowUp: (followUpId: string) => void
+  locale: AppLocale
   isOverlay?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
@@ -1701,7 +1745,7 @@ function SortableExerciseItem({
   const togglePercent = () => {
     onUpdate('weightUnit', isPercent ? 'kg' : 'percent')
   }
-  const weightLabel = isPercent ? 'Vikt (% av 1RM)' : 'Vikt'
+  const weightLabel = isPercent ? text(locale, 'Vikt (% av 1RM)', 'Weight (% of 1RM)') : text(locale, 'Vikt', 'Weight')
   const weightPlaceholder = isPercent ? '%' : 'kg'
 
   const [notesOpen, setNotesOpen] = useState(Boolean(exercise.notes))
@@ -1798,7 +1842,7 @@ function SortableExerciseItem({
             {isCardio && (
               <Badge variant="secondary" className="text-[10px] shrink-0">
                 <Heart className="h-3 w-3 mr-1" />
-                Kondition
+                {text(locale, 'Kondition', 'Cardio')}
               </Badge>
             )}
           </div>
@@ -1810,7 +1854,7 @@ function SortableExerciseItem({
               className={`h-6 w-6 p-0 ${
                 isCardio ? 'text-rose-500' : 'text-muted-foreground'
               } hover:text-foreground`}
-              title={isCardio ? 'Växla till styrka' : 'Växla till kondition (tid/distans)'}
+              title={isCardio ? text(locale, 'Växla till styrka', 'Switch to strength') : text(locale, 'Växla till kondition (tid/distans)', 'Switch to cardio (time/distance)')}
             >
               {isCardio ? <Heart className="h-4 w-4" /> : <Dumbbell className="h-4 w-4" />}
             </Button>
@@ -1822,7 +1866,7 @@ function SortableExerciseItem({
                 className={`h-6 w-6 p-0 ${
                   isPercent ? 'text-primary' : 'text-muted-foreground'
                 } hover:text-foreground`}
-                title={isPercent ? 'Använd kg' : 'Använd % av 1RM (per atlet)'}
+                title={isPercent ? text(locale, 'Använd kg', 'Use kg') : text(locale, 'Använd % av 1RM (per atlet)', 'Use % of 1RM (per athlete)')}
               >
                 <Percent className="h-4 w-4" />
               </Button>
@@ -1835,7 +1879,7 @@ function SortableExerciseItem({
                 className={`h-6 w-6 p-0 ${
                   hasSetRows ? 'text-primary' : 'text-muted-foreground'
                 } hover:text-foreground`}
-                title={hasSetRows ? 'Använd samma reps/vikt för alla set' : 'Variera reps/vikt per set (pyramid)'}
+                title={hasSetRows ? text(locale, 'Använd samma reps/vikt för alla set', 'Use the same reps/weight for all sets') : text(locale, 'Variera reps/vikt per set (pyramid)', 'Vary reps/weight by set (pyramid)')}
               >
                 <Layers className="h-4 w-4" />
               </Button>
@@ -1847,7 +1891,7 @@ function SortableExerciseItem({
               className={`h-6 w-6 p-0 ${
                 exercise.notes ? 'text-primary' : 'text-muted-foreground'
               } hover:text-foreground`}
-              title="Kommentar"
+              title={text(locale, 'Kommentar', 'Comment')}
             >
               <MessageSquare className="h-4 w-4" />
             </Button>
@@ -1858,7 +1902,7 @@ function SortableExerciseItem({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                    title="Flytta till annan sektion"
+                    title={text(locale, 'Flytta till annan sektion', 'Move to another section')}
                   >
                     <ArrowRightLeft className="h-4 w-4" />
                   </Button>
@@ -1872,7 +1916,7 @@ function SortableExerciseItem({
                         onClick={() => onMoveToSection(type)}
                       >
                         <TargetIcon className={`h-4 w-4 mr-2 ${SECTION_DEFAULTS[type].color}`} />
-                        Flytta till {SECTION_DEFAULTS[type].label}
+                        {text(locale, 'Flytta till', 'Move to')} {sectionLabel(type, locale)}
                       </DropdownMenuItem>
                     )
                   })}
@@ -1893,7 +1937,7 @@ function SortableExerciseItem({
         {isCardio ? (
           <div className="grid grid-cols-4 gap-2">
             <div className="col-span-2">
-              <Label className="text-xs text-muted-foreground">Tid (mm:ss)</Label>
+              <Label className="text-xs text-muted-foreground">{text(locale, 'Tid (mm:ss)', 'Time (mm:ss)')}</Label>
               <div className="flex items-center gap-1">
                 <Input
                   type="number"
@@ -1904,7 +1948,7 @@ function SortableExerciseItem({
                     onUpdate('durationSec', m * 60 + durationRemainderSec)
                   }}
                   className="h-7 text-sm"
-                  placeholder="min"
+                  placeholder={text(locale, 'min', 'min')}
                 />
                 <span className="text-muted-foreground text-sm">:</span>
                 <Input
@@ -1917,12 +1961,12 @@ function SortableExerciseItem({
                     onUpdate('durationSec', durationMinutes * 60 + s)
                   }}
                   className="h-7 text-sm"
-                  placeholder="sek"
+                  placeholder={text(locale, 'sek', 'sec')}
                 />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Distans (km)</Label>
+              <Label className="text-xs text-muted-foreground">{text(locale, 'Distans (km)', 'Distance (km)')}</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -1934,7 +1978,7 @@ function SortableExerciseItem({
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Intensitet</Label>
+              <Label className="text-xs text-muted-foreground">{text(locale, 'Intensitet', 'Intensity')}</Label>
               <Select
                 value={exercise.intensity ?? 'MODERATE'}
                 onValueChange={(v) => onUpdate('intensity', v as CardioIntensity)}
@@ -1945,7 +1989,7 @@ function SortableExerciseItem({
                 <SelectContent>
                   {(Object.keys(INTENSITY_LABELS) as CardioIntensity[]).map((key) => (
                     <SelectItem key={key} value={key}>
-                      {INTENSITY_LABELS[key]}
+                      {intensityLabel(key, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1966,7 +2010,7 @@ function SortableExerciseItem({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Vila (s)</Label>
+                <Label className="text-xs text-muted-foreground">{text(locale, 'Vila (s)', 'Rest (s)')}</Label>
                 <Input
                   type="number"
                   value={exercise.rest}
@@ -1978,7 +2022,7 @@ function SortableExerciseItem({
 
             {isPercent && (
               <p className="text-[11px] text-muted-foreground -mt-1">
-                Vikt anges som % av 1RM. Varje atlet får sin egen vikt baserat på sitt PR.
+                {text(locale, 'Vikt anges som % av 1RM. Varje atlet får sin egen vikt baserat på sitt PR.', 'Weight is entered as % of 1RM. Each athlete gets their own weight based on their PR.')}
               </p>
             )}
             <div className="rounded-md border bg-muted/20 divide-y">
@@ -2015,8 +2059,8 @@ function SortableExerciseItem({
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">
-                {isCooldown ? 'Tid' : 'Reps'}
+                <Label className="text-xs text-muted-foreground">
+                {isCooldown ? text(locale, 'Tid', 'Time') : 'Reps'}
               </Label>
               <Input
                 value={exercise.reps}
@@ -2037,7 +2081,7 @@ function SortableExerciseItem({
               </div>
             )}
             <div>
-              <Label className="text-xs text-muted-foreground">Vila (s)</Label>
+              <Label className="text-xs text-muted-foreground">{text(locale, 'Vila (s)', 'Rest (s)')}</Label>
               <Input
                 type="number"
                 value={exercise.rest}
@@ -2073,7 +2117,7 @@ function SortableExerciseItem({
           <Textarea
             value={exercise.notes ?? ''}
             onChange={(e) => onUpdate('notes', e.target.value)}
-            placeholder="Kommentar till övningen (valfritt)"
+            placeholder={text(locale, 'Kommentar till övningen (valfritt)', 'Exercise note (optional)')}
             rows={2}
             className="text-sm"
           />
@@ -2088,6 +2132,7 @@ function SortableExerciseItem({
                 index={idx}
                 onUpdate={(field, value) => onUpdateFollowUp(fu.id, field, value)}
                 onRemove={() => onRemoveFollowUp(fu.id)}
+                locale={locale}
               />
             ))}
 
@@ -2101,15 +2146,15 @@ function SortableExerciseItem({
                   >
                     <Link2 className="h-3 w-3 mr-1" />
                     {followUps.length === 0
-                      ? 'Lägg till följdövning (superset / kontrast)'
-                      : 'Lägg till till'}
+                      ? text(locale, 'Lägg till följdövning (superset / kontrast)', 'Add follow-up exercise (superset / contrast)')
+                      : text(locale, 'Lägg till till', 'Add another')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[320px] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Sök övning..." className="h-9" />
+                    <CommandInput placeholder={text(locale, 'Sök övning...', 'Search exercise...')} className="h-9" />
                     <CommandList>
-                      <CommandEmpty>Inga övningar hittades</CommandEmpty>
+                      <CommandEmpty>{text(locale, 'Inga övningar hittades', 'No exercises found')}</CommandEmpty>
                       <CommandGroup>
                         {availableExercises.map((ex) => (
                           <CommandItem
@@ -2151,11 +2196,13 @@ function FollowUpRow({
   index,
   onUpdate,
   onRemove,
+  locale,
 }: {
   followUp: FollowUp
   index: number
   onUpdate: (field: keyof FollowUp, value: any) => void
   onRemove: () => void
+  locale: AppLocale
 }) {
   const [notesOpen, setNotesOpen] = useState(Boolean(followUp.notes))
   const isPercent = followUp.weightUnit === 'percent'
@@ -2165,7 +2212,7 @@ function FollowUpRow({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Badge variant="outline" className="text-[10px] shrink-0">
-            Följd {index + 1}
+            {text(locale, 'Följd', 'Follow-up')} {index + 1}
           </Badge>
           <span className="font-medium text-sm truncate">{followUp.name}</span>
         </div>
@@ -2177,7 +2224,7 @@ function FollowUpRow({
             className={`h-6 w-6 p-0 ${
               isPercent ? 'text-primary' : 'text-muted-foreground'
             } hover:text-foreground`}
-            title={isPercent ? 'Använd kg' : 'Använd % av 1RM (per atlet)'}
+            title={isPercent ? text(locale, 'Använd kg', 'Use kg') : text(locale, 'Använd % av 1RM (per atlet)', 'Use % of 1RM (per athlete)')}
           >
             <Percent className="h-4 w-4" />
           </Button>
@@ -2188,7 +2235,7 @@ function FollowUpRow({
             className={`h-6 w-6 p-0 ${
               followUp.notes ? 'text-primary' : 'text-muted-foreground'
             } hover:text-foreground`}
-            title="Kommentar"
+            title={text(locale, 'Kommentar', 'Comment')}
           >
             <MessageSquare className="h-4 w-4" />
           </Button>
@@ -2215,17 +2262,17 @@ function FollowUpRow({
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">
-            {isPercent ? 'Vikt (% av 1RM)' : 'Vikt'}
+            {isPercent ? text(locale, 'Vikt (% av 1RM)', 'Weight (% of 1RM)') : text(locale, 'Vikt', 'Weight')}
           </Label>
           <Input
             value={followUp.weight}
             onChange={(e) => onUpdate('weight', e.target.value)}
             className="h-7 text-sm"
-            placeholder={isPercent ? '%' : 'kg / kroppsvikt'}
+            placeholder={isPercent ? '%' : text(locale, 'kg / kroppsvikt', 'kg / bodyweight')}
           />
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Paus innan (s)</Label>
+          <Label className="text-xs text-muted-foreground">{text(locale, 'Paus innan (s)', 'Pause before (s)')}</Label>
           <Input
             type="number"
             value={followUp.restBefore}
@@ -2233,7 +2280,7 @@ function FollowUpRow({
               onUpdate('restBefore', parseInt(e.target.value) || 0)
             }
             className="h-7 text-sm"
-            placeholder="0 = superset, 15–30 = kontrast"
+            placeholder={text(locale, '0 = superset, 15-30 = kontrast', '0 = superset, 15-30 = contrast')}
           />
         </div>
       </div>
@@ -2242,7 +2289,7 @@ function FollowUpRow({
         <Textarea
           value={followUp.notes ?? ''}
           onChange={(e) => onUpdate('notes', e.target.value)}
-          placeholder="Kommentar (valfritt)"
+          placeholder={text(locale, 'Kommentar (valfritt)', 'Comment (optional)')}
           rows={2}
           className="text-sm"
         />

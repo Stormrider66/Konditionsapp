@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale: 'en' | 'sv' = user.language === 'sv' ? 'sv' : 'en'
     const body = await req.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
         businessId: membership.businessId,
         createdById: user.id,
         teamId: body.teamId || null,
-        title: body.title || 'Övning',
+        title: body.title || (locale === 'sv' ? 'Övning' : 'Drill'),
         description: body.description || null,
         sportType: body.sportType || 'ICE_HOCKEY',
         structure: body.structure,
