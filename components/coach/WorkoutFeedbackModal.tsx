@@ -1,10 +1,11 @@
 // components/coach/WorkoutFeedbackModal.tsx
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useLocale } from '@/i18n/client'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
@@ -42,23 +43,76 @@ import {
   Mail,
 } from 'lucide-react'
 
-const feedbackSchema = z.object({
-  coachFeedback: z
-    .string()
-    .min(1, 'Feedback får inte vara tom')
-    .max(500, 'Feedback får max vara 500 tecken'),
-})
+type AppLocale = 'en' | 'sv'
 
-type FeedbackFormData = z.infer<typeof feedbackSchema>
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
+function createFeedbackSchema(locale: AppLocale) {
+  return z.object({
+    coachFeedback: z
+      .string()
+      .min(1, copy(locale, 'Feedback cannot be empty', 'Feedback får inte vara tom'))
+      .max(500, copy(locale, 'Feedback can be at most 500 characters', 'Feedback får max vara 500 tecken')),
+  })
+}
+
+type FeedbackFormData = {
+  coachFeedback: string
+}
+
+interface IntervalRep {
+  repNumber: number
+  pace?: string | null
+  avgPower?: number | null
+  avgHR?: number | null
+  maxHR?: number | null
+  duration?: number | null
+  distance?: number | null
+}
+
+interface IntervalSegment {
+  segmentLabel: string
+  reps?: IntervalRep[]
+}
+
+interface WorkoutLog {
+  id: string
+  coachFeedback?: string | null
+  duration?: number | null
+  distance?: number | null
+  avgPace?: string | null
+  perceivedEffort?: number | null
+  avgHR?: number | null
+  maxHR?: number | null
+  intervalResults?: unknown
+  feeling?: string | null
+  notes?: string | null
+}
+
+interface WorkoutSummary {
+  id: string
+  name: string
+  type: string
+  intensity: string
+  duration?: number | null
+  distance?: number | null
+}
 
 interface WorkoutFeedbackModalProps {
-  log: any
-  workout: any
+  log: WorkoutLog
+  workout: WorkoutSummary
   athleteId?: string
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
 }
 
 export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbackModalProps) {
   const router = useRouter()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
@@ -66,6 +120,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [sendingMessage, setSendingMessage] = useState(false)
+  const feedbackSchema = useMemo(() => createFeedbackSchema(locale), [locale])
 
   const form = useForm<FeedbackFormData>({
     resolver: zodResolver(feedbackSchema),
@@ -74,7 +129,11 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
     },
   })
 
-  const charCount = form.watch('coachFeedback')?.length || 0
+  const feedbackValue = useWatch({ control: form.control, name: 'coachFeedback' })
+  const charCount = feedbackValue?.length || 0
+  const intervalResults = Array.isArray(log.intervalResults)
+    ? (log.intervalResults as IntervalSegment[])
+    : []
 
   async function onSubmit(data: FeedbackFormData) {
     setIsSubmitting(true)
@@ -94,21 +153,21 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att spara feedback')
+        throw new Error(result.error || copy(locale, 'Failed to save feedback', 'Misslyckades med att spara feedback'))
       }
 
       toast({
-        title: 'Feedback sparad!',
-        description: 'Din feedback har sparats och kommer synas för atleten.',
+        title: copy(locale, 'Feedback saved!', 'Feedback sparad!'),
+        description: copy(locale, 'Your feedback has been saved and will be visible to the athlete.', 'Din feedback har sparats och kommer synas för atleten.'),
       })
 
       setOpen(false)
       router.refresh()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving feedback:', error)
       toast({
-        title: 'Något gick fel',
-        description: error.message,
+        title: copy(locale, 'Something went wrong', 'Något gick fel'),
+        description: errorMessage(error, copy(locale, 'Try again.', 'Försök igen.')),
         variant: 'destructive',
       })
     } finally {
@@ -119,8 +178,8 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
   async function sendMessageToAthlete() {
     if (!athleteId) {
       toast({
-        title: 'Kunde inte skicka meddelande',
-        description: 'Atlet-ID saknas',
+        title: copy(locale, 'Could not send message', 'Kunde inte skicka meddelande'),
+        description: copy(locale, 'Athlete ID is missing', 'Atlet-ID saknas'),
         variant: 'destructive',
       })
       return
@@ -129,7 +188,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
     setSendingMessage(true)
 
     try {
-      const messageContent = `Angående träningspass: ${workout.name}\n\n${form.getValues('coachFeedback') || 'Vill diskutera detta träningspass med dig.'}`
+      const messageContent = `${copy(locale, 'Regarding workout:', 'Angående träningspass:')} ${workout.name}\n\n${form.getValues('coachFeedback') || copy(locale, 'I would like to discuss this workout with you.', 'Vill diskutera detta träningspass med dig.')}`
 
       const response = await fetch('/api/messages', {
         method: 'POST',
@@ -146,20 +205,20 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att skicka meddelande')
+        throw new Error(result.error || copy(locale, 'Failed to send message', 'Misslyckades med att skicka meddelande'))
       }
 
       toast({
-        title: 'Meddelande skickat!',
-        description: 'Ditt meddelande har skickats till atleten.',
+        title: copy(locale, 'Message sent!', 'Meddelande skickat!'),
+        description: copy(locale, 'Your message has been sent to the athlete.', 'Ditt meddelande har skickats till atleten.'),
       })
 
       router.push(`${basePath}/coach/messages`)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error sending message:', error)
       toast({
-        title: 'Kunde inte skicka meddelande',
-        description: error.message,
+        title: copy(locale, 'Could not send message', 'Kunde inte skicka meddelande'),
+        description: errorMessage(error, copy(locale, 'Try again.', 'Försök igen.')),
         variant: 'destructive',
       })
     } finally {
@@ -174,12 +233,12 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
           {log.coachFeedback ? (
             <>
               <Edit className="h-4 w-4 mr-1" />
-              Redigera
+              {copy(locale, 'Edit', 'Redigera')}
             </>
           ) : (
             <>
               <Plus className="h-4 w-4 mr-1" />
-              Lägg till feedback
+              {copy(locale, 'Add feedback', 'Lägg till feedback')}
             </>
           )}
         </Button>
@@ -188,10 +247,12 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            {log.coachFeedback ? 'Redigera feedback' : 'Lägg till feedback'}
+            {log.coachFeedback
+              ? copy(locale, 'Edit feedback', 'Redigera feedback')
+              : copy(locale, 'Add feedback', 'Lägg till feedback')}
           </DialogTitle>
           <DialogDescription>
-            Ge feedback till atleten om detta träningspass
+            {copy(locale, 'Give the athlete feedback about this workout', 'Ge feedback till atleten om detta träningspass')}
           </DialogDescription>
         </DialogHeader>
 
@@ -201,8 +262,8 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
             <div>
               <h3 className="font-semibold text-lg mb-1">{workout.name}</h3>
               <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline">{formatWorkoutType(workout.type)}</Badge>
-                <Badge variant="outline">{formatIntensity(workout.intensity)}</Badge>
+                <Badge variant="outline">{formatWorkoutType(workout.type, locale)}</Badge>
+                <Badge variant="outline">{formatIntensity(workout.intensity, locale)}</Badge>
               </div>
             </div>
 
@@ -210,7 +271,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
             <div className="grid grid-cols-2 gap-4 pt-2 border-t">
               <div>
                 <p className="text-sm text-muted-foreground mb-2 font-medium">
-                  Planerat
+                  {copy(locale, 'Planned', 'Planerat')}
                 </p>
                 {workout.duration && (
                   <div className="flex items-center gap-2 text-sm">
@@ -228,7 +289,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
 
               <div>
                 <p className="text-sm text-muted-foreground mb-2 font-medium">
-                  Faktiskt
+                  {copy(locale, 'Actual', 'Faktiskt')}
                 </p>
                 {log.duration && (
                   <div className="flex items-center gap-2 text-sm">
@@ -268,7 +329,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                 )}
                 {log.avgPace && (
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Tempo:</span>
+                    <span className="text-muted-foreground">{copy(locale, 'Pace:', 'Tempo:')}</span>
                     <span>{log.avgPace}</span>
                   </div>
                 )}
@@ -279,7 +340,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
             {(log.perceivedEffort || log.avgHR || log.maxHR) && (
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground mb-2 font-medium">
-                  Upplevelse & Data
+                  {copy(locale, 'Experience & data', 'Upplevelse & Data')}
                 </p>
                 <div className="flex items-center gap-4 flex-wrap">
                   {log.perceivedEffort && (
@@ -294,7 +355,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                     <div className="flex items-center gap-2">
                       <Heart className="h-4 w-4" />
                       <span className="text-sm">
-                        Snitt-puls: <strong>{log.avgHR} bpm</strong>
+                        {copy(locale, 'Avg HR:', 'Snitt-puls:')} <strong>{log.avgHR} bpm</strong>
                       </span>
                     </div>
                   )}
@@ -302,7 +363,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                     <div className="flex items-center gap-2">
                       <Heart className="h-4 w-4 text-red-500" />
                       <span className="text-sm">
-                        Max-puls: <strong>{log.maxHR} bpm</strong>
+                        {copy(locale, 'Max HR:', 'Max-puls:')} <strong>{log.maxHR} bpm</strong>
                       </span>
                     </div>
                   )}
@@ -311,19 +372,19 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
             )}
 
             {/* Interval Results */}
-            {log.intervalResults && Array.isArray(log.intervalResults) && log.intervalResults.length > 0 && (
+            {intervalResults.length > 0 && (
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground mb-2 font-medium">
-                  Intervallresultat
+                  {copy(locale, 'Interval results', 'Intervallresultat')}
                 </p>
                 <div className="space-y-3">
-                  {(log.intervalResults as any[]).map((segment: any, segIdx: number) => (
+                  {intervalResults.map((segment, segIdx) => (
                     <div key={segIdx} className="space-y-1">
                       <Badge variant="secondary" className="text-xs mb-1">
                         {segment.segmentLabel}
                       </Badge>
                       <div className="space-y-1">
-                        {segment.reps?.map((rep: any, repIdx: number) => (
+                        {segment.reps?.map((rep, repIdx) => (
                           <div
                             key={repIdx}
                             className="flex items-center gap-3 text-sm pl-2"
@@ -331,10 +392,10 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                             <span className="text-muted-foreground font-mono w-5">#{rep.repNumber}</span>
                             <div className="flex items-center gap-3 flex-wrap">
                               {rep.pace && (
-                                <span>Tempo: <strong>{rep.pace}</strong></span>
+                                <span>{copy(locale, 'Pace:', 'Tempo:')} <strong>{rep.pace}</strong></span>
                               )}
                               {rep.avgPower && (
-                                <span>Effekt: <strong>{rep.avgPower}W</strong></span>
+                                <span>{copy(locale, 'Power:', 'Effekt:')} <strong>{rep.avgPower}W</strong></span>
                               )}
                               {rep.avgHR && (
                                 <span>
@@ -348,7 +409,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                               {!rep.avgHR && rep.maxHR && (
                                 <span>
                                   <Heart className="inline h-3 w-3 mr-0.5 text-red-500" />
-                                  max <strong>{rep.maxHR}</strong>
+                                  {copy(locale, 'max', 'max')} <strong>{rep.maxHR}</strong>
                                 </span>
                               )}
                               {rep.duration && (
@@ -371,11 +432,11 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
             {(log.feeling || log.notes) && (
               <div className="pt-2 border-t">
                 <p className="text-sm text-muted-foreground mb-1 font-medium">
-                  Atlets anteckningar
+                  {copy(locale, 'Athlete notes', 'Atlets anteckningar')}
                 </p>
                 {log.feeling && (
                   <p className="text-sm mb-1">
-                    <span className="text-muted-foreground">Känsla:</span>{' '}
+                    <span className="text-muted-foreground">{copy(locale, 'Feeling:', 'Känsla:')}</span>{' '}
                     <span className="font-medium">{log.feeling}</span>
                   </p>
                 )}
@@ -397,17 +458,17 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
               name="coachFeedback"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Din feedback</FormLabel>
+                  <FormLabel>{copy(locale, 'Your feedback', 'Din feedback')}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Skriv din feedback till atleten här..."
+                      placeholder={copy(locale, 'Write your feedback to the athlete here...', 'Skriv din feedback till atleten här...')}
                       rows={6}
                       className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription className="flex justify-between">
-                    <span>Ge konstruktiv feedback om passet och prestationen</span>
+                    <span>{copy(locale, 'Give constructive feedback about the session and performance', 'Ge konstruktiv feedback om passet och prestationen')}</span>
                     <span
                       className={charCount > 500 ? 'text-destructive' : ''}
                     >
@@ -432,12 +493,12 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                     {sendingMessage ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Skickar...
+                        {copy(locale, 'Sending...', 'Skickar...')}
                       </>
                     ) : (
                       <>
                         <Mail className="mr-2 h-4 w-4" />
-                        Skicka meddelande
+                        {copy(locale, 'Send message', 'Skicka meddelande')}
                       </>
                     )}
                   </Button>
@@ -450,11 +511,11 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                   onClick={() => setOpen(false)}
                   disabled={isSubmitting}
                 >
-                  Avbryt
+                  {copy(locale, 'Cancel', 'Avbryt')}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Spara feedback
+                  {copy(locale, 'Save feedback', 'Spara feedback')}
                 </Button>
               </div>
             </DialogFooter>
@@ -466,28 +527,28 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
 }
 
 // Helper functions
-function formatWorkoutType(type: string): string {
-  const types: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
-    CORE: 'Core',
-    PLYOMETRIC: 'Plyometri',
-    RECOVERY: 'Återhämtning',
-    SKIING: 'Skidåkning',
-    OTHER: 'Annat',
+function formatWorkoutType(type: string, locale: AppLocale): string {
+  const types: Record<string, Record<AppLocale, string>> = {
+    RUNNING: { en: 'Running', sv: 'Löpning' },
+    CYCLING: { en: 'Cycling', sv: 'Cykling' },
+    STRENGTH: { en: 'Strength', sv: 'Styrka' },
+    CORE: { en: 'Core', sv: 'Core' },
+    PLYOMETRIC: { en: 'Plyometrics', sv: 'Plyometri' },
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    SKIING: { en: 'Skiing', sv: 'Skidåkning' },
+    OTHER: { en: 'Other', sv: 'Annat' },
   }
-  return types[type] || type
+  return types[type]?.[locale] || type
 }
 
-function formatIntensity(intensity: string): string {
-  const intensities: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Max',
+function formatIntensity(intensity: string, locale: AppLocale): string {
+  const intensities: Record<string, Record<AppLocale, string>> = {
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    EASY: { en: 'Easy', sv: 'Lätt' },
+    MODERATE: { en: 'Moderate', sv: 'Måttlig' },
+    THRESHOLD: { en: 'Threshold', sv: 'Tröskel' },
+    INTERVAL: { en: 'Interval', sv: 'Intervall' },
+    MAX: { en: 'Max', sv: 'Max' },
   }
-  return intensities[intensity] || intensity
+  return intensities[intensity]?.[locale] || intensity
 }
