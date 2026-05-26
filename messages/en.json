@@ -10454,6 +10454,76 @@
         "pageInfo": "Page {currentPage} of {totalPages}"
       }
     },
+    "rehabProgramForm": {
+      "title": {
+        "create": "New rehab program",
+        "edit": "Update rehab program"
+      },
+      "description": "Set the phase, goals, and limits so coaches can clearly see that the player has an active plan.",
+      "fields": {
+        "athlete": "Player",
+        "linkedInjury": "Linked injury",
+        "name": "Name",
+        "phase": "Phase",
+        "status": "Status",
+        "estimatedEndDate": "Estimated end",
+        "shortTermGoals": "Short-term goals",
+        "longTermGoals": "Long-term goals",
+        "contraindications": "Avoid",
+        "precautions": "Be careful with",
+        "acceptablePainDuring": "Acceptable pain during",
+        "acceptablePainAfter": "Acceptable pain after",
+        "description": "Description",
+        "internalNote": "Internal note"
+      },
+      "placeholders": {
+        "selectAthlete": "Select player",
+        "optional": "Optional",
+        "name": "e.g. Groin RTP weeks 1-3",
+        "oneGoalPerLine": "One goal per line",
+        "contraindications": "Activities/movements to avoid, one per line",
+        "precautions": "Cues or limitations, one per line"
+      },
+      "injuries": {
+        "none": "No linked injury",
+        "selected": "Selected injury",
+        "active": "Active injury"
+      },
+      "phases": {
+        "ACUTE": "Acute",
+        "SUBACUTE": "Subacute",
+        "REMODELING": "Remodeling",
+        "FUNCTIONAL": "Functional",
+        "RETURN_TO_SPORT": "Return to sport"
+      },
+      "statuses": {
+        "ACTIVE": "Active",
+        "PAUSED": "Paused",
+        "COMPLETED": "Completed",
+        "CANCELLED": "Cancelled"
+      },
+      "exercises": {
+        "title": "Exercises in the program",
+        "empty": "No exercises are linked yet. The program status still appears on the medical board.",
+        "fallbackName": "Exercise"
+      },
+      "actions": {
+        "pause": "Pause",
+        "markComplete": "Mark complete",
+        "save": "Save"
+      },
+      "toasts": {
+        "created": "Rehab program created",
+        "updated": "Rehab program updated"
+      },
+      "errors": {
+        "genericTitle": "Something went wrong",
+        "unknown": "Unknown error",
+        "loadProgram": "Could not load the rehab program",
+        "saveProgram": "Could not save the rehab program",
+        "missingRequired": "Select a player and enter a program name"
+      }
+    },
     "physioAthleteDetail": {
       "errors": {
         "notFound": "Athlete not found"

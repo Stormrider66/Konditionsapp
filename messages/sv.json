@@ -10821,6 +10821,76 @@
         "pageInfo": "Sida {currentPage} av {totalPages}"
       }
     },
+    "rehabProgramForm": {
+      "title": {
+        "create": "Nytt rehabprogram",
+        "edit": "Uppdatera rehabprogram"
+      },
+      "description": "Sätt fas, mål och ramar så tränare tydligt ser att spelaren har en aktiv plan.",
+      "fields": {
+        "athlete": "Spelare",
+        "linkedInjury": "Kopplad skada",
+        "name": "Namn",
+        "phase": "Fas",
+        "status": "Status",
+        "estimatedEndDate": "Beräknat slut",
+        "shortTermGoals": "Kort mål",
+        "longTermGoals": "Långsiktigt mål",
+        "contraindications": "Undvik",
+        "precautions": "Var försiktig med",
+        "acceptablePainDuring": "Acceptabel smärta under",
+        "acceptablePainAfter": "Acceptabel smärta efter",
+        "description": "Beskrivning",
+        "internalNote": "Intern anteckning"
+      },
+      "placeholders": {
+        "selectAthlete": "Välj spelare",
+        "optional": "Valfritt",
+        "name": "t.ex. Ljumske RTP vecka 1-3",
+        "oneGoalPerLine": "Ett mål per rad",
+        "contraindications": "Aktiviteter/rörelser att undvika, en per rad",
+        "precautions": "Cues eller begränsningar, en per rad"
+      },
+      "injuries": {
+        "none": "Ingen kopplad skada",
+        "selected": "Vald skada",
+        "active": "Aktiv skada"
+      },
+      "phases": {
+        "ACUTE": "Akut",
+        "SUBACUTE": "Subakut",
+        "REMODELING": "Uppbyggnad",
+        "FUNCTIONAL": "Funktionell",
+        "RETURN_TO_SPORT": "Return to sport"
+      },
+      "statuses": {
+        "ACTIVE": "Aktiv",
+        "PAUSED": "Pausad",
+        "COMPLETED": "Klar",
+        "CANCELLED": "Avbruten"
+      },
+      "exercises": {
+        "title": "Övningar i programmet",
+        "empty": "Inga övningar är kopplade ännu. Programstatusen syns ändå på medical board.",
+        "fallbackName": "Övning"
+      },
+      "actions": {
+        "pause": "Pausa",
+        "markComplete": "Markera klar",
+        "save": "Spara"
+      },
+      "toasts": {
+        "created": "Rehabprogrammet skapat",
+        "updated": "Rehabprogrammet uppdaterat"
+      },
+      "errors": {
+        "genericTitle": "Något gick fel",
+        "unknown": "Okänt fel",
+        "loadProgram": "Kunde inte hämta rehabprogrammet",
+        "saveProgram": "Kunde inte spara rehabprogrammet",
+        "missingRequired": "Välj spelare och namn på program"
+      }
+    },
     "physioAthleteDetail": {
       "errors": {
         "notFound": "Atlet hittades inte"
