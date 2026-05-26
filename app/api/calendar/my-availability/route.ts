@@ -34,14 +34,15 @@ export async function GET(request: NextRequest) {
     const { clientId } = resolved
 
     const { searchParams } = new URL(request.url)
-    const locale = request.headers.get('accept-language')?.startsWith('sv') ? sv : enUS
+    const appLocale = request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
+    const dateLocale = appLocale === 'sv' ? sv : enUS
 
     // Check for specific date query
     const specificDate = searchParams.get('date')
     if (specificDate) {
       const date = new Date(specificDate)
       const [dateAvailability, altitudeAdjustment] = await Promise.all([
-        isDateAvailable(clientId, date),
+        isDateAvailable(clientId, date, appLocale),
         getAltitudeAdjustment(clientId, date),
       ])
 
@@ -57,14 +58,14 @@ export async function GET(request: NextRequest) {
     const startDate = new Date()
     const endDate = addDays(new Date(), weeksAhead * 7)
 
-    const availability = await calculateAvailability(clientId, startDate, endDate)
+    const availability = await calculateAvailability(clientId, startDate, endDate, appLocale)
 
     // Format blocked days for display
     const upcomingBlockers = availability.blockedDays
       .slice(0, 10)
       .map((day) => ({
         date: format(day.date, 'yyyy-MM-dd'),
-        displayDate: format(day.date, 'd MMMM', { locale }),
+        displayDate: format(day.date, 'd MMMM', { locale: dateLocale }),
         reason: day.reason,
         type: day.eventType,
       }))
@@ -73,8 +74,8 @@ export async function GET(request: NextRequest) {
     const altitudePeriods = availability.altitudePeriods.map((period) => ({
       start: format(period.startDate, 'yyyy-MM-dd'),
       end: format(period.endDate, 'yyyy-MM-dd'),
-      displayStart: format(period.startDate, 'd MMMM', { locale }),
-      displayEnd: format(period.endDate, 'd MMMM', { locale }),
+      displayStart: format(period.startDate, 'd MMMM', { locale: dateLocale }),
+      displayEnd: format(period.endDate, 'd MMMM', { locale: dateLocale }),
       altitude: period.altitude,
       phase: period.adaptationPhase,
     }))
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
       .slice(0, 10)
       .map((day) => ({
         date: format(day.date, 'yyyy-MM-dd'),
-        displayDate: format(day.date, 'd MMMM', { locale }),
+        displayDate: format(day.date, 'd MMMM', { locale: dateLocale }),
         reason: day.reason,
         impact: day.impact,
       }))
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
     for (let week = 0; week < weeksAhead; week++) {
       const weekStart = addDays(startDate, week * 7)
       const weekEnd = addDays(weekStart, 6)
-      const weekAvailability = await calculateAvailability(clientId, weekStart, weekEnd)
+      const weekAvailability = await calculateAvailability(clientId, weekStart, weekEnd, appLocale)
 
       weeklyBreakdown.push({
         week: week + 1,

@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(endDateStr)
 
     // Get constraints
-    const constraints = await getCalendarConstraints(clientId, startDate, endDate)
-    const availability = await calculateAvailability(clientId, startDate, endDate)
+    const constraints = await getCalendarConstraints(clientId, startDate, endDate, locale)
+    const availability = await calculateAvailability(clientId, startDate, endDate, locale)
     const recommendation = await shouldUseCalendarConstraints(clientId, startDate, endDate, locale)
 
     // Build response

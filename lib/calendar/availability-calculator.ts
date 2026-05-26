@@ -8,6 +8,8 @@
 import { prisma } from '@/lib/prisma'
 import { EventImpact, CalendarEventType, AltitudeAdaptationPhase } from '@prisma/client'
 
+export type AvailabilityLocale = 'en' | 'sv'
+
 export interface BlockedDay {
   date: Date
   reason: string
@@ -46,13 +48,18 @@ export interface AvailabilityResult {
   reducedCount: number
 }
 
+function text(locale: AvailabilityLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Calculate availability for an athlete over a date range
  */
 export async function calculateAvailability(
   clientId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  locale: AvailabilityLocale = 'en'
 ): Promise<AvailabilityResult> {
   // Fetch all calendar events for the date range
   const events = await prisma.calendarEvent.findMany({
@@ -105,7 +112,7 @@ export async function calculateAvailability(
       if (event.trainingImpact === 'NO_TRAINING') {
         blockedDays.push({
           date,
-          reason: getBlockedReason(event.type, event.title),
+          reason: getBlockedReason(event.type, event.title, locale),
           eventType: event.type,
           impact: event.trainingImpact,
           eventId: event.id,
@@ -114,7 +121,7 @@ export async function calculateAvailability(
       } else if (event.trainingImpact === 'REDUCED' || event.trainingImpact === 'MODIFIED') {
         reducedDays.push({
           date,
-          reason: getReducedReason(event.type, event.title, event.trainingImpact),
+          reason: getReducedReason(event.type, event.title, event.trainingImpact, locale),
           eventType: event.type,
           impact: event.trainingImpact,
           impactNotes: event.impactNotes,
@@ -132,10 +139,18 @@ export async function calculateAvailability(
 
         reducedDays.push({
           date,
-          reason: 'Återhämtning efter sjukdom - gradvis återgång',
+          reason: text(
+            locale,
+            'Illness recovery - gradual return',
+            'Återhämtning efter sjukdom - gradvis återgång'
+          ),
           eventType: 'ILLNESS',
           impact: 'REDUCED',
-          impactNotes: 'Gradvis upptrappning efter sjukdom',
+          impactNotes: text(
+            locale,
+            'Gradual ramp-up after illness',
+            'Gradvis upptrappning efter sjukdom'
+          ),
           eventId: event.id,
         })
       }
@@ -145,7 +160,6 @@ export async function calculateAvailability(
   // Calculate available days
   const allDates = getDatesBetween(startDate, endDate)
   const blockedDateSet = new Set(blockedDays.map((d) => d.date.toISOString().split('T')[0]))
-  const reducedDateSet = new Set(reducedDays.map((d) => d.date.toISOString().split('T')[0]))
 
   const availableDays = allDates.filter((date) => {
     const dateKey = date.toISOString().split('T')[0]
@@ -188,24 +202,28 @@ function getDatesBetween(start: Date, end: Date): Date[] {
 /**
  * Get human-readable reason for blocked day
  */
-function getBlockedReason(type: CalendarEventType, title: string): string {
+function getBlockedReason(
+  type: CalendarEventType,
+  title: string,
+  locale: AvailabilityLocale
+): string {
   switch (type) {
     case 'TRAVEL':
-      return `Resedag: ${title}`
+      return `${text(locale, 'Travel day', 'Resedag')}: ${title}`
     case 'ILLNESS':
-      return `Sjukdom: ${title}`
+      return `${text(locale, 'Illness', 'Sjukdom')}: ${title}`
     case 'VACATION':
-      return `Semester: ${title}`
+      return `${text(locale, 'Vacation', 'Semester')}: ${title}`
     case 'WORK_BLOCKER':
-      return `Arbete: ${title}`
+      return `${text(locale, 'Work', 'Arbete')}: ${title}`
     case 'PERSONAL_BLOCKER':
-      return `Privat: ${title}`
+      return `${text(locale, 'Personal', 'Privat')}: ${title}`
     case 'EXTERNAL_EVENT':
-      return `Extern händelse: ${title}`
+      return `${text(locale, 'External event', 'Extern händelse')}: ${title}`
     case 'ALTITUDE_CAMP':
-      return `Höghöjdsläger: ${title}`
+      return `${text(locale, 'Altitude camp', 'Höghöjdsläger')}: ${title}`
     case 'TRAINING_CAMP':
-      return `Träningsläger: ${title}`
+      return `${text(locale, 'Training camp', 'Träningsläger')}: ${title}`
     default:
       return title
   }
@@ -217,16 +235,21 @@ function getBlockedReason(type: CalendarEventType, title: string): string {
 function getReducedReason(
   type: CalendarEventType,
   title: string,
-  impact: EventImpact
+  impact: EventImpact,
+  locale: AvailabilityLocale
 ): string {
-  const impactText = impact === 'REDUCED' ? 'reducerad träning' : 'anpassad träning'
+  const impactText =
+    impact === 'REDUCED'
+      ? text(locale, 'reduced training', 'reducerad träning')
+      : text(locale, 'adjusted training', 'anpassad träning')
+
   switch (type) {
     case 'TRAVEL':
-      return `Resedag (${impactText}): ${title}`
+      return `${text(locale, 'Travel day', 'Resedag')} (${impactText}): ${title}`
     case 'ALTITUDE_CAMP':
-      return `Höghöjdsanpassning: ${title}`
+      return `${text(locale, 'Altitude adaptation', 'Höghöjdsanpassning')}: ${title}`
     case 'TRAINING_CAMP':
-      return `Träningsläger: ${title}`
+      return `${text(locale, 'Training camp', 'Träningsläger')}: ${title}`
     default:
       return `${title} (${impactText})`
   }
@@ -237,7 +260,8 @@ function getReducedReason(
  */
 export async function isDateAvailable(
   clientId: string,
-  date: Date
+  date: Date,
+  locale: AvailabilityLocale = 'en'
 ): Promise<{
   available: boolean
   reduced: boolean
@@ -271,7 +295,7 @@ export async function isDateAvailable(
     return {
       available: false,
       reduced: false,
-      reason: getBlockedReason(event.type, event.title),
+      reason: getBlockedReason(event.type, event.title, locale),
       impact: event.trainingImpact,
     }
   }
@@ -279,7 +303,7 @@ export async function isDateAvailable(
   return {
     available: true,
     reduced: true,
-    reason: getReducedReason(event.type, event.title, event.trainingImpact),
+    reason: getReducedReason(event.type, event.title, event.trainingImpact, locale),
     impact: event.trainingImpact,
   }
 }
@@ -386,7 +410,8 @@ export async function getAltitudeAdjustment(
 export async function getCalendarConstraints(
   clientId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  locale: AvailabilityLocale = 'en'
 ): Promise<{
   blockedDates: string[] // ISO date strings
   reducedDates: string[]
@@ -402,7 +427,7 @@ export async function getCalendarConstraints(
     returnDate: string
   }[]
 }> {
-  const availability = await calculateAvailability(clientId, startDate, endDate)
+  const availability = await calculateAvailability(clientId, startDate, endDate, locale)
 
   return {
     blockedDates: availability.blockedDays.map(

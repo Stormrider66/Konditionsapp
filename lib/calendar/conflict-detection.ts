@@ -302,7 +302,7 @@ async function generateResolutions(
   const searchEnd = new Date(originalDate)
   searchEnd.setDate(searchEnd.getDate() + 7)
 
-  const availability = await calculateAvailability(clientId, searchStart, searchEnd)
+  const availability = await calculateAvailability(clientId, searchStart, searchEnd, locale)
 
   // Find best alternative dates (prefer same week, before > after)
   const availableDates = availability.availableDays

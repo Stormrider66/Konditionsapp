@@ -96,8 +96,8 @@ export async function buildCalendarContext(
     const endDate = programEndDate || addDays(new Date(), 84) // 12 weeks
 
     // Get availability data
-    const availability = await calculateAvailability(clientId, startDate, endDate)
-    const constraints = await getCalendarConstraints(clientId, startDate, endDate)
+    const availability = await calculateAvailability(clientId, startDate, endDate, locale)
+    const constraints = await getCalendarConstraints(clientId, startDate, endDate, locale)
 
     // Get upcoming events for context
     const upcomingEvents = await prisma.calendarEvent.findMany({
@@ -393,7 +393,7 @@ export async function shouldUseCalendarConstraints(
   hasAltitude: boolean
   hasIllness: boolean
 }> {
-  const availability = await calculateAvailability(clientId, startDate, endDate)
+  const availability = await calculateAvailability(clientId, startDate, endDate, locale)
 
   const hasBlockers = availability.blockedCount > 0
   const hasAltitude = availability.altitudePeriods.length > 0
